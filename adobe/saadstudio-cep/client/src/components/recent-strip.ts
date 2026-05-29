@@ -11,17 +11,27 @@ import { api, type GenerationItem } from "../lib/api";
 import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
 
-export function RecentStrip(): HTMLElement {
+export interface RecentStripOptions {
+  fixedFilter?: "image" | "video";
+  showToolbar?: boolean;
+  showNewTile?: boolean;
+}
+
+export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   const root = el("section.library-shell");
   const imageTab = el("button.library-toggle.library-toggle--active", null, icon("image", 13), "Image");
   const videoTab = el("button.library-toggle", null, icon("video", 13), "Video");
   const viewBadge = el("div.library-view-badge", null, "View");
   const count = el("span.library-count", null, "0 items");
   const grid = el("div.library-grid");
-  let filter: "image" | "video" = "image";
+  const fixedFilter = options.fixedFilter;
+  const showToolbar = options.showToolbar ?? !fixedFilter;
+  const showNewTile = options.showNewTile ?? !fixedFilter;
+  let filter: "image" | "video" = fixedFilter ?? "image";
 
   let userSelectedFilter = false;
   const selectFilter = (next: "image" | "video") => {
+    if (fixedFilter) return;
     filter = next;
     userSelectedFilter = true;
     render();
@@ -36,7 +46,9 @@ export function RecentStrip(): HTMLElement {
     const imageItems = allItems.filter((item) => item.kind === "image");
     const videoItems = allItems.filter((item) => item.kind === "video");
 
-    if (!userSelectedFilter) {
+    if (fixedFilter) {
+      filter = fixedFilter;
+    } else if (!userSelectedFilter) {
       if (filter === "image" && !imageItems.length && videoItems.length) {
         filter = "video";
       } else if (filter === "video" && !videoItems.length && imageItems.length) {
@@ -53,7 +65,9 @@ export function RecentStrip(): HTMLElement {
       : `${items.length} item${items.length === 1 ? "" : "s"}`;
 
     grid.replaceChildren();
-    grid.appendChild(newTile(filter));
+    if (showNewTile) {
+      grid.appendChild(newTile(filter));
+    }
 
     if (state.recentLoading && !allItems.length) {
       grid.appendChild(loadingHint());
@@ -69,27 +83,28 @@ export function RecentStrip(): HTMLElement {
     }
   };
 
-  store.subscribe(render);
-  root.append(
-    el("div.library-toolbar",
-      null,
-      el("div.library-toolbar__left",
+  if (showToolbar) {
+    root.append(
+      el("div.library-toolbar",
         null,
-        imageTab,
-        videoTab,
+        el("div.library-toolbar__left",
+          null,
+          imageTab,
+          videoTab,
+        ),
+        el("div.library-toolbar__right",
+          null,
+          count,
+          viewBadge,
+        ),
       ),
-      el("div.library-toolbar__right",
-        null,
-        count,
-        viewBadge,
-      ),
-    ),
-    grid,
+    );
+  }
+  root.append(grid);
   );
   render();
   store.refreshRecent();
   return root;
-}
 
 function newTile(filter: "image" | "video"): HTMLElement {
   const route = filter === "video" ? "/video-gen" : "/image-gen";

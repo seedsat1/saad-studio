@@ -9,6 +9,7 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockConfig } from "../components/prompt-dock";
+import { RecentStrip } from "../components/recent-strip";
 import { icon } from "../lib/icons";
 import { evalES } from "../lib/cep";
 import { api, type JobStatus } from "../lib/api";
@@ -17,6 +18,7 @@ import { store } from "../lib/store";
 
 export interface FeatureConfig {
   title: string;
+  galleryKind?: "image" | "video";
   /** Dock placeholder, options + the request body the dock should produce. */
   dock: Omit<DockConfig, "onSubmit">;
   /** Build the request body and hit the API. Return the (queued) job. */
@@ -25,18 +27,29 @@ export interface FeatureConfig {
 }
 
 export function FeaturePage(cfg: FeatureConfig): HTMLElement {
-  const results = el("div.col.gap-3", { style: { padding: "0 16px" } });
-  const empty = el("div.state-card", { style: { marginTop: "8px" } },
-    el("div.state-card__icon", null, icon("spark", 22)),
-    el("div.state-card__title", null, "Nothing here yet"),
-    el("div.state-card__subtitle", null,
-      "Type a prompt below and tap the send button to start a generation."),
+  const preview = el("div.col.gap-3", { style: { padding: "0 16px" } });
+  const gallery = RecentStrip({
+    fixedFilter: cfg.galleryKind,
+    showToolbar: false,
+    showNewTile: false,
+  });
+  const results = el("div.col.gap-4",
+    null,
+    preview,
+    el("section.section",
+      { style: { padding: "0 16px 16px" } },
+      el("div.section__head",
+        null,
+        el("h3.section__title", null, cfg.galleryKind === "video" ? "Your videos" : "Your images"),
+        el("span.section__hint", null, "From your account"),
+      ),
+      gallery,
+    ),
   );
-  results.appendChild(empty);
 
   const setBusy = (busy: boolean) => {
     if (busy) {
-      results.replaceChildren(busyCard());
+      preview.replaceChildren(busyCard());
     }
   };
 
@@ -53,11 +66,11 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
         if (final.status === "failed" || !final.result) {
           throw new Error(final.error ?? "Generation failed");
         }
-        results.replaceChildren(resultCard(final, results));
+        preview.replaceChildren(resultCard(final, preview));
         store.refreshCreditsOnly();
         store.refreshRecent();
       } catch (err) {
-        results.replaceChildren(errorCard((err as Error).message));
+        preview.replaceChildren(errorCard((err as Error).message));
         toast((err as Error).message, "error");
       }
     },

@@ -9,7 +9,6 @@ import { api } from "../lib/api";
 
 const MODELS = [
   { value: "imagen-4-ultra", label: "Imagen 4 Ultra" },
-  { value: "flux", label: "FLUX" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
 ];
 const ASPECTS = [
@@ -30,6 +29,7 @@ const RESOLUTIONS = [
 export function ImageGenPage(): HTMLElement {
   return FeaturePage({
     title: "Image generation",
+    galleryKind: "image",
     dock: {
       placeholder: "Describe the image you want to generate…",
       showAttach: true,

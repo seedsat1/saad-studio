@@ -31,6 +31,7 @@ const MODES = [
 export function VideoGenPage(): HTMLElement {
   return FeaturePage({
     title: "Video generation",
+    galleryKind: "video",
     dock: {
       placeholder: "Describe the video you want to generate…",
       showAttach: true,
