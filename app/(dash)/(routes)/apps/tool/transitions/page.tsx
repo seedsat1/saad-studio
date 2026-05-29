@@ -1610,33 +1610,7 @@ export default function TransitionsStudioPage() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Use in other tools row */}
-                  <div className="mt-4 w-full rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-3 flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3" />Use this video in other tools
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { label: "Lipsync Studio", href: "/video/lipsync", emoji: "🎙️", desc: "Add lip-synced audio" },
-                        { label: "Next Scene", href: "/cinema-studio", emoji: "🎬", desc: "Cinematic production" },
-                        { label: "Video Editor", href: "/video/edit", emoji: "✂️", desc: "AI timeline editing" },
-                        { label: "Video Upscale", href: "/video/upscale", emoji: "⬆️", desc: "Enhance to 4K/8K" },
-                        { label: "Mixed Media", href: "/video/mixed-media", emoji: "🎭", desc: "Combine visual styles" },
-                        { label: "View in Gallery", href: "/gallery", emoji: "🗂️", desc: "All your creations" },
-                      ].map((tool) => (
-                        <a
-                          key={tool.href}
-                          href={tool.href}
-                          className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl transition-all hover:scale-[1.03] group"
-                          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
-                        >
-                          <span className="text-lg">{tool.emoji}</span>
-                          <span className="text-[9px] font-bold text-slate-300 text-center leading-tight group-hover:text-violet-300 transition-colors">{tool.label}</span>
-                          <span className="text-[7px] text-slate-600 text-center">{tool.desc}</span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+
                 </motion.div>
               ) : (
                 <motion.div
