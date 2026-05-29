@@ -5,6 +5,7 @@ import {
   ensureUserRow,
   spendCredits,
 } from "@/lib/credit-ledger";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -133,6 +134,15 @@ export async function POST(req: NextRequest) {
   const verified = verifyPanelToken(token);
   if (!verified) {
     return NextResponse.json({ error: "Invalid or expired panel token." }, { status: 401 });
+  }
+
+  const rate = hitRateLimit({
+    key: `panel:transcribe:${verified.userId}`,
+    limit: 8,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
   }
 
   const { userId } = verified;

@@ -5,6 +5,7 @@ import {
   createSignedUploadUrl,
   deleteObjectFromStorage,
 } from "@/lib/r2-storage";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,6 +54,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or missing panel token." }, { status: 401 });
   }
 
+  const limit = hitRateLimit({
+    key: `panel:upload-url:${userId}`,
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (!limit.allowed) {
+    return panelRateLimitResponse(limit.retryAfterSec);
+  }
+
   try {
     const body = await req.json().catch(() => null);
     const fileName = typeof body?.fileName === "string" ? body.fileName.trim() : "";
@@ -91,6 +101,15 @@ export async function DELETE(req: NextRequest) {
   const userId = getVerifiedUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Invalid or missing panel token." }, { status: 401 });
+  }
+
+  const limit = hitRateLimit({
+    key: `panel:upload-delete:${userId}`,
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!limit.allowed) {
+    return panelRateLimitResponse(limit.retryAfterSec);
   }
 
   let body: { path?: string; bucket?: string };

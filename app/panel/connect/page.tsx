@@ -51,7 +51,7 @@ function ConnectFlow() {
     return (
       <div className="text-center space-y-5">
         <p className="text-zinc-300 text-sm leading-relaxed">
-          Sign in to connect the Premiere Pro plugin to your account.
+          Sign in to connect your Saad Studio panel to your account.
         </p>
         <SignInButton mode="modal">
           <button className="w-full py-3 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm transition-colors">
@@ -69,9 +69,9 @@ function ConnectFlow() {
         </div>
         <h2 className="text-white font-bold text-lg">Connected!</h2>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Your Premiere Pro plugin is now connected.
+          Your Saad Studio panel is now connected.
           <br />
-          You can close this tab and return to Premiere.
+          You can close this tab and return to Saad Studio.
         </p>
       </div>
     );
@@ -96,7 +96,7 @@ function ConnectFlow() {
         className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full mx-auto"
         style={{ animation: "spin 0.8s linear infinite" }}
       />
-      <p className="text-zinc-300 text-sm">Connecting to Premiere Pro…</p>
+      <p className="text-zinc-300 text-sm">Connecting to Saad Studio…</p>
     </div>
   );
 }
@@ -107,15 +107,19 @@ export default function ConnectPage() {
       <div className="w-full max-w-sm bg-[#0c1019] border border-white/10 rounded-2xl p-8 shadow-2xl">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#7c3aed,#a855f7)" }}
-          >
-            ⚡
-          </div>
+          <img
+            src="https://www.saadstudio.app/logo-saad-transparent.png"
+            alt="Saad Studio"
+            className="w-9 h-9 rounded-xl object-contain flex-shrink-0"
+          />
           <div>
             <div className="text-white font-bold text-sm">Saad Studio</div>
-            <div className="text-zinc-500 text-xs">Premiere Pro Plugin</div>
+            <a
+              href="https://www.saadstudio.app"
+              className="text-zinc-500 text-xs hover:text-zinc-300 transition-colors"
+            >
+              saadstudio.app
+            </a>
           </div>
         </div>
 

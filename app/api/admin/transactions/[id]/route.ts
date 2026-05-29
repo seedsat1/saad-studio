@@ -90,6 +90,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
     }
 
+    if (tx.paymentStatus === "COMPLETED" && nextStatus !== "COMPLETED") {
+      return NextResponse.json(
+        { error: "Completed transactions cannot be changed to another status." },
+        { status: 409 }
+      );
+    }
+
     if (nextStatus === tx.paymentStatus) {
       if (nextStatus === "COMPLETED") {
         const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");

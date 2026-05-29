@@ -17,6 +17,7 @@ import prismadb from "@/lib/prismadb";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 import { isDirectProviderModel } from "@/lib/provider-router";
 import { dispatchDirectImage } from "@/lib/providers/dispatch";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -95,6 +96,15 @@ export async function POST(req: NextRequest) {
 
   const verified = verifyPanelToken(token);
   if (!verified) return NextResponse.json({ error: "Invalid panel token." }, { status: 401 });
+
+  const rate = hitRateLimit({
+    key: `panel:generate-image:${verified.userId}`,
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
+  }
 
   let chargedCredits = 0;
   let generationId: string | null = null;

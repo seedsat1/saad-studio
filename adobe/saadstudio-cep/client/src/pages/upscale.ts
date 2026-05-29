@@ -7,7 +7,7 @@ import { api } from "../lib/api";
 export function UpscalePage(): HTMLElement {
   return VideoUtilityPage({
     title: "Upscale",
-    hint: "Boost the source clip with upscale factor controls similar to the website tool.",
+    hint: "Boost the source clip with upscale factor controls used in Saad Studio.",
     options: [
       { key: "factor", label: "Factor", value: "2x", options: [
         { value: "1x", label: "1x" },

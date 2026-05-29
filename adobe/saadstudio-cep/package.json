@@ -1,0 +1,10 @@
+{
+  "name": "saadstudio-cep-release",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:cep": "powershell -ExecutionPolicy Bypass -File ./scripts/build-cep.ps1",
+    "package:zxp": "powershell -ExecutionPolicy Bypass -File ./scripts/package-zxp.ps1",
+    "release:zxp": "powershell -ExecutionPolicy Bypass -File ./scripts/release-zxp.ps1"
+  }
+}

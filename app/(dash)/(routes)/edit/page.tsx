@@ -37,6 +37,7 @@ import {
   ArrowDown,
   LayoutGrid,
   Upload,
+  Smile,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -160,6 +161,17 @@ const EDIT_TOOLS: EditTool[] = [
     hex: "#14b8a6",
     glowHex: "rgba(20,184,166,0.45)",
     description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
+  },
+  {
+    id: "faceswap",
+    label: "Face Swap Pro",
+    icon: Smile,
+    color: "text-fuchsia-400",
+    border: "border-fuchsia-500",
+    glow: "shadow-fuchsia-500/50",
+    hex: "#d946ef",
+    glowHex: "rgba(217,70,239,0.45)",
+    description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
   },
 ];
 
@@ -349,6 +361,8 @@ export default function EditPage() {
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [faceImageUrl, setFaceImageUrl] = useState("");
+  const [isUploadingFace, setIsUploadingFace] = useState(false);
 
   // Advanced generation parameters
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -456,6 +470,81 @@ export default function EditPage() {
       setSimulatedWarning(`Upload failed: ${err.message}`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFaceUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSimulatedWarning("Reference face must be an image.");
+      return;
+    }
+    setIsUploadingFace(true);
+    setSimulatedWarning(null);
+    try {
+      let publicUrl = "";
+
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed, attempting direct cloud upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
+      }
+
+      if (publicUrl) {
+        setFaceImageUrl(publicUrl);
+        setShowResult(false);
+      }
+    } catch (err: any) {
+      console.error("Face upload error:", err);
+      setSimulatedWarning(`Face upload failed: ${err.message}`);
+    } finally {
+      setIsUploadingFace(false);
     }
   };
 
@@ -692,8 +781,13 @@ export default function EditPage() {
     if (isProcessing) return;
     
     // For tools that need prompts, verify prompt input
-    const isPromptOptional = ["bgremove", "upscale"].includes(activeTool);
+    const isPromptOptional = ["bgremove", "upscale", "faceswap"].includes(activeTool);
     if (!isPromptOptional && !prompt.trim()) return;
+
+    if (activeTool === "faceswap" && !faceImageUrl) {
+      setSimulatedWarning("Please upload a reference face image first.");
+      return;
+    }
 
     setSimulatedWarning(null);
     setShowResult(false);
@@ -721,6 +815,18 @@ export default function EditPage() {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to remove background");
+        resultUrl = data.imageUrl;
+      } else if (activeTool === "faceswap") {
+        const response = await fetch("/api/generate/face-swap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceImageUrl: faceImageUrl,
+            targetImageUrl: inputMedia,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to swap face");
         resultUrl = data.imageUrl;
       } else if (activeTool === "upscale") {
         const payload = mediaType === "video"
@@ -778,7 +884,7 @@ export default function EditPage() {
     }
 
     setIsProcessing(false);
-  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor]);
+  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, faceImageUrl]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
@@ -1153,12 +1259,14 @@ export default function EditPage() {
                       ? "Background removal doesn't require a prompt. Click Apply!"
                       : activeTool === "upscale"
                       ? "AI Upscale doesn't require a prompt. Click Apply!"
+                      : activeTool === "faceswap"
+                      ? "Face Swap doesn't require a prompt. Upload a reference face & click Apply!"
                       : "Describe what to add, replace, or alter in the drawn region..."
                   }
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                  disabled={isProcessing || ["bgremove", "upscale"].includes(activeTool)}
+                  disabled={isProcessing || ["bgremove", "upscale", "faceswap"].includes(activeTool)}
                   className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
                 />
 
@@ -1166,10 +1274,10 @@ export default function EditPage() {
                 <button
                   type="button"
                   onClick={handleApply}
-                  disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
+                  disabled={isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())}
                   className={cn(
                     "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
-                    isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
+                    isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())
                       ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
                       : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
                   )}
@@ -1927,6 +2035,91 @@ export default function EditPage() {
             </div>
           )}
 
+          {/* ────────────────────────────────────────────────────────────
+              9. Face Swap Pro Settings
+          ──────────────────────────────────────────────────────────── */}
+          {activeTool === "faceswap" && (
+            <div className="space-y-6">
+              {/* Reference Face Image Control (Upload & Reset) */}
+              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                    Reference Face Image
+                  </span>
+                  {faceImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFaceImageUrl("");
+                      }}
+                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider"
+                    >
+                      Clear Face
+                    </button>
+                  )}
+                </div>
+
+                {isUploadingFace ? (
+                  <div className="flex flex-col items-center justify-center p-6 border border-white/10 rounded-xl bg-zinc-950/40">
+                    <div className="h-6 w-6 rounded-full border border-t-cyan-400 border-r-transparent animate-spin mb-2" />
+                    <span className="text-[10px] text-zinc-400 font-bold">Uploading face image...</span>
+                  </div>
+                ) : faceImageUrl ? (
+                  <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square w-32 mx-auto bg-zinc-950">
+                    <img
+                      src={faceImageUrl}
+                      alt="Reference Face"
+                      className="w-full h-full object-cover"
+                    />
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
+                      <Upload className="h-4 w-4 text-white mr-1.5" />
+                      <span className="text-[10px] font-bold text-white">Change</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleFaceUpload(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-fuchsia-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
+                    <Upload className="h-5 w-5 text-zinc-500 group-hover:text-fuchsia-400 transition-colors mb-2" />
+                    <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                      Upload Face Photo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await handleFaceUpload(file);
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Best Practice Note / Tips for Face Swap */}
+              <div className="bg-[#120a1c]/60 border border-fuchsia-500/10 rounded-xl p-3.5 space-y-2">
+                <p className="text-[10px] font-bold text-fuchsia-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Info className="h-3.5 w-3.5 shrink-0" />
+                  <span>Pro Swap Tips</span>
+                </p>
+                <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
+                  <li>Use high-resolution, front-facing face portraits.</li>
+                  <li>Ensure consistent lighting between both images.</li>
+                  <li>Avoid angles, occlusions (hands, hair), or motion blur.</li>
+                  <li>Works best with human faces (anime results may vary).</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-white/5" />
 
           {/* Tool description information card */}
@@ -1969,17 +2162,17 @@ export default function EditPage() {
           <button
             type="button"
             onClick={handleApply}
-            disabled={isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())}
+            disabled={isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())}
             className={cn(
               "w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
-              isProcessing || (!["bgremove", "upscale"].includes(activeTool) && !prompt.trim())
+              isProcessing || (!["bgremove", "upscale", "faceswap"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-cyan-400/20 shadow-cyan-500/10"
             )}
           >
             <Sparkles className="h-4.5 w-4.5" />
             <span>Apply Generation</span>
-            {!isProcessing && (["bgremove", "upscale"].includes(activeTool) || prompt.trim()) && (
+            {!isProcessing && (["bgremove", "upscale", "faceswap"].includes(activeTool) || prompt.trim()) && (
               <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black">
                 <Star className="h-3 w-3 fill-current" />
                 <span>5</span>

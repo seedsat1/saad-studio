@@ -120,7 +120,7 @@ function renderWaiting(card: HTMLElement, handle: AuthFlowHandle, statusEl: HTML
     statusEl,
     el("p.dim",
       { style: { fontSize: "11px", textAlign: "center", margin: "16px 0 0" } },
-      "A browser window opened on saadstudio.app. Sign in there to finish connecting.",
+      "A browser window opened on https://www.saadstudio.app. Sign in there to connect this panel.",
     ),
     el("div", { style: { textAlign: "center", marginTop: "14px" } },
       el("button.btn-secondary",
@@ -162,7 +162,7 @@ function renderManual(card: HTMLElement) {
     headerRow(),
     el("p.dim",
       { style: { fontSize: "12px", margin: "0 0 12px" } },
-      "Generate a token at saadstudio.app/panel and paste it below.",
+      "Generate a panel token at https://www.saadstudio.app/panel and paste it below.",
     ),
     input,
     el("div.row.gap-2", { style: { marginTop: "12px" } },
@@ -249,7 +249,7 @@ function headerRow(): HTMLElement {
     el("div.col",
       null,
       el("div", { style: { fontSize: "16px", fontWeight: "700" } }, "Saad Studio"),
-      el("div.dim", { style: { fontSize: "12px" } }, "Sign in once to connect your plugin and start generating."),
+      el("div.dim", { style: { fontSize: "12px" } }, "Sign in once at https://www.saadstudio.app to connect your panel and start generating."),
     ),
   );
 }

@@ -13,6 +13,7 @@ import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { isDirectProviderModel, getProviderFor } from "@/lib/provider-router";
 import { dispatchDirectVideo } from "@/lib/providers/dispatch";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -190,6 +191,15 @@ export async function POST(req: NextRequest) {
 
   const verified = verifyPanelToken(token);
   if (!verified) return NextResponse.json({ error: "Invalid panel token." }, { status: 401 });
+
+  const rate = hitRateLimit({
+    key: `panel:generate-video:${verified.userId}`,
+    limit: 12,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
+  }
 
   let chargedCredits = 0;
   let generationId: string | null = null;

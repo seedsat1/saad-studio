@@ -3,7 +3,7 @@
   Version="6.0"
   ExtensionBundleId="app.saadstudio.cep"
   ExtensionBundleVersion="1.0.0"
-  ExtensionBundleName="Saad Studio"
+  ExtensionBundleName="Saad Studio Beta 1.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 >
   <ExtensionList>
@@ -42,7 +42,7 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>Saad Studio</Menu>
+          <Menu>Saad Studio Beta 1.0.0</Menu>
           <Geometry>
             <Size>
               <Width>600</Width>
@@ -82,7 +82,7 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>Saad Studio — Draw to Edit</Menu>
+          <Menu>Saad Studio Beta 1.0.0 — Draw to Edit</Menu>
           <Geometry>
             <Size>
               <Width>720</Width>

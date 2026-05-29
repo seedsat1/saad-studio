@@ -32,7 +32,7 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
     ? el("div", { style: { padding: "0 16px 16px" } },
         el("div.section__head", null,
           el("h3.section__title", null, cfg.galleryKind === "image" ? "Recent images" : "Recent videos"),
-          el("span.section__hint", null, "Synced from your website account"),
+          el("span.section__hint", null, "Synced from your Saad Studio account"),
         ),
         RecentStrip({
           fixedFilter: cfg.galleryKind,

@@ -3,12 +3,19 @@ import { createHmac, randomBytes } from "crypto";
 /** Token prefix so we can quickly identify a panel token. */
 const PREFIX = "ssp_";
 
+function getTokenMaxAgeMs(): number {
+  const raw = Number(process.env.PANEL_TOKEN_MAX_AGE_SECONDS ?? 60 * 60 * 24 * 30);
+  const seconds = Number.isFinite(raw) && raw > 0 ? raw : 60 * 60 * 24 * 30;
+  return Math.floor(seconds * 1000);
+}
+
 function getSecret(): string {
-  return (
-    process.env.PANEL_TOKEN_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    "saad-studio-panel-secret-please-set-PANEL_TOKEN_SECRET"
-  );
+  const secret = process.env.PANEL_TOKEN_SECRET ?? process.env.NEXTAUTH_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("PANEL_TOKEN_SECRET is required in production.");
+  }
+  return "saad-studio-panel-secret-please-set-PANEL_TOKEN_SECRET";
 }
 
 /**
@@ -65,6 +72,11 @@ export function verifyPanelToken(token: string): { userId: string } | null {
 
     const userId = data?.userId;
     if (!userId || typeof userId !== "string") return null;
+
+    const issuedAt = Number(data?.iat);
+    if (!Number.isFinite(issuedAt) || issuedAt <= 0) return null;
+    const ageMs = Date.now() - issuedAt * 1000;
+    if (ageMs < 0 || ageMs > getTokenMaxAgeMs()) return null;
 
     return { userId };
   } catch {

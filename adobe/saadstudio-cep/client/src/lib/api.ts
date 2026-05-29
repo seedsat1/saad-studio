@@ -8,22 +8,46 @@
  * staging, or production by changing the env file at build time. */
 
 import { getToken, clearToken } from "./auth";
+import { openExternal } from "./cep";
 import { LOCAL_TRANSITION_PRESETS } from "./transition-presets";
 
 const DEFAULT_BASE = "https://www.saadstudio.app";
 const OVERRIDE_KEY = "saadstudio.apiBase";
 
+function normalizeBase(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+function isAllowedProductionBase(url: string): boolean {
+  return normalizeBase(url) === DEFAULT_BASE;
+}
+
 export function getApiBase(): string {
   try {
     const override = localStorage.getItem(OVERRIDE_KEY);
-    if (override) return override.replace(/\/+$/, "");
+    if (override) {
+      const clean = normalizeBase(override);
+      if (import.meta.env.PROD && !isAllowedProductionBase(clean)) {
+        localStorage.removeItem(OVERRIDE_KEY);
+        return DEFAULT_BASE;
+      }
+      return clean;
+    }
   } catch { /* noop */ }
   const envBase = import.meta.env.VITE_SAAD_API as string | undefined;
-  return (envBase ?? DEFAULT_BASE).replace(/\/+$/, "");
+  const clean = normalizeBase(envBase ?? DEFAULT_BASE);
+  if (import.meta.env.PROD && !isAllowedProductionBase(clean)) {
+    return DEFAULT_BASE;
+  }
+  return clean;
 }
 
 export function setApiBase(url: string) {
-  const clean = url.trim().replace(/\/+$/, "");
+  const clean = normalizeBase(url);
+  if (import.meta.env.PROD && !isAllowedProductionBase(clean)) {
+    try { localStorage.removeItem(OVERRIDE_KEY); } catch { /* noop */ }
+    return;
+  }
   try { localStorage.setItem(OVERRIDE_KEY, clean); } catch { /* noop */ }
 }
 
@@ -140,6 +164,19 @@ export class ApiError extends Error {
   }
 }
 
+let lastCreditsTopupOpenAt = 0;
+
+export function getCreditsTopupUrl(): string {
+  return `${getApiBase()}/payment?type=topup`;
+}
+
+export function openCreditsTopup() {
+  const now = Date.now();
+  if (now - lastCreditsTopupOpenAt < 5000) return;
+  lastCreditsTopupOpenAt = now;
+  openExternal(getCreditsTopupUrl());
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
   if (!token) throw new ApiError("Not signed in", 401);
@@ -166,6 +203,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const msg = (data && typeof data === "object" && "error" in data)
       ? String((data as { error: unknown }).error)
       : `Request failed (${res.status})`;
+    if (res.status === 402) {
+      openCreditsTopup();
+      throw new ApiError(`${msg}. Opening the credit top-up page…`, res.status);
+    }
     throw new ApiError(msg, res.status);
   }
   return data as T;

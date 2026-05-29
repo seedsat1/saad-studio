@@ -139,14 +139,21 @@ To distribute the panel you need to sign it as a `.zxp` with the Adobe
 ZXPSignCmd tool. Recommended flow:
 
 ```powershell
-ZXPSignCmd -selfSignedCert US WA SaadStudio SaadStudio password cert.p12
-ZXPSignCmd -sign adobe\saadstudio-cep saadstudio.zxp cert.p12 password
+cd adobe\saadstudio-cep
+npm run build:cep
+npm run package:zxp
+# or do both:
+npm run release:zxp
 ```
 
 For real distribution use a code-signing cert from a trusted CA
 (DigiCert, Sectigo, etc.) and host an Adobe-style update manifest at
 `https://saadstudio.app/adobe/manifest.json` — the panel can later
 auto-update against it.
+
+The release scripts stage a clean package under `release/`, generate a
+manual-install zip, create a self-signed `.p12` if needed, and output
+`release/SaadStudio.zxp`.
 
 ## What's intentionally lightweight
 

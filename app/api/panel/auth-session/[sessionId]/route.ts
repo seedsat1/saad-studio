@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { generatePanelToken } from "@/lib/panel-auth";
 import { ensureUserRow } from "@/lib/credit-ledger";
 import prismadb from "@/lib/prismadb";
+import { getRequestIp, hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,21 @@ async function purgeExpired() {
 
 /** GET — plugin polls for result every 2.5 seconds */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { sessionId: string } },
 ) {
   const { sessionId } = params;
   if (!SESSION_RE.test(sessionId))
     return NextResponse.json({ error: "Invalid session id" }, { status: 400 });
+
+  const rate = hitRateLimit({
+    key: `panel:auth-session:get:${sessionId}:${getRequestIp(req.headers)}`,
+    limit: 90,
+    windowMs: 5 * 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
+  }
 
   await purgeExpired();
 
@@ -55,7 +65,7 @@ export async function GET(
 
 /** POST — web connect page calls this once user is signed in */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { sessionId: string } },
 ) {
   const { sessionId } = params;
@@ -65,6 +75,15 @@ export async function POST(
   const { userId } = await auth();
   if (!userId)
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  const rate = hitRateLimit({
+    key: `panel:auth-session:post:${userId}:${sessionId}:${getRequestIp(req.headers)}`,
+    limit: 20,
+    windowMs: 5 * 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
+  }
 
   await purgeExpired();
 

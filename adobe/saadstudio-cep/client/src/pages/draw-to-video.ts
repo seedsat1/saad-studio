@@ -98,7 +98,7 @@ export function DrawToVideoPage(): HTMLElement {
         el("div.state-card__icon", null, icon("draw-pen", 22)),
         el("div.state-card__title", null, "Expand any image or video"),
         el("div.state-card__subtitle", null,
-          "Uses WaveSpeed outpainting models. Images go to image zoom-out. Videos go to video outpainter with optional prompt guidance.",
+          "Expand images with zoom-out framing or extend videos outward with optional prompt guidance.",
         ),
       ),
       el("div.col.gap-3", { style: { padding: "0 16px 16px" } },

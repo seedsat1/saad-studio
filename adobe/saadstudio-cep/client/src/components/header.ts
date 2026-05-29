@@ -4,6 +4,7 @@ import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
 import { store } from "../lib/store";
 import { clearToken } from "../lib/auth";
+import { openCreditsTopup } from "../lib/api";
 import { navigate } from "../lib/router";
 
 export function Header(): HTMLElement {
@@ -41,6 +42,11 @@ export function Header(): HTMLElement {
       el("div.profile-menu__item.profile-menu__item--credits", null,
         el("span", null, "Credits"),
         el("span.profile-menu__credit-value", null, balance.toLocaleString()),
+      ),
+      el("div.profile-menu__divider"),
+      el("button.profile-menu__item",
+        { onClick: () => { closeMenu(); openCreditsTopup(); } },
+        el("span", { class: "row gap-2" }, icon("coin", 14), "Buy credits"),
       ),
       el("div.profile-menu__divider"),
       el("button.profile-menu__item",

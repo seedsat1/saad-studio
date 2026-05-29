@@ -11,6 +11,7 @@ import {
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -18,6 +19,7 @@ export const maxDuration = 180;
 const KIE_CREATE_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const AVATAR_MODEL_ID = "kling/ai-avatar-pro";
+const DEFAULT_AVATAR_PROMPT = "Natural lip sync performance, accurate mouth movement, stable framing, preserve facial identity.";
 
 type KieApiJson = {
   code?: number;
@@ -128,6 +130,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid panel token." }, { status: 401 });
   }
 
+  const rate = hitRateLimit({
+    key: `panel:generate-avatar-pro:${verified.userId}`,
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
+  }
+
   let chargedCredits = 0;
   let generationId: string | null = null;
   const userId = verified.userId;
@@ -152,6 +163,7 @@ export async function POST(req: NextRequest) {
     const imageUrl = body.imageUrl?.trim() ?? "";
     const audioUrl = body.audioUrl?.trim() ?? "";
     const promptText = typeof body.prompt === "string" ? sanitizePrompt(body.prompt, 5000) : "";
+    const effectivePrompt = promptText || DEFAULT_AVATAR_PROMPT;
 
     if (!isSafePublicHttpUrl(imageUrl)) {
       return NextResponse.json({ error: "Please upload a valid public image URL." }, { status: 400 });
@@ -173,14 +185,15 @@ export async function POST(req: NextRequest) {
     const spent = await spendCredits({
       userId,
       credits: creditsToCharge,
-      prompt: promptText || "Kling AI Avatar Pro",
+      // KIE requires a non-empty prompt even when the plugin UI keeps it optional.
+      prompt: effectivePrompt,
       assetType: "VIDEO",
       modelUsed: AVATAR_MODEL_ID,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 
-    const taskId = await createKieTask(kieApiKey, imageUrl, audioUrl, promptText);
+    const taskId = await createKieTask(kieApiKey, imageUrl, audioUrl, effectivePrompt);
     if (generationId) {
       await setGenerationTaskMarker(generationId, taskId).catch(() => {});
     }

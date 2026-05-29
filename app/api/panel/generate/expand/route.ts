@@ -10,6 +10,7 @@ import {
 } from "@/lib/credit-ledger";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
@@ -148,6 +149,15 @@ export async function POST(req: NextRequest) {
   const verified = verifyPanelToken(token);
   if (!verified) {
     return NextResponse.json({ error: "Invalid panel token." }, { status: 401 });
+  }
+
+  const rate = hitRateLimit({
+    key: `panel:generate-expand:${verified.userId}`,
+    limit: 12,
+    windowMs: 60_000,
+  });
+  if (!rate.allowed) {
+    return panelRateLimitResponse(rate.retryAfterSec);
   }
 
   let chargedCredits = 0;
