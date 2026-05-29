@@ -41,6 +41,7 @@ import {
   Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ToolShowcase from "@/components/ToolShowcase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EditTool = {
@@ -2235,38 +2236,8 @@ export default function EditPage() {
 
           <div className="border-t border-white/5" />
 
-          {/* Tool description information card */}
-          <motion.div
-            key={currentTool.id}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl p-4 border"
-            style={{
-              borderColor: `${currentTool.hex}25`,
-              backgroundColor: `${currentTool.hex}08`,
-            }}
-          >
-            <div className="flex items-center gap-3 mb-2.5">
-              <div
-                className="h-8.5 w-8.5 rounded-lg flex items-center justify-center shrink-0 border"
-                style={{
-                  backgroundColor: `${currentTool.hex}15`,
-                  borderColor: `${currentTool.hex}30`,
-                }}
-              >
-                <currentTool.icon className="h-4.5 w-4.5" style={{ color: currentTool.hex }} />
-              </div>
-              <div>
-                <span className="text-[13px] font-extrabold block" style={{ color: currentTool.hex }}>
-                  {currentTool.label}
-                </span>
-                <span className="text-[9px] text-zinc-500">Selected Editing Mode</span>
-              </div>
-            </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed font-semibold">
-              {currentTool.description}
-            </p>
-          </motion.div>
+          {/* Interactive Tool Showcase & Guide */}
+          <ToolShowcase activeTool={activeTool} />
 
         </div>
 
