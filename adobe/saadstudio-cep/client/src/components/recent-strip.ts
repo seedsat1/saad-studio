@@ -1,9 +1,7 @@
-/** Horizontal "recent generations" strip on the home page.
+/** Account-linked gallery on the home page.
  *
- * First tile is always a "new" entry that routes to the most recently used
- * tool. The remaining tiles render thumbnails for the user's last N
- * generations and expose a quick-import button that hands the asset to
- * the active Premiere/AE timeline via the ExtendScript bridge. */
+ * Shows the latest generations from the signed-in website account with
+ * Image / Video filters, inspired by the Higgsfield plugin entry view. */
 
 import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
@@ -14,48 +12,136 @@ import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
 
 export function RecentStrip(): HTMLElement {
-  const strip = el("div.recent-strip");
+  const root = el("section.library-shell");
+  const imageTab = el("button.library-toggle.library-toggle--active", null, icon("image", 13), "Image");
+  const videoTab = el("button.library-toggle", null, icon("video", 13), "Video");
+  const viewBadge = el("div.library-view-badge", null, "View");
+  const count = el("span.library-count", null, "0 items");
+  const grid = el("div.library-grid");
+  let filter: "image" | "video" = "image";
+
+  let userSelectedFilter = false;
+  const selectFilter = (next: "image" | "video") => {
+    filter = next;
+    userSelectedFilter = true;
+    render();
+  };
+
+  imageTab.addEventListener("click", () => selectFilter("image"));
+  videoTab.addEventListener("click", () => selectFilter("video"));
+
   const render = () => {
-    strip.replaceChildren();
-    strip.appendChild(newTile());
-    const items = store.get().recent;
-    for (const item of items) strip.appendChild(itemTile(item));
-    if (!items.length && !store.get().recentLoading) {
-      strip.appendChild(emptyHint());
+    const state = store.get();
+    const allItems = state.recent;
+    const imageItems = allItems.filter((item) => item.kind === "image");
+    const videoItems = allItems.filter((item) => item.kind === "video");
+
+    if (!userSelectedFilter) {
+      if (filter === "image" && !imageItems.length && videoItems.length) {
+        filter = "video";
+      } else if (filter === "video" && !videoItems.length && imageItems.length) {
+        filter = "image";
+      }
+    }
+
+    imageTab.classList.toggle("library-toggle--active", filter === "image");
+    videoTab.classList.toggle("library-toggle--active", filter === "video");
+
+    const items = filter === "image" ? imageItems : videoItems;
+    count.textContent = state.recentLoading && !allItems.length
+      ? "Loading..."
+      : `${items.length} item${items.length === 1 ? "" : "s"}`;
+
+    grid.replaceChildren();
+    grid.appendChild(newTile(filter));
+
+    if (state.recentLoading && !allItems.length) {
+      grid.appendChild(loadingHint());
+      return;
+    }
+
+    for (const item of items) {
+      grid.appendChild(itemTile(item));
+    }
+
+    if (!items.length) {
+      grid.appendChild(emptyHint(filter));
     }
   };
+
   store.subscribe(render);
+  root.append(
+    el("div.library-toolbar",
+      null,
+      el("div.library-toolbar__left",
+        null,
+        imageTab,
+        videoTab,
+      ),
+      el("div.library-toolbar__right",
+        null,
+        count,
+        viewBadge,
+      ),
+    ),
+    grid,
+  );
   render();
-  // kick off a load on mount
   store.refreshRecent();
-  return strip;
+  return root;
 }
 
-function newTile(): HTMLElement {
-  return el("button.recent-tile",
-    { onClick: () => navigate("/image-gen"), "aria-label": "Start a new generation" },
-    el("div.recent-tile__add", null, icon("plus", 24)),
+function newTile(filter: "image" | "video"): HTMLElement {
+  const route = filter === "video" ? "/video-gen" : "/image-gen";
+  const label = filter === "video" ? "New video" : "New image";
+  return el("button.library-card.library-card--new",
+    { onClick: () => navigate(route), "aria-label": label },
+    el("div.library-card__new-icon", null, icon("plus", 18)),
+    el("div.library-card__body",
+      null,
+      el("div.library-card__title", null, label),
+      el("div.library-card__meta", null, "Start generating"),
+    ),
   );
 }
 
-function emptyHint(): HTMLElement {
-  return el("div",
-    { style: { padding: "8px 4px", color: "var(--text-muted)", fontSize: "11px" } },
-    "No recent generations yet.",
+function loadingHint(): HTMLElement {
+  return el("div.library-empty",
+    null,
+    "Loading your account gallery...",
+  );
+}
+
+function emptyHint(filter: "image" | "video"): HTMLElement {
+  return el("div.library-empty",
+    null,
+    filter === "video" ? "No recent videos yet." : "No recent images yet.",
   );
 }
 
 function itemTile(g: GenerationItem): HTMLElement {
   const media: HTMLElement = g.kind === "video"
-    ? el("video", { src: g.url, muted: "true", playsinline: "true", loop: "true",
+    ? el("video", {
+        src: g.url,
+        muted: "true",
+        playsinline: "true",
+        loop: "true",
+        preload: "metadata",
         onMouseenter: (e: Event) => (e.target as HTMLVideoElement).play().catch(() => {}),
-        onMouseleave: (e: Event) => (e.target as HTMLVideoElement).pause() })
+        onMouseleave: (e: Event) => {
+          const video = e.target as HTMLVideoElement;
+          video.pause();
+          video.currentTime = 0;
+        },
+      })
     : el("img", { src: g.thumbnailUrl || g.url, alt: g.prompt ?? "" });
 
-  return el("div.recent-tile",
+  return el("div.library-card",
     { title: g.prompt ?? "" },
-    media,
-    el("button.recent-tile__import",
+    el("div.library-card__media",
+      null,
+      media,
+      el("button.library-card__import",
       {
         onClick: async (ev: Event) => {
           ev.stopPropagation();
@@ -70,6 +156,12 @@ function itemTile(g: GenerationItem): HTMLElement {
         "aria-label": "Import to timeline",
       },
       icon("import", 12),
+    ),
+    ),
+    el("div.library-card__body",
+      null,
+      el("div.library-card__title", null, g.prompt ?? "Untitled generation"),
+      el("div.library-card__meta", null, g.model ?? (g.kind === "video" ? "Video" : "Image")),
     ),
   );
 }
