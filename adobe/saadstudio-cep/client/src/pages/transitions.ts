@@ -1,7 +1,14 @@
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { el } from "../lib/dom";
-import { api, getApiBase, type JobStatus, type TransitionPresetItem } from "../lib/api";
+import {
+  api,
+  getApiBase,
+  type TransitionOutput,
+  type TransitionPanelJob,
+  type TransitionProject,
+  type TransitionPresetItem,
+} from "../lib/api";
 import { icon } from "../lib/icons";
 import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
@@ -12,6 +19,7 @@ type InputKind = "image" | "video";
 type InputState = {
   file: File | null;
   localPath: string | null;
+  remoteUrl: string | null;
   displayName: string | null;
   selectionKey: string | null;
   kind: InputKind | null;
@@ -32,16 +40,20 @@ const ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
 const DURATIONS = ["3", "4", "5", "6", "7", "8", "10"];
 const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
 const FPS_OPTIONS = ["24", "30", "60"];
+const STORAGE_KEY = "saadstudio.transitions.projectId";
+const AUTOSAVE_DELAY_MS = 1600;
 
 export function TransitionsPage(): HTMLElement {
-  const inputA: InputState = { file: null, localPath: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
-  const inputB: InputState = { file: null, localPath: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
+  const inputA: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
+  const inputB: InputState = { file: null, localPath: null, remoteUrl: null, displayName: null, selectionKey: null, kind: null, previewUrl: null, cacheKey: null, preparedUrl: null };
 
   let busy = false;
   let presets: TransitionPresetItem[] = [];
   let activeCategory = "all";
   let selectedPresetId = "";
-  let currentJob: JobStatus | null = null;
+  let currentProjectId: string | null = null;
+  let autosaveHandle: number | null = null;
+  let activePollToken = 0;
 
   const aspectSelect = selectField(ASPECTS, "16:9");
   const durationSelect = selectField(DURATIONS, "5");
@@ -67,10 +79,17 @@ export function TransitionsPage(): HTMLElement {
   });
   const resultHost = el("div");
   const creditHint = el("div.mono.muted", { style: { fontSize: "11px" } }, "Select a preset to see estimated credits.");
+  const busyHint = el("div.busy-inline", {
+    style: { display: "none", marginTop: "8px" },
+  },
+    el("span.busy-spinner", { "aria-hidden": "true" }),
+    el("span", null, "Generating transition… please wait"),
+  );
 
+  const generateBtnLabel = el("span", null, "Generate transition");
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void generate(); },
-  }, icon("spark", 14), "Generate transition") as HTMLButtonElement;
+  }, icon("spark", 14), generateBtnLabel) as HTMLButtonElement;
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
@@ -116,6 +135,7 @@ export function TransitionsPage(): HTMLElement {
               el("div.state-card__title", { style: { textAlign: "left", width: "100%" } }, "Transition output"),
               el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } }, "Select a preset below, then set Start and End from the timeline or from uploaded files."),
               creditHint,
+              busyHint,
             ),
             generateBtn,
           ),
@@ -134,14 +154,28 @@ export function TransitionsPage(): HTMLElement {
   renderPresets();
   updateCreditHint();
   updateGenerateState();
-  durationSelect.addEventListener("change", updateCreditHint);
-  resolutionSelect.addEventListener("change", updateCreditHint);
+  durationSelect.addEventListener("change", () => {
+    updateCreditHint();
+    queueProjectAutosave();
+  });
+  resolutionSelect.addEventListener("change", () => {
+    updateCreditHint();
+    queueProjectAutosave();
+  });
+  aspectSelect.addEventListener("change", queueProjectAutosave);
+  fpsSelect.addEventListener("change", queueProjectAutosave);
+  [intensityInput, smoothnessInput, cinematicInput].forEach((input) => {
+    input.addEventListener("input", queueProjectAutosave);
+  });
+  [preserveToggle, subjectToggle, enhanceToggle].forEach((input) => {
+    input.addEventListener("change", queueProjectAutosave);
+  });
   const watcher = watchTimelineSelection((clip) => {
     if (clip?.path) applyTimelineSelection(clip);
   });
   watcher.attachTo(root);
 
-  void loadPresets();
+  void initialize();
 
   return root;
 
@@ -158,6 +192,7 @@ export function TransitionsPage(): HTMLElement {
       updateInputPreview(previewHost, helper, state, framePosition);
       updateGenerateState();
       updateCreditHint();
+      queueProjectAutosave();
       picker.value = "";
     });
 
@@ -172,13 +207,14 @@ export function TransitionsPage(): HTMLElement {
         helper,
         el("div.row.gap-2", null,
           el("button.btn-secondary", { onClick: () => picker.click() }, icon("plus", 14), "Choose file"),
-          state.file
+          hasInput(state)
             ? el("button.btn-secondary", {
                 onClick: () => {
                   clearInputState(state);
                   updateInputPreview(previewHost, helper, state, framePosition);
                   updateGenerateState();
                   updateCreditHint();
+                  queueProjectAutosave();
                 },
               }, "Clear")
             : null,
@@ -333,6 +369,7 @@ export function TransitionsPage(): HTMLElement {
         renderPresets();
         updateCreditHint();
         updateGenerateState();
+        queueProjectAutosave();
       },
       style: {
         borderRadius: "14px",
@@ -382,14 +419,23 @@ export function TransitionsPage(): HTMLElement {
     try {
       busy = true;
       updateGenerateState();
-      resultHost.replaceChildren(busyCard("Preparing transition inputs and generating…"));
+      resultHost.replaceChildren(busyCard("Preparing transition project and generation inputs…"));
 
       const [inputAUrl, inputBUrl] = await Promise.all([
         ensurePreparedInput(inputA, "first"),
         ensurePreparedInput(inputB, "last"),
       ]);
+      const projectId = await ensureProject();
 
-      currentJob = await api.generate.transition({
+      await saveProjectState({
+        immediate: true,
+        inputAUrl,
+        inputBUrl,
+      });
+
+      resultHost.replaceChildren(busyCard("Submitting transition job…"));
+      const submission = await api.generateTransitionProject({
+        projectId,
         presetId: preset.id,
         inputAUrl,
         inputBUrl,
@@ -405,15 +451,7 @@ export function TransitionsPage(): HTMLElement {
         enhance: enhanceToggle.checked,
       });
 
-      const finalJob = currentJob.status === "succeeded" || currentJob.status === "failed"
-        ? currentJob
-        : await api.pollJob(currentJob.id);
-
-      if (finalJob.status !== "succeeded" || !finalJob.result) {
-        throw new Error(finalJob.error ?? "Transition generation failed");
-      }
-
-      resultHost.replaceChildren(resultCard(finalJob));
+      await monitorTransitionJob(submission.jobId, submission.status);
     } catch (err) {
       resultHost.replaceChildren(errorCard((err as Error).message));
       toast((err as Error).message, "error");
@@ -436,6 +474,9 @@ export function TransitionsPage(): HTMLElement {
     generateBtn.disabled = busy || !selectedPresetId || !hasInput(inputA) || !hasInput(inputB);
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
+    generateBtn.classList.toggle("btn-primary--busy", busy);
+    generateBtnLabel.textContent = busy ? "Generating…" : "Generate transition";
+    busyHint.style.display = busy ? "inline-flex" : "none";
   }
 
   function applyTimelineSelection(clip: TimelineClip) {
@@ -447,6 +488,7 @@ export function TransitionsPage(): HTMLElement {
       renderInputCard(inputAHost, "Start", "first", inputA);
       updateGenerateState();
       updateCreditHint();
+      queueProjectAutosave();
       return;
     }
 
@@ -456,11 +498,193 @@ export function TransitionsPage(): HTMLElement {
     renderInputCard(inputBHost, "End", "last", inputB);
     updateGenerateState();
     updateCreditHint();
+    queueProjectAutosave();
   }
 
   function estimateCredits(preset: TransitionPresetItem): number {
     const baseRate = resolutionSelect.value === "720p" ? 15 : 22;
     return Math.ceil(baseRate * Number(durationSelect.value) * preset.costMultiplier);
+  }
+
+  async function initialize() {
+    await loadPresets();
+    await restoreProject();
+  }
+
+  async function restoreProject() {
+    const storedProjectId = readStoredProjectId();
+    if (!storedProjectId) return;
+    try {
+      const { project } = await api.transitionProject(storedProjectId);
+      applyProject(project);
+      if (project.jobs?.[0] && !project.outputs?.length && isTransitionJobActive(project.jobs[0].status)) {
+        await monitorTransitionJob(project.jobs[0].id, project.jobs[0].status);
+      } else if (project.outputs?.[0]) {
+        resultHost.replaceChildren(resultCard(project.outputs[0]));
+      }
+    } catch {
+      clearStoredProjectId();
+    }
+  }
+
+  function applyProject(project: TransitionProject) {
+    currentProjectId = project.id;
+    rememberProjectId(project.id);
+    selectedPresetId = project.presetId ?? selectedPresetId;
+    aspectSelect.value = project.aspectRatio || "16:9";
+    durationSelect.value = String(project.duration || 5);
+    resolutionSelect.value = project.resolution || "1080p";
+    fpsSelect.value = String(project.fps || 24);
+    intensityInput.value = String(project.intensity ?? 50);
+    smoothnessInput.value = String(project.smoothness ?? 60);
+    cinematicInput.value = String(project.cinematicStr ?? 65);
+    preserveToggle.checked = project.preserveFraming ?? true;
+    subjectToggle.checked = project.subjectFocus ?? true;
+    enhanceToggle.checked = project.enhance ?? true;
+
+    if (project.inputAUrl) {
+      setRemoteInputState(inputA, project.inputAUrl, project.inputAType);
+    }
+    if (project.inputBUrl) {
+      setRemoteInputState(inputB, project.inputBUrl, project.inputBType);
+    }
+
+    renderInputCard(inputAHost, "Start", "first", inputA);
+    renderInputCard(inputBHost, "End", "last", inputB);
+    renderCategories();
+    renderPresets();
+    updateCreditHint();
+    updateGenerateState();
+  }
+
+  function queueProjectAutosave() {
+    if (autosaveHandle != null) {
+      window.clearTimeout(autosaveHandle);
+    }
+    autosaveHandle = window.setTimeout(() => {
+      autosaveHandle = null;
+      void saveProjectState({ immediate: true }).catch(() => {});
+    }, AUTOSAVE_DELAY_MS);
+  }
+
+  async function ensureProject() {
+    if (currentProjectId) return currentProjectId;
+    const { project } = await api.createTransitionProject(buildProjectPayload());
+    currentProjectId = project.id;
+    rememberProjectId(project.id);
+    return project.id;
+  }
+
+  function buildProjectPayload(overrides: Record<string, unknown> = {}) {
+    return {
+      title: "Transitions Project",
+      inputAUrl: inputA.remoteUrl ?? inputA.preparedUrl ?? null,
+      inputAType: inputA.kind ?? "image",
+      inputBUrl: inputB.remoteUrl ?? inputB.preparedUrl ?? null,
+      inputBType: inputB.kind ?? "image",
+      presetId: selectedPresetId || null,
+      aspectRatio: aspectSelect.value,
+      duration: Number(durationSelect.value),
+      intensity: Number(intensityInput.value),
+      smoothness: Number(smoothnessInput.value),
+      cinematicStr: Number(cinematicInput.value),
+      preserveFraming: preserveToggle.checked,
+      subjectFocus: subjectToggle.checked,
+      resolution: resolutionSelect.value,
+      fps: Number(fpsSelect.value),
+      enhance: enhanceToggle.checked,
+      ...overrides,
+    };
+  }
+
+  async function saveProjectState(opts: {
+    immediate?: boolean;
+    inputAUrl?: string;
+    inputBUrl?: string;
+  } = {}) {
+    const body = buildProjectPayload({
+      inputAUrl: opts.inputAUrl ?? inputA.remoteUrl ?? inputA.preparedUrl ?? null,
+      inputAType: inputA.kind ?? "image",
+      inputBUrl: opts.inputBUrl ?? inputB.remoteUrl ?? inputB.preparedUrl ?? null,
+      inputBType: inputB.kind ?? "image",
+    });
+    if (!selectedPresetId && !hasInput(inputA) && !hasInput(inputB)) {
+      return;
+    }
+    if (!currentProjectId) {
+      const { project } = await api.createTransitionProject(body);
+      currentProjectId = project.id;
+      rememberProjectId(project.id);
+      return;
+    }
+    await api.updateTransitionProject(currentProjectId, body);
+  }
+
+  async function monitorTransitionJob(jobId: string, initialStatus?: string) {
+    const pollToken = ++activePollToken;
+    resultHost.replaceChildren(
+      busyCard(initialStatus === "queued" ? "Transition queued… waiting for provider." : "Generating transition…"),
+    );
+
+    const finalJob = await api.pollTransitionJob(jobId, {
+      intervalMs: 3000,
+      timeoutMs: 8 * 60 * 1000,
+    });
+    if (pollToken !== activePollToken) return;
+
+    if (finalJob.status !== "completed") {
+      throw new Error(finalJob.error ?? "Transition generation failed");
+    }
+
+    let output = finalJob.output ?? buildOutputFromJob(finalJob);
+    if ((!output || !output.url) && currentProjectId) {
+      const { project } = await api.transitionProject(currentProjectId);
+      output = project.outputs?.[0] ?? output;
+    }
+    if (!output || !output.url) {
+      throw new Error("Transition completed but no output URL was returned.");
+    }
+    resultHost.replaceChildren(resultCard(output));
+  }
+
+  function buildOutputFromJob(job: TransitionPanelJob): TransitionOutput | null {
+    if (!job.resultUrl) return null;
+    const preset = presets.find((item) => item.id === job.presetId);
+    return {
+      id: job.id,
+      url: job.resultUrl,
+      presetId: job.presetId,
+      presetName: preset?.name ?? job.presetId,
+      aspectRatio: aspectSelect.value,
+      duration: Number(durationSelect.value),
+      inputAUrl: null,
+      inputBUrl: null,
+      createdAt: job.createdAt,
+    };
+  }
+
+  function rememberProjectId(projectId: string) {
+    try {
+      localStorage.setItem(STORAGE_KEY, projectId);
+    } catch {
+      // Ignore storage failures in restricted CEP environments.
+    }
+  }
+
+  function readStoredProjectId(): string | null {
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function clearStoredProjectId() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignore storage failures in restricted CEP environments.
+    }
   }
 }
 
@@ -545,6 +769,7 @@ function setInputState(state: InputState, file: File | null) {
   }
   state.file = file;
   state.localPath = null;
+  state.remoteUrl = null;
   state.displayName = file?.name ?? null;
   state.selectionKey = null;
   state.kind = file ? detectKind(file) : null;
@@ -563,6 +788,7 @@ function setTimelineInputState(state: InputState, clip: TimelineClip) {
   }
   state.file = null;
   state.localPath = clip.path;
+  state.remoteUrl = null;
   state.displayName = clip.name ?? clip.path.split(/[\\/]/).pop() ?? clip.path;
   state.selectionKey = clipSelectionKey(clip);
   state.kind = detectTimelineKind(clip);
@@ -572,7 +798,7 @@ function setTimelineInputState(state: InputState, clip: TimelineClip) {
 }
 
 function hasInput(state: InputState): boolean {
-  return Boolean(state.file || state.localPath);
+  return Boolean(state.file || state.localPath || state.remoteUrl);
 }
 
 function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: InputState, framePosition: "first" | "last") {
@@ -624,7 +850,9 @@ async function ensurePreparedInput(state: InputState, framePosition: "first" | "
   }
   const baseKey = state.file
     ? `${state.file.name}:${state.file.size}:${state.file.lastModified}`
-    : `${state.localPath ?? ""}:${state.selectionKey ?? ""}`;
+    : state.remoteUrl
+      ? `${state.remoteUrl}:${state.kind ?? ""}`
+      : `${state.localPath ?? ""}:${state.selectionKey ?? ""}`;
   const key = `${baseKey}:${framePosition}`;
   if (state.preparedUrl && state.cacheKey === key) {
     return state.preparedUrl;
@@ -633,13 +861,15 @@ async function ensurePreparedInput(state: InputState, framePosition: "first" | "
   if (state.kind === "image") {
     state.preparedUrl = state.file
       ? await api.uploadFileToR2(state.file, "image")
-      : await api.uploadLocalPathToR2(state.localPath!, "image");
+      : state.remoteUrl
+        ? state.remoteUrl
+        : await api.uploadLocalPathToR2(state.localPath!, "image");
     state.cacheKey = key;
     return state.preparedUrl;
   }
 
   const frameBlob = await extractVideoFrameBlob(
-    state.file ? URL.createObjectURL(state.file) : toFileUrl(state.localPath!),
+    state.file ? URL.createObjectURL(state.file) : state.remoteUrl ?? toFileUrl(state.localPath!),
     framePosition,
   );
   const frameFile = new File(
@@ -660,6 +890,27 @@ function detectTimelineKind(clip: TimelineClip): InputKind {
   if (clip.type === "image") return "image";
   const lower = String(clip.path ?? "").toLowerCase();
   return /\.(png|jpg|jpeg|webp|gif|bmp|tif|tiff|heic|heif)$/i.test(lower) ? "image" : "video";
+}
+
+function setRemoteInputState(state: InputState, url: string, type?: string | null) {
+  if (state.previewUrl?.startsWith("blob:")) {
+    URL.revokeObjectURL(state.previewUrl);
+  }
+  state.file = null;
+  state.localPath = null;
+  state.remoteUrl = url;
+  state.displayName = url.split("/").pop()?.split("?")[0] ?? "Source";
+  state.selectionKey = null;
+  state.kind = inferRemoteKind(url, type);
+  state.previewUrl = url;
+  state.cacheKey = null;
+  state.preparedUrl = null;
+}
+
+function inferRemoteKind(url: string, fallback?: string | null): InputKind {
+  if (/\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(url.split("?")[0] ?? "")) return "image";
+  if (/\.(mp4|mov|webm|mkv|avi|m4v)$/i.test(url.split("?")[0] ?? "")) return "video";
+  return fallback === "video" ? "video" : "image";
 }
 
 function clipSelectionKey(clip: TimelineClip): string {
@@ -735,8 +986,12 @@ function errorCard(message: string): HTMLElement {
   );
 }
 
-function resultCard(job: JobStatus): HTMLElement {
-  const result = job.result!;
+function isTransitionJobActive(status: string | null | undefined): boolean {
+  const normalized = String(status ?? "").toLowerCase();
+  return normalized === "queued" || normalized === "processing" || normalized === "running";
+}
+
+function resultCard(output: TransitionOutput): HTMLElement {
   return el("div.col.gap-3", { style: { marginTop: "14px" } },
     el("div", {
       style: {
@@ -747,7 +1002,7 @@ function resultCard(job: JobStatus): HTMLElement {
       },
     },
       el("video", {
-        src: result.url,
+        src: output.url,
         controls: "true",
         autoplay: "true",
         loop: "true",
@@ -760,7 +1015,7 @@ function resultCard(job: JobStatus): HTMLElement {
       el("button.btn-primary", {
         onClick: async () => {
           try {
-            const local = await api.downloadAsset(result.url, `${result.id}.mp4`);
+            const local = await api.downloadAsset(output.url, `${output.id}.mp4`);
             await evalES("importMediaFromPath", local);
             toast("Imported to project bin", "success");
           } catch (err) {
@@ -769,7 +1024,7 @@ function resultCard(job: JobStatus): HTMLElement {
         },
       }, icon("import", 14), "Import to project"),
       el("button.btn-secondary", {
-        onClick: () => navigator.clipboard.writeText(result.url).then(() => toast("Link copied")),
+        onClick: () => navigator.clipboard.writeText(output.url).then(() => toast("Link copied")),
       }, "Copy link"),
     ),
   );

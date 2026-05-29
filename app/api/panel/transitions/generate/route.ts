@@ -1,22 +1,33 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import {
-  getPresetById,
-  assembleHiddenPrompt,
-  calcTransitionCredits,
-} from "@/lib/transition-presets";
+import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import {
   InsufficientCreditsError,
   precheckGenerationPolicy,
   refundGenerationCharge,
-  spendCredits,
   setGenerationTaskMarker,
+  spendCredits,
 } from "@/lib/credit-ledger";
+import {
+  assembleHiddenPrompt,
+  calcTransitionCredits,
+  getPresetById,
+} from "@/lib/transition-presets";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
-import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+import {
+  checkStoryboardReferenceImageSafety,
+  UnsafeReferenceImageError,
+} from "@/lib/storyboard-reference-safety";
+
+export const dynamic = "force-dynamic";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
+
+function requirePanelUser(req: NextRequest): string | null {
+  const token = extractPanelToken(req);
+  if (!token) return null;
+  return verifyPanelToken(token)?.userId ?? null;
+}
 
 function kieHeaders(apiKey: string) {
   return {
@@ -25,18 +36,13 @@ function kieHeaders(apiKey: string) {
   };
 }
 
-/**
- * Upload a base64 data URL to Supabase storage and return a hosted HTTP URL.
- * HTTP(S) URLs are passed through unchanged.
- */
 async function resolveInputUrl(raw: string, userId: string): Promise<string> {
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  if (!raw.startsWith("data:")) throw new Error("Invalid input URL — must be http(s) or base64 data URL.");
+  if (!raw.startsWith("data:")) throw new Error("Invalid input URL.");
 
-  // Parse data URL: data:<contentType>;base64,<data>
   const commaIdx = raw.indexOf(",");
   if (commaIdx === -1) throw new Error("Malformed data URL.");
-  const header = raw.slice(5, commaIdx); // strip "data:"
+  const header = raw.slice(5, commaIdx);
   const [mimeAndEncoding] = header.split(";");
   const contentType = mimeAndEncoding || "image/jpeg";
   const base64Data = raw.slice(commaIdx + 1);
@@ -47,33 +53,32 @@ async function resolveInputUrl(raw: string, userId: string): Promise<string> {
     contentType,
     userId,
     assetType: "image",
-    generationId: `transition-input-${crypto.randomUUID()}`,
+    generationId: `panel-transition-input-${crypto.randomUUID()}`,
   });
 
-  if (!uploadedUrl) throw new Error("Failed to upload input image to storage.");
+  if (!uploadedUrl) throw new Error("Failed to upload transition input.");
   return uploadedUrl;
 }
 
 async function validateTransitionInput(raw: string): Promise<void> {
   if (raw.startsWith("data:image/") || raw.startsWith("http://") || raw.startsWith("https://")) {
-    const isVideo = /\.(mp4|mov|webm|mkv|m4v)(\?|$)/i.test(raw);
-    if (isVideo) return;
     await checkStoryboardReferenceImageSafety(raw);
   }
 }
 
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
-  let chargedUserId: string | null = null;
   let generationId: string | null = null;
+  let userId: string | null = null;
   let jobId: string | null = null;
 
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    userId = requirePanelUser(req);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-
     const projectId = typeof body.projectId === "string" ? body.projectId : "";
     const presetId = typeof body.presetId === "string" ? body.presetId : "";
     const inputAUrl = typeof body.inputAUrl === "string" ? body.inputAUrl : "";
@@ -92,17 +97,10 @@ export async function POST(req: NextRequest) {
       enhance: typeof body.enhance === "boolean" ? body.enhance : true,
     };
 
-    if (!presetId) return NextResponse.json({ error: "presetId is required" }, { status: 400 });
-    if (!inputAUrl) return NextResponse.json({ error: "Input A is required" }, { status: 400 });
-    if (!inputBUrl) return NextResponse.json({ error: "Input B is required" }, { status: 400 });
     if (!projectId) return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+    if (!presetId) return NextResponse.json({ error: "presetId is required" }, { status: 400 });
+    if (!inputAUrl || !inputBUrl) return NextResponse.json({ error: "Both inputs are required" }, { status: 400 });
 
-    await Promise.all([
-      validateTransitionInput(inputAUrl),
-      validateTransitionInput(inputBUrl),
-    ]);
-
-    // Validate project ownership
     const project = await prismadb.transitionProject.findUnique({
       where: { id: projectId },
       select: { id: true, userId: true },
@@ -111,18 +109,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // Get preset (server-side — has hidden prompts)
+    await Promise.all([
+      validateTransitionInput(inputAUrl),
+      validateTransitionInput(inputBUrl),
+    ]);
+
     const preset = getPresetById(presetId);
-    if (!preset) return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
+    if (!preset) {
+      return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
+    }
 
     const creditsToCharge = calcTransitionCredits(presetId, duration, controls.resolution);
-
-    // Assemble hidden prompt
-    const { prompt, negativePrompt } = assembleHiddenPrompt(preset, controls);
+    const hidden = assembleHiddenPrompt(preset, controls);
 
     const precheck = await precheckGenerationPolicy({
-      prompt,
-      negativePrompt,
+      prompt: hidden.prompt,
+      negativePrompt: hidden.negativePrompt,
       extraText: `Transition: ${preset.name}`,
     });
     if (!precheck.allowed) {
@@ -132,7 +134,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Charge credits (only after precheck passes)
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
@@ -142,31 +143,27 @@ export async function POST(req: NextRequest) {
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;
-    chargedUserId = userId;
 
     const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!apiKey) throw new Error("KIE API key is not configured.");
 
-    // Resolve inputs — upload base64 data URLs to hosted URLs if needed
     const [resolvedInputA, resolvedInputB] = await Promise.all([
       resolveInputUrl(inputAUrl, userId),
       resolveInputUrl(inputBUrl, userId),
     ]);
 
-    // Build KIE payload — Kling 3.0 with start+end frame (image_urls[0]=start, image_urls[1]=end)
     const mode = controls.resolution === "720p" ? "std" : "pro";
     const kiePayload: Record<string, unknown> = {
-      prompt,
+      prompt: hidden.prompt,
       duration: String(duration),
       aspect_ratio: aspectRatio,
-      mode: mode,
+      mode,
       sound: false,
       multi_shots: false,
       multi_prompt: [],
       image_urls: [resolvedInputA, resolvedInputB],
     };
 
-    // Create job record first
     const job = await prismadb.transitionJob.create({
       data: {
         projectId,
@@ -179,7 +176,6 @@ export async function POST(req: NextRequest) {
     });
     jobId = job.id;
 
-    // Submit to KIE AI — Kling 3.0 supports both start and end frame via image_urls[]
     const createRes = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
       headers: kieHeaders(apiKey),
@@ -189,14 +185,15 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    const createJson = await createRes.json().catch(() => null);
+    const createJson = await createRes.json().catch(() => null) as
+      | { data?: { taskId?: string }; taskId?: string; msg?: string; message?: string }
+      | null;
     const taskId = createJson?.data?.taskId || createJson?.taskId;
 
     if (!createRes.ok || !taskId) {
-      // Roll back job and credits
       await prismadb.transitionJob.update({
         where: { id: job.id },
-        data: { status: "failed", error: createJson?.msg || "Submission failed" },
+        data: { status: "failed", error: createJson?.msg || createJson?.message || "Submission failed" },
       });
       await refundGenerationCharge(generationId, userId, chargedCredits, {
         reason: "generation_refund_provider_failed",
@@ -204,19 +201,17 @@ export async function POST(req: NextRequest) {
       }).catch(() => {});
       return NextResponse.json(
         { error: createJson?.msg || createJson?.message || "Failed to start generation" },
-        { status: createRes.ok ? 500 : createRes.status }
+        { status: createRes.ok ? 500 : createRes.status },
       );
     }
 
-    // Update job with taskId
     await prismadb.transitionJob.update({
       where: { id: job.id },
       data: { status: "processing", taskId },
     });
 
-    // Mark generation with taskId
     if (generationId) {
-      await setGenerationTaskMarker(generationId, taskId);
+      await setGenerationTaskMarker(generationId, taskId).catch(() => {});
     }
 
     return NextResponse.json({
@@ -227,40 +222,37 @@ export async function POST(req: NextRequest) {
       remainingCredits: charge.remainingCredits,
     });
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    const isSafetyError = errMsg.includes("verify image safety") || errMsg.includes("Restricted content");
-
-    if (err instanceof UnsafeReferenceImageError || isSafetyError) {
-      if (chargedCredits > 0 && chargedUserId && generationId) {
-        await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+    if (err instanceof UnsafeReferenceImageError) {
+      if (chargedCredits > 0 && userId && generationId) {
+        await refundGenerationCharge(generationId, userId, chargedCredits, {
           reason: "generation_refund_provider_failed",
           clearMediaUrl: true,
         }).catch(() => null);
       }
-      return NextResponse.json({ error: errMsg }, { status: 400 });
+      return NextResponse.json({ error: err.message }, { status: 400 });
     }
 
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
         { error: "Insufficient credits", required: err.requiredCredits, current: err.currentBalance },
-        { status: 402 }
+        { status: 402 },
       );
     }
 
-    // Roll back charges if we haven't already
-    if (chargedCredits > 0 && chargedUserId && generationId) {
-      await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
+    if (chargedCredits > 0 && userId && generationId) {
+      await refundGenerationCharge(generationId, userId, chargedCredits, {
         reason: "generation_refund_provider_failed",
         clearMediaUrl: true,
       }).catch(() => null);
     }
     if (jobId) {
-      await prismadb.transitionJob
-        .update({ where: { id: jobId }, data: { status: "failed", error: String(err) } })
-        .catch(() => null);
+      await prismadb.transitionJob.update({
+        where: { id: jobId },
+        data: { status: "failed", error: err instanceof Error ? err.message : String(err) },
+      }).catch(() => null);
     }
 
-    console.error("[transitions/generate]", err);
+    console.error("[panel/transitions/generate]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

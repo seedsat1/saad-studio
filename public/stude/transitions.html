@@ -189,7 +189,7 @@ body{background:#080c1a;color:#e8ecf8;font-family:'Sora',sans-serif;height:100vh
           <div class="clip-box"><div class="clip-label">From Clip</div><div class="clip-val" id="fromClip">&#x2014;</div></div>
           <div class="clip-box"><div class="clip-label">To Clip</div><div class="clip-val" id="toClip">&#x2014;</div></div>
         </div>
-        <div class="clip-note" id="pairNote">Click a clip in the timeline &#x2014; it becomes A, the next clip on the same track becomes B.</div>
+        <div class="clip-note" id="pairNote">Select a clip in timeline that has a next clip on same track.</div>
       </div>
 
       <!-- Settings -->
@@ -331,9 +331,6 @@ var _pollTimer = null;
 var _resultVideoUrl = null;
 var _lastJobId = null;
 var _pair = null;
-var _timelineState = null; // populated from ff:timeline-state postMessage
-var _lastPairKeyA = '';    // tracks last applied timeline pair "A" so we refresh when timeline changes
-var _lastPairKeyB = '';
 
 /* ================================================================
    UI
@@ -401,8 +398,6 @@ function handleFile(input, which) {
   icon.style.display = 'none';
   lbl.textContent = file.name.length > 18 ? file.name.slice(0,15)+'...' : file.name;
   sub.textContent = isVideo ? 'video' : 'image';
-  // Mark this slot as user-overridden so timeline auto-sync won't replace it
-  if (which === 'A') _lastPairKeyA = '__manual__'; else _lastPairKeyB = '__manual__';
 }
 
 /* ================================================================
@@ -450,7 +445,7 @@ async function uploadFile(file, which) {
 
 /* ================================================================
    VIDEO FRAME EXTRACTION (Kling 3.0 needs images as start/end)
-================================================================ */
+   ================================================================ */
 function isVideoUrl(url) { return /\.(mp4|mov|webm|mkv|m4v)(\?|$)/i.test(url || ''); }
 
 function extractFrameFromVideo(url, when /* 'start' | 'end' */) {
@@ -465,7 +460,6 @@ function extractFrameFromVideo(url, when /* 'start' | 'end' */) {
     video.onerror = function(){ done(new Error('Failed to load video for frame extraction')); };
     video.onloadedmetadata = function() {
       var dur = isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
-      // Pick a safe time: 0.05s for start, dur-0.1s for end
       var t = when === 'end' ? Math.max(0, dur - 0.1) : Math.min(dur, 0.05);
       var seeked = false;
       video.onseeked = function() {
@@ -496,17 +490,18 @@ async function extractFrameAndUpload(videoUrl, when, label) {
   } catch(e) {
     throw new Error('Could not extract '+when+' frame from clip '+label+': '+e.message);
   }
-  // Upload as image to storage
+  
   var fileName = 'transition_'+label+'_'+when+'_'+Date.now()+'.jpg';
+  var formData = new FormData();
+  formData.append('file', blob, fileName);
+  formData.append('assetType', 'image');
+
   var ur = await fetch('/api/studio/upload-url', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ fileName: fileName, contentType: 'image/jpeg', assetType: 'image' })
+    body: formData
   });
-  if (!ur.ok) throw new Error('Failed to get upload URL for extracted frame '+label);
+  if (!ur.ok) throw new Error('Failed to upload extracted frame '+label);
   var ud = await ur.json();
-  var put = await fetch(ud.signedUrl, { method: 'PUT', headers: {'Content-Type':'image/jpeg'}, body: blob });
-  if (!put.ok) throw new Error('Failed to upload extracted frame '+label+': '+put.status);
   return ud.publicUrl;
 }
 
@@ -546,7 +541,6 @@ async function generate() {
     }
 
     setStatus('Creating project...', 'info');
-
     var projRes = await fetch('/api/transitions/project', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -588,7 +582,6 @@ async function generate() {
     if (!genRes.ok) throw new Error(genJson.error || 'Generation failed ('+genRes.status+')');
 
     _lastJobId = genJson.jobId;
-    try { localStorage.setItem('ff_transition_active_job', JSON.stringify({ jobId: _lastJobId, presetId: _selected.id, presetName: _selected.name, duration: _duration, ts: Date.now() })); } catch(_){}
     var credits = genJson.creditsCharged || calcCredits(_selected, _duration);
     setStatus('Processing\u2026 (~' + (_duration * 10) + 's). ' + credits + ' credits charged.', 'info');
     startPoll(_lastJobId);
@@ -620,7 +613,6 @@ async function pollJob(jobId) {
     if (!job) return;
     if (job.status === 'completed') {
       stopPoll();
-      try { localStorage.removeItem('ff_transition_active_job'); } catch(_){}
       var videoUrl = job.resultUrl || (job.output && (job.output.url || job.output.videoUrl)) || '';
       if (videoUrl) {
         _resultVideoUrl = videoUrl;
@@ -632,33 +624,12 @@ async function pollJob(jobId) {
       setGenerating(false);
     } else if (job.status === 'failed') {
       stopPoll();
-      try { localStorage.removeItem('ff_transition_active_job'); } catch(_){}
       setStatus('Generation failed: ' + (job.error || 'Unknown error'), 'err');
       setGenerating(false);
     } else {
       setStatus('Processing\u2026 (' + (job.status||'processing') + ')', 'info');
     }
   } catch(e) { /* ignore poll errors */ }
-}
-
-// Resume an active generation across page refreshes
-function resumeActiveJob() {
-  try {
-    var raw = localStorage.getItem('ff_transition_active_job');
-    if (!raw) return;
-    var saved = JSON.parse(raw);
-    if (!saved || !saved.jobId) return;
-    // Drop stale entries older than 30 minutes
-    if (saved.ts && (Date.now() - saved.ts) > 30*60*1000) {
-      localStorage.removeItem('ff_transition_active_job');
-      return;
-    }
-    _lastJobId = saved.jobId;
-    setStatus('Resuming generation\u2026 (' + (saved.presetName||'transition') + ')', 'info');
-    setGenerating(true);
-    pollJob(_lastJobId); // fire once immediately
-    startPoll(_lastJobId);
-  } catch(_){}
 }
 
 /* ================================================================
@@ -688,7 +659,6 @@ function downloadResult() {
    TIMELINE INTEGRATION
 ================================================================ */
 function getTimelineState() {
-  if (_timelineState) return _timelineState;
   try { if (window.parent && window.parent.lastTimelineState) return window.parent.lastTimelineState; } catch(e){}
   return null;
 }
@@ -700,117 +670,38 @@ function isVisual(c) {
 
 function findPair(state) {
   if (!state || !Array.isArray(state.allClips)) return null;
-  var clips = state.allClips.filter(function(c){
-    var k = String(c.kind||'').toLowerCase();
-    return isVisual(c) && k !== 'transition';
-  });
-  if (clips.length < 2) return null;
-
-  // Group by track (sorted by start)
-  var byTrack = {};
-  clips.forEach(function(c){
-    var key = String(c.track);
-    if (!byTrack[key]) byTrack[key] = [];
-    byTrack[key].push(c);
-  });
-  Object.keys(byTrack).forEach(function(t){
-    byTrack[t].sort(function(a,b){ return Number(a.start)-Number(b.start); });
-  });
-
-  // ONLY use the user's explicitly selected clip. The selected clip = A,
-  // the next clip on the same track = B. No automatic fallback.
-  var selId = state.selectedClip && state.selectedClip.id;
-  if (!selId) return null;
-
-  var foundTrack = null, foundIdx = -1;
-  Object.keys(byTrack).forEach(function(t){
-    if (foundTrack !== null) return;
-    var tc = byTrack[t];
-    for (var i = 0; i < tc.length; i++) {
-      if (tc[i].id === selId) {
-        // Selected becomes A; need a next clip on same track for B
-        if (i < tc.length - 1) { foundTrack = t; foundIdx = i; }
-        else if (i > 0)        { foundTrack = t; foundIdx = i - 1; } // selected is last → use prev as A
-        return;
-      }
-    }
-  });
-
-  if (foundTrack === null) return null;
-  var ftc = byTrack[foundTrack];
-  return { from: ftc[foundIdx], to: ftc[foundIdx + 1] };
+  var clips = state.allClips.filter(function(c){ return isVisual(c) && String(c.kind||'') !== 'transition'; });
+  if (!clips.length) return null;
+  var sel = state.selectedClip && clips.find(function(c){ return c.id === state.selectedClip.id; });
+  var base = sel || (state.activeVisualClip && clips.find(function(c){ return c.id === state.activeVisualClip.id; })) || null;
+  if (!base) return null;
+  var same = clips.filter(function(c){ return c.track === base.track && c.id !== base.id; }).sort(function(a,b){ return a.start-b.start; });
+  var next = same.find(function(c){ return Number(c.start) >= Number(base.start)+Number(base.dur); });
+  return next ? {from:base, to:next} : null;
 }
 
 function refreshPair() {
-  var state = getTimelineState();
-  _pair = findPair(state);
+  _pair = findPair(getTimelineState());
   document.getElementById('fromClip').textContent = _pair ? (_pair.from.label||_pair.from.id) : '\u2014';
   document.getElementById('toClip').textContent   = _pair ? (_pair.to.label  ||_pair.to.id  ) : '\u2014';
-
-  if (_pair) {
-    document.getElementById('pairNote').textContent = 'Pair detected \u2014 ready to apply.';
-    // Auto-sync A/B with timeline pair (skip if user uploaded a manual file).
-    // Replace whenever the timeline pair changes (different clip id or different url).
-    var fromUrl = _pair.from.url || '';
-    var toUrl   = _pair.to.url   || '';
-    var fromKey = (_pair.from.id||'') + '|' + fromUrl;
-    var toKey   = (_pair.to.id  ||'') + '|' + toUrl;
-    if (!_fileA && fromUrl && fromKey !== _lastPairKeyA) {
-      _urlA = fromUrl; _lastPairKeyA = fromKey;
-      setCardFromUrl('A', fromUrl, _pair.from.label||'Clip A');
-    }
-    if (!_fileB && toUrl && toKey !== _lastPairKeyB) {
-      _urlB = toUrl; _lastPairKeyB = toKey;
-      setCardFromUrl('B', toUrl, _pair.to.label||'Clip B');
-    }
-  } else if (!state) {
-    document.getElementById('pairNote').textContent = 'Waiting for timeline\u2026';
-  } else if (!state.allClips || state.allClips.length < 2) {
-    document.getElementById('pairNote').textContent = 'Add at least 2 clips to the timeline.';
-  } else {
-    document.getElementById('pairNote').textContent = 'Click a clip in the timeline \u2014 it becomes A, the next clip on the same track becomes B.';
-  }
-}
-
-function setCardFromUrl(which, url, name) {
-  var card  = document.getElementById('input'+which);
-  var thumb = document.getElementById('thumb'+which);
-  var vid   = document.getElementById('vid'+which);
-  var icon  = document.getElementById('icon'+which);
-  var lbl   = document.getElementById('label'+which);
-  var sub   = document.getElementById('sub'+which);
-  card.classList.add('has-file');
-  var isVid = /\.(mp4|mov|webm|mkv)(\?|$)/i.test(url);
-  if (isVid) {
-    thumb.style.backgroundImage = '';
-    vid.src = url; vid.style.display = 'block';
-    vid.play().catch(function(){});
-    sub.textContent = 'video';
-  } else {
-    vid.style.display = 'none'; vid.src = '';
-    thumb.style.backgroundImage = 'url('+url+')';
-    sub.textContent = 'image';
-  }
-  icon.style.display = 'none';
-  lbl.textContent = name.length > 18 ? name.slice(0,15)+'...' : name;
+  document.getElementById('pairNote').textContent = _pair
+    ? 'Detected pair on same track. Ready to apply transition.'
+    : 'Select a clip in timeline that has a next clip on same track.';
 }
 
 function postToTimeline(payload) {
-  // Try direct access to timeline sibling iframe
   try {
     if (window.parent && window.parent.document) {
       var tf = window.parent.document.getElementById('timelineFrame');
       if (tf && tf.contentWindow) { tf.contentWindow.postMessage(payload,'*'); return true; }
     }
   } catch(e){}
-  // Fallback: relay through shell (add relay in shell handles ff:addTransition)
-  try { if (window.parent) { window.parent.postMessage(payload,'*'); return true; } } catch(e){}
   return false;
 }
 
 function applyToTimeline() {
   refreshPair();
-  if (!_pair) { setStatus('No valid timeline pair found. Add 2+ clips to the timeline on the same track.', 'warn'); return; }
+  if (!_pair) { setStatus('No valid timeline pair found. Select a clip with a next clip on the same track.', 'warn'); return; }
   var ok = postToTimeline({
     type: 'ff:addTransition',
     transition: {
@@ -824,17 +715,12 @@ function applyToTimeline() {
     }
   });
   if (!ok) { setStatus('Timeline not reachable.', 'err'); return; }
-  setStatus('\u2713 Applied \u201c' + _selected.name + '\u201d between ' + (_pair.from.label||'Clip A') + ' \u2192 ' + (_pair.to.label||'Clip B'), 'ok');
+  setStatus('Applied ' + _selected.name + ' to timeline.', 'ok');
 }
 
 window.addEventListener('message', function(ev) {
-  if (ev && ev.data && ev.data.type === 'ff:timeline-state') {
-    _timelineState = ev.data;
-    refreshPair();
-  }
+  if (ev && ev.data && ev.data.type === 'ff:timeline-state') refreshPair();
 });
-// Ask shell to push current state immediately on load
-try { if (window.parent) window.parent.postMessage({ type: 'ff:request-timeline-state' }, '*'); } catch(e){}
 setInterval(refreshPair, 1500);
 
 /* ================================================================
@@ -908,7 +794,6 @@ function pickCat(el) {
 renderGrid('', 'all');
 updateArrow();
 refreshPair();
-resumeActiveJob();
 </script>
 <script src="shared/timeline-bridge.js"></script>
 <script src="shared/english-only.js"></script>

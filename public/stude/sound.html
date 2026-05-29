@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
@@ -1039,10 +1039,29 @@ async function cloneAndSaveVoice(){
   if(prog)prog.style.display='block';if(btn){btn.disabled=true;btn.style.opacity='0.6';}
   setStatus('Uploading voice sample...','info');
   try{
-    const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});
-    if(!ur.ok)throw new Error('Failed to get upload URL');
-    const{signedUrl,publicUrl}=await ur.json();
-    await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.upload.addEventListener('progress',e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);if(bar)bar.style.width=p+'%';if(pct)pct.textContent=p+'%';});xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);});
+    const formData=new FormData();
+    formData.append('file',file);
+    formData.append('assetType','audio');
+
+    const{publicUrl}=await new Promise((res,rej)=>{
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST','/api/studio/upload-url');
+      xhr.upload.addEventListener('progress',e=>{
+        if(!e.lengthComputable)return;
+        const p=Math.round(e.loaded/e.total*100);
+        if(bar)bar.style.width=p+'%';
+        if(pct)pct.textContent=p+'%';
+      });
+      xhr.addEventListener('load',()=>{
+        if(xhr.status>=200&&xhr.status<300){
+          try{res(JSON.parse(xhr.responseText));}catch(err){rej(new Error('Invalid response'));}
+        }else{
+          rej(new Error('Upload failed ('+xhr.status+')'));
+        }
+      });
+      xhr.addEventListener('error',()=>rej(new Error('Network error')));
+      xhr.send(formData);
+    });
     if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(lbl)lbl.textContent='Creating clone...';
     let finalId='';
     // Clone API not available via KIE — voice is saved locally by sample URL
@@ -1150,10 +1169,12 @@ async function generateVoice(text){
     if(customId.startsWith('custom_')&&window._cloneFileForJob){
       /* --- Use Once: upload file then voice-clone --- */
       setStatus('Uploading voice sample...','info');
-      const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:window._cloneFileForJob.name,contentType:window._cloneFileForJob.type||'audio/mpeg',assetType:'audio'})});
-      if(!ur.ok)throw new Error('Failed to get upload URL');
-      const{signedUrl,publicUrl}=await ur.json();
-      await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',window._cloneFileForJob.type||'audio/mpeg');xhr.send(window._cloneFileForJob);});
+      const formData=new FormData();
+      formData.append('file',window._cloneFileForJob);
+      formData.append('assetType','audio');
+      const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});
+      if(!ur.ok)throw new Error('Failed to upload voice sample');
+      const{publicUrl}=await ur.json();
       setStatus('Cloning voice...','info');
       const cloneName=window._cloneNameForJob||'Custom Voice';
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[publicUrl],cloneName})});
@@ -1231,7 +1252,7 @@ async function generateSfx(text){
 }
 
 /* AUDIO TOOLS */
-async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const ur=await fetch('/api/studio/upload-url',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fileName:file.name,contentType:file.type||'audio/mpeg',assetType:'audio'})});if(!ur.ok)throw new Error('Failed to get upload URL');const{signedUrl,publicUrl}=await ur.json();await new Promise((res,rej)=>{const xhr=new XMLHttpRequest();xhr.addEventListener('load',()=>xhr.status<300?res():rej(new Error('Upload failed')));xhr.addEventListener('error',()=>rej(new Error('Network error')));xhr.open('PUT',signedUrl);xhr.setRequestHeader('Content-Type',file.type||'audio/mpeg');xhr.send(file);});document.getElementById('audioUrlInput').value=publicUrl;setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
+async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const formData=new FormData();formData.append('file',file);formData.append('assetType','audio');const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});if(!ur.ok)throw new Error('Failed to upload audio file');const{publicUrl}=await ur.json();document.getElementById('audioUrlInput').value=publicUrl;setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
 async function transcribeAudio(){
   const url=(document.getElementById('audioUrlInput')?.value||'').trim();
   if(!url){setStatus('Please upload an audio file first.','warn');return;}

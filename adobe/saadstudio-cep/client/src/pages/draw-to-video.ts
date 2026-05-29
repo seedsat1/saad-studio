@@ -63,9 +63,16 @@ export function DrawToVideoPage(): HTMLElement {
     style: { fontSize: "11px", wordBreak: "break-all" },
   }, "No image or video selected");
 
+  const generateBtnLabel = el("span", null, "Generate expand");
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void submit(); },
-  }, icon("send", 14), "Generate expand") as HTMLButtonElement;
+  }, icon("send", 14), generateBtnLabel) as HTMLButtonElement;
+  const busyHint = el("div.busy-inline", {
+    style: { display: "none", justifyContent: "flex-end", marginTop: "10px" },
+  },
+    el("span.busy-spinner", { "aria-hidden": "true" }),
+    el("span", null, "Generating expand result… please wait"),
+  );
 
   const resultHost = el("div.col.gap-3", { style: { padding: "0 16px 16px" } });
 
@@ -110,6 +117,7 @@ export function DrawToVideoPage(): HTMLElement {
             "Optional for video expansion. Image zoom-out focuses on canvas extension and may ignore the prompt.",
           ),
           promptInput,
+          busyHint,
           el("div.row.gap-2", { style: { marginTop: "12px", justifyContent: "flex-end" } }, generateBtn),
         ),
       ),
@@ -189,6 +197,9 @@ export function DrawToVideoPage(): HTMLElement {
     generateBtn.disabled = busy || !hasSource(state);
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
+    generateBtn.classList.toggle("btn-primary--busy", busy);
+    generateBtnLabel.textContent = busy ? "Generating…" : "Generate expand";
+    busyHint.style.display = busy ? "inline-flex" : "none";
     aspectSelect.value = state.kind === "video" && aspectSelect.value === "auto" ? "auto" : aspectSelect.value;
   }
 

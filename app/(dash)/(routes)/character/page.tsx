@@ -184,26 +184,19 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 async function uploadCharacterAsset(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("assetType", "image");
+
   const urlRes = await fetch("/api/studio/upload-url", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type || "image/png",
-      assetType: "image",
-    }),
+    body: formData,
   });
   const urlData = await urlRes.json().catch(() => null);
-  if (!urlRes.ok || !urlData?.signedUrl || !urlData?.publicUrl) {
-    throw new Error(urlData?.error || "Failed to create upload URL.");
+  if (!urlRes.ok || !urlData?.publicUrl) {
+    throw new Error(urlData?.error || "Failed to upload asset.");
   }
 
-  const uploadRes = await fetch(urlData.signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "image/png" },
-    body: file,
-  });
-  if (!uploadRes.ok) throw new Error(`Failed to upload ${file.name}`);
   return String(urlData.publicUrl);
 }
 

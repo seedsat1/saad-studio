@@ -25,18 +25,23 @@ export interface DockConfig {
   onSubmit: (state: DockState) => void;
 }
 
+export interface PromptDockHandle extends HTMLElement {
+  setBusy: (busy: boolean, message?: string) => void;
+}
+
 export interface DockState {
   prompt: string;
   attachments: File[];
   options: Record<string, string>;
 }
 
-export function PromptDock(cfg: DockConfig): HTMLElement {
+export function PromptDock(cfg: DockConfig): PromptDockHandle {
   const state: DockState = {
     prompt: "",
     attachments: [],
     options: Object.fromEntries(cfg.options.map((o) => [o.key, o.value])),
   };
+  let busy = false;
 
   const textarea = el("textarea.prompt-dock__textarea", {
     rows: "2",
@@ -52,7 +57,7 @@ export function PromptDock(cfg: DockConfig): HTMLElement {
         submit();
       }
     },
-  });
+  }) as HTMLTextAreaElement;
 
   const fileInput = cfg.showAttach
     ? el("input", {
@@ -72,9 +77,20 @@ export function PromptDock(cfg: DockConfig): HTMLElement {
   const submitBtn = el("button.dock-submit",
     { "aria-label": "Generate", onClick: () => submit() },
     icon("send", 14),
+    el("span", null, "Generate"),
+  ) as HTMLButtonElement;
+  const submitLabel = submitBtn.querySelector("span") as HTMLSpanElement;
+  const optionButtons: HTMLButtonElement[] = [];
+  const statusText = el("span", null, "Generating…");
+  const statusLine = el("div.prompt-dock__status", {
+    style: { display: "none" },
+  },
+    el("span.busy-spinner", { "aria-hidden": "true" }),
+    statusText,
   );
 
   function submit() {
+    if (busy) return;
     if (!state.prompt.trim() && !state.attachments.length) return;
     cfg.onSubmit({ ...state, options: { ...state.options } });
   }
@@ -82,15 +98,15 @@ export function PromptDock(cfg: DockConfig): HTMLElement {
   const optionRow = el("div.row.gap-2", { style: { overflowX: "auto", paddingBottom: "2px" } });
 
   if (cfg.showAttach && fileInput) {
-    optionRow.appendChild(
-      el("button.dock-button.dock-button--icon",
+    const attachButton = el("button.dock-button.dock-button--icon",
         {
           "aria-label": "Attach file",
           onClick: () => (fileInput as HTMLInputElement).click(),
         },
         icon("plus", 14),
-      ),
-    );
+      ) as HTMLButtonElement;
+    optionButtons.push(attachButton);
+    optionRow.appendChild(attachButton);
     optionRow.appendChild(fileInput);
   }
 
@@ -109,13 +125,27 @@ export function PromptDock(cfg: DockConfig): HTMLElement {
     },
       labelFor(opt, state.options[opt.key]),
       icon("chevron-down", 12),
-    );
+    ) as HTMLButtonElement;
+    optionButtons.push(pill);
     optionRow.appendChild(pill);
   }
 
   optionRow.appendChild(submitBtn);
 
-  return el("div.prompt-dock", null, textarea, optionRow);
+  const root = el("div.prompt-dock", null, textarea, statusLine, optionRow) as PromptDockHandle;
+  root.setBusy = (nextBusy: boolean, message?: string) => {
+    busy = nextBusy;
+    if (message) statusText.textContent = message;
+    else statusText.textContent = "Generating…";
+    textarea.disabled = busy;
+    if (fileInput) (fileInput as HTMLInputElement).disabled = busy;
+    for (const button of optionButtons) button.disabled = busy;
+    submitBtn.disabled = busy;
+    submitBtn.classList.toggle("dock-submit--busy", busy);
+    submitLabel.textContent = busy ? "Generating…" : "Generate";
+    statusLine.style.display = busy ? "flex" : "none";
+  };
+  return root;
 }
 
 function labelFor(opt: DockOption, value: string): string {

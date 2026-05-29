@@ -470,6 +470,19 @@
   box-shadow: var(--shadow-floating);
   flex-shrink: 0;
 }
+.prompt-dock__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(124, 92, 255, 0.08);
+  border: 1px solid rgba(124, 92, 255, 0.2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
 .prompt-dock__textarea {
   width: 100%;
   min-height: 40px;
@@ -520,6 +533,33 @@
 }
 .dock-submit:hover { background: #6a4ce8; }
 .dock-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.dock-submit--busy,
+.btn-primary--busy { background: #6a4ce8; }
+
+.busy-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: currentColor;
+  display: inline-block;
+  flex-shrink: 0;
+  animation: saad-spin 0.8s linear infinite;
+}
+
+.busy-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@keyframes saad-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 /* ── Modal overlay (model picker, etc) ────────────────────────── */
 .modal-backdrop {

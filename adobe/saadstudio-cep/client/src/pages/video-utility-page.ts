@@ -15,7 +15,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
-import { PromptDock, type DockOption } from "../components/prompt-dock";
+import { PromptDock, type DockOption, type PromptDockHandle } from "../components/prompt-dock";
 import { icon } from "../lib/icons";
 import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, type JobStatus } from "../lib/api";
@@ -168,6 +168,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
       options: cfg.options,
       onSubmit: async ({ prompt, options }) => {
         try {
+          dock.setBusy(true, "Generating… please wait");
           results.replaceChildren(busyCard());
           const job = await cfg.submit({ clip, prompt, options });
           const final = job.status === "succeeded" || job.status === "failed"
@@ -182,9 +183,11 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
         } catch (err) {
           results.replaceChildren(errorCard((err as Error).message));
           toast((err as Error).message, "error");
+        } finally {
+          dock.setBusy(false);
         }
       },
-    });
+    }) as PromptDockHandle;
 
     body.appendChild(dock);
   }

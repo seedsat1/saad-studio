@@ -1164,6 +1164,30 @@ export default function TransitionsStudioPage() {
     setStageMode("input");
 
     try {
+      let activeAFrameUrl = inputAFrameUrl;
+      let activeBFrameUrl = inputBFrameUrl;
+
+      // Extract frames on-the-fly for video inputs if they are missing
+      if (inputAType === "video" && !activeAFrameUrl) {
+        setGenError("Extracting start frame from clip A...");
+        const frame = await extractVideoFrame(inputAUrl, "first").catch(() => null);
+        if (frame) {
+          const frameFile = dataUrlToFile(frame, "input-a-first-frame.jpg");
+          activeAFrameUrl = await uploadTransitionAsset(frameFile, "thumbnail").catch(() => null);
+          setInputAFrameUrl(activeAFrameUrl);
+        }
+      }
+
+      if (inputBType === "video" && !activeBFrameUrl) {
+        setGenError("Extracting end frame from clip B...");
+        const frame = await extractVideoFrame(inputBUrl, "last").catch(() => null);
+        if (frame) {
+          const frameFile = dataUrlToFile(frame, "input-b-last-frame.jpg");
+          activeBFrameUrl = await uploadTransitionAsset(frameFile, "thumbnail").catch(() => null);
+          setInputBFrameUrl(activeBFrameUrl);
+        }
+      }
+
       let pid = projectIdRef.current;
       if (!pid) {
         const pRes = await fetch("/api/transitions/project", {
@@ -1204,8 +1228,8 @@ export default function TransitionsStudioPage() {
         body: JSON.stringify({
           projectId: pid,
           presetId: selectedPresetId,
-          inputAUrl: inputAFrameUrl ?? inputAUrl,
-          inputBUrl: inputBFrameUrl ?? inputBUrl,
+          inputAUrl: activeAFrameUrl ?? inputAUrl,
+          inputBUrl: activeBFrameUrl ?? inputBUrl,
           duration,
           aspectRatio,
           ...controls,

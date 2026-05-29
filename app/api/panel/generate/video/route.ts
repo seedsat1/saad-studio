@@ -279,8 +279,9 @@ export async function POST(req: NextRequest) {
 
     const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
     const isSeedance2 = (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
+    const isKling3 = modelId.includes("kling-3.0") || kieModelId.includes("kling-3.0");
 
-    if (isGoogle || isSeedance2) {
+    if (isGoogle || isSeedance2 || isKling3) {
       const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
       if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
@@ -342,13 +343,30 @@ export async function POST(req: NextRequest) {
       const wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
       const isKling = wavespeedModel.includes("kling");
 
+      const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video";
       const payload: Record<string, unknown> = {
         prompt: sanitizePrompt(prompt, 5000),
-        duration: isKling ? String(duration) : duration,
+        duration: isKling || isGrokEdit ? String(duration) : duration,
         aspect_ratio: aspectRatio,
       };
       if (typeof mode === "string" && mode.trim() && isKling) {
         payload.mode = mode.trim();
+      }
+      if (isGrokEdit) {
+        const allowedAspect = ["2:3", "3:2", "1:1", "16:9", "9:16"];
+        const allowedResolution = ["480p", "720p"];
+        const allowedMode = ["fun", "normal", "spicy"];
+        if (!allowedAspect.includes(aspectRatio)) {
+          payload.aspect_ratio = "16:9";
+        }
+        const normalizedResolution = String(resolution || "").toLowerCase();
+        payload.resolution = allowedResolution.includes(normalizedResolution) ? normalizedResolution : "720p";
+        const normalizedMode = String(mode || "").toLowerCase();
+        if (allowedMode.includes(normalizedMode)) {
+          payload.mode = normalizedMode;
+        } else {
+          payload.mode = "normal";
+        }
       }
 
       if (wavespeedModel === "wavespeed-ai/cinematic-video-generator") {
@@ -356,6 +374,12 @@ export async function POST(req: NextRequest) {
           payload.images = safeImageUrls.slice(0, 4);
         } else if (imageUrl) {
           payload.images = [imageUrl];
+        }
+      } else if (isGrokEdit) {
+        if (safeImageUrls.length) {
+          payload.image_urls = safeImageUrls.slice(0, 7);
+        } else if (imageUrl) {
+          payload.image_urls = [imageUrl];
         }
       } else if (imageUrl) {
         if (wavespeedModel.includes("kling-v3.0") || wavespeedModel.includes("motion-control")) {

@@ -8,7 +8,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
-import { PromptDock, type DockConfig } from "../components/prompt-dock";
+import { PromptDock, type DockConfig, type PromptDockHandle } from "../components/prompt-dock";
 import { RecentStrip } from "../components/recent-strip";
 import { icon } from "../lib/icons";
 import { evalES } from "../lib/cep";
@@ -53,6 +53,7 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
     ...cfg.dock,
     onSubmit: async (input) => {
       try {
+        dock.setBusy(true, "Generating… please wait");
         setBusy(true);
         const job = await cfg.submit(input);
         let final: JobStatus = job;
@@ -68,9 +69,11 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
       } catch (err) {
         preview.replaceChildren(errorCard((err as Error).message));
         toast((err as Error).message, "error");
+      } finally {
+        dock.setBusy(false);
       }
     },
-  });
+  }) as PromptDockHandle;
 
   return el("div.col", { style: { height: "100%" } },
     Header(),

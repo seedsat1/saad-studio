@@ -121,9 +121,16 @@ export function AvatarProPage(): HTMLElement {
     style: { fontSize: "11px", wordBreak: "break-all" },
   }, "No audio selected");
 
+  const generateBtnLabel = el("span", null, "Generate LiP sync");
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void submit(); },
-  }, icon("send", 14), "Generate LiP sync") as HTMLButtonElement;
+  }, icon("send", 14), generateBtnLabel) as HTMLButtonElement;
+  const busyHint = el("div.busy-inline", {
+    style: { display: "none", justifyContent: "flex-end", marginTop: "10px" },
+  },
+    el("span.busy-spinner", { "aria-hidden": "true" }),
+    el("span", null, "Generating LiP sync… please wait"),
+  );
 
   const resultHost = el("div.col.gap-3", { style: { padding: "0 16px 16px" } });
 
@@ -176,6 +183,7 @@ export function AvatarProPage(): HTMLElement {
             "Optional guidance for expression, framing, or speaking style.",
           ),
           promptInput,
+          busyHint,
           el("div.row.gap-2", { style: { marginTop: "12px", justifyContent: "flex-end" } }, generateBtn),
         ),
       ),
@@ -297,6 +305,9 @@ export function AvatarProPage(): HTMLElement {
     generateBtn.disabled = busy || !hasVisualSource(visualState) || !hasAudioSource(audioState);
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
+    generateBtn.classList.toggle("btn-primary--busy", busy);
+    generateBtnLabel.textContent = busy ? "Generating…" : "Generate LiP sync";
+    busyHint.style.display = busy ? "inline-flex" : "none";
   }
 
   async function submit() {

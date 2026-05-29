@@ -78,6 +78,53 @@ export interface TransitionPresetItem {
   description: string;
 }
 
+export interface TransitionProject {
+  id: string;
+  title: string;
+  inputAUrl: string | null;
+  inputAType: string;
+  inputBUrl: string | null;
+  inputBType: string;
+  presetId: string | null;
+  aspectRatio: string;
+  duration: number;
+  intensity: number;
+  smoothness: number;
+  cinematicStr: number;
+  preserveFraming: boolean;
+  subjectFocus: boolean;
+  resolution: string;
+  fps: number;
+  enhance: boolean;
+  updatedAt?: string;
+  jobs?: TransitionPanelJob[];
+  outputs?: TransitionOutput[];
+}
+
+export interface TransitionPanelJob {
+  id: string;
+  presetId: string;
+  status: string;
+  taskId: string | null;
+  creditsCost: number;
+  error: string | null;
+  resultUrl: string | null;
+  createdAt: string;
+  output?: TransitionOutput | null;
+}
+
+export interface TransitionOutput {
+  id: string;
+  url: string;
+  presetId: string;
+  presetName: string;
+  aspectRatio: string;
+  duration: number;
+  inputAUrl: string | null;
+  inputBUrl: string | null;
+  createdAt: string;
+}
+
 interface SignedUploadResponse {
   signedUrl: string;
   publicUrl: string;
@@ -375,6 +422,51 @@ export const api = {
         return { presets: [...LOCAL_TRANSITION_PRESETS] as TransitionPresetItem[] };
       }
     }
+  },
+
+  transitionProjects: () =>
+    request<{ projects: TransitionProject[] }>("/api/panel/transitions/project"),
+
+  transitionProject: (id: string) =>
+    request<{ project: TransitionProject }>(`/api/panel/transitions/project/${id}`),
+
+  createTransitionProject: (body: Record<string, unknown>) =>
+    request<{ project: TransitionProject }>("/api/panel/transitions/project", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateTransitionProject: (id: string, body: Record<string, unknown>) =>
+    request<{ project: TransitionProject }>(`/api/panel/transitions/project/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  generateTransitionProject: (body: Record<string, unknown>) =>
+    request<{
+      jobId: string;
+      taskId: string;
+      status: string;
+      creditsCharged: number;
+      remainingCredits?: number;
+    }>("/api/panel/transitions/generate", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  transitionJob: (id: string) =>
+    request<{ job: TransitionPanelJob }>(`/api/panel/transitions/job/${id}`),
+
+  pollTransitionJob: async (jobId: string, opts: { intervalMs?: number; timeoutMs?: number } = {}) => {
+    const interval = opts.intervalMs ?? 3000;
+    const timeout = opts.timeoutMs ?? 8 * 60 * 1000;
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+      const { job } = await api.transitionJob(jobId);
+      if (job.status === "completed" || job.status === "failed") return job;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+    throw new ApiError("Transition job timed out", 408);
   },
 
   createUploadUrl: (body: { fileName: string; contentType: string; assetType?: string }) =>
