@@ -587,6 +587,8 @@ export default function AgentStudioPage() {
   const [realAiResponse, setRealAiResponse] = useState<string | null>(null);
   const [realAiError, setRealAiError] = useState<string | null>(null);
   const [outputTab, setOutputTab] = useState<"video" | "response">("video");
+  const [outputMediaType, setOutputMediaType] = useState<"video" | "image" | "none">("none");
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -683,17 +685,83 @@ export default function AgentStudioPage() {
 
     setRunningTaskName(activeSkillTitle);
     setActiveWorkflowPrompt(runPrompt);
-    setProgressVal(0);
+    setProgressVal(5);
     setActiveStep("claude");
-    setActiveLogs([]);
+    setActiveLogs([`[${orchestratorName}] Initializing creative pipeline planning...`]);
     setOutputVideo(null);
     setRealAiResponse(null);
     setRealAiError(null);
-    setOutputTab("video");
+    setOutputMediaType("none");
+    setOutputTab("response");
 
     // Fetch real agent response in background utilizing active skills and memories
     const activeSkillsToSend = skillsList.filter(s => s.isActive);
     const lockedMemoriesToSend = memoriesList.filter(m => lockedMemories.includes(m.id));
+
+    // Shared success handler
+    const handleSuccess = (
+      mediaUrl: string | null,
+      mediaType: "video" | "image" | "none",
+      textResponse: string,
+      finalLogs: string[]
+    ) => {
+      setProgressVal(100);
+      setActiveStep("done");
+      setRunningTaskName(null);
+
+      if (mediaUrl) {
+        setOutputVideo(mediaUrl);
+      }
+
+      const cost = mediaType === "video" ? 6 : mediaType === "image" ? 2 : 1;
+      const updatedCredits = credits - cost;
+      setCredits(updatedCredits);
+      saveToStorage("saad_super_credits_v6", updatedCredits);
+
+      const fileName = mediaType === "video"
+        ? `video_render_${Math.floor(100 + Math.random() * 900)}.mp4`
+        : `image_render_${Math.floor(100 + Math.random() * 900)}.png`;
+
+      const dbLog = mediaUrl
+        ? `[System DB Core] Saved output as ${fileName}. Spent ${cost} credits.`
+        : `[System DB Core] Response complete. Spent ${cost} credits.`;
+
+      const allLogs = [...finalLogs, dbLog];
+      setActiveLogs(allLogs);
+
+      // Save to history
+      const newTask: TaskRun = {
+        id: `task-${Date.now()}`,
+        prompt: runPrompt,
+        category: matchedSkill ? matchedSkill.category : activeChip,
+        skillId: matchedSkill?.id,
+        engine: orchestratorName,
+        renderMode: mediaType === "video" ? "Kling 3.0 + GPT Image 2" : mediaType === "image" ? "Flux-2" : "Orchestrated Claude",
+        fileSize: mediaType === "video" ? "6.2 MB" : mediaType === "image" ? "1.8 MB" : "0.1 MB",
+        timestamp: new Date().toISOString().split("T")[0],
+        status: "completed",
+        ...(mediaUrl ? { videoUrl: mediaUrl } : {}),
+        logs: allLogs
+      };
+      const updatedHist = [newTask, ...taskHistory];
+      setTaskHistory(updatedHist);
+      saveToStorage("saad_super_history_v6", updatedHist);
+
+      // Save to files list
+      if (mediaUrl) {
+        const newFile: AssetFile = {
+          id: `file-${Date.now()}`,
+          name: fileName,
+          size: mediaType === "video" ? "6.2 MB" : "1.8 MB",
+          type: mediaType === "video" ? "video" : "image",
+          date: new Date().toISOString().split("T")[0],
+          url: mediaUrl
+        };
+        const updatedFiles = [newFile, ...filesList];
+        setFilesList(updatedFiles);
+        saveToStorage("saad_super_files_v6", updatedFiles);
+      }
+    };
 
     fetch("/api/agent-studio/run", {
       method: "POST",
@@ -705,89 +773,180 @@ export default function AgentStudioPage() {
       })
     })
       .then(res => {
-        if (!res.ok) throw new Error("Failed to get response");
+        if (!res.ok) throw new Error("Failed to get orchestration response");
         return res.json();
       })
-      .then(data => {
+      .then(async (data) => {
         setRealAiResponse(data.content);
+        const log1 = `[${orchestratorName}] Orchestration plan constructed. TYPE: ${data.mediaType.toUpperCase()}`;
+        const log2 = data.mediaType !== "none" ? `[${orchestratorName}] Expanded media prompt: "${data.mediaPrompt}"` : "";
+        const log3 = data.mediaType !== "none" ? `[Model Routing] Activating ${data.suggestedModel}...` : "";
+        
+        const logsAfterOrchestration = [
+          `[${orchestratorName}] Initializing creative pipeline planning...`,
+          log1,
+          ...(log2 ? [log2] : []),
+          ...(log3 ? [log3] : [])
+        ];
+        
+        setActiveLogs(logsAfterOrchestration);
+
+        if (data.mediaType === "video") {
+          setOutputMediaType("video");
+          setOutputTab("video");
+          setActiveStep("kling");
+          setProgressVal(35);
+
+          // Map suggestedModel to route
+          let modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+          if (data.suggestedModel === "wavespeed-ai/cinematic-video-generator") {
+            modelRoute = "wavespeed-ai/cinematic-video-generator";
+          }
+
+          try {
+            const videoPayload = {
+              modelRoute,
+              payload: {
+                prompt: data.mediaPrompt,
+                duration: 5,
+                aspect_ratio: data.aspectRatio || "16:9",
+                resolution: "720p",
+                ...(attachedImageUrl ? { image_url: attachedImageUrl } : {})
+              }
+            };
+
+            const genRes = await fetch("/api/video", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(videoPayload)
+            });
+
+            if (!genRes.ok) {
+              const errData = await genRes.json().catch(() => ({}));
+              throw new Error(errData.error || `Video request failed (HTTP ${genRes.status})`);
+            }
+
+            const genJson = await genRes.json();
+
+            if (genJson.videoUrl) {
+              handleSuccess(genJson.videoUrl, "video", data.content, logsAfterOrchestration);
+            } else if (genJson.taskId) {
+              const log4 = `[Model Polling] Video generation started (Task: ${genJson.taskId})`;
+              const currentLogs = [...logsAfterOrchestration, log4];
+              setActiveLogs(currentLogs);
+              setActiveStep("ffmpeg");
+              setProgressVal(60);
+
+              let finished = false;
+              let attempts = 0;
+              let finalUrl = null;
+              const pollingLogs = [...currentLogs];
+
+              while (!finished && attempts < 90) {
+                attempts++;
+                // Wait 3 seconds
+                await new Promise(r => setTimeout(r, 3000));
+
+                const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(genJson.taskId)}`, { cache: "no-store" });
+                if (!pollRes.ok) continue;
+
+                const pollJson = await pollRes.json();
+                if (pollJson.status === "completed" || pollJson.videoUrl) {
+                  finished = true;
+                  finalUrl = pollJson.videoUrl || pollJson.outputs?.[0];
+                  if (!finalUrl) {
+                    throw new Error("Polling succeeded but no output URL returned.");
+                  }
+                } else if (pollJson.status === "failed") {
+                  finished = true;
+                  throw new Error(pollJson.error || "Generation failed at provider side.");
+                } else {
+                  // Update progress bar
+                  setProgressVal(prev => Math.min(prev + 1, 95));
+                  if (attempts % 4 === 0) {
+                    const pollMsg = `[Model Polling] Generating... (Seconds elapsed: ${attempts * 3}s)`;
+                    pollingLogs.push(pollMsg);
+                    setActiveLogs([...pollingLogs]);
+                  }
+                }
+              }
+
+              if (finalUrl) {
+                handleSuccess(finalUrl, "video", data.content, pollingLogs);
+              } else {
+                throw new Error("Video generation timed out.");
+              }
+            } else {
+              throw new Error("No taskId or videoUrl returned from video endpoint.");
+            }
+          } catch (e: any) {
+            console.error(e);
+            setRealAiError(e.message || "Failed to generate video.");
+            setActiveLogs(prev => [...prev, `[Error] ${e.message || "Video generation failed."}`]);
+            setActiveStep("idle");
+            setRunningTaskName(null);
+            setProgressVal(0);
+          }
+
+        } else if (data.mediaType === "image") {
+          setOutputMediaType("image");
+          setOutputTab("video");
+          setActiveStep("gpt2");
+          setProgressVal(40);
+
+          try {
+            const imagePayload = {
+              prompt: data.mediaPrompt,
+              modelId: data.suggestedModel || "flux-2",
+              aspectRatio: data.aspectRatio || "1:1",
+              numImages: 1,
+              quality: "standard",
+              ...(attachedImageUrl ? { imageUrl: attachedImageUrl } : {})
+            };
+
+            const genRes = await fetch("/api/generate/image", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(imagePayload)
+            });
+
+            if (!genRes.ok) {
+              const errData = await genRes.json().catch(() => ({}));
+              throw new Error(errData.error || `Image request failed (HTTP ${genRes.status})`);
+            }
+
+            const genJson = await genRes.json();
+            const mediaUrl = genJson.imageUrl || genJson.mediaUrl || genJson.imageUrls?.[0];
+
+            if (mediaUrl) {
+              handleSuccess(mediaUrl, "image", data.content, logsAfterOrchestration);
+            } else {
+              throw new Error("No image URL returned from generation endpoint.");
+            }
+          } catch (e: any) {
+            console.error(e);
+            setRealAiError(e.message || "Failed to generate image.");
+            setActiveLogs(prev => [...prev, `[Error] ${e.message || "Image generation failed."}`]);
+            setActiveStep("idle");
+            setRunningTaskName(null);
+            setProgressVal(0);
+          }
+
+        } else {
+          // Pure script/text
+          setOutputMediaType("none");
+          setOutputTab("response");
+          handleSuccess(null, "none", data.content, logsAfterOrchestration);
+        }
       })
       .catch(err => {
         console.error(err);
         setRealAiError("Could not fetch response from API. Make sure OPENAI_API_KEY is configured.");
+        setActiveLogs(prev => [...prev, `[Error] Orchestration failed.`]);
+        setActiveStep("idle");
+        setRunningTaskName(null);
+        setProgressVal(0);
       });
-
-    const steps = [
-      { text: `[${orchestratorName}] Querying active skill guidelines for ${activeSkillTitle}...`, step: "claude" as const, delay: 0 },
-      { text: `[${orchestratorName}] Scripting storyboard timeline beats. Formulated scene sequence logs.`, step: "claude" as const, delay: 600 },
-      { text: `[GPT Image 2] Initializing keyframe latents. Prompt size: ${runPrompt.length} tokens.`, step: "gpt2" as const, delay: 1400 },
-      { text: `[GPT Image 2] Rendered 8 high-fidelity storyboard assets. Stored in temporary buffer.`, step: "gpt2" as const, delay: 2400 },
-      { text: `[Kling 3.0] Processing keyframes via photorealistic video motion models...`, step: "kling" as const, delay: 3400 },
-      { text: `[Kling 3.0] Motion latents calculated. Video rendering complete (resolution: 1080p).`, step: "kling" as const, delay: 4800 },
-      { text: `[FFmpeg Engine] Splicing animated clips together and mixing the ambient soundtrack.`, step: "ffmpeg" as const, delay: 5600 },
-      { text: `[System DB Core] Saved output as reels_render_${Date.now().toString().slice(-4)}.mp4. Spent 5 credits.`, step: "done" as const, delay: 6400 }
-    ];
-
-    const interval = setInterval(() => {
-      setProgressVal((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 2.5;
-      });
-    }, 150);
-
-    const timers: NodeJS.Timeout[] = [];
-    steps.forEach((s) => {
-      const timer = setTimeout(() => {
-        setActiveLogs((prev) => [...prev, s.text]);
-        setActiveStep(s.step);
-
-        if (s.step === "done") {
-          clearInterval(interval);
-          setProgressVal(100);
-          setRunningTaskName(null);
-          const finalVideo = "https://lorem.video/720p_h264_10s";
-          setOutputVideo(finalVideo);
-
-          const updatedCredits = credits - 5;
-          setCredits(updatedCredits);
-          saveToStorage("saad_super_credits_v6", updatedCredits);
-
-          // Save to history
-          const newTask: TaskRun = {
-            id: `task-${Date.now()}`,
-            prompt: runPrompt,
-            category: matchedSkill ? matchedSkill.category : activeChip,
-            skillId: matchedSkill?.id,
-            engine: orchestratorName,
-            renderMode: "Kling 3.0 + GPT Image 2",
-            fileSize: "6.2 MB",
-            timestamp: new Date().toISOString().split("T")[0],
-            status: "completed",
-            videoUrl: finalVideo,
-            logs: steps.map((log) => log.text)
-          };
-          const updatedHist = [newTask, ...taskHistory];
-          setTaskHistory(updatedHist);
-          saveToStorage("saad_super_history_v6", updatedHist);
-
-          // Save to files list
-          const newFile: AssetFile = {
-            id: `file-${Date.now()}`,
-            name: `reels_render_${Math.floor(100 + Math.random() * 900)}.mp4`,
-            size: "6.2 MB",
-            type: "video",
-            date: new Date().toISOString().split("T")[0],
-            url: finalVideo
-          };
-          const updatedFiles = [newFile, ...filesList];
-          setFilesList(updatedFiles);
-          saveToStorage("saad_super_files_v6", updatedFiles);
-        }
-      }, s.delay);
-      timers.push(timer);
-    });
   };
 
   const onSubmitPrompt = () => {
@@ -933,7 +1092,6 @@ export default function AgentStudioPage() {
   };
 
   const processFiles = (files: FileList) => {
-    const newFiles: AssetFile[] = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       let type: "image" | "video" | "document" = "document";
@@ -945,18 +1103,31 @@ export default function AgentStudioPage() {
           ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
           : `${(file.size / 1024).toFixed(1)} KB`;
 
-      newFiles.push({
-        id: `file-${Date.now()}-${i}`,
-        name: file.name,
-        size: formattedSize,
-        type,
-        date: new Date().toISOString().split("T")[0]
-      });
-    }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Url = reader.result as string;
+        const newAsset: AssetFile = {
+          id: `file-${Date.now()}-${i}`,
+          name: file.name,
+          size: formattedSize,
+          type,
+          date: new Date().toISOString().split("T")[0],
+          url: base64Url
+        };
 
-    const updated = [...newFiles, ...filesList];
-    setFilesList(updated);
-    saveToStorage("saad_super_files_v6", updated);
+        setFilesList((prev) => {
+          const updated = [newAsset, ...prev];
+          saveToStorage("saad_super_files_v6", updated);
+          return updated;
+        });
+
+        // Auto-attach image reference if uploaded inside prompt workflow
+        if (type === "image") {
+          setAttachedImageUrl(base64Url);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1226,6 +1397,21 @@ export default function AgentStudioPage() {
                       </div>
                     )}
 
+                    {attachedImageUrl && (
+                      <div className="flex items-center gap-2 p-1.5 mb-2 rounded-xl bg-[#090f1d] border border-violet-500/20 max-w-max ml-3 animate-fade-in">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={attachedImageUrl} className="h-8 w-8 object-cover rounded-lg" alt="Attached reference image" />
+                        <span className="text-[10px] text-zinc-400 font-bold max-w-[120px] truncate">Reference Image</span>
+                        <button
+                          onClick={() => setAttachedImageUrl(null)}
+                          className="text-zinc-500 hover:text-red-400 p-0.5 rounded transition"
+                          title="Remove attachment"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
@@ -1252,7 +1438,6 @@ export default function AgentStudioPage() {
                                 key={s.id}
                                 onClick={() => {
                                   setPrompt(`${s.title} `);
-                                  setSelectedSkill(s.id);
                                 }}
                                 className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-violet-600/10 transition border border-transparent hover:border-violet-500/10 flex items-center gap-2"
                               >
@@ -1676,16 +1861,25 @@ export default function AgentStudioPage() {
                           <div className="flex-1 relative overflow-hidden">
                             {outputTab === "video" ? (
                               <div className="w-full h-full">
-                                <video
-                                  src={outputVideo}
-                                  autoPlay
-                                  muted
-                                  loop
-                                  playsInline
-                                  className="w-full h-full object-cover"
-                                />
+                                {outputMediaType === "image" ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={outputVideo}
+                                    alt="Generated media output"
+                                    className="w-full h-full object-contain"
+                                  />
+                                ) : (
+                                  <video
+                                    src={outputVideo}
+                                    autoPlay
+                                    muted
+                                    loop
+                                    playsInline
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
                                 <div className="absolute top-2 left-2 z-20 rounded bg-black/60 border border-white/10 px-2 py-0.5 text-[8px] font-bold text-emerald-400 tracking-wider">
-                                  R2 Storage Stream
+                                  {outputMediaType === "image" ? "Supabase CDN Image" : "R2 Storage Stream"}
                                 </div>
                               </div>
                             ) : (
@@ -2398,10 +2592,26 @@ export default function AgentStudioPage() {
                           <td className="p-3.5 text-zinc-500">
                             {file.date}
                           </td>
-                          <td className="p-3.5 text-right">
+                          <td className="p-3.5 text-right flex items-center justify-end gap-2">
+                            {file.type === "image" && (
+                              <button
+                                onClick={() => {
+                                  setAttachedImageUrl(file.url || null);
+                                  setActiveTab("new");
+                                }}
+                                className={`transition p-1 rounded hover:bg-white/5 ${
+                                  attachedImageUrl === file.url
+                                    ? "text-violet-400 font-extrabold"
+                                    : "text-zinc-500 hover:text-violet-400"
+                                }`}
+                                title="Use as reference image"
+                              >
+                                <Paperclip className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteFile(file.id)}
-                              className="text-zinc-500 hover:text-red-400 transition"
+                              className="text-zinc-500 hover:text-red-400 transition p-1 rounded hover:bg-white/5"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
@@ -2500,7 +2710,7 @@ export default function AgentStudioPage() {
                     </button>
                     <button
                       onClick={() => {
-                        const memVal = prompt("Enter new preference parameter to remember:");
+                        const memVal = window.prompt("Enter new preference parameter to remember:");
                         if (memVal && memVal.trim()) {
                           const newMem = { id: `mem-${Date.now()}`, text: memVal.trim() };
                           const updated = [...memoriesList, newMem];
