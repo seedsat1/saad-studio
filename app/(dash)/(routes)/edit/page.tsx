@@ -383,27 +383,69 @@ export default function EditPage() {
 
   const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
 
-  // File Upload Handler
+  // File Upload Handler with Direct Cloud Upload Fallback (fixes 413 Payload Too Large)
   const handleFileUpload = async (file: File) => {
     if (!file) return;
     setIsUploading(true);
     setSimulatedWarning(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      let publicUrl = "";
 
-      const response = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to upload file");
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed (possibly due to size limits), attempting direct S3/R2 upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to S3/R2 using signed URL (bypasses Nginx client_max_body_size and Vercel limits)
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        // Upload the binary directly to R2/S3
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
       }
 
-      if (data.publicUrl) {
-        setMediaUrl(data.publicUrl);
+      if (publicUrl) {
+        setMediaUrl(publicUrl);
         const isVid = file.type.startsWith("video/");
         setMediaType(isVid ? "video" : "image");
         setShowResult(false);
@@ -831,39 +873,6 @@ export default function EditPage() {
           <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
           <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
 
-          <div className="h-5 w-px bg-white/10 mx-1.5" />
-
-          {/* Upload Button */}
-          <label className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold select-none cursor-pointer text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent">
-            <Upload className="h-4 w-4 shrink-0" />
-            <span className="hidden md:inline">Upload File</span>
-            <input
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) await handleFileUpload(file);
-              }}
-            />
-          </label>
-
-          {/* Clear Media Button */}
-          {mediaUrl && (
-            <button
-              type="button"
-              onClick={() => {
-                setMediaUrl("");
-                handleClearMask();
-              }}
-              title="Remove current media"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-150 text-xs font-semibold text-zinc-500 hover:text-rose-400 hover:bg-rose-950/20 border border-transparent select-none"
-            >
-              <Trash2 className="h-4 w-4 shrink-0" />
-              <span className="hidden md:inline">Clear</span>
-            </button>
-          )}
-
           <div className="flex-1" />
 
           {/* Status badge */}
@@ -1199,6 +1208,79 @@ export default function EditPage() {
 
         {/* Configuration settings widgets */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
+          
+          {/* ────────────────────────────────────────────────────────────
+              0. Source Media Control (Upload & Reset)
+          ──────────────────────────────────────────────────────────── */}
+          <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                Source Media
+              </span>
+              {mediaUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaUrl("");
+                    handleClearMask();
+                  }}
+                  className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider"
+                >
+                  Clear Media
+                </button>
+              )}
+            </div>
+
+            {mediaUrl ? (
+              <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-video bg-zinc-950">
+                {mediaType === "video" ? (
+                  <video
+                    src={mediaUrl}
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={mediaUrl}
+                    alt="Source"
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
+                  <Upload className="h-5 w-5 text-white mr-2" />
+                  <span className="text-xs font-bold text-white">Change File</span>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await handleFileUpload(file);
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
+                <Upload className="h-5 w-5 text-zinc-500 group-hover:text-cyan-400 transition-colors mb-2 animate-pulse" />
+                <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                  Upload Image/Video
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleFileUpload(file);
+                  }}
+                />
+              </label>
+            )}
+          </div>
           
           {/* ────────────────────────────────────────────────────────────
               1. Inpaint & Replace Settings
