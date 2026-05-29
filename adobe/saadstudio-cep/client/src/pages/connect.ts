@@ -240,12 +240,16 @@ async function beginFlow(card: HTMLElement) {
 // ─── Shared header ────────────────────────────────────────────────────
 
 function headerRow(): HTMLElement {
+  const logo = el("img", {
+    src: "https://www.saadstudio.app/logo-saad-transparent.png",
+    alt: "Saad Studio",
+  });
   return el("div.row.gap-3", { style: { marginBottom: "16px" } },
-    el("div.app-header__logo", null, "SA"),
+    el("div.app-header__logo", null, logo),
     el("div.col",
       null,
-      el("div", { style: { fontSize: "16px", fontWeight: "700" } }, "Connect to Saad Studio"),
-      el("div.dim", { style: { fontSize: "12px" } }, "Sign in once to start generating."),
+      el("div", { style: { fontSize: "16px", fontWeight: "700" } }, "Saad Studio"),
+      el("div.dim", { style: { fontSize: "12px" } }, "Sign in once to connect your plugin and start generating."),
     ),
   );
 }
