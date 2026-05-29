@@ -162,11 +162,9 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     : null;
 
   const submitBtn = el("button.dock-submit",
-    { "aria-label": "Generate", onClick: () => submit() },
+    { "aria-label": "Generate", title: "Generate", onClick: () => submit() },
     icon("send", 14),
-    el("span", null, "Generate"),
   ) as HTMLButtonElement;
-  const submitLabel = submitBtn.querySelector("span") as HTMLSpanElement;
   const optionButtons: HTMLButtonElement[] = [];
   const optionEntries: Array<{ opt: DockOption; pill: HTMLButtonElement }> = [];
   const statusText = el("span", null, "Generating…");
@@ -278,7 +276,8 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     for (const button of optionButtons) button.disabled = busy;
     submitBtn.disabled = busy;
     submitBtn.classList.toggle("dock-submit--busy", busy);
-    submitLabel.textContent = busy ? "Generating…" : "Generate";
+    submitBtn.setAttribute("aria-label", busy ? "Generating" : "Generate");
+    submitBtn.setAttribute("title", busy ? "Generating" : "Generate");
     statusLine.style.display = busy ? "flex" : "none";
     if (busy) {
       dragDepth = 0;
