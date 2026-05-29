@@ -373,11 +373,35 @@ function handleFile(input, which) {
   var file = input.files && input.files[0];
   if (!file) return;
   input.value = '';
-  if (which === 'A') { _fileA = file; _urlA = null; if(_objA){URL.revokeObjectURL(_objA);_objA=null;} }
-  else { _fileB = file; _urlB = null; if(_objB){URL.revokeObjectURL(_objB);_objB=null;} }
 
+  var isVideo = file.type.startsWith('video/');
   var objUrl = URL.createObjectURL(file);
-  if (which === 'A') _objA = objUrl; else _objB = objUrl;
+
+  if (isVideo) {
+    var tempVid = document.createElement('video');
+    tempVid.preload = 'metadata';
+    tempVid.src = objUrl;
+    tempVid.onloadedmetadata = function() {
+      var dur = tempVid.duration;
+      if (!isFinite(dur) || dur < 3 || dur > 15) {
+        alert('Video duration must be between 3 and 15 seconds. Current: ' + (isFinite(dur) ? Math.round(dur) + 's' : 'unknown'));
+        URL.revokeObjectURL(objUrl);
+        return;
+      }
+      setFileInput(file, objUrl, which);
+    };
+    tempVid.onerror = function() {
+      alert('Failed to load video metadata. Please select a valid video file.');
+      URL.revokeObjectURL(objUrl);
+    };
+  } else {
+    setFileInput(file, objUrl, which);
+  }
+}
+
+function setFileInput(file, objUrl, which) {
+  if (which === 'A') { _fileA = file; _urlA = null; if(_objA){URL.revokeObjectURL(_objA);_objA=null;} _objA = objUrl; }
+  else { _fileB = file; _urlB = null; if(_objB){URL.revokeObjectURL(_objB);_objB=null;} _objB = objUrl; }
 
   var isVideo = file.type.startsWith('video/');
   var card = document.getElementById('input'+which);

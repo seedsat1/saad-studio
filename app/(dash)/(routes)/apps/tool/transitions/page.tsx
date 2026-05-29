@@ -143,6 +143,36 @@ function detectMediaType(file: File): InputType {
   return file.type.startsWith("video/") ? "video" : "image";
 }
 
+function validateVideoDuration(file: File, minSec = 3, maxSec = 15): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        reject(new Error("Could not read video duration."));
+      } else if (duration < minSec || duration > maxSec) {
+        reject(
+          new Error(
+            `Video duration must be between ${minSec}s and ${maxSec}s. Current duration: ${Math.round(duration)}s.`
+          )
+        );
+      } else {
+        resolve(duration);
+      }
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load video metadata. Make sure it is a valid video file."));
+    };
+  });
+}
+
 function dataUrlToFile(dataUrl: string, fileName: string): File {
   const [header, base64] = dataUrl.split(",");
   const mime = header.match(/^data:([^;]+);base64$/)?.[1] || "image/jpeg";
@@ -1088,6 +1118,9 @@ export default function TransitionsStudioPage() {
     setGenError(null);
     try {
       const type = detectMediaType(file);
+      if (type === "video") {
+        await validateVideoDuration(file, 3, 15);
+      }
       const previewUrl = URL.createObjectURL(file);
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputAType(type);
@@ -1118,6 +1151,9 @@ export default function TransitionsStudioPage() {
     setGenError(null);
     try {
       const type = detectMediaType(file);
+      if (type === "video") {
+        await validateVideoDuration(file, 3, 15);
+      }
       const previewUrl = URL.createObjectURL(file);
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputBType(type);

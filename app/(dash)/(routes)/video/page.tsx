@@ -90,6 +90,36 @@ function StyleLibraryGatewayCard() {
   );
 }
 
+function validateVideoDuration(file: File, minSec = 3, maxSec = 15): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        reject(new Error("Could not read video duration."));
+      } else if (duration < minSec || duration > maxSec) {
+        reject(
+          new Error(
+            `Video duration must be between ${minSec}s and ${maxSec}s. Current duration: ${Math.round(duration)}s.`
+          )
+        );
+      } else {
+        resolve(duration);
+      }
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load video metadata. Make sure it is a valid video file."));
+    };
+  });
+}
+
 async function fileToDataURL(file: File, maxPx = 1920, quality = 0.85): Promise<string> {
   // For non-image files (video) return raw data URL without compression
   if (!file.type.startsWith("image/")) {
@@ -1219,6 +1249,26 @@ function VideoPageInner() {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
       return;
     }
+
+    // Validate video durations on client-side before starting submission
+    if (motionVideo) {
+      try {
+        await validateVideoDuration(motionVideo, 3, 30);
+      } catch (err) {
+        setGenerationError(err instanceof Error ? err.message : String(err));
+        return;
+      }
+    }
+    const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
+    for (const vid of refVids) {
+      try {
+        await validateVideoDuration(vid, 3, 30);
+      } catch (err) {
+        setGenerationError(err instanceof Error ? err.message : String(err));
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setGenerationError(null);
 
