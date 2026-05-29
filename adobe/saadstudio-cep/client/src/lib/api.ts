@@ -8,6 +8,7 @@
  * staging, or production by changing the env file at build time. */
 
 import { getToken, clearToken } from "./auth";
+import { LOCAL_TRANSITION_PRESETS } from "./transition-presets";
 
 const DEFAULT_BASE = "https://www.saadstudio.app";
 const OVERRIDE_KEY = "saadstudio.apiBase";
@@ -365,7 +366,15 @@ export const api = {
     }),
 
   transitionPresets: async () => {
-    return await request<{ presets: TransitionPresetItem[] }>("/api/panel/transitions/presets");
+    try {
+      return await request<{ presets: TransitionPresetItem[] }>("/api/panel/transitions/presets");
+    } catch {
+      try {
+        return await request<{ presets: TransitionPresetItem[] }>("/api/transitions/presets");
+      } catch {
+        return { presets: [...LOCAL_TRANSITION_PRESETS] as TransitionPresetItem[] };
+      }
+    }
   },
 
   createUploadUrl: (body: { fileName: string; contentType: string; assetType?: string }) =>
