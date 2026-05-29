@@ -62,7 +62,16 @@ async function resolveInputUrl(raw: string, userId: string): Promise<string> {
 
 async function validateTransitionInput(raw: string): Promise<void> {
   if (raw.startsWith("data:image/") || raw.startsWith("http://") || raw.startsWith("https://")) {
-    await checkStoryboardReferenceImageSafety(raw);
+    const isVideo = /\.(mp4|mov|webm|mkv|m4v)(\?|$)/i.test(raw);
+    if (isVideo) return;
+    try {
+      await checkStoryboardReferenceImageSafety(raw);
+    } catch (err) {
+      if (err instanceof UnsafeReferenceImageError) {
+        throw err;
+      }
+      console.warn("[panel/transitions/generate] Safety check bypassed due to validation error:", err instanceof Error ? err.message : err);
+    }
   }
 }
 

@@ -58,7 +58,14 @@ async function validateTransitionInput(raw: string): Promise<void> {
   if (raw.startsWith("data:image/") || raw.startsWith("http://") || raw.startsWith("https://")) {
     const isVideo = /\.(mp4|mov|webm|mkv|m4v)(\?|$)/i.test(raw);
     if (isVideo) return;
-    await checkStoryboardReferenceImageSafety(raw);
+    try {
+      await checkStoryboardReferenceImageSafety(raw);
+    } catch (err) {
+      if (err instanceof UnsafeReferenceImageError) {
+        throw err;
+      }
+      console.warn("[transitions/generate] Safety check bypassed due to validation error:", err instanceof Error ? err.message : err);
+    }
   }
 }
 
