@@ -8,8 +8,10 @@ import { FeaturePage } from "./feature-page";
 import { api } from "../lib/api";
 
 const MODELS = [
-  { value: "google/imagen4-ultra", label: "Imagen 4 Ultra" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
+  { value: "nano-banana-2", label: "Nano Banana 2" },
+  { value: "google/nano-banana", label: "Nano Banana" },
+  { value: "gpt-image-2", label: "GPT Image 2" },
 ];
 const ASPECTS = [
   { value: "1:1", label: "1:1" },
@@ -25,6 +27,10 @@ const RESOLUTIONS = [
   { value: "2K", label: "2k" },
   { value: "4K", label: "4k" },
 ];
+const GPT_QUALITIES = [
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
 
 export function ImageGenPage(): HTMLElement {
   return FeaturePage({
@@ -36,7 +42,13 @@ export function ImageGenPage(): HTMLElement {
       options: [
         { key: "model", label: "Model", value: "nano-banana-pro", options: MODELS },
         { key: "aspect", label: "Aspect", value: "1:1", options: ASPECTS },
-        { key: "resolution", label: "Resolution", value: "2K", options: RESOLUTIONS },
+        {
+          key: "resolution",
+          label: "Quality",
+          value: "2K",
+          options: RESOLUTIONS,
+          getOptions: (state) => (state.options.model === "gpt-image-2" ? GPT_QUALITIES : RESOLUTIONS),
+        },
       ],
     },
     submit: async ({ prompt, attachments, options }) => {
@@ -51,9 +63,13 @@ export function ImageGenPage(): HTMLElement {
         ? await api.uploadFileToR2(attachments[0], "image")
         : undefined;
 
+      const selectedModel = options.model === "gpt-image-2"
+        ? (imageUrl ? "gpt-image-2-image-to-image" : "gpt-image-2-text-to-image")
+        : options.model;
+
       return api.generate.image({
         prompt,
-        model: options.model,
+        model: selectedModel,
         aspect: options.aspect,
         resolution: options.resolution,
         ...(imageUrl ? { imageUrl } : {}),
