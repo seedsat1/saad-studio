@@ -314,6 +314,7 @@ export default function EditPage() {
   const [faceImageUrl, setFaceImageUrl] = useState("");
   const [isUploadingFace, setIsUploadingFace] = useState(false);
   const [videoDuration, setVideoDuration] = useState<number>(0);
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null);
 
   // Advanced generation parameters
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -595,6 +596,39 @@ export default function EditPage() {
         if (prev.some((item) => item.url === mediaUrl)) return prev;
         return [{ url: mediaUrl, type: mediaType }, ...prev].slice(0, 4);
       });
+    }
+  }, [mediaUrl, mediaType]);
+
+  // Calculate dynamic aspect ratio when active media changes
+  useEffect(() => {
+    if (!mediaUrl) {
+      setMediaAspectRatio(null);
+      return;
+    }
+
+    if (mediaType === "video") {
+      const video = document.createElement("video");
+      video.src = mediaUrl;
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        if (video.videoWidth && video.videoHeight) {
+          setMediaAspectRatio(video.videoWidth / video.videoHeight);
+        }
+      };
+      video.onerror = () => {
+        setMediaAspectRatio(null);
+      };
+    } else {
+      const img = new Image();
+      img.src = mediaUrl;
+      img.onload = () => {
+        if (img.naturalWidth && img.naturalHeight) {
+          setMediaAspectRatio(img.naturalWidth / img.naturalHeight);
+        }
+      };
+      img.onerror = () => {
+        setMediaAspectRatio(null);
+      };
     }
   }, [mediaUrl, mediaType]);
 
@@ -958,6 +992,21 @@ export default function EditPage() {
     }
   };
 
+  // Calculate dynamic dimensions for the canvas container based on aspect ratio
+  let containerWidth = 700;
+  let containerHeight = 525;
+  if (mediaAspectRatio) {
+    const maxW = 700;
+    const maxH = 525;
+    if (mediaAspectRatio > maxW / maxH) {
+      containerWidth = maxW;
+      containerHeight = maxW / mediaAspectRatio;
+    } else {
+      containerHeight = maxH;
+      containerWidth = maxH * mediaAspectRatio;
+    }
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none">
       
@@ -1141,8 +1190,8 @@ export default function EditPage() {
                 activeTool === "upscale" ? "cursor-default" : "cursor-crosshair"
               )}
               style={{
-                width: "700px",
-                height: "525px",
+                width: `${containerWidth}px`,
+                height: `${containerHeight}px`,
                 transform: `scale(${scale})`,
               }}
             >
@@ -1251,8 +1300,8 @@ export default function EditPage() {
               {/* ── Interactive Drawing HTML5 Canvas ── */}
               <canvas
                 ref={canvasRef}
-                width={700}
-                height={525}
+                width={containerWidth}
+                height={containerHeight}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
@@ -2410,7 +2459,7 @@ export default function EditPage() {
               "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
               isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-transparent shadow-lg shadow-cyan-500/10 animate-pulse"
+                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-transparent shadow-lg shadow-cyan-500/10"
             )}
           >
             <span>{getActionLabel()}</span>
