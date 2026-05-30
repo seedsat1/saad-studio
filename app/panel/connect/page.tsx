@@ -17,21 +17,42 @@ function ConnectFlow() {
     attempted.current = true;
     setStatus("approving");
 
-    fetch(`/api/panel/auth-session/${sessionId}`, { method: "POST" })
-      .then((r) => {
-        if (!r.ok)
-          return r
-            .json()
-            .then((d: { error?: string }) => {
-              throw new Error(d.error ?? "Failed to connect.");
-            });
-        return r.json();
-      })
-      .then(() => setStatus("done"))
-      .catch((e: Error) => {
-        setErr(e.message);
+    // Use text-then-parse instead of r.json() directly so a 500 with an
+    // empty body never throws "Unexpected end of JSON input" — the
+    // browser-native .json() throws that opaque message and it ends up in
+    // the UI as a useless error string.
+    (async () => {
+      try {
+        const r = await fetch(`/api/panel/auth-session/${sessionId}`, {
+          method: "POST",
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+        const text = await r.text();
+        let body: { ok?: boolean; error?: string } | null = null;
+        if (text.trim()) {
+          try { body = JSON.parse(text) as { ok?: boolean; error?: string }; }
+          catch { body = null; }
+        }
+        if (!r.ok) {
+          const fromBody = body?.error?.trim();
+          const fromText = !body && text.trim()
+            ? text.replace(/\s+/g, " ").trim().slice(0, 200)
+            : "";
+          const message =
+            fromBody ||
+            fromText ||
+            (r.status === 500
+              ? "Server error (500). The server returned no details."
+              : `Failed to connect (${r.status}).`);
+          throw new Error(message);
+        }
+        setStatus("done");
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : String(e));
         setStatus("error");
-      });
+      }
+    })();
   }, [isLoaded, isSignedIn, sessionId]);
 
   if (!sessionId)
