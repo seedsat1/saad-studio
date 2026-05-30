@@ -1415,76 +1415,7 @@ export default function EditPage() {
         )}
       </div>
 
-        {/* ── Floating Prompt Input Bar ── */}
-        {mediaUrl && (
-          <div className="absolute bottom-0 inset-x-0 p-6 pointer-events-none z-10 flex justify-center">
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="pointer-events-auto w-full max-w-2xl"
-            >
-              <div className="bg-[#050914]/85 backdrop-blur-2xl border border-white/10 rounded-2xl p-2.5 flex items-center gap-3 shadow-[0_12px_45px_rgba(0,0,0,0.85)]">
-                {/* Tool Indicator circle */}
-                <div
-                  className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border"
-                  style={{
-                    backgroundColor: `${currentTool.hex}15`,
-                    borderColor: `${currentTool.hex}30`,
-                  }}
-                >
-                  <currentTool.icon className="h-4 w-4" style={{ color: currentTool.hex }} />
-                </div>
 
-                {/* Input text prompt */}
-                <input
-                  type="text"
-                  placeholder={
-                    activeTool === "bgremove"
-                      ? "Background removal doesn't require a prompt. Click Apply!"
-                      : activeTool === "upscale"
-                      ? "AI Upscale doesn't require a prompt. Click Apply!"
-                      : activeTool === "faceswap"
-                      ? "Face Swap doesn't require a prompt. Upload a reference face & click Apply!"
-                      : activeTool === "watermark"
-                      ? "Watermark removal doesn't require a prompt. Click Apply!"
-                      : "Describe what to add, replace, or alter in the drawn region..."
-                  }
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleApply(); }}
-                  disabled={isProcessing || ["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool)}
-                  className="flex-1 bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 disabled:opacity-50"
-                />
-
-                {/* Apply trigger button */}
-                <button
-                  type="button"
-                  onClick={handleApply}
-                  disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 transform active:scale-95 shrink-0 select-none shadow-md",
-                    isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
-                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-transparent"
-                      : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold"
-                  )}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Sparkles className="h-3.5 w-3.5 animate-spin" />
-                      <span>Working</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Apply</span>
-                      <Star className="h-3.5 w-3.5 fill-black text-black" />
-                      <span className="font-mono">5</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
 
       </main>
 
@@ -1613,6 +1544,19 @@ export default function EditPage() {
           ──────────────────────────────────────────────────────────── */}
           {(activeTool === "inpaint" || activeTool === "replace") && (
             <div className="space-y-6">
+              {/* Prompt Textarea */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 block uppercase tracking-widest">
+                  Prompt
+                </span>
+                <textarea
+                  placeholder="Describe what to add, replace, or alter in the painted region..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
+                />
+              </div>
+
               {/* AI Model Selection */}
               <div className="space-y-2">
                 <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
