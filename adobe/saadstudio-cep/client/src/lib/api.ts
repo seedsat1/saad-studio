@@ -195,7 +195,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(url, { ...init, headers });
+    res = await fetch(url, {
+      ...init,
+      headers,
+      // CEP loads index.html via file:// so Origin is "null". The backend
+      // /api/panel/* CORS branch returns Allow-Origin: * for that case,
+      // which is only honoured when credentials are omitted.
+      mode: "cors",
+      credentials: "omit",
+      cache: init.cache ?? "no-store",
+    });
   } catch (err) {
     throw new ApiError(`Network error: ${(err as Error).message}`, 0);
   }

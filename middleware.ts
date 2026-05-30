@@ -58,6 +58,16 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
   const allowedOrigins = getAllowedOrigins();
   const allowOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 
+  // CEP panels (Premiere / After Effects) load index.html from disk so the
+  // browser sends Origin: null or omits it entirely. Without explicit
+  // handling the response gets an Allow-Origin that doesn't match, and
+  // CEF strips the body before JS can read it — the panel then sees an
+  // empty response and JSON parsing fails with
+  // "Failed to execute 'json' on 'Response': Unexpected end of JSON input".
+  const reqUrl = req.url;
+  const isPanelApi = reqUrl.includes("/api/panel/");
+  const isCepOrigin = !origin || origin === "null";
+
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -89,11 +99,20 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
     ].join("; ")
   );
 
-  if (req.url.includes("/api/")) {
-    res.headers.set("Access-Control-Allow-Origin", allowOrigin);
-    res.headers.set("Access-Control-Allow-Credentials", "true");
+  if (reqUrl.includes("/api/")) {
+    if (isPanelApi && isCepOrigin) {
+      // Panel endpoints are protected by the ssp_ HMAC bearer token (or by
+      // the session id for the unauthenticated auth-session route), never
+      // by cookies — so dropping the credentials flag and using a wildcard
+      // origin for CEP is safe and lets the browser deliver the body.
+      res.headers.set("Access-Control-Allow-Origin", "*");
+    } else {
+      res.headers.set("Access-Control-Allow-Origin", allowOrigin);
+      res.headers.set("Access-Control-Allow-Credentials", "true");
+    }
     res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
+    res.headers.set("Access-Control-Max-Age", "86400");
     res.headers.append("Vary", "Origin");
   }
 
