@@ -106,7 +106,7 @@ export default function FaceSwapPage() {
           <div className="lg:col-span-5 space-y-6">
             <div className="space-y-2">
               <h1 className="text-2xl font-extrabold tracking-tight uppercase leading-none">
-                Instant Face Swap <br /> In A Single Click
+                INSTANT FACE SWAP <br /> IN A SINGLE CLICK
               </h1>
               <p className="text-xs text-zinc-400 leading-relaxed max-w-md">
                 Seamlessly integrate new faces into any image. Higgsfield's face swap is the definitive tool for marketers, artists and content creators.
@@ -198,23 +198,21 @@ export default function FaceSwapPage() {
                   type="button"
                   onClick={() => setGenerationType("image")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                    "p-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center",
                     generationType === "image" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"
                   )}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M20.4 14.5L16 10 4 20" /></svg>
-                  Image
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M20.4 14.5L16 10 4 20" /></svg>
                 </button>
                 <button
                   type="button"
                   onClick={() => setGenerationType("video")}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                    "p-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center",
                     generationType === "video" ? "bg-zinc-800 text-white" : "text-zinc-500 hover:text-zinc-300"
                   )}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
-                  Video
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                 </button>
               </div>
             </div>
@@ -229,7 +227,7 @@ export default function FaceSwapPage() {
                   "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
                   !canGenerate || isGenerating
                     ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                    : "bg-[#ccff00] hover:bg-[#d4ff1a] text-black border-transparent shadow-[#ccff00]/10"
+                    : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-transparent shadow-lg shadow-cyan-500/25"
                 )}
               >
                 {isGenerating ? (
@@ -360,7 +358,7 @@ export default function FaceSwapPage() {
                 <div className="absolute bottom-2 left-2">
                   <img src="/explore/gallery-mixed-media-2.jpg" alt="Mini overlay" className="w-6 h-6 rounded-md border border-white object-cover" />
                 </div>
-                <div className="absolute border border-[#ccff00]/30 px-3 py-1.5 rounded-lg text-[9px] font-black text-[#ccff00] bg-black/60">Final Output</div>
+                <div className="absolute border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black text-cyan-400 bg-black/60">Final Output</div>
               </div>
             </div>
 

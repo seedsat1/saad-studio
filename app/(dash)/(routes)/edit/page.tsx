@@ -1015,6 +1015,10 @@ export default function EditPage() {
     setActiveTool(id);
     setShowResult(false);
     handleClearMask();
+    if (id === "upscale") {
+      setMediaUrl("/explore/tool-upscale.jpg");
+      setMediaType("image");
+    }
   };
 
   return (
@@ -2502,7 +2506,7 @@ export default function EditPage() {
               "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
               isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                : "bg-[#ccff00] hover:bg-[#d4ff1a] text-black border-transparent shadow-[#ccff00]/10 animate-pulse"
+                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-transparent shadow-lg shadow-cyan-500/10 animate-pulse"
             )}
           >
             <span>{getActionLabel()}</span>

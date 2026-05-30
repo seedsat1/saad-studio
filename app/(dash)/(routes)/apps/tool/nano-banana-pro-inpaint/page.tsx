@@ -399,7 +399,7 @@ export default function NanoBananaInpaintPage() {
                 className={cn(
                   "rounded-full border transition-all",
                   brushSize === 16 ? "w-2 h-2" : brushSize === 32 ? "w-3 h-3" : "w-4 h-4",
-                  "border-[#ccff00] bg-[#ccff00]/20"
+                  "border-cyan-500 bg-cyan-500/20"
                 )}
               />
             </button>
@@ -484,7 +484,7 @@ export default function NanoBananaInpaintPage() {
                 }}
                 className={cn(
                   "h-9 w-9 rounded-xl overflow-hidden border transition-all duration-200 hover:scale-105 active:scale-95 relative",
-                  mediaUrl === item.url ? "border-amber-400 ring-2 ring-amber-500/20" : "border-white/10"
+                  mediaUrl === item.url ? "border-cyan-500 ring-2 ring-cyan-500/20" : "border-white/10"
                 )}
               >
                 <img src={item.url} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
@@ -547,7 +547,7 @@ export default function NanoBananaInpaintPage() {
                 onClick={handleApply}
                 disabled={isProcessing || !prompt.trim()}
                 className={cn(
-                  "flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#ccff00] hover:bg-[#d4ff1a] text-black font-black uppercase text-xs shadow-md shadow-[#ccff00]/10 transition-transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                  "flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-black uppercase text-xs shadow-md shadow-cyan-500/25 transition-transform active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 )}
               >
                 {isProcessing ? (

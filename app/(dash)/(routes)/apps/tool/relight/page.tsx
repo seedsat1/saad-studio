@@ -574,7 +574,7 @@ export default function RelightPage() {
               "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
               isGenerating || !imageDataUrl
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                : "bg-[#ccff00] hover:bg-[#d4ff1a] text-black border-transparent shadow-[#ccff00]/10"
+                : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black border-transparent shadow-lg shadow-amber-500/10"
             )}
           >
             <span>Generate</span>
