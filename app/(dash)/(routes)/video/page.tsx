@@ -9,7 +9,7 @@ import {
   Video, Clapperboard, Layers,
   PenTool, Zap, Music2, Users,
   X, AlertCircle, Loader2, Upload, CheckCircle2, Settings,
-  type LucideIcon,
+  type LucideIcon, Languages,
 } from "lucide-react";
 
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
@@ -352,7 +352,8 @@ type VideoToolId =
   | "kling-motion"
   | "seedance-2"
   | "veo-fast"
-  | "hailuo-i2v";
+  | "hailuo-i2v"
+  | "lipsync";
 
 type VideoTool = {
   id: VideoToolId;
@@ -369,6 +370,7 @@ const TOOLS: VideoTool[] = [
   { id: "seedance-2", label: "Seedance 2", description: "Reference based cinematic video", icon: Sparkles },
   { id: "veo-fast", label: "Veo 3.1 Fast", description: "Fast commercial video drafts", icon: Video },
   { id: "hailuo-i2v", label: "Hailuo I2V", description: "Image to video animation preset", icon: PenTool },
+  { id: "lipsync", label: "Lipsync AI", description: "Sync avatar lips to audio", icon: Languages },
 ];
 
 const TOOL_ALIASES: Record<string, VideoToolId> = {
@@ -377,7 +379,6 @@ const TOOL_ALIASES: Record<string, VideoToolId> = {
   "edit-video": "veo-fast",
   "click-to-ad": "veo-fast",
   "sora-trends": "veo-fast",
-  "lipsync": "kling-motion",
   "draw-to-video": "hailuo-i2v",
   "sketch-to-video": "hailuo-i2v",
   "ugc-factory": "veo-fast",
@@ -401,6 +402,7 @@ const TOOL_DEFAULT_MODEL_ID: Record<VideoToolId, string> = {
   "seedance-2": "bytedance-seedance-v2-t2v",
   "veo-fast": "google-veo3.1-fast-t2v",
   "hailuo-i2v": "minimax-hailuo-2.3-i2v-fast",
+  "lipsync": "kling-ai-avatar-pro",
 };
 
 const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
@@ -411,6 +413,46 @@ const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
   "seedance-2": "Create a cinematic reference-based video with smooth motion and strong scene consistency. ",
   "veo-fast": "Create a concise commercial-ready video with strong composition and clean motion. ",
   "hailuo-i2v": "Animate the uploaded image with natural movement, stable subject identity, and cinematic framing. ",
+  "lipsync": "",
+};
+
+const LIPSYNC_MODEL: WaveSpeedVideoModel = {
+  id: "kling-ai-avatar-pro",
+  name: "Kling AI Avatar Pro",
+  family: "kling",
+  family_label: "Kling",
+  family_color: "#06b6d4",
+  badge: "PRO",
+  description: "Sync avatar lips to audio. Provide a face image and an audio recording.",
+  api_route: "kling/ai-avatar-pro",
+  route_confirmed: true,
+  capabilities: {
+    requires_image: true,
+    optional_image: false,
+    requires_video: false,
+    has_end_frame: false,
+    aspect_ratios: [],
+    sizes: [],
+    durations: [],
+    resolutions: [],
+    quality_param: "resolution",
+    max_reference_images: 0,
+    max_reference_videos: 0,
+    max_reference_video_total_seconds: 0,
+    max_reference_audios: 0,
+    max_reference_audio_total_seconds: 0,
+    has_negative_prompt: false,
+    has_seed: false,
+    has_cfg_scale: false,
+    has_sound: true,
+    sound_param: "sound",
+    has_shot_type: false,
+    has_multi_prompt: false,
+    has_element_list: false,
+    has_scene_control: false,
+    has_orientation: false,
+    has_omni_tabs: false,
+  }
 };
 
 const FAMILY_GRADIENTS: Record<string, string> = {
@@ -648,7 +690,20 @@ function VideoPageInner() {
   const endFrameRef    = useRef<HTMLInputElement>(null);
   const motionVideoRef = useRef<HTMLInputElement>(null);
   const referenceImagesRef = useRef<HTMLInputElement>(null);
-  const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
+  // Lipsync audio state
+  const [lipsyncAudioFile, setLipsyncAudioFile] = useState<File | null>(null);
+  const [lipsyncAudioPreview, setLipsyncAudioPreview] = useState<string | null>(null);
+  const lipsyncAudioRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!lipsyncAudioFile) {
+      setLipsyncAudioPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(lipsyncAudioFile);
+    setLipsyncAudioPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [lipsyncAudioFile]);
 
   useEffect(() => {
     const requestedPrompt = searchParams.get("prompt");
@@ -941,6 +996,10 @@ function VideoPageInner() {
   }, []);
 
   useEffect(() => {
+    if (activeTool === "lipsync") {
+      setSelectedModel(LIPSYNC_MODEL);
+      return;
+    }
     const toolModelId = TOOL_DEFAULT_MODEL_ID[activeTool];
     if (!toolModelId) return;
     const targetModel = allModels.find((m) => m.id === toolModelId);
@@ -1221,6 +1280,9 @@ function VideoPageInner() {
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast";
 
   const estimatedCredits = (() => {
+    if (activeTool === "lipsync") {
+      return 17;
+    }
     // Veo 3.1 supports 4/6/8 — use whatever the user picked (defaults to 8).
     const pricingDuration = isVeo31FixedEightSecond ? 8 : (duration ?? (isVeo31Model ? 8 : 5));
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
@@ -1242,8 +1304,8 @@ function VideoPageInner() {
     // Kling 3.0 detected early — its own validation runs inside the block below
     const isKling30VideoEarly =
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
-    // Skip the generic prompt guard for Kling 3.0 (multi-shot can have no main prompt)
-    if (!isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
+    // Skip the generic prompt guard for Kling 3.0 and Lipsync
+    if (activeTool !== "lipsync" && !isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
@@ -1273,6 +1335,130 @@ function VideoPageInner() {
     setGenerationError(null);
 
     try {
+      if (activeTool === "lipsync") {
+        if (!startFrame && !linkedStartFrameUrl) {
+          setGenerationError("Please upload an avatar image.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (!lipsyncAudioFile) {
+          setGenerationError("Please upload an audio file.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        // 1. Upload Avatar Image to get public URL
+        let imgUrl = "";
+        if (startFrame) {
+          const imgBase64 = await fileToDataURL(startFrame);
+          const imgRes = await fetch("/api/upload/frame", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: startFrame.name,
+              mimeType: startFrame.type || "image/png",
+              base64: imgBase64,
+            }),
+          });
+          const imgData = await imgRes.json().catch(() => ({}));
+          if (!imgRes.ok || !imgData.url) {
+            throw new Error(imgData.error || "Failed to upload avatar image.");
+          }
+          imgUrl = imgData.url;
+        } else if (linkedStartFrameUrl) {
+          imgUrl = linkedStartFrameUrl;
+        }
+
+        // 2. Upload Audio File to get public URL
+        const audioBase64 = await fileToDataURL(lipsyncAudioFile);
+        const audioRes = await fetch("/api/upload/frame", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: lipsyncAudioFile.name,
+            mimeType: lipsyncAudioFile.type || "audio/mpeg",
+            base64: audioBase64,
+          }),
+        });
+        const audioData = await audioRes.json().catch(() => ({}));
+        if (!audioRes.ok || !audioData.url) {
+          throw new Error(audioData.error || "Failed to upload audio file.");
+        }
+        const audioUrl = audioData.url;
+
+        // 3. Submit lipsync task to /api/generate/audio
+        const lipsyncRes = await fetch("/api/generate/audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actionType: "lip-sync",
+            model: "kling/ai-avatar-pro",
+            imageUrl: imgUrl,
+            audioUrl: audioUrl,
+            prompt: prompt.trim() || "Natural lip sync performance",
+          }),
+        });
+
+        const lipsyncJson = await lipsyncRes.json().catch(() => ({}));
+        if (!lipsyncRes.ok || !lipsyncJson.videoUrl) {
+          throw new Error(lipsyncJson.error || "Generation failed on server.");
+        }
+
+        let finalVideoUrl = lipsyncJson.videoUrl;
+
+        // 4. Persist to DB / durable storage
+        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const isDurableUrl =
+          !!finalVideoUrl &&
+          ((durableBaseUrl && finalVideoUrl.startsWith(durableBaseUrl)) ||
+            finalVideoUrl.includes("supabase.co/storage/v1/object/public"));
+        
+        if (finalVideoUrl && !isDurableUrl) {
+          try {
+            const persistRes = await fetch("/api/assets/persist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mediaUrl: finalVideoUrl, assetType: "video" }),
+            });
+            if (persistRes.ok) {
+              const persistJson = await persistRes.json();
+              if (persistJson?.url) finalVideoUrl = persistJson.url;
+            }
+          } catch (e) {
+            console.error("Persist failed", e);
+          }
+        }
+
+        const newResult: MediaItem = {
+          id: "gen-" + (lipsyncJson.generationId || crypto.randomUUID()),
+          type: "video",
+          src: finalVideoUrl,
+          model: LIPSYNC_MODEL.name,
+          modelColor: LIPSYNC_MODEL.family_color,
+          ratio: "9:16",
+          duration: "auto",
+          prompt: prompt.trim() || "Natural lip sync performance",
+          gradient: FAMILY_GRADIENTS[LIPSYNC_MODEL.family] ?? "from-cyan-900 via-cyan-800 to-slate-900",
+          createdAt: new Date(),
+        };
+
+        setResults(prev => {
+          const alreadyShown = prev.some((item) => item.id === newResult.id || item.src === finalVideoUrl);
+          if (alreadyShown) return prev;
+          return [newResult, ...prev];
+        });
+
+        addAsset({
+          type: "video",
+          url: finalVideoUrl,
+          prompt: prompt.trim() || "Natural lip sync performance",
+          model: LIPSYNC_MODEL.name,
+        });
+
+        setIsSubmitting(false);
+        return;
+      }
+
       const payload: Record<string, unknown> = {};
       const toolPrefix = TOOL_PROMPT_PREFIX[activeTool] ?? "";
 
@@ -1731,7 +1917,9 @@ function VideoPageInner() {
   const hasRequiredImageInput =
     !caps.requires_image || !!startFrame || !!linkedStartFrameUrl || referenceImages.length > 0 || Boolean(selectedCharacter?.referenceUrls?.length);
   const hasRequiredVideoInput = !caps.requires_video || !!motionVideo;
-  const canGenerate = isKling30Video
+  const canGenerate = activeTool === "lipsync"
+    ? Boolean((startFrame || linkedStartFrameUrl) && lipsyncAudioFile)
+    : isKling30Video
     ? (
         (kling30MultiEnabled
           ? (kling30MultiMode === "auto"
@@ -1933,7 +2121,9 @@ function VideoPageInner() {
               }
             }}
             placeholder={
-              isKling30Video
+              activeTool === "lipsync"
+                ? "Lipsync prompt (optional) e.g., talk naturally, smile..."
+                : isKling30Video
                 ? "Describe the video… use @image1 for references"
                 : "Describe the video you want to create…"
             }
@@ -1964,7 +2154,7 @@ function VideoPageInner() {
             ) : (
               <>
                 <Film size={12} />
-                <span>Generate</span>
+                <span>{activeTool === "lipsync" ? "Generate Lipsync" : "Generate"}</span>
                 {pendingTasks.size > 0 && (
                   <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
                     {pendingTasks.size}
@@ -1982,8 +2172,144 @@ function VideoPageInner() {
         style={{ width: 288, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
+          {activeTool === "lipsync" ? (
+            <div className="flex-grow flex flex-col gap-5">
+              {/* Kling Avatar Info */}
+              <div
+                className="rounded-xl p-3"
+                style={{
+                  background: "rgba(6,182,212,0.06)",
+                  border: "1px solid rgba(6,182,212,0.25)",
+                }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full mt-0.5 flex-shrink-0"
+                    style={{ background: "#06b6d4" }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-[13px] font-semibold text-[#06b6d4]">
+                        Kling AI Avatar Pro
+                      </span>
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                        style={{
+                          background: "rgba(6,182,212,0.15)",
+                          color: "#06b6d4",
+                        }}
+                      >
+                        PRO
+                      </span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>
+                      Sync avatar lips to audio. Provide a clear face portrait image and an audio recording.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          {/* -- Model info banner (shown on model switch) ----------------- */}
+              {/* Avatar Image Input */}
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                  Avatar Image
+                </label>
+                <div className="mt-2">
+                  {startFrame || linkedStartFrameUrl ? (
+                    <div className="group relative rounded-xl overflow-hidden border border-white/10 aspect-[3/4] bg-black/40">
+                      <img
+                        src={startFrame ? URL.createObjectURL(startFrame) : linkedStartFrameUrl!}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => {
+                          setStartFrame(null);
+                          setLinkedStartFrameUrl(null);
+                        }}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-slate-300 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openMediaPicker("startFrame")}
+                      className="w-full aspect-[3/4] rounded-xl border border-dashed hover:border-cyan-500/50 bg-black/40 hover:bg-cyan-950/10 flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-cyan-500 transition-all"
+                      style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                    >
+                      <ImageIcon size={24} />
+                      <span className="text-xs font-semibold">Upload Avatar</span>
+                      <span className="text-[10px] text-slate-600">Portrait recommended</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Audio File Input */}
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                  Voice / Audio
+                </label>
+                <div className="mt-2">
+                  {lipsyncAudioFile ? (
+                    <div className="relative rounded-xl p-3 border border-white/10 bg-black/40 flex flex-col gap-2">
+                      <div className="flex items-center justify-between min-w-0 gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Music2 size={16} className="text-[#06b6d4] flex-shrink-0" />
+                          <span className="text-xs text-slate-300 font-medium truncate min-w-0">
+                            {lipsyncAudioFile.name}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setLipsyncAudioFile(null);
+                          }}
+                          className="p-1 rounded bg-black/40 hover:bg-black/60 text-slate-400 hover:text-white transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                      {lipsyncAudioPreview && (
+                        <audio
+                          src={lipsyncAudioPreview}
+                          controls
+                          className="w-full h-8 mt-1 rounded bg-black/30 overflow-hidden text-xs"
+                        />
+                      )}
+                      <span className="text-[9px] text-[#475569]">
+                        Size: {(lipsyncAudioFile.size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="file"
+                        ref={lipsyncAudioRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setLipsyncAudioFile(file);
+                        }}
+                        accept="audio/*"
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => lipsyncAudioRef.current?.click()}
+                        className="w-full py-8 rounded-xl border border-dashed hover:border-cyan-500/50 bg-black/40 hover:bg-cyan-950/10 flex flex-col items-center justify-center gap-2 text-slate-500 hover:text-cyan-500 transition-all"
+                        style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                      >
+                        <Music2 size={24} />
+                        <span className="text-xs font-semibold">Upload Audio</span>
+                        <span className="text-[10px] text-slate-600">MP3, WAV, AAC (Max 100MB)</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* -- Model info banner (shown on model switch) ----------------- */}
           <AnimatePresence>
             {modelBanner && (
               <motion.div
@@ -3952,6 +4278,7 @@ function VideoPageInner() {
           )}
 
           </>)} {/* end !isKling30Video generic controls */}
+          </>)}
 
           {/* -- Generate button (always visible) ----------------------------- */}
           <button
@@ -3976,7 +4303,7 @@ function VideoPageInner() {
               <>
                 <Film size={15} />
                 <span>
-                  Generate Video ·{" "}
+                  {activeTool === "lipsync" ? "Generate Lipsync" : "Generate Video"} ·{" "}
                   <span
                     style={{
                       color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f",
@@ -4398,6 +4725,65 @@ function VideoPageInner() {
                         </button>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* Audio Input (mobile, lipsync only) */}
+                {activeTool === "lipsync" && (
+                  <div className="mb-4">
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Voice / Audio</label>
+                    {lipsyncAudioFile ? (
+                      <div className="relative rounded-xl p-3 border border-white/10 bg-black/40 flex flex-col gap-2">
+                        <div className="flex items-center justify-between min-w-0 gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Music2 size={16} className="text-[#06b6d4] flex-shrink-0" />
+                            <span className="text-xs text-slate-300 font-medium truncate min-w-0">
+                              {lipsyncAudioFile.name}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setLipsyncAudioFile(null);
+                            }}
+                            className="p-1 rounded bg-black/40 hover:bg-black/60 text-slate-400 hover:text-white transition-colors"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                        {lipsyncAudioPreview && (
+                          <audio
+                            src={lipsyncAudioPreview}
+                            controls
+                            className="w-full h-8 mt-1 rounded bg-black/30 overflow-hidden text-xs"
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="file"
+                          ref={lipsyncAudioRef}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) setLipsyncAudioFile(file);
+                          }}
+                          accept="audio/*"
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => lipsyncAudioRef.current?.click()}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl transition-all"
+                          style={{
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.06)",
+                            color: "#64748b",
+                          }}
+                        >
+                          <Music2 size={14} />
+                          <span className="text-sm font-medium">Add audio file</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 
