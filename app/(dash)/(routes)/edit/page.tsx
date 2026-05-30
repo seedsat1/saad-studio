@@ -403,11 +403,47 @@ export default function EditPage() {
   const [motionDirection, setMotionDirection] = useState("forward");
   const [motionSpeed, setMotionSpeed] = useState(5);
 
-  const [upscaleFactor, setUpscaleFactor] = useState("2");
+  const [upscaleFactor, setUpscaleFactor] = useState("1");
   const [upscaleDenoise, setUpscaleDenoise] = useState(0.3);
   const [upscaleFaceEnhance, setUpscaleFaceEnhance] = useState(true);
+  const [upscaleModel, setUpscaleModel] = useState("topaz");
+  const [upscaleModelOpen, setUpscaleModelOpen] = useState(false);
+  const [upscaleAdvancedOpen, setUpscaleAdvancedOpen] = useState(false);
+  const [uploadedMediaList, setUploadedMediaList] = useState<Array<{ url: string; type: "image" | "video" }>>([
+    { url: "/explore/gallery-mixed-media-1.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-1.jpg", type: "image" },
+  ]);
 
   const lastCoordsRef = useRef<{ x: number; y: number } | null>(null);
+
+  const getActionLabel = () => {
+    switch (activeTool) {
+      case "upscale":
+        return "Upscale";
+      case "watermark":
+        return "Remove Watermark";
+      case "faceswap":
+        return "Face Swap";
+      case "bgremove":
+        return "Remove Background";
+      case "inpaint":
+        return "Smart Inpaint";
+      case "replace":
+        return "Object Replace";
+      case "relight":
+        return "AI Relight";
+      case "outpaint":
+        return "Expand & Outpaint";
+      case "style":
+        return "Style Transfer";
+      case "draw":
+        return "Draw to Edit";
+      case "motion":
+        return "Motion Track";
+      default:
+        return "Apply Generation";
+    }
+  };
 
   const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
 
@@ -615,6 +651,16 @@ export default function EditPage() {
     }
   }, [mediaUrl, mediaType]);
 
+  // Sync uploaded media to history list
+  useEffect(() => {
+    if (mediaUrl) {
+      setUploadedMediaList((prev) => {
+        if (prev.some((item) => item.url === mediaUrl)) return prev;
+        return [{ url: mediaUrl, type: mediaType }, ...prev].slice(0, 4);
+      });
+    }
+  }, [mediaUrl, mediaType]);
+
   // Generate cursor preview SVG based on brushSize, scale and tool color
   const displayBrushSize = brushSize * scale;
   const activeColorHex = activeTool === "draw" ? drawColor : currentTool.hex;
@@ -805,6 +851,37 @@ export default function EditPage() {
     const newHistory = history.slice(0, historyIndex + 1);
     setHistory([...newHistory, state]);
     setHistoryIndex(newHistory.length);
+  };
+
+  const handleResetTool = () => {
+    setPrompt("");
+    if (activeTool === "upscale") {
+      setUpscaleFactor("1");
+      setUpscaleDenoise(0.3);
+      setUpscaleFaceEnhance(true);
+      setUpscaleModel("topaz");
+    } else if (activeTool === "relight") {
+      setLightAngle(180);
+      setLightIntensity(0.7);
+      setLightColor("#fcd34d");
+    } else if (activeTool === "bgremove") {
+      setBgFormat("png");
+      setBgFeather(2);
+    } else if (activeTool === "outpaint") {
+      setOutpaintDirection("all");
+      setOutpaintMargin(25);
+    } else if (activeTool === "style") {
+      setStylePreset("cyberpunk");
+      setStyleStrength(0.8);
+    } else if (activeTool === "draw") {
+      setDrawColor("#ff0000");
+    } else if (activeTool === "motion") {
+      setMotionDirection("forward");
+      setMotionSpeed(5);
+    } else if (activeTool === "faceswap") {
+      setFaceImageUrl("");
+    }
+    handleClearMask();
   };
 
   // Apply AI Generation (Attempts to call the real backend APIs, falls back to visual simulator)
@@ -1275,6 +1352,61 @@ export default function EditPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Floating Upscale Button in Center of Canvas */}
+            {activeTool === "upscale" && !isProcessing && (
+              <button
+                type="button"
+                onClick={handleApply}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white hover:bg-zinc-100 text-zinc-900 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-zinc-200/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 animate-pulse"
+              >
+                <Sparkles className="h-3.5 w-3.5 fill-current text-zinc-800" />
+                <span>Upscale</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Floating Media Gallery Bar (Left Side of Workspace) */}
+        {mediaUrl && (
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl">
+            <label className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors group">
+              <input
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) await handleFileUpload(file);
+                }}
+              />
+              <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
+            </label>
+            
+            <div className="w-5 h-px bg-white/10" />
+
+            {uploadedMediaList.map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setMediaUrl(item.url);
+                  setMediaType(item.type);
+                  setShowResult(false);
+                  handleClearMask();
+                }}
+                className={cn(
+                  "h-9 w-9 rounded-xl overflow-hidden border transition-all duration-200 hover:scale-105 active:scale-95 relative",
+                  mediaUrl === item.url ? "border-cyan-400 ring-2 ring-cyan-500/20" : "border-white/10"
+                )}
+              >
+                {item.type === "video" ? (
+                  <video src={item.url} className="h-full w-full object-cover pointer-events-none" />
+                ) : (
+                  <img src={item.url} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
+                )}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -1357,18 +1489,43 @@ export default function EditPage() {
       ════════════════════════════════════════════════════════════════ */}
       <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/5 bg-[#050914] z-10">
         {/* Sidebar Header */}
-        <div className="px-5 py-5 border-b border-white/5">
+        <div className="relative px-5 py-5 border-b border-white/5 flex items-center justify-between overflow-visible">
+          {activeTool === "upscale" && (
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-500 text-[8px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg z-20">
+              50% OFF
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center shadow-inner">
-              <SlidersHorizontal className="h-4 w-4 text-cyan-400" />
+              {activeTool === "upscale" ? (
+                <Layers className="h-4 w-4 text-cyan-400" />
+              ) : (
+                React.createElement(currentTool.icon, { className: "h-4 w-4 text-cyan-400" })
+              )}
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-zinc-300">
-                Model & Canvas
+              <p className={cn(
+                "text-zinc-200 font-extrabold",
+                activeTool === "upscale" ? "text-base font-bold tracking-normal" : "text-xs font-black uppercase tracking-widest text-zinc-300"
+              )}>
+                {activeTool === "upscale" ? "Upscale" : currentTool.label}
               </p>
-              <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
+              {activeTool !== "upscale" && (
+                <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
+              )}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={handleResetTool}
+            className={cn(
+              "text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors tracking-wider flex items-center gap-1.5",
+              activeTool !== "upscale" && "uppercase"
+            )}
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Reset</span>
+          </button>
         </div>
 
         {/* Configuration settings widgets */}
@@ -2019,68 +2176,162 @@ export default function EditPage() {
           ──────────────────────────────────────────────────────────── */}
           {activeTool === "upscale" && (
             <div className="space-y-6">
-              {/* Upscale factor */}
+              {/* Model Dropdown Selection */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Upscale Factor
+                <span className="text-[11px] font-bold text-zinc-400 block">
+                  Model
                 </span>
-                <div className={cn("grid gap-2", mediaType === "video" ? "grid-cols-2" : "grid-cols-3")}>
-                  {[
-                    { id: "2", label: "2x", desc: "Medium detail" },
-                    { id: "4", label: "4x", desc: "HD Quality" },
-                    ...(mediaType === "video" ? [] : [{ id: "8", label: "8x", desc: "Ultra HD (8k)" }])
-                  ].map((fac) => (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setUpscaleModelOpen(!upscaleModelOpen)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-900/80 transition-all text-left text-sm"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 rounded-lg bg-zinc-950 border border-white/5 flex items-center justify-center shrink-0">
+                        {upscaleModel === "topaz" ? (
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5 text-zinc-400">
+                            <rect x="4" y="4" width="6" height="6" rx="1.5" fill="currentColor" />
+                            <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
+                            <rect x="14" y="14" width="6" height="6" rx="1.5" fill="currentColor" />
+                          </svg>
+                        ) : (
+                          <Aperture className="h-4.5 w-4.5 text-teal-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-zinc-200 font-bold text-xs lowercase text-left">
+                          {upscaleModel}
+                        </div>
+                        <div className="text-[9px] text-zinc-500 truncate mt-0.5 text-left leading-tight">
+                          {upscaleModel === "topaz" ? "The default model for general-purpose..." : 
+                           upscaleModel === "realesrgan" ? "Best for digital art, anime, and illustrations." : 
+                           "High fidelity photographic details & face restoration."}
+                        </div>
+                      </div>
+                    </div>
+                    <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition-transform duration-200 shrink-0", upscaleModelOpen && "rotate-180")} />
+                  </button>
+
+                  <AnimatePresence>
+                    {upscaleModelOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
+                      >
+                        {[
+                          { id: "topaz", label: "topaz", desc: "The default model for general-purpose..." },
+                          { id: "realesrgan", label: "realesrgan", desc: "Best for digital art, anime, and illustrations." },
+                          { id: "realsr", label: "realsr", desc: "High fidelity photographic details & face restoration." }
+                        ].map((model) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            onClick={() => {
+                              setUpscaleModel(model.id);
+                              setUpscaleModelOpen(false);
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2.5 rounded-lg text-left transition-colors flex items-center gap-3",
+                              upscaleModel === model.id ? "bg-white/5 text-white" : "text-zinc-400 hover:bg-white/[0.02]"
+                            )}
+                          >
+                            {model.id === "topaz" ? (
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-zinc-400 shrink-0">
+                                <rect x="4" y="4" width="6" height="6" rx="1.5" fill="currentColor" />
+                                <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
+                                <rect x="14" y="14" width="6" height="6" rx="1.5" fill="currentColor" />
+                              </svg>
+                            ) : (
+                              <Aperture className="h-4 w-4 text-teal-400 shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold lowercase">{model.label}</div>
+                              <div className="text-[8px] text-zinc-500 truncate mt-0.5">{model.desc}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Scale Factor segmented control */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 block">
+                  Scale factor
+                </span>
+                <div className="grid grid-cols-5 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
+                  {["1", "2", "4", "8", "16"].map((fac) => (
                     <button
-                      key={fac.id}
+                      key={fac}
                       type="button"
-                      onClick={() => setUpscaleFactor(fac.id)}
+                      onClick={() => setUpscaleFactor(fac)}
                       className={cn(
-                        "rounded-xl border p-2 flex flex-col gap-0.5 text-left transition-all",
-                        upscaleFactor === fac.id
-                          ? "border-teal-500 bg-teal-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                        "py-1.5 rounded-lg text-xs font-bold transition-all",
+                        upscaleFactor === fac
+                          ? "bg-white text-black font-extrabold shadow-sm"
+                          : "text-zinc-400 hover:text-zinc-200"
                       )}
                     >
-                      <span className="text-xs font-bold">{fac.label}</span>
-                      <span className="text-[8px] text-zinc-500">{fac.desc}</span>
+                      x{fac}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Denoise Strength */}
-              <PremiumSlider
-                label="Denoise Strength"
-                value={upscaleDenoise}
-                min={0.0}
-                max={1.0}
-                step={0.05}
-                displayValue={`${Math.round(upscaleDenoise * 100)}%`}
-                onChange={setUpscaleDenoise}
-              />
-
-              <div className="border-t border-white/5" />
-
-              {/* Face enhance toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Face Details Enhance
-                </span>
+              {/* Collapsible Advanced Settings */}
+              <div className="border-t border-white/5 pt-4 space-y-4">
                 <button
                   type="button"
-                  onClick={() => setUpscaleFaceEnhance(!upscaleFaceEnhance)}
-                  className={cn(
-                    "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
-                    upscaleFaceEnhance ? "bg-teal-500 border-teal-500" : "bg-zinc-900 border-white/10"
-                  )}
+                  onClick={() => setUpscaleAdvancedOpen(!upscaleAdvancedOpen)}
+                  className="w-full flex items-center justify-between text-zinc-400 hover:text-zinc-200 transition-colors"
                 >
-                  <div
-                    className={cn(
-                      "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
-                      upscaleFaceEnhance ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
+                  <span className="text-[11px] font-bold tracking-wider">
+                    Advanced Settings
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", upscaleAdvancedOpen && "rotate-180")} />
                 </button>
+
+                {upscaleAdvancedOpen && (
+                  <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Denoise Strength slider */}
+                    <PremiumSlider
+                      label="Denoise Strength"
+                      value={upscaleDenoise}
+                      min={0.0}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={`${Math.round(upscaleDenoise * 100)}%`}
+                      onChange={setUpscaleDenoise}
+                    />
+
+                    {/* Face Details Enhance toggle */}
+                    <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Face Details Enhance
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUpscaleFaceEnhance(!upscaleFaceEnhance)}
+                        className={cn(
+                          "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
+                          upscaleFaceEnhance ? "bg-teal-500 border-teal-500" : "bg-zinc-900 border-white/10"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
+                            upscaleFaceEnhance ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2248,16 +2499,16 @@ export default function EditPage() {
             onClick={handleApply}
             disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
             className={cn(
-              "w-full py-4 rounded-xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
+              "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
               isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
                 ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-cyan-400/20 shadow-cyan-500/10"
+                : "bg-[#ccff00] hover:bg-[#d4ff1a] text-black border-transparent shadow-[#ccff00]/10 animate-pulse"
             )}
           >
-            <Sparkles className="h-4.5 w-4.5" />
-            <span>Apply Generation</span>
+            <span>{getActionLabel()}</span>
+            <Sparkles className="h-4 w-4 fill-current shrink-0" />
             {!isProcessing && (["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) || prompt.trim()) && (
-              <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black">
+              <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
                 <Star className="h-3 w-3 fill-current" />
                 <span>{activeTool === "watermark" ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1) : "5"}</span>
               </span>
