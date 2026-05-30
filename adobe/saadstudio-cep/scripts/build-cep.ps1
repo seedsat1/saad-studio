@@ -10,6 +10,9 @@ $manualZip = Join-Path $releaseDir "SaadStudio-manual.zip"
 $manifestPath = Join-Path $root "CSXS\manifest.xml"
 
 Write-Host "Building CEP client..."
+if (Test-Path $distDir) {
+    Remove-Item $distDir -Recurse -Force
+}
 Push-Location $clientDir
 try {
     npm run build
@@ -52,21 +55,21 @@ Hosts: $hostNames
 
 1. Install **aescripts + aeplugins ZXP/UXP Installer** or **ZXPInstaller**.
 2. Open the installer.
-3. Drag `SaadStudio.zxp` into the installer window.
+3. Drag SaadStudio.zxp into the installer window.
 4. Restart Adobe Premiere Pro or Adobe After Effects.
 5. Open the panel from:
-   - `Window > Extensions > $bundleName`
+   - Window > Extensions > $bundleName
 
 ## Alternative manual install
 
-If the installer fails, use `SaadStudio-manual.zip`:
+If the installer fails, use SaadStudio-manual.zip:
 
 1. Extract the zip file.
-2. Copy the `app.saadstudio.cep` folder to:
-   - Windows: `%APPDATA%\Adobe\CEP\extensions\`
+2. Copy the app.saadstudio.cep folder to:
+   - Windows: %APPDATA%\Adobe\CEP\extensions\
 3. Enable CEP PlayerDebugMode if Adobe blocks unsigned beta panels.
 4. Restart the Adobe host app and open:
-   - `Window > Extensions > $bundleName`
+   - Window > Extensions > $bundleName
 
 ## Sign-in note
 
@@ -79,8 +82,8 @@ $troubleshootingDoc = @"
 ## The panel does not appear in Premiere Pro or After Effects
 
 - Restart the Adobe app after installation.
-- Confirm the extension folder exists under `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep`.
-- If you used manual install, make sure the folder contains `CSXS\manifest.xml` and `client\dist\index.html`.
+- Confirm the extension folder exists under %APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep.
+- If you used manual install, make sure the folder contains CSXS\manifest.xml and client\dist\index.html.
 
 ## Installer rejects the beta package
 
@@ -90,11 +93,11 @@ $troubleshootingDoc = @"
 ## The panel opens but looks blank
 
 - Delete any old manual install folder and reinstall the beta package.
-- Confirm `client/dist/assets` exists inside the installed extension folder.
+- Confirm client/dist/assets exists inside the installed extension folder.
 
 ## Sign-in opens but does not complete
 
-- Confirm the machine can reach `https://www.saadstudio.app`.
+- Confirm the machine can reach https://www.saadstudio.app.
 - Retry the connect flow and wait for the browser tab to finish approval.
 
 ## Media import works in one app but not the other
