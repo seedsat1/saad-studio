@@ -29,8 +29,10 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
   const [isGenerating, setIsGenerating] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isUploadingTarget, setIsUploadingTarget] = useState(false);
+  const [isUploadingSource, setIsUploadingSource] = useState(false);
 
-  const canGenerate = !!targetImage && !!sourceFace;
+  const canGenerate = !!targetImage && !!sourceFace && !isUploadingTarget && !isUploadingSource;
 
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -38,10 +40,77 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const base64 = await readFileAsDataUrl(file);
-    if (slot === "target") setTargetImage(base64);
-    if (slot === "source") setSourceFace(base64);
+
+    if (slot === "target") setIsUploadingTarget(true);
+    if (slot === "source") setIsUploadingSource(true);
     setErrorMessage("");
+
+    try {
+      let publicUrl = "";
+
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed, trying direct browser upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
+      }
+
+      if (publicUrl) {
+        if (slot === "target") setTargetImage(publicUrl);
+        if (slot === "source") setSourceFace(publicUrl);
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setErrorMessage(`Upload failed: ${err.message}`);
+    } finally {
+      if (slot === "target") setIsUploadingTarget(false);
+      if (slot === "source") setIsUploadingSource(false);
+    }
   };
 
   async function handleGenerate() {
@@ -126,7 +195,12 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                   targetImage ? "border-amber-500/30" : "border-white/10 hover:border-white/20"
                 )}
               >
-                {targetImage ? (
+                {isUploadingTarget ? (
+                  <div className="flex flex-col items-center gap-2 pointer-events-none">
+                    <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+                    <p className="text-[10px] font-bold text-zinc-400">Uploading...</p>
+                  </div>
+                ) : targetImage ? (
                   <>
                     <img src={targetImage} alt="Target" className="w-full h-full object-cover rounded-xl" />
                     <button
@@ -159,7 +233,12 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                   sourceFace ? "border-amber-500/30" : "border-white/10 hover:border-white/20"
                 )}
               >
-                {sourceFace ? (
+                {isUploadingSource ? (
+                  <div className="flex flex-col items-center gap-2 pointer-events-none">
+                    <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+                    <p className="text-[10px] font-bold text-zinc-400">Uploading...</p>
+                  </div>
+                ) : sourceFace ? (
                   <>
                     <img src={sourceFace} alt="Source" className="w-full h-full object-cover rounded-xl" />
                     <button

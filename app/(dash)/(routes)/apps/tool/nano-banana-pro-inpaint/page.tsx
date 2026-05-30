@@ -64,6 +64,8 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
   const [showResult, setShowResult] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [productImage, setProductImage] = useState<string | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isUploadingProduct, setIsUploadingProduct] = useState(false);
 
   const lastCoordsRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -95,16 +97,144 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
 
   const handleFileUpload = async (file: File) => {
     if (!file || !file.type.startsWith("image/")) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    setMediaUrl(dataUrl);
-    setShowResult(false);
-    initCanvas();
+    setIsUploadingMedia(true);
+    setErrorMessage("");
+    try {
+      let publicUrl = "";
+
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed, trying direct browser upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
+      }
+
+      if (publicUrl) {
+        setMediaUrl(publicUrl);
+        setShowResult(false);
+        initCanvas();
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setErrorMessage(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploadingMedia(false);
+    }
   };
 
   const handleProductUpload = async (file: File) => {
     if (!file || !file.type.startsWith("image/")) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    setProductImage(dataUrl);
+    setIsUploadingProduct(true);
+    setErrorMessage("");
+    try {
+      let publicUrl = "";
+
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed, trying direct browser upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
+      }
+
+      if (publicUrl) {
+        setProductImage(publicUrl);
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setErrorMessage(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploadingProduct(false);
+    }
   };
 
   // Canvas Stroke Handling
@@ -468,12 +598,17 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
                 type="file"
                 accept="image/*"
                 className="hidden"
+                disabled={isUploadingMedia}
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) await handleFileUpload(file);
                 }}
               />
-              <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
+              {isUploadingMedia ? (
+                <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+              ) : (
+                <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
+              )}
             </label>
             
             <div className="w-5 h-px bg-white/10" />
@@ -527,10 +662,15 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
                 <button
                   type="button"
                   onClick={() => productInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs font-bold"
+                  disabled={isUploadingProduct}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white transition-all text-xs font-bold disabled:opacity-50"
                 >
-                  <Plus className="h-3 w-3 shrink-0" />
-                  <span>Add product/image</span>
+                  {isUploadingProduct ? (
+                    <Loader2 className="h-3 w-3 animate-spin text-cyan-400 shrink-0" />
+                  ) : (
+                    <Plus className="h-3 w-3 shrink-0" />
+                  )}
+                  <span>{isUploadingProduct ? "Uploading..." : "Add product/image"}</span>
                 </button>
                 
                 {productImage && (

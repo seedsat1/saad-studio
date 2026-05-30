@@ -24,7 +24,10 @@ function getWavespeedApiKey(): string {
 
 /** Upload base64 image to Supabase Storage and return a public URL */
 async function uploadRefImage(base64DataUrl: string, userId: string, genId: string): Promise<string> {
-  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (base64DataUrl.startsWith("http://") || base64DataUrl.startsWith("https://")) {
+    return base64DataUrl;
+  }
+  const match = base64DataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) throw new Error("Invalid base64 data URL for reference image");
   const contentType = match[1];
   const buffer = Buffer.from(match[2], "base64");
@@ -146,7 +149,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as { imageDataUrl?: string; prompt?: string };
     const { imageDataUrl, prompt } = body;
 
-    if (!imageDataUrl?.startsWith("data:image/")) {
+    if (!imageDataUrl || (!imageDataUrl.startsWith("data:image/") && !imageDataUrl.startsWith("http://") && !imageDataUrl.startsWith("https://"))) {
       return NextResponse.json({ error: "A valid photo is required." }, { status: 400 });
     }
 
@@ -166,7 +169,7 @@ export async function POST(req: NextRequest) {
     chargedUserId = userId;
 
     // Upload image to Supabase for a public URL
-    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId);
+    const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId || "");
 
     // Submit WaveSpeed task
     const predId = await createWavespeedTask(apiKey, hostedImageUrl, editPrompt);

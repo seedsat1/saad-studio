@@ -203,6 +203,7 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadedMediaList, setUploadedMediaList] = useState<Array<{ url: string; type: "image" | "video" }>>([
     { url: "/explore/gallery-soul-cinema-1.jpg", type: "image" },
     { url: "/explore/gallery-soul-2-1.jpg", type: "image" },
@@ -227,10 +228,74 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
-    const dataUrl = await readFileAsDataUrl(file);
-    setImageDataUrl(dataUrl);
-    setResultUrl(null);
-    setGenerationStatus("idle");
+    setIsUploading(true);
+    setErrorMessage("");
+    try {
+      let publicUrl = "";
+
+      // Attempt 1: Try multipart/form-data upload via local server
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/media/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          publicUrl = data.publicUrl;
+        } else {
+          throw new Error(`Server returned status ${response.status}`);
+        }
+      } catch (err) {
+        console.warn("Local server upload failed, trying direct browser upload fallback...", err);
+
+        // Attempt 2: Direct browser PUT upload to cloud storage using signed URL
+        const signRes = await fetch("/api/media/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type,
+          }),
+        });
+
+        if (!signRes.ok) {
+          const errText = await signRes.text();
+          throw new Error(`Cloud storage signing failed: ${errText}`);
+        }
+
+        const { signedUrl, publicUrl: cloudUrl } = await signRes.json();
+        if (!signedUrl || !cloudUrl) {
+          throw new Error("Failed to receive signed URL from server.");
+        }
+
+        const uploadRes = await fetch(signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Direct cloud upload failed.");
+        }
+
+        publicUrl = cloudUrl;
+      }
+
+      if (publicUrl) {
+        setImageDataUrl(publicUrl);
+        setResultUrl(null);
+        setGenerationStatus("idle");
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setErrorMessage(`Upload failed: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+    }
   }, []);
 
   const handleDrop = useCallback(
@@ -253,7 +318,8 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
     setErrorMessage("");
     setGenerationStatus("generating");
     try {
-      const compressedImage = await compressImage(imageDataUrl);
+      const isHttpUrl = imageDataUrl.startsWith("http://") || imageDataUrl.startsWith("https://");
+      const compressedImage = isHttpUrl ? imageDataUrl : await compressImage(imageDataUrl);
       
       const directionNames = {
         0: "right side",
@@ -335,6 +401,13 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
             <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
               <div className="h-10 w-10 rounded-full border-2 border-t-amber-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
               <span className="text-sm font-bold text-zinc-300">Applying AI studio relight...</span>
+            </div>
+          )}
+
+          {isUploading && (
+            <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
+              <span className="text-sm font-bold text-zinc-300">Uploading photo to secure cloud storage...</span>
             </div>
           )}
 
