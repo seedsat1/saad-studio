@@ -9,6 +9,7 @@ import {
   spendCredits,
 } from "@/lib/credit-ledger";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
+import { getGenerationCostQuote } from "@/lib/pricing";
 import { isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
@@ -20,6 +21,9 @@ const KIE_CREATE_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const AVATAR_MODEL_ID = "kling/ai-avatar-pro";
 const DEFAULT_AVATAR_PROMPT = "Natural lip sync performance, accurate mouth movement, stable framing, preserve facial identity.";
+const AVATAR_QUOTE_DURATION_SEC = 5;
+const AVATAR_QUOTE_RESOLUTION = "1080p";
+const AVATAR_MARGIN_PERCENT = 40;
 
 type KieApiJson = {
   code?: number;
@@ -119,6 +123,24 @@ async function pollKieTask(apiKey: string, taskId: string, maxAttempts = 80, int
   throw new Error("Avatar generation timed out.");
 }
 
+async function getAvatarCreditsToCharge(): Promise<number> {
+  const quote = await getGenerationCostQuote(
+    AVATAR_MODEL_ID,
+    AVATAR_QUOTE_DURATION_SEC,
+    1,
+    AVATAR_QUOTE_RESOLUTION,
+  );
+  if (quote && Number.isFinite(quote.sourceCredits) && quote.sourceCredits > 0) {
+    return Math.max(1, Math.ceil(quote.sourceCredits * (1 + AVATAR_MARGIN_PERCENT / 100)));
+  }
+
+  const legacy = getVideoCreditsByModelId(AVATAR_MODEL_ID, {
+    duration: AVATAR_QUOTE_DURATION_SEC,
+    resolution: AVATAR_QUOTE_RESOLUTION,
+  }) || 12;
+  return Math.max(1, Math.ceil(legacy * (1 + AVATAR_MARGIN_PERCENT / 100)));
+}
+
 export async function POST(req: NextRequest) {
   const token = extractPanelToken(req);
   if (!token) {
@@ -177,10 +199,7 @@ export async function POST(req: NextRequest) {
       throw new Error("KIE API key not configured on server.");
     }
 
-    const creditsToCharge = Math.max(
-      1,
-      Math.ceil(getVideoCreditsByModelId(AVATAR_MODEL_ID, { duration: 5, resolution: "1080p" }) || 12),
-    );
+    const creditsToCharge = await getAvatarCreditsToCharge();
 
     const spent = await spendCredits({
       userId,
