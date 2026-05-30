@@ -204,6 +204,7 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null);
   const [uploadedMediaList, setUploadedMediaList] = useState<Array<{ url: string; type: "image" | "video" }>>([
     { url: "/explore/gallery-soul-cinema-1.jpg", type: "image" },
     { url: "/explore/gallery-soul-2-1.jpg", type: "image" },
@@ -224,6 +225,24 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
         return [{ url: imageDataUrl, type: "image" }, ...prev].slice(0, 4);
       });
     }
+  }, [imageDataUrl]);
+
+  // Dynamic media aspect ratio calculation
+  useEffect(() => {
+    if (!imageDataUrl) {
+      setMediaAspectRatio(null);
+      return;
+    }
+    const img = new Image();
+    img.src = imageDataUrl;
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setMediaAspectRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.onerror = () => {
+      setMediaAspectRatio(null);
+    };
   }, [imageDataUrl]);
 
   const handleFileSelect = useCallback(async (file: File) => {
@@ -366,6 +385,21 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
     { label: "Bottom", angle: 90 },
   ];
 
+  // Calculate dynamic dimensions for the canvas container based on aspect ratio
+  let containerWidth = 700;
+  let containerHeight = 525;
+  if (mediaAspectRatio) {
+    const maxW = 700;
+    const maxH = 525;
+    if (mediaAspectRatio > maxW / maxH) {
+      containerWidth = maxW;
+      containerHeight = maxW / mediaAspectRatio;
+    } else {
+      containerHeight = maxH;
+      containerWidth = maxH * mediaAspectRatio;
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -423,7 +457,13 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
               <p className="text-xs text-zinc-500 mt-1.5">Upload a photo to start relighting</p>
             </div>
           ) : (
-            <div className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 w-[700px] h-[525px]">
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950"
+              style={{
+                width: `${containerWidth}px`,
+                height: `${containerHeight}px`,
+              }}
+            >
               
               {/* Backdrops */}
               <div className="absolute inset-0 select-none pointer-events-none">
@@ -458,6 +498,26 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
                   {resultUrl ? "Relight Applied" : "Original View"}
                 </span>
               </div>
+
+              {/* Download Button */}
+              {resultUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = resultUrl;
+                    link.download = resultUrl.split("/").pop() || "relight-result";
+                    link.target = "_blank";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 shrink-0" />
+                  <span>Download Result</span>
+                </button>
+              )}
             </div>
           )}
         </div>

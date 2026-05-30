@@ -39,6 +39,26 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
 
   // Core Media States
   const [mediaUrl, setMediaUrl] = useState<string>("/explore/gallery-soul-cinema-3.jpg");
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null);
+
+  // Dynamic media aspect ratio calculation
+  useEffect(() => {
+    if (!mediaUrl) {
+      setMediaAspectRatio(null);
+      return;
+    }
+    const img = new Image();
+    img.src = mediaUrl;
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setMediaAspectRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.onerror = () => {
+      setMediaAspectRatio(null);
+    };
+  }, [mediaUrl]);
+
   const [uploadedMediaList, setUploadedMediaList] = useState<Array<{ url: string; type: "image" | "video" }>>([
     { url: "/explore/gallery-soul-cinema-3.jpg", type: "image" },
     { url: "/explore/gallery-soul-cinema-1.jpg", type: "image" },
@@ -433,6 +453,21 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
   const cursorSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${brushSize * 2}' height='${brushSize * 2}' viewBox='0 0 ${brushSize * 2} ${brushSize * 2}'><circle cx='${brushSize}' cy='${brushSize}' r='${brushSize - 1}' fill='none' stroke='%23ffffff' stroke-width='1.5' opacity='0.7'/></svg>`;
   const cursorStyle = `url("data:image/svg+xml;utf8,${cursorSvg}") ${brushSize} ${brushSize}, crosshair`;
 
+  // Calculate dynamic dimensions for the canvas container based on aspect ratio
+  let containerWidth = 700;
+  let containerHeight = 525;
+  if (mediaAspectRatio) {
+    const maxW = 700;
+    const maxH = 525;
+    if (mediaAspectRatio > maxW / maxH) {
+      containerWidth = maxW;
+      containerHeight = maxW / mediaAspectRatio;
+    } else {
+      containerHeight = maxH;
+      containerWidth = maxH * mediaAspectRatio;
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -470,7 +505,13 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
         )}
 
         {/* Canvas Image Container */}
-        <div className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 w-[700px] h-[525px] flex items-center justify-center group">
+        <div
+          className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 flex items-center justify-center group"
+          style={{
+            width: `${containerWidth}px`,
+            height: `${containerHeight}px`,
+          }}
+        >
           
           {/* Base Backdrop Image */}
           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url('${mediaUrl}')` }} />
@@ -479,8 +520,8 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
           {/* Interactive Mask Painting Canvas */}
           <canvas
             ref={canvasRef}
-            width={700}
-            height={525}
+            width={containerWidth}
+            height={containerHeight}
             onMouseDown={startDrawing}
             onMouseMove={draw}
             onMouseUp={stopDrawing}
@@ -503,6 +544,26 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
               </>
             )}
           </div>
+
+          {/* Download Button */}
+          {showResult && (
+            <button
+              type="button"
+              onClick={() => {
+                const link = document.createElement("a");
+                link.href = mediaUrl;
+                link.download = mediaUrl.split("/").pop() || "inpaint-result";
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5 shrink-0" />
+              <span>Download Result</span>
+            </button>
+          )}
 
           {/* Mask Controls Floating Toolbar (Bottom Right of Image) */}
           <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1 bg-zinc-950/80 backdrop-blur-md border border-white/10 rounded-xl p-1 shadow-2xl">

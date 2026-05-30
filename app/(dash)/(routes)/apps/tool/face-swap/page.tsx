@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Upload, AlertCircle, Sparkles, Check } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
@@ -33,6 +33,24 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
   const [isUploadingSource, setIsUploadingSource] = useState(false);
 
   const canGenerate = !!targetImage && !!sourceFace && !isUploadingTarget && !isUploadingSource;
+
+  const [mediaAspectRatio, setMediaAspectRatio] = useState<number | null>(null);
+
+  // Dynamic aspect ratio calculation
+  useEffect(() => {
+    // import React's useEffect
+    const activeUrl = resultUrl || targetImage || "/explore/gallery-soul-cinema-3.jpg";
+    const img = new Image();
+    img.src = activeUrl;
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setMediaAspectRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+    img.onerror = () => {
+      setMediaAspectRatio(null);
+    };
+  }, [targetImage, resultUrl]);
 
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -150,6 +168,21 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
       setErrorMessage(getSafeErrorMessage(err));
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  // Calculate dynamic dimensions for the canvas container based on aspect ratio
+  let containerWidth = 700;
+  let containerHeight = 525;
+  if (mediaAspectRatio) {
+    const maxW = 700;
+    const maxH = 525;
+    if (mediaAspectRatio > maxW / maxH) {
+      containerWidth = maxW;
+      containerHeight = maxW / mediaAspectRatio;
+    } else {
+      containerHeight = maxH;
+      containerWidth = maxH * mediaAspectRatio;
     }
   }
 
@@ -338,7 +371,14 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
 
           {/* RIGHT: Large Image Viewer with Overlay */}
           <div className="lg:col-span-7">
-            <div className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 w-full aspect-[4/3] flex items-center justify-center">
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 mx-auto"
+              style={{
+                width: `${containerWidth}px`,
+                height: `${containerHeight}px`,
+                maxWidth: "100%",
+              }}
+            >
               
               {isGenerating ? (
                 <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
@@ -382,6 +422,25 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                 )}
               </div>
 
+              {/* Download Button */}
+              {resultUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = resultUrl;
+                    link.download = resultUrl.split("/").pop() || "faceswap-result";
+                    link.target = "_blank";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+                >
+                  <Download className="h-3.5 w-3.5 shrink-0" />
+                  <span>Download Result</span>
+                </button>
+              )}
             </div>
           </div>
 
