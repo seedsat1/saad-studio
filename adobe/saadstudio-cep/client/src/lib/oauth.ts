@@ -31,6 +31,12 @@ export interface AuthFlowResult {
   error?: string;
 }
 
+interface AuthSessionPollResponse {
+  status?: string;
+  token?: string;
+  error?: string;
+}
+
 /** Generates a URL-safe session id (~16 chars). */
 function newSessionId(): string {
   const bytes = new Uint8Array(12);
@@ -74,13 +80,17 @@ export function startAuthFlow(opts: {
           method: "GET",
           headers: { Accept: "application/json" },
         });
+        const body = await readJsonSafely<AuthSessionPollResponse>(res, pollUrl);
         if (res.ok) {
-          const data = await res.json() as { status?: string; token?: string };
-          if (data.status === "approved" && data.token) {
-            resolve({ status: "approved", token: data.token });
+          if (!body) {
+            resolve({ status: "error", error: "Auth session returned an empty response." });
             return;
           }
-          if (data.status === "expired") {
+          if (body.status === "approved" && body.token) {
+            resolve({ status: "approved", token: body.token });
+            return;
+          }
+          if (body.status === "expired") {
             resolve({ status: "expired" });
             return;
           }
@@ -88,7 +98,13 @@ export function startAuthFlow(opts: {
         } else if (res.status >= 500) {
           // transient server issue — keep trying
         } else if (res.status === 400) {
-          resolve({ status: "error", error: "Invalid session id" });
+          resolve({ status: "error", error: body?.error || "Invalid session id" });
+          return;
+        } else {
+          resolve({
+            status: "error",
+            error: `Auth session request failed (${res.status})${body?.error ? `: ${body.error}` : ""}`,
+          });
           return;
         }
       } catch (err) {
@@ -102,4 +118,21 @@ export function startAuthFlow(opts: {
   });
 
   return { handle, done };
+}
+
+async function readJsonSafely<T extends object>(res: Response, url: string): Promise<T | null> {
+  const text = await res.text();
+  if (!text.trim()) {
+    if (res.ok) {
+      throw new Error(`Empty response from ${url} (${res.status}).`);
+    }
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    const short = text.replace(/\s+/g, " ").trim().slice(0, 200);
+    throw new Error(`Expected JSON from ${url}, received: ${short}`);
+  }
 }

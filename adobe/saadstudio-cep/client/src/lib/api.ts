@@ -164,6 +164,11 @@ export class ApiError extends Error {
   }
 }
 
+interface ParsedResponseBody {
+  text: string;
+  data: unknown;
+}
+
 let lastCreditsTopupOpenAt = 0;
 
 export function getCreditsTopupUrl(): string {
@@ -195,25 +200,83 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError(`Network error: ${(err as Error).message}`, 0);
   }
 
-  const text = await res.text();
-  const data = text ? safeJson(text) : null;
+  const { text, data } = await readResponseBody(res, url, "api.request");
 
   if (!res.ok) {
     if (res.status === 401) clearToken();
-    const msg = (data && typeof data === "object" && "error" in data)
-      ? String((data as { error: unknown }).error)
-      : `Request failed (${res.status})`;
+    const msg = buildApiErrorMessage(res.status, data, text);
     if (res.status === 402) {
       openCreditsTopup();
       throw new ApiError(`${msg}. Opening the credit top-up page…`, res.status);
     }
     throw new ApiError(msg, res.status);
   }
+
+  if (!text.trim()) {
+    throw new ApiError(`Empty response from ${url} (${res.status}).`, res.status);
+  }
+
+  if (typeof data === "string") {
+    throw new ApiError(
+      `Expected JSON from ${url}, received text: ${snippet(data)}`,
+      res.status,
+    );
+  }
+
   return data as T;
 }
 
 function safeJson(text: string): unknown {
   try { return JSON.parse(text); } catch { return text; }
+}
+
+/** Diagnostic-only: prints URL, status, content-type, and the first 500
+ *  chars of the response body before any JSON parse attempt. Active in
+ *  every build until the user removes it — it does NOT change behaviour.
+ *  See readResponseBody / readJsonSafely callers for the two parse sites. */
+function logBeforeJsonParse(
+  callSite: string,
+  url: string,
+  res: Response,
+  text: string,
+): void {
+  try {
+    // eslint-disable-next-line no-console
+    console.log("[saadstudio diag]", {
+      callSite,
+      url,
+      status: res.status,
+      contentType: res.headers.get("content-type"),
+      bodyLength: text.length,
+      body: text.length > 500 ? `${text.slice(0, 500)}…` : text,
+    });
+  } catch { /* logging must never throw */ }
+}
+
+async function readResponseBody(
+  res: Response,
+  url: string,
+  callSite: string,
+): Promise<ParsedResponseBody> {
+  const text = await res.text();
+  logBeforeJsonParse(callSite, url, res, text);
+  if (!text.trim()) return { text, data: null };
+  return { text, data: safeJson(text) };
+}
+
+function snippet(text: string, max = 200): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  return clean.length > max ? `${clean.slice(0, max)}…` : clean;
+}
+
+function buildApiErrorMessage(status: number, data: unknown, text: string): string {
+  if (data && typeof data === "object") {
+    if ("error" in data) return `Request failed (${status}): ${String((data as { error: unknown }).error)}`;
+    if ("message" in data) return `Request failed (${status}): ${String((data as { message: unknown }).message)}`;
+  }
+  if (!text.trim()) return `Request failed (${status}): Empty response body.`;
+  if (typeof data === "string") return `Request failed (${status}): ${snippet(data)}`;
+  return `Request failed (${status}): ${snippet(text)}`;
 }
 
 function guessContentType(fileName: string, fallback = "application/octet-stream"): string {
