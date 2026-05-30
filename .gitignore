@@ -49,4 +49,19 @@ CINEMA STUDIO VS.O/
 
 .vercel
 
+# Large files - use R2/Cloudflare for storage
+*.exe
+*.msi
+*.dmg
+*.zip
+*.rar
+*.7z
+adobe/New\ folder/*.exe
+adobe/New\ folder/*.msi
+
+# Cache and temp
+*.cache
+*.tmp
+.DS_Store
+
 .claude/
