@@ -124,38 +124,4 @@ async function downloadFromLocal(filename: string): Promise<NextResponse> {
     );
   }
 }
-        filePath = p;
-        break;
-      } catch {
-        continue;
-      }
-    }
 
-    if (!filePath) {
-      return NextResponse.json(
-        { 
-          error: 'الملف غير موجود',
-          hint: `البحث في: ${possiblePaths.join(', ')}`
-        },
-        { status: 404 }
-      );
-    }
-
-    const fileBuffer = await fs.readFile(filePath);
-
-    return new NextResponse(fileBuffer, {
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-        'Content-Length': fileBuffer.length.toString(),
-        'Cache-Control': 'public, max-age=86400',
-      },
-    });
-  } catch (error) {
-    console.error('خطأ في التحميل المحلي:', error);
-    return NextResponse.json(
-      { error: 'فشل في تحميل الملف من الخادم' },
-      { status: 500 }
-    );
-  }
-}
