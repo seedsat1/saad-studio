@@ -403,7 +403,7 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
-                <img src="/explore/gallery-soul-cinema-3.jpg" alt="Step 1 Preview" className="h-full w-full object-cover opacity-60" />
+                <img src="/explore/face-swap-target.png" alt="Step 1 Preview" className="h-full w-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
                 <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">Target Image</div>
               </div>
@@ -418,7 +418,7 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
-                <img src="/explore/gallery-mixed-media-2.jpg" alt="Step 2 Preview" className="h-full w-full object-cover opacity-60" />
+                <img src="/explore/face-swap-source.png" alt="Step 2 Preview" className="h-full w-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
                 <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">Source Photo</div>
               </div>
@@ -433,11 +433,11 @@ export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: bool
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
-                <img src="/explore/gallery-soul-cinema-3.jpg" alt="Step 3 Preview" className="h-full w-full object-cover" />
+                <img src="/explore/face-swap-result.png" alt="Step 3 Preview" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
                 {/* Small overlay */}
                 <div className="absolute bottom-2 left-2">
-                  <img src="/explore/gallery-mixed-media-2.jpg" alt="Mini overlay" className="w-6 h-6 rounded-md border border-white object-cover" />
+                  <img src="/explore/face-swap-source.png" alt="Mini overlay" className="w-6 h-6 rounded-md border border-white object-cover" />
                 </div>
                 <div className="absolute border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black text-cyan-400 bg-black/60">Final Output</div>
               </div>
