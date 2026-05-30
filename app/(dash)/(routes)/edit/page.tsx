@@ -1030,21 +1030,25 @@ export default function EditPage() {
         
         {/* Canvas Toolbar */}
         <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
-          <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
-          <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
-          
-          <div className="h-5 w-px bg-white/10 mx-1.5" />
-          
-          <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
-          <ToolbarBtn
-            icon={isEraser ? PenTool : Eraser}
-            label={isEraser ? "Draw Mode" : "Eraser Mode"}
-            shortcut="E"
-            active={isEraser}
-            onClick={() => setIsEraser(!isEraser)}
-          />
-          
-          <div className="h-5 w-px bg-white/10 mx-1.5" />
+          {activeTool !== "upscale" && (
+            <>
+              <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
+              <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
+              
+              <div className="h-5 w-px bg-white/10 mx-1.5" />
+              
+              <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
+              <ToolbarBtn
+                icon={isEraser ? PenTool : Eraser}
+                label={isEraser ? "Draw Mode" : "Eraser Mode"}
+                shortcut="E"
+                active={isEraser}
+                onClick={() => setIsEraser(!isEraser)}
+              />
+              
+              <div className="h-5 w-px bg-white/10 mx-1.5" />
+            </>
+          )}
           
           <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
           <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
@@ -1132,7 +1136,10 @@ export default function EditPage() {
           ) : (
             /* Centered canvas wrapper card */
             <div
-              className="relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none cursor-crosshair"
+              className={cn(
+                "relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none",
+                activeTool === "upscale" ? "cursor-default" : "cursor-crosshair"
+              )}
               style={{
                 width: "700px",
                 height: "525px",
@@ -1195,8 +1202,9 @@ export default function EditPage() {
                           loop
                           muted
                           playsInline
+                          controls
                           style={{
-                            filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
+                            filter: simulatedWarning ? (currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)") : "none",
                           }}
                         />
                       ) : (
@@ -1204,7 +1212,7 @@ export default function EditPage() {
                           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                           style={{
                             backgroundImage: `url('${mediaUrl}')`,
-                            filter: currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)",
+                            filter: simulatedWarning ? (currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)") : "none",
                           }}
                         />
                       )}
@@ -1217,6 +1225,24 @@ export default function EditPage() {
                           AI EDIT APPLIED
                         </span>
                       </div>
+
+                      {/* Download Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.href = mediaUrl;
+                          link.download = mediaUrl.split("/").pop() || "result";
+                          link.target = "_blank";
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+                      >
+                        <Download className="h-3.5 w-3.5 shrink-0" />
+                        <span>Download Result</span>
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1231,10 +1257,10 @@ export default function EditPage() {
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
-                style={{ cursor: cursorStyle }}
+                style={{ cursor: activeTool === "upscale" ? "default" : cursorStyle }}
                 className={cn(
                   "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
-                  showInlight ? "opacity-75" : "opacity-0 pointer-events-none"
+                  (showInlight && activeTool !== "upscale") ? "opacity-75" : "opacity-0 pointer-events-none"
                 )}
               />
 
@@ -1292,7 +1318,7 @@ export default function EditPage() {
             </AnimatePresence>
 
             {/* Floating Upscale Button in Center of Canvas */}
-            {activeTool === "upscale" && !isProcessing && (
+            {activeTool === "upscale" && !isProcessing && !showResult && (
               <button
                 type="button"
                 onClick={handleApply}
