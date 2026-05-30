@@ -20,6 +20,16 @@ import { RemoveBgPage } from "./pages/remove-bg";
 import { UpscalePage } from "./pages/upscale";
 import { DrawToVideoPage } from "./pages/draw-to-video";
 
+// ── Reap.video tools (More Tools section)
+import { AddCaptionsPage } from "./pages/add-captions";
+import { EditClipsPage } from "./pages/edit-clips";
+import { AIDubbingPage } from "./pages/ai-dubbing";
+import { AutoReframePage } from "./pages/auto-reframe";
+import { TranscriptionPage } from "./pages/transcription";
+import { AudiogramPage } from "./pages/audiogram";
+import { NoiseRemovalPage } from "./pages/noise-removal";
+import { EyeCorrectionPage } from "./pages/eye-correction";
+
 async function bootstrap() {
   if (isInsideAdobe()) {
     await loadExtendScript();
@@ -49,6 +59,16 @@ async function bootstrap() {
       "/remove-bg": requireAuth(RemoveBgPage),
       "/upscale": requireAuth(UpscalePage),
       "/draw-to-video": requireAuth(DrawToVideoPage),
+
+      // ── More Tools (Reap.video)
+      "/add-captions":   requireAuth(AddCaptionsPage),
+      "/edit-clips":     requireAuth(EditClipsPage),
+      "/ai-dubbing":     requireAuth(AIDubbingPage),
+      "/auto-reframe":   requireAuth(AutoReframePage),
+      "/transcription":  requireAuth(TranscriptionPage),
+      "/audiogram":      requireAuth(AudiogramPage),
+      "/noise-removal":  requireAuth(NoiseRemovalPage),
+      "/eye-correction": requireAuth(EyeCorrectionPage),
     },
     fallback: () => {
       navigate("/");

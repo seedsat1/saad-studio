@@ -76,6 +76,70 @@ export const APPS: AppDef[] = [
     route: "/upscale",
     icon: "spark",
   },
+
+  // ── MORE TOOLS — powered by Reap.video (captions / dub / clips) plus
+  //    placeholder cards for the tools still on the roadmap.
+  {
+    id: "add-captions",
+    name: "Add Captions",
+    description: "Burn styled captions onto a clip.",
+    route: "/add-captions",
+    icon: "captions",
+    badge: "NEW",
+  },
+  {
+    id: "edit-clips",
+    name: "Edit Videos",
+    description: "Cut short-form clips out of a long source.",
+    route: "/edit-clips",
+    icon: "cut",
+    badge: "NEW",
+  },
+  {
+    id: "ai-dubbing",
+    name: "AI Dubbing",
+    description: "Dub the clip into another language, lip-aware.",
+    route: "/ai-dubbing",
+    icon: "mic",
+    badge: "NEW",
+  },
+  {
+    id: "audiogram",
+    name: "Audiogram",
+    description: "Turn audio into a shareable waveform video.",
+    route: "/audiogram",
+    icon: "waveform",
+  },
+  {
+    id: "auto-reframe",
+    name: "Auto Reframe",
+    description: "Reframe automatically with subject tracking.",
+    route: "/auto-reframe",
+    icon: "crop",
+    badge: "NEW",
+  },
+  {
+    id: "transcription",
+    name: "Transcription",
+    description: "Word-level timestamped transcript.",
+    route: "/transcription",
+    icon: "transcript",
+    badge: "NEW",
+  },
+  {
+    id: "noise-removal",
+    name: "Noise removal",
+    description: "Clean background hiss and hum out of dialogue.",
+    route: "/noise-removal",
+    icon: "noise",
+  },
+  {
+    id: "eye-correction",
+    name: "Eye correction",
+    description: "Re-aim the subject's gaze toward the camera.",
+    route: "/eye-correction",
+    icon: "eye",
+  },
 ];
 
 export function findApp(id: string): AppDef | undefined {

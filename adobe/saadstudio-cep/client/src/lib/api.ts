@@ -745,3 +745,78 @@ export const api = {
 };
 
 export type SaadApi = typeof api;
+
+// ─── Reap.video tools (captions / reframe / dubbing / transcription / edit) ─
+
+export type ReapTool =
+  | "captions"
+  | "reframe"
+  | "dubbing"
+  | "transcription"
+  | "edit-videos";
+
+export interface ReapStartResponse {
+  projectId: string;
+  generationId: string;
+  creditsCharged: number;
+  status: string;
+}
+
+export interface ReapStatusResponse {
+  status: "queued" | "processing" | "completed" | "failed" | "invalid" | "expired";
+  progress?: number;
+  url?: string | null;
+  urls?: string[];
+  metadata?: Record<string, unknown>;
+  error?: string;
+}
+
+export const reap = {
+  start: (body: { tool: ReapTool; sourceUrl: string; filename?: string; options?: Record<string, unknown>; prompt?: string }) =>
+    request<ReapStartResponse>("/api/panel/reap/start", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  status: (projectId: string, generationId?: string) => {
+    const qs = new URLSearchParams({ projectId });
+    if (generationId) qs.set("generationId", generationId);
+    return request<ReapStatusResponse>(`/api/panel/reap/status?${qs.toString()}`);
+  },
+
+  dubbingLanguages: () =>
+    request<{ languages: Array<{ code: string; label: string }> }>("/api/panel/reap/dubbing-languages")
+      .catch(() => ({ languages: [] as Array<{ code: string; label: string }> })),
+
+  captionPresets: () =>
+    request<{ presets: Array<{ id: string; label: string }> }>("/api/panel/reap/caption-presets")
+      .catch(() => ({ presets: [] as Array<{ id: string; label: string }> })),
+
+  /** End-to-end runner used by the tool pages: start → poll until done. */
+  run: async (
+    args: {
+      tool: ReapTool;
+      sourceUrl: string;
+      filename?: string;
+      options?: Record<string, unknown>;
+      prompt?: string;
+    },
+    onStatus?: (s: ReapStatusResponse) => void,
+  ): Promise<ReapStatusResponse & { projectId: string; generationId: string }> => {
+    const started = await reap.start(args);
+    const startTime = Date.now();
+    const timeoutMs = 20 * 60 * 1000;
+    const intervalMs = 4000;
+
+    while (Date.now() - startTime < timeoutMs) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+      const status = await reap.status(started.projectId, started.generationId);
+      onStatus?.(status);
+      if (status.status === "completed" || status.status === "failed"
+        || status.status === "invalid" || status.status === "expired") {
+        return { ...status, projectId: started.projectId, generationId: started.generationId };
+      }
+    }
+    throw new ApiError("Reap job timed out after 20 minutes.", 408);
+  },
+};

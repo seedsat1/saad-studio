@@ -9,7 +9,9 @@ export type IconName =
   | "image" | "video" | "magic-wand" | "crop" | "scissors"
   | "arrow-up-right" | "draw-pen" | "logout" | "coin"
   | "back" | "close" | "plus" | "import" | "send" | "chevron-down"
-  | "settings" | "spark" | "check" | "trash";
+  | "settings" | "spark" | "check" | "trash"
+  // Reap tool icons
+  | "captions" | "mic" | "transcript" | "waveform" | "noise" | "eye" | "cut";
 
 export function icon(name: IconName, size = 18): HTMLElement {
   const wrap = document.createElement("span");
@@ -50,4 +52,19 @@ const SHAPES: Record<IconName, string> = {
   spark: `<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/>`,
   check: `<path d="M5 12l5 5 9-9"/>`,
   trash: `<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>`,
+  captions: `<rect x="3" y="5" width="18" height="14" rx="2"/>
+    <path d="M10 10a2 2 0 0 0-2-2H7.5a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 7.5 16H8a2 2 0 0 0 2-2"/>
+    <path d="M18 10a2 2 0 0 0-2-2h-.5a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 15.5 16h.5a2 2 0 0 0 2-2"/>`,
+  mic: `<rect x="9" y="3" width="6" height="12" rx="3"/>
+    <path d="M5 11a7 7 0 0 0 14 0"/>
+    <path d="M12 18v3"/><path d="M8 21h8"/>`,
+  transcript: `<path d="M4 4h12a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2z"/>
+    <path d="M8 9h6"/><path d="M8 13h6"/><path d="M8 17h4"/>`,
+  waveform: `<path d="M3 12v0"/><path d="M6 8v8"/><path d="M9 5v14"/>
+    <path d="M12 9v6"/><path d="M15 6v12"/><path d="M18 10v4"/><path d="M21 12v0"/>`,
+  noise: `<path d="M3 12h2l2-5 4 14 4-10 2 5h4"/>`,
+  eye: `<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+    <circle cx="12" cy="12" r="3"/>`,
+  cut: `<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/>
+    <path d="M20 4L8.5 16.5"/><path d="M20 20L13 13"/>`,
 };
