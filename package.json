@@ -11,6 +11,7 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "upload-r2": "NODE_ENV=production ts-node scripts/upload-to-r2.ts",
+    "upload-all": "NODE_ENV=production ts-node scripts/upload-all-to-r2.ts",
     "set-r2-cors": "node scripts/set-r2-cors.mjs"
   },
   "dependencies": {
