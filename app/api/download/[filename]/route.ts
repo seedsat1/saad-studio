@@ -6,9 +6,20 @@ import fs from 'fs/promises';
 // 1. R2 (Cloudflare) - الخيار الأول
 // 2. الخادم المحلي - الاحتياطي
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { filename: string } }
+) {
   try {
-    const filename = 'saadstudio.zxp';
+    const filename = params.filename || 'saadstudio.zxp';
+    
+    // التحقق من أمان الملف (منع directory traversal)
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return NextResponse.json(
+        { error: 'اسم ملف غير صحيح' },
+        { status: 400 }
+      );
+    }
     
     // محاولة التحميل من R2 أولاً
     if (process.env.R2_BUCKET && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY) {
@@ -78,6 +89,41 @@ async function downloadFromLocal(filename: string): Promise<NextResponse> {
     for (const p of possiblePaths) {
       try {
         await fs.access(p);
+        filePath = p;
+        break;
+      } catch {
+        continue;
+      }
+    }
+
+    if (!filePath) {
+      return NextResponse.json(
+        { 
+          error: 'الملف غير موجود',
+          hint: `البحث في: ${possiblePaths.join(', ')}`
+        },
+        { status: 404 }
+      );
+    }
+
+    const fileBuffer = await fs.readFile(filePath);
+
+    return new NextResponse(fileBuffer, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': fileBuffer.length.toString(),
+        'Cache-Control': 'public, max-age=86400',
+      },
+    });
+  } catch (error) {
+    console.error('خطأ في التحميل المحلي:', error);
+    return NextResponse.json(
+      { error: 'فشل في تحميل الملف من الخادم' },
+      { status: 500 }
+    );
+  }
+}
         filePath = p;
         break;
       } catch {

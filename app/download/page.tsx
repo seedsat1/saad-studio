@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { Loader2, Download, Settings } from 'lucide-react';
 
 interface PluginInfo {
