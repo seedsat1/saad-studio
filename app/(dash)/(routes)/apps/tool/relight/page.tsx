@@ -195,7 +195,7 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
   });
 }
 
-export default function RelightPage() {
+export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -302,7 +302,12 @@ export default function RelightPage() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} flex h-screen overflow-hidden bg-[#03060d] text-white select-none`}
+      className={cn(
+        outfit.variable,
+        plusJakarta.variable,
+        "flex overflow-hidden bg-[#03060d] text-white select-none",
+        isEmbedded ? "h-full flex-1" : "h-screen"
+      )}
       style={{ fontFamily: "var(--font-body, sans-serif)" }}
     >
       
@@ -313,13 +318,15 @@ export default function RelightPage() {
         onDrop={handleDrop}
       >
         {/* Back breadcrumb */}
-        <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
-          <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
-            Apps
-          </Link>
-          <span className="text-zinc-600 text-xs">/</span>
-          <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Relight</span>
-        </div>
+        {!isEmbedded && (
+          <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
+            <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
+              Apps
+            </Link>
+            <span className="text-zinc-600 text-xs">/</span>
+            <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Relight</span>
+          </div>
+        )}
 
         {/* Main image preview */}
         <div className="flex-1 flex items-center justify-center p-8 relative">

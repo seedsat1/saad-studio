@@ -42,6 +42,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ToolShowcase from "@/components/ToolShowcase";
+import RelightPage from "../apps/tool/relight/page";
+import FaceSwapPage from "../apps/tool/face-swap/page";
+import NanoBananaInpaintPage from "../apps/tool/nano-banana-pro-inpaint/page";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EditTool = {
@@ -66,26 +69,26 @@ type EditModel = {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const EDIT_TOOLS: EditTool[] = [
   {
+    id: "upscale",
+    label: "AI Upscale & Enhance",
+    icon: Layers,
+    color: "text-teal-400",
+    border: "border-teal-500",
+    glow: "shadow-teal-500/50",
+    hex: "#14b8a6",
+    glowHex: "rgba(20,184,166,0.45)",
+    description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
+  },
+  {
     id: "inpaint",
     label: "Smart Inpaint",
-    icon: Wand2,
+    icon: PenTool,
     color: "text-violet-400",
     border: "border-violet-500",
     glow: "shadow-violet-500/50",
     hex: "#8b5cf6",
     glowHex: "rgba(139,92,246,0.45)",
     description: "Fill or restore masked areas using AI context from surrounding pixels.",
-  },
-  {
-    id: "replace",
-    label: "Object Replace",
-    icon: RefreshCw,
-    color: "text-cyan-400",
-    border: "border-cyan-500",
-    glow: "shadow-cyan-500/50",
-    hex: "#06b6d4",
-    glowHex: "rgba(6,182,212,0.45)",
-    description: "Replace any selected object with an AI-generated alternative.",
   },
   {
     id: "relight",
@@ -97,72 +100,6 @@ const EDIT_TOOLS: EditTool[] = [
     hex: "#f59e0b",
     glowHex: "rgba(245,158,11,0.45)",
     description: "Non-destructively shift light direction, color, and intensity.",
-  },
-  {
-    id: "bgremove",
-    label: "Background Remove",
-    icon: Scissors,
-    color: "text-rose-400",
-    border: "border-rose-500",
-    glow: "shadow-rose-500/50",
-    hex: "#f43f5e",
-    glowHex: "rgba(244,63,94,0.45)",
-    description: "Instantly isolate subjects by removing the entire background layer.",
-  },
-  {
-    id: "outpaint",
-    label: "Expand & Outpaint",
-    icon: Maximize2,
-    color: "text-emerald-400",
-    border: "border-emerald-500",
-    glow: "shadow-emerald-500/50",
-    hex: "#10b981",
-    glowHex: "rgba(16,185,129,0.45)",
-    description: "Extend image boundaries beyond the original frame with AI.",
-  },
-  {
-    id: "style",
-    label: "Style Transfer",
-    icon: Palette,
-    color: "text-pink-400",
-    border: "border-pink-500",
-    glow: "shadow-pink-500/50",
-    hex: "#ec4899",
-    glowHex: "rgba(236,72,153,0.45)",
-    description: "Transfer a visual style or texture onto the selected region.",
-  },
-  {
-    id: "draw",
-    label: "Draw to Edit",
-    icon: PenTool,
-    color: "text-blue-400",
-    border: "border-blue-500",
-    glow: "shadow-blue-500/50",
-    hex: "#3b82f6",
-    glowHex: "rgba(59,130,246,0.45)",
-    description: "Sketch rough shapes and let AI interpret and render the result.",
-  },
-  {
-    id: "motion",
-    label: "Motion Track Edit",
-    icon: Clapperboard,
-    color: "text-orange-400",
-    border: "border-orange-500",
-    glow: "shadow-orange-500/50",
-    hex: "#f97316",
-    glowHex: "rgba(249,115,22,0.45)",
-    description: "Track and edit objects across an animated frame sequence.",
-  },
-  {
-    id: "upscale",
-    label: "AI Upscale & Enhance",
-    icon: Aperture,
-    color: "text-teal-400",
-    border: "border-teal-500",
-    glow: "shadow-teal-500/50",
-    hex: "#14b8a6",
-    glowHex: "rgba(20,184,166,0.45)",
-    description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
   },
   {
     id: "faceswap",
@@ -352,7 +289,7 @@ export default function EditPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // States
-  const [activeTool, setActiveTool] = useState<string>("inpaint");
+  const [activeTool, setActiveTool] = useState<string>("upscale");
   const [selectedModel, setSelectedModel] = useState<EditModel>(EDIT_MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
   const [brushSize, setBrushSize] = useState(32);
@@ -370,7 +307,7 @@ export default function EditPage() {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [showInlight, setShowInlight] = useState(true);
-  const [mediaUrl, setMediaUrl] = useState("/explore/iraq/skyline.png");
+  const [mediaUrl, setMediaUrl] = useState("/explore/tool-upscale.jpg");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
   const [isUploading, setIsUploading] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -1022,21 +959,11 @@ export default function EditPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-60px)] overflow-hidden bg-[#03060d] text-white select-none">
+    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none">
       
-      {/* ════════════════════════════════════════════════════════════════
-          LEFT SIDEBAR — Slim Toolbar
-      ════════════════════════════════════════════════════════════════ */}
-      <aside className="w-16 shrink-0 flex flex-col items-center py-6 border-r border-white/5 bg-[#050914] z-10 gap-6">
-        {/* Saad Studio Icon */}
-        <Link href="/explore" className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-violet-500 flex items-center justify-center shadow-lg shadow-cyan-500/25 transition-transform hover:scale-105 active:scale-95">
-          <Sparkles className="h-5 w-5 text-black font-black" />
-        </Link>
-
-        <div className="w-8 h-px bg-white/5" />
-
-        {/* Tools list */}
-        <nav className="flex-1 flex flex-col gap-3 w-full px-2 overflow-y-auto scrollbar-none">
+      {/* ─── Top Tab Bar Navigation Switcher ─── */}
+      <div className="flex items-center justify-between border-b border-white/5 bg-[#050914] px-6 py-2.5 shrink-0 z-20">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {EDIT_TOOLS.map((tool) => {
             const isActive = activeTool === tool.id;
             return (
@@ -1044,55 +971,62 @@ export default function EditPage() {
                 key={tool.id}
                 type="button"
                 onClick={() => handleToolSelect(tool.id)}
-                title={tool.label}
                 className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center relative transition-all duration-300 group",
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 border",
                   isActive
-                    ? "bg-white/[0.05] border border-white/10 shadow-lg"
-                    : "border border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]"
+                    ? "bg-[#0b1528] text-white shadow-lg shadow-black/40"
+                    : "border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]"
                 )}
+                style={isActive ? { borderColor: `${tool.hex}40`, color: tool.hex, boxShadow: `0 0 15px -3px ${tool.hex}25` } : {}}
               >
-                {/* Active Indicator spot */}
-                {isActive && (
-                  <motion.div
-                    layoutId="tool-glow-spot"
-                    className="absolute left-[-2px] top-3 bottom-3 w-[3px] rounded-r-md"
-                    style={{
-                      backgroundColor: tool.hex,
-                      boxShadow: `0 0 10px 1px ${tool.hex}`,
-                    }}
-                  />
-                )}
-
-                <tool.icon
-                  className={cn(
-                    "h-5 w-5 transition-all duration-300",
-                    isActive ? tool.color : "text-zinc-500 group-hover:scale-105"
-                  )}
-                  style={isActive ? { filter: `drop-shadow(0 0 5px ${tool.hex}80)` } : {}}
-                />
-
-                {/* Hover label tooltip */}
-                <span className="absolute left-16 bg-[#080d1a] border border-white/10 text-white text-[11px] font-bold px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-2xl">
-                  {tool.label}
-                </span>
+                <tool.icon className={cn("h-4 w-4", isActive ? tool.color : "text-zinc-500")} />
+                <span>{tool.label}</span>
               </button>
             );
           })}
-        </nav>
+        </div>
+        
+        {/* Right side status badge */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 shadow-md">
+            <motion.div
+              className="h-1.5 w-1.5 rounded-full"
+              style={{
+                backgroundColor: isProcessing ? "#eab308" : showResult ? "#10b981" : "#52525b",
+              }}
+              animate={isProcessing ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : { opacity: 1 }}
+              transition={isProcessing ? { duration: 0.8, repeat: Infinity } : {}}
+            />
+            <span className="text-zinc-400">
+              {isProcessing ? "Applying edit..." : showResult ? "Edit Applied" : "Ready"}
+            </span>
+          </div>
+        </div>
+      </div>
 
-        <div className="w-8 h-px bg-white/5" />
+      {/* ─── Active Tool Sub-views & Core Workspace Layout ─── */}
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        {activeTool === "relight" && (
+          <div className="flex-1 overflow-hidden">
+            <RelightPage isEmbedded />
+          </div>
+        )}
+        {activeTool === "faceswap" && (
+          <div className="flex-1 overflow-hidden">
+            <FaceSwapPage isEmbedded />
+          </div>
+        )}
+        {activeTool === "inpaint" && (
+          <div className="flex-1 overflow-hidden">
+            <NanoBananaInpaintPage isEmbedded />
+          </div>
+        )}
 
-        {/* Settings button */}
-        <Link href="/settings" className="w-12 h-12 rounded-xl flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02] transition-colors" title="Settings">
-          <Settings className="h-5 w-5" />
-        </Link>
-      </aside>
-
-      {/* ════════════════════════════════════════════════════════════════
-          CENTER — Masking Canvas & Prompt Engine
-      ════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
+        {/* Standard 2-Panel layout for upscale and watermark */}
+        {["upscale", "watermark"].includes(activeTool) && (
+          <div className="flex flex-1 overflow-hidden w-full h-full">
+            {/* CENTER — Masking Canvas & Prompt Engine */}
+            <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
         
         {/* Canvas Toolbar */}
         <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
@@ -2490,6 +2424,9 @@ export default function EditPage() {
           </AnimatePresence>
         </div>
       </aside>
+          </div>
+        )}
+      </div>
 
     </div>
   );

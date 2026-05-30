@@ -17,7 +17,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export default function FaceSwapPage() {
+export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   
   const fileInputTargetRef = useRef<HTMLInputElement>(null);
@@ -85,19 +85,21 @@ export default function FaceSwapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060c18] text-white p-6 md:p-8 select-none">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className={cn("text-white select-none", isEmbedded ? "p-4 bg-[#03060d] h-full overflow-y-auto" : "min-h-screen bg-[#060c18] p-6 md:p-8")}>
+      <div className={cn("mx-auto", isEmbedded ? "max-w-full space-y-4" : "max-w-6xl space-y-8")}>
         
         {/* Breadcrumb Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
-              Apps
-            </Link>
-            <span className="text-zinc-600 text-xs">/</span>
-            <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Face Swap</span>
+        {!isEmbedded && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
+                Apps
+              </Link>
+              <span className="text-zinc-600 text-xs">/</span>
+              <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Face Swap</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Two-Column Tool Interface */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

@@ -30,7 +30,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export default function NanoBananaInpaintPage() {
+export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -305,7 +305,10 @@ export default function NanoBananaInpaintPage() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-[#03060d] text-white select-none relative"
+      className={cn(
+        "flex overflow-hidden bg-[#03060d] text-white select-none relative",
+        isEmbedded ? "h-full flex-1" : "h-screen"
+      )}
       style={{
         backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
         backgroundSize: "20px 20px",
@@ -313,16 +316,18 @@ export default function NanoBananaInpaintPage() {
     >
       
       {/* ─── Breadcrumb Title ─── */}
-      <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
-        <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
-          Apps
-        </Link>
-        <span className="text-zinc-600 text-xs">/</span>
-        <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-          Nano Banana Pro Inpaint
-          <span className="text-zinc-500 font-mono text-[9px] ml-1">&gt;</span>
-        </span>
-      </div>
+      {!isEmbedded && (
+        <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
+          <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
+            Apps
+          </Link>
+          <span className="text-zinc-600 text-xs">/</span>
+          <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+            Nano Banana Pro Inpaint
+            <span className="text-zinc-500 font-mono text-[9px] ml-1">&gt;</span>
+          </span>
+        </div>
+      )}
 
       {/* ─── Main Viewport Area ─── */}
       <div className="flex-1 flex flex-col justify-center items-center p-8 relative">
