@@ -52,6 +52,20 @@ const nextConfig = {
       "@radix-ui/react-tabs",
       "@radix-ui/react-tooltip",
     ],
+    outputFileTracingExcludes: {
+      '*': [
+        'node_modules/fluent-ffmpeg/**/*',
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/ffmpeg-static/**/*',
+        'public/img/beauty-tools/**/*',
+        'public/landing/**/*',
+        'public/uploads/**/*',
+        'public/preset/**/*',
+        'public/explore/**/*',
+        'public/transitions/**/*',
+        'adobe/**/*',
+      ],
+    },
   },
   eslint: {
     // ESLint errors will not fail the production build — warnings only
