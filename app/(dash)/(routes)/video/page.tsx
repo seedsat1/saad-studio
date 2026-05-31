@@ -601,6 +601,7 @@ function VideoPageInner() {
   const [modelOpen,     setModelOpen]     = useState(false);
   const [characters, setCharacters] = useState<CharacterReference[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState("");
+  const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   useEffect(() => {
     const requestedTool = resolveVideoTool(searchParams.get("tool"));
@@ -2215,10 +2216,10 @@ function VideoPageInner() {
                   Avatar Image
                 </label>
                 <div className="mt-2">
-                  {startFrame || linkedStartFrameUrl ? (
+                  {startFramePreview ? (
                     <div className="group relative rounded-xl overflow-hidden border border-white/10 aspect-[3/4] bg-black/40">
                       <img
-                        src={startFrame ? URL.createObjectURL(startFrame) : linkedStartFrameUrl!}
+                        src={startFramePreview}
                         alt="Avatar"
                         className="w-full h-full object-cover"
                       />
