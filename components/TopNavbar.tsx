@@ -346,6 +346,23 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 
 function imageFeatureHref(label: string): string {
   if (label === "Prompt") return "/prompt";
+  if (label === "AI Influencer") return "/image/ai-influencer";
+  if (label === "Soul ID Character") return "/image/soul-id-character";
+  if (label === "Fashion Factory") return "/apps/tool/fashion-factory";
+
+  const editToolsMap: Record<string, string> = {
+    Relight: "relight",
+    Inpaint: "inpaint",
+    "Image Upscale": "upscale",
+    "Face Swap": "faceswap",
+    "Character Swap": "faceswap",
+    "Draw to Edit": "draw",
+  };
+
+  if (label in editToolsMap) {
+    return `/edit?tool=${encodeURIComponent(editToolsMap[label])}`;
+  }
+
   const tool = IMAGE_TOOL_MAP[label] ?? "create";
   return `/image?tool=${encodeURIComponent(tool)}`;
 }
@@ -368,20 +385,20 @@ const APPS_LINK_MAP: Record<string, string> = {
   Translator: "/assist",
 
   // Enhancement
-  Upscaler: TOOL_ROUTE_MAP["image-upscale"] || "/image?tool=upscale",
+  Upscaler: TOOL_ROUTE_MAP["image-upscale"] || "/edit?tool=upscale",
   Enhancer: TOOL_ROUTE_MAP["skin-enhancer"] || "/edit?tool=style",
   Denoiser: "/edit?tool=style",
   Sharpener: "/edit?tool=upscale",
 
   // Face / Character
-  "Face Swap": TOOL_ROUTE_MAP["face-swap"] ?? "/image?tool=face-swap",
+  "Face Swap": TOOL_ROUTE_MAP["face-swap"] ?? "/edit?tool=faceswap",
   "Avatar Gen": TOOL_ROUTE_MAP["headshot-gen"] ?? "/image?tool=create&model=nano-banana-pro",
   "Portrait AI": TOOL_ROUTE_MAP["headshot-gen"] ?? "/image?tool=create&model=nano-banana-pro",
   "Aging/De-age": TOOL_ROUTE_MAP["age-transform"] ?? "/edit?tool=style",
 
   // Editing
   "BG Remover": TOOL_ROUTE_MAP["bg-remover"] ?? "/edit?tool=bgremove",
-  Inpainting: "/image?tool=inpaint",
+  Inpainting: "/edit?tool=inpaint",
   "Crop AI": "/edit?tool=smart-crop",
   "Object Remove": "/edit?tool=inpaint",
 

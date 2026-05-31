@@ -113,6 +113,17 @@ const EDIT_TOOLS: EditTool[] = [
     description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
   },
   {
+    id: "bgremove",
+    label: "Background Remover",
+    icon: Eraser,
+    color: "text-rose-400",
+    border: "border-rose-500",
+    glow: "shadow-rose-500/50",
+    hex: "#f43f5e",
+    glowHex: "rgba(244,63,94,0.45)",
+    description: "Remove image backgrounds instantly and replace them with transparency or solid colors.",
+  },
+  {
     id: "watermark",
     label: "Watermark Remover",
     icon: Ban,
@@ -383,7 +394,132 @@ export default function EditPage() {
     }
   };
 
-  const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool)!;
+  const ALL_EDIT_TOOLS_MAP: Record<string, Omit<EditTool, "id">> = {
+    upscale: {
+      label: "AI Upscale & Enhance",
+      icon: Layers,
+      color: "text-teal-400",
+      border: "border-teal-500",
+      glow: "shadow-teal-500/50",
+      hex: "#14b8a6",
+      glowHex: "rgba(20,184,166,0.45)",
+      description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
+    },
+    inpaint: {
+      label: "Smart Inpaint",
+      icon: PenTool,
+      color: "text-violet-400",
+      border: "border-violet-500",
+      glow: "shadow-violet-500/50",
+      hex: "#8b5cf6",
+      glowHex: "rgba(139,92,246,0.45)",
+      description: "Fill or restore masked areas using AI context from surrounding pixels.",
+    },
+    relight: {
+      label: "AI Relight",
+      icon: Lightbulb,
+      color: "text-amber-400",
+      border: "border-amber-500",
+      glow: "shadow-amber-500/50",
+      hex: "#f59e0b",
+      glowHex: "rgba(245,158,11,0.45)",
+      description: "Non-destructively shift light direction, color, and intensity.",
+    },
+    faceswap: {
+      label: "Face Swap Pro",
+      icon: Smile,
+      color: "text-fuchsia-400",
+      border: "border-fuchsia-500",
+      glow: "shadow-fuchsia-500/50",
+      hex: "#d946ef",
+      glowHex: "rgba(217,70,239,0.45)",
+      description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
+    },
+    watermark: {
+      label: "Watermark Remover",
+      icon: Ban,
+      color: "text-indigo-400",
+      border: "border-indigo-500",
+      glow: "shadow-indigo-500/50",
+      hex: "#6366f1",
+      glowHex: "rgba(99,102,241,0.45)",
+      description: "Remove watermarks, logos, captions, and unwanted text from videos.",
+    },
+    bgremove: {
+      label: "Background Remover",
+      icon: Eraser,
+      color: "text-rose-400",
+      border: "border-rose-500",
+      glow: "shadow-rose-500/50",
+      hex: "#f43f5e",
+      glowHex: "rgba(244,63,94,0.45)",
+      description: "Remove image backgrounds instantly and replace them with transparency or solid colors.",
+    },
+    outpaint: {
+      label: "Expand & Outpaint",
+      icon: LayoutGrid,
+      color: "text-emerald-400",
+      border: "border-emerald-500",
+      glow: "shadow-emerald-500/50",
+      hex: "#10b981",
+      glowHex: "rgba(16,185,129,0.45)",
+      description: "Extend images outwards beyond their original margins using generative fill.",
+    },
+    style: {
+      label: "Style Transfer",
+      icon: Palette,
+      color: "text-pink-400",
+      border: "border-pink-500",
+      glow: "shadow-pink-500/50",
+      hex: "#ec4899",
+      glowHex: "rgba(236,72,153,0.45)",
+      description: "Apply modern artistic and cinematic styles to your images.",
+    },
+    draw: {
+      label: "Draw to Edit",
+      icon: PenTool,
+      color: "text-cyan-400",
+      border: "border-cyan-500",
+      glow: "shadow-cyan-500/50",
+      hex: "#06b6d4",
+      glowHex: "rgba(6,182,212,0.45)",
+      description: "Sketch and paint your edits directly onto the canvas to guide the generative process.",
+    },
+    motion: {
+      label: "Motion Track",
+      icon: Clapperboard,
+      color: "text-orange-400",
+      border: "border-orange-500",
+      glow: "shadow-orange-500/50",
+      hex: "#f97316",
+      glowHex: "rgba(249,115,22,0.45)",
+      description: "Track motion paths and generate camera movement patterns.",
+    },
+    replace: {
+      label: "Object Replace",
+      icon: Wand2,
+      color: "text-sky-400",
+      border: "border-sky-500",
+      glow: "shadow-sky-500/50",
+      hex: "#38bdf8",
+      glowHex: "rgba(56,189,248,0.45)",
+      description: "Paint an object and specify a prompt to replace it with a new AI-generated element.",
+    },
+  };
+
+  const currentTool = EDIT_TOOLS.find((t) => t.id === activeTool) ?? {
+    id: activeTool,
+    ...(ALL_EDIT_TOOLS_MAP[activeTool] ?? {
+      label: "AI Editor",
+      icon: Scissors,
+      color: "text-cyan-400",
+      border: "border-cyan-500",
+      glow: "shadow-cyan-500/50",
+      hex: "#22d3ee",
+      glowHex: "rgba(34,211,238,0.45)",
+      description: "AI image editing tool.",
+    }),
+  };
 
   // File Upload Handler with Direct Cloud Upload Fallback (fixes 413 Payload Too Large)
   const handleFileUpload = async (file: File) => {
@@ -652,6 +788,7 @@ export default function EditPage() {
       "bg-remove": "bgremove",
       "background-remove": "bgremove",
       style: "style",
+      "style-transfer": "style",
       draw: "draw",
       motion: "motion",
       outpaint: "outpaint",
@@ -659,10 +796,16 @@ export default function EditPage() {
       "sketch-to-real": "draw",
       "color-grading": "relight",
       "expression-edit": "replace",
+      "face-swap": "faceswap",
+      faceswap: "faceswap",
+      "character-swap": "faceswap",
+      "smart-crop": "outpaint",
+      colorize: "style",
     };
 
     const resolved = aliasMap[requestedTool] ?? requestedTool;
-    if (EDIT_TOOLS.some((tool) => tool.id === resolved)) {
+    const allSupportedTools = [...EDIT_TOOLS.map((t) => t.id), "bgremove", "outpaint", "style", "draw", "motion", "replace"];
+    if (allSupportedTools.includes(resolved)) {
       setActiveTool(resolved);
       setShowResult(false);
       handleClearMask();
@@ -1072,7 +1215,7 @@ export default function EditPage() {
         )}
 
         {/* Standard 2-Panel layout for upscale and watermark */}
-        {["upscale", "watermark"].includes(activeTool) && (
+        {!["relight", "faceswap", "inpaint"].includes(activeTool) && (
           <div className="flex flex-1 overflow-hidden w-full h-full">
             {/* CENTER — Masking Canvas & Prompt Engine */}
             <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
