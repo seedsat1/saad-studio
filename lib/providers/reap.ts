@@ -19,10 +19,10 @@
 import { ProviderError } from "./types";
 
 const API_KEY = process.env.REAP_API_KEY ?? "";
-const BASE = (
+const BASE = normalizeReapBase(
   process.env.REAP_API_BASE ??
   "https://public.reap.video/api/v1/automation"
-).replace(/\/+$/, "");
+);
 
 export type ReapTool =
   | "captions"
@@ -63,6 +63,26 @@ export interface ReapStartParams {
   tool: ReapTool;
   /** Tool-specific extras. Forwarded as-is to the /create-<tool> body. */
   options?: Record<string, unknown>;
+}
+
+export interface ReapPreset {
+  id: string;
+  label: string;
+  name?: string;
+  source?: "system" | "user" | string;
+  preferences?: Record<string, unknown>;
+}
+
+export interface ReapPresetDiagnostics {
+  endpoint: string;
+  status?: number;
+  ok: boolean;
+  rawCount: number;
+  parsedCount: number;
+  userPresetCount: number;
+  hasSaad: boolean;
+  sample: Array<Pick<ReapPreset, "id" | "label" | "name" | "source">>;
+  error?: string;
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────
@@ -113,67 +133,94 @@ export async function pollReapStatus(projectId: string): Promise<ReapStatusResul
 
 export async function listDubbingLanguages(): Promise<Array<{ code: string; label: string }>> {
   ensureKey();
+  const res = await reapFetch("/get-dubbing-languages");
+  const data = await readJson(res, "get-dubbing-languages");
+  return parseLanguageList(data);
+}
+
+export async function listTranslationLanguages(): Promise<Array<{ code: string; label: string }>> {
+  ensureKey();
+  const res = await reapFetch("/get-translation-languages");
+  const data = await readJson(res, "get-translation-languages");
+  return parseLanguageList(data);
+}
+
+export async function listCaptionPresets(): Promise<ReapPreset[]> {
+  ensureKey();
+  const res = await reapFetch("/get-all-presets?pageSize=100");
+  const data = await readJson(res, "get-all-presets");
+  return parsePresetList(data);
+}
+
+export async function inspectCaptionPresets(): Promise<ReapPresetDiagnostics> {
+  const endpoint = `${BASE}/get-all-presets?pageSize=100`;
   try {
-    const res = await reapFetch("/get-dubbing-languages");
-    const data = await readJson(res, "get-dubbing-languages");
-    const arr = Array.isArray(data?.languages) ? data.languages : Array.isArray(data) ? data : [];
-    return arr
-      .map((raw: unknown): { code: string; label: string } | null => {
-        if (typeof raw === "string") return { code: raw, label: raw };
-        if (raw && typeof raw === "object") {
-          const r = raw as Record<string, unknown>;
-          const code = typeof r.code === "string" ? r.code
-                     : typeof r.language === "string" ? r.language
-                     : typeof r.id === "string" ? r.id
-                     : null;
-          if (!code) return null;
-          const label = typeof r.label === "string" ? r.label
-                       : typeof r.name === "string" ? r.name
-                       : code;
-          return { code, label };
-        }
-        return null;
-      })
-      .filter((v: { code: string; label: string } | null): v is { code: string; label: string } => v !== null);
+    ensureKey();
+    const res = await reapFetch("/get-all-presets?pageSize=100");
+    const text = await res.text();
+    let data: Record<string, unknown> | unknown[] | null = null;
+    try {
+      data = text.trim() ? JSON.parse(text) as Record<string, unknown> | unknown[] : null;
+    } catch {
+      data = null;
+    }
+
+    const raw = extractPresetArray(data);
+    const presets = parsePresetList(data);
+    return {
+      endpoint,
+      status: res.status,
+      ok: res.ok,
+      rawCount: raw.length,
+      parsedCount: presets.length,
+      userPresetCount: presets.filter((preset) => preset.source === "user").length,
+      hasSaad: presets.some((preset) => /saad/i.test(`${preset.label} ${preset.name ?? ""} ${preset.id}`)),
+      sample: presets.slice(0, 8).map(({ id, label, name, source }) => ({ id, label, name, source })),
+      error: res.ok ? undefined : summarizeError(data, text, res.status),
+    };
   } catch (err) {
-    console.warn("[reap] listDubbingLanguages failed:", (err as Error).message);
-    return [];
+    return {
+      endpoint,
+      ok: false,
+      rawCount: 0,
+      parsedCount: 0,
+      userPresetCount: 0,
+      hasSaad: false,
+      sample: [],
+      error: (err as Error).message,
+    };
   }
 }
 
-export async function listCaptionPresets(): Promise<Array<{ id: string; label: string }>> {
+/** Exposed so the panel can request a Reap presigned URL and push the
+ *  source clip there directly (skipping the R2 round-trip). */
+export async function requestReapUploadUrl(filename: string): Promise<ReapUploadTarget> {
   ensureKey();
-  try {
-    const res = await reapFetch("/get-all-presets");
-    const data = await readJson(res, "get-all-presets");
-    const arr = Array.isArray(data?.presets) ? data.presets : Array.isArray(data) ? data : [];
-    return arr
-      .map((raw: unknown): { id: string; label: string } | null => {
-        if (typeof raw === "string") return { id: raw, label: raw };
-        if (raw && typeof raw === "object") {
-          const r = raw as Record<string, unknown>;
-          const id = typeof r.id === "string" ? r.id
-                   : typeof r.preset === "string" ? r.preset
-                   : null;
-          if (!id) return null;
-          const label = typeof r.label === "string" ? r.label
-                       : typeof r.name === "string" ? r.name
-                       : id;
-          return { id, label };
-        }
-        return null;
-      })
-      .filter((v: { id: string; label: string } | null): v is { id: string; label: string } => v !== null);
-  } catch (err) {
-    console.warn("[reap] listCaptionPresets failed:", (err as Error).message);
-    return [];
-  }
+  return getUploadUrl(filename);
+}
+
+/** Same flow as startReapJob() but assumes the source is already in
+ *  Reap's S3 (uploadId obtained via requestReapUploadUrl). Avoids the
+ *  double-upload when the panel can push the file directly. */
+export async function startReapJobWithUploadId(params: {
+  tool: ReapTool;
+  uploadId: string;
+  options?: Record<string, unknown>;
+}): Promise<{ projectId: string }> {
+  ensureKey();
+  const projectId = await createTool(params.tool, params.uploadId, params.options ?? {});
+  return { projectId };
 }
 
 // ─── Internals ───────────────────────────────────────────────────────────
 
 function ensureKey() {
   if (!API_KEY) throw new ProviderError("kie", "config", "REAP_API_KEY is not set on the server.");
+}
+
+function normalizeReapBase(value: string): string {
+  const base = value.replace(/\/+$/, "");
+  return /\/automation$/i.test(base) ? base : `${base}/automation`;
 }
 
 async function getUploadUrl(filename: string): Promise<ReapUploadTarget> {
@@ -234,23 +281,61 @@ async function createTool(
 }
 
 async function fetchProjectClips(projectId: string): Promise<string[]> {
+  // 1) /get-project-clips — works for "clipping" projects (multi-clip list)
   try {
     const res = await reapFetch(`/get-project-clips?projectId=${encodeURIComponent(projectId)}`);
     const data = await readJson(res, "get-project-clips");
     const arr = Array.isArray(data?.clips) ? data.clips : Array.isArray(data) ? data : [];
-    return arr
+    const clips = arr
       .map((raw: unknown): string | null => {
         if (typeof raw === "string" && /^https?:\/\//i.test(raw)) return raw;
         if (raw && typeof raw === "object") {
           const r = raw as Record<string, unknown>;
-          return firstString(r, ["url", "videoUrl", "outputUrl", "downloadUrl"]) ?? null;
+          // Reap's clip object exposes the file under `clipUrl`; we also
+          // probe legacy aliases for forward-compat.
+          return firstString(r, ["clipUrl", "url", "videoUrl", "outputUrl", "downloadUrl"]) ?? null;
         }
         return null;
       })
       .filter((v: string | null): v is string => v !== null);
+    if (clips.length) return clips;
+  } catch { /* fall through to details */ }
+
+  // 2) /get-project-details — single-output project types (captions /
+  //    reframe / dubbing / transcription) put their URL(s) in the
+  //    `urls` object on the project detail payload.
+  try {
+    const res = await reapFetch(`/get-project-details?projectId=${encodeURIComponent(projectId)}`);
+    const data = await readJson(res, "get-project-details");
+    return extractUrlsFromDetails(data);
   } catch {
     return [];
   }
+}
+
+function extractUrlsFromDetails(data: Record<string, unknown> | null): string[] {
+  if (!data) return [];
+  const urls: string[] = [];
+
+  // Common pattern: data.urls is an object keyed by asset name.
+  const urlBag = data.urls;
+  if (urlBag && typeof urlBag === "object" && !Array.isArray(urlBag)) {
+    for (const value of Object.values(urlBag as Record<string, unknown>)) {
+      if (typeof value === "string" && /^https?:\/\//i.test(value)) {
+        urls.push(value);
+      }
+    }
+  }
+
+  // Top-level direct fields as a fallback.
+  const direct = firstString(data, [
+    "outputUrl", "videoUrl", "url", "downloadUrl",
+    "captionedVideoUrl", "reframedVideoUrl", "dubbedVideoUrl",
+  ]);
+  if (direct) urls.unshift(direct);
+
+  // Deduplicate while preserving order.
+  return Array.from(new Set(urls));
 }
 
 async function reapFetch(path: string, init: RequestInit = {}): Promise<Response> {
@@ -295,4 +380,69 @@ function firstString(data: Record<string, unknown> | null, keys: string[]): stri
 function dataAsRecord(data: Record<string, unknown> | null): Record<string, unknown> | undefined {
   if (!data) return undefined;
   return data;
+}
+
+function extractPresetArray(data: Record<string, unknown> | unknown[] | null): unknown[] {
+  if (Array.isArray(data)) return data;
+  return Array.isArray(data?.presets) ? data.presets
+    : Array.isArray(data?.items) ? data.items
+    : Array.isArray(data?.data) ? data.data
+    : [];
+}
+
+function parsePresetList(data: Record<string, unknown> | unknown[] | null): ReapPreset[] {
+  return extractPresetArray(data)
+    .map((raw: unknown): ReapPreset | null => {
+      if (typeof raw === "string") return { id: raw, label: raw };
+      if (raw && typeof raw === "object") {
+        const r = raw as Record<string, unknown>;
+        const id = typeof r.id === "string" ? r.id
+                 : typeof r.preset === "string" ? r.preset
+                 : null;
+        if (!id) return null;
+        const name = typeof r.name === "string" ? r.name : undefined;
+        const label = typeof r.label === "string" ? r.label : name ?? id;
+        const source = typeof r.source === "string" ? r.source : undefined;
+        const preferences = r.preferences && typeof r.preferences === "object" && !Array.isArray(r.preferences)
+          ? r.preferences as Record<string, unknown>
+          : undefined;
+        return { id, label, name, source, preferences };
+      }
+      return null;
+    })
+    .filter((v: ReapPreset | null): v is ReapPreset => v !== null);
+}
+
+function summarizeError(data: Record<string, unknown> | unknown[] | null, text: string, status: number): string {
+  if (data && !Array.isArray(data)) {
+    return firstString(data, ["error", "message", "detail"]) ?? `HTTP ${status}`;
+  }
+  return text.trim().slice(0, 200) || `HTTP ${status}`;
+}
+
+function parseLanguageList(data: Record<string, unknown> | null): Array<{ code: string; label: string }> {
+  const arr = Array.isArray(data?.languages) ? data.languages
+    : Array.isArray(data?.items) ? data.items
+    : Array.isArray(data?.data) ? data.data
+    : Array.isArray(data) ? data
+    : [];
+  return arr
+    .map((raw: unknown): { code: string; label: string } | null => {
+      if (typeof raw === "string") return { code: raw, label: raw };
+      if (raw && typeof raw === "object") {
+        const r = raw as Record<string, unknown>;
+        const code = typeof r.code === "string" ? r.code
+                   : typeof r.language === "string" ? r.language
+                   : typeof r.id === "string" ? r.id
+                   : null;
+        if (!code) return null;
+        const label = typeof r.displayName === "string" ? r.displayName
+                    : typeof r.label === "string" ? r.label
+                    : typeof r.name === "string" ? r.name
+                    : code;
+        return { code, label };
+      }
+      return null;
+    })
+    .filter((v: { code: string; label: string } | null): v is { code: string; label: string } => v !== null);
 }
