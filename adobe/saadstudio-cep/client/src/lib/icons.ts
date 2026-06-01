@@ -8,7 +8,7 @@
 export type IconName =
   | "image" | "video" | "magic-wand" | "crop" | "scissors"
   | "arrow-up-right" | "draw-pen" | "logout" | "coin"
-  | "back" | "close" | "plus" | "import" | "send" | "chevron-down"
+  | "back" | "close" | "plus" | "import" | "send" | "chevron-down" | "link"
   | "settings" | "spark" | "check" | "trash"
   // Reap tool icons
   | "captions" | "mic" | "transcript" | "waveform" | "noise" | "eye" | "cut";
@@ -47,6 +47,8 @@ const SHAPES: Record<IconName, string> = {
   import: `<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>`,
   send: `<path d="M5 12l14-7-5 16-3-7z"/>`,
   "chevron-down": `<path d="M6 9l6 6 6-6"/>`,
+  link: `<path d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 13"/>
+    <path d="M14 11a5 5 0 0 1 0 7L12.5 19.5a5 5 0 0 1-7-7L7 11"/>`,
   settings: `<circle cx="12" cy="12" r="3"/>
           <path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.5-2.4.9a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.5 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.4-.9a7 7 0 0 0 2 1.2L10 21h4l.5-2.5a7 7 0 0 0 2-1.2l2.4.9 2-3.5-2-1.5c.1-.4.1-.8.1-1.2z"/>`,
   spark: `<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z"/>`,

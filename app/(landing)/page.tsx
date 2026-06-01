@@ -71,8 +71,6 @@ const TOOL_CARD_VIDEOS: Record<string, string> = {
   "create-image": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "create-video": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "cinema-studio": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  "ai-influencer": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  "soul-id": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "lipsync": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "vibe-motion": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "draw-to-video": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
@@ -81,7 +79,6 @@ const TOOL_CARD_VIDEOS: Record<string, string> = {
   "ugc-factory": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   upscale: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   "char-swap": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
-  "fashion-factory": "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
   default: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
 };
 
@@ -211,28 +208,6 @@ const CORE_TOOLS: ToolCard[] = [
     image: "/landing/tool-cinema.png",
   },
   {
-    id: "ai-influencer",
-    title: "AI Influencer",
-    description: "Build virtual influencer identities at scale",
-    href: "/image/ai-influencer",
-    icon: ScanFace,
-    badge: "HOT",
-    gradient: "from-amber-500/40 via-orange-600/30 to-rose-900/60",
-    accentColor: "text-amber-400",
-    image: "/landing/tool-ai-influencer.png",
-  },
-  {
-    id: "soul-id",
-    title: "Soul ID Character",
-    description: "Consistent character design across scenes",
-    href: "/image/soul-id-character",
-    icon: Sparkles,
-    badge: "NEW",
-    gradient: "from-cyan-600/40 via-sky-700/30 to-indigo-900/60",
-    accentColor: "text-cyan-400",
-    image: "/landing/tool-soul-id.png",
-  },
-  {
     id: "lipsync",
     title: "Lipsync Studio",
     description: "Audio-driven facial animation engine",
@@ -323,17 +298,6 @@ const TOP_CHOICE: ToolCard[] = [
     gradient: "from-purple-500/40 via-violet-600/30 to-indigo-900/60",
     accentColor: "text-purple-400",
     image: "/landing/tool-char-swap.png",
-  },
-  {
-    id: "fashion-factory",
-    title: "Fashion Factory",
-    description: "AI fashion & outfit design studio",
-    href: "/image",
-    icon: Palette,
-    badge: "NEW",
-    gradient: "from-pink-500/40 via-rose-600/30 to-red-900/60",
-    accentColor: "text-pink-400",
-    image: "/landing/tool-fashion-factory.png",
   },
 ];
 
@@ -1440,8 +1404,6 @@ const CORE_TOOL_SLOT_MAP: Record<string, string> = {
   "create-image": "landing/tool-create-image",
   "create-video": "landing/tool-create-video",
   "cinema-studio": "landing/tool-cinema",
-  "ai-influencer": "landing/tool-ai-influencer",
-  "soul-id": "landing/tool-soul-id",
   "lipsync": "landing/tool-lipsync",
   "vibe-motion": "landing/tool-vibe-motion",
   "draw-to-video": "landing/tool-draw-video",
@@ -1453,7 +1415,6 @@ const TOP_CHOICE_SLOT_MAP: Record<string, string> = {
   "ugc-factory": "landing/tool-ugc-factory",
   "upscale": "landing/tool-upscale",
   "char-swap": "landing/tool-char-swap",
-  "fashion-factory": "landing/tool-fashion-factory",
 };
 
 // CMS data types for home page

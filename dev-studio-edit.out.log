@@ -1,0 +1,119 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 10.9s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 864ms (226 modules)
+ ○ Compiling /studio-edit ...
+ ✓ Compiled /studio-edit in 10.9s (2375 modules)
+ GET /studio-edit?afterclean=1 200 in 11837ms
+ ✓ Compiled in 1580ms (1018 modules)
+ GET /studio-edit?afterclean=2 200 in 86ms
+ ✓ Compiled in 4.2s (1017 modules)
+ ✓ Compiled in 3.2s (1017 modules)
+ ✓ Compiled in 2.2s (1017 modules)
+ ✓ Compiled in 1705ms (1017 modules)
+ ✓ Compiled in 1687ms (1017 modules)
+ ✓ Compiled in 2.8s (1017 modules)
+ ✓ Compiled in 2.4s (1017 modules)
+ ✓ Compiled in 2.4s (1017 modules)
+ ✓ Compiled in 2.2s (1017 modules)
+ ✓ Compiled in 2.4s (1017 modules)
+ ✓ Compiled in 2.2s (1017 modules)
+ ○ Compiling /studio-edit ...
+ ✓ Compiled /studio-edit in 846ms (1356 modules)
+ GET /studio-edit?realpresets=1780248592424 200 in 1363ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 672ms (1362 modules)
+ GET /api/layouts?page=cms-pricing 200 in 2627ms
+ GET /api/layouts?page=cms-auth 200 in 2628ms
+ GET /api/layouts?page=cms-pricing 200 in 357ms
+ GET /api/layouts?page=cms-auth 200 in 1580ms
+ ○ Compiling /api/studio-edit/languages ...
+ ✓ Compiled /api/studio-edit/languages in 1495ms (1379 modules)
+ GET /api/studio-edit/languages 401 in 1605ms
+ GET /api/studio-edit/languages?debug=1 401 in 29ms
+ ✓ Compiled in 2.8s (2396 modules)
+ ✓ Compiled in 3.6s (2373 modules)
+ ○ Compiling /api/studio-edit/languages ...
+ ✓ Compiled /api/studio-edit/languages in 736ms (1379 modules)
+ GET /api/studio-edit/languages?debug=1 401 in 920ms
+ ✓ Compiled in 3.8s (2396 modules)
+ GET /studio-edit?diagnostics=1780249999999 200 in 316ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 567ms (1383 modules)
+ GET /api/layouts?page=cms-pricing 200 in 2282ms
+ GET /api/layouts?page=cms-auth 200 in 2283ms
+ GET /api/layouts?page=cms-auth 200 in 237ms
+ GET /api/layouts?page=cms-pricing 200 in 240ms
+ GET /studio-edit?buildcheck=1 200 in 279ms
+ GET /studio-edit?diagnostics=1780249999999 200 in 91ms
+ GET /api/layouts?page=cms-auth 200 in 414ms
+ GET /api/layouts?page=cms-pricing 200 in 414ms
+ GET /api/layouts?page=cms-auth 200 in 373ms
+ GET /api/layouts?page=cms-pricing 200 in 1510ms
+ GET /api/studio-edit/languages?debug=1&ts=1780250001 401 in 37ms
+ GET /studio-edit?diagnostics=1780250100 200 in 96ms
+ GET /api/layouts?page=cms-auth 200 in 364ms
+ GET /api/layouts?page=cms-pricing 200 in 373ms
+ GET /api/layouts?page=cms-auth 200 in 217ms
+ GET /api/layouts?page=cms-pricing 200 in 202ms
+ GET /studio-edit 200 in 89ms
+ GET /api/layouts?page=cms-auth 200 in 369ms
+ GET /api/layouts?page=cms-pricing 200 in 378ms
+ GET /api/layouts?page=cms-auth 200 in 212ms
+ GET /api/layouts?page=cms-pricing 200 in 188ms
+ ✓ Compiled in 5.1s (2373 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 203ms
+ GET /studio-edit?diagnostics=1780250100&_rsc=1w0gh 200 in 204ms
+ GET /studio-edit?noreaplink=1780250300 200 in 341ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 831ms (1362 modules)
+ GET /api/layouts?page=cms-pricing 200 in 2741ms
+ GET /api/layouts?page=cms-auth 200 in 2744ms
+ GET /api/layouts?page=cms-auth 200 in 372ms
+ GET /api/layouts?page=cms-pricing 200 in 1559ms
+ GET /studio-edit 200 in 257ms
+ GET /api/layouts?page=cms-auth 200 in 366ms
+ GET /api/layouts?page=cms-pricing 200 in 369ms
+ GET /api/layouts?page=cms-auth 200 in 207ms
+ GET /api/layouts?page=cms-pricing 200 in 192ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.7s (2382 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 2909ms
+ GET /_next/static/chunks/app/(dash)/LayoutGroupContext.mjs.map 404 in 1942ms
+ GET /_next/static/chunks/app/LayoutGroupContext.mjs.map 404 in 1943ms
+ GET /studio-edit?_rsc=1w0gh 200 in 81ms
+ GET /studio-edit?noreaplink=1780250300&_rsc=1w0gh 200 in 83ms
+ ✓ Compiled in 3.9s (2382 modules)
+ GET /studio-edit?noreaplink=1780250300&_rsc=1w0gh 200 in 108ms
+ GET /studio-edit?_rsc=1w0gh 200 in 110ms
+ GET /studio-edit 200 in 372ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 37ms
+ GET /_next/static/chunks/app/(dash)/LayoutGroupContext.mjs.map 404 in 54ms
+ GET /_next/static/chunks/app/LayoutGroupContext.mjs.map 404 in 58ms
+ GET /api/layouts?page=cms-auth 200 in 1726ms
+ GET /api/layouts?page=cms-pricing 200 in 1722ms
+ GET /api/layouts?page=cms-auth 200 in 212ms
+ GET /api/layouts?page=cms-pricing 200 in 188ms
+ ✓ Compiled in 7.2s (2374 modules)
+ GET /studio-edit?noreaplink=1780250300&_rsc=1w0gh 200 in 189ms
+ GET /studio-edit?_rsc=1w0gh 200 in 203ms
+ GET /studio-edit 200 in 292ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1071ms (1358 modules)
+ GET /_next/static/chunks/app/(dash)/LayoutGroupContext.mjs.map 404 in 376ms
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 1306ms
+ GET /_next/static/chunks/app/LayoutGroupContext.mjs.map 404 in 321ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 950ms (1364 modules)
+ GET /api/layouts?page=cms-pricing 200 in 2918ms
+ GET /api/layouts?page=cms-auth 200 in 2919ms
+ GET /api/layouts?page=cms-pricing 200 in 395ms
+ GET /api/layouts?page=cms-auth 200 in 1532ms

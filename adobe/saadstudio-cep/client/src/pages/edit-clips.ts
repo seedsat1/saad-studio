@@ -1,8 +1,11 @@
 /** Edit Videos — Reap /create-clips.
  *
- * Generates short-form clips from a long source video. The user can
- * steer the cut with a prompt (genre, mood, focus topic). Multi-clip
- * results render as a vertical strip with per-clip Import buttons. */
+ * Generates short-form clips from a long source video. Body shape per
+ * https://docs.reap.video/api-reference/create-clips :
+ *   - clipDurations: integer[][] e.g. [[30,60],[60,90]]
+ *   - exportResolution: 720 | 1080 | 1440 | 2160 (integer)
+ *   - exportOrientation: "portrait" | "landscape" | "square"
+ *   - genre: "talking" | "screenshare" | "gaming" */
 
 import { el } from "../lib/dom";
 import { ReapToolPage } from "./reap-tool-page";
@@ -12,31 +15,37 @@ import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
 
 const GENRES = [
-  { value: "auto",        label: "Auto" },
-  { value: "podcast",     label: "Podcast" },
-  { value: "interview",   label: "Interview" },
-  { value: "keynote",     label: "Keynote" },
-  { value: "vlog",        label: "Vlog" },
-  { value: "comedy",      label: "Comedy" },
-  { value: "education",   label: "Education" },
+  { value: "talking",     label: "Talking head / interview" },
+  { value: "screenshare", label: "Screen share / demo" },
+  { value: "gaming",      label: "Gaming" },
 ];
 
+// Each value maps to a clipDurations entry the API understands.
 const DURATIONS = [
-  { value: "15-30",  label: "15-30s" },
-  { value: "30-60",  label: "30-60s" },
-  { value: "60-90",  label: "60-90s" },
+  { value: "0-30",    label: "Under 30s" },
+  { value: "30-60",   label: "30 – 60s" },
+  { value: "60-90",   label: "60 – 90s" },
+  { value: "90-180",  label: "90s – 3m" },
+  { value: "180-300", label: "3 – 5m" },
 ];
 
-const ASPECTS = [
-  { value: "9:16", label: "9:16" },
-  { value: "1:1",  label: "1:1" },
-  { value: "16:9", label: "16:9" },
+const ORIENTATIONS = [
+  { value: "portrait",  label: "Portrait (9:16)" },
+  { value: "square",    label: "Square (1:1)" },
+  { value: "landscape", label: "Landscape (16:9)" },
 ];
 
 const RESOLUTIONS = [
-  { value: "720p",  label: "720p" },
-  { value: "1080p", label: "1080p" },
+  { value: "720",  label: "720p" },
+  { value: "1080", label: "1080p" },
+  { value: "1440", label: "1440p" },
+  { value: "2160", label: "2160p (4K)" },
 ];
+
+function parseDurationRange(value: string): [number, number] {
+  const [min, max] = value.split("-").map((n) => parseInt(n, 10));
+  return [min, max];
+}
 
 export function EditClipsPage(): HTMLElement {
   return ReapToolPage({
@@ -45,17 +54,18 @@ export function EditClipsPage(): HTMLElement {
     showPrompt: true,
     hint: "Generate short clips from your long-form source. Describe the angle or hook to steer the cuts.",
     options: [
-      { key: "genre",      label: "Genre",      value: "auto",  options: GENRES },
-      { key: "duration",   label: "Duration",   value: "30-60", options: DURATIONS },
-      { key: "aspect",     label: "Aspect",     value: "9:16",  options: ASPECTS },
-      { key: "resolution", label: "Resolution", value: "1080p", options: RESOLUTIONS },
+      { key: "genre",       label: "Genre",       value: "talking",  options: GENRES },
+      { key: "duration",    label: "Duration",    value: "30-60",    options: DURATIONS },
+      { key: "orientation", label: "Orientation", value: "portrait", options: ORIENTATIONS },
+      { key: "resolution",  label: "Resolution",  value: "1080",     options: RESOLUTIONS },
     ],
     buildOptions: (vals) => ({
       genre: vals.genre,
-      clipDurations: vals.duration,
+      clipDurations: [parseDurationRange(vals.duration)],
       reframeClips: true,
-      exportResolution: vals.resolution,
-      exportOrientation: vals.aspect,
+      exportResolution: parseInt(vals.resolution, 10),
+      exportOrientation: vals.orientation,
+      enableHighlights: true,
     }),
     renderResult: (status) => {
       const urls = (status.urls?.length ? status.urls : (status.url ? [status.url] : []))
@@ -98,8 +108,8 @@ function clipCard(url: string, idx: number): HTMLElement {
         onClick: async () => {
           try {
             const local = await api.downloadAsset(url, `reap-clip-${idx}.mp4`);
-            await evalES("importMediaFromPath", local);
-            toast(`Imported clip ${idx}`, "success");
+            await evalES("importAndPlaceOnTimeline", local);
+            toast(`Added clip ${idx} to timeline`, "success");
           } catch (err) {
             toast(`Import failed: ${(err as Error).message}`, "error");
           }

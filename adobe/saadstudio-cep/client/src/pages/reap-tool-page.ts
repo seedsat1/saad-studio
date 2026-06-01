@@ -168,19 +168,19 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     results: HTMLElement,
   ) {
     try {
-      results.replaceChildren(busyCard("Uploading source clip…"));
-
-      // 1) Make the source available as a public URL.
-      const sourceUrl = await resolvePublicUrl(clip);
-
-      // 2) Kick off the tool.
-      results.replaceChildren(busyCard("Starting Reap job…"));
       const filename = clip.name ?? `clip-${Date.now()}.mp4`;
+
+      // 1) Push the source DIRECTLY to Reap's presigned URL (no R2 hop).
+      results.replaceChildren(busyCard("Uploading to Reap…"));
+      const uploadId = await uploadSourceDirect(clip, filename);
+
+      // 2) Kick off the tool with the uploadId.
+      results.replaceChildren(busyCard("Starting Reap job…"));
 
       const final = await reap.run(
         {
           tool: cfg.tool,
-          sourceUrl,
+          uploadId,
           filename,
           options: cfg.buildOptions(options),
           prompt,
@@ -199,9 +199,15 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
         throw new Error(final.error ?? `Reap job ${final.status}`);
       }
 
-      results.replaceChildren(
-        cfg.renderResult ? cfg.renderResult(final) : defaultResult(final),
-      );
+      // 3) Custom result renderers (e.g. Transcription) get full control.
+      //    Everything else: auto-drop the asset on the timeline so the
+      //    user doesn't have to click an extra Import button.
+      if (cfg.renderResult) {
+        results.replaceChildren(cfg.renderResult(final));
+      } else {
+        await autoImportToTimeline(final, results);
+      }
+
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
@@ -210,24 +216,85 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     }
   }
 
-  async function resolvePublicUrl(clip: SourceClip): Promise<string> {
-    // If the path is already an http(s) URL just use it.
-    if (/^https?:\/\//i.test(clip.path)) return clip.path;
-
-    if (clip.origin === "upload") {
-      // The path may be a real FS path (CEP) or a blob: URL (preview).
-      if (clip.path.startsWith("blob:")) {
-        const file = await fetch(clip.path).then((r) => r.blob());
-        const wrapped = new File([file], clip.name ?? "upload.mp4",
-          { type: file.type || "video/mp4" });
-        return api.uploadFileToR2(wrapped, "video");
-      }
-      return api.uploadLocalPathToR2(clip.path, "video");
+  async function uploadSourceDirect(clip: SourceClip, filename: string): Promise<string> {
+    // Source is already a public http(s) URL — fetch then PUT to Reap.
+    if (/^https?:\/\//i.test(clip.path)) {
+      const blob = await fetch(clip.path).then((r) => r.blob());
+      return reap.uploadDirect({ kind: "blob", blob, name: filename });
     }
 
-    // Timeline clip — local FS path. Push it to R2 via the Node bridge.
-    return api.uploadLocalPathToR2(clip.path, "video");
+    // Upload picker (blob: URL).
+    if (clip.path.startsWith("blob:")) {
+      const blob = await fetch(clip.path).then((r) => r.blob());
+      return reap.uploadDirect({ kind: "blob", blob, name: filename });
+    }
+
+    // Local FS path from the timeline or the file picker — let the Node
+    // bridge read the bytes and PUT them directly.
+    return reap.uploadDirect({ kind: "path", path: clip.path, name: filename });
   }
+
+  async function autoImportToTimeline(
+    status: ReapStatusResponse,
+    results: HTMLElement,
+  ): Promise<void> {
+    const url = status.url ?? status.urls?.[0] ?? "";
+    if (!url) {
+      results.replaceChildren(errorCard("Reap finished but returned no asset URL."));
+      return;
+    }
+
+    try {
+      results.replaceChildren(busyCard("Adding to timeline…"));
+      const local = await api.downloadAsset(url, `reap-${Date.now()}.mp4`);
+      const placed = await evalES<{ ok: boolean; placed: boolean; reason?: string }>(
+        "importAndPlaceOnTimeline", local,
+      );
+
+      results.replaceChildren(successCard(url, placed));
+      toast(
+        placed?.placed ? "Added to timeline" : "Imported to project bin",
+        "success",
+      );
+    } catch (err) {
+      // Fall back to the manual result card if auto-place fails.
+      results.replaceChildren(defaultResult(status));
+      toast(`Auto-import failed: ${(err as Error).message}`, "error");
+    }
+  }
+}
+
+function successCard(
+  url: string,
+  placed: { ok: boolean; placed: boolean; reason?: string } | null,
+): HTMLElement {
+  return el("div.col.gap-3", null,
+    el("div", {
+      style: { borderRadius: "14px", overflow: "hidden",
+               background: "var(--bg-card)", border: "1px solid var(--line-soft)" },
+    },
+      el("video", {
+        src: url, controls: "true",
+        style: { width: "100%", display: "block" },
+      }),
+    ),
+    el("div.state-card",
+      { style: { padding: "12px", textAlign: "left" } },
+      el("div.row.gap-2",
+        null,
+        el("div.state-card__icon", { style: { margin: "0" } }, icon("check", 16)),
+        el("div.col.gap-1.grow",
+          null,
+          el("div", { style: { fontSize: "13px", fontWeight: "600" } },
+            placed?.placed ? "Added to your timeline" : "Imported to project bin"),
+          el("div.dim", { style: { fontSize: "11px" } },
+            placed?.placed
+              ? "Open Premiere to see the clip on the active sequence."
+              : (placed?.reason ?? "Drag from the project bin onto the timeline.")),
+        ),
+      ),
+    ),
+  );
 }
 
 // ─── Result + state cards ────────────────────────────────────────────────

@@ -171,6 +171,23 @@ interface ParsedResponseBody {
 
 let lastCreditsTopupOpenAt = 0;
 
+function isTrackedTokenPath(path: string): boolean {
+  return path.includes("/api/panel/reap/catalog");
+}
+
+function tokenPreview(token: string | null): string | null {
+  return token ? `${token.slice(0, 12)}...` : null;
+}
+
+function logTokenLifecycle(stage: string, info: Record<string, unknown>) {
+  try {
+    // eslint-disable-next-line no-console
+    console.log("[saadstudio token lifecycle]", { stage, ...info });
+  } catch {
+    /* logging must never throw */
+  }
+}
+
 export function getCreditsTopupUrl(): string {
   return `${getApiBase()}/payment?type=topup`;
 }
@@ -184,11 +201,31 @@ export function openCreditsTopup() {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
+  const shouldTraceToken = isTrackedTokenPath(path);
+  if (shouldTraceToken) {
+    logTokenLifecycle("before-request", {
+      path,
+      tokenFound: Boolean(token),
+      tokenStartsWithSsp: Boolean(token?.startsWith("ssp_")),
+      tokenPreview: tokenPreview(token),
+      tokenExistsBeforeRequest: Boolean(token),
+    });
+  }
   if (!token) throw new ApiError("Not signed in", 401);
 
   const url = path.startsWith("http") ? path : `${getApiBase()}${path}`;
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
+  if (shouldTraceToken) {
+    logTokenLifecycle("request-sent", {
+      path,
+      requestSent: true,
+      hasAuthorizationHeader: headers.has("Authorization"),
+      authorizationScheme: "Bearer",
+      panelTokenSent: Boolean(token?.startsWith("ssp_")),
+      authorizationPreview: `Bearer ${tokenPreview(token)}`,
+    });
+  }
   if (init.body && !headers.has("Content-Type") && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
@@ -210,9 +247,36 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   const { text, data } = await readResponseBody(res, url, "api.request");
+  if (shouldTraceToken) {
+    logTokenLifecycle("response-received", {
+      path,
+      status: res.status,
+      ok: res.ok,
+      contentType: res.headers.get("content-type"),
+      tokenExistsAfterResponseBeforeClear: Boolean(getToken()),
+    });
+  }
 
   if (!res.ok) {
-    if (res.status === 401) clearToken();
+    if (res.status === 401) {
+      if (shouldTraceToken) {
+        logTokenLifecycle("before-clearToken", {
+          path,
+          status: res.status,
+          clearTokenCalled: true,
+          tokenExistsBeforeClear: Boolean(getToken()),
+        });
+      }
+      clearToken();
+      if (shouldTraceToken) {
+        logTokenLifecycle("after-clearToken", {
+          path,
+          status: res.status,
+          clearTokenCalled: true,
+          tokenExistsAfterRequest: Boolean(getToken()),
+        });
+      }
+    }
     const msg = buildApiErrorMessage(res.status, data, text);
     if (res.status === 402) {
       openCreditsTopup();
@@ -771,8 +835,133 @@ export interface ReapStatusResponse {
   error?: string;
 }
 
+export interface ReapUploadUrlResponse {
+  uploadId: string;
+  uploadUrl: string;
+}
+
+/** Caption preset returned by /get-all-presets via our backend proxy.
+ *  `preferences` is the upstream JSON object; its shape isn't formally
+ *  documented so we keep it as `unknown`-keyed and probe with helpers in
+ *  the pages that render real preview swatches. */
+export interface ReapCaptionPreset {
+  id: string;
+  label: string;
+  name?: string;
+  source?: "system" | "user" | string;
+  preferences?: Record<string, unknown>;
+}
+
+export interface ReapLanguageOption {
+  code: string;
+  label: string;
+}
+
+export interface ReapRawLanguageOption {
+  code: string;
+  name?: string;
+  displayName?: string;
+}
+
+export interface ReapTranslationLanguagesResponse {
+  sourceLanguages: ReapRawLanguageOption[];
+  targetLanguages: ReapRawLanguageOption[];
+}
+
+export interface ReapDubbingLanguagesResponse {
+  sourceLanguages: ReapRawLanguageOption[];
+  targetLanguages: ReapRawLanguageOption[];
+}
+
+export type ReapCatalogSource = "reap" | "derived" | "unsupported";
+
+export interface ReapCatalogEntry<T> {
+  items: T[];
+  source: ReapCatalogSource;
+  diagnostic?: string;
+}
+
+export interface ReapCatalogDiagnostics {
+  captionPresets?: unknown;
+  unsupported?: Record<string, string>;
+}
+
+export interface ReapVoiceOption {
+  id: string;
+  label: string;
+}
+
+export interface ReapReframeOption {
+  id: string;
+  label: string;
+}
+
+export interface ReapAudiogramTemplate {
+  id: string;
+  label: string;
+}
+
+export interface ReapCatalogResponse {
+  languages: ReapCatalogEntry<ReapLanguageOption>;
+  captionPresets: ReapCatalogEntry<ReapCaptionPreset>;
+  brandTemplates: ReapCatalogEntry<ReapCaptionPreset>;
+  voices: ReapCatalogEntry<ReapVoiceOption>;
+  dubbingLanguages: ReapCatalogEntry<ReapLanguageOption>;
+  reframeOptions: ReapCatalogEntry<ReapReframeOption>;
+  audiogramTemplates: ReapCatalogEntry<ReapAudiogramTemplate>;
+  diagnostics?: ReapCatalogDiagnostics;
+}
+
 export const reap = {
-  start: (body: { tool: ReapTool; sourceUrl: string; filename?: string; options?: Record<string, unknown>; prompt?: string }) =>
+  /** Ask the backend for a Reap presigned S3 URL so the panel can push
+   *  the source clip there directly — no R2 hop. */
+  getUploadUrl: (filename: string) =>
+    request<ReapUploadUrlResponse>("/api/panel/reap/upload-url", {
+      method: "POST",
+      body: JSON.stringify({ filename }),
+    }),
+
+  /** Upload a local FS path (CEP / Node fs) or a Blob/File directly to
+   *  Reap's presigned URL. Returns the uploadId once the PUT succeeds. */
+  uploadDirect: async (
+    source: { kind: "path"; path: string; name?: string } | { kind: "blob"; blob: Blob; name: string },
+  ): Promise<string> => {
+    const filename = source.kind === "path"
+      ? (source.name ?? source.path.replace(/\\/g, "/").split("/").pop() ?? "clip.mp4")
+      : source.name;
+    const { uploadId, uploadUrl } = await reap.getUploadUrl(filename);
+
+    let body: BodyInit;
+    let contentType = "video/mp4";
+
+    if (source.kind === "blob") {
+      body = source.blob;
+      contentType = source.blob.type || guessContentType(filename);
+    } else {
+      if (typeof window.cep === "undefined" || !window.cep_node) {
+        throw new ApiError("Direct upload of FS paths only works inside Adobe.", 400);
+      }
+      const fs = window.cep_node.require("fs") as typeof import("fs");
+      if (!fs.existsSync(source.path)) {
+        throw new ApiError("Source file not found.", 404);
+      }
+      const buf = fs.readFileSync(source.path) as Buffer;
+      body = new Uint8Array(buf);
+      contentType = guessContentType(filename);
+    }
+
+    const put = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body,
+    });
+    if (!put.ok) {
+      throw new ApiError(`Direct upload to Reap failed (${put.status})`, put.status);
+    }
+    return uploadId;
+  },
+
+  start: (body: { tool: ReapTool; sourceUrl?: string; uploadId?: string; filename?: string; options?: Record<string, unknown>; prompt?: string }) =>
     request<ReapStartResponse>("/api/panel/reap/start", {
       method: "POST",
       body: JSON.stringify(body),
@@ -785,18 +974,25 @@ export const reap = {
   },
 
   dubbingLanguages: () =>
-    request<{ languages: Array<{ code: string; label: string }> }>("/api/panel/reap/dubbing-languages")
-      .catch(() => ({ languages: [] as Array<{ code: string; label: string }> })),
+    request<ReapDubbingLanguagesResponse>("/api/panel/reap/dubbing-languages"),
+
+  translationLanguages: () =>
+    request<ReapTranslationLanguagesResponse>("/api/panel/reap/translation-languages"),
 
   captionPresets: () =>
-    request<{ presets: Array<{ id: string; label: string }> }>("/api/panel/reap/caption-presets")
-      .catch(() => ({ presets: [] as Array<{ id: string; label: string }> })),
+    request<{ presets: ReapCaptionPreset[] }>("/api/panel/reap/caption-presets"),
 
-  /** End-to-end runner used by the tool pages: start → poll until done. */
+  catalog: () =>
+    request<ReapCatalogResponse>("/api/panel/reap/catalog"),
+
+  /** End-to-end runner used by the tool pages: start → poll until done.
+   *  Accepts either sourceUrl (we proxy it into Reap) or uploadId (the
+   *  panel pushed the file straight to Reap's presigned URL). */
   run: async (
     args: {
       tool: ReapTool;
-      sourceUrl: string;
+      sourceUrl?: string;
+      uploadId?: string;
       filename?: string;
       options?: Record<string, unknown>;
       prompt?: string;
@@ -806,7 +1002,10 @@ export const reap = {
     const started = await reap.start(args);
     const startTime = Date.now();
     const timeoutMs = 20 * 60 * 1000;
-    const intervalMs = 4000;
+    // Reap's Automation API allows 10 requests/minute per API key.
+    // Keep polling comfortably below that ceiling; catalog/language calls may
+    // share the same key during the same minute.
+    const intervalMs = 12000;
 
     while (Date.now() - startTime < timeoutMs) {
       await new Promise((r) => setTimeout(r, intervalMs));

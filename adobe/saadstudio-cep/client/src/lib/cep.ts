@@ -47,6 +47,24 @@ export function getHostName(): string {
   return "browser";
 }
 
+export function getHostEnvironmentInfo(): {
+  appName: string;
+  appVersion: string;
+  appId?: string;
+} | null {
+  if (!window.__adobe_cep__) return null;
+  try {
+    const env = JSON.parse(window.__adobe_cep__.getHostEnvironment());
+    return {
+      appName: env.appName || "",
+      appVersion: env.appVersion || "",
+      appId: env.appId || env.appLocale || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function getHostSelectionLabel(): string {
   const host = getHostApp();
   return host === "AEFT" ? "timeline or active comp" : "timeline";

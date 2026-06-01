@@ -1,0 +1,411 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\navigation-menu.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ui\\navigation-menu.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\TopNavbar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\TopNavbar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\layout.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(dash)\\layout.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\video\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(dash)\\(routes)\\video\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\popover.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ui\\popover.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\command.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ui\\command.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\tooltip.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ui\\tooltip.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\image\\generate\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(dash)\\(routes)\\image\\generate\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\DynamicImageViewer.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\DynamicImageViewer.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\middleware.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:middleware.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\api-limit.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:lib\\api-limit.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\subscription.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:lib\\subscription.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\conversation\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\conversation\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\image\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\image\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\video\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\video\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\music\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\music\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\code\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\code\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\stripe\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\api\\stripe\\route.ts||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(landing)\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\(landing)\\page.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\sign-out-button.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\ui\\sign-out-button.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\layout.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:app\\layout.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\navbar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\navbar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\user-avatar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:components\\user-avatar.tsx||{3B902123-F8A7-4915-9F01-361F908088D0}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "middleware.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\middleware.ts",
+              "RelativeDocumentMoniker": "middleware.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\middleware.ts*",
+              "RelativeToolTip": "middleware.ts*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:57:27.641Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "page.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\image\\generate\\page.tsx",
+              "RelativeDocumentMoniker": "app\\(dash)\\(routes)\\image\\generate\\page.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\image\\generate\\page.tsx",
+              "RelativeToolTip": "app\\(dash)\\(routes)\\image\\generate\\page.tsx",
+              "ViewState": "AgIAABwAAAAAAAAAAABBwFYCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:17:28.689Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "tooltip.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\tooltip.tsx",
+              "RelativeDocumentMoniker": "components\\ui\\tooltip.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\tooltip.tsx",
+              "RelativeToolTip": "components\\ui\\tooltip.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:15:40.11Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "command.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\command.tsx",
+              "RelativeDocumentMoniker": "components\\ui\\command.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\command.tsx",
+              "RelativeToolTip": "components\\ui\\command.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:15:32.234Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "popover.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\popover.tsx",
+              "RelativeDocumentMoniker": "components\\ui\\popover.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\popover.tsx",
+              "RelativeToolTip": "components\\ui\\popover.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:15:10.778Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "page.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\video\\page.tsx",
+              "RelativeDocumentMoniker": "app\\(dash)\\(routes)\\video\\page.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\(routes)\\video\\page.tsx",
+              "RelativeToolTip": "app\\(dash)\\(routes)\\video\\page.tsx",
+              "ViewState": "AgIAAJkAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T10:53:17.952Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "layout.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\layout.tsx",
+              "RelativeDocumentMoniker": "app\\(dash)\\layout.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(dash)\\layout.tsx",
+              "RelativeToolTip": "app\\(dash)\\layout.tsx",
+              "ViewState": "AgIAAAMAAAAAAAAAAABBwAQAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T10:52:34.259Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "navigation-menu.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\navigation-menu.tsx",
+              "RelativeDocumentMoniker": "components\\ui\\navigation-menu.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\navigation-menu.tsx",
+              "RelativeToolTip": "components\\ui\\navigation-menu.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T10:51:23.979Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "user-avatar.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\user-avatar.tsx",
+              "RelativeDocumentMoniker": "components\\user-avatar.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\user-avatar.tsx",
+              "RelativeToolTip": "components\\user-avatar.tsx",
+              "ViewState": "AgIAAAgAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T13:02:36.459Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "navbar.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\navbar.tsx",
+              "RelativeDocumentMoniker": "components\\navbar.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\navbar.tsx",
+              "RelativeToolTip": "components\\navbar.tsx",
+              "ViewState": "AgIAAAsAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T13:02:19.621Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "layout.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\layout.tsx",
+              "RelativeDocumentMoniker": "app\\layout.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\layout.tsx",
+              "RelativeToolTip": "app\\layout.tsx",
+              "ViewState": "AgIAAB4AAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:56.994Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "sign-out-button.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\sign-out-button.tsx",
+              "RelativeDocumentMoniker": "components\\ui\\sign-out-button.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\ui\\sign-out-button.tsx",
+              "RelativeToolTip": "components\\ui\\sign-out-button.tsx",
+              "ViewState": "AgIAAAoAAAAAAAAAAABBwAAAAAAnAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:32.056Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "page.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(landing)\\page.tsx",
+              "RelativeDocumentMoniker": "app\\(landing)\\page.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\(landing)\\page.tsx",
+              "RelativeToolTip": "app\\(landing)\\page.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAABBwAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.938Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\stripe\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\stripe\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\stripe\\route.ts",
+              "RelativeToolTip": "app\\api\\stripe\\route.ts",
+              "ViewState": "AgIAAAoAAAAAAAAAAABBwAAAAAA5AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.815Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\code\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\code\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\code\\route.ts",
+              "RelativeToolTip": "app\\api\\code\\route.ts",
+              "ViewState": "AgIAABUAAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.691Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\music\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\music\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\music\\route.ts",
+              "RelativeToolTip": "app\\api\\music\\route.ts",
+              "ViewState": "AgIAAA0AAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.568Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\video\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\video\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\video\\route.ts",
+              "RelativeToolTip": "app\\api\\video\\route.ts",
+              "ViewState": "AgIAAA0AAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.469Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\image\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\image\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\image\\route.ts",
+              "RelativeToolTip": "app\\api\\image\\route.ts",
+              "ViewState": "AgIAAAwAAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:31.274Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "route.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\conversation\\route.ts",
+              "RelativeDocumentMoniker": "app\\api\\conversation\\route.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\app\\api\\conversation\\route.ts",
+              "RelativeToolTip": "app\\api\\conversation\\route.ts",
+              "ViewState": "AgIAAD8AAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:30.85Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "subscription.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\subscription.ts",
+              "RelativeDocumentMoniker": "lib\\subscription.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\subscription.ts",
+              "RelativeToolTip": "lib\\subscription.ts",
+              "ViewState": "AgIAAAYAAAAAAAAAAABBwAAAAAAsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:30.72Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "api-limit.ts",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\api-limit.ts",
+              "RelativeDocumentMoniker": "lib\\api-limit.ts",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\lib\\api-limit.ts",
+              "RelativeToolTip": "lib\\api-limit.ts",
+              "ViewState": "AgIAAAQAAAAAAAAAAABBwAAAAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:58:30.614Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "DynamicImageViewer.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\DynamicImageViewer.tsx",
+              "RelativeDocumentMoniker": "components\\DynamicImageViewer.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\DynamicImageViewer.tsx",
+              "RelativeToolTip": "components\\DynamicImageViewer.tsx",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAJ8BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T12:21:39.684Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "TopNavbar.tsx",
+              "DocumentMoniker": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\TopNavbar.tsx",
+              "RelativeDocumentMoniker": "components\\TopNavbar.tsx",
+              "ToolTip": "D:\\\u0645\u0648\u0642\u0639 \u062B\u0627\u0646\u064A\\next14 ai saas\\next14-ai-saas-main\\next14-ai-saas-main\\components\\TopNavbar.tsx*",
+              "RelativeToolTip": "components\\TopNavbar.tsx*",
+              "ViewState": "AgIAAHcCAAAAAAAAAIBZwNsCAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-05T10:52:22.611Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

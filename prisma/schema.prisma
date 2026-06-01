@@ -610,3 +610,30 @@ model StudioImgModel {
   createdAt DateTime @default(now())
 }
 
+model ReapJob {
+  id           String   @id @default(cuid())
+  userId       String
+  projectId    String   @unique // Reap's projectId
+  tool         String   // captions, reframe, dubbing, transcription, edit-videos
+  sourceUrl    String   // URL in R2
+  status       String   @default("queued") // queued, prepped, processing, completed, failed
+  error        String?
+  outputUrls   Json     @default("[]") // final URLs stored in R2
+  options      Json     @default("{}") // inputs/parameters
+  creditsCost  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ReapWebhookLog {
+  id          String   @id @default(cuid())
+  projectId   String
+  status      String
+  payload     Json
+  createdAt   DateTime @default(now())
+}
+
+

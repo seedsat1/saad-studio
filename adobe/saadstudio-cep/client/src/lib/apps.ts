@@ -3,7 +3,10 @@
  * Each entry maps to a route handled in main.ts and (where applicable) to
  * an /api/panel/generate/* endpoint already implemented in the Next.js
  * backend. Add a new tool here and it shows up on the home grid; wire its
- * route to render the matching page module. */
+ * route to render the matching page module.
+ *
+ * `color` is the accent the icon picks up inside the dark circular
+ * container — pick something readable on a #1a1f33-ish background. */
 
 import type { IconName } from "./icons";
 
@@ -13,7 +16,14 @@ export interface AppDef {
   description: string;
   route: string;
   icon: IconName;
+  /** Brand accent the icon picks up. Falls back to the panel's primary
+   *  brand colour when omitted. */
+  color?: string;
+  /** Small chip top-right of the icon. */
   badge?: "NEW" | "BETA";
+  /** Renders the floating "Coming soon" pill above the icon. The route
+   *  still works (placeholder card) but the visual flags it as roadmap. */
+  comingSoon?: boolean;
 }
 
 export const APPS: AppDef[] = [
@@ -23,6 +33,7 @@ export const APPS: AppDef[] = [
     description: "Generate images from a prompt.",
     route: "/image-gen",
     icon: "image",
+    color: "#a78bfa", // lavender
   },
   {
     id: "video-gen",
@@ -30,6 +41,7 @@ export const APPS: AppDef[] = [
     description: "Generate video from a prompt.",
     route: "/video-gen",
     icon: "video",
+    color: "#7c5cff", // panel primary
   },
   {
     id: "transitions",
@@ -37,6 +49,7 @@ export const APPS: AppDef[] = [
     description: "Generate cinematic A/B transitions from the studio presets.",
     route: "/transitions",
     icon: "video",
+    color: "#f472b6", // pink
     badge: "NEW",
   },
   {
@@ -45,6 +58,7 @@ export const APPS: AppDef[] = [
     description: "Animate an image or video frame with speech audio.",
     route: "/lip-sync",
     icon: "video",
+    color: "#fb7185", // rose
     badge: "NEW",
   },
   {
@@ -53,6 +67,7 @@ export const APPS: AppDef[] = [
     description: "Expand any image or video beyond its frame.",
     route: "/expand",
     icon: "draw-pen",
+    color: "#60a5fa", // sky blue
     badge: "NEW",
   },
   {
@@ -61,6 +76,7 @@ export const APPS: AppDef[] = [
     description: "Reimagine a selected shot with real prompt, preset and Grok Edit controls.",
     route: "/edit-video",
     icon: "magic-wand",
+    color: "#c084fc", // purple
   },
   {
     id: "remove-bg",
@@ -68,6 +84,7 @@ export const APPS: AppDef[] = [
     description: "Strip the background from a clip.",
     route: "/remove-bg",
     icon: "scissors",
+    color: "#94a3b8", // slate
   },
   {
     id: "upscale",
@@ -75,6 +92,7 @@ export const APPS: AppDef[] = [
     description: "Push resolution and detail.",
     route: "/upscale",
     icon: "spark",
+    color: "#fbbf24", // amber
   },
 
   // ── MORE TOOLS — powered by Reap.video (captions / dub / clips) plus
@@ -85,7 +103,7 @@ export const APPS: AppDef[] = [
     description: "Burn styled captions onto a clip.",
     route: "/add-captions",
     icon: "captions",
-    badge: "NEW",
+    color: "#5b8def", // blue
   },
   {
     id: "edit-clips",
@@ -93,7 +111,7 @@ export const APPS: AppDef[] = [
     description: "Cut short-form clips out of a long source.",
     route: "/edit-clips",
     icon: "cut",
-    badge: "NEW",
+    color: "#f0abfc", // pink-violet
   },
   {
     id: "ai-dubbing",
@@ -101,7 +119,7 @@ export const APPS: AppDef[] = [
     description: "Dub the clip into another language, lip-aware.",
     route: "/ai-dubbing",
     icon: "mic",
-    badge: "NEW",
+    color: "#ff7849", // orange
   },
   {
     id: "audiogram",
@@ -109,6 +127,7 @@ export const APPS: AppDef[] = [
     description: "Turn audio into a shareable waveform video.",
     route: "/audiogram",
     icon: "waveform",
+    color: "#38bdf8", // sky cyan
   },
   {
     id: "auto-reframe",
@@ -116,7 +135,7 @@ export const APPS: AppDef[] = [
     description: "Reframe automatically with subject tracking.",
     route: "/auto-reframe",
     icon: "crop",
-    badge: "NEW",
+    color: "#facc15", // gold
   },
   {
     id: "transcription",
@@ -124,7 +143,7 @@ export const APPS: AppDef[] = [
     description: "Word-level timestamped transcript.",
     route: "/transcription",
     icon: "transcript",
-    badge: "NEW",
+    color: "#22d3ee", // teal
   },
   {
     id: "noise-removal",
@@ -132,6 +151,8 @@ export const APPS: AppDef[] = [
     description: "Clean background hiss and hum out of dialogue.",
     route: "/noise-removal",
     icon: "noise",
+    color: "#2dd4bf", // teal-green
+    comingSoon: true,
   },
   {
     id: "eye-correction",
@@ -139,6 +160,8 @@ export const APPS: AppDef[] = [
     description: "Re-aim the subject's gaze toward the camera.",
     route: "/eye-correction",
     icon: "eye",
+    color: "#4ade80", // green
+    comingSoon: true,
   },
 ];
 

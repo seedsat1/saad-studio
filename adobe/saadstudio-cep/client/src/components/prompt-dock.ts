@@ -23,6 +23,10 @@ export interface DockConfig {
   placeholder?: string;
   showAttach?: boolean;
   allowEmptySubmit?: boolean;
+  /** Hide the textarea entirely for tools that take no free-form prompt
+   *  (Add Captions, Reframe, …). The dock then shows only the option
+   *  pills + submit and `state.prompt` is always "". */
+  hidePrompt?: boolean;
   options: DockOption[];
   onAttach?: (files: FileList) => void;
   onSubmit: (state: DockState) => void;
@@ -266,12 +270,15 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
       const files = e.dataTransfer?.files;
       if (files?.length) appendAttachments(files);
     },
-  }, attachmentStrip, textarea, dropHint, statusLine, optionRow) as PromptDockHandle;
+  }, attachmentStrip,
+     cfg.hidePrompt ? null : textarea,
+     dropHint, statusLine, optionRow) as PromptDockHandle;
+  if (cfg.hidePrompt) root.classList.add("prompt-dock--no-prompt");
   root.setBusy = (nextBusy: boolean, message?: string) => {
     busy = nextBusy;
     if (message) statusText.textContent = message;
     else statusText.textContent = "Generating…";
-    textarea.disabled = busy;
+    if (!cfg.hidePrompt) textarea.disabled = busy;
     if (fileInput) (fileInput as HTMLInputElement).disabled = busy;
     for (const button of optionButtons) button.disabled = busy;
     submitBtn.disabled = busy;

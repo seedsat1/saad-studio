@@ -33,6 +33,12 @@ New-Item -ItemType Directory -Path $extensionDir -Force | Out-Null
 Copy-Item (Join-Path $root "CSXS") $extensionDir -Recurse
 Copy-Item (Join-Path $root "jsx") $extensionDir -Recurse
 Copy-Item (Join-Path $root "icons") $extensionDir -Recurse
+$ffmpegExe = Join-Path (Split-Path $root -Parent | Split-Path -Parent) "node_modules\ffmpeg-static\ffmpeg.exe"
+if (Test-Path $ffmpegExe) {
+    $ffmpegDir = Join-Path $extensionDir "tools\ffmpeg"
+    New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
+    Copy-Item $ffmpegExe (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+}
 New-Item -ItemType Directory -Path (Join-Path $extensionDir "client") -Force | Out-Null
 Copy-Item $distDir (Join-Path $extensionDir "client") -Recurse
 

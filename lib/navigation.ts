@@ -28,9 +28,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     subItems: [
       { label: "Create Image", href: "/image", description: "Generate stunning AI images", badge: "TOP" },
       { label: "Studio Img", href: "/studio-img", description: "Private image prompt library", badge: "NEW" },
-      { label: "Soul ID Character", href: "/image/soul-id-character", description: "Consistent character design" },
-      { label: "AI Influencer", href: "/image/ai-influencer", description: "Create virtual influencers", badge: "TOP" },
-      { label: "Photodump", href: "/image", description: "Bulk AI photo generation" },
       { label: "Face Swap", href: "/image", description: "Swap faces with precision" },
       { label: "Image Upscale", href: "/image", description: "4K AI upscaling" },
     ],

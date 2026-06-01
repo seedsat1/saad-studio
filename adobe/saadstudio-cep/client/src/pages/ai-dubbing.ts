@@ -1,65 +1,79 @@
 /** AI Dubbing — Reap /create-dubbing.
  *
- * Pulls the supported languages from /api/panel/reap/dubbing-languages
- * and exposes them through the dock's pill picker. Falls back to a
- * curated list of the major dubbing targets when the upstream call
- * fails so the UI is always usable. */
+ * Body shape per https://docs.reap.video/api-reference/create-dubbing :
+ *   - uploadId (required)
+ *   - sourceLanguage (required) — regional code like "en-US", "es-ES"
+ *   - targetLanguage (required) — regional code like "fr-FR", "ja-JP"
+ *
+ * The picker offers regional codes (not bare language codes) because the
+ * Reap dubbing engine routes to a different voice model per region. */
 
 import { ReapToolPage } from "./reap-tool-page";
-import { reap } from "../lib/api";
+import { reap, type ReapRawLanguageOption } from "../lib/api";
 import { openModelPicker } from "../components/model-picker";
 
-const FALLBACK_LANGUAGES = [
-  { value: "ar", label: "Arabic" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "pt", label: "Portuguese" },
-  { value: "hi", label: "Hindi" },
-  { value: "ja", label: "Japanese" },
-  { value: "ko", label: "Korean" },
-  { value: "zh", label: "Chinese (Mandarin)" },
-  { value: "tr", label: "Turkish" },
-  { value: "it", label: "Italian" },
-];
+const EMPTY_LANGUAGES: Array<{ value: string; label: string }> = [];
 
-let cachedLanguages: Array<{ value: string; label: string }> | null = null;
-async function getLanguages(): Promise<Array<{ value: string; label: string }>> {
-  if (cachedLanguages) return cachedLanguages;
-  try {
-    const res = await reap.dubbingLanguages();
-    cachedLanguages = res.languages.length
-      ? res.languages.map((l) => ({ value: l.code, label: l.label }))
-      : FALLBACK_LANGUAGES;
-  } catch {
-    cachedLanguages = FALLBACK_LANGUAGES;
-  }
-  return cachedLanguages;
+let cachedSource: Array<{ value: string; label: string }> | null = null;
+let cachedTarget: Array<{ value: string; label: string }> | null = null;
+
+async function loadLanguages() {
+  if (cachedSource && cachedTarget) return;
+  const res = await reap.dubbingLanguages();
+  cachedSource = mapReapLanguages(res.sourceLanguages);
+  cachedTarget = mapReapLanguages(res.targetLanguages);
 }
 
 export function AIDubbingPage(): HTMLElement {
   return ReapToolPage({
     title: "AI Dubbing",
     tool: "dubbing",
-    hint: "Pick a clip and choose the language you want it dubbed into.",
+    hint: "Dub the source clip's voice track into another language with lip-aware timing.",
     options: [
       {
-        key: "language",
-        label: "Language",
-        value: "en",
-        options: FALLBACK_LANGUAGES,
+        key: "sourceLanguage",
+        label: "From",
+        value: "",
+        options: EMPTY_LANGUAGES,
         onPick: async () => {
-          const langs = await getLanguages();
+          await loadLanguages();
           return openModelPicker({
-            title: "Dub into…",
-            options: langs,
+            title: "Source language",
+            options: cachedSource ?? EMPTY_LANGUAGES,
+          });
+        },
+      },
+      {
+        key: "targetLanguage",
+        label: "To",
+        value: "",
+        options: EMPTY_LANGUAGES,
+        onPick: async () => {
+          await loadLanguages();
+          return openModelPicker({
+            title: "Target language",
+            options: cachedTarget ?? EMPTY_LANGUAGES,
           });
         },
       },
     ],
     buildOptions: (vals) => ({
-      language: vals.language ?? "en",
+      sourceLanguage: vals.sourceLanguage ?? "",
+      targetLanguage: vals.targetLanguage ?? "",
     }),
   });
+}
+
+function mapReapLanguages(items: ReapRawLanguageOption[] | undefined) {
+  return Array.isArray(items)
+    ? items
+      .map((item) => {
+        if (!item?.code) return null;
+        return {
+          value: item.code,
+          label: item.displayName || item.name || item.code,
+        };
+      })
+      .filter((item): item is { value: string; label: string } => item !== null)
+    : EMPTY_LANGUAGES;
 }

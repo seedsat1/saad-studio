@@ -1,4 +1,4 @@
-/** Reap.video public automation API adapter.
+﻿/** Reap.video public automation API adapter.
  *
  * Wraps every endpoint at https://public.reap.video/api/v1/automation/*
  * so the panel route can dispatch the supported tools (captions, reframe,
@@ -6,7 +6,7 @@
  * normalized contract.
  *
  * Auth: REAP_API_KEY (Bearer).
- * Rate limit: 10 requests / minute per key — keep an eye on the
+ * Rate limit: 10 requests / minute per key â€” keep an eye on the
  * X-RateLimit-Remaining header in production.
  *
  * Flow for every tool:
@@ -50,10 +50,15 @@ export interface ReapStatusResult {
    *  the first clip; the full list is at urls[]. */
   url?: string;
   urls?: string[];
-  /** Free-form metadata returned by the upstream — transcript JSON,
+  /** Free-form metadata returned by the upstream â€” transcript JSON,
    *  caption text, dubbed language tag, etc. */
   metadata?: Record<string, unknown>;
   error?: string;
+}
+
+interface ReapProjectOutputs {
+  urls: string[];
+  metadata?: Record<string, unknown>;
 }
 
 export interface ReapStartParams {
@@ -96,7 +101,7 @@ export interface ReapPresetDiagnostics {
   error?: string;
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function startReapJob(params: ReapStartParams): Promise<ReapStartResult> {
   ensureKey();
@@ -126,9 +131,14 @@ export async function pollReapStatus(projectId: string): Promise<ReapStatusResul
     if (directUrl) {
       return { status, url: directUrl, urls: [directUrl], metadata: dataAsRecord(data) };
     }
-    const clips = await fetchProjectClips(projectId);
-    if (clips.length) {
-      return { status, url: clips[0], urls: clips, metadata: dataAsRecord(data) };
+    const output = await fetchProjectOutputs(projectId);
+    if (output.urls.length) {
+      return {
+        status,
+        url: output.urls[0],
+        urls: output.urls,
+        metadata: mergeMetadata(dataAsRecord(data), output.metadata),
+      };
     }
     return { status, metadata: dataAsRecord(data) };
   }
@@ -137,7 +147,7 @@ export async function pollReapStatus(projectId: string): Promise<ReapStatusResul
     return { status, error: firstString(data, ["error", "message", "reason"]) ?? `Project ${status}` };
   }
 
-  // queued / processing / unknown — surface progress if available
+  // queued / processing / unknown â€” surface progress if available
   const progress = typeof data?.progress === "number" ? data.progress : undefined;
   return { status: (status as ReapStatus) || "processing", progress };
 }
@@ -254,7 +264,7 @@ export async function startReapJobWithUploadId(params: {
   return { projectId };
 }
 
-// ─── Internals ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Internals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ensureKey() {
   if (!API_KEY) throw new ProviderError("kie", "config", "REAP_API_KEY is not set on the server.");
@@ -322,8 +332,21 @@ async function createTool(
   return projectId;
 }
 
-async function fetchProjectClips(projectId: string): Promise<string[]> {
-  // 1) /get-project-clips — works for "clipping" projects (multi-clip list)
+async function fetchProjectOutputs(projectId: string): Promise<ReapProjectOutputs> {
+  const outputUrls: string[] = [];
+  let outputMetadata: Record<string, unknown> | undefined;
+
+  // Read details first: transcription/caption projects expose SRT URLs in
+  // data.urls, while get-project-clips may only expose a rendered video.
+  try {
+    const res = await reapFetch(`/get-project-details?projectId=${encodeURIComponent(projectId)}`);
+    const data = await readJson(res, "get-project-details");
+    outputUrls.push(...extractUrlsFromDetails(data));
+    outputMetadata = dataAsRecord(data);
+  } catch { /* continue to clips */ }
+
+  // get-project-clips works for clipping projects and sometimes returns
+  // rendered clip URLs for other project types.
   try {
     const res = await reapFetch(`/get-project-clips?projectId=${encodeURIComponent(projectId)}`);
     const data = await readJson(res, "get-project-clips");
@@ -333,28 +356,20 @@ async function fetchProjectClips(projectId: string): Promise<string[]> {
         if (typeof raw === "string" && /^https?:\/\//i.test(raw)) return raw;
         if (raw && typeof raw === "object") {
           const r = raw as Record<string, unknown>;
-          // Reap's clip object exposes the file under `clipUrl`; we also
-          // probe legacy aliases for forward-compat.
           return firstString(r, ["clipUrl", "url", "videoUrl", "outputUrl", "downloadUrl"]) ?? null;
         }
         return null;
       })
       .filter((v: string | null): v is string => v !== null);
-    if (clips.length) return clips;
-  } catch { /* fall through to details */ }
+    outputUrls.push(...clips);
+    outputMetadata = mergeMetadata(outputMetadata, dataAsRecord(data));
+  } catch { /* ignore clips fallback failure */ }
 
-  // 2) /get-project-details — single-output project types (captions /
-  //    reframe / dubbing / transcription) put their URL(s) in the
-  //    `urls` object on the project detail payload.
-  try {
-    const res = await reapFetch(`/get-project-details?projectId=${encodeURIComponent(projectId)}`);
-    const data = await readJson(res, "get-project-details");
-    return extractUrlsFromDetails(data);
-  } catch {
-    return [];
-  }
+  return {
+    urls: Array.from(new Set(outputUrls)),
+    metadata: outputMetadata,
+  };
 }
-
 function extractUrlsFromDetails(data: Record<string, unknown> | null): string[] {
   if (!data) return [];
   const urls: string[] = [];
@@ -422,6 +437,15 @@ function firstString(data: Record<string, unknown> | null, keys: string[]): stri
 function dataAsRecord(data: Record<string, unknown> | null): Record<string, unknown> | undefined {
   if (!data) return undefined;
   return data;
+}
+
+function mergeMetadata(
+  base: Record<string, unknown> | undefined,
+  extra: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (!base) return extra;
+  if (!extra) return base;
+  return { ...base, ...extra };
 }
 
 function extractPresetArray(data: Record<string, unknown> | unknown[] | null): unknown[] {
@@ -514,3 +538,4 @@ function pickString(value: unknown): string | undefined {
 function stripUndefined(input: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
 }
+

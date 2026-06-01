@@ -1,0 +1,133 @@
+
+> aisaas@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 23.1s
+ ✓ Compiled /middleware in 5.3s
+ ✓ Compiled (226 modules)
+ ○ Compiling /studio-edit ...
+ ✓ Compiled /api/studio-edit/languages in 59.5s (2421 modules)
+ GET /api/studio-edit/languages?debug=1 200 in 26325ms
+ ✓ Compiled in 2.5s (1016 modules)
+ GET /api/studio-edit/languages?debug=1 200 in 774ms
+ ✓ Compiled in 3.2s (2394 modules)
+ ✓ Compiled in 2.7s (2394 modules)
+ GET /studio-edit?sourcepreset=1 200 in 356ms
+ GET /studio-edit 200 in 120ms
+ GET /studio-edit 200 in 82ms
+ ○ Compiling /api/layouts ...
+ ✓ Compiled /api/layouts in 1056ms (1361 modules)
+ GET /api/layouts?page=cms-auth 200 in 7977ms
+ GET /api/layouts?page=cms-pricing 200 in 7977ms
+ GET /api/layouts?page=cms-pricing 200 in 7977ms
+ GET /api/layouts?page=cms-auth 200 in 7978ms
+ ✓ Compiled in 18.6s (2371 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 207ms
+ ✓ Compiled in 1564ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 102ms
+ ✓ Compiled in 1139ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 100ms
+ ✓ Compiled in 1056ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 54ms
+ GET /studio-edit?_rsc=1w0gh 200 in 579ms
+ ✓ Compiled in 6.6s (2597 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 154ms
+ ✓ Compiled in 4.8s (2597 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 2513ms
+ GET /studio-edit?_rsc=1w0gh 200 in 50ms
+ ✓ Compiled in 2.5s (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 516ms
+ ✓ Compiled in 1326ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 471ms
+ ✓ Compiled in 1127ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 50ms
+ ✓ Compiled in 1997ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 43ms
+ ✓ Compiled in 18.6s (2371 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 158ms
+ GET /studio-edit?_rsc=1w0gh 200 in 696ms
+ ✓ Compiled in 5.2s (2597 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 138ms
+ ✓ Compiled in 1559ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 512ms
+ ✓ Compiled in 1261ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 403ms
+ ✓ Compiled in 1022ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 47ms
+ ✓ Compiled in 2.2s (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 36ms
+ ✓ Compiled in 2.1s (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 47ms
+ ✓ Compiled in 2.1s (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 42ms
+ ✓ Compiled in 2.3s (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 43ms
+ ✓ Compiled in 1151ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 59ms
+ ✓ Compiled in 1416ms (1016 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 44ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1740ms (2360 modules)
+ GET /_next/static/css/app/layout.css?v=1780343139446 404 in 2202ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343139446 404 in 2193ms
+ GET /_next/static/css/app/layout.css?v=1780343139446 404 in 34ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343139446 404 in 34ms
+ ✓ Compiled in 1116ms (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 67ms
+ GET /_next/static/css/app/layout.css?v=1780343146847 404 in 40ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343146847 404 in 38ms
+ GET /_next/static/css/app/layout.css?v=1780343146847 404 in 41ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343146847 404 in 41ms
+ ✓ Compiled in 963ms (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 49ms
+ GET /_next/static/css/app/layout.css?v=1780343152715 404 in 35ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343152715 404 in 33ms
+ GET /_next/static/css/app/layout.css?v=1780343152715 404 in 57ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343152715 404 in 55ms
+ ✓ Compiled in 1112ms (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 35ms
+ GET /_next/static/css/app/layout.css?v=1780343157989 404 in 28ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343157989 404 in 27ms
+ GET /_next/static/css/app/layout.css?v=1780343157989 404 in 48ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343157989 404 in 47ms
+ ✓ Compiled in 1121ms (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 41ms
+ GET /_next/static/css/app/layout.css?v=1780343164429 404 in 51ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343164429 404 in 49ms
+ GET /_next/static/css/app/layout.css?v=1780343164429 404 in 30ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780343164429 404 in 29ms
+ ✓ Compiled in 2.3s (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 88ms
+ ✓ Compiled in 1053ms (1017 modules)
+ GET /_next/static/css/app/layout.css?v=1780344336485 404 in 232ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780344336485 404 in 226ms
+ GET /studio-edit?_rsc=1w0gh 200 in 392ms
+ GET /_next/static/css/app/layout.css?v=1780344337461 404 in 83ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780344337461 404 in 82ms
+ ✓ Compiled in 1014ms (1017 modules)
+ GET /_next/static/css/app/layout.css?v=1780344337461 404 in 57ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780344337461 404 in 56ms
+ GET /studio-edit?_rsc=1w0gh 200 in 45ms
+ GET /_next/static/css/app/layout.css?v=1780344338093 404 in 26ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780344338093 404 in 33ms
+ GET /_next/static/css/app/layout.css?v=1780344338093 404 in 37ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780344338093 404 in 37ms
+ ✓ Compiled in 1325ms (1017 modules)
+ GET /studio-edit?_rsc=1w0gh 200 in 418ms
+ ✓ Compiled in 1150ms (1017 modules)
+ GET /_next/static/css/app/layout.css?v=1780348147504 404 in 129ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780348147504 404 in 130ms
+ GET /studio-edit?_rsc=1w0gh 200 in 63ms
+ ✓ Compiled in 1050ms (1017 modules)
+ GET /_next/static/css/app/layout.css?v=1780348148619 404 in 113ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780348148619 404 in 113ms
+ GET /studio-edit?_rsc=1w0gh 200 in 38ms
+ GET /_next/static/css/app/layout.css?v=1780348149338 404 in 32ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780348149338 404 in 32ms
+ GET /_next/static/css/app/layout.css?v=1780348149338 404 in 27ms
+ GET /_next/static/css/app/(dash)/layout.css?v=1780348149338 404 in 28ms
