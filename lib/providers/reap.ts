@@ -168,36 +168,27 @@ export async function listTranslationLanguages(): Promise<ReapLanguageCatalog> {
 
 export async function listCaptionPresets(): Promise<ReapPreset[]> {
   ensureKey();
-  const res = await reapFetch("/get-all-presets?pageSize=100");
-  const data = await readJson(res, "get-all-presets");
-  return parsePresetList(data);
+  const pages = await fetchAllPresetPages();
+  return dedupePresets(pages.flatMap((data) => parsePresetList(data)));
 }
 
 export async function inspectCaptionPresets(): Promise<ReapPresetDiagnostics> {
   const endpoint = `${BASE}/get-all-presets?pageSize=100`;
   try {
     ensureKey();
-    const res = await reapFetch("/get-all-presets?pageSize=100");
-    const text = await res.text();
-    let data: Record<string, unknown> | unknown[] | null = null;
-    try {
-      data = text.trim() ? JSON.parse(text) as Record<string, unknown> | unknown[] : null;
-    } catch {
-      data = null;
-    }
+    const pages = await fetchAllPresetPages();
+    const raw = pages.flatMap((data) => extractPresetArray(data));
+    const presets = dedupePresets(pages.flatMap((data) => parsePresetList(data)));
 
-    const raw = extractPresetArray(data);
-    const presets = parsePresetList(data);
     return {
       endpoint,
-      status: res.status,
-      ok: res.ok,
+      status: 200,
+      ok: true,
       rawCount: raw.length,
       parsedCount: presets.length,
       userPresetCount: presets.filter((preset) => preset.source === "user").length,
       hasSaad: presets.some((preset) => /saad/i.test(`${preset.label} ${preset.name ?? ""} ${preset.id}`)),
       sample: presets.slice(0, 8).map(({ id, label, name, source }) => ({ id, label, name, source })),
-      error: res.ok ? undefined : summarizeError(data, text, res.status),
     };
   } catch (err) {
     return {
@@ -454,6 +445,42 @@ function extractPresetArray(data: Record<string, unknown> | unknown[] | null): u
     : Array.isArray(data?.items) ? data.items
     : Array.isArray(data?.data) ? data.data
     : [];
+}
+
+async function fetchAllPresetPages(): Promise<Array<Record<string, unknown> | unknown[] | null>> {
+  const pageSize = 100;
+  const pages: Array<Record<string, unknown> | unknown[] | null> = [];
+  let totalPages: number | undefined;
+
+  for (let page = 1; page <= (totalPages ?? 25); page++) {
+    const res = await reapFetch(`/get-all-presets?page=${page}&pageSize=${pageSize}`);
+    const data = await readJson(res, "get-all-presets");
+    pages.push(data);
+
+    const record = data && !Array.isArray(data) ? data : null;
+    const parsedTotalPages = Number(record?.totalPages ?? record?.pages);
+    if (Number.isFinite(parsedTotalPages) && parsedTotalPages > 0) {
+      totalPages = Math.min(Math.floor(parsedTotalPages), 25);
+    }
+
+    const items = extractPresetArray(data);
+    if (!items.length) break;
+    if (totalPages && page >= totalPages) break;
+    if (!totalPages && items.length < pageSize) break;
+  }
+
+  return pages;
+}
+
+function dedupePresets(presets: ReapPreset[]): ReapPreset[] {
+  const seen = new Set<string>();
+  const out: ReapPreset[] = [];
+  for (const preset of presets) {
+    if (seen.has(preset.id)) continue;
+    seen.add(preset.id);
+    out.push(preset);
+  }
+  return out;
 }
 
 function parsePresetList(data: Record<string, unknown> | unknown[] | null): ReapPreset[] {

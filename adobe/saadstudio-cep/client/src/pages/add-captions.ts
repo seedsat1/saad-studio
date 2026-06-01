@@ -124,7 +124,7 @@ interface PageState {
   sourceLanguages: ReapLanguageOption[];
   translationLanguages: ReapLanguageOption[];
   selectedPreset: string;
-  activePresetTab: "caption" | "brand";
+  activePresetTab: "all" | "caption" | "brand";
   sourceInput: string;
   language: string;
   translate: string;
@@ -200,7 +200,7 @@ export function AddCaptionsPage(): HTMLElement {
     sourceLanguages: [],
     translationLanguages: [],
     selectedPreset: NO_STYLE.id,
-    activePresetTab: "caption",
+    activePresetTab: "all",
     sourceInput: "",
     language: AUTO_DETECT_LANGUAGE,
     translate: NO_TRANSLATION,
@@ -389,13 +389,28 @@ export function AddCaptionsPage(): HTMLElement {
     const systemPresets = state.presets.filter((p) =>
       p.id === NO_STYLE_ID || p.source === "system");
     const brandPresets = state.presets.filter((p) => p.source === "user");
+    const allPresets = state.presets;
 
     const selectedTab = state.activePresetTab;
-    const visiblePresets = (selectedTab === "caption" ? systemPresets : brandPresets).slice(0, 4);
-    const total = selectedTab === "caption" ? systemPresets.length : brandPresets.length;
+    const tabPresets = selectedTab === "all"
+      ? allPresets
+      : selectedTab === "caption"
+        ? systemPresets
+        : brandPresets;
+    const visiblePresets = tabPresets.slice(0, 4);
+    const total = tabPresets.length;
 
     return el("div.captions-section", null,
       el("div.captions-tabs", null,
+        el("button.captions-tab" + (selectedTab === "all" ? ".captions-tab--active" : ""),
+          {
+            onClick: () => {
+              state.activePresetTab = "all";
+              render();
+            },
+          },
+          "All presets",
+        ),
         el("button.captions-tab" + (selectedTab === "caption" ? ".captions-tab--active" : ""),
           {
             onClick: () => {
@@ -433,16 +448,17 @@ export function AddCaptionsPage(): HTMLElement {
         ? el("button.styles-more",
             {
               onClick: () => openMorePresets(
-                selectedTab === "caption" ? systemPresets : brandPresets,
-                selectedTab === "caption" ? "Caption styles" : "Brand templates",
+                tabPresets,
+                selectedTab === "all" ? "All presets"
+                  : selectedTab === "caption" ? "Caption styles"
+                    : "Brand templates",
               ),
             },
-            selectedTab === "caption" ? "More styles" : "More templates")
+            selectedTab === "brand" ? "More templates" : "More styles")
         : null,
-      selectedTab === "caption"
-        ? el("div.captions-section__hint", null,
-            systemPresets.length > 4 ? `${systemPresets.length} styles available` : "Optional")
-        : null,
+      el("div.captions-section__hint", null,
+        `${Math.max(0, allPresets.length - 1)} Reap presets available`
+          + (brandPresets.length ? ` • ${brandPresets.length} brand templates` : "")),
     );
   }
 
@@ -778,23 +794,28 @@ export function AddCaptionsPage(): HTMLElement {
         upload.uploadId ? `Upload ID: ${upload.uploadId}` : `Source URL: ${upload.sourceUrl}`,
       ]);
 
-      // 2) Premiere import needs an SRT, so use Reap transcription even
-      // when a visual style is selected. /create-captions can finish with
-      // only a rendered video URL, which leaves Premiere with no caption
-      // file to import.
+      // 2) No style imports editable SRT captions. Styled presets use
+      // Reap's rendered captions output because visual effects such as
+      // Wiggle/Typewriter cannot be represented by a plain SRT track.
       const usingStyle = state.selectedPreset !== NO_STYLE.id;
-      const tool: ReapTool = "transcription";
+      const tool: ReapTool = usingStyle ? "captions" : "transcription";
       const options: Record<string, unknown> = {
         language: state.language === AUTO_DETECT_LANGUAGE ? undefined : state.language,
         translationLanguage: state.translate === NO_TRANSLATION ? null : state.translate,
         transcriptionScript: state.script,
       };
+      if (usingStyle) {
+        options.captionsPreset = state.selectedPreset;
+        options.resolution = parseInt(state.resolution, 10);
+        options.enableEmojis = state.enableEmojis;
+        options.enableHighlights = state.enableHighlights;
+      }
 
       resultArea.replaceChildren(busyCard("Starting Reap job…"));
       pushDebugLines([
         "Reap Job Started: TRUE",
         `Reap Tool: ${tool}`,
-        usingStyle ? "Caption Style Rendering: SKIPPED_FOR_SRT_IMPORT" : "Caption Style Rendering: NONE",
+        usingStyle ? "Caption Style Rendering: TRUE" : "Caption Style Rendering: NONE",
       ]);
       const jobStartedAt = Date.now();
       let statusChecks = 0;
@@ -844,7 +865,7 @@ export function AddCaptionsPage(): HTMLElement {
         `Job Status: ${final.status.toUpperCase()}`,
       ]);
 
-      await handleCompleted(final);
+      await handleCompleted(final, usingStyle);
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
@@ -955,7 +976,12 @@ export function AddCaptionsPage(): HTMLElement {
     return api.uploadLocalPathToR2(clip.path, "video");
   }
 
-  async function handleCompleted(final: ReapStatusResponse): Promise<void> {
+  async function handleCompleted(final: ReapStatusResponse, usingStyle: boolean): Promise<void> {
+    if (usingStyle) {
+      await handleStyledCompleted(final);
+      return;
+    }
+
     const srtUrl = pickSrtUrl(final);
     if (!srtUrl) {
       pushDebugLines([
@@ -1011,6 +1037,54 @@ export function AddCaptionsPage(): HTMLElement {
 
     resultArea.replaceChildren(successCard({ placed, reason, localPath, fileName: srtFileName }));
     if (placed) toast("Captions added to the caption track", "success");
+  }
+
+  async function handleStyledCompleted(final: ReapStatusResponse): Promise<void> {
+    const videoUrl = pickRenderedVideoUrl(final);
+    if (!videoUrl) {
+      const diagnostic = describeReturnedAssets(final);
+      pushDebugLines([
+        `Reap Job ID: ${(final as ReapStatusResponse & { generationId?: string }).generationId ?? "UNKNOWN"}`,
+        "Styled Video URL Found: FALSE",
+        `Returned Assets: ${diagnostic}`,
+        "Final Result: FAILED",
+        "Reason: Reap finished but did not return a rendered captions video.",
+      ]);
+      resultArea.replaceChildren(el("div.state-card", null,
+        el("div.state-card__title", null, "Done, but no styled video returned"),
+        el("div.state-card__subtitle", null, diagnostic),
+      ));
+      return;
+    }
+
+    resultArea.replaceChildren(busyCard("Adding styled captions to your sequence..."));
+    const styledFileName = `saadstudio-styled-captions-${Date.now()}.mp4`;
+    pushDebugLines([
+      "Styled Video URL Found: TRUE",
+      `Styled Video URL: ${videoUrl}`,
+      "Styled Video Download Started: TRUE",
+    ]);
+    const localPath = await api.downloadAsset(videoUrl, styledFileName);
+    pushDebugLines([
+      `Styled Video Download Success: ${localPath ? "TRUE" : "FALSE"}`,
+      `Styled Video Local Path: ${localPath}`,
+      "Styled Video Import Started: TRUE",
+    ]);
+
+    const importResult = await hostAdapter.placeMedia({ assetPath: localPath, afterSelected: true });
+    const placed = importResult?.ok === true;
+    pushDebugLines([
+      `Styled Video Import Result: ${jsonValue(importResult)}`,
+      `Styled Video Import Success: ${placed ? "TRUE" : "FALSE"}`,
+      `Final Result: ${placed ? "SUCCESS" : "FAILED"}`,
+    ]);
+    resultArea.replaceChildren(styledSuccessCard({
+      placed,
+      reason: importResult?.reason ?? importResult?.message,
+      localPath,
+      fileName: styledFileName,
+    }));
+    if (placed) toast("Styled captions added to the timeline", "success");
   }
 
   async function captureRuntimeDebug(stage: string): Promise<DebugSequenceContext | null> {
@@ -1222,6 +1296,43 @@ function successCard(args: {
   );
 }
 
+function styledSuccessCard(args: {
+  placed: boolean;
+  reason?: string;
+  localPath: string;
+  fileName: string;
+}): HTMLElement {
+  return el("div.state-card", { style: { textAlign: "left", padding: "16px" } },
+    el("div.row.gap-2", { style: { alignItems: "flex-start" } },
+      el("div.state-card__icon", { style: { margin: "0", flexShrink: "0" } },
+        icon(args.placed ? "check" : "import", 16)),
+      el("div", { style: { minWidth: "0" } },
+        el("div.state-card__title", { style: { textAlign: "left" } },
+          args.placed ? "Styled captions added" : "Styled captions downloaded"),
+        el("div.state-card__subtitle", { style: { textAlign: "left", marginBottom: "8px" } },
+          args.placed
+            ? "The rendered captions video was placed on the timeline."
+            : (args.reason ?? "The rendered video is saved locally, but auto-placement did not complete.")),
+        el("div.mono", {
+          style: {
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          },
+          title: args.localPath,
+        }, args.localPath),
+      ),
+    ),
+    el("div.row.gap-2", null,
+      el("button.btn-secondary",
+        { onClick: () => copyLocalToDesktop(args.localPath, args.fileName) },
+        icon("import", 14), "Download video"),
+    ),
+  );
+}
+
 function busyCard(text: string, subtitle = "Hold tight."): HTMLElement {
   return el("div.state-card", null,
     el("div.state-card__icon", null, icon("spark", 18)),
@@ -1283,6 +1394,33 @@ function pickSrtUrl(status: ReapStatusResponse): string | null {
     }
   }
   return findSrtInUnknown(status.metadata);
+}
+
+function pickRenderedVideoUrl(status: ReapStatusResponse): string | null {
+  const candidates = collectStrings(status);
+  const preferred = candidates.find((url) =>
+    /^https?:\/\//i.test(url) &&
+    !looksLikeSrt(url) &&
+    /\.(mp4|mov|webm)(\?|$|#)/i.test(url)
+  );
+  if (preferred) return preferred;
+  return candidates.find((url) => /^https?:\/\//i.test(url) && !looksLikeSrt(url)) ?? null;
+}
+
+function collectStrings(value: unknown, depth = 0): string[] {
+  if (depth > 5 || value == null) return [];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => collectStrings(item, depth + 1));
+  if (typeof value !== "object") return [];
+  return Object.values(value as Record<string, unknown>).flatMap((item) => collectStrings(item, depth + 1));
+}
+
+function describeReturnedAssets(status: ReapStatusResponse): string {
+  const urls = collectStrings(status)
+    .filter((value) => /^https?:\/\//i.test(value))
+    .slice(0, 6);
+  if (!urls.length) return "No downloadable URLs were returned by Reap.";
+  return urls.map((url) => url.replace(/\?.*$/, "")).join(" | ");
 }
 
 function looksLikeSrt(url: string): boolean {
