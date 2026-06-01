@@ -73,6 +73,17 @@ export interface ReapPreset {
   preferences?: Record<string, unknown>;
 }
 
+export interface ReapRawLanguageOption {
+  code: string;
+  name?: string;
+  displayName?: string;
+}
+
+export interface ReapLanguageCatalog {
+  sourceLanguages: ReapRawLanguageOption[];
+  targetLanguages: ReapRawLanguageOption[];
+}
+
 export interface ReapPresetDiagnostics {
   endpoint: string;
   status?: number;
@@ -131,18 +142,18 @@ export async function pollReapStatus(projectId: string): Promise<ReapStatusResul
   return { status: (status as ReapStatus) || "processing", progress };
 }
 
-export async function listDubbingLanguages(): Promise<Array<{ code: string; label: string }>> {
+export async function listDubbingLanguages(): Promise<ReapLanguageCatalog> {
   ensureKey();
   const res = await reapFetch("/get-dubbing-languages");
   const data = await readJson(res, "get-dubbing-languages");
-  return parseLanguageList(data);
+  return parseLanguageCatalog(data);
 }
 
-export async function listTranslationLanguages(): Promise<Array<{ code: string; label: string }>> {
+export async function listTranslationLanguages(): Promise<ReapLanguageCatalog> {
   ensureKey();
   const res = await reapFetch("/get-translation-languages");
   const data = await readJson(res, "get-translation-languages");
-  return parseLanguageList(data);
+  return parseLanguageCatalog(data);
 }
 
 export async function listCaptionPresets(): Promise<ReapPreset[]> {
@@ -197,6 +208,37 @@ export async function inspectCaptionPresets(): Promise<ReapPresetDiagnostics> {
 export async function requestReapUploadUrl(filename: string): Promise<ReapUploadTarget> {
   ensureKey();
   return getUploadUrl(filename);
+}
+
+export function normalizeReapOptions(tool: ReapTool, raw: Record<string, unknown>): Record<string, unknown> {
+  if (tool !== "captions") return stripUndefined(raw);
+
+  const translationLanguage =
+    pickString(raw.translationLanguage) ??
+    pickString(raw.translateTo) ??
+    pickString(raw.dubbingLanguage);
+
+  const transcriptionScriptRaw =
+    pickString(raw.transcriptionScript) ??
+    pickString(raw.script) ??
+    "native";
+
+  const transcriptionScript = transcriptionScriptRaw.toLowerCase() === "roman" ||
+    transcriptionScriptRaw.toLowerCase() === "latin"
+      ? "roman"
+      : "native";
+
+  const resolution = Number(raw.resolution ?? raw.exportResolution ?? 720);
+
+  return stripUndefined({
+    captionsPreset: pickString(raw.captionsPreset) ?? "system_beasty",
+    language: pickString(raw.language),
+    translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
+    transcriptionScript,
+    enableEmojis: Boolean(raw.enableEmojis),
+    enableHighlights: Boolean(raw.enableHighlights),
+    resolution: [720, 1080, 1440, 2160].includes(resolution) ? resolution : 720,
+  });
 }
 
 /** Same flow as startReapJob() but assumes the source is already in
@@ -420,29 +462,55 @@ function summarizeError(data: Record<string, unknown> | unknown[] | null, text: 
   return text.trim().slice(0, 200) || `HTTP ${status}`;
 }
 
-function parseLanguageList(data: Record<string, unknown> | null): Array<{ code: string; label: string }> {
-  const arr = Array.isArray(data?.languages) ? data.languages
-    : Array.isArray(data?.items) ? data.items
-    : Array.isArray(data?.data) ? data.data
-    : Array.isArray(data) ? data
-    : [];
+function parseLanguageCatalog(data: Record<string, unknown> | null): ReapLanguageCatalog {
+  const sourceLanguages = parseLanguageOptions(data?.sourceLanguages);
+  const targetLanguages = parseLanguageOptions(data?.targetLanguages);
+
+  // Some old or undocumented payloads expose a flat list; keep it as a safe fallback
+  // so the caller still receives a usable contract.
+  if (!sourceLanguages.length && !targetLanguages.length) {
+    const fallback = parseLanguageOptions(
+      Array.isArray(data?.languages) ? data.languages
+        : Array.isArray(data?.items) ? data.items
+        : Array.isArray(data?.data) ? data.data
+        : [],
+    );
+    return {
+      sourceLanguages: fallback,
+      targetLanguages: [],
+    };
+  }
+
+  return { sourceLanguages, targetLanguages };
+}
+
+function parseLanguageOptions(value: unknown): ReapRawLanguageOption[] {
+  const arr = Array.isArray(value) ? value : [];
   return arr
-    .map((raw: unknown): { code: string; label: string } | null => {
-      if (typeof raw === "string") return { code: raw, label: raw };
+    .map((raw: unknown): ReapRawLanguageOption | null => {
+      if (typeof raw === "string") return { code: raw, name: raw, displayName: raw };
       if (raw && typeof raw === "object") {
         const r = raw as Record<string, unknown>;
         const code = typeof r.code === "string" ? r.code
-                   : typeof r.language === "string" ? r.language
-                   : typeof r.id === "string" ? r.id
-                   : null;
+          : typeof r.language === "string" ? r.language
+          : typeof r.id === "string" ? r.id
+          : null;
         if (!code) return null;
-        const label = typeof r.displayName === "string" ? r.displayName
-                    : typeof r.label === "string" ? r.label
-                    : typeof r.name === "string" ? r.name
-                    : code;
-        return { code, label };
+        const name = typeof r.name === "string" ? r.name
+          : typeof r.label === "string" ? r.label
+          : code;
+        const displayName = typeof r.displayName === "string" ? r.displayName : name;
+        return { code, name, displayName };
       }
       return null;
     })
-    .filter((v: { code: string; label: string } | null): v is { code: string; label: string } => v !== null);
+    .filter((v: ReapRawLanguageOption | null): v is ReapRawLanguageOption => v !== null);
+}
+
+function pickString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function stripUndefined(input: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
 }

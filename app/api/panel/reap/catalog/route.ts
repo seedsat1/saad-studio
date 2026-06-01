@@ -4,6 +4,8 @@ import {
   inspectCaptionPresets,
   listCaptionPresets,
   listDubbingLanguages,
+  type ReapLanguageCatalog,
+  type ReapRawLanguageOption,
   listTranslationLanguages,
 } from "@/lib/providers/reap";
 
@@ -40,6 +42,24 @@ function splitPresets(presets: CatalogPreset[]) {
   return { brandTemplates, captionPresets };
 }
 
+function mapLanguageOptions(items: ReapRawLanguageOption[]): CatalogLanguage[] {
+  return items.map((item) => ({
+    code: item.code,
+    label: item.displayName || item.name || item.code,
+  }));
+}
+
+function toCatalogEntry(result: PromiseSettledResult<ReapLanguageCatalog>, key: "sourceLanguages" | "targetLanguages"): CatalogEntry<CatalogLanguage> {
+  if (result.status === "fulfilled") {
+    return { items: mapLanguageOptions(result.value[key]), source: "reap" };
+  }
+  return {
+    items: [],
+    source: "reap",
+    diagnostic: result.reason instanceof Error ? result.reason.message : String(result.reason),
+  };
+}
+
 export async function GET(req: NextRequest) {
   const token = extractPanelToken(req);
   if (!token) return NextResponse.json({ error: "Missing Authorization header." }, { status: 401 });
@@ -55,13 +75,8 @@ export async function GET(req: NextRequest) {
       inspectCaptionPresets(),
     ]);
 
-    const languages: CatalogEntry<CatalogLanguage> = languagesResult.status === "fulfilled"
-      ? { items: languagesResult.value, source: "reap" }
-      : { items: [], source: "reap", diagnostic: languagesResult.reason instanceof Error ? languagesResult.reason.message : String(languagesResult.reason) };
-
-    const dubbingLanguages: CatalogEntry<CatalogLanguage> = dubbingResult.status === "fulfilled"
-      ? { items: dubbingResult.value, source: "reap" }
-      : { items: [], source: "reap", diagnostic: dubbingResult.reason instanceof Error ? dubbingResult.reason.message : String(dubbingResult.reason) };
+    const languages = toCatalogEntry(languagesResult, "sourceLanguages");
+    const dubbingLanguages = toCatalogEntry(dubbingResult, "targetLanguages");
 
     const presets = presetsResult.status === "fulfilled" ? presetsResult.value : [];
     const presetDiagnosticMessage = presetsResult.status === "rejected"
