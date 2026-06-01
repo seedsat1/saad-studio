@@ -584,7 +584,7 @@ export function AddCaptionsPage(): HTMLElement {
       }, "SRT only");
     }
     const style = extractPresetStyle(p.preferences);
-    return el("span.style-card__sample",
+    return el("span.style-card__sample." + presetMotionClass(p),
       {
         style: {
           color: style.textColor,
@@ -601,6 +601,50 @@ export function AddCaptionsPage(): HTMLElement {
       "ONE ",
       el("span", { style: { color: style.highlightColor } }, "word"),
     );
+  }
+
+  function openPresetPicker(args: {
+    title: string;
+    presets: ReapCaptionPreset[];
+    selectedId: string;
+  }): Promise<string | null> {
+    return new Promise((resolve) => {
+      const root = document.getElementById("modal-root");
+      if (!root) { resolve(null); return; }
+
+      const close = (value: string | null) => {
+        root.replaceChildren();
+        document.removeEventListener("keydown", onKey);
+        resolve(value);
+      };
+      const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(null); };
+      document.addEventListener("keydown", onKey);
+
+      const backdrop = el("div.modal-backdrop",
+        { onClick: (e: Event) => { if (e.target === backdrop) close(null); } },
+        el("div.modal.preset-picker-modal", null,
+          el("div.modal__head", null,
+            el("div.modal__title", null, args.title),
+            el("button.modal__close", { onClick: () => close(null) }, icon("close", 14)),
+          ),
+          el("div.preset-picker-grid", null,
+            ...args.presets.map((preset) =>
+              el("button.style-card.preset-picker-card" + (preset.id === args.selectedId ? ".style-card--selected" : ""),
+                {
+                  onClick: () => close(preset.id),
+                  title: preset.label,
+                },
+                el("div.style-card__preview.preset-picker-card__preview", null, renderPresetSample(preset)),
+                el("div.style-card__label", null, preset.label),
+                el("div.preset-picker-card__meta", null,
+                  preset.source === "user" ? "Brand template" : "System preset"),
+              ),
+            ),
+          ),
+        ),
+      );
+      root.appendChild(backdrop);
+    });
   }
 
   function renderFormGrid(): HTMLElement {
@@ -707,15 +751,7 @@ export function AddCaptionsPage(): HTMLElement {
   // ─── Upload + generation ────────────────────────────────────────────
 
   async function openMorePresets(presets: ReapCaptionPreset[], title: string) {
-    const picked = await openModelPicker({
-      title,
-      options: presets.map((p) => ({ value: p.id, label: p.label })),
-      metaFor: (opt) => {
-        const p = presets.find((q) => q.id === opt.value);
-        if (!p) return undefined;
-        return p.source === "user" ? "Your brand template" : "System preset";
-      },
-    });
+    const picked = await openPresetPicker({ title, presets, selectedId: state.selectedPreset });
     if (picked != null) { state.selectedPreset = picked; render(); }
   }
 
@@ -1462,6 +1498,22 @@ function normalizePathForDebug(value: string | null | undefined): string {
 
 function jsonValue(value: unknown): string {
   try { return JSON.stringify(value); } catch { return String(value); }
+}
+
+function presetMotionClass(preset: ReapCaptionPreset): string {
+  const key = `${preset.id} ${preset.label} ${preset.name ?? ""}`.toLowerCase();
+  if (preset.id === NO_STYLE_ID) return "preset-motion-none";
+  if (/type|writer|notes|headline|caption|subtitle/.test(key)) return "preset-motion-type";
+  if (/wiggle|wobble|pop|bounce|beasty|impact/.test(key)) return "preset-motion-wiggle";
+  if (/glow|lumina|mint|blue|indigo|ember/.test(key)) return "preset-motion-glow";
+  if (/vintage|turban|deep|diver|webster|box/.test(key)) return "preset-motion-slide";
+  return `preset-motion-${hashPresetMotion(key)}`;
+}
+
+function hashPresetMotion(value: string): "type" | "wiggle" | "glow" | "slide" {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  return ["type", "wiggle", "glow", "slide"][hash % 4] as "type" | "wiggle" | "glow" | "slide";
 }
 
 function stringValue(value: unknown): string {
