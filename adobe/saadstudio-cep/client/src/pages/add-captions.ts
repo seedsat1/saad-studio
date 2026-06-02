@@ -192,6 +192,30 @@ type CaptionUploadSource =
   | { uploadId: string; sourceUrl?: never; method: "reap-upload"; filename: string }
   | { sourceUrl: string; uploadId?: never; method: "source-url"; filename: string };
 
+interface ActiveCaptionJob {
+  projectId: string;
+  generationId: string;
+  tool: ReapTool;
+  filename: string;
+  usingStyle: boolean;
+  options: Record<string, unknown>;
+  clip: NonNullable<PageState["clip"]>;
+  selectedPreset: string;
+  language: string;
+  translate: string;
+  script: string;
+  resolution: string;
+  enableEmojis: boolean;
+  enableHighlights: boolean;
+  startedAt: number;
+  checks: number;
+  lastStatus?: ReapStatusResponse["status"];
+  lastProgress?: number;
+}
+
+const ACTIVE_CAPTION_JOB_KEY = "saadstudio.addCaptions.activeJob";
+const REAP_POLL_INTERVAL_MS = 12_000;
+
 export function AddCaptionsPage(): HTMLElement {
   const hostAdapter = getHostAdapter();
   const state: PageState = {
@@ -220,6 +244,8 @@ export function AddCaptionsPage(): HTMLElement {
   const body = el("div.app-main");
   const page = el("div.captions-page");
   const resultArea = el("div.captions-result");
+  let disposed = false;
+  let pollSession = 0;
   body.appendChild(resultArea);
   body.appendChild(page);
 
@@ -230,6 +256,7 @@ export function AddCaptionsPage(): HTMLElement {
   );
 
   const watcher = createHostSelectionWatcher(hostAdapter, (clip) => {
+    if (state.busy) return;
     if (state.manualOverride) return;
     if (!clip) { state.clip = null; render(); return; }
     state.clip = {
@@ -299,6 +326,15 @@ export function AddCaptionsPage(): HTMLElement {
 
   render();
   void captureRuntimeDebug("PAGE_OPEN");
+  requestAnimationFrame(function watchDispose() {
+    if (!root.isConnected) {
+      disposed = true;
+      pollSession += 1;
+      return;
+    }
+    requestAnimationFrame(watchDispose);
+  });
+  void resumeStoredCaptionJob();
   return root;
 
   // ─── Render ─────────────────────────────────────────────────────────
@@ -853,55 +889,34 @@ export function AddCaptionsPage(): HTMLElement {
         `Reap Tool: ${tool}`,
         usingStyle ? "Caption Style Rendering: TRUE" : "Caption Style Rendering: NONE",
       ]);
-      const jobStartedAt = Date.now();
-      let statusChecks = 0;
-      const final = await reapAdapter.runJob(
-        { tool, uploadId: upload.uploadId, sourceUrl: upload.sourceUrl, filename: upload.filename, options },
-        (s) => {
-          statusChecks += 1;
-          const elapsed = formatElapsed(Date.now() - jobStartedAt);
-          pushDebugLines([
-            `Job Status: ${s.status.toUpperCase()}`,
-            `Job Progress: ${typeof s.progress === "number" ? `${Math.round(s.progress)}%` : "UNKNOWN"}`,
-            `Status Checks: ${statusChecks}`,
-          ]);
-          if (s.status === "queued") {
-            resultArea.replaceChildren(progressCard({
-              title: "Queued in Reap...",
-              status: "Waiting for processing to start",
-              elapsed,
-              checks: statusChecks,
-              progress: s.progress,
-            }));
-          }
-          else if (s.status === "processing") {
-            const pct = typeof s.progress === "number" ? ` ${Math.round(s.progress)}%` : "";
-            resultArea.replaceChildren(progressCard({
-              title: `Transcribing${pct}...`,
-              status: typeof s.progress === "number"
-                ? "Reap is processing the captions"
-                : "Reap is processing. Percentage is not available yet",
-              elapsed,
-              checks: statusChecks,
-              progress: s.progress,
-            }));
-          }
-        },
-      );
-
-      if (final.status !== "completed") {
-        throw new Error(final.error ?? `Reap returned status: ${final.status}`);
-      }
-
-      pushDebugLines([
-        "Reap Job Started: TRUE",
-        `Reap Job ID: ${final.generationId}`,
-        `Reap Project ID: ${final.projectId}`,
-        "Job Completed: TRUE",
-        `Job Status: ${final.status.toUpperCase()}`,
-      ]);
-
-      await handleCompleted(final, usingStyle);
+      const started = await reapAdapter.startJob({
+        tool,
+        uploadId: upload.uploadId,
+        sourceUrl: upload.sourceUrl,
+        filename: upload.filename,
+        options,
+      });
+      const job: ActiveCaptionJob = {
+        projectId: started.projectId,
+        generationId: started.generationId,
+        tool,
+        filename: upload.filename,
+        usingStyle,
+        options,
+        clip,
+        selectedPreset: state.selectedPreset,
+        language: state.language,
+        translate: state.translate,
+        script: state.script,
+        resolution: state.resolution,
+        enableEmojis: state.enableEmojis,
+        enableHighlights: state.enableHighlights,
+        startedAt: Date.now(),
+        checks: 0,
+        lastStatus: started.status as ReapStatusResponse["status"],
+      };
+      saveActiveCaptionJob(job);
+      await pollCaptionJob(job);
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
@@ -923,6 +938,132 @@ export function AddCaptionsPage(): HTMLElement {
       state.busy = false;
       render();
     }
+  }
+
+  async function resumeStoredCaptionJob() {
+    const job = readActiveCaptionJob();
+    if (!job) return;
+    hydrateFromCaptionJob(job);
+    state.busy = true;
+    render();
+    pushDebugLines([
+      "Saved Reap Job Found: TRUE",
+      `Reap Job ID: ${job.generationId}`,
+      `Reap Project ID: ${job.projectId}`,
+      `Reap Tool: ${job.tool}`,
+      `Status Checks: ${job.checks}`,
+    ]);
+    resultArea.replaceChildren(progressCard({
+      title: job.tool === "captions" ? "Resuming captions..." : "Resuming transcription...",
+      status: "Saved job found. Checking Reap status now.",
+      elapsed: formatElapsed(Date.now() - job.startedAt),
+      checks: job.checks,
+      progress: job.lastProgress,
+    }));
+    try {
+      await pollCaptionJob(job);
+    } catch (err) {
+      const message = (err as Error).message;
+      pushDebugLines([
+        "Job Completed: FALSE",
+        "Final Result: FAILED",
+        `Failure: ${message}`,
+      ]);
+      resultArea.replaceChildren(errorCard(message));
+      toast(message, "error");
+    } finally {
+      if (!disposed) {
+        state.busy = false;
+        render();
+      }
+    }
+  }
+
+  async function pollCaptionJob(initialJob: ActiveCaptionJob) {
+    let job = initialJob;
+    const session = ++pollSession;
+    hydrateFromCaptionJob(job);
+    state.busy = true;
+    render();
+
+    let firstCheck = true;
+    while (!disposed && session === pollSession) {
+      if (!firstCheck) await delay(REAP_POLL_INTERVAL_MS);
+      firstCheck = false;
+      if (disposed || session !== pollSession) return;
+
+      const status = await reapAdapter.pollJob(job.projectId, job.generationId);
+      job = {
+        ...job,
+        checks: job.checks + 1,
+        lastStatus: status.status,
+        lastProgress: status.progress,
+      };
+      saveActiveCaptionJob(job);
+
+      const elapsed = formatElapsed(Date.now() - job.startedAt);
+      pushDebugLines([
+        `Job Status: ${status.status.toUpperCase()}`,
+        `Job Progress: ${typeof status.progress === "number" ? `${Math.round(status.progress)}%` : "UNKNOWN"}`,
+        `Status Checks: ${job.checks}`,
+      ]);
+
+      if (status.status === "queued") {
+        resultArea.replaceChildren(progressCard({
+          title: "Queued in Reap...",
+          status: "Waiting for processing to start",
+          elapsed,
+          checks: job.checks,
+          progress: status.progress,
+        }));
+      } else if (status.status === "processing") {
+        const pct = typeof status.progress === "number" ? ` ${Math.round(status.progress)}%` : "";
+        resultArea.replaceChildren(progressCard({
+          title: `${job.usingStyle ? "Rendering captions" : "Transcribing"}${pct}...`,
+          status: typeof status.progress === "number"
+            ? "Reap is processing the captions"
+            : "Reap is processing. Percentage is not available yet",
+          elapsed,
+          checks: job.checks,
+          progress: status.progress,
+        }));
+      }
+
+      if (!isTerminalStatus(status.status)) continue;
+
+      if (status.status !== "completed") {
+        clearActiveCaptionJob();
+        throw new Error(status.error ?? `Reap returned status: ${status.status}`);
+      }
+
+      clearActiveCaptionJob();
+      const final = {
+        ...status,
+        projectId: job.projectId,
+        generationId: job.generationId,
+      } as ReapStatusResponse & { projectId: string; generationId: string };
+      pushDebugLines([
+        "Reap Job Started: TRUE",
+        `Reap Job ID: ${job.generationId}`,
+        `Reap Project ID: ${job.projectId}`,
+        "Job Completed: TRUE",
+        `Job Status: ${status.status.toUpperCase()}`,
+      ]);
+      await handleCompleted(final, job.usingStyle);
+      return;
+    }
+  }
+
+  function hydrateFromCaptionJob(job: ActiveCaptionJob) {
+    state.clip = job.clip;
+    state.selectedPreset = job.selectedPreset;
+    state.language = job.language;
+    state.translate = job.translate;
+    state.script = job.script;
+    state.resolution = job.resolution;
+    state.enableEmojis = job.enableEmojis;
+    state.enableHighlights = job.enableHighlights;
+    state.manualOverride = job.clip.origin !== "timeline";
   }
 
   async function uploadClip(
@@ -1415,6 +1556,31 @@ function errorCard(message: string): HTMLElement {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
+
+function readActiveCaptionJob(): ActiveCaptionJob | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_CAPTION_JOB_KEY);
+    return raw ? JSON.parse(raw) as ActiveCaptionJob : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveActiveCaptionJob(job: ActiveCaptionJob) {
+  localStorage.setItem(ACTIVE_CAPTION_JOB_KEY, JSON.stringify(job));
+}
+
+function clearActiveCaptionJob() {
+  localStorage.removeItem(ACTIVE_CAPTION_JOB_KEY);
+}
+
+function isTerminalStatus(status: ReapStatusResponse["status"]): boolean {
+  return status === "completed" || status === "failed" || status === "invalid" || status === "expired";
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function pickSrtUrl(status: ReapStatusResponse): string | null {
   for (const url of status.urls ?? []) {

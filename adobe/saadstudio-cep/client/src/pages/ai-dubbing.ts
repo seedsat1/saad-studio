@@ -1,4 +1,4 @@
-/** AI Dubbing — Reap /create-dubbing. */
+/** AI Dubbing - Reap /create-dubbing. */
 
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
@@ -22,7 +22,24 @@ interface SourceClip {
   origin: "timeline" | "upload";
 }
 
+interface ActiveDubbingJob {
+  projectId: string;
+  generationId: string;
+  filename: string;
+  sourcePath: string;
+  sourceName: string;
+  sourceOrigin: SourceClip["origin"];
+  sourceLanguage: string;
+  targetLanguage: string;
+  startedAt: number;
+  checks: number;
+  lastStatus?: ReapStatusResponse["status"];
+  lastProgress?: number;
+}
+
 const EMPTY_LANGUAGES: LanguageOption[] = [];
+const ACTIVE_DUBBING_JOB_KEY = "saadstudio.aiDubbing.activeJob";
+const REAP_POLL_INTERVAL_MS = 12_000;
 
 let cachedSource: LanguageOption[] | null = null;
 let cachedTarget: LanguageOption[] | null = null;
@@ -41,6 +58,8 @@ export function AIDubbingPage(): HTMLElement {
   const body = el("div.app-main");
   const page = el("div.ai-dubbing-page");
   const resultArea = el("div.ai-dubbing-result");
+  let disposed = false;
+  let pollSession = 0;
   body.appendChild(page);
 
   const root = el("div.col", { style: { height: "100%" } },
@@ -50,7 +69,7 @@ export function AIDubbingPage(): HTMLElement {
   );
 
   const watcher = watchTimelineSelection((clip) => {
-    if (!clip?.path || state.clip?.origin === "upload") return;
+    if (state.busy || !clip?.path || state.clip?.origin === "upload") return;
     state.clip = {
       path: clip.path,
       name: clip.name ?? guessName(clip.path),
@@ -72,6 +91,15 @@ export function AIDubbingPage(): HTMLElement {
   });
 
   render();
+  requestAnimationFrame(function watchDispose() {
+    if (!root.isConnected) {
+      disposed = true;
+      pollSession += 1;
+      return;
+    }
+    requestAnimationFrame(watchDispose);
+  });
+  void resumeStoredJob();
   return root;
 
   function render() {
@@ -217,33 +245,30 @@ export function AIDubbingPage(): HTMLElement {
       const uploadId = await uploadDirect(state.clip, filename);
       resultArea.replaceChildren(progressCard("Starting dubbing...", "Creating a Reap dubbing project."));
 
-      const startedAt = Date.now();
-      let checks = 0;
-      const final = await reap.run(
-        {
-          tool: "dubbing",
-          uploadId,
-          filename,
-          options: {
-            sourceLanguage: state.sourceLanguage,
-            targetLanguage: state.targetLanguage,
-          },
+      const started = await reap.start({
+        tool: "dubbing",
+        uploadId,
+        filename,
+        options: {
+          sourceLanguage: state.sourceLanguage,
+          targetLanguage: state.targetLanguage,
         },
-        (status) => {
-          checks += 1;
-          const elapsed = formatElapsed(Date.now() - startedAt);
-          resultArea.replaceChildren(progressCard(
-            status.status === "queued" ? "Queued..." : "Dubbing...",
-            `Elapsed ${elapsed} • Checks ${checks}`,
-            status.progress,
-          ));
-        },
-      );
-
-      if (final.status !== "completed") {
-        throw new Error(final.error ?? `Reap job ${final.status}`);
-      }
-      await importDubbedResult(final);
+      });
+      const job: ActiveDubbingJob = {
+        projectId: started.projectId,
+        generationId: started.generationId,
+        filename,
+        sourcePath: state.clip.path,
+        sourceName: state.clip.name,
+        sourceOrigin: state.clip.origin,
+        sourceLanguage: state.sourceLanguage,
+        targetLanguage: state.targetLanguage,
+        startedAt: Date.now(),
+        checks: 0,
+        lastStatus: started.status as ReapStatusResponse["status"],
+      };
+      saveActiveDubbingJob(job);
+      await pollDubbingJob(job);
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
@@ -253,6 +278,82 @@ export function AIDubbingPage(): HTMLElement {
       state.busy = false;
       render();
     }
+  }
+
+  async function resumeStoredJob() {
+    const job = readActiveDubbingJob();
+    if (!job) return;
+    hydrateFromJob(job);
+    state.busy = true;
+    render();
+    resultArea.replaceChildren(progressCard(
+      "Resuming dubbing...",
+      `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      job.lastProgress,
+    ));
+    try {
+      await pollDubbingJob(job);
+    } catch (err) {
+      resultArea.replaceChildren(errorCard((err as Error).message));
+      toast((err as Error).message, "error");
+    } finally {
+      if (!disposed) {
+        state.busy = false;
+        render();
+      }
+    }
+  }
+
+  async function pollDubbingJob(initialJob: ActiveDubbingJob) {
+    let job = initialJob;
+    const session = ++pollSession;
+    hydrateFromJob(job);
+    state.busy = true;
+    render();
+
+    let firstCheck = true;
+    while (!disposed && session === pollSession) {
+      if (!firstCheck) await delay(REAP_POLL_INTERVAL_MS);
+      firstCheck = false;
+      if (disposed || session !== pollSession) return;
+
+      const status = await reap.status(job.projectId, job.generationId);
+      job = {
+        ...job,
+        checks: job.checks + 1,
+        lastStatus: status.status,
+        lastProgress: status.progress,
+      };
+      saveActiveDubbingJob(job);
+
+      const elapsed = formatElapsed(Date.now() - job.startedAt);
+      resultArea.replaceChildren(progressCard(
+        status.status === "queued" ? "Queued..." : "Dubbing...",
+        `Elapsed ${elapsed} - Checks ${job.checks}`,
+        status.progress,
+      ));
+
+      if (!isTerminalStatus(status.status)) continue;
+
+      if (status.status !== "completed") {
+        clearActiveDubbingJob();
+        throw new Error(status.error ?? `Reap job ${status.status}`);
+      }
+
+      clearActiveDubbingJob();
+      await importDubbedResult(status);
+      return;
+    }
+  }
+
+  function hydrateFromJob(job: ActiveDubbingJob) {
+    state.clip = {
+      path: job.sourcePath,
+      name: job.sourceName,
+      origin: job.sourceOrigin,
+    };
+    state.sourceLanguage = job.sourceLanguage;
+    state.targetLanguage = job.targetLanguage;
   }
 
   async function importDubbedResult(final: ReapStatusResponse) {
@@ -348,6 +449,31 @@ function collectStrings(value: unknown, depth = 0): string[] {
   if (Array.isArray(value)) return value.flatMap((item) => collectStrings(item, depth + 1));
   if (typeof value !== "object") return [];
   return Object.values(value as Record<string, unknown>).flatMap((item) => collectStrings(item, depth + 1));
+}
+
+function readActiveDubbingJob(): ActiveDubbingJob | null {
+  try {
+    const raw = localStorage.getItem(ACTIVE_DUBBING_JOB_KEY);
+    return raw ? JSON.parse(raw) as ActiveDubbingJob : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveActiveDubbingJob(job: ActiveDubbingJob) {
+  localStorage.setItem(ACTIVE_DUBBING_JOB_KEY, JSON.stringify(job));
+}
+
+function clearActiveDubbingJob() {
+  localStorage.removeItem(ACTIVE_DUBBING_JOB_KEY);
+}
+
+function isTerminalStatus(status: ReapStatusResponse["status"]): boolean {
+  return status === "completed" || status === "failed" || status === "invalid" || status === "expired";
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function ensureReapVideoFilename(filename: string): string {
