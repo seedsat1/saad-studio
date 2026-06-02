@@ -16,7 +16,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
-import { PromptDock, type DockOption } from "../components/prompt-dock";
+import { PromptDock, type DockOption, type DockToggle } from "../components/prompt-dock";
 import { icon } from "../lib/icons";
 import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, reap, type ReapTool, type ReapStatusResponse } from "../lib/api";
@@ -31,12 +31,23 @@ export interface ReapToolConfig {
   hint?: string;
   /** Tool-specific selector pills (language, aspect, preset, …). */
   options: DockOption[];
+  /** Inline checkboxes rendered after the pills (e.g. "Editable captions"). */
+  toggles?: DockToggle[];
   /** Show the textarea so the user can describe what they want. */
   showPrompt?: boolean;
+  /** Allow Submit even when the user typed no prompt and attached no file.
+   *  Tools driven by a timeline clip (AI Clip Maker, Auto-Reframe, etc.)
+   *  should set this true so a selected clip alone is enough to generate. */
+  allowEmptySubmit?: boolean;
   /** Turn the dock-selected options into the body sent to /reap/start. */
   buildOptions: (vals: Record<string, string>) => Record<string, unknown>;
-  /** Custom result renderer; defaults to a <video controls> + Import button. */
-  renderResult?: (status: ReapStatusResponse) => HTMLElement;
+  /** Custom result renderer; defaults to a <video controls> + Import button.
+   *  Receives the dock state so renderers can branch on user-picked options
+   *  (e.g. "editable captions" in Edit Clips). */
+  renderResult?: (
+    status: ReapStatusResponse,
+    vals: { prompt: string; options: Record<string, string> },
+  ) => HTMLElement;
 }
 
 interface SourceClip {
@@ -117,19 +128,39 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
   function showOptions(clip: SourceClip) {
     const previewSrc = pathToVideoSrc(clip.path);
+    // Let the video pick its own intrinsic aspect ratio. Wrapped in a flex
+    // centered container so portrait/landscape sources never get
+    // pillar/letterboxed by a hard 100% width.
     const preview = el("video", {
       src: previewSrc,
       controls: "true",
       muted: "true",
       preload: "metadata",
-      style: { width: "100%", maxHeight: "240px", background: "#000",
-               borderRadius: "10px", display: "block" },
+      style: {
+        maxWidth: "100%",
+        maxHeight: "320px",
+        height: "auto",
+        background: "transparent",
+        borderRadius: "10px",
+        display: "block",
+      },
     });
+    const previewWrap = el("div", {
+      style: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
+        background: "#000",
+        borderRadius: "10px",
+        overflow: "hidden",
+      },
+    }, preview);
 
     const status = el("div.state-card",
       { style: { marginBottom: "16px", padding: "12px" } },
       el("div.col.gap-3", null,
-        preview,
+        previewWrap,
         el("div.row.gap-3", { style: { alignItems: "center" } },
           el("div.state-card__icon",
             { style: { margin: "0", flexShrink: "0" } }, icon("video", 18)),
@@ -156,6 +187,8 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
         ? "Optional: extra instructions for the tool…"
         : undefined,
       options: cfg.options,
+      toggles: cfg.toggles,
+      allowEmptySubmit: cfg.allowEmptySubmit,
       onSubmit: ({ prompt, options }) => runJob(clip, prompt, options, results),
     });
     body.appendChild(dock);
@@ -203,7 +236,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
       //    Everything else: auto-drop the asset on the timeline so the
       //    user doesn't have to click an extra Import button.
       if (cfg.renderResult) {
-        results.replaceChildren(cfg.renderResult(final));
+        results.replaceChildren(cfg.renderResult(final, { prompt, options }));
       } else {
         await autoImportToTimeline(final, results);
       }

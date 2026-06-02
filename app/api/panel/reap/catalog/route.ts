@@ -39,7 +39,8 @@ function unsupportedEntry<T>(diagnostic: string): CatalogEntry<T> {
 function splitPresets(presets: CatalogPreset[]) {
   const brandTemplates = presets.filter((preset) => preset.source === "user");
   const captionPresets = presets.filter((preset) => preset.source !== "user");
-  return { brandTemplates, captionPresets };
+  const audiogramTemplates = presets.filter((preset) => preset.preferences?.addAudiogram === true);
+  return { brandTemplates, captionPresets, audiogramTemplates };
 }
 
 function mapLanguageOptions(items: ReapRawLanguageOption[]): CatalogLanguage[] {
@@ -82,7 +83,11 @@ export async function GET(req: NextRequest) {
     const presetDiagnosticMessage = presetsResult.status === "rejected"
       ? (presetsResult.reason instanceof Error ? presetsResult.reason.message : String(presetsResult.reason))
       : undefined;
-    const { captionPresets: captionPresetItems, brandTemplates: brandTemplateItems } = splitPresets(presets);
+    const {
+      captionPresets: captionPresetItems,
+      brandTemplates: brandTemplateItems,
+      audiogramTemplates: audiogramTemplateItems,
+    } = splitPresets(presets);
 
     const captionPresets: CatalogEntry<CatalogPreset> = {
       items: captionPresetItems,
@@ -98,6 +103,14 @@ export async function GET(req: NextRequest) {
         : "No user Brand Templates were returned by Reap via /get-all-presets.",
     };
 
+    const audiogramTemplates: CatalogEntry<CatalogPreset> = {
+      items: audiogramTemplateItems,
+      source: "derived",
+      diagnostic: audiogramTemplateItems.length
+        ? undefined
+        : "Reap /get-all-presets returned no presets with preferences.addAudiogram=true.",
+    };
+
     const diagnostics = {
       captionPresets: presetDiagnostics.status === "fulfilled" ? presetDiagnostics.value : {
         ok: false,
@@ -106,7 +119,7 @@ export async function GET(req: NextRequest) {
       unsupported: {
         voices: "No documented Reap automation catalog endpoint for voices was found during phase 1.",
         reframeOptions: "No documented Reap automation catalog endpoint for reframe options was found during phase 1.",
-        audiogramTemplates: "No documented Reap automation catalog endpoint for audiogram templates was found during phase 1.",
+        audiogramTemplates: "No standalone audiogram template endpoint is documented; derived from /get-all-presets where preferences.addAudiogram=true.",
       },
     };
 
@@ -117,7 +130,7 @@ export async function GET(req: NextRequest) {
       voices: unsupportedEntry("Reap voice catalog endpoint is not exposed in the public automation API currently used by the panel."),
       dubbingLanguages,
       reframeOptions: unsupportedEntry("Reap reframe options are configured per job, but no public catalog endpoint is documented for them."),
-      audiogramTemplates: unsupportedEntry("Reap audiogram templates appear in product docs, but no public automation catalog endpoint is documented for them."),
+      audiogramTemplates,
       diagnostics,
     });
   } catch (err) {

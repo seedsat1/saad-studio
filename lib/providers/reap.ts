@@ -234,6 +234,7 @@ export function normalizeReapOptions(tool: ReapTool, raw: Record<string, unknown
       text: pickString(raw.text),
       logoUploadId: pickString(raw.logoUploadId),
       backgroundUploadId: pickString(raw.backgroundUploadId),
+      captionsPreset: pickString(raw.captionsPreset) ?? pickString(raw.brandTemplateId) ?? pickString(raw.templateId),
       language: pickString(raw.language),
       translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
       transcriptionScript,

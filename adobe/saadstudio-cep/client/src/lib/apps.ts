@@ -107,8 +107,8 @@ export const APPS: AppDef[] = [
   },
   {
     id: "edit-clips",
-    name: "Edit Videos",
-    description: "Cut short-form clips out of a long source.",
+    name: "AI Clip Maker",
+    description: "Cut viral short clips from a long video using AI.",
     route: "/edit-clips",
     icon: "cut",
     color: "#f0abfc", // pink-violet

@@ -19,6 +19,15 @@ export interface DockOption {
   onPick?: () => Promise<string | null> | string | null;
 }
 
+/** Boolean checkbox toggle. State is exposed in `options` as "on" / "off"
+ *  so consumers can read it uniformly alongside pill values. */
+export interface DockToggle {
+  key: string;
+  label: string;
+  value: boolean;
+  hidden?: (state: DockState) => boolean;
+}
+
 export interface DockConfig {
   placeholder?: string;
   showAttach?: boolean;
@@ -28,6 +37,8 @@ export interface DockConfig {
    *  pills + submit and `state.prompt` is always "". */
   hidePrompt?: boolean;
   options: DockOption[];
+  /** Optional inline checkboxes rendered after the pills. */
+  toggles?: DockToggle[];
   onAttach?: (files: FileList) => void;
   onSubmit: (state: DockState) => void;
 }
@@ -46,7 +57,10 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   const state: DockState = {
     prompt: "",
     attachments: [],
-    options: Object.fromEntries(cfg.options.map((o) => [o.key, o.value])),
+    options: {
+      ...Object.fromEntries(cfg.options.map((o) => [o.key, o.value])),
+      ...Object.fromEntries((cfg.toggles ?? []).map((t) => [t.key, t.value ? "on" : "off"])),
+    },
   };
   let busy = false;
   let dragDepth = 0;
@@ -171,6 +185,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   ) as HTMLButtonElement;
   const optionButtons: HTMLButtonElement[] = [];
   const optionEntries: Array<{ opt: DockOption; pill: HTMLButtonElement }> = [];
+  const toggleEntries: Array<{ toggle: DockToggle; button: HTMLButtonElement }> = [];
   const statusText = el("span", null, "Generating…");
   const statusLine = el("div.prompt-dock__status", {
     style: { display: "none" },
@@ -204,6 +219,31 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
         document.createTextNode(labelFor(entry.opt, state.options[entry.opt.key], options)),
         icon("chevron-down", 12),
       );
+    }
+  };
+
+  const refreshToggles = () => {
+    for (const entry of toggleEntries) {
+      const isOn = state.options[entry.toggle.key] === "on";
+      const hidden = Boolean(entry.toggle.hidden?.(state));
+      entry.button.style.display = hidden ? "none" : "";
+      entry.button.classList.toggle("dock-button--active", isOn);
+      entry.button.setAttribute("aria-pressed", isOn ? "true" : "false");
+      const box = el("span", {
+        style: {
+          display: "inline-flex",
+          width: "14px",
+          height: "14px",
+          borderRadius: "3px",
+          border: "1.5px solid currentColor",
+          alignItems: "center",
+          justifyContent: "center",
+          marginRight: "6px",
+          background: isOn ? "currentColor" : "transparent",
+          color: isOn ? "var(--accent-contrast, #fff)" : "currentColor",
+        },
+      }, isOn ? icon("check", 10) : null);
+      entry.button.replaceChildren(box, document.createTextNode(entry.toggle.label));
     }
   };
 
@@ -242,8 +282,23 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     optionRow.appendChild(pill);
   }
 
+  for (const toggle of cfg.toggles ?? []) {
+    const button = el("button.dock-button", {
+      "aria-pressed": "false",
+      onClick: () => {
+        const current = state.options[toggle.key] === "on";
+        state.options[toggle.key] = current ? "off" : "on";
+        refreshToggles();
+      },
+    }) as HTMLButtonElement;
+    optionButtons.push(button);
+    toggleEntries.push({ toggle, button });
+    optionRow.appendChild(button);
+  }
+
   optionRow.appendChild(submitBtn);
   refreshOptionPills();
+  refreshToggles();
 
   const dropHint = el("div.prompt-dock__drop-hint", { "aria-hidden": "true" }, icon("plus", 14), "Drop files here");
   const root = el("div.prompt-dock", {
