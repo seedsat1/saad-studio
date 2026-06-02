@@ -9,7 +9,7 @@
  *   5. Render the final asset (or transcript JSON) with an Import button
  *      so the user can drop the result back onto the timeline.
  *
- * Each tool page (Add Captions, AI Dubbing, …) is a tiny wrapper around
+ * Each tool page (Add Captions, AI Dubbing, â€¦) is a tiny wrapper around
  * this shell that supplies its own options dock and (optionally) a
  * custom result renderer. */
 
@@ -29,7 +29,7 @@ export interface ReapToolConfig {
   tool: ReapTool;
   /** Optional text shown in the empty state. */
   hint?: string;
-  /** Tool-specific selector pills (language, aspect, preset, …). */
+  /** Tool-specific selector pills (language, aspect, preset, â€¦). */
   options: DockOption[];
   /** Inline checkboxes rendered after the pills (e.g. "Editable captions"). */
   toggles?: DockToggle[];
@@ -54,9 +54,26 @@ interface SourceClip {
   path: string;
   name?: string;
   origin: "timeline" | "upload";
-  /** Whatever the upload step produced — populated lazily. */
+  /** Whatever the upload step produced â€” populated lazily. */
   publicUrl?: string;
 }
+
+interface ActiveReapToolJob {
+  tool: ReapTool;
+  title: string;
+  projectId: string;
+  generationId: string;
+  filename: string;
+  clip: SourceClip;
+  prompt: string;
+  options: Record<string, string>;
+  startedAt: number;
+  checks: number;
+  lastStatus?: ReapStatusResponse["status"];
+  lastProgress?: number;
+}
+
+const REAP_POLL_INTERVAL_MS = 12_000;
 
 export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
   const body = el("div.app-main");
@@ -68,11 +85,15 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
   let mode: "auto" | "uploaded" = "auto";
   let currentClipKey: string | null = null;
+  let currentResults: HTMLElement | null = null;
+  let busy = false;
+  let disposed = false;
+  let pollSession = 0;
 
   showEmpty();
 
   const watcher = watchTimelineSelection((clip) => {
-    if (mode === "uploaded") return;
+    if (busy || mode === "uploaded") return;
     const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : null;
     if (key === currentClipKey) return;
     currentClipKey = key;
@@ -81,9 +102,19 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
   });
   watcher.attachTo(root);
 
+  requestAnimationFrame(function watchDispose() {
+    if (!root.isConnected) {
+      disposed = true;
+      pollSession += 1;
+      return;
+    }
+    requestAnimationFrame(watchDispose);
+  });
+  void resumeStoredJob();
+
   return root;
 
-  // ─── States ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function showEmpty() {
     const inside = isInsideAdobe();
@@ -180,11 +211,12 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     );
 
     const results = el("div.col.gap-3");
+    currentResults = results;
     body.replaceChildren(status, results);
 
     const dock = PromptDock({
       placeholder: cfg.showPrompt
-        ? "Optional: extra instructions for the tool…"
+        ? "Optional: extra instructions for the toolâ€¦"
         : undefined,
       options: cfg.options,
       toggles: cfg.toggles,
@@ -200,57 +232,125 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     options: Record<string, string>,
     results: HTMLElement,
   ) {
+    busy = true;
     try {
       const filename = clip.name ?? `clip-${Date.now()}.mp4`;
 
-      // 1) Push the source DIRECTLY to Reap's presigned URL (no R2 hop).
-      results.replaceChildren(busyCard("Uploading to Reap…"));
+      results.replaceChildren(busyCard("Uploading to Reap..."));
       const uploadId = await uploadSourceDirect(clip, filename);
 
-      // 2) Kick off the tool with the uploadId.
-      results.replaceChildren(busyCard("Starting Reap job…"));
+      results.replaceChildren(busyCard("Starting Reap job..."));
+      const started = await reap.start({
+        tool: cfg.tool,
+        uploadId,
+        filename,
+        options: cfg.buildOptions(options),
+        prompt,
+      });
 
-      const final = await reap.run(
-        {
-          tool: cfg.tool,
-          uploadId,
-          filename,
-          options: cfg.buildOptions(options),
-          prompt,
-        },
-        (s) => {
-          if (s.status === "queued") results.replaceChildren(busyCard("Queued…"));
-          else if (s.status === "processing") {
-            const pct = typeof s.progress === "number"
-              ? ` ${Math.round(s.progress)}%` : "";
-            results.replaceChildren(busyCard(`Processing${pct}…`));
-          }
-        },
-      );
-
-      if (final.status !== "completed") {
-        throw new Error(final.error ?? `Reap job ${final.status}`);
-      }
-
-      // 3) Custom result renderers (e.g. Transcription) get full control.
-      //    Everything else: auto-drop the asset on the timeline so the
-      //    user doesn't have to click an extra Import button.
-      if (cfg.renderResult) {
-        results.replaceChildren(cfg.renderResult(final, { prompt, options }));
-      } else {
-        await autoImportToTimeline(final, results);
-      }
+      const job: ActiveReapToolJob = {
+        tool: cfg.tool,
+        title: cfg.title,
+        projectId: started.projectId,
+        generationId: started.generationId,
+        filename,
+        clip,
+        prompt,
+        options,
+        startedAt: Date.now(),
+        checks: 0,
+        lastStatus: started.status as ReapStatusResponse["status"],
+      };
+      saveActiveJob(job);
+      await pollJob(job, results);
 
       store.refreshCreditsOnly();
       store.refreshRecent();
     } catch (err) {
       results.replaceChildren(errorCard((err as Error).message));
       toast((err as Error).message, "error");
+    } finally {
+      busy = false;
+    }
+  }
+
+  async function resumeStoredJob() {
+    const job = readActiveJob(cfg.tool);
+    if (!job || job.tool !== cfg.tool) return;
+    mode = job.clip.origin === "upload" ? "uploaded" : "auto";
+    currentClipKey = `${job.clip.path}|resume`;
+    showOptions(job.clip);
+    const results = currentResults;
+    if (!results) return;
+
+    busy = true;
+    results.replaceChildren(progressCard({
+      title: `Resuming ${cfg.title}...`,
+      status: `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      progress: job.lastProgress,
+    }));
+    try {
+      await pollJob(job, results);
+      store.refreshCreditsOnly();
+      store.refreshRecent();
+    } catch (err) {
+      results.replaceChildren(errorCard((err as Error).message));
+      toast((err as Error).message, "error");
+    } finally {
+      if (!disposed) busy = false;
+    }
+  }
+
+  async function pollJob(initialJob: ActiveReapToolJob, results: HTMLElement) {
+    let job = initialJob;
+    const session = ++pollSession;
+    let firstCheck = true;
+
+    while (!disposed && session === pollSession) {
+      if (!firstCheck) await delay(REAP_POLL_INTERVAL_MS);
+      firstCheck = false;
+      if (disposed || session !== pollSession) return;
+
+      const status = await reap.status(job.projectId, job.generationId);
+      job = {
+        ...job,
+        checks: job.checks + 1,
+        lastStatus: status.status,
+        lastProgress: status.progress,
+      };
+      saveActiveJob(job);
+
+      const pct = typeof status.progress === "number" ? ` ${Math.round(status.progress)}%` : "";
+      results.replaceChildren(progressCard({
+        title: status.status === "queued" ? "Queued..." : `Processing${pct}...`,
+        status: `Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+        progress: status.progress,
+      }));
+
+      if (!isTerminalStatus(status.status)) continue;
+      if (status.status !== "completed") {
+        clearActiveJobForTool(cfg.tool);
+        throw new Error(status.error ?? `Reap job ${status.status}`);
+      }
+
+      clearActiveJobForTool(cfg.tool);
+      const final = {
+        ...status,
+        projectId: job.projectId,
+        generationId: job.generationId,
+      } as ReapStatusResponse & { projectId: string; generationId: string };
+
+      if (cfg.renderResult) {
+        results.replaceChildren(cfg.renderResult(final, { prompt: job.prompt, options: job.options }));
+      } else {
+        await autoImportToTimeline(final, results);
+      }
+      return;
     }
   }
 
   async function uploadSourceDirect(clip: SourceClip, filename: string): Promise<string> {
-    // Source is already a public http(s) URL — fetch then PUT to Reap.
+    // Source is already a public http(s) URL â€” fetch then PUT to Reap.
     if (/^https?:\/\//i.test(clip.path)) {
       const blob = await fetch(clip.path).then((r) => r.blob());
       return reap.uploadDirect({ kind: "blob", blob, name: filename });
@@ -262,7 +362,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
       return reap.uploadDirect({ kind: "blob", blob, name: filename });
     }
 
-    // Local FS path from the timeline or the file picker — let the Node
+    // Local FS path from the timeline or the file picker â€” let the Node
     // bridge read the bytes and PUT them directly.
     return reap.uploadDirect({ kind: "path", path: clip.path, name: filename });
   }
@@ -278,13 +378,13 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     }
 
     try {
-      results.replaceChildren(busyCard("Adding to timeline…"));
+      results.replaceChildren(busyCard("Adding to timelineâ€¦"));
       const local = await api.downloadAsset(url, `reap-${Date.now()}.mp4`);
       const placed = await evalES<{ ok: boolean; placed: boolean; reason?: string }>(
         "importAndPlaceOnTimeline", local,
       );
 
-      results.replaceChildren(successCard(url, placed));
+      results.replaceChildren(successCard(url, placed, local));
       toast(
         placed?.placed ? "Added to timeline" : "Imported to project bin",
         "success",
@@ -300,17 +400,10 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 function successCard(
   url: string,
   placed: { ok: boolean; placed: boolean; reason?: string } | null,
+  localPath?: string,
 ): HTMLElement {
   return el("div.col.gap-3", null,
-    el("div", {
-      style: { borderRadius: "14px", overflow: "hidden",
-               background: "var(--bg-card)", border: "1px solid var(--line-soft)" },
-    },
-      el("video", {
-        src: url, controls: "true",
-        style: { width: "100%", display: "block" },
-      }),
-    ),
+    draggableVideoFrame(url, `reap-${Date.now()}.mp4`, localPath),
     el("div.state-card",
       { style: { padding: "12px", textAlign: "left" } },
       el("div.row.gap-2",
@@ -322,29 +415,79 @@ function successCard(
             placed?.placed ? "Added to your timeline" : "Imported to project bin"),
           el("div.dim", { style: { fontSize: "11px" } },
             placed?.placed
-              ? "Open Premiere to see the clip on the active sequence."
-              : (placed?.reason ?? "Drag from the project bin onto the timeline.")),
+              ? "Open Premiere to see the clip on the active sequence, or drag the preview again."
+              : (placed?.reason ?? "Drag the preview from here onto the timeline.")),
         ),
       ),
     ),
   );
 }
 
-// ─── Result + state cards ────────────────────────────────────────────────
+function draggableVideoFrame(url: string, fileName: string, initialLocalPath?: string): HTMLElement {
+  let dragPath: string | null = initialLocalPath ?? null;
+  let dragPending: Promise<string> | null = null;
+
+  const warmDragAsset = async () => {
+    if (dragPath) return dragPath;
+    if (dragPending) return dragPending;
+    dragPending = api.downloadAsset(url, fileName)
+      .then((local) => {
+        dragPath = local;
+        dragPending = null;
+        return local;
+      })
+      .catch((err) => {
+        dragPending = null;
+        throw err;
+      });
+    return dragPending;
+  };
+
+  return el("div", {
+    style: {
+      borderRadius: "14px",
+      overflow: "hidden",
+      background: "var(--bg-card)",
+      border: "1px solid var(--line-soft)",
+      cursor: "grab",
+      userSelect: "none",
+    },
+    draggable: "true",
+    title: "Drag onto the timeline",
+    onMouseenter: () => { void warmDragAsset(); },
+    onPointerdown: () => { void warmDragAsset(); },
+    onDragstart: (ev: Event) => {
+      const e = ev as DragEvent;
+      const transfer = e.dataTransfer;
+      if (!transfer) return;
+      if (!dragPath) {
+        e.preventDefault();
+        void warmDragAsset();
+        toast("Preparing asset for drag. Drag again in a second.", "info");
+        return;
+      }
+      const fileUri = toFileUri(dragPath);
+      transfer.effectAllowed = "copy";
+      transfer.setData("com.adobe.cep.dnd.file.count", "1");
+      transfer.setData("com.adobe.cep.dnd.file.0", dragPath);
+      transfer.setData("text/plain", dragPath);
+      transfer.setData("text/uri-list", fileUri);
+      transfer.setData("DownloadURL", `video/mp4:${fileName}:${fileUri}`);
+    },
+  },
+      el("video", {
+        src: url, controls: "true",
+        style: { width: "100%", display: "block" },
+      }),
+  );
+}
+
+// â”€â”€â”€ Result + state cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function defaultResult(status: ReapStatusResponse): HTMLElement {
   const url = status.url ?? status.urls?.[0] ?? "";
   return el("div.col.gap-3", null,
-    el("div", {
-      style: { borderRadius: "14px", overflow: "hidden",
-               background: "var(--bg-card)", border: "1px solid var(--line-soft)" },
-    },
-      el("video", {
-        src: url,
-        controls: "true",
-        style: { width: "100%", display: "block" },
-      }),
-    ),
+    draggableVideoFrame(url, `reap-${Date.now()}.mp4`),
     el("div.row.gap-2", { style: { marginTop: "12px" } },
       el("button.btn-primary",
         {
@@ -373,6 +516,20 @@ function busyCard(text: string): HTMLElement {
   );
 }
 
+function progressCard(args: { title: string; status: string; progress?: number }): HTMLElement {
+  const pct = typeof args.progress === "number"
+    ? Math.max(0, Math.min(100, Math.round(args.progress)))
+    : null;
+  return el("div.state-card", null,
+    el("div.state-card__icon", null, icon("spark", 22)),
+    el("div.state-card__title", null, args.title),
+    el("div.state-card__subtitle", null, args.status),
+    el("div.captions-progress" + (pct == null ? ".captions-progress--indeterminate" : ""), null,
+      el("div.captions-progress__bar", { style: pct == null ? undefined : { width: `${pct}%` } }),
+    ),
+  );
+}
+
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
     el("div.state-card__title", null, "Failed"),
@@ -380,9 +537,53 @@ function errorCard(message: string): HTMLElement {
   );
 }
 
+function activeJobKey(tool: ReapTool): string {
+  return `saadstudio.reap.${tool}.activeJob`;
+}
+
+function readActiveJob(tool: ReapTool): ActiveReapToolJob | null {
+  try {
+    const raw = localStorage.getItem(activeJobKey(tool));
+    return raw ? JSON.parse(raw) as ActiveReapToolJob : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveActiveJob(job: ActiveReapToolJob) {
+  localStorage.setItem(activeJobKey(job.tool), JSON.stringify(job));
+}
+
+function clearActiveJobForTool(tool: ReapTool) {
+  localStorage.removeItem(activeJobKey(tool));
+}
+
+function isTerminalStatus(status: ReapStatusResponse["status"]): boolean {
+  return status === "completed" || status === "failed" || status === "invalid" || status === "expired";
+}
+
+function formatElapsed(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function toFileUri(localPath: string): string {
+  const normalized = localPath.replace(/\\/g, "/");
+  if (normalized.startsWith("file://")) return normalized;
+  if (/^[a-zA-Z]:\//.test(normalized)) return `file:///${normalized}`;
+  if (normalized.startsWith("/")) return `file://${normalized}`;
+  return `file:///${normalized}`;
+}
+
 function shortenPath(p: string, max = 48): string {
   if (p.length <= max) return p;
-  return `${p.slice(0, 12)}…${p.slice(-(max - 15))}`;
+  return `${p.slice(0, 12)}â€¦${p.slice(-(max - 15))}`;
 }
 
 function pathToVideoSrc(p: string): string {

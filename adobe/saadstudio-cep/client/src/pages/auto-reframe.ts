@@ -31,6 +31,7 @@ export function AutoReframePage(): HTMLElement {
     title: "Auto Reframe",
     tool: "reframe",
     hint: "Reframe the source clip to a new orientation while keeping the subject centred.",
+    allowEmptySubmit: true,
     options: [
       { key: "orientation", label: "Orientation", value: "portrait", options: ORIENTATIONS },
       { key: "genre",       label: "Genre",       value: "talking",  options: GENRES },
