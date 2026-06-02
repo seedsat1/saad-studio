@@ -15,17 +15,6 @@ const ORIENTATIONS = [
   { value: "square",   label: "Square (1:1)" },
 ];
 
-const GENRES = [
-  { value: "talking",     label: "Talking head / interview" },
-  { value: "screenshare", label: "Screen share / demo" },
-  { value: "gaming",      label: "Gaming" },
-];
-
-const AUTO_SPLIT = [
-  { value: "on",  label: "Auto-split long videos" },
-  { value: "off", label: "Single output (no split)" },
-];
-
 export function AutoReframePage(): HTMLElement {
   return ReapToolPage({
     title: "Auto Reframe",
@@ -34,13 +23,16 @@ export function AutoReframePage(): HTMLElement {
     allowEmptySubmit: true,
     options: [
       { key: "orientation", label: "Orientation", value: "portrait", options: ORIENTATIONS },
-      { key: "genre",       label: "Genre",       value: "talking",  options: GENRES },
-      { key: "autoSplit",   label: "Split",       value: "on",       options: AUTO_SPLIT },
+    ],
+    toggles: [
+      { key: "faceTracking", label: "Face tracking", value: true },
     ],
     buildOptions: (vals) => ({
       orientation: vals.orientation,
-      genre: vals.genre,
-      disableAutoSplit: vals.autoSplit === "off",
+      // Reap's app exposes "Face tracking", but the Automation API exposes
+      // the analysis mode as `genre`. Map the UI toggle to the closest API modes.
+      genre: vals.faceTracking === "off" ? "screenshare" : "talking",
+      disableAutoSplit: true,
     }),
   });
 }
