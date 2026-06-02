@@ -36,6 +36,7 @@ const KNOWN_TOOLS = new Set<ReapTool>([
   "captions",
   "reframe",
   "dubbing",
+  "audiogram",
   "transcription",
   "edit-videos",
 ]);
@@ -46,6 +47,7 @@ const TOOL_COST: Record<ReapTool, number> = {
   "captions":      50,
   "reframe":       80,
   "dubbing":      120,
+  "audiogram":     80,
   "transcription": 30,
   "edit-videos":  150,
 };
@@ -54,6 +56,7 @@ const TOOL_TO_ASSET_TYPE: Record<ReapTool, "VIDEO" | "TRANSCRIPTION"> = {
   "captions":      "VIDEO",
   "reframe":       "VIDEO",
   "dubbing":       "VIDEO",
+  "audiogram":     "VIDEO",
   "transcription": "TRANSCRIPTION",
   "edit-videos":   "VIDEO",
 };

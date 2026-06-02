@@ -816,6 +816,7 @@ export type ReapTool =
   | "captions"
   | "reframe"
   | "dubbing"
+  | "audiogram"
   | "transcription"
   | "edit-videos";
 

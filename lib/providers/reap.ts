@@ -28,6 +28,7 @@ export type ReapTool =
   | "captions"
   | "reframe"
   | "dubbing"
+  | "audiogram"
   | "transcription"
   | "edit-videos";
 
@@ -212,6 +213,35 @@ export async function requestReapUploadUrl(filename: string): Promise<ReapUpload
 }
 
 export function normalizeReapOptions(tool: ReapTool, raw: Record<string, unknown>): Record<string, unknown> {
+  if (tool === "audiogram") {
+    const transcriptionScriptRaw =
+      pickString(raw.transcriptionScript) ??
+      pickString(raw.script) ??
+      "native";
+    const transcriptionScript = transcriptionScriptRaw.toLowerCase() === "roman" ||
+      transcriptionScriptRaw.toLowerCase() === "latin"
+        ? "roman"
+        : "native";
+    const resolution = Number(raw.resolution ?? raw.exportResolution ?? 720);
+    const translationLanguage =
+      pickString(raw.translationLanguage) ??
+      pickString(raw.translateTo);
+
+    return stripUndefined({
+      template: pickString(raw.template),
+      templateId: pickString(raw.templateId),
+      brandTemplateId: pickString(raw.brandTemplateId),
+      text: pickString(raw.text),
+      logoUploadId: pickString(raw.logoUploadId),
+      backgroundUploadId: pickString(raw.backgroundUploadId),
+      language: pickString(raw.language),
+      translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
+      transcriptionScript,
+      orientation: pickString(raw.orientation) ?? "square",
+      resolution: [720, 1080, 1440, 2160].includes(resolution) ? resolution : 720,
+    });
+  }
+
   if (tool !== "captions") return stripUndefined(raw);
 
   const translationLanguage =
@@ -304,6 +334,20 @@ async function createTool(
   uploadId: string,
   options: Record<string, unknown>,
 ): Promise<string> {
+  if (tool === "audiogram") {
+    try {
+      return await createToolAt("/create-audiogram", uploadId, options);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (!/404|not found|cannot post/i.test(message)) throw err;
+      return createToolAt("/create-clips", uploadId, {
+        ...options,
+        addAudiogram: true,
+        captionsPreset: pickString(options.brandTemplateId) ?? pickString(options.templateId),
+      });
+    }
+  }
+
   const path =
     tool === "captions" ? "/create-captions" :
     tool === "reframe" ? "/create-reframe" :
@@ -311,6 +355,14 @@ async function createTool(
     tool === "transcription" ? "/create-transcription" :
     "/create-clips";
 
+  return createToolAt(path, uploadId, options);
+}
+
+async function createToolAt(
+  path: string,
+  uploadId: string,
+  options: Record<string, unknown>,
+): Promise<string> {
   const res = await reapFetch(path, {
     method: "POST",
     body: JSON.stringify({ uploadId, ...options }),
