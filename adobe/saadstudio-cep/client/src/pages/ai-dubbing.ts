@@ -91,6 +91,7 @@ export function AIDubbingPage(): HTMLElement {
               controls: "true",
               muted: "true",
               preload: "metadata",
+              onLoadedMetadata: (event: Event) => applyVideoAspect(event.currentTarget as HTMLVideoElement),
             })
           : el("div.ai-dubbing-hero__placeholder", null,
               el("span", null, "English"),
@@ -374,4 +375,16 @@ function pathToVideoSrc(path: string): string {
   if (/^[a-zA-Z]:\//.test(forward)) return `file:///${forward}`;
   if (forward.startsWith("/")) return `file://${forward}`;
   return `file:///${forward}`;
+}
+
+function applyVideoAspect(video: HTMLVideoElement) {
+  const width = video.videoWidth;
+  const height = video.videoHeight;
+  if (!width || !height) return;
+  const frame = video.closest(".ai-dubbing-hero") as HTMLElement | null;
+  if (!frame) return;
+  frame.style.aspectRatio = `${width} / ${height}`;
+  frame.style.maxWidth = height > width ? "290px" : "560px";
+  frame.classList.toggle("ai-dubbing-hero--portrait", height > width);
+  frame.classList.toggle("ai-dubbing-hero--wide", width >= height);
 }
