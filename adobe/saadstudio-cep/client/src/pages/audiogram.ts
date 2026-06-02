@@ -25,7 +25,7 @@ interface MediaSource {
 interface AudiogramTemplate {
   id: string;
   label: string;
-  source: "api";
+  source: "system" | "brand";
   tone: string;
 }
 
@@ -51,6 +51,12 @@ const ACTIVE_AUDIOGRAM_JOB_KEY = "saadstudio.audiogram.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
 const NO_TRANSLATION = "none";
 const AUTO_LANGUAGE = "__auto__";
+
+const SYSTEM_TEMPLATES: AudiogramTemplate[] = [
+  { id: "vinyl_vibes", label: "Vinyl Vibes", source: "system", tone: "Record motion" },
+  { id: "daily_cafe", label: "Daily Cafe", source: "system", tone: "Podcast card" },
+  { id: "after_dark", label: "After Dark", source: "system", tone: "Dark waveform" },
+];
 
 const FALLBACK_LANGUAGES: LanguageOption[] = [
   { value: AUTO_LANGUAGE, label: "Auto-detect" },
@@ -84,8 +90,10 @@ export function AudiogramPage(): HTMLElement {
     audio: null as MediaSource | null,
     logo: null as MediaSource | null,
     background: null as MediaSource | null,
-    templates: [] as AudiogramTemplate[],
-    selectedTemplate: "",
+    templates: SYSTEM_TEMPLATES,
+    brandTemplates: [] as AudiogramTemplate[],
+    selectedTemplate: SYSTEM_TEMPLATES[0].id,
+    activeTemplateTab: "templates" as "templates" | "brand",
     catalogDiagnostic: null as string | null,
     text: "",
     language: "en",
@@ -151,17 +159,15 @@ export function AudiogramPage(): HTMLElement {
         state.translations = [{ value: NO_TRANSLATION, label: "None" }, ...(targets.length ? targets : FALLBACK_LANGUAGES.slice(1))];
       }
       if (catalog.status === "fulfilled") {
-        const templates = catalog.value.audiogramTemplates.items
+        const brandTemplates = catalog.value.audiogramTemplates.items
+          .filter((preset) => preset.source === "user")
           .map((preset) => ({
             id: preset.id,
             label: preset.label || preset.name || preset.id,
-            source: "api" as const,
-            tone: preset.source === "user" ? "Brand template" : "API preset",
+            source: "brand" as const,
+            tone: "Brand template",
           }));
-        state.templates = templates;
-        if (!state.selectedTemplate || !templates.some((template) => template.id === state.selectedTemplate)) {
-          state.selectedTemplate = templates[0]?.id ?? "";
-        }
+        state.brandTemplates = brandTemplates;
         state.catalogDiagnostic = catalog.value.audiogramTemplates.diagnostic ?? null;
       } else {
         state.catalogDiagnostic = catalog.reason instanceof Error ? catalog.reason.message : String(catalog.reason);
@@ -175,8 +181,8 @@ export function AudiogramPage(): HTMLElement {
   function render() {
     page.replaceChildren(
       el("div.captions-hero", null,
-        el("h2.captions-hero__title", null, "Generate animated ", el("span.captions-hero__accent", null, "audiogram")),
-        el("div.captions-hero__subtitle", null, "Uses Reap API presets only. Templates are derived from presets with addAudiogram enabled."),
+        el("h2.captions-hero__title", null, "Generate animated ", el("span.captions-hero__accent", null, "audiogram"), " in one click"),
+        el("div.captions-hero__subtitle", null, "Templates and Brand templates are separated so Reap settings do not mix between tools."),
       ),
       renderAudioSection(),
       renderTemplates(),
@@ -214,16 +220,31 @@ export function AudiogramPage(): HTMLElement {
 
   function renderTemplates(): HTMLElement {
     const selected = selectedTemplate();
+    const showingBrand = state.activeTemplateTab === "brand";
+    const visibleTemplates = showingBrand ? state.brandTemplates : state.templates;
     return el("div.captions-section", null,
       el("div.captions-tabs", null,
-        el("button.captions-tab.captions-tab--active", null, "Audiogram presets"),
+        el("button.captions-tab" + (!showingBrand ? ".captions-tab--active" : ""), {
+          onClick: () => {
+            state.activeTemplateTab = "templates";
+            state.selectedTemplate = state.templates[0]?.id ?? "";
+            render();
+          },
+        }, "Templates"),
+        el("button.captions-tab" + (showingBrand ? ".captions-tab--active" : ""), {
+          onClick: () => {
+            state.activeTemplateTab = "brand";
+            state.selectedTemplate = state.brandTemplates[0]?.id ?? "";
+            render();
+          },
+        }, "Brand templates"),
       ),
       state.loadingCatalog ? el("div.captions-section__hint", null, "Loading templates...") : null,
-      !state.loadingCatalog && state.templates.length === 0
+      !state.loadingCatalog && visibleTemplates.length === 0
         ? el("div.captions-empty-panel", null,
-            state.catalogDiagnostic ?? "No Reap API audiogram presets were returned for this studio.")
+            showingBrand ? "No brand templates found" : (state.catalogDiagnostic ?? "No templates found"))
         : el("div.audiogram-template-grid", null,
-            ...state.templates.slice(0, 12).map((template) => renderTemplateCard(template, template.id === selected?.id)),
+            ...visibleTemplates.slice(0, 12).map((template) => renderTemplateCard(template, template.id === selected?.id)),
           ),
     );
   }
@@ -231,7 +252,7 @@ export function AudiogramPage(): HTMLElement {
   function renderTemplateCard(template: AudiogramTemplate, active: boolean): HTMLElement {
     return el("button",
       {
-        class: "audiogram-template" + (active ? " audiogram-template--active" : ""),
+        class: `audiogram-template audiogram-template--${template.id}` + (active ? " audiogram-template--active" : ""),
         onClick: () => { state.selectedTemplate = template.id; render(); },
       },
       el("div.audiogram-template__preview", null,
@@ -341,7 +362,7 @@ export function AudiogramPage(): HTMLElement {
   }
 
   function renderCta(): HTMLElement {
-    const canRun = Boolean(state.audio && state.selectedTemplate && !state.busy);
+    const canRun = Boolean(state.audio && selectedTemplate() && !state.busy);
     return el("div.captions-cta", null,
       el("button.btn-primary", { disabled: !canRun, onClick: runAudiogram },
         state.busy ? "Generating..." : "Generate audiogram",
@@ -373,8 +394,10 @@ export function AudiogramPage(): HTMLElement {
         uploadId: audioUploadId,
         filename,
         options: {
-          brandTemplateId: template ? state.selectedTemplate : undefined,
-          captionsPreset: template ? state.selectedTemplate : undefined,
+          template: template?.source === "system" ? state.selectedTemplate : undefined,
+          templateId: template?.source === "system" ? state.selectedTemplate : undefined,
+          brandTemplateId: template?.source === "brand" ? state.selectedTemplate : undefined,
+          captionsPreset: template?.source === "brand" ? state.selectedTemplate : undefined,
           text: state.text.trim() || undefined,
           logoUploadId,
           backgroundUploadId,
@@ -391,7 +414,7 @@ export function AudiogramPage(): HTMLElement {
         generationId: started.generationId,
         audio: state.audio,
         template: state.selectedTemplate,
-        templateSource: template?.source ?? "api",
+        templateSource: template?.source ?? "system",
         text: state.text,
         language: state.language,
         translate: state.translate,
@@ -483,6 +506,7 @@ export function AudiogramPage(): HTMLElement {
   function hydrateFromJob(job: ActiveAudiogramJob) {
     state.audio = job.audio;
     state.selectedTemplate = job.template;
+    state.activeTemplateTab = job.templateSource === "brand" ? "brand" : "templates";
     state.text = job.text;
     state.language = job.language;
     state.translate = job.translate;
@@ -506,7 +530,8 @@ export function AudiogramPage(): HTMLElement {
   }
 
   function selectedTemplate(): AudiogramTemplate | undefined {
-    return state.templates.find((template) => template.id === state.selectedTemplate);
+    const list = state.activeTemplateTab === "brand" ? state.brandTemplates : state.templates;
+    return list.find((template) => template.id === state.selectedTemplate);
   }
 }
 

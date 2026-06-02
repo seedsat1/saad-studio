@@ -336,17 +336,11 @@ async function createTool(
   options: Record<string, unknown>,
 ): Promise<string> {
   if (tool === "audiogram") {
-    try {
-      return await createToolAt("/create-audiogram", uploadId, options);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (!/404|not found|cannot post/i.test(message)) throw err;
-      return createToolAt("/create-clips", uploadId, {
-        ...options,
-        addAudiogram: true,
-        captionsPreset: pickString(options.brandTemplateId) ?? pickString(options.templateId),
-      });
-    }
+    return createToolAt("/create-clips", uploadId, {
+      ...options,
+      addAudiogram: true,
+      captionsPreset: pickString(options.brandTemplateId) ?? pickString(options.captionsPreset),
+    });
   }
 
   const path =

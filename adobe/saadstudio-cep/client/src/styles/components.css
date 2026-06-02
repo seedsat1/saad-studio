@@ -1161,6 +1161,22 @@
   gap: 8px;
   overflow: hidden;
 }
+.audiogram-template--vinyl_vibes .audiogram-template__preview {
+  background:
+    radial-gradient(circle at 13% 52%, #101010 0 31%, #ff6a16 32% 34%, #111 35% 49%, transparent 50%),
+    linear-gradient(135deg, #ff2d15 0%, #d71911 52%, #101010 100%);
+}
+.audiogram-template--daily_cafe .audiogram-template__preview {
+  background:
+    radial-gradient(circle at 70% 72%, #f8fafc 0 12%, #6b7280 13% 15%, transparent 16%),
+    linear-gradient(135deg, #efe5d2, #d5c2a8);
+  color: #2f251a;
+}
+.audiogram-template--after_dark .audiogram-template__preview {
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255,255,255,0.18) 0 16%, transparent 17%),
+    linear-gradient(135deg, #040404, #171923);
+}
 .audiogram-template__preview strong {
   max-width: 92%;
   font-size: 12px;
@@ -1173,6 +1189,18 @@
   height: 24px;
   opacity: 0.88;
   background: repeating-linear-gradient(90deg, var(--text-primary) 0 2px, transparent 2px 8px);
+}
+.audiogram-template--vinyl_vibes .audiogram-template__waveform {
+  width: 60px;
+  height: 32px;
+  border: 2px dotted rgba(255, 255, 255, 0.9);
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-radius: 50%;
+  background: none;
+}
+.audiogram-template--daily_cafe .audiogram-template__waveform {
+  background: repeating-linear-gradient(90deg, #2f251a 0 2px, transparent 2px 9px);
 }
 .audiogram-template span {
   font-size: 10px;
