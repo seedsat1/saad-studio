@@ -1365,3 +1365,147 @@
   50% { opacity: 1; transform: scale(1.04); }
 }
 
+/* AI Dubbing */
+.ai-dubbing-page {
+  display: flex;
+  justify-content: center;
+  padding: 16px 12px 28px;
+}
+.ai-dubbing-card {
+  position: relative;
+  width: min(432px, 100%);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-medium);
+  background: #181818;
+  box-shadow: var(--shadow-floating);
+  padding: 18px;
+}
+.ai-dubbing-hero {
+  position: relative;
+  width: min(230px, 68%);
+  aspect-ratio: 16 / 9;
+  margin: 0 auto 22px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2a2a2a, #0f0f0f);
+}
+.ai-dubbing-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.ai-dubbing-hero__placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  gap: 6px;
+  padding: 0 10px 24px;
+  color: white;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.5), transparent 34%, rgba(0,0,0,.55)),
+    linear-gradient(135deg, #9b8f78, #2a2a2a);
+}
+.ai-dubbing-hero__placeholder span {
+  font-size: 8px;
+  color: rgba(255,255,255,.8);
+}
+.ai-dubbing-hero__placeholder strong {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(117,70,155,.55);
+}
+.ai-dubbing-card__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+.ai-dubbing-card__title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.ai-dubbing-card__subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.ai-dubbing-upload__label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.ai-dubbing-upload__box {
+  min-height: 108px;
+  border: 1px dashed rgba(255,255,255,.2);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.ai-dubbing-upload:hover .ai-dubbing-upload__box,
+.ai-dubbing-upload--dragover .ai-dubbing-upload__box {
+  border-color: var(--brand-accent);
+  background: rgba(34,211,238,.06);
+}
+.ai-dubbing-upload__icon {
+  color: var(--text-primary);
+}
+.ai-dubbing-upload__box small {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.ai-dubbing-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.ai-dubbing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ai-dubbing-field span {
+  font-size: 13px;
+  font-weight: 700;
+}
+.ai-dubbing-field .form-select {
+  width: 100%;
+  text-align: left;
+  padding: 12px 34px 12px 14px;
+}
+.ai-dubbing-submit {
+  width: 100%;
+  margin-top: 28px;
+  padding: 12px 18px;
+  border-radius: 999px;
+}
+.ai-dubbing-error {
+  margin-top: 12px;
+  color: #fb7185;
+  font-size: 12px;
+}
+.ai-dubbing-result {
+  width: min(432px, 100%);
+  margin: 0 auto 18px;
+}
+.ai-dubbing-progress,
+.ai-dubbing-success {
+  margin: 0;
+}
+@media (max-width: 420px) {
+  .ai-dubbing-form { grid-template-columns: 1fr; }
+  .ai-dubbing-hero { width: 78%; }
+}
+
