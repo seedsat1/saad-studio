@@ -1367,27 +1367,29 @@
 
 /* AI Dubbing */
 .ai-dubbing-page {
-  display: flex;
-  justify-content: center;
-  padding: 16px 12px 28px;
+  display: block;
+  padding: 14px 22px 28px;
 }
 .ai-dubbing-card {
   position: relative;
-  width: min(432px, 100%);
+  width: 100%;
+  max-width: none;
   border-radius: var(--r-lg);
   border: 1px solid var(--line-medium);
-  background: #181818;
-  box-shadow: var(--shadow-floating);
+  background: var(--bg-card);
+  box-shadow: none;
   padding: 18px;
 }
 .ai-dubbing-hero {
   position: relative;
-  width: min(230px, 68%);
+  width: 100%;
+  max-width: 520px;
   aspect-ratio: 16 / 9;
-  margin: 0 auto 22px;
+  margin: 0 0 18px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: linear-gradient(135deg, #2a2a2a, #0f0f0f);
+  border: 1px solid var(--line-soft);
 }
 .ai-dubbing-hero__video {
   width: 100%;
@@ -1425,14 +1427,14 @@
   right: 14px;
 }
 .ai-dubbing-card__title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .ai-dubbing-card__subtitle {
   color: var(--text-secondary);
-  font-size: 14px;
-  margin-bottom: 24px;
+  font-size: 13px;
+  margin-bottom: 18px;
 }
 .ai-dubbing-upload__label {
   font-size: 13px;
@@ -1440,7 +1442,7 @@
   margin-bottom: 10px;
 }
 .ai-dubbing-upload__box {
-  min-height: 108px;
+  min-height: 104px;
   border: 1px dashed rgba(255,255,255,.2);
   border-radius: 12px;
   display: flex;
@@ -1486,8 +1488,9 @@
   padding: 12px 34px 12px 14px;
 }
 .ai-dubbing-submit {
-  width: 100%;
-  margin-top: 28px;
+  width: min(260px, 100%);
+  margin-top: 22px;
+  margin-left: auto;
   padding: 12px 18px;
   border-radius: 999px;
 }
@@ -1497,15 +1500,16 @@
   font-size: 12px;
 }
 .ai-dubbing-result {
-  width: min(432px, 100%);
-  margin: 0 auto 18px;
+  width: auto;
+  margin: 0 22px 14px;
 }
 .ai-dubbing-progress,
 .ai-dubbing-success {
   margin: 0;
 }
 @media (max-width: 420px) {
+  .ai-dubbing-page { padding: 12px 14px 24px; }
   .ai-dubbing-form { grid-template-columns: 1fr; }
-  .ai-dubbing-hero { width: 78%; }
+  .ai-dubbing-submit { width: 100%; }
 }
 
