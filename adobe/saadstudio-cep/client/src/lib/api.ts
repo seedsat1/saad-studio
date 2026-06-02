@@ -900,6 +900,9 @@ export interface ReapReframeOption {
 export interface ReapAudiogramTemplate {
   id: string;
   label: string;
+  name?: string;
+  source?: string;
+  preferences?: Record<string, unknown>;
 }
 
 export interface ReapCatalogResponse {
