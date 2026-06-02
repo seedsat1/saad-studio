@@ -40,11 +40,22 @@ const ORIENTATIONS = [
   { value: "landscape", label: "Landscape (16:9)" },
 ];
 
+// Match Reap's free-plan UI: 2K/4K require a paid upgrade and Reap rejects
+// the job otherwise. We surface only the universally-supported resolutions.
 const RESOLUTIONS = [
   { value: "720",  label: "720p" },
   { value: "1080", label: "1080p" },
-  { value: "1440", label: "1440p" },
-  { value: "2160", label: "2160p (4K)" },
+];
+
+const LANGUAGES = [
+  { value: "auto", label: "Auto" },
+  { value: "en",   label: "English" },
+  { value: "ar",   label: "Arabic" },
+  { value: "es",   label: "Spanish" },
+  { value: "fr",   label: "French" },
+  { value: "de",   label: "German" },
+  { value: "pt",   label: "Portuguese" },
+  { value: "hi",   label: "Hindi" },
 ];
 
 function parseDurationRange(value: string): [number, number] {
@@ -63,7 +74,8 @@ export function EditClipsPage(): HTMLElement {
       { key: "genre",        label: "Genre",       value: "talking",  options: GENRES },
       { key: "duration",     label: "Duration",    value: "30-60",    options: DURATIONS },
       { key: "orientation",  label: "Orientation", value: "portrait", options: ORIENTATIONS },
-      { key: "resolution",   label: "Resolution",  value: "1080",     options: RESOLUTIONS },
+      { key: "language",     label: "Language",    value: "auto",     options: LANGUAGES },
+      { key: "resolution",   label: "Resolution",  value: "720",      options: RESOLUTIONS },
     ],
     toggles: [
       { key: "editableCaptions", label: "Editable captions", value: false },
@@ -75,12 +87,15 @@ export function EditClipsPage(): HTMLElement {
       exportResolution: parseInt(vals.resolution, 10),
       exportOrientation: vals.orientation,
       enableHighlights: true,
+      // "auto" means omit so Reap auto-detects the spoken language.
+      language: vals.language === "auto" ? undefined : vals.language,
       // Editable mode = clean clips (no caption burn-in); SRT comes from a
       // separate /create-transcription run per clip at import time.
       enableCaptions: vals.editableCaptions !== "on",
     }),
     renderResult: (status, vals) => {
       const editable = vals.options.editableCaptions === "on";
+      const orientation = vals.options.orientation || "portrait";
       const urls = (status.urls?.length ? status.urls : (status.url ? [status.url] : []))
         .filter((u) => typeof u === "string" && u.length > 0);
 
@@ -95,41 +110,157 @@ export function EditClipsPage(): HTMLElement {
       return el("div.col.gap-3", null,
         el("div.dim", { style: { fontSize: "12px", padding: "0 4px" } },
           `${urls.length} clip${urls.length === 1 ? "" : "s"} ready`
-          + (editable ? " — captions will be editable in Premiere." : ".")),
-        ...urls.map((url, i) => clipCard(url, i + 1, editable)),
+          + (editable ? " — captions will be editable in Premiere." : ".")
+          + " Drag to timeline or click Import."),
+        el("div", {
+          style: {
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gap: "10px",
+          },
+        }, ...urls.map((url, i) => clipCard(url, i + 1, editable, orientation))),
       );
     },
   });
 }
 
-function clipCard(url: string, idx: number, editable: boolean): HTMLElement {
-  return el("div", {
+function clipCard(
+  url: string,
+  idx: number,
+  editable: boolean,
+  orientation: string,
+): HTMLElement {
+  // Cache the downloaded path so a second drag is instant.
+  let cachedLocalPath: string | null = null;
+  let downloadPromise: Promise<string> | null = null;
+
+  const aspectRatio = orientation === "landscape" ? "16 / 9"
+    : orientation === "square"   ? "1 / 1"
+    : "9 / 16";
+
+  const ensureLocal = (): Promise<string> => {
+    if (cachedLocalPath) return Promise.resolve(cachedLocalPath);
+    if (downloadPromise) return downloadPromise;
+    downloadPromise = api.downloadAsset(url, `reap-clip-${idx}.mp4`)
+      .then((p) => { cachedLocalPath = p; return p; });
+    return downloadPromise;
+  };
+
+  const video = el("video", {
+    src: url,
+    muted: "true",
+    preload: "metadata",
+    playsinline: "true",
     style: {
-      borderRadius: "14px",
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block",
+      pointerEvents: "none",
+    },
+  }) as HTMLVideoElement;
+
+  const playBadge = el("div", {
+    style: {
+      position: "absolute",
+      inset: "0",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.25)",
+      color: "#fff",
+      fontSize: "20px",
+      pointerEvents: "none",
+      transition: "opacity 120ms ease",
+    },
+  }, "▶");
+
+  const thumb = el("div", {
+    style: {
+      position: "relative",
+      background: "#000",
+      aspectRatio,
+      overflow: "hidden",
+      cursor: "pointer",
+    },
+    onClick: () => {
+      if (video.paused) {
+        video.play().catch(() => { /* ignored */ });
+        playBadge.style.opacity = "0";
+      } else {
+        video.pause();
+        playBadge.style.opacity = "1";
+      }
+    },
+  }, video, playBadge);
+
+  const card = el("div", {
+    draggable: "true",
+    title: "Drag onto the timeline or click Import",
+    style: {
+      borderRadius: "10px",
       overflow: "hidden",
       background: "var(--bg-card)",
       border: "1px solid var(--line-soft)",
+      cursor: "grab",
+      userSelect: "none",
+    },
+    onDragstart: async (e: DragEvent) => {
+      if (!e.dataTransfer) return;
+      e.dataTransfer.effectAllowed = "copy";
+      if (!cachedLocalPath) {
+        // Kick off the download in the background; let the user know the
+        // drag will only succeed once it lands.
+        ensureLocal().then(() => toast(`Clip ${idx} ready to drag.`, "info"));
+        toast(`Preparing clip ${idx}… drag again in a moment.`, "info");
+        e.preventDefault();
+        return;
+      }
+      // Premiere CEP picks up either text/uri-list (file://) or a plain
+      // path on text/plain. We set both for maximum compatibility.
+      const fsPath = cachedLocalPath.replace(/\\/g, "/");
+      e.dataTransfer.setData("text/uri-list", `file:///${fsPath}`);
+      e.dataTransfer.setData("text/plain", cachedLocalPath);
+    },
+    onDragend: (e: DragEvent) => {
+      // If the user dropped outside the panel (likely the timeline),
+      // fall back to a programmatic import so nothing is lost.
+      if (e.dataTransfer && e.dataTransfer.dropEffect === "none" && cachedLocalPath) {
+        // No-op: drop was canceled inside the panel itself.
+        return;
+      }
     },
   },
-    el("video", {
-      src: url,
-      controls: "true",
-      style: { width: "100%", display: "block", background: "#000" },
-    }),
-    el("div.row.gap-2", { style: { padding: "10px 12px" } },
-      el("div.grow", { style: { fontSize: "12px", fontWeight: "600" } }, `Clip ${idx}`),
+    thumb,
+    el("div.row.gap-2", {
+      style: { padding: "6px 8px", alignItems: "center" },
+    },
+      el("div.grow", { style: { fontSize: "11px", fontWeight: "600" } }, `Clip ${idx}`),
       el("button.dock-button", {
+        title: editable ? "Import + editable captions" : "Import",
+        style: { padding: "4px 8px", fontSize: "10px" },
         onClick: editable
-          ? () => importClipWithEditableCaptions(url, idx)
-          : () => importClipBurned(url, idx),
-      }, icon("import", 12), editable ? "Import + captions" : "Import"),
+          ? () => importClipWithEditableCaptions(url, idx, ensureLocal)
+          : () => importClipBurned(url, idx, ensureLocal),
+      }, icon("import", 12)),
     ),
   );
+
+  // Pre-cache the file on first hover so dragging works on the first try.
+  card.addEventListener("mouseenter", () => { ensureLocal().catch(() => {}); }, { once: true });
+
+  return card;
 }
 
-async function importClipBurned(url: string, idx: number): Promise<void> {
+async function importClipBurned(
+  url: string,
+  idx: number,
+  ensureLocal?: () => Promise<string>,
+): Promise<void> {
   try {
-    const local = await api.downloadAsset(url, `reap-clip-${idx}.mp4`);
+    const local = ensureLocal
+      ? await ensureLocal()
+      : await api.downloadAsset(url, `reap-clip-${idx}.mp4`);
     await evalES("importAndPlaceOnTimeline", local);
     toast(`Added clip ${idx} to timeline`, "success");
   } catch (err) {
@@ -137,10 +268,16 @@ async function importClipBurned(url: string, idx: number): Promise<void> {
   }
 }
 
-async function importClipWithEditableCaptions(url: string, idx: number): Promise<void> {
+async function importClipWithEditableCaptions(
+  url: string,
+  idx: number,
+  ensureLocal?: () => Promise<string>,
+): Promise<void> {
   try {
     toast(`Importing clip ${idx}…`, "info");
-    const localClip = await api.downloadAsset(url, `reap-clip-${idx}.mp4`);
+    const localClip = ensureLocal
+      ? await ensureLocal()
+      : await api.downloadAsset(url, `reap-clip-${idx}.mp4`);
     await evalES("importAndPlaceOnTimeline", localClip);
 
     // Reap fetches the clipUrl from its own CDN, so we skip a re-upload.
