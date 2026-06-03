@@ -84,6 +84,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     rmsProofLoading: false,
     fullActivityProofLoading: false,
     sourceAttributionProofLoading: false,
+    previewAutoSwitchLoading: false,
     applyCameraDecisionsLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
     streamProofLoading: false,
@@ -118,6 +119,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       speaker_2: 1,
       speaker_3: 2,
     } as Record<string, number>,
+    developerDiagnosticsOpen: false,
   };
 
   const page = el("div.app-main");
@@ -138,22 +140,139 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           el("div.podcast-hero__icon", null, icon("video", 24)),
           el("div", null,
             el("h2", null, "Multi-Cam Auto Switch"),
-            el("p", null, "Diagnostic foundation for podcast and interview automation."),
+            el("p", null, "Build a visual camera switch draft for podcast and interview timelines."),
           ),
         ),
-        renderControls(),
-        renderTimelineLayoutPanel(),
-        renderAudioSourceInspectorPanel(),
-        renderFullAudioActivityProofPanel(),
-        renderSpeakerSourceAttributionProofPanel(),
-        renderCameraDecisionPlanProofPanel(),
-        renderApplyCameraDecisionsPrototypePanel(),
-        renderSafeTimelineExecutionResearchPanel(),
-        renderSpeakerActivityProofPanel(),
-        renderSafeExecutionPanel(),
-        renderPlanPreview(),
-        renderDebugPanel(),
+        renderProductionWorkflow(),
+        renderDeveloperDiagnostics(),
       ),
+    );
+  }
+
+  function renderProductionWorkflow(): HTMLElement {
+    return el("div.podcast-workflow", null,
+      renderProductionSetup(),
+      renderProductionActions(),
+      renderProductionSummary(),
+    );
+  }
+
+  function renderProductionSetup(): HTMLElement {
+    return el("div.podcast-production-card", null,
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "Camera Mapping"),
+          el("p", null, "Match each speaker microphone to the camera track that should appear on screen."),
+        ),
+      ),
+      el("div.podcast-camera-map", null,
+        renderMappingRow("speaker_1"),
+        renderMappingRow("speaker_2"),
+        renderMappingRow("speaker_3"),
+      ),
+      el("div.podcast-settings.podcast-settings--compact", null,
+        renderField("Wide Camera Settings",
+          el("div.podcast-camera-map", null, renderMappingRow("wide")), true),
+        renderField("Minimum Shot Length",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.5",
+            value: String(state.minimumShotLengthSec),
+            onInput: (event: Event) => {
+              state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+      ),
+    );
+  }
+
+  function renderProductionActions(): HTMLElement {
+    const hasPlan = (state.cameraDecisionPlanProof?.cameraDecisions.length ?? 0) > 0
+      && (state.cameraDecisionPlanProof?.blockers.length ?? 0) === 0;
+    return el("div.podcast-production-card", null,
+      el("div.podcast-action-row", null,
+        el("button.btn-secondary", { disabled: state.timelineLoading, onClick: analyzeLayout },
+          state.timelineLoading ? "Analyzing..." : "Analyze Timeline"),
+        el("button.btn-secondary", { disabled: state.previewAutoSwitchLoading, onClick: previewAutoSwitch },
+          state.previewAutoSwitchLoading ? "Previewing..." : "Preview Auto Switch"),
+        el("button.btn-primary", {
+          disabled: !hasPlan || state.applyCameraDecisionsLoading,
+          onClick: runApplyCameraDecisionsPrototype,
+        }, state.applyCameraDecisionsLoading ? "Applying..." : "Apply Auto Switch"),
+      ),
+      el("div.podcast-status-strip", null,
+        renderStatusPill("Timeline", state.timelineLayout ? readableTimelineStatus() : "Not analyzed"),
+        renderStatusPill("Preview", readablePreviewStatus()),
+        renderStatusPill("Output", state.applyCameraDecisionsResult?.ok ? "Draft created" : "Waiting"),
+      ),
+    );
+  }
+
+  function renderProductionSummary(): HTMLElement {
+    const plan = state.cameraDecisionPlanProof;
+    const apply = state.applyCameraDecisionsResult;
+    return el("div.podcast-production-card", null,
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "Auto Switch Summary"),
+          el("p", null, "A clean overview for the edit draft. Detailed logs are in Developer Diagnostics."),
+        ),
+      ),
+      el("div.podcast-summary-grid", null,
+        renderSummaryTile("Sequence", state.diagnostics.sequenceName || "No active sequence"),
+        renderSummaryTile("Tracks", `${state.diagnostics.videoTrackCount || 0} video / ${state.diagnostics.audioTrackCount || 0} audio`),
+        renderSummaryTile("Decisions", plan ? `${plan.summary.totalDecisions} camera cuts` : "Not previewed"),
+        renderSummaryTile("Wide Camera", plan ? `${formatSeconds(plan.summary.wideCameraTimeSec)}` : `V${(state.mappings.wide ?? 0) + 1}`),
+        renderSummaryTile("Inserted", apply ? `${apply.segmentsInserted} visual segments` : "Not applied"),
+        renderSummaryTile("Draft", apply?.ok ? "Created on duplicate sequence" : "Original untouched"),
+      ),
+      renderHumanMessages(),
+    );
+  }
+
+  function renderHumanMessages(): HTMLElement {
+    const messages: string[] = [];
+    const plan = state.cameraDecisionPlanProof;
+    const apply = state.applyCameraDecisionsResult;
+    if (plan?.blockers.length) messages.push(`Preview blocked: ${plan.blockers.join(", ")}`);
+    if (apply?.blockers.length) messages.push(`Apply blocked: ${apply.blockers.join(", ")}`);
+    if (apply?.warnings.length) messages.push(`Warnings: ${apply.warnings.length} partial source ranges were handled.`);
+    if (apply?.ok) messages.push("A visual-only draft was created on a duplicate sequence. The original sequence was not changed.");
+    if (!messages.length) messages.push("Analyze the timeline, preview the camera plan, then apply a draft when ready.");
+    return el("div.podcast-human-messages", null,
+      ...messages.map((message) => el("div.podcast-human-message", null, message)),
+    );
+  }
+
+  function renderDeveloperDiagnostics(): HTMLElement {
+    return el("div.podcast-diagnostics-shell", null,
+      el("button.podcast-diagnostics-toggle", {
+        onClick: () => {
+          state.developerDiagnosticsOpen = !state.developerDiagnosticsOpen;
+          render();
+        },
+      },
+        el("span", null, "Developer Diagnostics"),
+        el("strong", null, state.developerDiagnosticsOpen ? "Hide" : "Show"),
+      ),
+      state.developerDiagnosticsOpen
+        ? el("div.podcast-diagnostics-body", null,
+            renderControls(),
+            renderTimelineLayoutPanel(),
+            renderAudioSourceInspectorPanel(),
+            renderFullAudioActivityProofPanel(),
+            renderSpeakerSourceAttributionProofPanel(),
+            renderCameraDecisionPlanProofPanel(),
+            renderApplyCameraDecisionsPrototypePanel(),
+            renderSafeTimelineExecutionResearchPanel(),
+            renderSpeakerActivityProofPanel(),
+            renderSafeExecutionPanel(),
+            renderPlanPreview(),
+            renderDebugPanel(),
+          )
+        : null,
     );
   }
 
@@ -945,6 +1064,36 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
+  function renderStatusPill(label: string, value: string): HTMLElement {
+    return el("div.podcast-status-pill", null,
+      el("span", null, label),
+      el("strong", null, value),
+    );
+  }
+
+  function renderSummaryTile(label: string, value: string): HTMLElement {
+    return el("div.podcast-summary-tile", null,
+      el("span", null, label),
+      el("strong", null, value),
+    );
+  }
+
+  function readableTimelineStatus(): string {
+    if (!state.timelineLayout) return "Not analyzed";
+    if (state.timelineLayout.status === "ready") {
+      return `${state.timelineLayout.videoTracks.length} cameras / ${state.timelineLayout.audioTracks.length} mics`;
+    }
+    return state.timelineLayout.status;
+  }
+
+  function readablePreviewStatus(): string {
+    if (state.previewAutoSwitchLoading || state.sourceAttributionProofLoading) return "Working";
+    const plan = state.cameraDecisionPlanProof;
+    if (!plan) return "Not previewed";
+    if (plan.blockers.length) return "Blocked";
+    return `${plan.summary.totalDecisions} decisions`;
+  }
+
   async function refreshDiagnostics() {
     state.loading = true;
     render();
@@ -976,6 +1125,51 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
     } finally {
       state.timelineLoading = false;
+      render();
+    }
+  }
+
+  async function previewAutoSwitch() {
+    state.previewAutoSwitchLoading = true;
+    render();
+    try {
+      state.sourceAttributionProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
+      state.cameraDecisionPlanProof = generateCameraDecisionPlanProof({
+        dominantTrackAtTime: state.sourceAttributionProof.dominantTrackAtTime,
+        overlaps: state.sourceAttributionProof.overlaps,
+      });
+    } catch (err) {
+      state.sourceAttributionProof = {
+        trackActivity: [],
+        trackSpeakingSegments: [],
+        overlaps: [],
+        dominantTrackAtTime: [],
+        analyzedDurationSec: 30,
+        analysisWindowSec: 0.2,
+        thresholdUsed: -35,
+        minimumSpeechDurationSec: 0.4,
+        blockers: ["AUTO_SWITCH_PREVIEW_FAILED", (err as Error).message],
+        warnings: [],
+        timelineMutation: "none",
+        sequenceMutation: "none",
+      };
+      state.cameraDecisionPlanProof = {
+        cameraDecisions: [],
+        summary: {
+          totalDecisions: 0,
+          speaker1CameraTimeSec: 0,
+          speaker2CameraTimeSec: 0,
+          wideCameraTimeSec: 0,
+          keptPreviousCameraEvents: 0,
+          droppedShortDecisions: 0,
+        },
+        blockers: state.sourceAttributionProof.blockers,
+        warnings: [],
+        timelineMutation: "none",
+        sequenceMutation: "none",
+      };
+    } finally {
+      state.previewAutoSwitchLoading = false;
       render();
     }
   }
