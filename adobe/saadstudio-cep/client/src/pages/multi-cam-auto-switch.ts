@@ -20,6 +20,7 @@ import {
 import { generateSpeakerActivityProof } from "../lib/podcast/services/speaker-activity-service";
 import { generateCameraDecisionPlanProof } from "../lib/podcast/services/camera-decision-plan-service";
 import {
+  applyCameraDecisionsVisualOnly,
   testDisableEnableOnDuplicate,
   testDisableTimeRangeOnDuplicate,
   testInsertOverwriteOnDuplicate,
@@ -43,7 +44,11 @@ import type {
   PodcastExecutionStrategy,
 } from "../lib/podcast/types";
 import type { PodcastTimelineLayout, PodcastTrackInfo } from "../lib/podcast/types/premiere";
-import type { PodcastAdapterResult, PodcastExecutionResearchResult } from "../lib/podcast/types/premiere";
+import type {
+  ApplyCameraDecisionsVisualOnlyResult,
+  PodcastAdapterResult,
+  PodcastExecutionResearchResult,
+} from "../lib/podcast/types/premiere";
 
 const DEFAULT_DIAGNOSTICS: PodcastDiagnostics = {
   activeSequence: false,
@@ -79,6 +84,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     rmsProofLoading: false,
     fullActivityProofLoading: false,
     sourceAttributionProofLoading: false,
+    applyCameraDecisionsLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
     streamProofLoading: false,
     safeCopyConfirmed: false,
@@ -89,6 +95,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     fullActivityProof: null as FullAudioActivityProof | null,
     sourceAttributionProof: null as SpeakerSourceAttributionProof | null,
     cameraDecisionPlanProof: null as PodcastCameraDecisionPlanProof | null,
+    applyCameraDecisionsResult: null as ApplyCameraDecisionsVisualOnlyResult | null,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
     streamProof: null as AudioStreamSelectionProof | null,
     selectedAudioStreamIndex: null as number | null,
@@ -140,6 +147,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         renderFullAudioActivityProofPanel(),
         renderSpeakerSourceAttributionProofPanel(),
         renderCameraDecisionPlanProofPanel(),
+        renderApplyCameraDecisionsPrototypePanel(),
         renderSafeTimelineExecutionResearchPanel(),
         renderSpeakerActivityProofPanel(),
         renderSafeExecutionPanel(),
@@ -485,6 +493,34 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
             el("pre.podcast-pre.podcast-pre--json", null, JSON.stringify(state.cameraDecisionPlanProof, null, 2)),
           )
         : el("div.podcast-empty-plan", null, "Run Speaker Source Attribution Proof first, then generate the camera plan."),
+    );
+  }
+
+  function renderApplyCameraDecisionsPrototypePanel(): HTMLElement {
+    const decisionCount = state.cameraDecisionPlanProof?.cameraDecisions.length ?? 0;
+    const blockers = state.cameraDecisionPlanProof?.blockers ?? [];
+    const canApply = decisionCount > 0 && blockers.length === 0 && !state.applyCameraDecisionsLoading;
+    return el("div.podcast-debug", null,
+      el("div.podcast-debug__head", null,
+        el("div", null,
+          el("h3", null, "Apply Camera Decisions Prototype"),
+          el("p", null, "Visual-only reconstruction on a duplicated sequence. Original sequence is not touched."),
+        ),
+        el("button.btn-primary", {
+          disabled: !canApply,
+          onClick: runApplyCameraDecisionsPrototype,
+        }, state.applyCameraDecisionsLoading ? "Applying..." : "Apply Camera Decisions Prototype"),
+      ),
+      state.applyCameraDecisionsResult
+        ? el("div.podcast-proof", null,
+            el("div.podcast-messages__title", null, "Apply Camera Decisions Runtime JSON"),
+            el("pre.podcast-pre.podcast-pre--json", null, JSON.stringify(state.applyCameraDecisionsResult, null, 2)),
+          )
+        : el("div.podcast-empty-plan", null,
+            decisionCount > 0
+              ? "Ready. This duplicates the sequence first and writes visual segments only to the duplicate."
+              : "Generate Camera Decision Plan JSON first.",
+          ),
     );
   }
 
@@ -1158,6 +1194,36 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       overlaps: state.sourceAttributionProof.overlaps,
     });
     render();
+  }
+
+  async function runApplyCameraDecisionsPrototype() {
+    const cameraDecisions = state.cameraDecisionPlanProof?.cameraDecisions ?? [];
+    state.applyCameraDecisionsLoading = true;
+    render();
+    try {
+      state.applyCameraDecisionsResult = await applyCameraDecisionsVisualOnly({ cameraDecisions });
+    } catch (err) {
+      state.applyCameraDecisionsResult = {
+        ok: false,
+        strategy: "apply-camera-decisions-overlap-aware-visual-only",
+        originalSequenceID: null,
+        duplicateSequenceID: null,
+        decisionsCount: cameraDecisions.length,
+        segmentsAttempted: cameraDecisions.length,
+        segmentsInserted: 0,
+        segmentsSkipped: 0,
+        generatedTargetTrackName: "Saad Auto Switch",
+        segmentResults: [],
+        blockers: ["APPLY_CAMERA_DECISIONS_PROTOTYPE_FAILED"],
+        warnings: [],
+        errors: [(err as Error).message],
+        originalTouched: false,
+        timelineMutation: "duplicate + visual-only reconstructed segments on duplicate only",
+      };
+    } finally {
+      state.applyCameraDecisionsLoading = false;
+      render();
+    }
   }
 
   async function runExecutionResearch(kind: "duplicate" | "disable" | "range" | "insert" | "reconstruct") {

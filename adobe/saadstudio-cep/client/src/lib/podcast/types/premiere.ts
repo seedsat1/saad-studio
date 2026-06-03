@@ -2,6 +2,7 @@ import type {
   AudioSourceInspectionResult,
   AudioTrackSpeakerMapping,
   CameraMapping,
+  PodcastCameraDecisionProofItem,
   SpeakerSegment,
 } from "./index";
 
@@ -130,6 +131,47 @@ export interface PodcastExecutionResearchResult {
   blockers?: string[];
 }
 
+export interface ApplyCameraDecisionsVisualOnlyInput {
+  cameraDecisions: PodcastCameraDecisionProofItem[];
+}
+
+export interface ApplyCameraDecisionSegmentResult {
+  decisionIndex: number;
+  cameraLabel: string;
+  matchType: "FULL_MATCH" | "PARTIAL_MATCH" | "SKIPPED_NO_OVERLAP";
+  decisionStartSec: number;
+  decisionEndSec: number;
+  clipName: string | null;
+  clipStartSec: number | null;
+  clipEndSec: number | null;
+  overlapStartSec: number | null;
+  overlapEndSec: number | null;
+  sourceInSec: number | null;
+  sourceOutSec: number | null;
+  subclipCreated: boolean;
+  overwriteResult: boolean;
+  blockers: string[];
+  errors: string[];
+}
+
+export interface ApplyCameraDecisionsVisualOnlyResult {
+  ok: boolean;
+  strategy: "apply-camera-decisions-overlap-aware-visual-only";
+  originalSequenceID: string | null;
+  duplicateSequenceID: string | null;
+  decisionsCount: number;
+  segmentsAttempted: number;
+  segmentsInserted: number;
+  segmentsSkipped: number;
+  generatedTargetTrackName: "Saad Auto Switch";
+  segmentResults: ApplyCameraDecisionSegmentResult[];
+  blockers: string[];
+  warnings: string[];
+  errors: string[];
+  originalTouched: false;
+  timelineMutation: "duplicate + visual-only reconstructed segments on duplicate only";
+}
+
 export interface PodcastSequenceSnapshot {
   name: string | null;
   sequenceID: string | null;
@@ -170,6 +212,7 @@ export interface PremierePodcastAdapterContract {
   testDisableTimeRangeOnDuplicate(): Promise<PodcastExecutionResearchResult>;
   testInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult>;
   testReconstructInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult>;
+  applyCameraDecisionsVisualOnly(input: ApplyCameraDecisionsVisualOnlyInput): Promise<ApplyCameraDecisionsVisualOnlyResult>;
   applyCuts(input: ApplyPodcastCutsInput): Promise<PodcastAdapterResult>;
   applyCameraSwitches(input: ApplyCameraSwitchesInput): Promise<PodcastAdapterResult>;
 }

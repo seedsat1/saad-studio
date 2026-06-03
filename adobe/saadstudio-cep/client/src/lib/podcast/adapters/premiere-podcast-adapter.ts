@@ -4,6 +4,8 @@ import type {
   AudioTrackSpeakerMapping,
 } from "../types";
 import type {
+  ApplyCameraDecisionsVisualOnlyInput,
+  ApplyCameraDecisionsVisualOnlyResult,
   ApplyCameraSwitchesInput,
   ApplyPodcastCutsInput,
   CreatePodcastSequenceInput,
@@ -69,6 +71,10 @@ export class PremierePodcastAdapter implements PremierePodcastAdapterContract {
 
   testReconstructInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult> {
     return evalES<PodcastExecutionResearchResult>("testPodcastReconstructInsertOverwriteOnDuplicate");
+  }
+
+  applyCameraDecisionsVisualOnly(input: ApplyCameraDecisionsVisualOnlyInput): Promise<ApplyCameraDecisionsVisualOnlyResult> {
+    return evalES<ApplyCameraDecisionsVisualOnlyResult>("applyPodcastCameraDecisionsOverlapAwareVisualOnly", input.cameraDecisions);
   }
 
   applyCuts(_input: ApplyPodcastCutsInput): Promise<PodcastAdapterResult> {

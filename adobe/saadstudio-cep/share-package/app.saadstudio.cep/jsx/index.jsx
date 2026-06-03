@@ -647,6 +647,250 @@
         });
     };
 
+    host.saadstudio.applyPodcastCameraDecisionsOverlapAwareVisualOnly = function (cameraDecisions) {
+        return safe(function () {
+            var decisions = cameraDecisions || [];
+            var activeSeq = app.project && app.project.activeSequence;
+            var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
+            if (isGeneratedPodcastTestSequenceName(activeSeqName)) {
+                return {
+                    ok: false,
+                    strategy: "apply-camera-decisions-overlap-aware-visual-only",
+                    originalSequenceID: activeSeq ? readSequenceID(activeSeq) : null,
+                    duplicateSequenceID: null,
+                    decisionsCount: decisions.length,
+                    segmentsAttempted: decisions.length,
+                    segmentsInserted: 0,
+                    segmentsSkipped: 0,
+                    generatedTargetTrackName: "Saad Auto Switch",
+                    segmentResults: [],
+                    blockers: ["ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
+                    warnings: [],
+                    errors: [],
+                    originalTouched: false,
+                    timelineMutation: "none"
+                };
+            }
+            var draftName = (activeSeqName || "Sequence") + " - Saad Auto Switch Draft";
+            var result = createPodcastResearchDuplicate("Auto Switch Draft", draftName);
+            result.strategy = "apply-camera-decisions-overlap-aware-visual-only";
+            result.timelineMutation = "duplicate + visual-only reconstructed segments on duplicate only";
+            result.originalTouched = false;
+            result.originalSequenceID = result.originalSequenceID || null;
+            result.duplicateSequenceID = result.newSequenceID || null;
+            result.generatedTargetTrackName = "Saad Auto Switch";
+            result.decisionsCount = decisions.length;
+            result.segmentsAttempted = decisions.length;
+            result.segmentsInserted = 0;
+            result.segmentsSkipped = 0;
+            result.segmentResults = [];
+            result.warnings = [];
+
+            if (!decisions.length) {
+                result.blockers.push("CAMERA_DECISIONS_REQUIRED");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+
+            if (!result.duplicateValidationPassed || !result.newSequence) {
+                if (result.blockers.length === 0) result.blockers.push("DUPLICATE_VALIDATION_FAILED");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+
+            var seq = result.newSequence;
+            var targetTrack = seq.videoTracks && seq.videoTracks.numTracks > 0 ? seq.videoTracks[0] : null;
+            if (!targetTrack || !targetTrack.overwriteClip) {
+                result.blockers.push("TARGET_OVERWRITECLIP_NOT_AVAILABLE");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            try { targetTrack.name = result.generatedTargetTrackName; } catch (eTargetName) {
+                result.warnings.push("TARGET_TRACK_RENAME_UNSUPPORTED");
+            }
+
+            var prepared = [];
+            for (var i = 0; i < decisions.length; i++) {
+                var preparedSegment = prepareVisualOnlyCameraDecisionSegment(seq, decisions[i], i);
+                result.segmentResults.push(preparedSegment.publicResult);
+                prepared.push(preparedSegment);
+                appendAll(result.blockers, preparedSegment.publicResult.blockers);
+                appendAll(result.errors, preparedSegment.publicResult.errors);
+                if (preparedSegment.publicResult.matchType === "SKIPPED_NO_OVERLAP") result.segmentsSkipped += 1;
+                if (preparedSegment.publicResult.matchType === "PARTIAL_MATCH") {
+                    result.warnings.push("PARTIAL_MATCH_GAP decision " + (i + 1) + " uses overlap only.");
+                }
+            }
+
+            if (result.blockers.length > 0) {
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+
+            for (var p = 0; p < prepared.length; p++) {
+                var segment = prepared[p];
+                var publicResult = segment.publicResult;
+                if (!segment.subclip) continue;
+                try {
+                    targetTrack.overwriteClip(segment.subclip, secondsToTicksString(publicResult.overlapStartSec));
+                    publicResult.overwriteResult = true;
+                    result.segmentsInserted += 1;
+                } catch (eOverwriteApply) {
+                    publicResult.overwriteResult = false;
+                    publicResult.blockers.push("OVERWRITECLIP_FAILED");
+                    publicResult.errors.push(String(eOverwriteApply.message || eOverwriteApply));
+                    appendAll(result.blockers, publicResult.blockers);
+                    appendAll(result.errors, publicResult.errors);
+                }
+            }
+
+            result.ok = result.blockers.length === 0 && result.segmentsInserted > 0;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    function isGeneratedPodcastTestSequenceName(name) {
+        var value = String(name || "");
+        return value.indexOf("Saad Duplicate Runtime Test") !== -1
+            || value.indexOf("Saad Reconstruct") !== -1
+            || value.indexOf("Saad Auto Switch Visual Only Prototype") !== -1;
+    }
+
+    function prepareVisualOnlyCameraDecisionSegment(seq, decision, index) {
+        var publicResult = emptyApplyCameraDecisionSegmentResult(decision, index);
+        var sourceTrackIndex = Number(decision.videoTrackIndex);
+        publicResult.cameraLabel = decision.cameraLabel || ("V" + (sourceTrackIndex + 1));
+        var decisionStart = Math.max(0, Number(decision.startSec || 0));
+        var decisionEnd = Number(decision.endSec || 0);
+        publicResult.decisionStartSec = decisionStart;
+        publicResult.decisionEndSec = decisionEnd;
+
+        if (!(decisionEnd > decisionStart)) {
+            publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING");
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        var match = findBestOverlapClipForDecision(seq, sourceTrackIndex, decisionStart, decisionEnd);
+        if (!match) {
+            publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        var clip = match.clip;
+        publicResult.matchType = match.full ? "FULL_MATCH" : "PARTIAL_MATCH";
+        publicResult.clipName = clip.name || null;
+        publicResult.clipStartSec = match.clipStartSec;
+        publicResult.clipEndSec = match.clipEndSec;
+        publicResult.overlapStartSec = match.overlapStartSec;
+        publicResult.overlapEndSec = match.overlapEndSec;
+
+        var projectItem = clip.projectItem;
+        if (!projectItem) {
+            publicResult.blockers.push("PROJECT_ITEM_MISSING");
+            return { publicResult: publicResult, subclip: null };
+        }
+        if (!projectItem.createSubClip) {
+            publicResult.blockers.push("CREATE_SUBCLIP_NOT_AVAILABLE");
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        var clipInPointSec = readTimeSeconds(clip.inPoint);
+        var sourceInSec = clipInPointSec + (match.overlapStartSec - match.clipStartSec);
+        var sourceOutSec = clipInPointSec + (match.overlapEndSec - match.clipStartSec);
+        publicResult.sourceInSec = sourceInSec;
+        publicResult.sourceOutSec = sourceOutSec;
+        if (!(sourceOutSec > sourceInSec)) {
+            publicResult.blockers.push("INVALID_SOURCE_SUBRANGE");
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        var subclip = null;
+        try {
+            subclip = projectItem.createSubClip(
+                "Saad Auto Switch " + publicResult.cameraLabel + " " + (index + 1) + " " + ts(),
+                secondsToTicksString(sourceInSec),
+                secondsToTicksString(sourceOutSec),
+                1,
+                1,
+                0
+            );
+        } catch (eCreateApply) {
+            publicResult.blockers.push("CREATE_SUBCLIP_FAILED");
+            publicResult.errors.push(String(eCreateApply.message || eCreateApply));
+            return { publicResult: publicResult, subclip: null };
+        }
+        if (!subclip) {
+            publicResult.blockers.push("CREATE_SUBCLIP_FAILED");
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        publicResult.subclipCreated = true;
+        return { publicResult: publicResult, subclip: subclip };
+    }
+
+    function emptyApplyCameraDecisionSegmentResult(decision, index) {
+        return {
+            decisionIndex: index,
+            cameraLabel: decision && decision.cameraLabel ? decision.cameraLabel : "",
+            matchType: "SKIPPED_NO_OVERLAP",
+            decisionStartSec: Number(decision && decision.startSec ? decision.startSec : 0),
+            decisionEndSec: Number(decision && decision.endSec ? decision.endSec : 0),
+            clipName: null,
+            clipStartSec: null,
+            clipEndSec: null,
+            overlapStartSec: null,
+            overlapEndSec: null,
+            sourceInSec: null,
+            sourceOutSec: null,
+            subclipCreated: false,
+            overwriteResult: false,
+            blockers: [],
+            errors: []
+        };
+    }
+
+    function findBestOverlapClipForDecision(seq, videoTrackIndex, startSec, endSec) {
+        if (!seq || !seq.videoTracks || videoTrackIndex < 0 || seq.videoTracks.numTracks <= videoTrackIndex) return null;
+        var track = seq.videoTracks[videoTrackIndex];
+        var clips = track && track.clips;
+        if (!clips) return null;
+        var best = null;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            if (isGeneratedPodcastSourceClip(clip)) continue;
+            var clipStart = readTimeSeconds(clip.start);
+            var clipEnd = readTimeSeconds(clip.end);
+            var overlapStart = Math.max(startSec, clipStart);
+            var overlapEnd = Math.min(endSec, clipEnd);
+            if (overlapEnd > overlapStart) {
+                var candidate = {
+                    clip: clip,
+                    clipStartSec: clipStart,
+                    clipEndSec: clipEnd,
+                    overlapStartSec: overlapStart,
+                    overlapEndSec: overlapEnd,
+                    overlapDurationSec: overlapEnd - overlapStart,
+                    full: clipStart <= startSec && clipEnd >= endSec
+                };
+                if (!best || candidate.full || candidate.overlapDurationSec > best.overlapDurationSec) {
+                    best = candidate;
+                }
+                if (candidate.full) break;
+            }
+        }
+        return best;
+    }
+
+    function isGeneratedPodcastSourceClip(clip) {
+        var clipName = "";
+        var projectItemName = "";
+        try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (eClipName) {}
+        try { projectItemName = clip && clip.projectItem && clip.projectItem.name ? String(clip.projectItem.name) : ""; } catch (ePiName) {}
+        return clipName.indexOf("Saad Proof Segment") === 0
+            || projectItemName.indexOf("Saad Proof Segment") === 0;
+    }
+
     function readSequenceSnapshots() {
         var out = [];
         var seqs = app.project && app.project.sequences;
@@ -699,7 +943,7 @@
         return null;
     }
 
-    function createPodcastResearchDuplicate(label) {
+    function createPodcastResearchDuplicate(label, exactDuplicateName) {
         var result = {
             ok: false,
             label: label,
@@ -756,7 +1000,9 @@
             result.blockers.push("DUPLICATED_SEQUENCE_NOT_DETECTED");
             return result;
         }
-        var desiredName = String((result.originalSequenceName || "Sequence") + " - Saad " + label);
+        var desiredName = exactDuplicateName
+            ? String(exactDuplicateName)
+            : String((result.originalSequenceName || "Sequence") + " - Saad " + label);
         try { newSeq.name = desiredName; } catch (eName) { result.errors.push(String(eName.message || eName)); }
         try { if (newSeq.projectItem) newSeq.projectItem.name = desiredName; } catch (ePiName) { result.errors.push(String(ePiName.message || ePiName)); }
         result.newSequence = newSeq;

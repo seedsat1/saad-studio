@@ -1,5 +1,9 @@
 import { premierePodcastAdapter } from "../adapters/premiere-podcast-adapter";
-import type { PodcastExecutionResearchResult } from "../types/premiere";
+import type {
+  ApplyCameraDecisionsVisualOnlyInput,
+  ApplyCameraDecisionsVisualOnlyResult,
+  PodcastExecutionResearchResult,
+} from "../types/premiere";
 
 export function testSafeDuplicateSequence(): Promise<PodcastExecutionResearchResult> {
   return premierePodcastAdapter.testSafeDuplicateSequence();
@@ -19,4 +23,10 @@ export function testInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResear
 
 export function testReconstructInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult> {
   return premierePodcastAdapter.testReconstructInsertOverwriteOnDuplicate();
+}
+
+export function applyCameraDecisionsVisualOnly(
+  input: ApplyCameraDecisionsVisualOnlyInput,
+): Promise<ApplyCameraDecisionsVisualOnlyResult> {
+  return premierePodcastAdapter.applyCameraDecisionsVisualOnly(input);
 }

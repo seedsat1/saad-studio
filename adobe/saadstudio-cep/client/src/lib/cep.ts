@@ -240,6 +240,7 @@ function mockEsResult<T>(fn: string): T {
     || fn === "testPodcastDisableTimeRangeOnDuplicate"
     || fn === "testPodcastInsertOverwriteOnDuplicate"
     || fn === "testPodcastReconstructInsertOverwriteOnDuplicate"
+    || fn === "applyPodcastCameraDecisionsOverlapAwareVisualOnly"
   ) {
     return {
       ok: false,
