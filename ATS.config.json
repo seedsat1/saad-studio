@@ -1,0 +1,12 @@
+{
+  "Endpoint": "https://weu.codesigning.azure.net/",
+  "CodeSigningAccountName": "autocut",
+  "CertificateProfileName": "autocut-plugin-v2",
+  "ExcludeCredentials": [
+    "ManagedIdentityCredential",
+    "SharedTokenCacheCredential",
+    "VisualStudioCredential",
+    "VisualStudioCodeCredential",
+    "InteractiveBrowserCredential"
+  ]
+}

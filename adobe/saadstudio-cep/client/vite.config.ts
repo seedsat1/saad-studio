@@ -3,6 +3,11 @@ import { resolve } from "path";
 
 export default defineConfig({
   base: "./",
+  css: {
+    postcss: {
+      plugins: [],
+    },
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

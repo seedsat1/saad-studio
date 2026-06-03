@@ -27,6 +27,7 @@ import { AIDubbingPage } from "./pages/ai-dubbing";
 import { AutoReframePage } from "./pages/auto-reframe";
 import { TranscriptionPage } from "./pages/transcription";
 import { AudiogramPage } from "./pages/audiogram";
+import { MultiCamAutoSwitchPage } from "./pages/multi-cam-auto-switch";
 import { NoiseRemovalPage } from "./pages/noise-removal";
 import { EyeCorrectionPage } from "./pages/eye-correction";
 
@@ -67,6 +68,7 @@ async function bootstrap() {
       "/auto-reframe":   requireAuth(AutoReframePage),
       "/transcription":  requireAuth(TranscriptionPage),
       "/audiogram":      requireAuth(AudiogramPage),
+      "/multi-cam-auto-switch": requireAuth(MultiCamAutoSwitchPage),
       "/noise-removal":  requireAuth(NoiseRemovalPage),
       "/eye-correction": requireAuth(EyeCorrectionPage),
     },

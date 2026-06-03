@@ -18,6 +18,7 @@
               ? BridgeTalk.appName : "";    // "premierepro" | "aftereffects"
     var IS_PPRO = APP.indexOf("premiere") === 0;
     var IS_AEFT = APP.indexOf("aftereffects") === 0;
+    var PREMIERE_TICKS_PER_SECOND = 254016000000;
 
     // ─── Utilities ─────────────────────────────────────────────────────
 
@@ -211,6 +212,1005 @@
             return null;
         });
     };
+
+    host.saadstudio.getPodcastDiagnostics = function () {
+        return safe(function () {
+            if (!IS_PPRO) {
+                return {
+                    active: false,
+                    sequenceId: null,
+                    sequenceName: null,
+                    premiereVersion: null,
+                    videoTrackCount: 0,
+                    audioTrackCount: 0
+                };
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                return {
+                    active: false,
+                    sequenceId: null,
+                    sequenceName: null,
+                    premiereVersion: app.version || null,
+                    videoTrackCount: 0,
+                    audioTrackCount: 0
+                };
+            }
+            var sequenceId = null;
+            try {
+                sequenceId = seq.sequenceID || seq.id || (seq.projectItem && seq.projectItem.nodeId) || null;
+            } catch (eId) { sequenceId = null; }
+            return {
+                active: true,
+                sequenceId: sequenceId,
+                sequenceName: seq.name || null,
+                premiereVersion: app.version || null,
+                videoTrackCount: seq.videoTracks ? seq.videoTracks.numTracks : 0,
+                audioTrackCount: seq.audioTracks ? seq.audioTracks.numTracks : 0
+            };
+        });
+    };
+
+    host.saadstudio.getPodcastTimelineLayout = function () {
+        return safe(function () {
+            if (!IS_PPRO) {
+                return podcastEmptyTimelineLayout("unsupported", "Podcast timeline layout analysis only works inside Premiere Pro.");
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                return podcastEmptyTimelineLayout("no-sequence", "No active Premiere sequence detected.");
+            }
+            var sequenceId = null;
+            try {
+                sequenceId = seq.sequenceID || seq.id || (seq.projectItem && seq.projectItem.nodeId) || null;
+            } catch (eId) { sequenceId = null; }
+            return {
+                status: "ready",
+                sequenceId: sequenceId,
+                sequenceName: seq.name || null,
+                sequenceDurationSec: readSequenceDurationSec(seq),
+                workArea: readSequenceWorkArea(seq),
+                videoTracks: readPodcastTracks(seq.videoTracks, "video"),
+                audioTracks: readPodcastTracks(seq.audioTracks, "audio"),
+                supportedExecutionStrategies: [
+                    "decision-plan-only",
+                    "duplicate-sequence-cuts",
+                    "track-enable-disable"
+                ],
+                unsupportedApis: [
+                    "Official ExtendScript API for set/get active multicam camera angle"
+                ],
+                recommendedStrategy: "decision-plan-only",
+                messages: [
+                    "Timeline layout read only. No clips were changed.",
+                    "Audio activity detection is a contract only in this phase."
+                ]
+            };
+        });
+    };
+
+    host.saadstudio.inspectPodcastAudioSources = function (mappings) {
+        return safe(function () {
+            var result = {
+                ok: false,
+                sources: [],
+                blockers: [],
+                messages: []
+            };
+            if (!IS_PPRO) {
+                result.blockers.push("PREMIERE_REQUIRED");
+                result.messages.push("Audio Source Inspector only works inside Premiere Pro.");
+                return result;
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                result.blockers.push("NO_ACTIVE_SEQUENCE");
+                result.messages.push("No active Premiere sequence detected.");
+                return result;
+            }
+            if (!mappings || !mappings.length) {
+                result.blockers.push("NO_AUDIO_TRACK_MAPPINGS");
+                result.messages.push("No explicit audio track mappings were provided.");
+                return result;
+            }
+            for (var i = 0; i < mappings.length; i++) {
+                inspectMappedAudioTrack(seq, mappings[i], result);
+            }
+            result.ok = result.blockers.length === 0 && result.sources.length > 0;
+            result.messages.push("Audio source inspection is read-only. No clips or sequences were changed.");
+            return result;
+        });
+    };
+
+    host.saadstudio.duplicateActiveSequenceForPodcast = function (newName) {
+        return safe(function () {
+            var proof = {
+                errors: [],
+                blockers: [],
+                renameAttempted: false,
+                renameResult: false,
+                newSequenceDetected: false,
+                cloneResult: false
+            };
+            if (!IS_PPRO) {
+                proof.blockers.push("Safe edit copy works only inside Premiere Pro.");
+                return {
+                    ok: false,
+                    reason: "Safe edit copy works only inside Premiere Pro.",
+                    mutation: "duplicate-only",
+                    duplicateProof: proof
+                };
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                proof.blockers.push("No active sequence.");
+                return {
+                    ok: false,
+                    reason: "No active sequence.",
+                    mutation: "duplicate-only",
+                    duplicateProof: proof
+                };
+            }
+            if (!seq.clone) {
+                proof.originalSequenceName = seq.name || null;
+                proof.originalSequenceID = readSequenceID(seq);
+                proof.blockers.push("Sequence.clone() is not available in this Premiere runtime.");
+                return {
+                    ok: false,
+                    reason: "Sequence.clone() is not available in this Premiere runtime.",
+                    originalSequenceName: seq.name || null,
+                    mutation: "duplicate-only",
+                    duplicateProof: proof
+                };
+            }
+
+            var originalName = seq.name || null;
+            var originalId = readSequenceID(seq);
+            var beforeSnapshots = readSequenceSnapshots();
+            var beforeIds = sequenceIDSet(beforeSnapshots);
+            var beforeCount = app.project.sequences ? app.project.sequences.numSequences : 0;
+            proof.originalSequenceName = originalName;
+            proof.originalSequenceID = originalId;
+            proof.sequencesCountBefore = beforeCount;
+            proof.sequenceNamesBefore = sequenceNamesFromSnapshots(beforeSnapshots);
+            proof.sequenceIDsBefore = sequenceIDsFromSnapshots(beforeSnapshots);
+
+            var cloneOk = false;
+            try {
+                cloneOk = seq.clone();
+            } catch (eClone) {
+                proof.errors.push(String(eClone.message || eClone));
+                cloneOk = false;
+            }
+            proof.cloneResult = cloneOk === true;
+
+            var afterSnapshots = readSequenceSnapshots();
+            proof.sequencesCountAfter = app.project.sequences ? app.project.sequences.numSequences : 0;
+            proof.sequenceNamesAfter = sequenceNamesFromSnapshots(afterSnapshots);
+            proof.sequenceIDsAfter = sequenceIDsFromSnapshots(afterSnapshots);
+
+            if (cloneOk !== true) {
+                proof.blockers.push("sequence.clone() failed or returned false.");
+                return {
+                    ok: false,
+                    reason: "sequence.clone() failed or returned false.",
+                    originalSequenceName: originalName,
+                    originalSequenceId: originalId,
+                    mutation: "duplicate-only",
+                    duplicateProof: proof
+                };
+            }
+
+            var newSeq = findNewSequenceBySequenceIDDiff(beforeIds);
+            if (!newSeq && proof.sequencesCountAfter > beforeCount) {
+                newSeq = app.project.sequences[proof.sequencesCountAfter - 1];
+            }
+            if (!newSeq) {
+                proof.blockers.push("clone returned true but new sequence could not be detected.");
+                return {
+                    ok: false,
+                    reason: "clone returned true but new sequence could not be detected.",
+                    originalSequenceName: originalName,
+                    originalSequenceId: originalId,
+                    mutation: "duplicate-only",
+                    duplicateProof: proof
+                };
+            }
+            proof.newSequenceDetected = true;
+            proof.detectedNewSequenceID = readSequenceID(newSeq);
+            proof.detectedNewSequenceNameBeforeRename = newSeq.name || null;
+
+            var desiredName = String(newName || (originalName + " - Saad Auto Edit Draft"));
+            proof.renameAttempted = true;
+            try { newSeq.name = desiredName; } catch (eName) { proof.errors.push(String(eName.message || eName)); }
+            try {
+                if (newSeq.projectItem) newSeq.projectItem.name = desiredName;
+            } catch (eProjectItemName) { proof.errors.push(String(eProjectItemName.message || eProjectItemName)); }
+            proof.finalNewSequenceName = newSeq.name || null;
+            proof.renameResult = proof.finalNewSequenceName === desiredName;
+            var activeAfter = app.project && app.project.activeSequence;
+            proof.activeSequenceAfterCloneName = activeAfter ? (activeAfter.name || null) : null;
+            proof.activeSequenceAfterCloneID = activeAfter ? readSequenceID(activeAfter) : null;
+
+            if (!proof.renameResult) {
+                proof.blockers.push("clone succeeded but rename verification failed.");
+            }
+
+            return {
+                ok: proof.renameResult,
+                message: proof.renameResult ? "Safe edit copy created. No cuts were applied." : undefined,
+                reason: proof.renameResult ? undefined : "clone succeeded but rename verification failed.",
+                originalSequenceName: originalName,
+                newSequenceName: proof.finalNewSequenceName,
+                originalSequenceId: originalId,
+                newSequenceId: proof.detectedNewSequenceID,
+                mutation: "duplicate-only",
+                duplicateProof: proof
+            };
+        });
+    };
+
+    host.saadstudio.testPodcastSafeDuplicateSequence = function () {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate("Duplicate Runtime Test");
+            result.test = "safe-duplicate-sequence";
+            result.timelineMutation = "duplicate only";
+            result.originalTouched = false;
+            return result;
+        });
+    };
+
+    host.saadstudio.testPodcastDisableEnableOnDuplicate = function () {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate("Disable Enable Runtime Test");
+            result.test = "disable-enable-clip-on-duplicate";
+            result.timelineMutation = "duplicate + disabled toggle on duplicate only";
+            result.disabledPropertyExists = false;
+            result.disableAttempted = false;
+            result.disableResult = false;
+            result.enableResult = false;
+            result.targetClipName = null;
+            if (!result.ok || !result.newSequence) return stripRuntimeSequence(result);
+            var clip = firstClipFromSequence(result.newSequence);
+            if (!clip) {
+                result.blockers.push("NO_CLIP_ON_DUPLICATED_SEQUENCE");
+                return stripRuntimeSequence(result);
+            }
+            result.targetClipName = clip.name || null;
+            result.disabledPropertyExists = typeof clip.disabled !== "undefined";
+            if (!result.disabledPropertyExists) {
+                result.blockers.push("TRACKITEM_DISABLED_PROPERTY_UNAVAILABLE");
+                return stripRuntimeSequence(result);
+            }
+            result.disableAttempted = true;
+            try {
+                clip.disabled = true;
+                result.disableResult = clip.disabled === true;
+                clip.disabled = false;
+                result.enableResult = clip.disabled === false;
+            } catch (eToggle) {
+                result.errors.push(String(eToggle.message || eToggle));
+            }
+            if (!result.disableResult || !result.enableResult) {
+                result.blockers.push("DISABLE_ENABLE_VERIFICATION_FAILED");
+            }
+            result.ok = result.blockers.length === 0;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    host.saadstudio.testPodcastInsertOverwriteOnDuplicate = function () {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate("Insert Overwrite Runtime Test");
+            result.test = "insert-overwrite-on-duplicate";
+            result.timelineMutation = "duplicate + API surface check on duplicate only";
+            result.insertClipExists = false;
+            result.overwriteClipExists = false;
+            result.trackItemCloneExists = false;
+            result.insertAttempted = false;
+            result.overwriteAttempted = false;
+            result.insertResult = null;
+            result.overwriteResult = null;
+            result.targetTrackIndex = 0;
+            if (!result.ok || !result.newSequence) return stripRuntimeSequence(result);
+            var videoTrack = result.newSequence.videoTracks && result.newSequence.videoTracks.numTracks > 0
+                ? result.newSequence.videoTracks[0]
+                : null;
+            var clip = firstClipFromSequence(result.newSequence);
+            if (!videoTrack) result.blockers.push("NO_VIDEO_TRACK_ON_DUPLICATED_SEQUENCE");
+            result.insertClipExists = !!(videoTrack && videoTrack.insertClip);
+            result.overwriteClipExists = !!(videoTrack && videoTrack.overwriteClip);
+            result.trackItemCloneExists = !!(clip && clip.clone);
+            if (!result.insertClipExists) result.blockers.push("INSERTCLIP_UNAVAILABLE");
+            if (!result.overwriteClipExists) result.blockers.push("OVERWRITECLIP_UNAVAILABLE");
+            result.ok = result.blockers.length === 0;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    host.saadstudio.testPodcastDisableTimeRangeOnDuplicate = function () {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate("Disable Time Range Runtime Test");
+            result.test = "disable-time-range-on-duplicate";
+            result.timelineMutation = "duplicate + disabled toggle on duplicate only";
+            result.requestedDecision = {
+                activeStartSec: 0,
+                activeEndSec: 20,
+                inactiveStartSec: 20,
+                inactiveEndSec: 40
+            };
+            result.targetClipName = null;
+            result.targetClipStartSec = null;
+            result.targetClipEndSec = null;
+            result.targetClipDurationSec = null;
+            result.disabledPropertyExists = false;
+            result.timeRangeDisableApiFound = false;
+            result.wholeClipDisableObserved = false;
+            result.disabledBefore = null;
+            result.disabledAfterTrue = null;
+            result.disabledAfterRestore = null;
+            result.provenApi = null;
+            if (!result.ok || !result.newSequence) return stripRuntimeSequence(result);
+
+            var clip = firstLongClipOnVideoTrack(result.newSequence, 0, 40);
+            if (!clip) {
+                result.blockers.push("NO_LONG_V1_CLIP_FOUND");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            result.targetClipName = clip.name || null;
+            result.targetClipStartSec = readTimeSeconds(clip.start);
+            result.targetClipEndSec = readTimeSeconds(clip.end);
+            result.targetClipDurationSec = selectedTimelineDurationSec(clip);
+            result.disabledPropertyExists = typeof clip.disabled !== "undefined";
+            result.timeRangeDisableApiFound = hasTimeRangeDisableApi(clip);
+
+            if (!result.disabledPropertyExists) {
+                result.blockers.push("TRACKITEM_DISABLED_PROPERTY_UNAVAILABLE");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            if (result.timeRangeDisableApiFound) {
+                result.provenApi = "A time-range disable API-like method exists on TrackItem; manual review required before using it.";
+                result.ok = true;
+                return stripRuntimeSequence(result);
+            }
+
+            try {
+                result.disabledBefore = clip.disabled === true;
+                clip.disabled = true;
+                result.disabledAfterTrue = clip.disabled === true;
+                clip.disabled = result.disabledBefore;
+                result.disabledAfterRestore = clip.disabled === result.disabledBefore;
+                result.wholeClipDisableObserved = result.disabledAfterTrue === true;
+            } catch (eDisableRange) {
+                result.errors.push(String(eDisableRange.message || eDisableRange));
+            }
+
+            result.blockers.push("DISABLE_IS_TRACK_ITEM_WIDE_NOT_TIME_RANGE");
+            result.reason = "TrackItem.disabled is a property on the entire TrackItem. ExtendScript exposes no documented start/end range for disabling only 20-40s inside one long clip without cutting first.";
+            result.ok = false;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    host.saadstudio.testPodcastReconstructInsertOverwriteOnDuplicate = function () {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate("Reconstruct Insert Overwrite Runtime Test");
+            result.ok = false;
+            result.strategy = "reconstruct-timeline-insert-overwrite-proof";
+            result.test = "reconstruct-insert-overwrite-two-segments";
+            result.timelineMutation = "duplicate + insert/overwrite proof on duplicate only";
+            result.originalTouched = false;
+            result.decisionsTested = 2;
+            result.segmentsAttempted = 2;
+            result.segmentsInserted = 0;
+            result.methodUsed = null;
+            result.segmentResults = [];
+
+            var decisions = [
+                { cameraLabel: "V1", sourceVideoTrackIndex: 0, startSec: 0, endSec: 20.2, targetStartSec: 0 },
+                { cameraLabel: "V2", sourceVideoTrackIndex: 1, startSec: 20.021, endSec: 40.595, targetStartSec: 20.2 }
+            ];
+            if (!result.duplicateValidationPassed || !result.newSequence) {
+                for (var d = 0; d < decisions.length; d++) {
+                    var blockedSegment = emptyReconstructSegmentResult(decisions[d], d);
+                    if (result.cloneResult !== true) blockedSegment.blockers.push("DUPLICATE_SEQUENCE_FAILED");
+                    else if (!result.newSequenceID) blockedSegment.blockers.push("DUPLICATED_SEQUENCE_ID_NOT_DETECTED");
+                    else if (result.newSequenceID === result.originalSequenceID) blockedSegment.blockers.push("DUPLICATED_SEQUENCE_ID_MATCHES_ORIGINAL");
+                    else blockedSegment.blockers.push("DUPLICATE_VALIDATION_FAILED");
+                    result.segmentResults.push(blockedSegment);
+                }
+                if (result.blockers.length === 0) result.blockers.push("DUPLICATE_VALIDATION_FAILED");
+                return stripRuntimeSequence(result);
+            }
+            var targetTrack = result.newSequence.videoTracks && result.newSequence.videoTracks.numTracks > 0
+                ? result.newSequence.videoTracks[0]
+                : null;
+
+            for (var i = 0; i < decisions.length; i++) {
+                var segment = reconstructDecisionSegment(result.newSequence, targetTrack, decisions[i], i);
+                result.segmentResults.push(segment);
+                if (segment.ok) result.segmentsInserted += 1;
+                appendAll(result.blockers, segment.blockers);
+                appendAll(result.errors, segment.errors);
+            }
+
+            result.methodUsed = result.segmentsInserted > 0
+                ? "projectItem.createSubClip(source in/out ticks) + videoTrack.overwriteClip(subclip, target ticks)"
+                : null;
+            if (result.segmentsInserted !== result.segmentsAttempted && result.blockers.length === 0) {
+                result.blockers.push("INSERT_OVERWRITE_CANNOT_SET_SOURCE_IN_OUT");
+            }
+            result.ok = result.blockers.length === 0 && result.segmentsInserted === result.segmentsAttempted;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    function readSequenceSnapshots() {
+        var out = [];
+        var seqs = app.project && app.project.sequences;
+        if (!seqs) return out;
+        for (var i = 0; i < seqs.numSequences; i++) {
+            out.push({
+                name: seqs[i].name || null,
+                sequenceID: readSequenceID(seqs[i])
+            });
+        }
+        return out;
+    }
+
+    function readSequenceID(seq) {
+        try {
+            return seq.sequenceID || null;
+        } catch (eId) {
+            return null;
+        }
+    }
+
+    function sequenceIDSet(snapshots) {
+        var ids = {};
+        for (var i = 0; i < snapshots.length; i++) {
+            if (snapshots[i].sequenceID) ids[snapshots[i].sequenceID] = true;
+        }
+        return ids;
+    }
+
+    function sequenceNamesFromSnapshots(snapshots) {
+        var out = [];
+        for (var i = 0; i < snapshots.length; i++) out.push(snapshots[i].name);
+        return out;
+    }
+
+    function sequenceIDsFromSnapshots(snapshots) {
+        var out = [];
+        for (var i = 0; i < snapshots.length; i++) out.push(snapshots[i].sequenceID);
+        return out;
+    }
+
+    function findNewSequenceBySequenceIDDiff(beforeIds) {
+        var seqs = app.project && app.project.sequences;
+        if (!seqs) return null;
+        for (var i = 0; i < seqs.numSequences; i++) {
+            var seq = seqs[i];
+            var id = readSequenceID(seq);
+            if (id && !beforeIds[id]) return seq;
+        }
+        return null;
+    }
+
+    function createPodcastResearchDuplicate(label) {
+        var result = {
+            ok: false,
+            label: label,
+            originalSequenceName: null,
+            originalSequenceID: null,
+            newSequenceName: null,
+            newSequenceID: null,
+            cloneResult: false,
+            renameResult: false,
+            duplicateValidationPassed: false,
+            activeSequenceAfterCloneID: null,
+            activeSequenceAfterCloneName: null,
+            workingSequenceID: null,
+            workingSequenceName: null,
+            workingSequenceVideoTrackCount: null,
+            workingSequenceAudioTrackCount: null,
+            errors: [],
+            blockers: [],
+            newSequence: null
+        };
+        if (!IS_PPRO) {
+            result.blockers.push("PREMIERE_REQUIRED");
+            return result;
+        }
+        var seq = app.project && app.project.activeSequence;
+        if (!seq) {
+            result.blockers.push("NO_ACTIVE_SEQUENCE");
+            return result;
+        }
+        if (!seq.clone) {
+            result.blockers.push("SEQUENCE_CLONE_UNAVAILABLE");
+            return result;
+        }
+        result.originalSequenceName = seq.name || null;
+        result.originalSequenceID = readSequenceID(seq);
+        var beforeSnapshots = readSequenceSnapshots();
+        var beforeIds = sequenceIDSet(beforeSnapshots);
+        var beforeCount = app.project.sequences ? app.project.sequences.numSequences : 0;
+        try {
+            result.cloneResult = seq.clone() === true;
+        } catch (eClone) {
+            result.errors.push(String(eClone.message || eClone));
+            result.cloneResult = false;
+        }
+        if (!result.cloneResult) {
+            result.blockers.push("SEQUENCE_CLONE_FAILED");
+            return result;
+        }
+        var newSeq = findNewSequenceBySequenceIDDiff(beforeIds);
+        if (!newSeq && app.project.sequences && app.project.sequences.numSequences > beforeCount) {
+            newSeq = app.project.sequences[app.project.sequences.numSequences - 1];
+        }
+        if (!newSeq) {
+            result.blockers.push("DUPLICATED_SEQUENCE_NOT_DETECTED");
+            return result;
+        }
+        var desiredName = String((result.originalSequenceName || "Sequence") + " - Saad " + label);
+        try { newSeq.name = desiredName; } catch (eName) { result.errors.push(String(eName.message || eName)); }
+        try { if (newSeq.projectItem) newSeq.projectItem.name = desiredName; } catch (ePiName) { result.errors.push(String(ePiName.message || ePiName)); }
+        result.newSequence = newSeq;
+        result.newSequenceName = newSeq.name || null;
+        result.newSequenceID = readSequenceID(newSeq);
+        result.renameResult = result.newSequenceName === desiredName;
+        var activeAfterClone = app.project && app.project.activeSequence;
+        result.activeSequenceAfterCloneID = activeAfterClone ? readSequenceID(activeAfterClone) : null;
+        result.activeSequenceAfterCloneName = activeAfterClone ? (activeAfterClone.name || null) : null;
+        result.workingSequenceID = result.newSequenceID;
+        result.workingSequenceName = result.newSequenceName;
+        result.workingSequenceVideoTrackCount = newSeq.videoTracks ? newSeq.videoTracks.numTracks : null;
+        result.workingSequenceAudioTrackCount = newSeq.audioTracks ? newSeq.audioTracks.numTracks : null;
+        result.duplicateValidationPassed = result.cloneResult === true
+            && !!result.newSequenceID
+            && result.newSequenceID !== result.originalSequenceID;
+        if (!result.renameResult) result.blockers.push("DUPLICATED_SEQUENCE_RENAME_FAILED");
+        if (!result.duplicateValidationPassed) {
+            if (result.cloneResult !== true) result.blockers.push("DUPLICATE_SEQUENCE_FAILED");
+            else if (!result.newSequenceID) result.blockers.push("DUPLICATED_SEQUENCE_ID_NOT_DETECTED");
+            else if (result.newSequenceID === result.originalSequenceID) result.blockers.push("DUPLICATED_SEQUENCE_ID_MATCHES_ORIGINAL");
+        }
+        result.ok = result.blockers.length === 0 && result.duplicateValidationPassed;
+        return result;
+    }
+
+    function firstClipFromSequence(seq) {
+        if (!seq) return null;
+        var tracks = seq.videoTracks;
+        if (!tracks) return null;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var clips = tracks[t] && tracks[t].clips;
+            if (clips && clips.numItems > 0) return clips[0];
+        }
+        return null;
+    }
+
+    function firstLongClipOnVideoTrack(seq, trackIndex, minDurationSec) {
+        if (!seq || !seq.videoTracks || seq.videoTracks.numTracks <= trackIndex) return null;
+        var track = seq.videoTracks[trackIndex];
+        var clips = track && track.clips;
+        if (!clips) return null;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            if (selectedTimelineDurationSec(clip) >= minDurationSec) return clip;
+        }
+        return null;
+    }
+
+    function hasTimeRangeDisableApi(clip) {
+        if (!clip) return false;
+        var methodNames = [
+            "disableRange",
+            "setDisabledRange",
+            "setDisabledAtTime",
+            "createSetDisabledRangeAction",
+            "createSetDisabledActionForRange"
+        ];
+        for (var i = 0; i < methodNames.length; i++) {
+            try {
+                if (typeof clip[methodNames[i]] === "function") return true;
+            } catch (eMethod) {}
+        }
+        return false;
+    }
+
+    function reconstructDecisionSegment(seq, targetTrack, decision, index) {
+        var result = emptyReconstructSegmentResult(decision, index);
+        result.targetTrackHasOverwriteClip = !!(targetTrack && targetTrack.overwriteClip);
+        result.availableClipsOnTrack = listClipsOnVideoTrack(seq, decision.sourceVideoTrackIndex);
+        var clip = findClipCoveringTimelineRange(seq, decision.sourceVideoTrackIndex, decision.startSec, decision.endSec);
+        if (!clip) {
+            result.partialOverlap = findPartialClipOverlap(seq, decision.sourceVideoTrackIndex, decision.startSec, decision.endSec);
+            if (result.partialOverlap) result.blockers.push("PARTIAL_SOURCE_CLIP_OVERLAP");
+            result.blockers.push("SOURCE_CLIP_NOT_FOUND");
+            return result;
+        }
+        result.sourceClipFound = true;
+        result.sourceClipName = clip.name || null;
+        result.sourceClipStartSec = readTimeSeconds(clip.start);
+        result.sourceClipEndSec = readTimeSeconds(clip.end);
+        var projectItem = clip.projectItem;
+        if (!projectItem) {
+            result.blockers.push("PROJECT_ITEM_MISSING");
+            return result;
+        }
+        result.projectItemFound = true;
+        result.projectItemName = projectItem.name || null;
+        result.projectItemHasCreateSubClip = !!projectItem.createSubClip;
+        if (!projectItem.createSubClip) {
+            result.blockers.push("CREATE_SUBCLIP_NOT_AVAILABLE");
+            return result;
+        }
+        var sourceIn = readTimeSeconds(clip.inPoint) + (decision.startSec - readTimeSeconds(clip.start));
+        var sourceOut = readTimeSeconds(clip.inPoint) + (decision.endSec - readTimeSeconds(clip.start));
+        if (!(sourceOut > sourceIn)) {
+            result.blockers.push("INVALID_SOURCE_SUBRANGE");
+            return result;
+        }
+        result.sourceInSec = sourceIn;
+        result.sourceOutSec = sourceOut;
+        result.sourceInTicks = secondsToTicksString(sourceIn);
+        result.sourceOutTicks = secondsToTicksString(sourceOut);
+        if (!result.targetTrackHasOverwriteClip) {
+            result.blockers.push("OVERWRITECLIP_NOT_AVAILABLE");
+            return result;
+        }
+        var subclip = null;
+        result.createSubClipAttempted = true;
+        try {
+            subclip = projectItem.createSubClip(
+                "Saad Proof Segment " + (index + 1) + " " + ts(),
+                result.sourceInTicks,
+                result.sourceOutTicks,
+                1,
+                1,
+                0
+            );
+        } catch (eSubclip) {
+            result.createSubClipResult = "error";
+            result.blockers.push("CREATE_SUBCLIP_FAILED");
+            result.errors.push(String(eSubclip.message || eSubclip));
+            return result;
+        }
+        if (!subclip) {
+            result.createSubClipResult = String(subclip);
+            result.blockers.push("CREATE_SUBCLIP_FAILED");
+            return result;
+        }
+        result.createSubClipResult = "success";
+        result.subclipName = subclip.name || null;
+        result.overwriteAttempted = true;
+        try {
+            targetTrack.overwriteClip(subclip, secondsToTicksString(decision.targetStartSec));
+            result.overwriteResult = true;
+        } catch (eOverwrite) {
+            result.overwriteResult = false;
+            result.blockers.push("OVERWRITECLIP_FAILED");
+            result.errors.push(String(eOverwrite.message || eOverwrite));
+            return result;
+        }
+        result.ok = true;
+        return result;
+    }
+
+    function emptyReconstructSegmentResult(decision, index) {
+        return {
+            ok: false,
+            segmentIndex: index,
+            cameraLabel: decision.cameraLabel || null,
+            sourceVideoTrackIndex: decision.sourceVideoTrackIndex,
+            sourceClipFound: false,
+            sourceClipName: null,
+            sourceClipStartSec: null,
+            sourceClipEndSec: null,
+            projectItemFound: false,
+            projectItemName: null,
+            projectItemHasCreateSubClip: false,
+            sourceInSec: null,
+            sourceOutSec: null,
+            sourceInTicks: null,
+            sourceOutTicks: null,
+            createSubClipAttempted: false,
+            createSubClipResult: null,
+            subclipName: null,
+            targetVideoTrackIndex: 0,
+            targetTrackHasOverwriteClip: false,
+            overwriteAttempted: false,
+            overwriteResult: null,
+            availableClipsOnTrack: [],
+            partialOverlap: null,
+            blockers: [],
+            errors: []
+        };
+    }
+
+    function appendAll(target, values) {
+        if (!values) return;
+        for (var i = 0; i < values.length; i++) {
+            if (values[i] && target.join("|").indexOf(values[i]) === -1) target.push(values[i]);
+        }
+    }
+
+    function findClipCoveringTimelineRange(seq, videoTrackIndex, startSec, endSec) {
+        if (!seq || !seq.videoTracks || seq.videoTracks.numTracks <= videoTrackIndex) return null;
+        var track = seq.videoTracks[videoTrackIndex];
+        var clips = track && track.clips;
+        if (!clips) return null;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            var clipStart = readTimeSeconds(clip.start);
+            var clipEnd = readTimeSeconds(clip.end);
+            if (clipStart <= startSec && clipEnd >= endSec) return clip;
+        }
+        return null;
+    }
+
+    function listClipsOnVideoTrack(seq, videoTrackIndex) {
+        var out = [];
+        if (!seq || !seq.videoTracks || seq.videoTracks.numTracks <= videoTrackIndex) return out;
+        var track = seq.videoTracks[videoTrackIndex];
+        var clips = track && track.clips;
+        if (!clips) return out;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            var projectItem = clip && clip.projectItem;
+            out.push({
+                sourceVideoTrackIndex: videoTrackIndex,
+                clipIndex: c,
+                clipName: clip && clip.name ? String(clip.name) : null,
+                clipStartSec: readTimeSeconds(clip && clip.start),
+                clipEndSec: readTimeSeconds(clip && clip.end),
+                clipInPointSec: readTimeSeconds(clip && clip.inPoint),
+                clipOutPointSec: readTimeSeconds(clip && clip.outPoint),
+                projectItemName: projectItem && projectItem.name ? String(projectItem.name) : null,
+                hasProjectItem: !!projectItem
+            });
+        }
+        return out;
+    }
+
+    function findPartialClipOverlap(seq, videoTrackIndex, startSec, endSec) {
+        var clips = listClipsOnVideoTrack(seq, videoTrackIndex);
+        for (var i = 0; i < clips.length; i++) {
+            var clip = clips[i];
+            if (typeof clip.clipStartSec !== "number" || typeof clip.clipEndSec !== "number") continue;
+            var overlapStart = Math.max(startSec, clip.clipStartSec);
+            var overlapEnd = Math.min(endSec, clip.clipEndSec);
+            if (overlapEnd > overlapStart) {
+                return {
+                    sourceVideoTrackIndex: videoTrackIndex,
+                    clipIndex: clip.clipIndex,
+                    clipName: clip.clipName,
+                    decisionStartSec: startSec,
+                    decisionEndSec: endSec,
+                    clipStartSec: clip.clipStartSec,
+                    clipEndSec: clip.clipEndSec,
+                    overlapStartSec: overlapStart,
+                    overlapEndSec: overlapEnd,
+                    overlapDurationSec: overlapEnd - overlapStart
+                };
+            }
+        }
+        return null;
+    }
+
+    function secondsToTicksString(seconds) {
+        return String(Math.round(Number(seconds || 0) * PREMIERE_TICKS_PER_SECOND));
+    }
+
+    function stripRuntimeSequence(result) {
+        try { delete result.newSequence; } catch (eDelete) { result.newSequence = null; }
+        return result;
+    }
+
+    function podcastEmptyTimelineLayout(status, message) {
+        return {
+            status: status,
+            sequenceId: null,
+            sequenceName: null,
+            sequenceDurationSec: null,
+            workArea: null,
+            videoTracks: [],
+            audioTracks: [],
+            supportedExecutionStrategies: ["decision-plan-only"],
+            unsupportedApis: [
+                "Official ExtendScript API for set/get active multicam camera angle"
+            ],
+            recommendedStrategy: "decision-plan-only",
+            messages: [message]
+        };
+    }
+
+    function readPodcastTracks(tracks, kind) {
+        var out = [];
+        if (!tracks) return out;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var track = tracks[t];
+            var clips = track && track.clips;
+            var clipCount = clips ? clips.numItems : 0;
+            var firstClip = null;
+            try {
+                firstClip = clipCount > 0 ? clips[0] : null;
+            } catch (eClip) { firstClip = null; }
+            out.push({
+                kind: kind,
+                index: t,
+                name: readTrackName(track, kind, t),
+                clipCount: clipCount,
+                firstClipStartSec: firstClip && firstClip.start ? firstClip.start.seconds : null,
+                firstClipEndSec: firstClip && firstClip.end ? firstClip.end.seconds : null
+            });
+        }
+        return out;
+    }
+
+    function readTrackName(track, kind, index) {
+        try {
+            if (track && track.name) return String(track.name);
+        } catch (eName) {}
+        return (kind === "video" ? "V" : "A") + (index + 1);
+    }
+
+    function inspectMappedAudioTrack(seq, mapping, result) {
+        var audioTrackIndex = Number(mapping.audioTrackIndex);
+        var speakerId = mapping.speakerId || ("speaker_" + (audioTrackIndex + 1));
+        if (!seq.audioTracks || audioTrackIndex < 0 || audioTrackIndex >= seq.audioTracks.numTracks) {
+            result.blockers.push("AUDIO_TRACK_NOT_FOUND");
+            result.sources.push({
+                audioTrackIndex: audioTrackIndex,
+                speakerId: speakerId,
+                mediaAvailable: false,
+                sourceKind: "unknown",
+                reason: "Audio track does not exist."
+            });
+            return;
+        }
+        var track = seq.audioTracks[audioTrackIndex];
+        var clips = track && track.clips;
+        var clipCount = clips ? clips.numItems : 0;
+        if (clipCount === 0) {
+            result.blockers.push("AUDIO_TRACK_HAS_NO_CLIPS");
+            result.sources.push({
+                audioTrackIndex: audioTrackIndex,
+                speakerId: speakerId,
+                mediaAvailable: false,
+                sourceKind: "unknown",
+                reason: "Audio track has no clips."
+            });
+            return;
+        }
+        if (clipCount > 1) {
+            result.blockers.push("AUDIO_TRACK_HAS_MULTIPLE_CLIPS");
+        }
+        for (var c = 0; c < clipCount; c++) {
+            var clip = clips[c];
+            var sourceInfo = readAudioSourceInfo(audioTrackIndex, speakerId, c, clip, clipCount);
+            result.sources.push(sourceInfo);
+            if (sourceInfo.reason === "INVALID_CLIP_TIMING") result.blockers.push("INVALID_CLIP_TIMING");
+            else if (!sourceInfo.mediaAvailable && sourceInfo.reason) result.blockers.push("AUDIO_SOURCE_UNAVAILABLE");
+        }
+    }
+
+    function readAudioSourceInfo(audioTrackIndex, speakerId, trackItemIndex, clip, clipCount) {
+        var info = {
+            audioTrackIndex: audioTrackIndex,
+            speakerId: speakerId,
+            trackItemIndex: trackItemIndex,
+            clipName: clip && clip.name ? String(clip.name) : null,
+            projectItemName: null,
+            sourcePath: null,
+            timelineStartSec: readTimeSeconds(clip && clip.start),
+            timelineEndSec: readTimeSeconds(clip && clip.end),
+            sourceInPointSec: readTimeSeconds(clip && clip.inPoint),
+            sourceOutPointSec: readTimeSeconds(clip && clip.outPoint),
+            durationSec: selectedTimelineDurationSec(clip),
+            mediaAvailable: false,
+            sourceKind: clipCount > 1 ? "multiple-clips" : "unknown",
+            reason: null
+        };
+        var projectItem = clip && clip.projectItem;
+        if (projectItem) {
+            try { info.projectItemName = projectItem.name ? String(projectItem.name) : null; } catch (eName) {}
+        }
+        if (!isValidAudioClipTiming(info)) {
+            info.reason = "INVALID_CLIP_TIMING";
+            return info;
+        }
+        if (!projectItem) {
+            info.reason = "Clip has no projectItem.";
+            return info;
+        }
+        var canChangePath = false;
+        try {
+            if (typeof projectItem.canChangeMediaPath === "function") {
+                canChangePath = projectItem.canChangeMediaPath();
+            } else {
+                canChangePath = !!projectItem.canChangeMediaPath;
+            }
+        } catch (eCanChange) { canChangePath = false; }
+        var sourcePath = null;
+        try {
+            sourcePath = projectItem.getMediaPath ? projectItem.getMediaPath() : null;
+        } catch (ePath) { sourcePath = null; }
+        if (!sourcePath) {
+            info.sourceKind = canChangePath ? "unknown" : "nested-sequence";
+            info.reason = canChangePath ? "ProjectItem returned no media path." : "ProjectItem has no changeable media path.";
+            return info;
+        }
+        info.sourcePath = String(sourcePath);
+        info.sourceKind = podcastSourceKindFromPath(info.sourcePath);
+        info.mediaAvailable = clipCount === 1;
+        if (clipCount > 1) {
+            info.reason = "Audio track has multiple clips; version 1 does not infer continuity.";
+        }
+        return info;
+    }
+
+    function readTimeSeconds(time) {
+        try {
+            if (time && typeof time.seconds !== "undefined") return Number(time.seconds);
+        } catch (eTime) {}
+        return null;
+    }
+
+    function isValidAudioClipTiming(info) {
+        return typeof info.timelineStartSec === "number"
+            && typeof info.timelineEndSec === "number"
+            && typeof info.sourceInPointSec === "number"
+            && typeof info.sourceOutPointSec === "number"
+            && info.timelineEndSec > info.timelineStartSec
+            && info.sourceOutPointSec > info.sourceInPointSec;
+    }
+
+    function podcastSourceKindFromPath(sourcePath) {
+        if (/\.(mp3|wav|m4a|aac|ogg|flac|aif|aiff)$/i.test(sourcePath)) return "independent-audio";
+        if (/\.(mp4|mov|m4v|mkv|avi|webm)$/i.test(sourcePath)) return "audio-inside-video";
+        return "unknown";
+    }
+
+    function readSequenceDurationSec(seq) {
+        try {
+            if (seq && seq.end && typeof seq.end.seconds !== "undefined") return seq.end.seconds;
+        } catch (eEnd) {}
+        try {
+            if (seq && seq.duration && typeof seq.duration.seconds !== "undefined") return seq.duration.seconds;
+        } catch (eDuration) {}
+        return null;
+    }
+
+    function readSequenceWorkArea(seq) {
+        var start = null;
+        var end = null;
+        try {
+            if (seq && seq.workInPoint && typeof seq.workInPoint.seconds !== "undefined") start = seq.workInPoint.seconds;
+        } catch (eIn) {}
+        try {
+            if (seq && seq.workOutPoint && typeof seq.workOutPoint.seconds !== "undefined") end = seq.workOutPoint.seconds;
+        } catch (eOut) {}
+        try {
+            if (start === null && seq && seq.getWorkInPoint) {
+                var wi = seq.getWorkInPoint();
+                start = wi && typeof wi.seconds !== "undefined" ? wi.seconds : null;
+            }
+        } catch (eGetIn) {}
+        try {
+            if (end === null && seq && seq.getWorkOutPoint) {
+                var wo = seq.getWorkOutPoint();
+                end = wo && typeof wo.seconds !== "undefined" ? wo.seconds : null;
+            }
+        } catch (eGetOut) {}
+        if (start === null && end === null) return null;
+        return { startSec: start, endSec: end };
+    }
 
     function pproTimelineContext() {
         var seq = app.project && app.project.activeSequence;

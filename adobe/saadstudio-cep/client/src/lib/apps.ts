@@ -146,6 +146,15 @@ export const APPS: AppDef[] = [
     color: "#22d3ee", // teal
   },
   {
+    id: "multi-cam-auto-switch",
+    name: "Multi-Cam Auto Switch",
+    description: "Read-only diagnostics for podcast camera switching automation.",
+    route: "/multi-cam-auto-switch",
+    icon: "video",
+    color: "#34d399", // emerald
+    badge: "NEW",
+  },
+  {
     id: "noise-removal",
     name: "Noise removal",
     description: "Clean background hiss and hum out of dialogue.",
