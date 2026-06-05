@@ -71,20 +71,41 @@ export async function POST(request: NextRequest) {
   const codeVerifier = params.get("code_verifier") ?? undefined;
   const resource = params.get("resource") ?? undefined;
 
+  const trace = {
+    grantType,
+    hasCode: Boolean(code),
+    codePrefix: code.slice(0, 12),
+    redirectUri,
+    clientId,
+    hasCodeVerifier: Boolean(codeVerifier),
+    resource,
+  };
+
   if (grantType !== "authorization_code") {
+    console.warn("[oauth/token] unsupported_grant_type", trace);
     return json({ error: "unsupported_grant_type" }, 400);
   }
 
   const payload = verifySmartCliAuthorizationCode(code);
   if (!payload) {
+    console.warn("[oauth/token] invalid or expired code", trace);
     return json({ error: "invalid_grant", error_description: "Invalid or expired authorization code." }, 400);
   }
 
   if ((redirectUri && payload.redirectUri !== redirectUri) || payload.clientId !== clientId) {
+    console.warn("[oauth/token] clientId/redirectUri mismatch", {
+      ...trace,
+      issuedClientId: payload.clientId,
+      issuedRedirectUri: payload.redirectUri,
+    });
     return json({ error: "invalid_grant", error_description: "OAuth request does not match the issued code." }, 400);
   }
 
   if (!sameResource(payload.resource, resource)) {
+    console.warn("[oauth/token] resource mismatch", {
+      ...trace,
+      issuedResource: payload.resource,
+    });
     return json({ error: "invalid_target", error_description: "Resource does not match the issued code." }, 400);
   }
 
@@ -93,9 +114,15 @@ export async function POST(request: NextRequest) {
     codeChallengeMethod: payload.codeChallengeMethod,
     codeVerifier,
   })) {
+    console.warn("[oauth/token] PKCE verifier failed", {
+      ...trace,
+      issuedChallenge: payload.codeChallenge?.slice(0, 16),
+      issuedMethod: payload.codeChallengeMethod,
+    });
     return json({ error: "invalid_grant", error_description: "Invalid PKCE verifier." }, 400);
   }
 
+  console.log("[oauth/token] success", { userId: payload.userId, clientId, redirectUri });
   return json({
     access_token: generatePanelToken(payload.userId),
     token_type: "Bearer",

@@ -25,20 +25,40 @@ export async function POST(request: NextRequest) {
   const resource = typeof body?.resource === "string" ? body.resource : undefined;
   const scope = typeof body?.scope === "string" ? body.scope : undefined;
 
-  if (responseType && responseType !== "code") return fail("Unsupported response_type.");
-  if (!clientId) return fail("Missing client_id.");
-  if (!redirectUri) return fail("Missing redirect_uri.");
+  if (responseType && responseType !== "code") {
+    console.warn("[oauth/approve] unsupported response_type", { userId, responseType });
+    return fail("Unsupported response_type.");
+  }
+  if (!clientId) {
+    console.warn("[oauth/approve] missing client_id", { userId, body });
+    return fail("Missing client_id.");
+  }
+  if (!redirectUri) {
+    console.warn("[oauth/approve] missing redirect_uri", { userId, clientId });
+    return fail("Missing redirect_uri.");
+  }
 
   let parsedRedirect: URL;
   try {
     parsedRedirect = new URL(redirectUri);
   } catch {
+    console.warn("[oauth/approve] invalid redirect_uri", { userId, redirectUri });
     return fail("Invalid redirect_uri.");
   }
 
   if (parsedRedirect.protocol !== "https:" && parsedRedirect.hostname !== "localhost") {
+    console.warn("[oauth/approve] redirect_uri not HTTPS/localhost", { userId, redirectUri });
     return fail("redirect_uri must use HTTPS or localhost.");
   }
+
+  console.log("[oauth/approve] issuing code", {
+    userId,
+    clientId,
+    redirectUri,
+    hasChallenge: Boolean(codeChallenge),
+    method: codeChallengeMethod,
+    resource,
+  });
 
   await ensureUserRow(userId);
 
