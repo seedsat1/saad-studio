@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     resource: `${origin}/api/smart-cli/mcp`,
     authorization_servers: [origin],
     bearer_methods_supported: ["header"],
-    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    scopes_supported: ["smart_cli.generate", "smart_cli.read"],
     resource_name: "Saad Studio Smart CLI",
   }, {
     headers: { "Cache-Control": "no-store" },

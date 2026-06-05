@@ -127,6 +127,6 @@ export async function POST(request: NextRequest) {
     access_token: generatePanelToken(payload.userId),
     token_type: "Bearer",
     expires_in: 60 * 60 * 24 * 30,
-    scope: payload.scope ?? "openid email profile smart_cli.generate smart_cli.read",
+    scope: payload.scope ?? "smart_cli.generate smart_cli.read",
   });
 }

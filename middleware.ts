@@ -162,7 +162,10 @@ function smartCliOAuthMetadata(req: Request) {
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256", "plain"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
-    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    // OAuth-only scopes. We deliberately don't declare openid/email/profile
+    // because we don't implement OIDC discovery (no userinfo / jwks endpoint).
+    // Strict MCP clients reject servers that claim OIDC without serving it.
+    scopes_supported: ["smart_cli.generate", "smart_cli.read"],
     resource_parameter_supported: true,
   }, {
     headers: { "Cache-Control": "no-store" },
@@ -175,7 +178,7 @@ function smartCliProtectedResourceMetadata(req: Request) {
     resource: `${origin}/api/smart-cli/mcp`,
     authorization_servers: [origin],
     bearer_methods_supported: ["header"],
-    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    scopes_supported: ["smart_cli.generate", "smart_cli.read"],
     resource_name: "Saad Studio Smart CLI",
   }, {
     headers: { "Cache-Control": "no-store" },
