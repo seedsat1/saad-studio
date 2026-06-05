@@ -1086,8 +1086,8 @@ const TopNavbar = () => {
                   <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />Gallery
                 </Link>
                 <NavSep />
-                <Link href="/connect-claude" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/connect-claude" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <Plug className="h-3 w-3 text-violet-400" />Connect Claude
+                <Link href="/smart-cli" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/smart-cli" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <Plug className="h-3 w-3 text-violet-400" />Smart CLI
                 </Link>
               </div>
 
