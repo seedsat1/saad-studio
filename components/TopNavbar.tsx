@@ -55,6 +55,7 @@ import {
   Lightbulb,
   Atom,
   Box,
+  Plug,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -1075,7 +1076,7 @@ const TopNavbar = () => {
                 </HoverNavItem>
               )}
 
-              {/* Assist | Gallery */}
+              {/* Assist | Gallery | Connect Claude */}
               <div className="flex items-center">
                 <Link href="/assist" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/assist" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <Bot className="h-3 w-3 text-green-400" />Assist
@@ -1083,6 +1084,10 @@ const TopNavbar = () => {
                 <NavSep />
                 <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />Gallery
+                </Link>
+                <NavSep />
+                <Link href="/connect-claude" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/connect-claude" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <Plug className="h-3 w-3 text-violet-400" />Connect Claude
                 </Link>
               </div>
 
