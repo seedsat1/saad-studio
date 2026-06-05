@@ -67,8 +67,21 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
   // empty response and JSON parsing fails with
   // "Failed to execute 'json' on 'Response': Unexpected end of JSON input".
   const reqUrl = req.url;
+  const reqPath = new URL(reqUrl).pathname;
   const isPanelApi = reqUrl.includes("/api/panel/");
   const isCepOrigin = !origin || origin === "null";
+
+  // Public discovery + MCP transport endpoints must be reachable from any
+  // origin (claude.ai, perplexity.ai, etc). Per OAuth spec discovery is
+  // designed for cross-origin reads, and the MCP endpoint authenticates
+  // via Bearer token in a header — never cookies — so wildcard CORS is
+  // safe here. Without this, browser-based MCP clients fail their CORS
+  // check on /.well-known/oauth-* and the user sees an opaque
+  // "Authorization with the MCP server failed" error.
+  const isPublicMcpPath =
+    reqPath.startsWith("/.well-known/oauth-") ||
+    reqPath.startsWith("/.well-known/openid-") ||
+    reqPath.startsWith("/api/smart-cli/");
 
   res.headers.set("X-Frame-Options", "SAMEORIGIN");
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -101,7 +114,17 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
     ].join("; ")
   );
 
-  if (reqUrl.includes("/api/")) {
+  if (isPublicMcpPath) {
+    // Wildcard CORS for OAuth discovery + MCP transport — required for
+    // remote browser clients like Claude.ai. Bearer-token auth means no
+    // cookies, so dropping the credentials flag is the right move.
+    res.headers.set("Access-Control-Allow-Origin", "*");
+    res.headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, MCP-Protocol-Version");
+    res.headers.set("Access-Control-Expose-Headers", "WWW-Authenticate, MCP-Protocol-Version");
+    res.headers.set("Access-Control-Max-Age", "86400");
+    res.headers.append("Vary", "Origin");
+  } else if (reqUrl.includes("/api/")) {
     if (isPanelApi && isCepOrigin) {
       // Panel endpoints are protected by the ssp_ HMAC bearer token (or by
       // the session id for the unauthenticated auth-session route), never
