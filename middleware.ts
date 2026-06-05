@@ -51,6 +51,8 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback(.*)',
   '/panel(.*)',
   '/api/panel(.*)',
+  '/connect-claude(.*)',
+  '/smart-cli(.*)',
 ])
 
 function applySecurityHeaders(res: NextResponse, req: Request) {
