@@ -141,8 +141,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const mediaUrl = (typeof body?.imageUrl === "string" && body.imageUrl) || (typeof body?.videoUrl === "string" && body.videoUrl);
     
-    // Scale factor must be string enum: '1', '2', '4', '8'
-    let scaleFactor = String(body?.scale || "2");
+    // Resolution-based scaling (480p, 720p, 1080p maps to scale factors)
+    const resolution = String(body?.resolution || "720");
+    const resolutionMap: Record<string, string> = { "480": "1", "720": "2", "1080": "4" };
+    let scaleFactor = resolutionMap[resolution] || String(body?.scale || "2");
+    
+    // Fallback to direct scale if provided
+    if (!resolutionMap[resolution] && body?.scale) {
+      scaleFactor = String(body.scale);
+      if (!["1", "2", "4", "8"].includes(scaleFactor)) scaleFactor = "2";
+    }
+    
     if (!["1", "2", "4", "8"].includes(scaleFactor)) {
       scaleFactor = "2";
     }

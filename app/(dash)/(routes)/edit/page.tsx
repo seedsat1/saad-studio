@@ -353,6 +353,7 @@ export default function EditPage() {
   const [motionSpeed, setMotionSpeed] = useState(5);
 
   const [upscaleFactor, setUpscaleFactor] = useState("1");
+  const [upscaleResolution, setUpscaleResolution] = useState("720"); // 480, 720, 1080
   const [upscaleDenoise, setUpscaleDenoise] = useState(0.3);
   const [upscaleFaceEnhance, setUpscaleFaceEnhance] = useState(true);
   const [upscaleModel, setUpscaleModel] = useState("topaz");
@@ -971,6 +972,7 @@ export default function EditPage() {
     setPrompt("");
     if (activeTool === "upscale") {
       setUpscaleFactor("1");
+      setUpscaleResolution("720");
       setUpscaleDenoise(0.3);
       setUpscaleFaceEnhance(true);
       setUpscaleModel("topaz");
@@ -1069,8 +1071,8 @@ export default function EditPage() {
         resultUrl = data.imageUrl || data.videoUrl;
       } else if (activeTool === "upscale") {
         const payload = mediaType === "video"
-          ? { videoUrl: inputMedia, scale: upscaleFactor }
-          : { imageUrl: inputMedia, scale: upscaleFactor };
+          ? { videoUrl: inputMedia, scale: upscaleFactor, resolution: upscaleResolution }
+          : { imageUrl: inputMedia, scale: upscaleFactor, resolution: upscaleResolution };
         const response = await fetch("/api/generate/upscale", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1123,7 +1125,7 @@ export default function EditPage() {
     }
 
     setIsProcessing(false);
-  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, faceImageUrl, videoDuration]);
+  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, upscaleResolution, faceImageUrl, videoDuration]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);
@@ -2364,20 +2366,46 @@ export default function EditPage() {
                 <span className="text-[11px] font-bold text-zinc-400 block">
                   Scale factor
                 </span>
-                <div className="grid grid-cols-5 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
-                  {["1", "2", "4", "8", "16"].map((fac) => (
+                <div className="grid grid-cols-4 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
+                  {["1", "2", "4", mediaType === "video" ? "4" : "8"].map((fac) => (
+                    mediaType === "video" && fac === "8" ? null : (
+                      <button
+                        key={fac}
+                        type="button"
+                        onClick={() => setUpscaleFactor(fac)}
+                        className={cn(
+                          "py-1.5 rounded-lg text-xs font-bold transition-all",
+                          upscaleFactor === fac
+                            ? "bg-white text-black font-extrabold shadow-sm"
+                            : "text-zinc-400 hover:text-zinc-200"
+                        )}
+                      >
+                        x{fac}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+
+              {/* Resolution selector */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-zinc-400 block">
+                  Target Resolution
+                </span>
+                <div className="grid grid-cols-3 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
+                  {["480", "720", "1080"].map((res) => (
                     <button
-                      key={fac}
+                      key={res}
                       type="button"
-                      onClick={() => setUpscaleFactor(fac)}
+                      onClick={() => setUpscaleResolution(res)}
                       className={cn(
                         "py-1.5 rounded-lg text-xs font-bold transition-all",
-                        upscaleFactor === fac
+                        upscaleResolution === res
                           ? "bg-white text-black font-extrabold shadow-sm"
                           : "text-zinc-400 hover:text-zinc-200"
                       )}
                     >
-                      x{fac}
+                      {res}p
                     </button>
                   ))}
                 </div>
