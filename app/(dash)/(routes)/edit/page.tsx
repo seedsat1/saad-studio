@@ -1125,7 +1125,7 @@ export default function EditPage() {
     }
 
     setIsProcessing(false);
-  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, upscaleResolution, faceImageUrl, videoDuration];
+  }, [isProcessing, prompt, activeTool, mediaUrl, mediaType, selectedModel, upscaleFactor, upscaleResolution, faceImageUrl, videoDuration]);
 
   const handleToolSelect = (id: string) => {
     setActiveTool(id);

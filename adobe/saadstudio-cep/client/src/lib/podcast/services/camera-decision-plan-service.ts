@@ -26,8 +26,11 @@ export function generateCameraDecisionPlanProof(
 
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
-  const rawDecisions = sortDecisions(input.dominantTrackAtTime.map((window, index) =>
-    windowToCameraDecision(window, overlapKeys, index, videoTrackCount)));
+  const sourceDecisions = (input.trackSpeakingSegments?.length ?? 0) > 0
+    ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount)
+    : input.dominantTrackAtTime.map((window, index) =>
+      windowToCameraDecision(window, overlapKeys, index, videoTrackCount));
+  const rawDecisions = sortDecisions(sourceDecisions);
   const merged = mergeAdjacentDecisions(rawDecisions);
   const compacted = mergeShortDecisions(merged);
   const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
@@ -84,6 +87,58 @@ function windowToCameraDecision(
     index === 0 ? "V1" : "KEEP_PREVIOUS",
     "no dominant speaker; keep previous camera",
   );
+}
+
+function decisionsFromSpeakingSegments(
+  segments: TrackSpeakingSegment[],
+  videoTrackCount: number,
+): PodcastCameraDecisionProofItem[] {
+  const validSegments = segments
+    .filter((segment) =>
+      Number.isFinite(segment.startSec)
+      && Number.isFinite(segment.endSec)
+      && segment.endSec > segment.startSec
+      && segment.audioTrackIndex >= 0,
+    )
+    .sort((a, b) => a.startSec - b.startSec || a.endSec - b.endSec);
+  if (!validSegments.length) return [];
+
+  const boundaries = Array.from(new Set(
+    validSegments.flatMap((segment) => [roundTime(Math.max(0, segment.startSec)), roundTime(Math.max(0, segment.endSec))]),
+  )).sort((a, b) => a - b);
+
+  const decisions: PodcastCameraDecisionProofItem[] = [];
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const startSec = boundaries[i];
+    const endSec = boundaries[i + 1];
+    if (!(endSec > startSec)) continue;
+
+    const active = validSegments.filter((segment) => segment.startSec < endSec && segment.endSec > startSec);
+    if (!active.length) {
+      decisions.push(makeDecision(startSec, endSec, null, null, i === 0 ? 0 : -1, i === 0 ? "V1" : "KEEP_PREVIOUS", "no active speaking segment; keep previous camera"));
+      continue;
+    }
+
+    if (active.length > 1) {
+      const wideTrackIndex = Math.min(2, videoTrackCount - 1);
+      decisions.push(makeDecision(startSec, endSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlapping speaking segments; using wide camera"));
+      continue;
+    }
+
+    const segment = active[0];
+    const videoTrackIndex = Math.min(segment.audioTrackIndex, videoTrackCount - 1);
+    decisions.push(makeDecision(
+      startSec,
+      endSec,
+      segment.speakerId,
+      segment.audioTrackIndex,
+      videoTrackIndex,
+      `V${videoTrackIndex + 1}`,
+      "speaking segment mapped to matching camera track",
+    ));
+  }
+
+  return decisions;
 }
 
 function makeDecision(
