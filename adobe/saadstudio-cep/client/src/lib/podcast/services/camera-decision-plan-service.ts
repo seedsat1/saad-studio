@@ -26,11 +26,13 @@ export function generateCameraDecisionPlanProof(
 
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
-  const rawDecisions = input.dominantTrackAtTime.map((window, index) =>
-    windowToCameraDecision(window, overlapKeys, index, videoTrackCount));
+  const rawDecisions = sortDecisions(input.dominantTrackAtTime.map((window, index) =>
+    windowToCameraDecision(window, overlapKeys, index, videoTrackCount)));
   const merged = mergeAdjacentDecisions(rawDecisions);
   const compacted = mergeShortDecisions(merged);
   const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
+  const invalidDecisions = findInvalidDecisions(finalDecisions);
+  if (invalidDecisions.length > 0) blockers.push("INVALID_CAMERA_DECISION_TIMING");
   const diagnostics = buildDecisionDiagnostics(input, rawDecisions, merged, compacted.decisions, finalDecisions);
   const summary = {
     ...summarizeDecisions(finalDecisions, compacted.droppedShortDecisions),
@@ -42,7 +44,9 @@ export function generateCameraDecisionPlanProof(
     summary,
     diagnostics,
     blockers,
-    warnings,
+    warnings: invalidDecisions.length
+      ? [...warnings, ...invalidDecisions.map((decision) => `INVALID_DECISION_${decision.index}:${decision.reason}`)]
+      : warnings,
     timelineMutation: "none",
     sequenceMutation: "none",
   };
@@ -92,10 +96,11 @@ function makeDecision(
   reason: string,
 ): PodcastCameraDecisionProofItem {
   const safeStartSec = Math.max(0, startSec);
+  const safeEndSec = Number.isFinite(endSec) ? Math.max(0, endSec) : endSec;
   return {
     startSec: safeStartSec,
-    endSec,
-    durationSec: roundTime(endSec - safeStartSec),
+    endSec: safeEndSec,
+    durationSec: roundTime(safeEndSec - safeStartSec),
     speakerId,
     audioTrackIndex,
     videoTrackIndex,
@@ -106,7 +111,8 @@ function makeDecision(
 
 function mergeAdjacentDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {
   const merged: PodcastCameraDecisionProofItem[] = [];
-  for (const decision of decisions) {
+  for (const decision of sortDecisions(decisions)) {
+    if (!isValidDecisionTiming(decision)) continue;
     const previous = merged[merged.length - 1];
     if (!previous) {
       merged.push(normalizeKeepPrevious(decision, null));
@@ -114,7 +120,7 @@ function mergeAdjacentDecisions(decisions: PodcastCameraDecisionProofItem[]): Po
     }
     const normalized = normalizeKeepPrevious(decision, previous);
     const gap = normalized.startSec - previous.endSec;
-    if (sameCamera(previous, normalized) && gap <= MERGE_GAP_SEC) {
+    if (sameCamera(previous, normalized) && gap >= 0 && gap <= MERGE_GAP_SEC && normalized.endSec > previous.endSec) {
       previous.endSec = normalized.endSec;
       previous.durationSec = roundTime(previous.endSec - previous.startSec);
       if (normalized.reason.includes("keep previous")) {
@@ -147,30 +153,63 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
 } {
   const output: PodcastCameraDecisionProofItem[] = [];
   let droppedShortDecisions = 0;
-  for (const decision of decisions) {
+  const ordered = sortDecisions(decisions).filter(isValidDecisionTiming);
+  for (const decision of ordered) {
     if (decision.durationSec >= MINIMUM_SHOT_LENGTH_SEC) {
       output.push({ ...decision });
       continue;
     }
     droppedShortDecisions += 1;
     const previous = output[output.length - 1];
-    if (previous) {
+    if (previous && decision.startSec >= previous.endSec && decision.endSec > previous.endSec) {
       previous.endSec = decision.endSec;
       previous.durationSec = roundTime(previous.endSec - previous.startSec);
       previous.reason = "absorbed short decision below minimum shot length";
       continue;
     }
-    const next = decisions.find((candidate) => candidate.startSec >= decision.endSec && candidate.durationSec >= MINIMUM_SHOT_LENGTH_SEC);
+    const next = ordered.find((candidate) => candidate.startSec >= decision.endSec && candidate.durationSec >= MINIMUM_SHOT_LENGTH_SEC);
     if (next) {
-      output.push({
+      const absorbed = {
         ...next,
         startSec: decision.startSec,
         durationSec: roundTime(next.endSec - decision.startSec),
         reason: "absorbed leading short decision below minimum shot length",
-      });
+      };
+      if (isValidDecisionTiming(absorbed)) output.push(absorbed);
     }
   }
   return { decisions: output, droppedShortDecisions };
+}
+
+function sortDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {
+  return decisions
+    .map((decision) => ({ ...decision }))
+    .sort((a, b) => {
+      if (a.startSec !== b.startSec) return a.startSec - b.startSec;
+      return a.endSec - b.endSec;
+    });
+}
+
+function isValidDecisionTiming(decision: PodcastCameraDecisionProofItem): boolean {
+  return Number.isFinite(decision.startSec)
+    && Number.isFinite(decision.endSec)
+    && Number.isFinite(decision.durationSec)
+    && decision.startSec >= 0
+    && decision.endSec > decision.startSec
+    && decision.durationSec > 0;
+}
+
+function findInvalidDecisions(decisions: PodcastCameraDecisionProofItem[]): Array<{ index: number; reason: string }> {
+  return decisions.flatMap((decision, index) => {
+    const reasons: string[] = [];
+    if (!Number.isFinite(decision.startSec)) reasons.push("START_NOT_FINITE");
+    if (!Number.isFinite(decision.endSec)) reasons.push("END_NOT_FINITE");
+    if (!Number.isFinite(decision.durationSec)) reasons.push("DURATION_NOT_FINITE");
+    if (decision.startSec < 0) reasons.push("START_BELOW_ZERO");
+    if (decision.endSec <= decision.startSec) reasons.push("END_NOT_GREATER_THAN_START");
+    if (decision.durationSec <= 0) reasons.push("DURATION_NOT_POSITIVE");
+    return reasons.length ? [{ index, reason: reasons.join("|") }] : [];
+  });
 }
 
 function buildDecisionDiagnostics(
