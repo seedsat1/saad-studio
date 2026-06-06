@@ -23,6 +23,32 @@ import { googleGenerateImage } from "./providers/google-images";
 import { byteplusGenerateVideo } from "./providers/byteplus-video";
 import { openaiGenerateImage } from "./providers/openai-images";
 
+export type ProjectProviderId = ProviderId | "reap";
+
+export const PROJECT_PROVIDER_ORDER: ProjectProviderId[] = [
+  "google",
+  "byteplus",
+  "openai",
+  "kie",
+  "reap",
+];
+
+export const REAP_POST_PRODUCTION_TOOLS = [
+  "ai-clipping",
+  "auto-reframe",
+  "captions",
+  "translation",
+  "dubbing",
+  "brand-templates",
+  "webhooks",
+  "social-ready-outputs",
+] as const;
+
+export function isReapPostProductionTool(tool: string): boolean {
+  const normalized = tool.trim().toLowerCase().replace(/_/g, "-");
+  return REAP_POST_PRODUCTION_TOOLS.includes(normalized as (typeof REAP_POST_PRODUCTION_TOOLS)[number]);
+}
+
 // ─── Routing rules ─────────────────────────────────────────────────────
 
 /** Decide which upstream serves a given modelId. Order of checks

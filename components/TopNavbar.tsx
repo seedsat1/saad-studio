@@ -75,6 +75,7 @@ const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
 const IMAGE_FEATURES = [
   { label: "Create Image", icon: Wand2, color: "text-pink-400", description: "Generate stunning AI images instantly", badge: "TOP" },
   { label: "Prompt", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
+  { label: "Prompt Extractor", icon: ScanFace, color: "text-teal-400", description: "Extract prompts from images", badge: "NEW" },
   { label: "Cinema Studio Image 2.0", icon: Clapperboard, color: "text-violet-400", description: "Cinematic quality image generation", badge: "NEW" },
   { label: "Relight", icon: Lightbulb, color: "text-yellow-400", description: "Relight any image with AI precision", badge: "NEW" },
   { label: "Inpaint", icon: PenTool, color: "text-emerald-400", description: "Fill and repair areas seamlessly", badge: "" },
@@ -340,6 +341,7 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 
 function imageFeatureHref(label: string): string {
   if (label === "Prompt") return "/prompt";
+  if (label === "Prompt Extractor") return "/prompt-extractor";
 
   const editToolsMap: Record<string, string> = {
     Relight: "relight",
