@@ -155,30 +155,52 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
   let droppedShortDecisions = 0;
   const ordered = sortDecisions(decisions).filter(isValidDecisionTiming);
   for (const decision of ordered) {
-    if (decision.durationSec >= MINIMUM_SHOT_LENGTH_SEC) {
+    const previous = output[output.length - 1];
+    if (!previous) {
+      output.push({ ...decision });
+      if (decision.durationSec < MINIMUM_SHOT_LENGTH_SEC) {
+        droppedShortDecisions += 1;
+        output[0].reason = "absorbed leading short decision below minimum shot length";
+      }
+      continue;
+    }
+
+    if (decision.durationSec < MINIMUM_SHOT_LENGTH_SEC) {
+      droppedShortDecisions += 1;
+      if (decision.startSec >= previous.endSec && decision.endSec > previous.endSec) {
+        previous.endSec = decision.endSec;
+        previous.durationSec = roundTime(previous.endSec - previous.startSec);
+        previous.reason = "absorbed short decision below minimum shot length";
+      }
+      continue;
+    }
+
+    if (previous.durationSec < MINIMUM_SHOT_LENGTH_SEC && decision.startSec >= previous.endSec) {
+      previous.endSec = decision.endSec;
+      previous.durationSec = roundTime(previous.endSec - previous.startSec);
+      previous.speakerId = decision.speakerId;
+      previous.audioTrackIndex = decision.audioTrackIndex;
+      previous.videoTrackIndex = decision.videoTrackIndex;
+      previous.cameraLabel = decision.cameraLabel;
+      previous.reason = "absorbed leading short decision below minimum shot length";
+      continue;
+    }
+
+    if (decision.startSec >= previous.endSec) {
       output.push({ ...decision });
       continue;
     }
-    droppedShortDecisions += 1;
-    const previous = output[output.length - 1];
-    if (previous && decision.startSec >= previous.endSec && decision.endSec > previous.endSec) {
-      previous.endSec = decision.endSec;
-      previous.durationSec = roundTime(previous.endSec - previous.startSec);
-      previous.reason = "absorbed short decision below minimum shot length";
-      continue;
-    }
-    const next = ordered.find((candidate) => candidate.startSec >= decision.endSec && candidate.durationSec >= MINIMUM_SHOT_LENGTH_SEC);
-    if (next) {
-      const absorbed = {
-        ...next,
-        startSec: decision.startSec,
-        durationSec: roundTime(next.endSec - decision.startSec),
-        reason: "absorbed leading short decision below minimum shot length",
+
+    if (decision.endSec > previous.endSec) {
+      const trimmed = {
+        ...decision,
+        startSec: previous.endSec,
+        durationSec: roundTime(decision.endSec - previous.endSec),
       };
-      if (isValidDecisionTiming(absorbed)) output.push(absorbed);
+      if (isValidDecisionTiming(trimmed)) output.push(trimmed);
     }
   }
-  return { decisions: output, droppedShortDecisions };
+  return { decisions: output.filter(isValidDecisionTiming), droppedShortDecisions };
 }
 
 function sortDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {

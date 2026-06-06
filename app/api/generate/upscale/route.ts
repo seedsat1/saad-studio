@@ -176,13 +176,21 @@ export async function POST(req: NextRequest) {
     const promptText = isVideo ? "Upscale video" : "Upscale image";
     const assetTypeUsed = isVideo ? "VIDEO" : "IMAGE";
 
-    const creditsToCharge = await getGenerationCost("tool:upscale");
-    if (creditsToCharge <= 0) {
-      return NextResponse.json({ error: "No credit configuration for upscale tool." }, { status: 400 });
-    }
+    // Dynamic pricing based on scale factor with 40% margin
+    // KIE credits map: 1x=84, 2x=48, 4x=14, 8x=40
+    // With 40% margin: multiply by 1.4
+    const kieCreditsMap: Record<string, number> = {
+      "1": 84,
+      "2": 48,
+      "4": 14,
+      "8": 40,
+    };
+    const kieCredits = kieCreditsMap[scaleFactor] || 48;
+    const userCreditsToCharge = Math.ceil(kieCredits * 1.4); // 40% margin
+
     const charge = await spendCredits({
       userId,
-      credits: creditsToCharge,
+      credits: userCreditsToCharge,
       prompt: promptText,
       assetType: assetTypeUsed,
       modelUsed: modelToUse,
