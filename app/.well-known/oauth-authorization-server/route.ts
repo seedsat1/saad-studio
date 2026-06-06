@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256", "plain"],
     token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
-    scopes_supported: ["openid", "email", "profile", "smart_cli.generate", "smart_cli.read"],
+    scopes_supported: ["smart_cli.generate", "smart_cli.read"],
     resource_parameter_supported: true,
   }, {
     headers: { "Cache-Control": "no-store" },

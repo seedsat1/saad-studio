@@ -47,6 +47,24 @@ export function getHostName(): string {
   return "browser";
 }
 
+export function getHostEnvironmentInfo(): {
+  appName: string;
+  appVersion: string;
+  appId?: string;
+} | null {
+  if (!window.__adobe_cep__) return null;
+  try {
+    const env = JSON.parse(window.__adobe_cep__.getHostEnvironment());
+    return {
+      appName: env.appName || "",
+      appVersion: env.appVersion || "",
+      appId: env.appId || env.appLocale || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function getHostSelectionLabel(): string {
   const host = getHostApp();
   return host === "AEFT" ? "timeline or active comp" : "timeline";
@@ -175,6 +193,63 @@ function mockEsResult<T>(fn: string): T {
   }
   if (fn === "getActiveSequenceInfo") {
     return { name: "Mock Sequence", fps: 30, width: 1920, height: 1080 } as unknown as T;
+  }
+  if (fn === "getPodcastDiagnostics") {
+    return {
+      active: false,
+      sequenceId: null,
+      sequenceName: "Browser preview",
+      premiereVersion: null,
+      videoTrackCount: 0,
+      audioTrackCount: 0,
+    } as unknown as T;
+  }
+  if (fn === "getPodcastTimelineLayout") {
+    return {
+      status: "unsupported",
+      sequenceId: null,
+      sequenceName: "Browser preview",
+      sequenceDurationSec: null,
+      workArea: null,
+      videoTracks: [],
+      audioTracks: [],
+      supportedExecutionStrategies: ["decision-plan-only"],
+      unsupportedApis: ["Official ExtendScript API for set/get active multicam camera angle"],
+      recommendedStrategy: "decision-plan-only",
+      messages: ["Browser preview cannot read Premiere timeline layout."],
+    } as unknown as T;
+  }
+  if (fn === "duplicateActiveSequenceForPodcast") {
+    return {
+      ok: false,
+      reason: "Safe edit copy works only inside Premiere Pro.",
+      mutation: "duplicate-only",
+    } as unknown as T;
+  }
+  if (fn === "inspectPodcastAudioSources") {
+    return {
+      ok: false,
+      sources: [],
+      blockers: ["BROWSER_PREVIEW"],
+      messages: ["Browser preview cannot inspect Premiere audio track sources."],
+    } as unknown as T;
+  }
+  if (
+    fn === "testPodcastSafeDuplicateSequence"
+    || fn === "testPodcastDisableEnableOnDuplicate"
+    || fn === "testPodcastDisableTimeRangeOnDuplicate"
+    || fn === "testPodcastInsertOverwriteOnDuplicate"
+    || fn === "testPodcastReconstructInsertOverwriteOnDuplicate"
+    || fn === "applyPodcastCameraDecisionsOverlapAwareVisualOnly"
+    || fn === "applyPodcastSilenceRemovalVisualOnly"
+  ) {
+    return {
+      ok: false,
+      test: fn,
+      timelineMutation: "none",
+      blockers: ["BROWSER_PREVIEW"],
+      errors: [],
+    } as unknown as T;
   }
   return null as unknown as T;
 }

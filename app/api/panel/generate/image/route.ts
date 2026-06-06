@@ -59,7 +59,19 @@ async function createKieTask(apiKey: string, model: string, input: Record<string
   });
   const json = await res.json().catch(() => ({})) as KieApiJson;
   if (!res.ok || (json.code !== undefined && json.code !== 200 && json.code !== 0)) {
-    throw new Error(`KIE createTask failed: ${json.msg ?? res.statusText}`);
+    const upstreamMsg = json.msg ?? res.statusText;
+    const inputKeys = Object.keys(input).join(", ");
+    console.error("[panel/generate/image] KIE createTask rejected", {
+      model,
+      status: res.status,
+      msg: upstreamMsg,
+      inputKeys,
+      input,
+      response: json,
+    });
+    throw new Error(
+      `KIE createTask failed for model=${model} (status=${res.status}): ${upstreamMsg}. Sent fields: [${inputKeys}].`,
+    );
   }
   const taskId = json.data?.taskId;
   if (!taskId) throw new Error("KIE did not return a taskId.");

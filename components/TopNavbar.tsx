@@ -55,6 +55,7 @@ import {
   Lightbulb,
   Atom,
   Box,
+  Plug,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -75,16 +76,12 @@ const IMAGE_FEATURES = [
   { label: "Create Image", icon: Wand2, color: "text-pink-400", description: "Generate stunning AI images instantly", badge: "TOP" },
   { label: "Prompt", icon: GalleryHorizontalEnd, color: "text-cyan-400", description: "Private prompt and result library", badge: "NEW" },
   { label: "Cinema Studio Image 2.0", icon: Clapperboard, color: "text-violet-400", description: "Cinematic quality image generation", badge: "NEW" },
-  { label: "Soul ID Character", icon: ScanFace, color: "text-cyan-400", description: "Consistent character design system", badge: "" },
-  { label: "AI Influencer", icon: Sparkles, color: "text-amber-400", description: "Create virtual AI influencers", badge: "TOP" },
-  { label: "Photodump", icon: ImageIcon, color: "text-sky-400", description: "Bulk AI photo generation pipeline", badge: "" },
   { label: "Relight", icon: Lightbulb, color: "text-yellow-400", description: "Relight any image with AI precision", badge: "NEW" },
   { label: "Inpaint", icon: PenTool, color: "text-emerald-400", description: "Fill and repair areas seamlessly", badge: "" },
   { label: "Image Upscale", icon: Aperture, color: "text-blue-400", description: "4K AI upscaling & enhancement", badge: "" },
   { label: "Face Swap", icon: Drama, color: "text-rose-400", description: "Swap faces with pixel accuracy", badge: "" },
   { label: "Character Swap", icon: Shapes, color: "text-purple-400", description: "Transform any character seamlessly", badge: "" },
   { label: "Draw to Edit", icon: Paintbrush, color: "text-fuchsia-400", description: "Paint your edits directly on canvas", badge: "" },
-  { label: "Fashion Factory", icon: Layers, color: "text-orange-400", description: "AI fashion & outfit design studio", badge: "" },
 ];
 
 const IMAGE_MODEL_GROUPS = [
@@ -141,6 +138,7 @@ const VIDEO_FEATURES = [
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
+  { label: "Studio Edit",         href: "/studio-edit",     icon: Scissors,     color: "text-amber-400",   description: "AI post-production clipping, captions & dubbing", badge: "NEW" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
   { label: "Sora 2 Trends",       href: "/video?tool=sora-trends",      icon: TrendingUp,   color: "text-sky-400",     description: "Viral cinematic templates",              badge: "" },
   { label: "Lipsync Studio",      href: "/video?tool=lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
@@ -314,16 +312,12 @@ const APPS_CATEGORIES = [
 const IMAGE_TOOL_MAP: Record<string, string> = {
   "Create Image": "create",
   "Cinema Studio Image 2.0": "create",
-  "Soul ID Character": "create",
-  "AI Influencer": "create",
-  "Photodump": "create",
   Relight: "relight",
   Inpaint: "inpaint",
   "Image Upscale": "upscale",
   "Face Swap": "face-swap",
   "Character Swap": "face-swap",
   "Draw to Edit": "inpaint",
-  "Fashion Factory": "create",
 };
 
 const AUDIO_TOOL_MAP: Record<string, string> = {
@@ -346,9 +340,6 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 
 function imageFeatureHref(label: string): string {
   if (label === "Prompt") return "/prompt";
-  if (label === "AI Influencer") return "/image/ai-influencer";
-  if (label === "Soul ID Character") return "/image/soul-id-character";
-  if (label === "Fashion Factory") return "/apps/tool/fashion-factory";
 
   const editToolsMap: Record<string, string> = {
     Relight: "relight",
@@ -495,6 +486,7 @@ const Logo = () => (
         src="/apple-touch-icon.png"
         alt="Saad Studio"
         fill
+        sizes="32px"
         className="object-contain"
         priority
       />
@@ -1084,7 +1076,7 @@ const TopNavbar = () => {
                 </HoverNavItem>
               )}
 
-              {/* Assist | Gallery */}
+              {/* Assist | Gallery | Connect Claude */}
               <div className="flex items-center">
                 <Link href="/assist" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/assist" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <Bot className="h-3 w-3 text-green-400" />Assist
@@ -1092,6 +1084,10 @@ const TopNavbar = () => {
                 <NavSep />
                 <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />Gallery
+                </Link>
+                <NavSep />
+                <Link href="/smart-cli" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/smart-cli" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
+                  <Plug className="h-3 w-3 text-violet-400" />Smart CLI
                 </Link>
               </div>
 

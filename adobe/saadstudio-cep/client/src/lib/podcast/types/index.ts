@@ -1,0 +1,636 @@
+export type PodcastProviderStatus = "available" | "unknown" | "unsupported" | "error";
+export type PodcastAdapterStatus = "ready" | "unsupported" | "error";
+export type PodcastExecutionStrategy =
+  | "decision-plan-only"
+  | "duplicate-sequence-disabled-clips"
+  | "duplicate-sequence-cuts"
+  | "duplicate-sequence-reconstructed-segments"
+  | "track-enable-disable"
+  | "unsupported-multicam-angle-switching";
+
+export const PREMIERE_TICKS_PER_SECOND = 254016000000;
+
+export interface SpeakerSegment {
+  id: string;
+  speakerId: string;
+  startSec: number;
+  endSec: number;
+  confidence?: number;
+  source?: "reap" | "manual" | "unknown";
+  raw?: unknown;
+}
+
+export interface CameraMapping {
+  speakerId: string;
+  videoTrackIndex: number;
+  cameraLabel?: string;
+  fallback?: boolean;
+}
+
+export interface PodcastSettings {
+  speakerDetectionSource: "reap-transcription" | "manual" | "none";
+  minimumShotLengthSec: number;
+  overlapThresholdDb?: number;
+  wideCameraTrackIndex?: number;
+  enableWideCamera: boolean;
+}
+
+export interface PodcastEditJob {
+  id: string;
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  settings: PodcastSettings;
+  cameraMappings: CameraMapping[];
+  speakerSegments: SpeakerSegment[];
+  status: "draft" | "diagnostics" | "ready" | "blocked";
+}
+
+export interface CameraDecision {
+  id: string;
+  speakerId: string;
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  videoTrackIndex?: number;
+  strategy: PodcastExecutionStrategy;
+  reason: string;
+  sourceSegmentIds: string[];
+}
+
+export interface AudioActivitySegment {
+  audioTrackIndex: number;
+  speakerId: string;
+  startSec: number;
+  endSec: number;
+  confidence?: number;
+  source: "timeline-audio-analysis";
+}
+
+export interface PodcastDiagnostics {
+  activeSequence: boolean;
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  premiereVersion?: string | null;
+  videoTrackCount: number;
+  audioTrackCount: number;
+  adapterStatus: PodcastAdapterStatus;
+  reapProviderStatus: PodcastProviderStatus;
+  messages: string[];
+}
+
+export interface PodcastSpeaker {
+  id: string;
+  label: string;
+}
+
+export interface AudioTrackSpeakerMapping {
+  speakerId: string;
+  audioTrackIndex: number;
+  audioTrackLabel?: string;
+}
+
+export interface AudioSourceInfo {
+  audioTrackIndex: number;
+  speakerId?: string;
+  trackItemIndex?: number;
+  clipName?: string | null;
+  projectItemName?: string | null;
+  sourcePath?: string | null;
+  timelineStartSec?: number;
+  timelineEndSec?: number;
+  sourceInPointSec?: number;
+  sourceOutPointSec?: number;
+  durationSec?: number;
+  mediaAvailable: boolean;
+  sourceKind:
+    | "independent-audio"
+    | "audio-inside-video"
+    | "nested-sequence"
+    | "multiple-clips"
+    | "mixed-audio"
+    | "unknown";
+  audioStreamIndex?: number;
+  audioStreamCount?: number;
+  audioCodec?: string;
+  sampleRate?: number;
+  channels?: number;
+  reason?: string;
+}
+
+export interface AudioStreamInfo {
+  index: number;
+  codec?: string;
+  sampleRate?: number;
+  channels?: number;
+  channelLayout?: string;
+  duration?: string | null;
+  language?: string | null;
+  title?: string | null;
+  raw: string;
+}
+
+export interface FfprobeAudioStreamInfo {
+  streamIndex: number;
+  audioStreamIndex: number;
+  codecName?: string | null;
+  sampleRate?: number | null;
+  channels?: number | null;
+  channelLayout?: string | null;
+  duration?: string | null;
+  language?: string | null;
+  title?: string | null;
+}
+
+export interface AudioStreamSelectionProof {
+  ok: boolean;
+  analyzedSourcePath?: string | null;
+  ffprobePath?: string | null;
+  ffprobeAudioStreams: FfprobeAudioStreamInfo[];
+  autoSelectedAudioStreamIndex?: number | null;
+  selectedAudioStreamIndex?: number | null;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface AudioSourceInspectionResult {
+  ok: boolean;
+  sources: AudioSourceInfo[];
+  blockers: string[];
+  messages: string[];
+}
+
+export interface RmsPreviewPoint {
+  sourceTimeSec: number;
+  windowStartSec?: number;
+  windowEndSec?: number;
+  timelineStartSec: number;
+  timelineEndSec: number;
+  rmsDb: number;
+}
+
+export interface SilenceRemovalSettings {
+  audioTrackIndex: number;
+  silenceThresholdDb: number;
+  minimumSilenceDurationSec: number;
+  minimumCutGapSec?: number;
+  minimumKeepSegmentDurationSec?: number;
+  mergeAdjacentKeepGapSec?: number;
+  paddingBeforeSec: number;
+  paddingAfterSec: number;
+  selectedAudioStreamIndex?: number | null;
+}
+
+export type PodcastPauseClassification =
+  | "Natural breathing pause"
+  | "Thinking pause"
+  | "Sentence break"
+  | "Real silence";
+
+export interface SilenceSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  paddedStartSec?: number;
+  paddedEndSec?: number;
+  rmsMinDb?: number;
+  rmsMaxDb?: number;
+  rmsAvgDb?: number;
+  pauseClassification?: PodcastPauseClassification;
+  cutEligible?: boolean;
+  cutDecisionReason?: string;
+  reason?: "ACCEPTED_SILENCE" | "BELOW_MIN_DURATION" | "ABOVE_THRESHOLD" | "MERGED_WITH_ACTIVITY" | "OTHER";
+}
+
+export interface SilenceDetectionDiagnosticSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  reason: "ACCEPTED_SILENCE" | "BELOW_MIN_DURATION" | "ABOVE_THRESHOLD" | "MERGED_WITH_ACTIVITY" | "OTHER";
+  thresholdUsed: number;
+  minimumDurationUsed: number;
+  rmsMinDb?: number;
+  rmsMaxDb?: number;
+  rmsAvgDb?: number;
+  pauseClassification?: PodcastPauseClassification;
+  cutEligible?: boolean;
+  cutDecisionReason?: string;
+}
+
+export interface KeepSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  reason: string;
+}
+
+export interface SilenceRemovalAnalysisResult {
+  ok: boolean;
+  audioTrackIndex: number;
+  analyzedSourcePath?: string | null;
+  selectedAudioStreamIndex?: number | null;
+  sequenceDurationSec?: number | null;
+  audioSourceDurationSec?: number | null;
+  analyzedDurationSec: number;
+  analysisWindowSec: number;
+  totalRmsWindows: number;
+  silenceSegments: SilenceSegment[];
+  droppedSilenceSegments?: SilenceSegment[];
+  longestDroppedSilenceSec?: number;
+  silenceDetectionDiagnostics?: {
+    thresholdUsed: number;
+    minimumDurationUsed: number;
+    detectedSilenceSegments: SilenceDetectionDiagnosticSegment[];
+    rejectedSilenceSegments: SilenceDetectionDiagnosticSegment[];
+  };
+  keepSegments: KeepSegment[];
+  totalRemovedDurationSec: number;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface SilenceRemovalApplyResult {
+  ok: boolean;
+  strategy: "silence-removal-audio-video";
+  activeSequenceName?: string | null;
+  generatedSequenceDetectionRule?: string | null;
+  matchedPattern?: string | null;
+  blockerSource?: string | null;
+  originalSequenceID: string | null;
+  duplicateSequenceID: string | null;
+  draftSequenceName?: string | null;
+  sequenceDurationSec?: number | null;
+  analyzedDurationSec?: number | null;
+  audioSourceDurationSec?: number | null;
+  silenceRemovedCount: number;
+  totalRemovedDurationSec: number;
+  keptSegmentsCount: number;
+  segmentsAttempted: number;
+  visualSegmentsInserted: number;
+  audioSegmentsInserted: number;
+  processedVideoTracks?: number;
+  processedAudioTracks?: number;
+  videoSegmentsInsertedByTrack?: number[];
+  audioSegmentsInsertedByTrack?: number[];
+  skippedSegmentsByTrack?: {
+    video: number[];
+    audio: number[];
+  };
+  keepSegmentMatchSummary?: Array<{
+    keepSegmentIndex: number;
+    startSec: number;
+    endSec: number;
+    videoClipsMatched: number;
+    audioClipsMatched: number;
+    videoClipsMatchedByTrack?: number[];
+    audioClipsMatchedByTrack?: number[];
+  }>;
+  multiClipKeepSegments?: Array<{
+    keepSegmentIndex: number;
+    matchedVideoClipCount: number;
+    matchedAudioClipCount: number;
+    videoClipsMatchedByTrack?: number[];
+    audioClipsMatchedByTrack?: number[];
+  }>;
+  keepSegmentsProcessed?: number;
+  keepSegmentsSkipped?: number;
+  lastProcessedKeepSegmentIndex?: number | null;
+  lastKeepSegmentEndTime?: number | null;
+  sourceClipUseCounts?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipName: string;
+    clipStartSec: number;
+    useCount: number;
+  }>;
+  duplicateSourceClipUseCount?: number;
+  reconstructedVideoClipsCount?: number;
+  reconstructedAudioClipsCount?: number;
+  originalTrackItemsRemovedOnDuplicate?: number;
+  originalTrackItemsRemovalFailedOnDuplicate?: number;
+  originalResidualTrackItems?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipIndex: number;
+    clipName: string;
+    startSec: number;
+    endSec: number;
+    disabled: boolean | null;
+  }>;
+  img5575Diagnostics?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipIndex: number;
+    clipName: string;
+    startSec: number;
+    endSec: number;
+    disabled: boolean | null;
+  }>;
+  executionDiagnosticsPath?: string;
+  operationPlanCount?: number;
+  operationPlanBuildCalled?: boolean;
+  timelineClipDiscovery?: {
+    videoTrackCount: number;
+    audioTrackCount: number;
+    videoClipCounts: number[];
+    audioClipCounts: number[];
+    v1ClipCount: number;
+    a1ClipCount: number;
+  };
+  currentOperationIndex?: number;
+  totalOperationsExecuted?: number;
+  currentTrackBeingProcessed?: string | null;
+  currentClipName?: string | null;
+  createSubClipStartTimestamp?: string | null;
+  createSubClipEndTimestamp?: string | null;
+  overwriteClipStartTimestamp?: string | null;
+  overwriteClipEndTimestamp?: string | null;
+  lastSuccessfulOperation?: unknown;
+  firstOperationThatNeverReturns?: unknown;
+  executionElapsedTimeMs?: number;
+  originalTracksHiddenOrDisabledOnDuplicate: boolean;
+  originalTrackItemsDisabledOnDuplicate?: number;
+  blockers: string[];
+  warnings: string[];
+  errors: string[];
+  originalTouched: false;
+  timelineMutation: "duplicate + audio-video silence-removed draft on duplicate only";
+}
+
+export interface RmsTimestampInterpretation {
+  analysisWindowSec: number;
+  ffmpegPtsTimeMeaning: "window-end";
+  windowStartFormula: "sourceTimeSec - analysisWindowSec";
+  windowEndFormula: "sourceTimeSec";
+  timelineFormula: "clip.timelineStartSec + (sourceTimeSec - clip.sourceInPointSec)";
+}
+
+export interface FfmpegRmsRuntimeProof {
+  ffmpegAvailable: boolean;
+  ffmpegVersion?: string | null;
+  analyzedSourcePath?: string | null;
+  selectedAudioTrackIndex?: number | null;
+  selectedClipIndex?: number | null;
+  selectedAudioStreamIndex?: number | null;
+  ffprobeAudioStreams?: FfprobeAudioStreamInfo[];
+  analysisWindowSec: number;
+  rmsPreview: RmsPreviewPoint[];
+  timestampInterpretation: RmsTimestampInterpretation;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface SpeechActivityWindow {
+  sourceTimeSec: number;
+  timelineStartSec: number;
+  timelineEndSec: number;
+  rmsDb: number;
+  active: boolean;
+  reason: string;
+}
+
+export interface SpeakingSegment {
+  id: string;
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  speakerId: "speaker_1";
+  source: "rms-threshold";
+}
+
+export interface SpeakerActivityProof {
+  speechActivityWindows: SpeechActivityWindow[];
+  speakingSegments: SpeakingSegment[];
+  thresholdUsed: number;
+  silenceThresholdUsed: number;
+  minimumSpeechDurationSec: number;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface DroppedShortSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  reason: string;
+}
+
+export interface FullAudioActivityProof {
+  analyzedDurationSec: 30;
+  analysisWindowSec: 0.2;
+  totalRmsWindows: number;
+  activeWindowsCount: number;
+  inactiveWindowsCount: number;
+  longestActiveRunSec: number;
+  rmsPreviewFirst20: RmsPreviewPoint[];
+  speakingSegments: SpeakingSegment[];
+  droppedShortSegments: DroppedShortSegment[];
+  thresholdUsed: -35;
+  minimumSpeechDurationSec: 0.4;
+  selectedAudioStreamIndex: number | null;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface TrackActivityWindow {
+  audioTrackIndex: number;
+  speakerId: string;
+  sourcePath: string;
+  selectedAudioStreamIndex: number;
+  sourceTimeSec: number;
+  timelineStartSec: number;
+  timelineEndSec: number;
+  rmsDb: number;
+  active: boolean;
+}
+
+export interface TrackActivity {
+  audioTrackIndex: number;
+  speakerId: string;
+  sourcePath?: string | null;
+  selectedAudioStreamIndex?: number | null;
+  totalRmsWindows: number;
+  activeWindowsCount: number;
+  inactiveWindowsCount: number;
+  windows: TrackActivityWindow[];
+  blockers: string[];
+  warnings: string[];
+}
+
+export interface TrackSpeakingSegment {
+  id: string;
+  audioTrackIndex: number;
+  speakerId: string;
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  source: "rms-threshold";
+}
+
+export interface TrackOverlapWindow {
+  timelineStartSec: number;
+  timelineEndSec: number;
+  activeAudioTrackIndexes: number[];
+  activeSpeakerIds: string[];
+}
+
+export interface DominantTrackWindow {
+  timelineStartSec: number;
+  timelineEndSec: number;
+  audioTrackIndex: number | null;
+  speakerId: string | null;
+  rmsDb: number | null;
+  reason: string;
+}
+
+export interface SpeakerSourceAttributionProof {
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  decisionSource?: "ffmpeg-rms";
+  trackActivity: TrackActivity[];
+  trackSpeakingSegments: TrackSpeakingSegment[];
+  overlaps: TrackOverlapWindow[];
+  dominantTrackAtTime: DominantTrackWindow[];
+  analyzedDurationSec: number;
+  analysisWindowSec: 0.2;
+  thresholdUsed: -35;
+  minimumSpeechDurationSec: 0.4;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface PodcastCameraDecisionProofItem {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  speakerId: string | null;
+  audioTrackIndex: number | null;
+  videoTrackIndex: number;
+  cameraLabel: string;
+  reason: string;
+}
+
+export interface PodcastCameraDecisionProofSummary {
+  totalDecisions: number;
+  speaker1CameraTimeSec: number;
+  speaker2CameraTimeSec: number;
+  wideCameraTimeSec: number;
+  keptPreviousCameraEvents: number;
+  droppedShortDecisions: number;
+  totalDetectedSpeakerSegments?: number;
+  speakerSegmentsPerMicrophone?: Array<{
+    audioTrackIndex: number;
+    speakerId: string;
+    segments: number;
+  }>;
+  dominantWindowsCount?: number;
+  cameraDecisionsBeforeMerge?: number;
+  cameraDecisionsAfterAdjacentMerge?: number;
+  cameraDecisionsAfterShortMerge?: number;
+  mergedSegmentsCount?: number;
+  totalTimelineDurationSec?: number;
+  singleDecisionReason?: string | null;
+}
+
+export interface PodcastCameraDecisionPlanProof {
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  decisionSource?: "ffmpeg-rms";
+  cameraDecisions: PodcastCameraDecisionProofItem[];
+  summary: PodcastCameraDecisionProofSummary;
+  diagnostics?: {
+    totalDetectedSpeakerSegments: number;
+    speakerSegmentsPerMicrophone: Array<{
+      audioTrackIndex: number;
+      speakerId: string;
+      segments: number;
+    }>;
+    dominantWindowsCount: number;
+    cameraDecisionsBeforeMerge: number;
+    cameraDecisionsAfterAdjacentMerge: number;
+    cameraDecisionsAfterShortMerge: number;
+    mergedSegmentsCount: number;
+    totalTimelineDurationSec: number;
+    singleDecisionReason: string | null;
+    unmappedAudioTrackIndexes: number[];
+  };
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface FfmpegFeasibilityResult {
+  available: boolean;
+  path?: string | null;
+  version?: string | null;
+  versionSupported: boolean;
+  minimumVersion: string;
+  audioStreamCount?: number;
+  audioStreams?: AudioStreamInfo[];
+  rmsPreview: RmsPreviewPoint[];
+  blockers: string[];
+  messages: string[];
+}
+
+export interface FfmpegPathCheck {
+  label: string;
+  path: string;
+  exists: boolean;
+  source: "cep-bundled" | "node-module" | "system-path" | "path-env-candidate";
+}
+
+export interface FfmpegLaunchResult {
+  attemptedPath: string;
+  method: "execFile";
+  ok: boolean;
+  exitError?: string | null;
+  stdout?: string;
+  stderr?: string;
+  versionOutput?: string;
+}
+
+export interface FfmpegDetectionDiagnostics {
+  ok: boolean;
+  cepNodeAvailable: boolean;
+  extensionPath?: string | null;
+  searchedPaths: FfmpegPathCheck[];
+  selectedPath?: string | null;
+  pathEnvironmentVisible: boolean;
+  pathEnvironmentLength: number;
+  pathEnvironmentPreview: string[];
+  whereFfmpegOutput?: string | null;
+  whereFfmpegError?: string | null;
+  spawnResult?: FfmpegLaunchResult | null;
+  version?: string | null;
+  versionSupported: boolean;
+  minimumVersion: string;
+  blockers: string[];
+  messages: string[];
+}
+
+export interface AudioSourceProofResult {
+  ok: boolean;
+  ffmpeg: FfmpegFeasibilityResult;
+  inspection: AudioSourceInspectionResult;
+  rmsPreview: RmsPreviewPoint[];
+  blockers: string[];
+  messages: string[];
+  timelineMutation: "none";
+}

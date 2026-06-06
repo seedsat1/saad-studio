@@ -27,7 +27,7 @@ import {
 import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-rate-limit";
 import prismadb from "@/lib/prismadb";
 import { sanitizePrompt } from "@/lib/security";
-import { startReapJob, type ReapTool } from "@/lib/providers/reap";
+import { normalizeReapOptions, startReapJob, startReapJobWithUploadId, type ReapTool } from "@/lib/providers/reap";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -36,6 +36,7 @@ const KNOWN_TOOLS = new Set<ReapTool>([
   "captions",
   "reframe",
   "dubbing",
+  "audiogram",
   "transcription",
   "edit-videos",
 ]);
@@ -46,6 +47,7 @@ const TOOL_COST: Record<ReapTool, number> = {
   "captions":      50,
   "reframe":       80,
   "dubbing":      120,
+  "audiogram":     80,
   "transcription": 30,
   "edit-videos":  150,
 };
@@ -54,6 +56,7 @@ const TOOL_TO_ASSET_TYPE: Record<ReapTool, "VIDEO" | "TRANSCRIPTION"> = {
   "captions":      "VIDEO",
   "reframe":       "VIDEO",
   "dubbing":       "VIDEO",
+  "audiogram":     "VIDEO",
   "transcription": "TRANSCRIPTION",
   "edit-videos":   "VIDEO",
 };
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest) {
   let body: {
     tool?: string;
     sourceUrl?: string;
+    uploadId?: string;
     filename?: string;
     options?: Record<string, unknown>;
     prompt?: string;
@@ -86,8 +90,16 @@ export async function POST(req: NextRequest) {
   if (!tool || !KNOWN_TOOLS.has(tool)) {
     return NextResponse.json({ error: `Unsupported tool: ${tool}` }, { status: 400 });
   }
-  if (!body.sourceUrl || !/^https?:\/\//i.test(body.sourceUrl)) {
-    return NextResponse.json({ error: "sourceUrl must be an http(s) URL." }, { status: 400 });
+  // Accept either a public sourceUrl (we'll proxy it into Reap) or a Reap
+  // uploadId (the panel already pushed the bytes to Reap's S3 directly,
+  // skipping the R2 hop).
+  const hasUploadId = typeof body.uploadId === "string" && body.uploadId.length > 0;
+  const hasSourceUrl = typeof body.sourceUrl === "string" && /^https?:\/\//i.test(body.sourceUrl);
+  if (!hasUploadId && !hasSourceUrl) {
+    return NextResponse.json(
+      { error: "Provide either uploadId (direct Reap upload) or sourceUrl (http(s) URL)." },
+      { status: 400 },
+    );
   }
 
   const userId = verified.userId;
@@ -101,6 +113,7 @@ export async function POST(req: NextRequest) {
 
   const cost = TOOL_COST[tool];
   const prompt = sanitizePrompt(body.prompt ?? `Reap ${tool}`, 500);
+  const options = normalizeReapOptions(tool, body.options ?? {});
 
   let generationId: string;
   try {
@@ -127,12 +140,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { projectId } = await startReapJob({
-      tool,
-      sourceUrl: body.sourceUrl,
-      filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl),
-      options: body.options,
-    });
+    const { projectId } = hasUploadId
+      ? await startReapJobWithUploadId({
+          tool,
+          uploadId: body.uploadId!,
+          options,
+        })
+      : await startReapJob({
+          tool,
+          sourceUrl: body.sourceUrl!,
+          filename: body.filename ?? guessFilenameFromUrl(body.sourceUrl!),
+          options,
+        });
 
     // Stash the Reap projectId on the Generation row so the status route
     // can correlate the upstream project with our internal id.

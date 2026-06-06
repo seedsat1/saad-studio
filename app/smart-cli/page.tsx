@@ -5,126 +5,76 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Ban,
-  Boxes,
   Check,
   Clock3,
   Clipboard,
   Code2,
   Command,
   Eye,
-  FileCode2,
   Globe2,
   Image as ImageIcon,
   Images,
   KeyRound,
+  Layers,
   Link2,
-  ListChecks,
-  Megaphone,
   PlaySquare,
   ShieldCheck,
-  Terminal,
-  Upload,
+  UploadCloud,
+  Wand2,
+  Wallet,
 } from "lucide-react";
 
 import TopNavbar from "@/components/TopNavbar";
 import { cn } from "@/lib/utils";
 
-type SetupTab = "mcp" | "cli" | "skill";
+const MCP_URL = "https://www.saadstudio.app/api/smart-cli/mcp";
 
-const MCP_URL = "https://saadstudio.app/api/smart-cli/mcp";
+// Only Claude is verified end-to-end against the live MCP today.
+const SUPPORTED_CLIENTS = ["Claude"];
 
-const SUPPORTED_CLIENTS = ["Claude", "Perplexity", "Hermes"];
+const MCP_STEPS = [
+  {
+    title: "Open connector settings",
+    text: "In Claude (desktop or web), go to Settings → Connectors → Add custom connector.",
+    value: "Settings -> Connectors -> Add custom connector",
+  },
+  {
+    title: "Add Saad Studio",
+    text: "Name the connector Saad Studio and paste this HTTPS URL into the URL field.",
+    value: MCP_URL,
+  },
+  {
+    title: "Ask from chat",
+    text: "After approval, Claude can call any of the 9 tools listed below using your Saad Studio credits.",
+    value: "What's my Saad Studio credit balance?",
+  },
+];
 
-const SETUP: Record<SetupTab, Array<{ title: string; text: string; value: string }>> = {
-  mcp: [
-    {
-      title: "Open connector settings",
-      text: "Open your agent app, then go to connectors or MCP servers.",
-      value: "Settings -> Connectors -> Add custom connector",
-    },
-    {
-      title: "Add Saad Studio",
-      text: "Name the connector Saad Studio and paste this HTTPS URL. Do not paste a CLI command in the URL field.",
-      value: MCP_URL,
-    },
-    {
-      title: "Ask from chat",
-      text: "After approval, the agent can request campaign briefs, image briefs, and video briefs through Saad Studio.",
-      value: "Use Saad Studio to prepare a 9:16 product launch campaign",
-    },
-  ],
-  cli: [
-    {
-      title: "Install Smart CLI",
-      text: "Install the command layer used for local auth, uploads, and job polling.",
-      value: "npm install -g @saadstudio/smart-cli",
-    },
-    {
-      title: "Sign in",
-      text: "Authenticate your Saad Studio account once from the terminal.",
-      value: "smart-cli login",
-    },
-    {
-      title: "Print the MCP URL",
-      text: "Use this command locally when you need to copy the hosted connector URL.",
-      value: "smart-cli mcp url",
-    },
-  ],
-  skill: [
-    {
-      title: "Add the skill",
-      text: "Install the workflow instructions so your agent understands Saad Studio formats and approval rules.",
-      value: "npx skills add saad-studio/smart-cli",
-    },
-    {
-      title: "Connect account",
-      text: "Sign in so the skill can submit approved jobs through your workspace.",
-      value: "smart-cli login",
-    },
-    {
-      title: "Invoke from chat",
-      text: "Use a direct instruction from the agent chat.",
-      value: "/smart-cli:campaign",
-    },
-  ],
-};
-
+// Mirrors the tools actually wired in app/api/smart-cli/mcp/route.ts.
+// If you add a tool there, add it here.
 const TOOL_GROUPS = [
   {
-    title: "Interactive tools",
+    title: "Generation",
     tools: [
-      { icon: ImageIcon, title: "generate_image", text: "Create an image request through Saad Studio." },
-      { icon: PlaySquare, title: "generate_video", text: "Create a video request with scene, motion, and duration." },
-      { icon: Eye, title: "job_display", text: "Display a running or completed generation job." },
-      { icon: KeyRound, title: "show_characters", text: "Show saved characters and reusable identity assets." },
-      { icon: Images, title: "show_generations", text: "Show generated media and recent outputs." },
-      { icon: Megaphone, title: "show_marketing_studio", text: "Open campaign and marketing asset workflows." },
-      { icon: Images, title: "show_medias", text: "Browse uploaded and generated media assets." },
-      { icon: CreditIcon, title: "show_plans_and_credits", text: "Show plan limits, credits, and usage summary." },
-      { icon: ListChecks, title: "virality_predictor", text: "Score a clip or concept for hook, retention, and engagement." },
+      { icon: ImageIcon, title: "generate_image", text: "Generate an image (Nano Banana Pro by default; other models routed through KIE / Google / OpenAI per project rules)." },
+      { icon: Layers, title: "generate_storyboard", text: "Return multiple concept variations from one idea so the user can pick before rendering." },
+      { icon: PlaySquare, title: "generate_video", text: "Render a video from a prompt, optionally using a chosen concept as the first frame." },
     ],
   },
   {
-    title: "Read-only tools",
+    title: "Read-only",
     tools: [
-      { icon: CreditIcon, title: "balance", text: "Read the available credit balance." },
-      { icon: Globe2, title: "list_workspaces", text: "List workspaces available to the account." },
-      { icon: Boxes, title: "models_explore", text: "Explore available image and video models." },
-      { icon: ListChecks, title: "transactions", text: "Read credit transactions and usage history." },
+      { icon: Wallet, title: "balance", text: "Return the current Saad Studio credit balance." },
+      { icon: Images, title: "show_generations", text: "List the most recent generated images and videos." },
+      { icon: Clock3, title: "job_status", text: "Look up a single generation by id to get its public URL when ready." },
     ],
   },
   {
-    title: "Write/delete tools",
+    title: "Post-production (Reap)",
     tools: [
-      { icon: Check, title: "media_confirm", text: "Confirm selected media for use in a workflow." },
-      { icon: Upload, title: "media_upload", text: "Upload media references for generation." },
-      { icon: Globe2, title: "select_workspace", text: "Select the workspace used by future actions." },
-    ],
-  },
-  {
-    title: "App-only tools",
-    tools: [
-      { icon: Clock3, title: "job_status", text: "Read internal job status for the app UI." },
+      { icon: UploadCloud, title: "r2_upload_url", text: "Hand back a Cloudflare R2 signed PUT URL so the client can upload a source video directly." },
+      { icon: Wand2, title: "reap_run", text: "Start a Reap post-production job: captions, reframe, dubbing, audiogram, transcription, edit-videos." },
+      { icon: Eye, title: "reap_status", text: "Poll a Reap project. On completion the URL is R2-hosted." },
     ],
   },
 ];
@@ -136,10 +86,6 @@ const PERMISSION_OPTIONS = [
   { label: "Needs approval", icon: Clock3, color: "text-cyan-300" },
   { label: "Block", icon: Ban, color: "text-rose-300" },
 ];
-
-function CreditIcon(props: ComponentProps<typeof KeyRound>) {
-  return <KeyRound {...props} />;
-}
 
 function CopyBox({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -174,9 +120,6 @@ function StepCard({ step, index }: { step: { title: string; text: string; value:
 }
 
 export default function SmartCliPage() {
-  const [setupTab, setSetupTab] = useState<SetupTab>("mcp");
-  const steps = SETUP[setupTab];
-
   return (
     <>
       <TopNavbar />
@@ -200,62 +143,36 @@ export default function SmartCliPage() {
                 Smart CLI
               </div>
               <h1 className="text-balance text-4xl font-black leading-tight tracking-normal md:text-6xl">
-                Connect Saad Studio to your AI agent
+                Connect Saad Studio to Claude
               </h1>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-400">
-                Use this page to connect Saad Studio through MCP, CLI, or agent skills. The important field is the hosted connector URL, not a terminal command.
+                Paste the hosted connector URL into Claude. Approve once. Claude can now use 9 Saad Studio tools that spend credits from your account.
               </p>
             </div>
 
             <div className="mx-auto max-w-5xl">
               <div className="mb-3 flex flex-wrap items-center gap-3">
                 <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
-                  {([
-                    ["mcp", Boxes, "MCP"],
-                    ["cli", Terminal, "CLI"],
-                    ["skill", FileCode2, "Skill"],
-                  ] as const).map(([id, Icon, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setSetupTab(id)}
-                      className={cn(
-                        "inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold transition",
-                        setupTab === id ? "bg-white text-black" : "text-slate-400 hover:text-white",
-                      )}
+                  {SUPPORTED_CLIENTS.map((client) => (
+                    <span
+                      key={client}
+                      className="inline-flex h-10 items-center rounded-full bg-white px-4 text-sm font-semibold text-black"
                     >
-                      <Icon className="h-4 w-4" />
-                      {label}
-                    </button>
+                      {client}
+                    </span>
                   ))}
                 </div>
-
-                {setupTab === "mcp" && (
-                  <div className="inline-flex rounded-full border border-white/10 bg-white/[0.06] p-1">
-                    {SUPPORTED_CLIENTS.map((client) => (
-                      <span
-                        key={client}
-                        className={cn(
-                          "inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold",
-                          client === "Claude" ? "bg-white text-black" : "text-slate-400",
-                        )}
-                      >
-                        {client}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <div className="grid overflow-hidden rounded-xl border border-white/10 bg-[#101318] shadow-2xl shadow-black/30 md:grid-cols-3">
-                {steps.map((step, index) => (
+                {MCP_STEPS.map((step, index) => (
                   <StepCard key={step.title} step={step} index={index} />
                 ))}
               </div>
 
               <div className="mx-auto mt-4 flex max-w-max items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm text-emerald-100">
                 <Link2 className="h-4 w-4" />
-                Use the same connector URL in any supported client.
+                Same URL works in any MCP-compatible client.
               </div>
             </div>
           </div>
@@ -359,7 +276,7 @@ export default function SmartCliPage() {
                 Hosted endpoint
               </div>
               <p className="text-sm leading-6 text-slate-400">
-                Paste this value into custom connector URL fields. It is a URL, so it belongs in the connector form. CLI commands belong only in terminal.
+                Paste this URL into Claude's custom connector form. Claude handles OAuth — no token to copy.
               </p>
               <CopyBox value={MCP_URL} />
             </div>
@@ -367,15 +284,15 @@ export default function SmartCliPage() {
             <div className="rounded-lg border border-white/10 bg-[#0c111b] p-5">
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white">
                 <KeyRound className="h-4 w-4 text-emerald-300" />
-                Permission model
+                What spending looks like
               </div>
               <p className="text-sm leading-6 text-slate-400">
-                Keep generation behind Saad Studio review and account permissions. The connector prepares structured briefs first, then your backend can approve and execute them.
+                Tool calls debit credits from your account the same way the website does. The 9 tools, and only those 9 tools, are exposed — nothing else.
               </p>
               <div className="mt-4 grid gap-2 text-sm text-slate-300">
-                <span className="inline-flex items-center gap-2"><Code2 className="h-4 w-4 text-emerald-300" /> structured requests</span>
-                <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-300" /> account controlled</span>
-                <span className="inline-flex items-center gap-2"><Terminal className="h-4 w-4 text-emerald-300" /> CLI compatible</span>
+                <span className="inline-flex items-center gap-2"><Code2 className="h-4 w-4 text-emerald-300" /> structured tool calls only</span>
+                <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-300" /> account-controlled spending</span>
+                <span className="inline-flex items-center gap-2"><Link2 className="h-4 w-4 text-emerald-300" /> revoke from Claude any time</span>
               </div>
             </div>
           </div>

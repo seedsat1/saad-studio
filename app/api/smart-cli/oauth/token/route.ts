@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { generatePanelToken } from "@/lib/panel-auth";
 import { verifyPkce, verifySmartCliAuthorizationCode } from "@/lib/smart-cli-oauth";
+import { logSmartCliDebug } from "@/lib/smart-cli-debug";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -71,20 +72,40 @@ export async function POST(request: NextRequest) {
   const codeVerifier = params.get("code_verifier") ?? undefined;
   const resource = params.get("resource") ?? undefined;
 
+  const trace = {
+    grantType,
+    hasCode: Boolean(code),
+    codePrefix: code.slice(0, 12),
+    redirectUri,
+    clientId,
+    hasCodeVerifier: Boolean(codeVerifier),
+    resource,
+  };
+
   if (grantType !== "authorization_code") {
+    console.warn("[oauth/token] unsupported_grant_type", trace);
+    void logSmartCliDebug({ route: "oauth/token", kind: "unsupported_grant_type", request, payload: trace });
     return json({ error: "unsupported_grant_type" }, 400);
   }
 
   const payload = verifySmartCliAuthorizationCode(code);
   if (!payload) {
+    console.warn("[oauth/token] invalid or expired code", trace);
+    void logSmartCliDebug({ route: "oauth/token", kind: "invalid_or_expired_code", request, payload: trace });
     return json({ error: "invalid_grant", error_description: "Invalid or expired authorization code." }, 400);
   }
 
   if ((redirectUri && payload.redirectUri !== redirectUri) || payload.clientId !== clientId) {
+    const detail = { ...trace, issuedClientId: payload.clientId, issuedRedirectUri: payload.redirectUri };
+    console.warn("[oauth/token] clientId/redirectUri mismatch", detail);
+    void logSmartCliDebug({ route: "oauth/token", kind: "client_or_redirect_mismatch", request, payload: detail });
     return json({ error: "invalid_grant", error_description: "OAuth request does not match the issued code." }, 400);
   }
 
   if (!sameResource(payload.resource, resource)) {
+    const detail = { ...trace, issuedResource: payload.resource };
+    console.warn("[oauth/token] resource mismatch", detail);
+    void logSmartCliDebug({ route: "oauth/token", kind: "resource_mismatch", request, payload: detail });
     return json({ error: "invalid_target", error_description: "Resource does not match the issued code." }, 400);
   }
 
@@ -93,13 +114,27 @@ export async function POST(request: NextRequest) {
     codeChallengeMethod: payload.codeChallengeMethod,
     codeVerifier,
   })) {
+    const detail = {
+      ...trace,
+      issuedChallenge: payload.codeChallenge?.slice(0, 16),
+      issuedMethod: payload.codeChallengeMethod,
+    };
+    console.warn("[oauth/token] PKCE verifier failed", detail);
+    void logSmartCliDebug({ route: "oauth/token", kind: "pkce_failed", request, payload: detail });
     return json({ error: "invalid_grant", error_description: "Invalid PKCE verifier." }, 400);
   }
 
+  console.log("[oauth/token] success", { userId: payload.userId, clientId, redirectUri });
+  void logSmartCliDebug({
+    route: "oauth/token",
+    kind: "success",
+    request,
+    payload: { userId: payload.userId, clientId, redirectUri },
+  });
   return json({
     access_token: generatePanelToken(payload.userId),
     token_type: "Bearer",
     expires_in: 60 * 60 * 24 * 30,
-    scope: payload.scope ?? "openid email profile smart_cli.generate smart_cli.read",
+    scope: payload.scope ?? "smart_cli.generate smart_cli.read",
   });
 }

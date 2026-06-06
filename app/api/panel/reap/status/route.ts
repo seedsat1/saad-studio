@@ -111,6 +111,13 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[panel/reap/status]", err);
     const msg = err instanceof Error ? err.message : String(err);
+    if (/rate limit|too many requests|429/i.test(msg)) {
+      return NextResponse.json({
+        status: "processing",
+        progress: undefined,
+        rateLimited: true,
+      });
+    }
     return NextResponse.json({ error: `Reap status check failed: ${msg}` }, { status: 502 });
   }
 }

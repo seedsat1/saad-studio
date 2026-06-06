@@ -65,3 +65,5 @@ adobe/New\ folder/*.msi
 .DS_Store
 
 .claude/
+
+.env*

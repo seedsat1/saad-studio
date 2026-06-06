@@ -68,7 +68,6 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
       { id: "bg-remover", title: "Background Remover", description: "Remove backgrounds instantly", href: "/apps/tool/bg-remover", badge: "FREE", gradient: "from-emerald-600/30 to-green-900/30" },
       { id: "image-upscale", title: "Image Upscale", description: "Enhance to 4K resolution", href: "/apps/tool/image-upscale", badge: "TOP", gradient: "from-sky-600/30 to-blue-900/30" },
       { id: "sketch-to-real", title: "Sketch to Real", description: "Convert sketches to realistic images", href: "/apps/tool/sketch-to-real", badge: "NEW", gradient: "from-indigo-600/30 to-violet-900/30" },
-      { id: "fashion-factory", title: "Fashion Factory", description: "AI fashion & outfit design studio", href: "/apps/tool/fashion-factory", badge: "NEW", gradient: "from-rose-600/30 to-pink-900/30" },
     ],
   },
   {
@@ -83,7 +82,6 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
       { id: "recast", title: "Recast", description: "Industry-leading character swap for video", href: "/apps/tool/recast", badge: "PRO", gradient: "from-emerald-600/30 to-teal-900/30" },
       { id: "video-face-swap", title: "Video Face Swap", description: "Best face swap technology for video", href: "/apps/tool/video-face-swap", badge: null, gradient: "from-sky-600/30 to-blue-900/30" },
       { id: "commercial-faces", title: "Commercial Faces", description: "Commercial-ready face generation", href: "/apps/tool/commercial-faces", badge: "PRO", gradient: "from-pink-600/30 to-rose-900/30" },
-      { id: "ai-influencer", title: "AI Influencer", description: "Create virtual AI influencer personas", href: "/apps/tool/ai-influencer", badge: "HOT", gradient: "from-rose-600/30 to-pink-900/30" },
       { id: "age-transform", title: "Age Transform", description: "Transform character age realistically", href: "/apps/tool/age-transform", badge: null, gradient: "from-indigo-600/30 to-blue-900/30" },
       { id: "expression-edit", title: "Expression Editor", description: "Modify facial expressions", href: "/apps/tool/expression-edit", badge: null, gradient: "from-teal-600/30 to-cyan-900/30" },
       { id: "cosplay", title: "Cosplay Generator", description: "Transform into any cosplay character", href: "/apps/tool/cosplay", badge: "TRENDING", gradient: "from-purple-600/30 to-violet-900/30" },

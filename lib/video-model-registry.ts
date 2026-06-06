@@ -524,6 +524,35 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 7,
     }),
   },
+  {
+    id: "xai-grok-imagine-v1-5-t2v",
+    name: "Grok Imagine Video 1.5",
+    family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
+    badge: "NEW",
+    description: "xAI Grok Imagine Video 1.5 Preview — text-to-video. Advanced generation capabilities.",
+    api_route: "x-ai/grok-imagine-video/text-to-video-1-5",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      aspect_ratios: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+      durations:     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions:   ["480p", "720p"],
+    }),
+  },
+  {
+    id: "xai-grok-imagine-v1-5-i2v",
+    name: "Grok Imagine Video 1.5 I2V",
+    family: "grok", family_label: "xAI Grok", family_color: "#ef4444",
+    badge: "NEW",
+    description: "xAI Grok Imagine Video 1.5 Preview — image-to-video. Up to 1 reference image.",
+    api_route: "x-ai/grok-imagine-video/edit-video-1-5",
+    route_confirmed: true,
+    capabilities: i2vCaps({
+      aspect_ratios:        ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+      durations:            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      resolutions:          ["480p", "720p"],
+      max_reference_images: 1,
+    }),
+  },
 ];
 
 // ── Derived helpers ───────────────────────────────────────────────────────────
