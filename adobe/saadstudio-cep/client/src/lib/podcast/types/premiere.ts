@@ -2,7 +2,9 @@ import type {
   AudioSourceInspectionResult,
   AudioTrackSpeakerMapping,
   CameraMapping,
+  KeepSegment,
   PodcastCameraDecisionProofItem,
+  SilenceRemovalApplyResult,
   SpeakerSegment,
 } from "./index";
 
@@ -135,17 +137,35 @@ export interface ApplyCameraDecisionsVisualOnlyInput {
   cameraDecisions: PodcastCameraDecisionProofItem[];
 }
 
+export interface ApplySilenceRemovalVisualOnlyInput {
+  keepSegments: KeepSegment[];
+  silenceRemovedCount: number;
+  totalRemovedDurationSec: number;
+  sequenceDurationSec?: number | null;
+  analyzedDurationSec?: number | null;
+  audioSourceDurationSec?: number | null;
+}
+
 export interface ApplyCameraDecisionSegmentResult {
   decisionIndex: number;
   cameraLabel: string;
+  videoTrackIndex?: number | null;
   matchType: "FULL_MATCH" | "PARTIAL_MATCH" | "SKIPPED_NO_OVERLAP";
   decisionStartSec: number;
   decisionEndSec: number;
+  durationSec?: number;
+  isValidTiming?: boolean;
+  invalidReason?: string | null;
+  matchingSourceClipFound?: boolean;
   clipName: string | null;
+  matchingClipName?: string | null;
   clipStartSec: number | null;
   clipEndSec: number | null;
+  matchingClipStartSec?: number | null;
+  matchingClipEndSec?: number | null;
   overlapStartSec: number | null;
   overlapEndSec: number | null;
+  overlapDurationSec?: number | null;
   sourceInSec: number | null;
   sourceOutSec: number | null;
   subclipCreated: boolean;
@@ -157,6 +177,8 @@ export interface ApplyCameraDecisionSegmentResult {
 export interface ApplyCameraDecisionsVisualOnlyResult {
   ok: boolean;
   strategy: "apply-camera-decisions-overlap-aware-visual-only";
+  sourceSequenceId?: string | null;
+  sourceSequenceName?: string | null;
   originalSequenceID: string | null;
   duplicateSequenceID: string | null;
   decisionsCount: number;
@@ -213,6 +235,7 @@ export interface PremierePodcastAdapterContract {
   testInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult>;
   testReconstructInsertOverwriteOnDuplicate(): Promise<PodcastExecutionResearchResult>;
   applyCameraDecisionsVisualOnly(input: ApplyCameraDecisionsVisualOnlyInput): Promise<ApplyCameraDecisionsVisualOnlyResult>;
+  applySilenceRemovalVisualOnly(input: ApplySilenceRemovalVisualOnlyInput): Promise<SilenceRemovalApplyResult>;
   applyCuts(input: ApplyPodcastCutsInput): Promise<PodcastAdapterResult>;
   applyCameraSwitches(input: ApplyCameraSwitchesInput): Promise<PodcastAdapterResult>;
 }

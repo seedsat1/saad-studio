@@ -68,6 +68,7 @@ export interface AudioActivitySegment {
 
 export interface PodcastDiagnostics {
   activeSequence: boolean;
+  sequenceId?: string | null;
   sequenceName?: string | null;
   premiereVersion?: string | null;
   videoTrackCount: number;
@@ -167,6 +168,198 @@ export interface RmsPreviewPoint {
   timelineStartSec: number;
   timelineEndSec: number;
   rmsDb: number;
+}
+
+export interface SilenceRemovalSettings {
+  audioTrackIndex: number;
+  silenceThresholdDb: number;
+  minimumSilenceDurationSec: number;
+  minimumCutGapSec?: number;
+  minimumKeepSegmentDurationSec?: number;
+  mergeAdjacentKeepGapSec?: number;
+  paddingBeforeSec: number;
+  paddingAfterSec: number;
+  selectedAudioStreamIndex?: number | null;
+}
+
+export type PodcastPauseClassification =
+  | "Natural breathing pause"
+  | "Thinking pause"
+  | "Sentence break"
+  | "Real silence";
+
+export interface SilenceSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  paddedStartSec?: number;
+  paddedEndSec?: number;
+  rmsMinDb?: number;
+  rmsMaxDb?: number;
+  rmsAvgDb?: number;
+  pauseClassification?: PodcastPauseClassification;
+  cutEligible?: boolean;
+  cutDecisionReason?: string;
+  reason?: "ACCEPTED_SILENCE" | "BELOW_MIN_DURATION" | "ABOVE_THRESHOLD" | "MERGED_WITH_ACTIVITY" | "OTHER";
+}
+
+export interface SilenceDetectionDiagnosticSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  sourceWindowCount: number;
+  reason: "ACCEPTED_SILENCE" | "BELOW_MIN_DURATION" | "ABOVE_THRESHOLD" | "MERGED_WITH_ACTIVITY" | "OTHER";
+  thresholdUsed: number;
+  minimumDurationUsed: number;
+  rmsMinDb?: number;
+  rmsMaxDb?: number;
+  rmsAvgDb?: number;
+  pauseClassification?: PodcastPauseClassification;
+  cutEligible?: boolean;
+  cutDecisionReason?: string;
+}
+
+export interface KeepSegment {
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  reason: string;
+}
+
+export interface SilenceRemovalAnalysisResult {
+  ok: boolean;
+  audioTrackIndex: number;
+  analyzedSourcePath?: string | null;
+  selectedAudioStreamIndex?: number | null;
+  sequenceDurationSec?: number | null;
+  audioSourceDurationSec?: number | null;
+  analyzedDurationSec: number;
+  analysisWindowSec: number;
+  totalRmsWindows: number;
+  silenceSegments: SilenceSegment[];
+  droppedSilenceSegments?: SilenceSegment[];
+  longestDroppedSilenceSec?: number;
+  silenceDetectionDiagnostics?: {
+    thresholdUsed: number;
+    minimumDurationUsed: number;
+    detectedSilenceSegments: SilenceDetectionDiagnosticSegment[];
+    rejectedSilenceSegments: SilenceDetectionDiagnosticSegment[];
+  };
+  keepSegments: KeepSegment[];
+  totalRemovedDurationSec: number;
+  blockers: string[];
+  warnings: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
+export interface SilenceRemovalApplyResult {
+  ok: boolean;
+  strategy: "silence-removal-audio-video";
+  activeSequenceName?: string | null;
+  generatedSequenceDetectionRule?: string | null;
+  matchedPattern?: string | null;
+  blockerSource?: string | null;
+  originalSequenceID: string | null;
+  duplicateSequenceID: string | null;
+  draftSequenceName?: string | null;
+  sequenceDurationSec?: number | null;
+  analyzedDurationSec?: number | null;
+  audioSourceDurationSec?: number | null;
+  silenceRemovedCount: number;
+  totalRemovedDurationSec: number;
+  keptSegmentsCount: number;
+  segmentsAttempted: number;
+  visualSegmentsInserted: number;
+  audioSegmentsInserted: number;
+  processedVideoTracks?: number;
+  processedAudioTracks?: number;
+  videoSegmentsInsertedByTrack?: number[];
+  audioSegmentsInsertedByTrack?: number[];
+  skippedSegmentsByTrack?: {
+    video: number[];
+    audio: number[];
+  };
+  keepSegmentMatchSummary?: Array<{
+    keepSegmentIndex: number;
+    startSec: number;
+    endSec: number;
+    videoClipsMatched: number;
+    audioClipsMatched: number;
+    videoClipsMatchedByTrack?: number[];
+    audioClipsMatchedByTrack?: number[];
+  }>;
+  multiClipKeepSegments?: Array<{
+    keepSegmentIndex: number;
+    matchedVideoClipCount: number;
+    matchedAudioClipCount: number;
+    videoClipsMatchedByTrack?: number[];
+    audioClipsMatchedByTrack?: number[];
+  }>;
+  keepSegmentsProcessed?: number;
+  keepSegmentsSkipped?: number;
+  lastProcessedKeepSegmentIndex?: number | null;
+  lastKeepSegmentEndTime?: number | null;
+  sourceClipUseCounts?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipName: string;
+    clipStartSec: number;
+    useCount: number;
+  }>;
+  duplicateSourceClipUseCount?: number;
+  reconstructedVideoClipsCount?: number;
+  reconstructedAudioClipsCount?: number;
+  originalTrackItemsRemovedOnDuplicate?: number;
+  originalTrackItemsRemovalFailedOnDuplicate?: number;
+  originalResidualTrackItems?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipIndex: number;
+    clipName: string;
+    startSec: number;
+    endSec: number;
+    disabled: boolean | null;
+  }>;
+  img5575Diagnostics?: Array<{
+    mediaKind: string;
+    trackIndex: number;
+    clipIndex: number;
+    clipName: string;
+    startSec: number;
+    endSec: number;
+    disabled: boolean | null;
+  }>;
+  executionDiagnosticsPath?: string;
+  operationPlanCount?: number;
+  operationPlanBuildCalled?: boolean;
+  timelineClipDiscovery?: {
+    videoTrackCount: number;
+    audioTrackCount: number;
+    videoClipCounts: number[];
+    audioClipCounts: number[];
+    v1ClipCount: number;
+    a1ClipCount: number;
+  };
+  currentOperationIndex?: number;
+  totalOperationsExecuted?: number;
+  currentTrackBeingProcessed?: string | null;
+  currentClipName?: string | null;
+  createSubClipStartTimestamp?: string | null;
+  createSubClipEndTimestamp?: string | null;
+  overwriteClipStartTimestamp?: string | null;
+  overwriteClipEndTimestamp?: string | null;
+  lastSuccessfulOperation?: unknown;
+  firstOperationThatNeverReturns?: unknown;
+  executionElapsedTimeMs?: number;
+  originalTracksHiddenOrDisabledOnDuplicate: boolean;
+  originalTrackItemsDisabledOnDuplicate?: number;
+  blockers: string[];
+  warnings: string[];
+  errors: string[];
+  originalTouched: false;
+  timelineMutation: "duplicate + audio-video silence-removed draft on duplicate only";
 }
 
 export interface RmsTimestampInterpretation {
@@ -305,11 +498,14 @@ export interface DominantTrackWindow {
 }
 
 export interface SpeakerSourceAttributionProof {
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  decisionSource?: "ffmpeg-rms";
   trackActivity: TrackActivity[];
   trackSpeakingSegments: TrackSpeakingSegment[];
   overlaps: TrackOverlapWindow[];
   dominantTrackAtTime: DominantTrackWindow[];
-  analyzedDurationSec: 30;
+  analyzedDurationSec: number;
   analysisWindowSec: 0.2;
   thresholdUsed: -35;
   minimumSpeechDurationSec: 0.4;
@@ -337,11 +533,43 @@ export interface PodcastCameraDecisionProofSummary {
   wideCameraTimeSec: number;
   keptPreviousCameraEvents: number;
   droppedShortDecisions: number;
+  totalDetectedSpeakerSegments?: number;
+  speakerSegmentsPerMicrophone?: Array<{
+    audioTrackIndex: number;
+    speakerId: string;
+    segments: number;
+  }>;
+  dominantWindowsCount?: number;
+  cameraDecisionsBeforeMerge?: number;
+  cameraDecisionsAfterAdjacentMerge?: number;
+  cameraDecisionsAfterShortMerge?: number;
+  mergedSegmentsCount?: number;
+  totalTimelineDurationSec?: number;
+  singleDecisionReason?: string | null;
 }
 
 export interface PodcastCameraDecisionPlanProof {
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  decisionSource?: "ffmpeg-rms";
   cameraDecisions: PodcastCameraDecisionProofItem[];
   summary: PodcastCameraDecisionProofSummary;
+  diagnostics?: {
+    totalDetectedSpeakerSegments: number;
+    speakerSegmentsPerMicrophone: Array<{
+      audioTrackIndex: number;
+      speakerId: string;
+      segments: number;
+    }>;
+    dominantWindowsCount: number;
+    cameraDecisionsBeforeMerge: number;
+    cameraDecisionsAfterAdjacentMerge: number;
+    cameraDecisionsAfterShortMerge: number;
+    mergedSegmentsCount: number;
+    totalTimelineDurationSec: number;
+    singleDecisionReason: string | null;
+    unmappedAudioTrackIndexes: number[];
+  };
   blockers: string[];
   warnings: string[];
   timelineMutation: "none";

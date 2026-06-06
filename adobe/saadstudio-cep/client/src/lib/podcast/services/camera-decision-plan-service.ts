@@ -2,6 +2,7 @@ import type {
   DominantTrackWindow,
   PodcastCameraDecisionPlanProof,
   PodcastCameraDecisionProofItem,
+  TrackSpeakingSegment,
   TrackOverlapWindow,
 } from "../types";
 
@@ -11,6 +12,9 @@ const MERGE_GAP_SEC = 0.3;
 export interface CameraDecisionPlanProofInput {
   dominantTrackAtTime: DominantTrackWindow[];
   overlaps: TrackOverlapWindow[];
+  trackSpeakingSegments?: TrackSpeakingSegment[];
+  timelineDurationSec?: number;
+  videoTrackCount?: number;
 }
 
 export function generateCameraDecisionPlanProof(
@@ -20,17 +24,23 @@ export function generateCameraDecisionPlanProof(
   const warnings: string[] = [];
   if (!input.dominantTrackAtTime.length) blockers.push("DOMINANT_TRACK_WINDOWS_REQUIRED");
 
+  const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
   const rawDecisions = input.dominantTrackAtTime.map((window, index) =>
-    windowToCameraDecision(window, overlapKeys, index));
+    windowToCameraDecision(window, overlapKeys, index, videoTrackCount));
   const merged = mergeAdjacentDecisions(rawDecisions);
   const compacted = mergeShortDecisions(merged);
   const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
-  const summary = summarizeDecisions(finalDecisions, compacted.droppedShortDecisions);
+  const diagnostics = buildDecisionDiagnostics(input, rawDecisions, merged, compacted.decisions, finalDecisions);
+  const summary = {
+    ...summarizeDecisions(finalDecisions, compacted.droppedShortDecisions),
+    ...diagnostics,
+  };
 
   return {
     cameraDecisions: blockers.length ? [] : finalDecisions,
     summary,
+    diagnostics,
     blockers,
     warnings,
     timelineMutation: "none",
@@ -42,16 +52,24 @@ function windowToCameraDecision(
   window: DominantTrackWindow,
   overlapKeys: Set<string>,
   index: number,
+  videoTrackCount: number,
 ): PodcastCameraDecisionProofItem {
   const hasOverlap = overlapKeys.has(timeKey(window.timelineStartSec, window.timelineEndSec));
   if (hasOverlap) {
-    return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, 2, "V3", "overlap detected; using wide camera");
+    const wideTrackIndex = Math.min(2, videoTrackCount - 1);
+    return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlap detected; using wide camera");
   }
-  if (window.audioTrackIndex === 0 || window.speakerId === "speaker_1") {
-    return makeDecision(window.timelineStartSec, window.timelineEndSec, "speaker_1", 0, 0, "V1", "dominant speaker mapped to camera");
-  }
-  if (window.audioTrackIndex === 1 || window.speakerId === "speaker_2") {
-    return makeDecision(window.timelineStartSec, window.timelineEndSec, "speaker_2", 1, 1, "V2", "dominant speaker mapped to camera");
+  if (typeof window.audioTrackIndex === "number" && window.audioTrackIndex >= 0) {
+    const videoTrackIndex = Math.min(window.audioTrackIndex, videoTrackCount - 1);
+    return makeDecision(
+      window.timelineStartSec,
+      window.timelineEndSec,
+      window.speakerId ?? `speaker_${window.audioTrackIndex + 1}`,
+      window.audioTrackIndex,
+      videoTrackIndex,
+      `V${videoTrackIndex + 1}`,
+      "dominant microphone mapped to matching camera track",
+    );
   }
   return makeDecision(
     window.timelineStartSec,
@@ -153,6 +171,73 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
     }
   }
   return { decisions: output, droppedShortDecisions };
+}
+
+function buildDecisionDiagnostics(
+  input: CameraDecisionPlanProofInput,
+  rawDecisions: PodcastCameraDecisionProofItem[],
+  adjacentMerged: PodcastCameraDecisionProofItem[],
+  afterShortMerge: PodcastCameraDecisionProofItem[],
+  finalDecisions: PodcastCameraDecisionProofItem[],
+): NonNullable<PodcastCameraDecisionPlanProof["diagnostics"]> {
+  const speakerSegmentsPerMicrophone = summarizeSpeakerSegments(input.trackSpeakingSegments ?? []);
+  const mergedSegmentsCount = Math.max(0, rawDecisions.length - finalDecisions.length);
+  const totalTimelineDurationSec = input.timelineDurationSec
+    ?? maxEnd(input.dominantTrackAtTime.map((item) => item.timelineEndSec))
+    ?? maxEnd(finalDecisions.map((item) => item.endSec))
+    ?? 0;
+  return {
+    totalDetectedSpeakerSegments: input.trackSpeakingSegments?.length ?? 0,
+    speakerSegmentsPerMicrophone,
+    dominantWindowsCount: input.dominantTrackAtTime.length,
+    cameraDecisionsBeforeMerge: rawDecisions.length,
+    cameraDecisionsAfterAdjacentMerge: adjacentMerged.length,
+    cameraDecisionsAfterShortMerge: afterShortMerge.length,
+    mergedSegmentsCount,
+    totalTimelineDurationSec: roundTime(totalTimelineDurationSec),
+    singleDecisionReason: finalDecisions.length === 1
+      ? explainSingleDecision(input, rawDecisions, adjacentMerged, afterShortMerge, finalDecisions)
+      : null,
+    unmappedAudioTrackIndexes: [],
+  };
+}
+
+function summarizeSpeakerSegments(segments: TrackSpeakingSegment[]) {
+  const map = new Map<string, { audioTrackIndex: number; speakerId: string; segments: number }>();
+  for (const segment of segments) {
+    const key = `${segment.audioTrackIndex}:${segment.speakerId}`;
+    const existing = map.get(key) ?? {
+      audioTrackIndex: segment.audioTrackIndex,
+      speakerId: segment.speakerId,
+      segments: 0,
+    };
+    existing.segments += 1;
+    map.set(key, existing);
+  }
+  return [...map.values()].sort((a, b) => a.audioTrackIndex - b.audioTrackIndex);
+}
+
+function explainSingleDecision(
+  input: CameraDecisionPlanProofInput,
+  rawDecisions: PodcastCameraDecisionProofItem[],
+  adjacentMerged: PodcastCameraDecisionProofItem[],
+  afterShortMerge: PodcastCameraDecisionProofItem[],
+  finalDecisions: PodcastCameraDecisionProofItem[],
+): string {
+  const uniqueCameras = new Set(rawDecisions.map((decision) => decision.cameraLabel));
+  const activeTracks = new Set(input.trackSpeakingSegments?.map((segment) => segment.audioTrackIndex) ?? []);
+  if (input.dominantTrackAtTime.length <= 1) return "dominantTrackAtTime produced one or zero windows";
+  if (activeTracks.size <= 1) return "speaker attribution detected activity on only one microphone";
+  if (uniqueCameras.size <= 1) return "all dominant windows mapped to the same camera";
+  if (adjacentMerged.length === 1) return "adjacent merge collapsed all windows into one camera decision";
+  if (afterShortMerge.length === 1) return "minimum shot length absorbed short decisions into one decision";
+  if (finalDecisions.length === 1) return "final adjacent merge collapsed the camera plan into one decision";
+  return "unknown single decision collapse";
+}
+
+function maxEnd(values: number[]): number | null {
+  const finite = values.filter((value) => Number.isFinite(value));
+  return finite.length ? Math.max(...finite) : null;
 }
 
 function summarizeDecisions(

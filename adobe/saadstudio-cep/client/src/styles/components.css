@@ -1335,11 +1335,80 @@
   flex-direction: column;
   gap: 14px;
 }
+.podcast-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.podcast-tool-card {
+  min-width: 0;
+  min-height: 118px;
+  padding: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg);
+  background: var(--bg-panel);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.podcast-tool-card.is-active {
+  border-color: rgba(34, 211, 238, 0.65);
+  background: rgba(34, 211, 238, 0.08);
+}
+.podcast-tool-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+.podcast-tool-card:not(:disabled):hover {
+  border-color: rgba(34, 211, 238, 0.85);
+  background: rgba(34, 211, 238, 0.12);
+}
+.podcast-tool-card__top {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.podcast-tool-card strong {
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.25;
+}
+.podcast-tool-card span,
+.podcast-coming-soon {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+.podcast-tool-card.is-active span {
+  background: rgba(34, 211, 238, 0.18);
+  color: #67e8f9;
+}
+.podcast-tool-card p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
 .podcast-production-card {
   padding: 18px;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-lg);
   background: var(--bg-panel);
+}
+.podcast-production-block {
+  padding: 0;
+}
+.podcast-production-block + .podcast-production-block {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+.podcast-production-block--actions {
+  padding-top: 14px;
 }
 .podcast-section-head {
   display: flex;
@@ -1368,6 +1437,15 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+.podcast-action-row--single {
+  grid-template-columns: minmax(0, 220px);
+  margin-top: 14px;
+  justify-content: end;
+}
+.podcast-action-row--presets {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
 }
 .podcast-action-row button {
   width: 100%;
@@ -1745,6 +1823,7 @@
   .audiogram-settings-grid,
   .transcription-settings-grid,
   .podcast-settings,
+  .podcast-tool-grid,
   .podcast-camera-map,
   .podcast-audio-map,
   .podcast-layout,

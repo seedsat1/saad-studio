@@ -20,6 +20,11 @@ import type {
   TrackSpeakingSegment,
   TrackOverlapWindow,
   DominantTrackWindow,
+  KeepSegment,
+  SilenceRemovalAnalysisResult,
+  SilenceRemovalSettings,
+  SilenceSegment,
+  SilenceDetectionDiagnosticSegment,
 } from "../types";
 
 const MINIMUM_FFMPEG_MAJOR_VERSION = 6;
@@ -32,6 +37,10 @@ const RMS_PROOF_DURATION_SEC = 5;
 const FULL_ACTIVITY_DURATION_SEC = 30;
 const FULL_ACTIVITY_THRESHOLD_DB = -35;
 const FULL_ACTIVITY_MIN_SPEECH_SEC = 0.4;
+const MULTICAM_ATTRIBUTION_MAX_DURATION_SEC = 90;
+const DEFAULT_MINIMUM_CUT_GAP_SEC = 0.7;
+const DEFAULT_MINIMUM_KEEP_SEGMENT_SEC = 1.5;
+const DEFAULT_MERGE_ADJACENT_KEEP_GAP_SEC = 0.7;
 
 type NodeRequire = <T = unknown>(moduleName: string) => T;
 
@@ -321,6 +330,105 @@ export async function runFullAudioActivityProof(
   };
 }
 
+export async function analyzeSilenceRemovalAudio(
+  settings: SilenceRemovalSettings,
+): Promise<SilenceRemovalAnalysisResult> {
+  const mapping: AudioTrackSpeakerMapping = {
+    speakerId: "silence_source",
+    audioTrackIndex: settings.audioTrackIndex,
+  };
+  const inspection = await premierePodcastAdapter.inspectAudioSources([mapping]);
+  const layout = await premierePodcastAdapter.getTimelineLayout();
+  const diagnostics = await diagnoseFfmpegDetection();
+  const blockers = [...diagnostics.blockers];
+  const warnings = [...inspection.blockers];
+  const sources = inspection.sources.filter((item) =>
+    item.audioTrackIndex === settings.audioTrackIndex && isValidRmsProofSource(item)
+  );
+  const source = sources[0] ?? null;
+  const streamProof = source?.sourcePath
+    ? await inspectAudioStreamsForRmsSource([mapping])
+    : emptyAudioStreamSelectionProof();
+  const streamCount = streamProof.ffprobeAudioStreams.length;
+  const effectiveStreamIndex = streamCount === 1
+    ? 0
+    : typeof settings.selectedAudioStreamIndex === "number"
+      ? settings.selectedAudioStreamIndex
+      : null;
+
+  if (!source?.sourcePath) blockers.push("NO_VALID_RMS_SOURCE_PATH");
+  for (const validSource of sources) {
+    if (!isValidClipTiming(validSource)) blockers.push("INVALID_CLIP_TIMING");
+  }
+  if (!diagnostics.ok || !diagnostics.selectedPath) blockers.push("FFMPEG_NOT_READY");
+  blockers.push(...streamProof.blockers.filter((blocker) => blocker !== "AUDIO_STREAM_SELECTION_REQUIRED"));
+  warnings.push(...streamProof.warnings);
+  if (streamCount > 1 && effectiveStreamIndex == null) blockers.push("AUDIO_STREAM_SELECTION_REQUIRED");
+  if (effectiveStreamIndex != null && !streamProof.ffprobeAudioStreams.some((stream) => stream.audioStreamIndex === effectiveStreamIndex)) {
+    blockers.push("SELECTED_AUDIO_STREAM_NOT_FOUND");
+  }
+
+  const sequenceDurationSec = typeof layout.sequenceDurationSec === "number" ? Math.max(0, layout.sequenceDurationSec) : null;
+  const audioSourceDurationSec = sources.reduce((sum, item) => sum + Math.max(0, item.durationSec ?? 0), 0);
+  const lastSourceTimelineEndSec = sources.reduce((max, item) => Math.max(max, item.timelineEndSec ?? 0), 0);
+  const analyzedDurationSec = sequenceDurationSec ?? lastSourceTimelineEndSec;
+  if (sources.length > 1) warnings.push(`SILENCE_MASTER_TRACK_SOURCES_ANALYZED:${sources.length}`);
+  if (sequenceDurationSec != null && lastSourceTimelineEndSec > 0 && lastSourceTimelineEndSec + RMS_PREVIEW_WINDOW_SEC < sequenceDurationSec) {
+    warnings.push("AUDIO_SOURCE_SHORTER_THAN_SEQUENCE");
+  }
+  if (!(analyzedDurationSec > 0)) blockers.push("INVALID_ANALYSIS_DURATION");
+
+  if (blockers.length > 0 || !source?.sourcePath || !diagnostics.selectedPath || effectiveStreamIndex == null) {
+    return emptySilenceRemovalAnalysis(settings, analyzedDurationSec, source?.sourcePath ?? null, effectiveStreamIndex, uniqueBlockers(blockers), uniqueBlockers(warnings), sequenceDurationSec, audioSourceDurationSec);
+  }
+
+  const runtime = getNodeRuntime();
+  const windows: RmsPreviewPoint[] = [];
+  for (const validSource of sources) {
+    const sourceDurationSec = Math.max(0, validSource.durationSec ?? 0);
+    if (!(sourceDurationSec > 0)) continue;
+    const sourceWindows = await runRmsPreview(
+      runtime.cp,
+      diagnostics.selectedPath,
+      validSource,
+      sourceDurationSec,
+      Number.POSITIVE_INFINITY,
+      effectiveStreamIndex,
+    );
+    windows.push(...sourceWindows);
+  }
+  windows.sort((a, b) => a.timelineStartSec - b.timelineStartSec);
+  const segments = buildSilenceAndKeepSegments(windows, analyzedDurationSec, settings);
+  return {
+    ok: segments.keepSegments.length > 0,
+    audioTrackIndex: settings.audioTrackIndex,
+    analyzedSourcePath: sources.length === 1 ? (source?.sourcePath ?? null) : `${sources.length} timeline sources`,
+    selectedAudioStreamIndex: effectiveStreamIndex,
+    sequenceDurationSec: sequenceDurationSec == null ? null : roundTime(sequenceDurationSec),
+    audioSourceDurationSec: roundTime(audioSourceDurationSec),
+    analyzedDurationSec: roundTime(analyzedDurationSec),
+    analysisWindowSec: RMS_PREVIEW_WINDOW_SEC,
+    totalRmsWindows: windows.length,
+    silenceSegments: segments.silenceSegments,
+    droppedSilenceSegments: segments.droppedSilenceSegments,
+    longestDroppedSilenceSec: segments.droppedSilenceSegments.reduce((max, segment) => Math.max(max, segment.durationSec), 0),
+    silenceDetectionDiagnostics: {
+      thresholdUsed: settings.silenceThresholdDb,
+      minimumDurationUsed: settings.minimumSilenceDurationSec,
+      detectedSilenceSegments: segments.silenceSegments.map((segment) =>
+        toSilenceDiagnosticSegment(segment, "ACCEPTED_SILENCE", settings)
+      ),
+      rejectedSilenceSegments: segments.rejectedSilenceSegments,
+    },
+    keepSegments: segments.keepSegments,
+    totalRemovedDurationSec: segments.totalRemovedDurationSec,
+    blockers: segments.keepSegments.length > 0 ? [] : ["NO_KEEP_SEGMENTS_GENERATED"],
+    warnings: uniqueBlockers(warnings),
+    timelineMutation: "none",
+    sequenceMutation: "none",
+  };
+}
+
 export async function runSpeakerSourceAttributionProof(
   mappings: AudioTrackSpeakerMapping[],
   selectedAudioStreamIndex?: number | null,
@@ -338,6 +446,7 @@ export async function runSpeakerSourceAttributionProof(
   const runtime = getNodeRuntime();
   const trackActivity: TrackActivity[] = [];
   const trackSpeakingSegments: TrackSpeakingSegment[] = [];
+  let analyzedDurationSec = 0;
 
   for (const mapping of mappings) {
     const source = inspection.sources.find((item) =>
@@ -368,11 +477,20 @@ export async function runSpeakerSourceAttributionProof(
       continue;
     }
 
+    const sourceDurationSec = Math.max(0, source.durationSec ?? FULL_ACTIVITY_DURATION_SEC);
+    const analysisDurationSec = Math.min(
+      sourceDurationSec > 0 ? sourceDurationSec : FULL_ACTIVITY_DURATION_SEC,
+      MULTICAM_ATTRIBUTION_MAX_DURATION_SEC,
+    );
+    if (sourceDurationSec > MULTICAM_ATTRIBUTION_MAX_DURATION_SEC) {
+      warnings.push(`MULTICAM_ATTRIBUTION_TRUNCATED_A${mapping.audioTrackIndex + 1}:${MULTICAM_ATTRIBUTION_MAX_DURATION_SEC}s`);
+    }
+    analyzedDurationSec = Math.max(analyzedDurationSec, source.timelineEndSec ?? sourceDurationSec);
     const rmsWindows = await runRmsPreview(
       runtime.cp,
       diagnostics.selectedPath,
       source,
-      FULL_ACTIVITY_DURATION_SEC,
+      analysisDurationSec,
       Number.POSITIVE_INFINITY,
       effectiveStreamIndex,
     );
@@ -404,13 +522,22 @@ export async function runSpeakerSourceAttributionProof(
     });
   }
 
+  const overlaps = buildOverlapWindows(trackActivity);
+  const dominantTrackAtTime = buildDominantTrackWindows(trackActivity);
+  const returnedTrackActivity = trackActivity.map((track) => ({
+    ...track,
+    windows: track.windows.slice(0, 20),
+    warnings: track.windows.length > 20
+      ? uniqueBlockers([...track.warnings, `TRACK_ACTIVITY_WINDOWS_TRUNCATED:${track.windows.length}`])
+      : track.warnings,
+  }));
   const trackBlockers = trackActivity.flatMap((track) => track.blockers);
   return {
-    trackActivity,
+    trackActivity: returnedTrackActivity,
     trackSpeakingSegments: trackSpeakingSegments.map((segment, index) => ({ ...segment, id: `track_speech_${index + 1}` })),
-    overlaps: buildOverlapWindows(trackActivity),
-    dominantTrackAtTime: buildDominantTrackWindows(trackActivity),
-    analyzedDurationSec: FULL_ACTIVITY_DURATION_SEC,
+    overlaps,
+    dominantTrackAtTime,
+    analyzedDurationSec: roundTime(analyzedDurationSec || FULL_ACTIVITY_DURATION_SEC),
     analysisWindowSec: RMS_PREVIEW_WINDOW_SEC,
     thresholdUsed: FULL_ACTIVITY_THRESHOLD_DB,
     minimumSpeechDurationSec: FULL_ACTIVITY_MIN_SPEECH_SEC,
@@ -587,7 +714,7 @@ function execFileCapture(
   args: string[],
 ): Promise<{ ok: boolean; output: string }> {
   return new Promise((resolve) => {
-    cp.execFile(file, args, { windowsHide: true }, (error, stdout, stderr) => {
+    cp.execFile(file, args, { windowsHide: true, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
       resolve({
         ok: !error,
         output: `${stdout || ""}${stderr || ""}${error?.message ? `\n${error.message}` : ""}`,
@@ -796,6 +923,256 @@ function buildFullActivitySegments(windows: RmsPreviewPoint[]): {
     speakingSegments: speakingSegments.map((segment, index) => ({ ...segment, id: `speech_${index + 1}` })),
     droppedShortSegments,
   };
+}
+
+function buildSilenceAndKeepSegments(
+  windows: RmsPreviewPoint[],
+  durationSec: number,
+  settings: SilenceRemovalSettings,
+): {
+  silenceSegments: SilenceSegment[];
+  droppedSilenceSegments: SilenceSegment[];
+  rejectedSilenceSegments: SilenceDetectionDiagnosticSegment[];
+  keepSegments: KeepSegment[];
+  totalRemovedDurationSec: number;
+} {
+  const rawSilenceSegments: SilenceSegment[] = [];
+  const droppedSilenceSegments: SilenceSegment[] = [];
+  const rejectedSilenceSegments: SilenceDetectionDiagnosticSegment[] = [];
+  let current: SilenceSegment | null = null;
+  let activeCurrent: SilenceSegment | null = null;
+
+  for (const window of windows) {
+    const silent = !Number.isFinite(window.rmsDb) || window.rmsDb < settings.silenceThresholdDb;
+    if (!silent) {
+      if (current) {
+        pushSilenceSegment(current, rawSilenceSegments, droppedSilenceSegments, rejectedSilenceSegments, settings);
+        current = null;
+      }
+      activeCurrent = extendSilenceDiagnosticSegment(activeCurrent, window);
+      continue;
+    }
+    if (activeCurrent) {
+      rejectedSilenceSegments.push(toSilenceDiagnosticSegment(activeCurrent, "ABOVE_THRESHOLD", settings));
+      activeCurrent = null;
+    }
+    if (!current) {
+      current = extendSilenceDiagnosticSegment(null, window);
+      continue;
+    }
+    current = extendSilenceDiagnosticSegment(current, window);
+  }
+  if (current) pushSilenceSegment(current, rawSilenceSegments, droppedSilenceSegments, rejectedSilenceSegments, settings);
+  if (activeCurrent) rejectedSilenceSegments.push(toSilenceDiagnosticSegment(activeCurrent, "ABOVE_THRESHOLD", settings));
+
+  const silenceSegments: SilenceSegment[] = [];
+  const minimumCutGapSec = settings.minimumCutGapSec ?? DEFAULT_MINIMUM_CUT_GAP_SEC;
+  for (const segment of rawSilenceSegments) {
+    const classified = classifyPodcastPause(segment, minimumCutGapSec);
+    if (!classified.cutEligible) {
+      const rejected = { ...classified, reason: "MERGED_WITH_ACTIVITY" as const };
+      droppedSilenceSegments.push(rejected);
+      rejectedSilenceSegments.push(toSilenceDiagnosticSegment(rejected, "MERGED_WITH_ACTIVITY", settings));
+      continue;
+    }
+    const paddedStartSec = Math.max(0, segment.startSec + settings.paddingBeforeSec);
+    const paddedEndSec = Math.min(durationSec, segment.endSec - settings.paddingAfterSec);
+    if (paddedEndSec <= paddedStartSec) continue;
+    silenceSegments.push({
+      ...classified,
+      paddedStartSec: roundTime(paddedStartSec),
+      paddedEndSec: roundTime(paddedEndSec),
+    });
+  }
+
+  const keepSegments = mergeShortKeepSegments(
+    buildKeepSegmentsFromCutSilences(silenceSegments, durationSec),
+    settings.minimumKeepSegmentDurationSec ?? DEFAULT_MINIMUM_KEEP_SEGMENT_SEC,
+    settings.mergeAdjacentKeepGapSec ?? DEFAULT_MERGE_ADJACENT_KEEP_GAP_SEC,
+  );
+  const totalRemovedDurationSec = totalRemovedDurationFromKeepSegments(keepSegments, durationSec);
+
+  return {
+    silenceSegments,
+    droppedSilenceSegments,
+    rejectedSilenceSegments,
+    keepSegments,
+    totalRemovedDurationSec: roundTime(totalRemovedDurationSec),
+  };
+}
+
+function buildKeepSegmentsFromCutSilences(silenceSegments: SilenceSegment[], durationSec: number): KeepSegment[] {
+  const keepSegments: KeepSegment[] = [];
+  let cursor = 0;
+  for (const silence of silenceSegments) {
+    const silenceStart = silence.paddedStartSec ?? silence.startSec;
+    const silenceEnd = silence.paddedEndSec ?? silence.endSec;
+    if (silenceStart > cursor) {
+      pushKeepSegment(keepSegments, cursor, silenceStart, "before silence");
+    }
+    cursor = Math.max(cursor, silenceEnd);
+  }
+  if (durationSec > cursor) pushKeepSegment(keepSegments, cursor, durationSec, "after silence");
+  return keepSegments;
+}
+
+function mergeShortKeepSegments(
+  keepSegments: KeepSegment[],
+  minimumKeepSegmentDurationSec: number,
+  mergeAdjacentKeepGapSec: number,
+): KeepSegment[] {
+  const merged: KeepSegment[] = [];
+  for (const segment of keepSegments) {
+    const previous = merged[merged.length - 1];
+    if (previous && shouldMergeKeepSegment(previous, segment, minimumKeepSegmentDurationSec, mergeAdjacentKeepGapSec)) {
+      previous.endSec = segment.endSec;
+      previous.durationSec = roundTime(previous.endSec - previous.startSec);
+      previous.reason = "merged for conversational flow";
+      continue;
+    }
+    merged.push({ ...segment });
+  }
+  return merged;
+}
+
+function shouldMergeKeepSegment(
+  previous: KeepSegment,
+  current: KeepSegment,
+  minimumKeepSegmentDurationSec: number,
+  mergeAdjacentKeepGapSec: number,
+): boolean {
+  const gapSec = Math.max(0, current.startSec - previous.endSec);
+  return previous.durationSec < minimumKeepSegmentDurationSec
+    || current.durationSec < minimumKeepSegmentDurationSec
+    || gapSec < mergeAdjacentKeepGapSec;
+}
+
+function totalRemovedDurationFromKeepSegments(keepSegments: KeepSegment[], durationSec: number): number {
+  const keptDurationSec = keepSegments.reduce((sum, segment) => sum + Math.max(0, segment.endSec - segment.startSec), 0);
+  return Math.max(0, durationSec - keptDurationSec);
+}
+
+function pushSilenceSegment(
+  segment: SilenceSegment,
+  segments: SilenceSegment[],
+  droppedSegments: SilenceSegment[],
+  rejectedSegments: SilenceDetectionDiagnosticSegment[],
+  settings: SilenceRemovalSettings,
+) {
+  segment.durationSec = roundTime(segment.endSec - segment.startSec);
+  const classified = classifyPodcastPause(segment, settings.minimumCutGapSec ?? DEFAULT_MINIMUM_CUT_GAP_SEC);
+  if (segment.durationSec >= settings.minimumSilenceDurationSec) {
+    segments.push({ ...classified, reason: "ACCEPTED_SILENCE" });
+  } else {
+    const dropped = { ...classified, reason: "BELOW_MIN_DURATION" as const };
+    droppedSegments.push(dropped);
+    rejectedSegments.push(toSilenceDiagnosticSegment(dropped, "BELOW_MIN_DURATION", settings));
+  }
+}
+
+function classifyPodcastPause(segment: SilenceSegment, minimumCutGapSec: number): SilenceSegment {
+  const duration = roundTime(segment.endSec - segment.startSec);
+  if (duration < 0.5) {
+    return {
+      ...segment,
+      durationSec: duration,
+      pauseClassification: "Natural breathing pause",
+      cutEligible: false,
+      cutDecisionReason: "pause shorter than 0.5s",
+    };
+  }
+  if (duration < minimumCutGapSec) {
+    return {
+      ...segment,
+      durationSec: duration,
+      pauseClassification: "Thinking pause",
+      cutEligible: false,
+      cutDecisionReason: `pause shorter than minimum cut gap ${minimumCutGapSec}s`,
+    };
+  }
+  if (duration < 1.2) {
+    return {
+      ...segment,
+      durationSec: duration,
+      pauseClassification: "Thinking pause",
+      cutEligible: false,
+      cutDecisionReason: "short thinking pause kept for conversational flow",
+    };
+  }
+  if (duration < 2) {
+    return {
+      ...segment,
+      durationSec: duration,
+      pauseClassification: "Sentence break",
+      cutEligible: true,
+      cutDecisionReason: "sentence break long enough for a clean cut",
+    };
+  }
+  return {
+    ...segment,
+    durationSec: duration,
+    pauseClassification: "Real silence",
+    cutEligible: true,
+    cutDecisionReason: "real silence",
+  };
+}
+
+function extendSilenceDiagnosticSegment(segment: SilenceSegment | null, window: RmsPreviewPoint): SilenceSegment {
+  const rms = Number.isFinite(window.rmsDb) ? window.rmsDb : -Infinity;
+  if (!segment) {
+    return {
+      startSec: Math.max(0, window.timelineStartSec),
+      endSec: Math.max(0, window.timelineEndSec),
+      durationSec: roundTime(Math.max(0, window.timelineEndSec - window.timelineStartSec)),
+      sourceWindowCount: 1,
+      rmsMinDb: rms,
+      rmsMaxDb: rms,
+      rmsAvgDb: rms,
+    };
+  }
+  const count = segment.sourceWindowCount + 1;
+  const prevAvg = typeof segment.rmsAvgDb === "number" ? segment.rmsAvgDb : rms;
+  segment.endSec = Math.max(segment.endSec, window.timelineEndSec);
+  segment.durationSec = roundTime(segment.endSec - segment.startSec);
+  segment.sourceWindowCount = count;
+  segment.rmsMinDb = Math.min(typeof segment.rmsMinDb === "number" ? segment.rmsMinDb : rms, rms);
+  segment.rmsMaxDb = Math.max(typeof segment.rmsMaxDb === "number" ? segment.rmsMaxDb : rms, rms);
+  segment.rmsAvgDb = roundDb(((prevAvg * (count - 1)) + rms) / count);
+  return segment;
+}
+
+function toSilenceDiagnosticSegment(
+  segment: SilenceSegment,
+  reason: SilenceDetectionDiagnosticSegment["reason"],
+  settings: SilenceRemovalSettings,
+): SilenceDetectionDiagnosticSegment {
+  return {
+    startSec: roundTime(segment.startSec),
+    endSec: roundTime(segment.endSec),
+    durationSec: roundTime(segment.durationSec),
+    sourceWindowCount: segment.sourceWindowCount,
+    reason,
+    thresholdUsed: settings.silenceThresholdDb,
+    minimumDurationUsed: settings.minimumSilenceDurationSec,
+    rmsMinDb: segment.rmsMinDb,
+    rmsMaxDb: segment.rmsMaxDb,
+    rmsAvgDb: segment.rmsAvgDb,
+    pauseClassification: segment.pauseClassification,
+    cutEligible: segment.cutEligible,
+    cutDecisionReason: segment.cutDecisionReason,
+  };
+}
+
+function pushKeepSegment(segments: KeepSegment[], startSec: number, endSec: number, reason: string) {
+  const start = roundTime(Math.max(0, startSec));
+  const end = roundTime(Math.max(0, endSec));
+  if (end <= start) return;
+  segments.push({
+    startSec: start,
+    endSec: end,
+    durationSec: roundTime(end - start),
+    reason,
+  });
 }
 
 function finishFullActivitySegment(
@@ -1045,6 +1422,44 @@ function emptyTrackActivity(
   };
 }
 
+function emptySilenceRemovalAnalysis(
+  settings: SilenceRemovalSettings,
+  analyzedDurationSec: number,
+  sourcePath: string | null,
+  selectedAudioStreamIndex: number | null,
+  blockers: string[],
+  warnings: string[],
+  sequenceDurationSec: number | null = null,
+  audioSourceDurationSec: number | null = null,
+): SilenceRemovalAnalysisResult {
+  return {
+    ok: false,
+    audioTrackIndex: settings.audioTrackIndex,
+    analyzedSourcePath: sourcePath,
+    selectedAudioStreamIndex,
+    sequenceDurationSec: sequenceDurationSec == null ? null : roundTime(sequenceDurationSec),
+    audioSourceDurationSec: audioSourceDurationSec == null ? null : roundTime(audioSourceDurationSec),
+    analyzedDurationSec: roundTime(analyzedDurationSec),
+    analysisWindowSec: RMS_PREVIEW_WINDOW_SEC,
+    totalRmsWindows: 0,
+    silenceSegments: [],
+    droppedSilenceSegments: [],
+    longestDroppedSilenceSec: 0,
+    silenceDetectionDiagnostics: {
+      thresholdUsed: settings.silenceThresholdDb,
+      minimumDurationUsed: settings.minimumSilenceDurationSec,
+      detectedSilenceSegments: [],
+      rejectedSilenceSegments: [],
+    },
+    keepSegments: [],
+    totalRemovedDurationSec: 0,
+    blockers,
+    warnings,
+    timelineMutation: "none",
+    sequenceMutation: "none",
+  };
+}
+
 function emptySpeakerSourceAttributionProof(
   blockers: string[],
   warnings: string[],
@@ -1087,5 +1502,10 @@ function isSourceTimeInsideClip(source: AudioSourceInfo, sourceTimeSec: number):
 }
 
 function roundTime(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+function roundDb(value: number): number {
+  if (!Number.isFinite(value)) return value;
   return Math.round(value * 1000) / 1000;
 }

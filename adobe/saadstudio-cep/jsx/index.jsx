@@ -714,15 +714,17 @@
                 var preparedSegment = prepareVisualOnlyCameraDecisionSegment(seq, decisions[i], i);
                 result.segmentResults.push(preparedSegment.publicResult);
                 prepared.push(preparedSegment);
-                appendAll(result.blockers, preparedSegment.publicResult.blockers);
-                appendAll(result.errors, preparedSegment.publicResult.errors);
+                if (preparedSegment.publicResult.blockers.length > 0) {
+                    result.warnings.push("SKIPPED_DECISION_" + (i + 1) + ": " + preparedSegment.publicResult.blockers.join("|"));
+                }
                 if (preparedSegment.publicResult.matchType === "SKIPPED_NO_OVERLAP") result.segmentsSkipped += 1;
                 if (preparedSegment.publicResult.matchType === "PARTIAL_MATCH") {
                     result.warnings.push("PARTIAL_MATCH_GAP decision " + (i + 1) + " uses overlap only.");
                 }
             }
 
-            if (result.blockers.length > 0) {
+            if (prepared.length > 0 && prepared.length === result.segmentsSkipped) {
+                result.blockers.push("NO_VALID_CAMERA_DECISIONS_AFTER_OVERLAP_VALIDATION");
                 result.ok = false;
                 return stripRuntimeSequence(result);
             }
@@ -749,41 +751,955 @@
         });
     };
 
+    host.saadstudio.applyPodcastSilenceRemovalVisualOnly = function (keepSegments, silenceRemovedCount, totalRemovedDurationSec, sequenceDurationSec, analyzedDurationSec, audioSourceDurationSec) {
+        return safe(function () {
+            var segments = keepSegments || [];
+            var activeSeq = app.project && app.project.activeSequence;
+            var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
+            var normalizedSequenceDurationSec = normalizeOptionalNumber(sequenceDurationSec);
+            var normalizedAnalyzedDurationSec = normalizeOptionalNumber(analyzedDurationSec);
+            var normalizedAudioSourceDurationSec = normalizeOptionalNumber(audioSourceDurationSec);
+            var generatedSequenceDetection = detectGeneratedPodcastSequenceName(activeSeqName);
+            if (generatedSequenceDetection.matched) {
+                return {
+                    ok: false,
+                    strategy: "silence-removal-audio-video",
+                    activeSequenceName: activeSeqName,
+                    generatedSequenceDetectionRule: generatedSequenceDetection.rule,
+                    matchedPattern: generatedSequenceDetection.matchedPattern,
+                    blockerSource: "applyPodcastSilenceRemovalVisualOnly.generated-sequence-guard",
+                    originalSequenceID: activeSeq ? readSequenceID(activeSeq) : null,
+                    duplicateSequenceID: null,
+                    draftSequenceName: null,
+                    sequenceDurationSec: normalizedSequenceDurationSec,
+                    analyzedDurationSec: normalizedAnalyzedDurationSec,
+                    audioSourceDurationSec: normalizedAudioSourceDurationSec,
+                    silenceRemovedCount: Number(silenceRemovedCount || 0),
+                    totalRemovedDurationSec: Number(totalRemovedDurationSec || 0),
+                    keptSegmentsCount: segments.length,
+                    segmentsAttempted: segments.length,
+                    visualSegmentsInserted: 0,
+                    audioSegmentsInserted: 0,
+                    processedVideoTracks: 0,
+                    processedAudioTracks: 0,
+                    videoSegmentsInsertedByTrack: [],
+                    audioSegmentsInsertedByTrack: [],
+                    skippedSegmentsByTrack: { video: [], audio: [] },
+                    operationPlanBuildCalled: false,
+                    operationPlanCount: 0,
+                    timelineClipDiscovery: inspectSilenceRemovalTimelineClips(activeSeq),
+                    originalTracksHiddenOrDisabledOnDuplicate: false,
+                    blockers: ["ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
+                    warnings: ["Generated sequence guard matched: " + generatedSequenceDetection.matchedPattern],
+                    errors: [],
+                    originalTouched: false,
+                    timelineMutation: "duplicate + audio-video silence-removed draft on duplicate only"
+                };
+            }
+
+            var draftName = (activeSeqName || "Sequence") + " - Saad Silence Removed Draft";
+            var result = emptyPodcastExecutionResult();
+            result.strategy = "silence-removal-audio-video";
+            result.timelineMutation = "clean sequence + audio-video silence-removed reconstruction only";
+            result.originalTouched = false;
+            result.originalSequenceID = readSequenceID(activeSeq);
+            result.duplicateSequenceID = null;
+            result.draftSequenceName = draftName;
+            result.sequenceDurationSec = normalizedSequenceDurationSec;
+            result.analyzedDurationSec = normalizedAnalyzedDurationSec;
+            result.audioSourceDurationSec = normalizedAudioSourceDurationSec;
+            result.silenceRemovedCount = Number(silenceRemovedCount || 0);
+            result.totalRemovedDurationSec = Number(totalRemovedDurationSec || 0);
+            result.keptSegmentsCount = segments.length;
+            result.segmentsAttempted = segments.length;
+            result.visualSegmentsInserted = 0;
+            result.audioSegmentsInserted = 0;
+            result.processedVideoTracks = 0;
+            result.processedAudioTracks = 0;
+            result.videoSegmentsInsertedByTrack = [];
+            result.audioSegmentsInsertedByTrack = [];
+            result.skippedSegmentsByTrack = { video: [], audio: [] };
+            result.keepSegmentMatchSummary = [];
+            result.multiClipKeepSegments = [];
+            result.keepSegmentsProcessed = 0;
+            result.keepSegmentsSkipped = 0;
+            result.lastProcessedKeepSegmentIndex = null;
+            result.lastKeepSegmentEndTime = null;
+            result.sourceClipUseCounts = [];
+            result.duplicateSourceClipUseCount = 0;
+            result.reconstructedVideoClipsCount = 0;
+            result.reconstructedAudioClipsCount = 0;
+            result.originalTrackItemsRemovedOnDuplicate = 0;
+            result.originalTrackItemsRemovalFailedOnDuplicate = 0;
+            result.originalResidualTrackItems = [];
+            result.img5575Diagnostics = [];
+            result.executionDiagnosticsPath = silenceRemovalDiagnosticsPath();
+            result.operationPlanCount = 0;
+            result.operationPlanBuildCalled = false;
+            result.timelineClipDiscovery = inspectSilenceRemovalTimelineClips(activeSeq);
+            result.currentOperationIndex = -1;
+            result.totalOperationsExecuted = 0;
+            result.currentTrackBeingProcessed = null;
+            result.currentClipName = null;
+            result.createSubClipStartTimestamp = null;
+            result.createSubClipEndTimestamp = null;
+            result.overwriteClipStartTimestamp = null;
+            result.overwriteClipEndTimestamp = null;
+            result.lastSuccessfulOperation = null;
+            result.firstOperationThatNeverReturns = null;
+            result.executionElapsedTimeMs = 0;
+            result.originalTracksHiddenOrDisabledOnDuplicate = false;
+            result.warnings = [];
+            resetSilenceRemovalDiagnosticsLog(result);
+
+            if (!segments.length) {
+                result.blockers.push("KEEP_SEGMENTS_REQUIRED");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            result.operationPlanBuildCalled = true;
+            var operationPlan = buildSilenceRemovalOperationPlan(activeSeq, segments, result);
+            result.operationPlanCount = operationPlan.length;
+            if (operationPlan.length === 0) {
+                result.blockers.push("CLEAN_SEQUENCE_NO_OPERATIONS_PLANNED");
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            var cleanSequence = createCleanSilenceSequence(draftName, result);
+            if (!cleanSequence) {
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            result.newSequence = cleanSequence;
+            result.duplicateSequenceID = readSequenceID(cleanSequence);
+            result.draftSequenceName = cleanSequence.name || draftName;
+            prepareSilenceRemovalTracks(cleanSequence, result);
+            if (!cleanSequenceHasEnoughTracks(cleanSequence, activeSeq, result)) {
+                result.ok = false;
+                return stripRuntimeSequence(result);
+            }
+            result.executionStartMs = new Date().getTime();
+            writeSilenceRemovalDiagnostic(result, "operation_plan_ready", {
+                operationPlanCount: operationPlan.length,
+                processedVideoTracks: result.processedVideoTracks,
+                processedAudioTracks: result.processedAudioTracks,
+                duplicateSourceClipUseCount: result.duplicateSourceClipUseCount
+            });
+            result.originalTracksHiddenOrDisabledOnDuplicate = true;
+            applySilenceRemovalOperationPlan(cleanSequence, operationPlan, result);
+            result.executionElapsedTimeMs = new Date().getTime() - result.executionStartMs;
+            collectOriginalResidualTrackItems(cleanSequence, result);
+            writeSilenceRemovalDiagnostic(result, "operation_plan_complete", {
+                totalOperationsExecuted: result.totalOperationsExecuted,
+                executionElapsedTimeMs: result.executionElapsedTimeMs
+            });
+            result.ok = result.blockers.length === 0 && result.visualSegmentsInserted > 0 && result.audioSegmentsInserted > 0 && result.originalTracksHiddenOrDisabledOnDuplicate;
+            return stripRuntimeSequence(result);
+        });
+    };
+
+    function normalizeOptionalNumber(value) {
+        if (value === null || value === undefined || value === "") return null;
+        var numberValue = Number(value);
+        return isNaN(numberValue) ? null : numberValue;
+    }
+
+    function silenceRemovalDiagnosticsPath() {
+        return tempDir() + "silence-removal-hang-diagnostics.jsonl";
+    }
+
+    function resetSilenceRemovalDiagnosticsLog(result) {
+        try {
+            var file = new File(result.executionDiagnosticsPath || silenceRemovalDiagnosticsPath());
+            file.encoding = "UTF-8";
+            if (file.open("w")) {
+                file.writeln("");
+                file.close();
+            }
+        } catch (eResetSilenceLog) {}
+    }
+
+    function writeSilenceRemovalDiagnostic(result, eventName, payload) {
+        try {
+            var file = new File(result.executionDiagnosticsPath || silenceRemovalDiagnosticsPath());
+            file.encoding = "UTF-8";
+            if (!file.open("a")) return;
+            var elapsed = result.executionStartMs ? (new Date().getTime() - result.executionStartMs) : 0;
+            var line = [
+                "event=" + safeLogValue(eventName),
+                "time=" + safeLogValue(new Date().toString()),
+                "elapsedMs=" + safeLogValue(elapsed),
+                "operationPlanCount=" + safeLogValue(result.operationPlanCount || 0),
+                "currentOperationIndex=" + safeLogValue(result.currentOperationIndex),
+                "totalOperationsExecuted=" + safeLogValue(result.totalOperationsExecuted || 0),
+                "currentTrack=" + safeLogValue(result.currentTrackBeingProcessed || ""),
+                "currentClip=" + safeLogValue(result.currentClipName || ""),
+                "payload=" + flattenLogPayload(payload || {})
+            ].join(" | ");
+            file.writeln(line);
+            file.close();
+        } catch (eWriteSilenceLog) {}
+    }
+
+    function safeLogValue(value) {
+        return String(value === null || value === undefined ? "" : value).replace(/\r?\n/g, " ");
+    }
+
+    function flattenLogPayload(payload) {
+        var out = [];
+        for (var key in payload) {
+            if (payload.hasOwnProperty(key)) out.push(key + "=" + safeLogValue(payload[key]));
+        }
+        return out.join(",");
+    }
+
+    function pushUniqueBlocker(result, blocker) {
+        if (!result.blockers) result.blockers = [];
+        if (result.blockers.join("|").indexOf(blocker) === -1) result.blockers.push(blocker);
+    }
+
+    function disableOriginalPodcastTrackItemsOnDuplicate(seq, result) {
+        var disabledCount = 0;
+        var failedCount = 0;
+        disabledCount += disableOriginalTrackItemsInCollection(seq && seq.videoTracks, result, "video");
+        disabledCount += disableOriginalTrackItemsInCollection(seq && seq.audioTracks, result, "audio");
+        failedCount = result._originalDisableFailedCount || 0;
+        try { delete result._originalDisableFailedCount; } catch (eDeleteDisableCount) { result._originalDisableFailedCount = null; }
+        result.originalTrackItemsDisabledOnDuplicate = disabledCount;
+        if (failedCount > 0) {
+            result.blockers.push("ORIGINAL_TRACKITEM_DISABLE_FAILED_ON_DUPLICATE");
+            return false;
+        }
+        if (disabledCount === 0) {
+            result.warnings.push("NO_ORIGINAL_TRACKITEMS_TO_DISABLE_ON_DUPLICATE");
+        }
+        return true;
+    }
+
+    function removeOriginalPodcastTrackItemsOnDuplicate(seq, result) {
+        var removedCount = 0;
+        var failedCount = 0;
+        removedCount += removeOriginalTrackItemsInCollection(seq && seq.videoTracks, result, "video");
+        removedCount += removeOriginalTrackItemsInCollection(seq && seq.audioTracks, result, "audio");
+        failedCount = result._originalRemoveFailedCount || 0;
+        try { delete result._originalRemoveFailedCount; } catch (eDeleteRemoveCount) { result._originalRemoveFailedCount = null; }
+        result.originalTrackItemsRemovedOnDuplicate = removedCount;
+        result.originalTrackItemsRemovalFailedOnDuplicate = failedCount;
+        result.originalTrackItemsDisabledOnDuplicate = removedCount;
+        if (failedCount > 0) {
+            pushUniqueBlocker(result, "ORIGINAL_TRACKITEM_REMOVE_FAILED_ON_DUPLICATE");
+            return false;
+        }
+        if (removedCount === 0) {
+            result.warnings.push("NO_ORIGINAL_TRACKITEMS_TO_REMOVE_ON_DUPLICATE");
+        }
+        return true;
+    }
+
+    function removeOriginalTrackItemsInCollection(tracks, result, mediaKind) {
+        if (!tracks) return 0;
+        var removedCount = 0;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var track = tracks[t];
+            var clips = track && track.clips;
+            if (!clips) continue;
+            for (var c = clips.numItems - 1; c >= 0; c--) {
+                var clip = clips[c];
+                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                try {
+                    if (!clip.remove) {
+                        result._originalRemoveFailedCount = (result._originalRemoveFailedCount || 0) + 1;
+                        result.errors.push(mediaKind + " original remove unavailable on track " + (t + 1));
+                        continue;
+                    }
+                    clip.remove(false, false);
+                    removedCount += 1;
+                } catch (eRemoveOriginal) {
+                    result._originalRemoveFailedCount = (result._originalRemoveFailedCount || 0) + 1;
+                    result.errors.push(mediaKind + " original remove failed: " + String(eRemoveOriginal.message || eRemoveOriginal));
+                }
+            }
+        }
+        return removedCount;
+    }
+
+    function disableOriginalTrackItemsInCollection(tracks, result, mediaKind) {
+        if (!tracks) return 0;
+        var disabledCount = 0;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var track = tracks[t];
+            var clips = track && track.clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var clip = clips[c];
+                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                try {
+                    clip.disabled = true;
+                    disabledCount += 1;
+                } catch (eDisableOriginal) {
+                    result._originalDisableFailedCount = (result._originalDisableFailedCount || 0) + 1;
+                    result.errors.push(mediaKind + " original disable failed: " + String(eDisableOriginal.message || eDisableOriginal));
+                }
+            }
+        }
+        return disabledCount;
+    }
+
+    function collectOriginalResidualTrackItems(seq, result) {
+        result.originalResidualTrackItems = [];
+        result.img5575Diagnostics = [];
+        collectOriginalResidualTrackItemsInCollection(seq && seq.videoTracks, result, "video");
+        collectOriginalResidualTrackItemsInCollection(seq && seq.audioTracks, result, "audio");
+    }
+
+    function collectOriginalResidualTrackItemsInCollection(tracks, result, mediaKind) {
+        if (!tracks) return;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var track = tracks[t];
+            var clips = track && track.clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var clip = clips[c];
+                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                var name = "";
+                try { name = clip.name ? String(clip.name) : ""; } catch (eResidualName) {}
+                var disabledState = null;
+                try { disabledState = clip.disabled === true; } catch (eResidualDisabled) { disabledState = null; }
+                var info = {
+                    mediaKind: mediaKind,
+                    trackIndex: t,
+                    clipIndex: c,
+                    clipName: name,
+                    startSec: readTimeSeconds(clip.start),
+                    endSec: readTimeSeconds(clip.end),
+                    disabled: disabledState
+                };
+                result.originalResidualTrackItems.push(info);
+                if (name.indexOf("IMG_5575") !== -1) result.img5575Diagnostics.push(info);
+            }
+        }
+    }
+
     function isGeneratedPodcastTestSequenceName(name) {
+        return detectGeneratedPodcastSequenceName(name).matched;
+    }
+
+    function detectGeneratedPodcastSequenceName(name) {
         var value = String(name || "");
-        return value.indexOf("Saad Duplicate Runtime Test") !== -1
-            || value.indexOf("Saad Reconstruct") !== -1
-            || value.indexOf("Saad Auto Switch Visual Only Prototype") !== -1;
+        var patterns = [
+            "Saad Duplicate Runtime Test",
+            "Saad Reconstruct",
+            "Saad Auto Switch Visual Only Prototype",
+            "Saad Silence Removed Draft"
+        ];
+        for (var i = 0; i < patterns.length; i++) {
+            if (value.indexOf(patterns[i]) !== -1) {
+                return {
+                    matched: true,
+                    rule: "sequence name contains generated draft marker",
+                    matchedPattern: patterns[i]
+                };
+            }
+        }
+        return {
+            matched: false,
+            rule: "sequence name contains generated draft marker",
+            matchedPattern: null
+        };
+    }
+
+    function prepareSilenceRemovalTracks(seq, result) {
+        var videoTrackCount = seq && seq.videoTracks ? seq.videoTracks.numTracks : 0;
+        var audioTrackCount = seq && seq.audioTracks ? seq.audioTracks.numTracks : 0;
+        result.processedVideoTracks = videoTrackCount;
+        result.processedAudioTracks = audioTrackCount;
+        for (var v = 0; v < videoTrackCount; v++) {
+            result.videoSegmentsInsertedByTrack[v] = 0;
+            result.skippedSegmentsByTrack.video[v] = 0;
+            try {
+                seq.videoTracks[v].name = v === 0 ? "Saad Silence Removed" : ("Saad Silence Removed V" + (v + 1));
+            } catch (eVideoTrackName) {
+                result.warnings.push("VIDEO_TRACK_RENAME_UNSUPPORTED_V" + (v + 1));
+            }
+            if (!seq.videoTracks[v] || !seq.videoTracks[v].overwriteClip) {
+                result.blockers.push("VIDEO_TRACK_OVERWRITECLIP_NOT_AVAILABLE_V" + (v + 1));
+            }
+        }
+        for (var a = 0; a < audioTrackCount; a++) {
+            result.audioSegmentsInsertedByTrack[a] = 0;
+            result.skippedSegmentsByTrack.audio[a] = 0;
+            try {
+                seq.audioTracks[a].name = a === 0 ? "Saad Silence Removed Audio" : ("Saad Silence Removed Audio A" + (a + 1));
+            } catch (eAudioTrackName) {
+                result.warnings.push("AUDIO_TRACK_RENAME_UNSUPPORTED_A" + (a + 1));
+            }
+            if (!seq.audioTracks[a] || !seq.audioTracks[a].overwriteClip) {
+                result.blockers.push("AUDIO_TRACK_OVERWRITECLIP_NOT_AVAILABLE_A" + (a + 1));
+            }
+        }
+        if (videoTrackCount === 0) result.blockers.push("NO_VIDEO_TRACKS_AVAILABLE");
+        if (audioTrackCount === 0) result.blockers.push("NO_AUDIO_TRACKS_AVAILABLE");
+    }
+
+    function buildSilenceRemovalOperationPlan(seq, segments, result) {
+        var operations = [];
+        var targetCursorSec = 0;
+        for (var i = 0; i < segments.length; i++) {
+            var segment = segments[i];
+            var startSec = Math.max(0, Number(segment.startSec || 0));
+            var endSec = Number(segment.endSec || 0);
+            if (!(endSec > startSec)) {
+                result.blockers.push("INVALID_KEEP_SEGMENT_TIMING");
+                continue;
+            }
+            var segmentSummary = {
+                keepSegmentIndex: i,
+                startSec: startSec,
+                endSec: endSec,
+                videoClipsMatched: 0,
+                audioClipsMatched: 0,
+                videoClipsMatchedByTrack: [],
+                audioClipsMatchedByTrack: []
+            };
+            if (seq && seq.videoTracks) {
+                for (var v = 0; v < seq.videoTracks.numTracks; v++) {
+                    var videoMatches = appendSilenceOperationsForTrack(seq.videoTracks[v], v, "video", startSec, endSec, i, targetCursorSec, operations, result);
+                    segmentSummary.videoClipsMatched += videoMatches;
+                    segmentSummary.videoClipsMatchedByTrack[v] = videoMatches;
+                }
+            }
+            if (seq && seq.audioTracks) {
+                for (var a = 0; a < seq.audioTracks.numTracks; a++) {
+                    var audioMatches = appendSilenceOperationsForTrack(seq.audioTracks[a], a, "audio", startSec, endSec, i, targetCursorSec, operations, result);
+                    segmentSummary.audioClipsMatched += audioMatches;
+                    segmentSummary.audioClipsMatchedByTrack[a] = audioMatches;
+                }
+            }
+            result.keepSegmentMatchSummary.push(segmentSummary);
+            if (segmentSummary.videoClipsMatched > 0 || segmentSummary.audioClipsMatched > 0) {
+                result.keepSegmentsProcessed += 1;
+                result.lastProcessedKeepSegmentIndex = i;
+                result.lastKeepSegmentEndTime = endSec;
+            } else {
+                result.keepSegmentsSkipped += 1;
+            }
+            if (segmentSummary.videoClipsMatched > 1 || segmentSummary.audioClipsMatched > 1) {
+                result.multiClipKeepSegments.push({
+                    keepSegmentIndex: i,
+                    matchedVideoClipCount: segmentSummary.videoClipsMatched,
+                    matchedAudioClipCount: segmentSummary.audioClipsMatched,
+                    videoClipsMatchedByTrack: segmentSummary.videoClipsMatchedByTrack,
+                    audioClipsMatchedByTrack: segmentSummary.audioClipsMatchedByTrack
+                });
+            }
+            targetCursorSec += endSec - startSec;
+        }
+        summarizeSilenceSourceClipUsage(operations, result);
+        return operations;
+    }
+
+    function inspectSilenceRemovalTimelineClips(seq) {
+        var videoClipCounts = [];
+        var audioClipCounts = [];
+        var videoTrackCount = seq && seq.videoTracks ? seq.videoTracks.numTracks : 0;
+        var audioTrackCount = seq && seq.audioTracks ? seq.audioTracks.numTracks : 0;
+        for (var v = 0; v < videoTrackCount; v++) {
+            var videoClips = seq.videoTracks[v] && seq.videoTracks[v].clips;
+            videoClipCounts[v] = videoClips ? videoClips.numItems : 0;
+        }
+        for (var a = 0; a < audioTrackCount; a++) {
+            var audioClips = seq.audioTracks[a] && seq.audioTracks[a].clips;
+            audioClipCounts[a] = audioClips ? audioClips.numItems : 0;
+        }
+        return {
+            videoTrackCount: videoTrackCount,
+            audioTrackCount: audioTrackCount,
+            videoClipCounts: videoClipCounts,
+            audioClipCounts: audioClipCounts,
+            v1ClipCount: videoClipCounts.length ? (videoClipCounts[0] || 0) : 0,
+            a1ClipCount: audioClipCounts.length ? (audioClipCounts[0] || 0) : 0
+        };
+    }
+
+    function appendSilenceOperationsForTrack(track, trackIndex, mediaKind, startSec, endSec, segmentIndex, targetStartSec, operations, result) {
+        var matches = findOverlapClipsInTrack(track, startSec, endSec);
+        if (!matches.length) {
+            var skipped = mediaKind === "audio" ? result.skippedSegmentsByTrack.audio : result.skippedSegmentsByTrack.video;
+            skipped[trackIndex] = (skipped[trackIndex] || 0) + 1;
+            return 0;
+        }
+        for (var i = 0; i < matches.length; i++) {
+            var match = matches[i];
+            var clip = match.clip;
+            var projectItem = clip && clip.projectItem;
+            var clipName = "";
+            try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (ePlanClipName) {}
+            if (!projectItem) {
+                pushUniqueBlocker(result, (mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "PROJECT_ITEM_MISSING");
+                continue;
+            }
+            var sourceInSec = readTimeSeconds(clip.inPoint) + (match.overlapStartSec - match.clipStartSec);
+            var sourceOutSec = readTimeSeconds(clip.inPoint) + (match.overlapEndSec - match.clipStartSec);
+            if (!(sourceOutSec > sourceInSec)) {
+                pushUniqueBlocker(result, "INVALID_SOURCE_SUBRANGE");
+                continue;
+            }
+            operations.push({
+                mediaKind: mediaKind,
+                trackIndex: trackIndex,
+                segmentIndex: segmentIndex,
+                projectItem: projectItem,
+                clipName: clipName,
+                clipStartSec: match.clipStartSec,
+                overlapStartSec: match.overlapStartSec,
+                overlapEndSec: match.overlapEndSec,
+                sourceInSec: sourceInSec,
+                sourceOutSec: sourceOutSec,
+                targetStartSec: targetStartSec + Math.max(0, match.overlapStartSec - startSec)
+            });
+        }
+        return matches.length;
+    }
+
+    function summarizeSilenceSourceClipUsage(operations, result) {
+        var map = {};
+        for (var i = 0; i < operations.length; i++) {
+            var op = operations[i];
+            var clipName = op.clipName || "";
+            var key = op.mediaKind + ":" + op.trackIndex + ":" + clipName + ":" + op.clipStartSec;
+            if (!map[key]) {
+                map[key] = {
+                    mediaKind: op.mediaKind,
+                    trackIndex: op.trackIndex,
+                    clipName: clipName,
+                    clipStartSec: op.clipStartSec,
+                    useCount: 0
+                };
+            }
+            map[key].useCount += 1;
+        }
+        result.sourceClipUseCounts = [];
+        result.duplicateSourceClipUseCount = 0;
+        for (var key in map) {
+            if (!map.hasOwnProperty(key)) continue;
+            result.sourceClipUseCounts.push(map[key]);
+            if (map[key].useCount > 1) result.duplicateSourceClipUseCount += 1;
+        }
+    }
+
+    function applySilenceRemovalOperationPlan(seq, operations, result) {
+        for (var i = 0; i < operations.length; i++) {
+            var operation = operations[i];
+            var targetTrack = operation.mediaKind === "audio"
+                ? (seq.audioTracks && seq.audioTracks.numTracks > operation.trackIndex ? seq.audioTracks[operation.trackIndex] : null)
+                : (seq.videoTracks && seq.videoTracks.numTracks > operation.trackIndex ? seq.videoTracks[operation.trackIndex] : null);
+            result.currentOperationIndex = i;
+            result.currentTrackBeingProcessed = operation.mediaKind + ":" + (operation.trackIndex + 1);
+            result.currentClipName = operation.clipName || null;
+            writeSilenceRemovalDiagnostic(result, "operation_start", {
+                operationIndex: i,
+                mediaKind: operation.mediaKind,
+                trackIndex: operation.trackIndex,
+                clipName: result.currentClipName,
+                overlapStartSec: operation.overlapStartSec,
+                overlapEndSec: operation.overlapEndSec,
+                targetStartSec: operation.targetStartSec
+            });
+            if (applySilenceOperation(operation, targetTrack, result)) {
+                if (operation.mediaKind === "audio") {
+                    result.audioSegmentsInserted += 1;
+                    result.reconstructedAudioClipsCount += 1;
+                    result.audioSegmentsInsertedByTrack[operation.trackIndex] = (result.audioSegmentsInsertedByTrack[operation.trackIndex] || 0) + 1;
+                } else {
+                    result.visualSegmentsInserted += 1;
+                    result.reconstructedVideoClipsCount += 1;
+                    result.videoSegmentsInsertedByTrack[operation.trackIndex] = (result.videoSegmentsInsertedByTrack[operation.trackIndex] || 0) + 1;
+                }
+                result.totalOperationsExecuted += 1;
+                result.lastSuccessfulOperation = {
+                    operationIndex: i,
+                    mediaKind: operation.mediaKind,
+                    trackIndex: operation.trackIndex,
+                    clipName: result.currentClipName,
+                    targetStartSec: operation.targetStartSec
+                };
+                writeSilenceRemovalDiagnostic(result, "operation_success", result.lastSuccessfulOperation);
+            }
+        }
+    }
+
+    function applySilenceOperation(operation, targetTrack, result) {
+        return applySilencePlannedSegment(operation, targetTrack, result);
+    }
+
+    function applySilencePlannedSegment(operation, targetTrack, result) {
+        if (!targetTrack || !targetTrack.overwriteClip) {
+            pushUniqueBlocker(result, (operation.mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "TARGET_OVERWRITECLIP_NOT_AVAILABLE");
+            return false;
+        }
+        if (!operation.projectItem || !operation.projectItem.createSubClip) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_NOT_AVAILABLE");
+            return false;
+        }
+        var sourceInSec = operation.sourceInSec;
+        var sourceOutSec = operation.sourceOutSec;
+        if (!(sourceOutSec > sourceInSec)) {
+            pushUniqueBlocker(result, "INVALID_SOURCE_SUBRANGE");
+            return false;
+        }
+        var subclip = null;
+        try {
+            result.createSubClipStartTimestamp = new Date().toString();
+            result.createSubClipEndTimestamp = null;
+            writeSilenceRemovalDiagnostic(result, "before_createSubClip", {
+                mediaKind: operation.mediaKind,
+                clipName: operation.clipName,
+                sourceInSec: sourceInSec,
+                sourceOutSec: sourceOutSec,
+                sourceInTicks: secondsToTicksString(sourceInSec),
+                sourceOutTicks: secondsToTicksString(sourceOutSec)
+            });
+            subclip = operation.projectItem.createSubClip(
+                "Saad Silence " + operation.mediaKind + " Keep " + (operation.segmentIndex + 1) + " " + ts(),
+                secondsToTicksString(sourceInSec),
+                secondsToTicksString(sourceOutSec),
+                1,
+                operation.mediaKind === "video" ? 1 : 0,
+                operation.mediaKind === "audio" ? 1 : 0
+            );
+            result.createSubClipEndTimestamp = new Date().toString();
+            writeSilenceRemovalDiagnostic(result, "after_createSubClip", {
+                mediaKind: operation.mediaKind,
+                subclipName: subclip && subclip.name ? String(subclip.name) : null
+            });
+        } catch (eCreatePlanned) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_FAILED");
+            result.errors.push("createSubClip " + operation.mediaKind + " failed on " + safeLogValue(result.currentTrackBeingProcessed) + " clip=" + safeLogValue(operation.clipName) + " sourceIn=" + sourceInSec + " sourceOut=" + sourceOutSec + " error=" + String(eCreatePlanned.message || eCreatePlanned));
+            writeSilenceRemovalDiagnostic(result, "createSubClip_error", {
+                error: String(eCreatePlanned.message || eCreatePlanned)
+            });
+            return false;
+        }
+        if (!subclip) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_FAILED");
+            result.errors.push("createSubClip returned null for " + operation.mediaKind + " on " + safeLogValue(result.currentTrackBeingProcessed) + " clip=" + safeLogValue(operation.clipName) + " sourceIn=" + sourceInSec + " sourceOut=" + sourceOutSec);
+            writeSilenceRemovalDiagnostic(result, "createSubClip_null", {
+                mediaKind: operation.mediaKind,
+                clipName: operation.clipName
+            });
+            return false;
+        }
+        try {
+            result.overwriteClipStartTimestamp = new Date().toString();
+            result.overwriteClipEndTimestamp = null;
+            writeSilenceRemovalDiagnostic(result, "before_overwriteClip", {
+                mediaKind: operation.mediaKind,
+                clipName: operation.clipName,
+                targetStartSec: operation.targetStartSec,
+                targetStartTicks: secondsToTicksString(operation.targetStartSec)
+            });
+            targetTrack.overwriteClip(subclip, secondsToTicksString(operation.targetStartSec));
+            result.overwriteClipEndTimestamp = new Date().toString();
+            writeSilenceRemovalDiagnostic(result, "after_overwriteClip", {
+                mediaKind: operation.mediaKind,
+                clipName: operation.clipName,
+                targetStartSec: operation.targetStartSec
+            });
+        } catch (eOverwritePlanned) {
+            pushUniqueBlocker(result, (operation.mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "OVERWRITECLIP_FAILED");
+            result.errors.push(String(eOverwritePlanned.message || eOverwritePlanned));
+            writeSilenceRemovalDiagnostic(result, "overwriteClip_error", {
+                error: String(eOverwritePlanned.message || eOverwritePlanned)
+            });
+            return false;
+        }
+        return true;
+    }
+
+    function applySilenceKeepSegmentTimelineWide(seq, segment, index, targetStartSec, result) {
+        var startSec = Math.max(0, Number(segment.startSec || 0));
+        var endSec = Number(segment.endSec || 0);
+        if (!(endSec > startSec)) {
+            result.blockers.push("INVALID_KEEP_SEGMENT_TIMING");
+            return 0;
+        }
+        if (seq && seq.videoTracks) {
+            for (var v = 0; v < seq.videoTracks.numTracks; v++) {
+                applySilenceKeepSegmentToVideoTrack(seq, v, startSec, endSec, index, targetStartSec, result);
+            }
+        }
+        if (seq && seq.audioTracks) {
+            for (var a = 0; a < seq.audioTracks.numTracks; a++) {
+                applySilenceKeepSegmentToAudioTrack(seq, a, startSec, endSec, index, targetStartSec, result);
+            }
+        }
+        return endSec - startSec;
+    }
+
+    function applySilenceKeepSegmentToVideoTrack(seq, videoTrackIndex, startSec, endSec, index, targetStartSec, result) {
+        var targetTrack = seq.videoTracks[videoTrackIndex];
+        var matches = findOverlapClipsOnVideoTrack(seq, videoTrackIndex, startSec, endSec);
+        if (!matches.length) {
+            result.skippedSegmentsByTrack.video[videoTrackIndex] = (result.skippedSegmentsByTrack.video[videoTrackIndex] || 0) + 1;
+            return;
+        }
+        for (var i = 0; i < matches.length; i++) {
+            var match = matches[i];
+            var relativeTargetStart = targetStartSec + Math.max(0, match.overlapStartSec - startSec);
+            if (applySilenceMatchedSegment(match, targetTrack, index, relativeTargetStart, result, "video")) {
+                result.visualSegmentsInserted += 1;
+                result.videoSegmentsInsertedByTrack[videoTrackIndex] = (result.videoSegmentsInsertedByTrack[videoTrackIndex] || 0) + 1;
+            }
+        }
+    }
+
+    function applySilenceKeepSegmentToAudioTrack(seq, audioTrackIndex, startSec, endSec, index, targetStartSec, result) {
+        var targetTrack = seq.audioTracks[audioTrackIndex];
+        var matches = findOverlapClipsOnAudioTrack(seq, audioTrackIndex, startSec, endSec);
+        if (!matches.length) {
+            result.skippedSegmentsByTrack.audio[audioTrackIndex] = (result.skippedSegmentsByTrack.audio[audioTrackIndex] || 0) + 1;
+            return;
+        }
+        for (var i = 0; i < matches.length; i++) {
+            var match = matches[i];
+            var relativeTargetStart = targetStartSec + Math.max(0, match.overlapStartSec - startSec);
+            if (applySilenceMatchedSegment(match, targetTrack, index, relativeTargetStart, result, "audio")) {
+                result.audioSegmentsInserted += 1;
+                result.audioSegmentsInsertedByTrack[audioTrackIndex] = (result.audioSegmentsInsertedByTrack[audioTrackIndex] || 0) + 1;
+            }
+        }
+    }
+
+    function applySilenceMatchedSegment(match, targetTrack, index, targetStartSec, result, mediaKind) {
+        if (!targetTrack || !targetTrack.overwriteClip) {
+            pushUniqueBlocker(result, (mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "TARGET_OVERWRITECLIP_NOT_AVAILABLE");
+            return false;
+        }
+        var clip = match.clip;
+        var projectItem = clip && clip.projectItem;
+        if (!projectItem) {
+            pushUniqueBlocker(result, (mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "PROJECT_ITEM_MISSING");
+            return false;
+        }
+        if (!projectItem.createSubClip) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_NOT_AVAILABLE");
+            return false;
+        }
+        var sourceInSec = readTimeSeconds(clip.inPoint) + (match.overlapStartSec - match.clipStartSec);
+        var sourceOutSec = readTimeSeconds(clip.inPoint) + (match.overlapEndSec - match.clipStartSec);
+        if (!(sourceOutSec > sourceInSec)) {
+            pushUniqueBlocker(result, "INVALID_SOURCE_SUBRANGE");
+            return false;
+        }
+        var subclip = null;
+        try {
+            result.createSubClipStartTimestamp = new Date().toString();
+            result.createSubClipEndTimestamp = null;
+            writeSilenceRemovalDiagnostic(result, "before_createSubClip", {
+                mediaKind: mediaKind,
+                clipName: result.currentClipName,
+                sourceInSec: sourceInSec,
+                sourceOutSec: sourceOutSec,
+                sourceInTicks: secondsToTicksString(sourceInSec),
+                sourceOutTicks: secondsToTicksString(sourceOutSec)
+            });
+            subclip = projectItem.createSubClip(
+                "Saad Silence " + mediaKind + " Keep " + (index + 1) + " " + ts(),
+                secondsToTicksString(sourceInSec),
+                secondsToTicksString(sourceOutSec),
+                1,
+                mediaKind === "video" ? 1 : 0,
+                mediaKind === "audio" ? 1 : 0
+            );
+            result.createSubClipEndTimestamp = new Date().toString();
+            writeSilenceRemovalDiagnostic(result, "after_createSubClip", {
+                mediaKind: mediaKind,
+                subclipName: subclip && subclip.name ? String(subclip.name) : null
+            });
+        } catch (eCreateSilence) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_FAILED");
+            result.errors.push("createSubClip " + mediaKind + " failed on " + safeLogValue(result.currentTrackBeingProcessed) + " clip=" + safeLogValue(result.currentClipName) + " sourceIn=" + sourceInSec + " sourceOut=" + sourceOutSec + " error=" + String(eCreateSilence.message || eCreateSilence));
+            writeSilenceRemovalDiagnostic(result, "createSubClip_error", {
+                error: String(eCreateSilence.message || eCreateSilence)
+            });
+            return false;
+        }
+        if (!subclip) {
+            pushUniqueBlocker(result, "CREATE_SUBCLIP_FAILED");
+            result.errors.push("createSubClip returned null for " + mediaKind + " on " + safeLogValue(result.currentTrackBeingProcessed) + " clip=" + safeLogValue(result.currentClipName) + " sourceIn=" + sourceInSec + " sourceOut=" + sourceOutSec);
+            writeSilenceRemovalDiagnostic(result, "createSubClip_null", {
+                mediaKind: mediaKind,
+                clipName: result.currentClipName
+            });
+            return false;
+        }
+        try {
+            result.overwriteClipStartTimestamp = new Date().toString();
+            result.overwriteClipEndTimestamp = null;
+            writeSilenceRemovalDiagnostic(result, "before_overwriteClip", {
+                mediaKind: mediaKind,
+                clipName: result.currentClipName,
+                targetStartSec: targetStartSec,
+                targetStartTicks: secondsToTicksString(targetStartSec)
+            });
+            targetTrack.overwriteClip(subclip, secondsToTicksString(targetStartSec));
+            result.overwriteClipEndTimestamp = new Date().toString();
+            writeSilenceRemovalDiagnostic(result, "after_overwriteClip", {
+                mediaKind: mediaKind,
+                clipName: result.currentClipName,
+                targetStartSec: targetStartSec
+            });
+        } catch (eOverwriteSilence) {
+            pushUniqueBlocker(result, (mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "OVERWRITECLIP_FAILED");
+            result.errors.push(String(eOverwriteSilence.message || eOverwriteSilence));
+            writeSilenceRemovalDiagnostic(result, "overwriteClip_error", {
+                error: String(eOverwriteSilence.message || eOverwriteSilence)
+            });
+            return false;
+        }
+        return true;
+    }
+
+    function findBestOverlapClipOnAudioTrack(seq, audioTrackIndex, startSec, endSec) {
+        if (!seq || !seq.audioTracks || audioTrackIndex < 0 || seq.audioTracks.numTracks <= audioTrackIndex) return null;
+        var track = seq.audioTracks[audioTrackIndex];
+        var clips = track && track.clips;
+        if (!clips) return null;
+        var best = null;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            if (isGeneratedPodcastSourceClip(clip)) continue;
+            var clipStart = readTimeSeconds(clip.start);
+            var clipEnd = readTimeSeconds(clip.end);
+            var overlapStart = Math.max(startSec, clipStart);
+            var overlapEnd = Math.min(endSec, clipEnd);
+            if (overlapEnd > overlapStart) {
+                var candidate = {
+                    clip: clip,
+                    clipStartSec: clipStart,
+                    clipEndSec: clipEnd,
+                    overlapStartSec: overlapStart,
+                    overlapEndSec: overlapEnd,
+                    overlapDurationSec: overlapEnd - overlapStart,
+                    full: clipStart <= startSec && clipEnd >= endSec
+                };
+                if (!best || candidate.full || candidate.overlapDurationSec > best.overlapDurationSec) best = candidate;
+                if (candidate.full) break;
+            }
+        }
+        return best;
+    }
+
+    function findOverlapClipsOnVideoTrack(seq, videoTrackIndex, startSec, endSec) {
+        if (!seq || !seq.videoTracks || videoTrackIndex < 0 || seq.videoTracks.numTracks <= videoTrackIndex) return [];
+        return findOverlapClipsInTrack(seq.videoTracks[videoTrackIndex], startSec, endSec);
+    }
+
+    function findOverlapClipsOnAudioTrack(seq, audioTrackIndex, startSec, endSec) {
+        if (!seq || !seq.audioTracks || audioTrackIndex < 0 || seq.audioTracks.numTracks <= audioTrackIndex) return [];
+        return findOverlapClipsInTrack(seq.audioTracks[audioTrackIndex], startSec, endSec);
+    }
+
+    function findOverlapClipsInTrack(track, startSec, endSec) {
+        var out = [];
+        var clips = track && track.clips;
+        if (!clips) return out;
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            if (isGeneratedPodcastSourceClip(clip)) continue;
+            var clipStart = readTimeSeconds(clip.start);
+            var clipEnd = readTimeSeconds(clip.end);
+            var overlapStart = Math.max(startSec, clipStart);
+            var overlapEnd = Math.min(endSec, clipEnd);
+            if (overlapEnd > overlapStart) {
+                out.push({
+                    clip: clip,
+                    clipStartSec: clipStart,
+                    clipEndSec: clipEnd,
+                    overlapStartSec: overlapStart,
+                    overlapEndSec: overlapEnd,
+                    overlapDurationSec: overlapEnd - overlapStart,
+                    full: clipStart <= startSec && clipEnd >= endSec
+                });
+            }
+        }
+        return out;
     }
 
     function prepareVisualOnlyCameraDecisionSegment(seq, decision, index) {
         var publicResult = emptyApplyCameraDecisionSegmentResult(decision, index);
         var sourceTrackIndex = Number(decision.videoTrackIndex);
         publicResult.cameraLabel = decision.cameraLabel || ("V" + (sourceTrackIndex + 1));
-        var decisionStart = Math.max(0, Number(decision.startSec || 0));
-        var decisionEnd = Number(decision.endSec || 0);
+        var rawStart = Number(decision.startSec);
+        var rawEnd = Number(decision.endSec);
+        var timelineDuration = readSequenceDurationSec(seq);
+        var decisionStart = rawStart;
+        var decisionEnd = rawEnd;
+        publicResult.isValidTiming = true;
+        publicResult.invalidReason = null;
+
+        if (!isFinite(rawStart)) {
+            publicResult.isValidTiming = false;
+            publicResult.invalidReason = "START_NOT_FINITE";
+        }
+        if (!isFinite(rawEnd)) {
+            publicResult.isValidTiming = false;
+            publicResult.invalidReason = publicResult.invalidReason ? publicResult.invalidReason + "|END_NOT_FINITE" : "END_NOT_FINITE";
+        }
+        if (!publicResult.isValidTiming) {
+            publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING:" + publicResult.invalidReason);
+            return { publicResult: publicResult, subclip: null };
+        }
+
+        if (decisionStart < 0) decisionStart = 0;
+        if (timelineDuration && decisionEnd > timelineDuration) decisionEnd = timelineDuration;
         publicResult.decisionStartSec = decisionStart;
         publicResult.decisionEndSec = decisionEnd;
+        publicResult.durationSec = decisionEnd - decisionStart;
 
         if (!(decisionEnd > decisionStart)) {
+            publicResult.isValidTiming = false;
+            publicResult.invalidReason = "END_NOT_GREATER_THAN_START";
             publicResult.matchType = "SKIPPED_NO_OVERLAP";
-            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING");
+            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING:" + publicResult.invalidReason);
+            return { publicResult: publicResult, subclip: null };
+        }
+        if (!(publicResult.durationSec > 0)) {
+            publicResult.isValidTiming = false;
+            publicResult.invalidReason = "DURATION_NOT_POSITIVE";
+            publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING:" + publicResult.invalidReason);
             return { publicResult: publicResult, subclip: null };
         }
 
         var match = findBestOverlapClipForDecision(seq, sourceTrackIndex, decisionStart, decisionEnd);
         if (!match) {
             publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            publicResult.matchingSourceClipFound = false;
+            publicResult.invalidReason = "NO_SOURCE_CLIP_OVERLAP";
             return { publicResult: publicResult, subclip: null };
         }
 
         var clip = match.clip;
+        publicResult.matchingSourceClipFound = true;
         publicResult.matchType = match.full ? "FULL_MATCH" : "PARTIAL_MATCH";
         publicResult.clipName = clip.name || null;
+        publicResult.matchingClipName = publicResult.clipName;
         publicResult.clipStartSec = match.clipStartSec;
         publicResult.clipEndSec = match.clipEndSec;
+        publicResult.matchingClipStartSec = match.clipStartSec;
+        publicResult.matchingClipEndSec = match.clipEndSec;
         publicResult.overlapStartSec = match.overlapStartSec;
         publicResult.overlapEndSec = match.overlapEndSec;
+        publicResult.overlapDurationSec = match.overlapDurationSec;
+        if (!(match.overlapDurationSec > 0)) {
+            publicResult.isValidTiming = false;
+            publicResult.invalidReason = "OVERLAP_DURATION_NOT_POSITIVE";
+            publicResult.matchType = "SKIPPED_NO_OVERLAP";
+            publicResult.blockers.push("INVALID_CAMERA_DECISION_TIMING:" + publicResult.invalidReason);
+            return { publicResult: publicResult, subclip: null };
+        }
 
         var projectItem = clip.projectItem;
         if (!projectItem) {
@@ -833,14 +1749,23 @@
         return {
             decisionIndex: index,
             cameraLabel: decision && decision.cameraLabel ? decision.cameraLabel : "",
+            videoTrackIndex: decision && typeof decision.videoTrackIndex !== "undefined" ? Number(decision.videoTrackIndex) : null,
             matchType: "SKIPPED_NO_OVERLAP",
             decisionStartSec: Number(decision && decision.startSec ? decision.startSec : 0),
             decisionEndSec: Number(decision && decision.endSec ? decision.endSec : 0),
+            durationSec: Number(decision && decision.durationSec ? decision.durationSec : 0),
+            isValidTiming: false,
+            invalidReason: null,
+            matchingSourceClipFound: false,
             clipName: null,
+            matchingClipName: null,
             clipStartSec: null,
             clipEndSec: null,
+            matchingClipStartSec: null,
+            matchingClipEndSec: null,
             overlapStartSec: null,
             overlapEndSec: null,
+            overlapDurationSec: null,
             sourceInSec: null,
             sourceOutSec: null,
             subclipCreated: false,
@@ -888,7 +1813,11 @@
         try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (eClipName) {}
         try { projectItemName = clip && clip.projectItem && clip.projectItem.name ? String(clip.projectItem.name) : ""; } catch (ePiName) {}
         return clipName.indexOf("Saad Proof Segment") === 0
-            || projectItemName.indexOf("Saad Proof Segment") === 0;
+            || projectItemName.indexOf("Saad Proof Segment") === 0
+            || clipName.indexOf("Saad Silence ") === 0
+            || projectItemName.indexOf("Saad Silence ") === 0
+            || clipName.indexOf("Saad Auto Switch ") === 0
+            || projectItemName.indexOf("Saad Auto Switch ") === 0;
     }
 
     function readSequenceSnapshots() {
@@ -1027,6 +1956,109 @@
         }
         result.ok = result.blockers.length === 0 && result.duplicateValidationPassed;
         return result;
+    }
+
+    function emptyPodcastExecutionResult() {
+        return {
+            ok: false,
+            errors: [],
+            blockers: [],
+            warnings: [],
+            newSequence: null,
+            newSequenceID: null,
+            newSequenceName: null,
+            duplicateValidationPassed: false
+        };
+    }
+
+    function createCleanSilenceSequence(sequenceName, result) {
+        if (!app.project || !app.project.createNewSequence) {
+            result.blockers.push("CLEAN_SEQUENCE_CREATION_NOT_AVAILABLE");
+            result.errors.push("app.project.createNewSequence is unavailable in this Premiere runtime.");
+            return null;
+        }
+        var presetPath = findSequencePresetPathForCleanDraft();
+        result.cleanSequencePresetPath = presetPath;
+        if (!presetPath) {
+            result.blockers.push("CLEAN_SEQUENCE_CREATION_NOT_AVAILABLE");
+            result.errors.push("No .sqpreset file was found for app.project.createNewSequence.");
+            return null;
+        }
+        var beforeIds = {};
+        var beforeSnapshots = readSequenceSnapshots();
+        for (var i = 0; i < beforeSnapshots.length; i++) beforeIds[beforeSnapshots[i].sequenceID] = true;
+        try {
+            app.project.createNewSequence(sequenceName, presetPath);
+        } catch (eCreateCleanSequence) {
+            result.blockers.push("CLEAN_SEQUENCE_CREATION_NOT_AVAILABLE");
+            result.errors.push("createNewSequence failed: " + String(eCreateCleanSequence.message || eCreateCleanSequence));
+            return null;
+        }
+        var newSeq = findNewSequenceBySequenceIDDiff(beforeIds);
+        if (!newSeq && app.project.sequences && app.project.sequences.numSequences > beforeSnapshots.length) {
+            newSeq = app.project.sequences[app.project.sequences.numSequences - 1];
+        }
+        if (!newSeq) {
+            result.blockers.push("CLEAN_SEQUENCE_CREATION_NOT_AVAILABLE");
+            result.errors.push("createNewSequence returned but no new sequence could be detected.");
+            return null;
+        }
+        try { newSeq.name = sequenceName; } catch (eRenameClean) {}
+        result.newSequence = newSeq;
+        result.newSequenceID = readSequenceID(newSeq);
+        result.newSequenceName = newSeq.name || sequenceName;
+        result.cleanSequenceCreated = true;
+        return newSeq;
+    }
+
+    function findSequencePresetPathForCleanDraft() {
+        var candidates = [];
+        try {
+            if (app.path) candidates.push(app.path + "\\Settings\\SequencePresets");
+        } catch (eAppPath) {}
+        candidates.push("C:\\Program Files\\Adobe\\Adobe Premiere Pro 2026\\Settings\\SequencePresets");
+        candidates.push("C:\\Program Files\\Adobe\\Adobe Premiere Pro 2025\\Settings\\SequencePresets");
+        candidates.push("C:\\Program Files\\Adobe\\Adobe Premiere Pro 2024\\Settings\\SequencePresets");
+        var best = null;
+        for (var i = 0; i < candidates.length; i++) {
+            best = findPreferredSequencePresetInFolder(new Folder(candidates[i]), 0);
+            if (best) return best;
+        }
+        return null;
+    }
+
+    function findPreferredSequencePresetInFolder(folder, depth) {
+        if (!folder || !folder.exists || depth > 5) return null;
+        var files = folder.getFiles();
+        var fallback = null;
+        for (var i = 0; i < files.length; i++) {
+            var item = files[i];
+            if (item instanceof Folder) {
+                var nested = findPreferredSequencePresetInFolder(item, depth + 1);
+                if (nested && String(nested).toLowerCase().indexOf("1080") !== -1) return nested;
+                if (!fallback && nested) fallback = nested;
+                continue;
+            }
+            var path = item.fsName || String(item);
+            if (!/\.sqpreset$/i.test(path)) continue;
+            if (!fallback) fallback = path;
+            var lower = path.toLowerCase();
+            if (lower.indexOf("1080") !== -1 && (lower.indexOf("30") !== -1 || lower.indexOf("29") !== -1)) return path;
+        }
+        return fallback;
+    }
+
+    function cleanSequenceHasEnoughTracks(cleanSeq, originalSeq, result) {
+        var cleanVideo = cleanSeq && cleanSeq.videoTracks ? cleanSeq.videoTracks.numTracks : 0;
+        var cleanAudio = cleanSeq && cleanSeq.audioTracks ? cleanSeq.audioTracks.numTracks : 0;
+        var originalVideo = originalSeq && originalSeq.videoTracks ? originalSeq.videoTracks.numTracks : 0;
+        var originalAudio = originalSeq && originalSeq.audioTracks ? originalSeq.audioTracks.numTracks : 0;
+        if (cleanVideo < originalVideo || cleanAudio < originalAudio) {
+            result.blockers.push("CLEAN_SEQUENCE_TRACK_COUNT_INSUFFICIENT");
+            result.errors.push("Clean sequence tracks " + cleanVideo + " video/" + cleanAudio + " audio; original requires " + originalVideo + " video/" + originalAudio + " audio.");
+            return false;
+        }
+        return true;
     }
 
     function firstClipFromSequence(seq) {
@@ -1424,13 +2456,36 @@
     }
 
     function readSequenceDurationSec(seq) {
+        var directDuration = null;
         try {
-            if (seq && seq.end && typeof seq.end.seconds !== "undefined") return seq.end.seconds;
+            if (seq && seq.end && typeof seq.end.seconds !== "undefined") directDuration = Number(seq.end.seconds);
         } catch (eEnd) {}
         try {
-            if (seq && seq.duration && typeof seq.duration.seconds !== "undefined") return seq.duration.seconds;
+            if (!(directDuration > 0) && seq && seq.duration && typeof seq.duration.seconds !== "undefined") directDuration = Number(seq.duration.seconds);
         } catch (eDuration) {}
-        return null;
+        if (directDuration > 0) return directDuration;
+        return readSequenceDurationFromTrackItems(seq);
+    }
+
+    function readSequenceDurationFromTrackItems(seq) {
+        var maxEnd = 0;
+        maxEnd = Math.max(maxEnd, readMaxTrackItemEnd(seq && seq.videoTracks));
+        maxEnd = Math.max(maxEnd, readMaxTrackItemEnd(seq && seq.audioTracks));
+        return maxEnd > 0 ? maxEnd : null;
+    }
+
+    function readMaxTrackItemEnd(tracks) {
+        var maxEnd = 0;
+        if (!tracks) return maxEnd;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var clips = tracks[t] && tracks[t].clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var endSec = readTimeSeconds(clips[c] && clips[c].end);
+                if (endSec > maxEnd) maxEnd = endSec;
+            }
+        }
+        return maxEnd;
     }
 
     function readSequenceWorkArea(seq) {

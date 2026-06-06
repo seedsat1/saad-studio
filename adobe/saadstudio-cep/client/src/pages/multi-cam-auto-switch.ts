@@ -19,6 +19,7 @@ import {
 } from "../lib/podcast/services/audio-source-inspector-service";
 import { generateSpeakerActivityProof } from "../lib/podcast/services/speaker-activity-service";
 import { generateCameraDecisionPlanProof } from "../lib/podcast/services/camera-decision-plan-service";
+import { runSilenceRemovalDraft, type SilenceRemovalRunResult } from "../lib/podcast/services/silence-removal-service";
 import {
   applyCameraDecisionsVisualOnly,
   testDisableEnableOnDuplicate,
@@ -52,6 +53,7 @@ import type {
 
 const DEFAULT_DIAGNOSTICS: PodcastDiagnostics = {
   activeSequence: false,
+  sequenceId: null,
   sequenceName: null,
   premiereVersion: null,
   videoTrackCount: 0,
@@ -74,6 +76,37 @@ const STRATEGY_OPTIONS: PodcastExecutionStrategy[] = [
   "unsupported-multicam-angle-switching",
 ];
 
+type ApplyCheckpoint =
+  | "NOT_STARTED"
+  | "APPLY_CLICKED"
+  | "DECISIONS_AVAILABLE"
+  | "EXECUTION_STRATEGY_SELECTED"
+  | "DUPLICATE_SEQUENCE_START"
+  | "DUPLICATE_SEQUENCE_SUCCESS"
+  | "DUPLICATE_SEQUENCE_FAILED"
+  | "APPLY_DECISIONS_START"
+  | "APPLY_DECISIONS_SUCCESS"
+  | "APPLY_DECISIONS_FAILED"
+  | "RETURN_TO_UI";
+
+interface ApplyTrace {
+  lastCheckpoint: ApplyCheckpoint;
+  checkpoints: ApplyCheckpoint[];
+  decisionCountPassedToApply: number;
+  executionStrategyUsed: string | null;
+  duplicateSequenceCalled: boolean;
+  duplicateSequenceResult: string;
+  applyCameraDecisionsCalled: boolean;
+  applyCameraDecisionsResult: string;
+  error: string | null;
+}
+
+const SILENCE_PRESETS = [
+  { id: "aggressive", label: "Aggressive", thresholdDb: -30, minimumDurationSec: 0.25, minimumCutGapSec: 0.5, minimumKeepSegmentDurationSec: 1 },
+  { id: "normal", label: "Normal", thresholdDb: -35, minimumDurationSec: 0.4, minimumCutGapSec: 0.7, minimumKeepSegmentDurationSec: 1.5 },
+  { id: "conservative", label: "Conservative", thresholdDb: -40, minimumDurationSec: 0.6, minimumCutGapSec: 0.9, minimumKeepSegmentDurationSec: 2 },
+];
+
 export function MultiCamAutoSwitchPage(): HTMLElement {
   const state = {
     loading: false,
@@ -86,6 +119,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     sourceAttributionProofLoading: false,
     previewAutoSwitchLoading: false,
     applyCameraDecisionsLoading: false,
+    silenceRemovalLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
     streamProofLoading: false,
     safeCopyConfirmed: false,
@@ -97,6 +131,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     sourceAttributionProof: null as SpeakerSourceAttributionProof | null,
     cameraDecisionPlanProof: null as PodcastCameraDecisionPlanProof | null,
     applyCameraDecisionsResult: null as ApplyCameraDecisionsVisualOnlyResult | null,
+    applyTrace: createEmptyApplyTrace(),
+    silenceRemovalResult: null as SilenceRemovalRunResult | null,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
     streamProof: null as AudioStreamSelectionProof | null,
     selectedAudioStreamIndex: null as number | null,
@@ -107,6 +143,13 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     timelineLayout: null as PodcastTimelineLayout | null,
     segmentsJson: EXAMPLE_SEGMENTS_JSON,
     minimumShotLengthSec: 2,
+    silenceThresholdDb: -35,
+    minimumSilenceDurationSec: 0.4,
+    minimumCutGapSec: 0.7,
+    minimumKeepSegmentDurationSec: 1.5,
+    mergeAdjacentKeepGapSec: 0.7,
+    silencePaddingBeforeSec: 0.08,
+    silencePaddingAfterSec: 0.12,
     executionStrategy: "decision-plan-only" as PodcastExecutionStrategy,
     mappings: {
       speaker_1: 0,
@@ -125,7 +168,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   const page = el("div.app-main");
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Multi-Cam Auto Switch"),
+    PageHeader("Podcast Automation"),
     page,
   );
 
@@ -136,13 +179,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   function render() {
     page.replaceChildren(
       el("div.podcast-page", null,
-        el("div.podcast-hero", null,
+      el("div.podcast-hero", null,
           el("div.podcast-hero__icon", null, icon("video", 24)),
           el("div", null,
-            el("h2", null, "Multi-Cam Auto Switch"),
-            el("p", null, "Build a visual camera switch draft for podcast and interview timelines."),
+            el("h2", null, "Podcast Automation"),
+            el("p", null, "Automate podcast edits with clean controls and draft-safe timeline output."),
           ),
         ),
+        renderProductionToolCards(),
         renderProductionWorkflow(),
         renderDeveloperDiagnostics(),
       ),
@@ -151,14 +195,77 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function renderProductionWorkflow(): HTMLElement {
     return el("div.podcast-workflow", null,
-      renderProductionSetup(),
-      renderProductionActions(),
+      renderMultiCamProductionTool(),
+      renderSilenceRemovalTool(),
       renderProductionSummary(),
     );
   }
 
+  function renderProductionToolCards(): HTMLElement {
+    return el("div.podcast-tool-grid", null,
+      renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
+      renderPodcastToolCard("Silence Removal", "Ready", "Detect pauses and prepare tighter podcast cuts.", true),
+      renderPodcastToolCard("Auto Zoom", "Coming soon", "Add subtle zoom moments for emphasis.", false),
+      renderPodcastToolCard("Auto Captions", "Coming soon", "Generate captions for podcast clips.", false),
+      renderPodcastToolCard("One Click Podcast Edit", "Coming soon", "Combine switching, silence cleanup, captions, and zoom.", false),
+    );
+  }
+
+  function renderPodcastToolCard(title: string, status: string, description: string, active: boolean): HTMLElement {
+    const targetId = title === "Multi-Cam Auto Switch"
+      ? "podcast-multicam-tool"
+      : title === "Silence Removal"
+        ? "podcast-silence-tool"
+        : null;
+    return el("button.podcast-tool-card" + (active ? ".is-active" : ""), {
+      type: "button",
+      disabled: !targetId,
+      onClick: () => {
+        if (!targetId) return;
+        document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      },
+    },
+      el("div.podcast-tool-card__top", null,
+        el("strong", null, title),
+        el("span", null, status),
+      ),
+      el("p", null, description),
+    );
+  }
+
+  function renderSilenceSummary(): HTMLElement | null {
+    const result = state.silenceRemovalResult;
+    if (!result) return null;
+    const diagnostics = result.analysis.silenceDetectionDiagnostics;
+    return el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
+      renderSummaryTile("Sequence duration", formatSeconds(result.analysis.sequenceDurationSec ?? 0)),
+      renderSummaryTile("Analyzed duration", formatSeconds(result.analysis.analyzedDurationSec)),
+      renderSummaryTile("Detected pauses", String(diagnostics?.detectedSilenceSegments.length ?? result.analysis.silenceSegments.length)),
+      renderSummaryTile("Rejected pauses", String(diagnostics?.rejectedSilenceSegments.length ?? result.analysis.droppedSilenceSegments?.length ?? 0)),
+      renderSummaryTile("Cut pauses", String(result.analysis.silenceSegments.filter((segment) => segment.cutEligible !== false).length)),
+      renderSummaryTile("Removed duration", formatSeconds(result.analysis.totalRemovedDurationSec)),
+      renderSummaryTile("Kept segments", String(result.analysis.keepSegments.length)),
+      renderSummaryTile("Threshold", `${diagnostics?.thresholdUsed ?? state.silenceThresholdDb} dB`),
+      renderSummaryTile("Min duration", formatSeconds(diagnostics?.minimumDurationUsed ?? state.minimumSilenceDurationSec)),
+      renderSummaryTile("Timeline", "Not changed"),
+    );
+  }
+
+  function renderMultiCamProductionTool(): HTMLElement {
+    return el("div.podcast-production-card", { id: "podcast-multicam-tool" },
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "Multi-Cam Auto Switch"),
+          el("p", null, "Analyze the active Premiere timeline, preview the camera plan, then create a visual-only draft."),
+        ),
+      ),
+      renderProductionSetup(),
+      renderProductionActions(),
+    );
+  }
+
   function renderProductionSetup(): HTMLElement {
-    return el("div.podcast-production-card", null,
+    return el("div.podcast-production-block", null,
       el("div.podcast-section-head", null,
         el("div", null,
           el("h3", null, "Camera Mapping"),
@@ -189,16 +296,18 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function renderProductionActions(): HTMLElement {
-    const hasPlan = (state.cameraDecisionPlanProof?.cameraDecisions.length ?? 0) > 0
-      && (state.cameraDecisionPlanProof?.blockers.length ?? 0) === 0;
-    return el("div.podcast-production-card", null,
+    const currentPlan = getCurrentCameraDecisionPlan();
+    const hasPlan = (currentPlan?.cameraDecisions.length ?? 0) > 0
+      && (currentPlan?.blockers.length ?? 0) === 0;
+    const busy = isProductionBusy();
+    return el("div.podcast-production-block.podcast-production-block--actions", null,
       el("div.podcast-action-row", null,
-        el("button.btn-secondary", { disabled: state.timelineLoading, onClick: analyzeLayout },
+        el("button.btn-secondary", { disabled: busy, onClick: analyzeLayout },
           state.timelineLoading ? "Analyzing..." : "Analyze Timeline"),
-        el("button.btn-secondary", { disabled: state.previewAutoSwitchLoading, onClick: previewAutoSwitch },
+        el("button.btn-secondary", { disabled: busy, onClick: previewAutoSwitch },
           state.previewAutoSwitchLoading ? "Previewing..." : "Preview Auto Switch"),
         el("button.btn-primary", {
-          disabled: !hasPlan || state.applyCameraDecisionsLoading,
+          disabled: !hasPlan || busy,
           onClick: runApplyCameraDecisionsPrototype,
         }, state.applyCameraDecisionsLoading ? "Applying..." : "Apply Auto Switch"),
       ),
@@ -210,9 +319,122 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
+  function renderSilenceRemovalTool(): HTMLElement {
+    const busy = isProductionBusy();
+    return el("div.podcast-production-card", { id: "podcast-silence-tool" },
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "Silence Removal"),
+          el("p", null, "Create a synced audio/video draft from the detected keep segments. The original timeline is not changed."),
+        ),
+      ),
+      renderSilencePresetButtons(),
+      el("div.podcast-settings.podcast-settings--compact", null,
+        renderField("Silence Threshold dB",
+          el("input.podcast-input", {
+            type: "number",
+            step: "1",
+            value: String(state.silenceThresholdDb),
+            onInput: (event: Event) => {
+              state.silenceThresholdDb = Number((event.currentTarget as HTMLInputElement).value);
+              render();
+            },
+          })),
+        renderField("Minimum Silence Duration",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.1",
+            value: String(state.minimumSilenceDurationSec),
+            onInput: (event: Event) => {
+              state.minimumSilenceDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+        renderField("Minimum Cut Gap",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.1",
+            value: String(state.minimumCutGapSec),
+            onInput: (event: Event) => {
+              state.minimumCutGapSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+        renderField("Minimum Keep Segment",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.1",
+            value: String(state.minimumKeepSegmentDurationSec),
+            onInput: (event: Event) => {
+              state.minimumKeepSegmentDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+        renderField("Padding Before",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.01",
+            value: String(state.silencePaddingBeforeSec),
+            onInput: (event: Event) => {
+              state.silencePaddingBeforeSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+        renderField("Padding After",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0",
+            step: "0.01",
+            value: String(state.silencePaddingAfterSec),
+            onInput: (event: Event) => {
+              state.silencePaddingAfterSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              render();
+            },
+          })),
+      ),
+      el("div.podcast-action-row.podcast-action-row--single", null,
+        el("button.btn-primary", {
+          disabled: busy,
+          onClick: removeSilence,
+        }, state.silenceRemovalLoading ? "Removing..." : "Remove Silence"),
+      ),
+      renderSilenceSummary(),
+    );
+  }
+
+  function renderSilencePresetButtons(): HTMLElement {
+    const busy = isProductionBusy();
+    return el("div.podcast-action-row.podcast-action-row--presets", null,
+      ...SILENCE_PRESETS.map((preset) =>
+        el("button.btn-secondary", {
+          type: "button",
+          disabled: busy,
+          onClick: () => {
+            state.silenceThresholdDb = preset.thresholdDb;
+            state.minimumSilenceDurationSec = preset.minimumDurationSec;
+            state.minimumCutGapSec = preset.minimumCutGapSec;
+            state.minimumKeepSegmentDurationSec = preset.minimumKeepSegmentDurationSec;
+            render();
+          },
+        }, preset.label),
+      ),
+    );
+  }
+
+  function isProductionBusy(): boolean {
+    return state.timelineLoading
+      || state.previewAutoSwitchLoading
+      || state.applyCameraDecisionsLoading
+      || state.silenceRemovalLoading;
+  }
+
   function renderProductionSummary(): HTMLElement {
-    const plan = state.cameraDecisionPlanProof;
-    const apply = state.applyCameraDecisionsResult;
+    const plan = getCurrentCameraDecisionPlan();
+    const apply = getCurrentApplyCameraDecisionsResult();
     return el("div.podcast-production-card", null,
       el("div.podcast-section-head", null,
         el("div", null,
@@ -234,12 +456,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function renderHumanMessages(): HTMLElement {
     const messages: string[] = [];
-    const plan = state.cameraDecisionPlanProof;
-    const apply = state.applyCameraDecisionsResult;
+    const plan = getCurrentCameraDecisionPlan();
+    const apply = getCurrentApplyCameraDecisionsResult();
     if (plan?.blockers.length) messages.push(`Preview blocked: ${plan.blockers.join(", ")}`);
     if (apply?.blockers.length) messages.push(`Apply blocked: ${apply.blockers.join(", ")}`);
     if (apply?.warnings.length) messages.push(`Warnings: ${apply.warnings.length} partial source ranges were handled.`);
     if (apply?.ok) messages.push("A visual-only draft was created on a duplicate sequence. The original sequence was not changed.");
+    if (state.silenceRemovalResult?.ok) messages.push("Silence Removal created a cleaned audio/video draft. The original sequence was not changed.");
+    if (state.silenceRemovalResult && !state.silenceRemovalResult.ok) messages.push(`Silence Removal blocked: ${state.silenceRemovalResult.blockers.join(", ")}`);
     if (!messages.length) messages.push("Analyze the timeline, preview the camera plan, then apply a draft when ready.");
     return el("div.podcast-human-messages", null,
       ...messages.map((message) => el("div.podcast-human-message", null, message)),
@@ -259,21 +483,62 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       ),
       state.developerDiagnosticsOpen
         ? el("div.podcast-diagnostics-body", null,
-            renderControls(),
-            renderTimelineLayoutPanel(),
-            renderAudioSourceInspectorPanel(),
-            renderFullAudioActivityProofPanel(),
-            renderSpeakerSourceAttributionProofPanel(),
-            renderCameraDecisionPlanProofPanel(),
-            renderApplyCameraDecisionsPrototypePanel(),
-            renderSafeTimelineExecutionResearchPanel(),
-            renderSpeakerActivityProofPanel(),
-            renderSafeExecutionPanel(),
-            renderPlanPreview(),
             renderDebugPanel(),
+            renderExistingRuntimeJsonPanel(),
+            ...renderRuntimeProofPanelsIfEnabled(),
           )
         : null,
     );
+  }
+
+  function renderExistingRuntimeJsonPanel(): HTMLElement {
+    return el("div.podcast-debug", null,
+      el("div.podcast-debug__head", null,
+        el("div", null,
+          el("h3", null, "Runtime Proof JSON"),
+          el("p", null, "Read-only current runtime objects. No analysis is run here."),
+        ),
+      ),
+      renderReadOnlyJsonBlock("sourceAttributionProof JSON", state.sourceAttributionProof),
+      renderReadOnlyJsonBlock("cameraDecisionPlanProof JSON", state.cameraDecisionPlanProof),
+    );
+  }
+
+  function renderReadOnlyJsonBlock(label: string, value: unknown): HTMLElement {
+    const json = value ? JSON.stringify(value, null, 2) : "null";
+    return el("div.podcast-proof", null,
+      el("div.podcast-messages__title", null, label),
+      el("button.btn-secondary", {
+        type: "button",
+        onClick: () => void navigator.clipboard?.writeText(json),
+      }, "Copy JSON"),
+      el("textarea.podcast-pre.podcast-pre--json", {
+        readonly: "true",
+        rows: "12",
+        spellcheck: "false",
+      }, json),
+    );
+  }
+
+  function renderRuntimeProofPanelsIfEnabled(): HTMLElement[] {
+    if (!shouldRenderRuntimeProofPanels()) return [];
+    return [
+      renderControls(),
+      renderTimelineLayoutPanel(),
+      renderAudioSourceInspectorPanel(),
+      renderFullAudioActivityProofPanel(),
+      renderSpeakerSourceAttributionProofPanel(),
+      renderCameraDecisionPlanProofPanel(),
+      renderApplyCameraDecisionsPrototypePanel(),
+      renderSafeTimelineExecutionResearchPanel(),
+      renderSpeakerActivityProofPanel(),
+      renderSafeExecutionPanel(),
+      renderPlanPreview(),
+    ];
+  }
+
+  function shouldRenderRuntimeProofPanels(): boolean {
+    return false;
   }
 
   function renderSafeExecutionPanel(): HTMLElement {
@@ -1027,6 +1292,19 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         row("Camera Decisions Count", String(plan.decisions.length)),
         row("Short Segments Merged Count", String(plan.shortSegmentsMergedCount)),
         row("Selected Execution Strategy", plan.selectedExecutionStrategy),
+        row("Total Detected Speaker Segments", String(state.cameraDecisionPlanProof?.diagnostics?.totalDetectedSpeakerSegments ?? state.sourceAttributionProof?.trackSpeakingSegments.length ?? 0)),
+        row("Speaker Segments Per Microphone", formatSpeakerSegmentsPerMic(state.cameraDecisionPlanProof?.diagnostics?.speakerSegmentsPerMicrophone)),
+        row("Dominant Windows Count", String(state.cameraDecisionPlanProof?.diagnostics?.dominantWindowsCount ?? state.sourceAttributionProof?.dominantTrackAtTime.length ?? 0)),
+        row("Camera Decisions Before Merge", String(state.cameraDecisionPlanProof?.diagnostics?.cameraDecisionsBeforeMerge ?? 0)),
+        row("Camera Decisions After Adjacent Merge", String(state.cameraDecisionPlanProof?.diagnostics?.cameraDecisionsAfterAdjacentMerge ?? 0)),
+        row("Camera Decisions After Short Merge", String(state.cameraDecisionPlanProof?.diagnostics?.cameraDecisionsAfterShortMerge ?? 0)),
+        row("Merged Segments Count", String(state.cameraDecisionPlanProof?.diagnostics?.mergedSegmentsCount ?? 0)),
+        row("Total Timeline Duration", formatSeconds(state.cameraDecisionPlanProof?.diagnostics?.totalTimelineDurationSec ?? state.timelineLayout?.sequenceDurationSec ?? state.sourceAttributionProof?.analyzedDurationSec ?? 0)),
+        row("Single Decision Reason", state.cameraDecisionPlanProof?.diagnostics?.singleDecisionReason || "None"),
+        row("Attribution Blockers", state.sourceAttributionProof?.blockers.join(" | ") || "None"),
+        row("Attribution Warnings", state.sourceAttributionProof?.warnings.slice(0, 8).join(" | ") || "None"),
+        row("Camera Plan Blockers", state.cameraDecisionPlanProof?.blockers.join(" | ") || "None"),
+        row("Camera Plan Warnings", state.cameraDecisionPlanProof?.warnings.join(" | ") || "None"),
         row("Video Tracks Found", String(layout?.videoTracks.length ?? 0)),
         row("Audio Tracks Found", String(layout?.audioTracks.length ?? 0)),
         row("Clip Counts", clipCountsSummary(layout)),
@@ -1042,11 +1320,71 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         row("Original Sequence Name", d.sequenceName || "Not detected"),
         row("New Sequence Name", draftSequenceName(d.sequenceName)),
         row("Duplicate Result", duplicateResultText(state.duplicateResult)),
+        row("Apply Last Checkpoint", state.applyTrace.lastCheckpoint),
+        row("Apply Checkpoints", state.applyTrace.checkpoints.join(" > ") || "None"),
+        row("decisionCountPassedToApply", String(state.applyTrace.decisionCountPassedToApply)),
+        row("executionStrategyUsed", state.applyTrace.executionStrategyUsed || "None"),
+        row("duplicateSequenceCalled", state.applyTrace.duplicateSequenceCalled ? "Yes" : "No"),
+        row("duplicateSequenceResult", state.applyTrace.duplicateSequenceResult),
+        row("applyCameraDecisionsCalled", state.applyTrace.applyCameraDecisionsCalled ? "Yes" : "No"),
+        row("applyCameraDecisionsResult", state.applyTrace.applyCameraDecisionsResult),
+        row("Apply Trace Error", state.applyTrace.error || "None"),
+        row("Apply Result Duplicate Sequence ID", state.applyCameraDecisionsResult?.duplicateSequenceID || "null"),
+        row("Apply Result Segments Inserted", String(state.applyCameraDecisionsResult?.segmentsInserted ?? 0)),
+        row("Apply Result Blockers", state.applyCameraDecisionsResult?.blockers.join(" | ") || "None"),
+        row("Apply Decision Diagnostics", formatApplyDecisionDiagnostics(state.applyCameraDecisionsResult?.segmentResults)),
         row("Execution Strategy", state.duplicateResult?.ok ? "duplicate-sequence-cuts" : plan.selectedExecutionStrategy),
         row("Timeline Mutation", state.duplicateResult ? "duplicate only" : "none"),
         row("cloneResult", String(state.duplicateResult?.duplicateProof?.cloneResult === true)),
         row("newSequenceDetected", String(state.duplicateResult?.duplicateProof?.newSequenceDetected === true)),
         row("renameResult", String(state.duplicateResult?.duplicateProof?.renameResult === true)),
+        row("Silence Analysis Windows", String(state.silenceRemovalResult?.analysis.totalRmsWindows ?? 0)),
+        row("Silence Sequence Duration", formatSeconds(state.silenceRemovalResult?.analysis.sequenceDurationSec ?? 0)),
+        row("Silence Analyzed Duration", formatSeconds(state.silenceRemovalResult?.analysis.analyzedDurationSec ?? 0)),
+        row("Silence Audio Source Duration", formatSeconds(state.silenceRemovalResult?.analysis.audioSourceDurationSec ?? 0)),
+        row("Threshold Used", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.thresholdUsed ?? state.silenceThresholdDb)),
+        row("Minimum Duration Used", formatSeconds(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.minimumDurationUsed ?? state.minimumSilenceDurationSec)),
+        row("Detected Silence Segments Count", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.detectedSilenceSegments.length ?? 0)),
+        row("Detected Silence Start/End", formatSilenceDiagnosticSegments(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.detectedSilenceSegments)),
+        row("Rejected Silence Segments Count", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.rejectedSilenceSegments.length ?? 0)),
+        row("Rejected Silence Reasons", formatSilenceDiagnosticSegments(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.rejectedSilenceSegments)),
+        row("Silence Segments", String(state.silenceRemovalResult?.analysis.silenceSegments.length ?? 0)),
+        row("Dropped Silence Candidates", String(state.silenceRemovalResult?.analysis.droppedSilenceSegments?.length ?? 0)),
+        row("Longest Dropped Silence", formatSeconds(state.silenceRemovalResult?.analysis.longestDroppedSilenceSec ?? 0)),
+        row("First Dropped Silences", formatSilenceSegments(state.silenceRemovalResult?.analysis.droppedSilenceSegments)),
+        row("Keep Segments", String(state.silenceRemovalResult?.analysis.keepSegments.length ?? 0)),
+        row("Keep Segments Processed", String(state.silenceRemovalResult?.apply?.keepSegmentsProcessed ?? 0)),
+        row("Keep Segments Skipped", String(state.silenceRemovalResult?.apply?.keepSegmentsSkipped ?? 0)),
+        row("Last Processed Keep Index", String(state.silenceRemovalResult?.apply?.lastProcessedKeepSegmentIndex ?? "none")),
+        row("Last Keep Segment End", formatSeconds(state.silenceRemovalResult?.apply?.lastKeepSegmentEndTime ?? 0)),
+        row("Operation Plan Build Called", state.silenceRemovalResult?.apply?.operationPlanBuildCalled ? "Yes" : "No"),
+        row("Timeline Clips V1/A1", formatTimelineV1A1(state.silenceRemovalResult?.apply?.timelineClipDiscovery)),
+        row("Timeline Video Clip Counts", state.silenceRemovalResult?.apply?.timelineClipDiscovery?.videoClipCounts?.join(", ") || "None"),
+        row("Timeline Audio Clip Counts", state.silenceRemovalResult?.apply?.timelineClipDiscovery?.audioClipCounts?.join(", ") || "None"),
+        row("Processed Video Tracks", String(state.silenceRemovalResult?.apply?.processedVideoTracks ?? 0)),
+        row("Processed Audio Tracks", String(state.silenceRemovalResult?.apply?.processedAudioTracks ?? 0)),
+        row("Planned Operations", String(state.silenceRemovalResult?.apply?.operationPlanCount ?? 0)),
+        row("Executed Operations", String(state.silenceRemovalResult?.apply?.totalOperationsExecuted ?? 0)),
+        row("Duplicate Source Uses", String(state.silenceRemovalResult?.apply?.duplicateSourceClipUseCount ?? 0)),
+        row("Multi-Clip Keep Segments", String(state.silenceRemovalResult?.apply?.multiClipKeepSegments?.length ?? 0)),
+        row("First Multi-Clip Keeps", formatMultiClipKeepSegments(state.silenceRemovalResult?.apply?.multiClipKeepSegments)),
+        row("Reconstructed Video Clips", String(state.silenceRemovalResult?.apply?.reconstructedVideoClipsCount ?? 0)),
+        row("Reconstructed Audio Clips", String(state.silenceRemovalResult?.apply?.reconstructedAudioClipsCount ?? 0)),
+        row("Silence Video Inserts", String(state.silenceRemovalResult?.apply?.visualSegmentsInserted ?? 0)),
+        row("Silence Audio Inserts", String(state.silenceRemovalResult?.apply?.audioSegmentsInserted ?? 0)),
+        row("Video Inserts By Track", state.silenceRemovalResult?.apply?.videoSegmentsInsertedByTrack?.join(", ") || "None"),
+        row("Audio Inserts By Track", state.silenceRemovalResult?.apply?.audioSegmentsInsertedByTrack?.join(", ") || "None"),
+        row("Original Disabled On Draft", state.silenceRemovalResult?.apply?.originalTracksHiddenOrDisabledOnDuplicate ? "Yes" : "No"),
+        row("Original Items Disabled", String(state.silenceRemovalResult?.apply?.originalTrackItemsDisabledOnDuplicate ?? 0)),
+        row("Original Remove Unsafe", state.silenceRemovalResult?.apply?.warnings?.includes("ORIGINAL_TRACKITEM_REMOVE_UNSAFE_DISABLED_INSTEAD") ? "Yes" : "No"),
+        row("Original Residual Items", String(state.silenceRemovalResult?.apply?.originalResidualTrackItems?.length ?? 0)),
+        row("IMG_5575 Diagnostics", formatResidualItems(state.silenceRemovalResult?.apply?.img5575Diagnostics)),
+        row("Silence Draft", state.silenceRemovalResult?.apply?.draftSequenceName || "not-created"),
+        row("Silence Blockers", state.silenceRemovalResult?.blockers.join(" | ") || "None"),
+        row("Silence Active Sequence", state.silenceRemovalResult?.apply?.activeSequenceName || state.diagnostics?.sequenceName || "unknown"),
+        row("Generated Sequence Rule", state.silenceRemovalResult?.apply?.generatedSequenceDetectionRule || "not-matched"),
+        row("Matched Pattern", state.silenceRemovalResult?.apply?.matchedPattern || "none"),
+        row("Blocker Source", state.silenceRemovalResult?.apply?.blockerSource || "none"),
       ),
       el("div.podcast-messages", null,
         el("div.podcast-messages__title", null, "Messages"),
@@ -1088,7 +1426,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function readablePreviewStatus(): string {
     if (state.previewAutoSwitchLoading || state.sourceAttributionProofLoading) return "Working";
-    const plan = state.cameraDecisionPlanProof;
+    if (!state.timelineLayout) return "Waiting";
+    const plan = getCurrentCameraDecisionPlan();
     if (!plan) return "Not previewed";
     if (plan.blockers.length) return "Blocked";
     return `${plan.summary.totalDecisions} decisions`;
@@ -1098,7 +1437,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     state.loading = true;
     render();
     try {
-      state.diagnostics = await getPodcastDiagnostics();
+      const previousIdentity = sequenceIdentityFromDiagnostics(state.diagnostics);
+      const nextDiagnostics = await getPodcastDiagnostics();
+      const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
+      if (sequenceIdentityChanged(previousIdentity, nextIdentity)) {
+        state.timelineLayout = null;
+        clearAutoSwitchRuntimeState();
+      }
+      state.diagnostics = nextDiagnostics;
     } catch (err) {
       state.diagnostics = {
         ...DEFAULT_DIAGNOSTICS,
@@ -1113,7 +1459,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   async function analyzeLayout() {
+    if (isProductionBusy()) return;
     state.timelineLoading = true;
+    clearAutoSwitchRuntimeState();
     render();
     try {
       state.timelineLayout = await analyzeTimelineLayout();
@@ -1130,16 +1478,45 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   async function previewAutoSwitch() {
+    if (isProductionBusy()) return;
+    const layout = state.timelineLayout;
+    if (!layout || layout.status !== "ready") {
+      state.sourceAttributionProof = null;
+      state.cameraDecisionPlanProof = blockedCameraDecisionPlan(["TIMELINE_LAYOUT_REQUIRED_BEFORE_PREVIEW"], layout);
+      state.applyCameraDecisionsResult = null;
+      render();
+      return;
+    }
     state.previewAutoSwitchLoading = true;
+    state.sourceAttributionProofLoading = true;
     render();
     try {
-      state.sourceAttributionProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
-      state.cameraDecisionPlanProof = generateCameraDecisionPlanProof({
+      const sourceProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
+      state.sourceAttributionProof = bindSourceAttributionToTimeline(sourceProof, layout);
+      const sourceBlockers = getMappedTrackSourceBlockers(state.sourceAttributionProof);
+      if (sourceBlockers.length > 0) {
+        state.cameraDecisionPlanProof = blockedCameraDecisionPlan(sourceBlockers, layout);
+        state.applyCameraDecisionsResult = null;
+        return;
+      }
+      state.cameraDecisionPlanProof = {
+        ...generateCameraDecisionPlanProof({
         dominantTrackAtTime: state.sourceAttributionProof.dominantTrackAtTime,
         overlaps: state.sourceAttributionProof.overlaps,
-      });
+        trackSpeakingSegments: state.sourceAttributionProof.trackSpeakingSegments,
+        timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
+        videoTrackCount: layout.videoTracks.length,
+        }),
+        sequenceId: layout.sequenceId ?? null,
+        sequenceName: layout.sequenceName ?? null,
+        decisionSource: "ffmpeg-rms",
+      };
+      state.applyCameraDecisionsResult = null;
     } catch (err) {
       state.sourceAttributionProof = {
+        sequenceId: layout.sequenceId ?? null,
+        sequenceName: layout.sequenceName ?? null,
+        decisionSource: "ffmpeg-rms",
         trackActivity: [],
         trackSpeakingSegments: [],
         overlaps: [],
@@ -1154,6 +1531,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         sequenceMutation: "none",
       };
       state.cameraDecisionPlanProof = {
+        sequenceId: layout.sequenceId ?? null,
+        sequenceName: layout.sequenceName ?? null,
+        decisionSource: "ffmpeg-rms",
         cameraDecisions: [],
         summary: {
           totalDecisions: 0,
@@ -1170,6 +1550,59 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       };
     } finally {
       state.previewAutoSwitchLoading = false;
+      state.sourceAttributionProofLoading = false;
+      render();
+    }
+  }
+
+  async function removeSilence() {
+    if (isProductionBusy()) return;
+    state.silenceRemovalLoading = true;
+    render();
+    try {
+      state.silenceRemovalResult = await runSilenceRemovalDraft({
+        audioTrackIndex: 0,
+        silenceThresholdDb: state.silenceThresholdDb,
+        minimumSilenceDurationSec: state.minimumSilenceDurationSec,
+        minimumCutGapSec: state.minimumCutGapSec,
+        minimumKeepSegmentDurationSec: state.minimumKeepSegmentDurationSec,
+        mergeAdjacentKeepGapSec: state.mergeAdjacentKeepGapSec,
+        paddingBeforeSec: state.silencePaddingBeforeSec,
+        paddingAfterSec: state.silencePaddingAfterSec,
+        selectedAudioStreamIndex: state.selectedAudioStreamIndex,
+      });
+    } catch (err) {
+      state.silenceRemovalResult = {
+        ok: false,
+        analysis: {
+          ok: false,
+          audioTrackIndex: 0,
+          analyzedSourcePath: null,
+          selectedAudioStreamIndex: state.selectedAudioStreamIndex,
+          analyzedDurationSec: 0,
+          analysisWindowSec: 0.2,
+          totalRmsWindows: 0,
+          silenceSegments: [],
+          droppedSilenceSegments: [],
+          silenceDetectionDiagnostics: {
+            thresholdUsed: state.silenceThresholdDb,
+            minimumDurationUsed: state.minimumSilenceDurationSec,
+            detectedSilenceSegments: [],
+            rejectedSilenceSegments: [],
+          },
+          keepSegments: [],
+          totalRemovedDurationSec: 0,
+          blockers: ["SILENCE_REMOVAL_FAILED", (err as Error).message],
+          warnings: [],
+          timelineMutation: "none",
+          sequenceMutation: "none",
+        },
+        apply: null,
+        blockers: ["SILENCE_REMOVAL_FAILED", (err as Error).message],
+        warnings: [],
+      };
+    } finally {
+      state.silenceRemovalLoading = false;
       render();
     }
   }
@@ -1341,7 +1774,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     state.sourceAttributionProofLoading = true;
     render();
     try {
-      state.sourceAttributionProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
+      const sourceProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
+      state.sourceAttributionProof = state.timelineLayout
+        ? bindSourceAttributionToTimeline(sourceProof, state.timelineLayout)
+        : sourceProof;
     } catch (err) {
       state.sourceAttributionProof = {
         trackActivity: [],
@@ -1364,39 +1800,97 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function runCameraPlanProof() {
-    if (!state.sourceAttributionProof) {
-      state.cameraDecisionPlanProof = {
-        cameraDecisions: [],
-        summary: {
-          totalDecisions: 0,
-          speaker1CameraTimeSec: 0,
-          speaker2CameraTimeSec: 0,
-          wideCameraTimeSec: 0,
-          keptPreviousCameraEvents: 0,
-          droppedShortDecisions: 0,
-        },
-        blockers: ["SPEAKER_SOURCE_ATTRIBUTION_PROOF_REQUIRED"],
-        warnings: [],
-        timelineMutation: "none",
-        sequenceMutation: "none",
-      };
+    const layout = state.timelineLayout;
+    if (!layout || layout.status !== "ready") {
+      state.cameraDecisionPlanProof = blockedCameraDecisionPlan(["TIMELINE_LAYOUT_REQUIRED_BEFORE_PREVIEW"], layout);
       render();
       return;
     }
-    state.cameraDecisionPlanProof = generateCameraDecisionPlanProof({
+    if (!state.sourceAttributionProof) {
+      state.cameraDecisionPlanProof = blockedCameraDecisionPlan(["SPEAKER_SOURCE_ATTRIBUTION_PROOF_REQUIRED"], layout);
+      render();
+      return;
+    }
+    const sourceBlockers = getMappedTrackSourceBlockers(state.sourceAttributionProof);
+    if (sourceBlockers.length > 0 || !sourceProofMatchesTimeline(state.sourceAttributionProof, layout)) {
+      state.cameraDecisionPlanProof = blockedCameraDecisionPlan(
+        sourceBlockers.length ? sourceBlockers : ["STALE_OR_UNBOUND_SOURCE_ATTRIBUTION_PROOF"],
+        layout,
+      );
+      render();
+      return;
+    }
+    state.cameraDecisionPlanProof = {
+      ...generateCameraDecisionPlanProof({
       dominantTrackAtTime: state.sourceAttributionProof.dominantTrackAtTime,
       overlaps: state.sourceAttributionProof.overlaps,
-    });
+      trackSpeakingSegments: state.sourceAttributionProof.trackSpeakingSegments,
+      timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
+      videoTrackCount: layout.videoTracks.length,
+      }),
+      sequenceId: layout.sequenceId ?? null,
+      sequenceName: layout.sequenceName ?? null,
+      decisionSource: "ffmpeg-rms",
+    };
+    state.applyCameraDecisionsResult = null;
     render();
   }
 
   async function runApplyCameraDecisionsPrototype() {
-    const cameraDecisions = state.cameraDecisionPlanProof?.cameraDecisions ?? [];
+    if (isProductionBusy()) return;
+    const applyBlockers = getApplyCameraDecisionBlockers();
+    const cameraDecisions = applyBlockers.length ? [] : (state.cameraDecisionPlanProof?.cameraDecisions ?? []);
+    state.applyTrace = createEmptyApplyTrace();
+    pushApplyCheckpoint(state.applyTrace, "APPLY_CLICKED");
+    state.applyTrace.decisionCountPassedToApply = cameraDecisions.length;
+    if (applyBlockers.length > 0) {
+      state.applyTrace.error = applyBlockers.join(" | ");
+      state.applyCameraDecisionsResult = blockedApplyCameraDecisionsResult(applyBlockers, state.cameraDecisionPlanProof?.cameraDecisions.length ?? 0);
+      pushApplyCheckpoint(state.applyTrace, "RETURN_TO_UI");
+      render();
+      return;
+    }
+    if (cameraDecisions.length <= 0) {
+      state.applyTrace.error = "NO_CAMERA_DECISIONS_TO_APPLY";
+      pushApplyCheckpoint(state.applyTrace, "RETURN_TO_UI");
+      render();
+      return;
+    }
+    pushApplyCheckpoint(state.applyTrace, "DECISIONS_AVAILABLE");
+    state.applyTrace.executionStrategyUsed = "apply-camera-decisions-overlap-aware-visual-only";
+    pushApplyCheckpoint(state.applyTrace, "EXECUTION_STRATEGY_SELECTED");
     state.applyCameraDecisionsLoading = true;
+    state.applyTrace.duplicateSequenceCalled = true;
+    pushApplyCheckpoint(state.applyTrace, "DUPLICATE_SEQUENCE_START");
     render();
     try {
-      state.applyCameraDecisionsResult = await applyCameraDecisionsVisualOnly({ cameraDecisions });
+      state.applyTrace.applyCameraDecisionsCalled = true;
+      pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_START");
+      state.applyCameraDecisionsResult = bindApplyResultToTimeline(
+        await applyCameraDecisionsVisualOnly({ cameraDecisions }),
+        state.timelineLayout,
+      );
+      if (state.applyCameraDecisionsResult.duplicateSequenceID) {
+        state.applyTrace.duplicateSequenceResult = `success:${state.applyCameraDecisionsResult.duplicateSequenceID}`;
+        pushApplyCheckpoint(state.applyTrace, "DUPLICATE_SEQUENCE_SUCCESS");
+      } else {
+        state.applyTrace.duplicateSequenceResult = state.applyCameraDecisionsResult.blockers.join(" | ") || "missing duplicateSequenceID";
+        pushApplyCheckpoint(state.applyTrace, "DUPLICATE_SEQUENCE_FAILED");
+      }
+      if (state.applyCameraDecisionsResult.ok) {
+        state.applyTrace.applyCameraDecisionsResult = `success:${state.applyCameraDecisionsResult.segmentsInserted} segments`;
+        pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_SUCCESS");
+      } else {
+        state.applyTrace.applyCameraDecisionsResult = state.applyCameraDecisionsResult.blockers.join(" | ") || "failed";
+        pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_FAILED");
+      }
     } catch (err) {
+      state.applyTrace.duplicateSequenceResult = state.applyTrace.duplicateSequenceResult === "not-started"
+        ? "exception before duplicate result"
+        : state.applyTrace.duplicateSequenceResult;
+      state.applyTrace.applyCameraDecisionsResult = "exception";
+      state.applyTrace.error = (err as Error).message;
+      pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_FAILED");
       state.applyCameraDecisionsResult = {
         ok: false,
         strategy: "apply-camera-decisions-overlap-aware-visual-only",
@@ -1416,8 +1910,216 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       };
     } finally {
       state.applyCameraDecisionsLoading = false;
+      pushApplyCheckpoint(state.applyTrace, "RETURN_TO_UI");
       render();
     }
+  }
+
+  function clearAutoSwitchRuntimeState() {
+    state.sourceAttributionProof = null;
+    state.cameraDecisionPlanProof = null;
+    state.applyCameraDecisionsResult = null;
+    state.applyTrace = createEmptyApplyTrace();
+  }
+
+  function getCurrentCameraDecisionPlan(): PodcastCameraDecisionPlanProof | null {
+    const plan = state.cameraDecisionPlanProof;
+    if (!plan || !state.timelineLayout) return null;
+    if (plan.decisionSource !== "ffmpeg-rms") return null;
+    return planMatchesTimeline(plan, state.timelineLayout) ? plan : null;
+  }
+
+  function getCurrentApplyCameraDecisionsResult(): ApplyCameraDecisionsVisualOnlyResult | null {
+    const result = state.applyCameraDecisionsResult;
+    if (!result || !state.timelineLayout) return null;
+    return sequenceIdentityMatches(
+      result.sourceSequenceId ?? result.originalSequenceID,
+      result.sourceSequenceName ?? null,
+      state.timelineLayout.sequenceId ?? null,
+      state.timelineLayout.sequenceName ?? null,
+    ) ? result : null;
+  }
+
+  function blockedCameraDecisionPlan(blockers: string[], layout: PodcastTimelineLayout | null): PodcastCameraDecisionPlanProof {
+    return {
+      sequenceId: layout?.sequenceId ?? null,
+      sequenceName: layout?.sequenceName ?? null,
+      decisionSource: "ffmpeg-rms",
+      cameraDecisions: [],
+      summary: {
+        totalDecisions: 0,
+        speaker1CameraTimeSec: 0,
+        speaker2CameraTimeSec: 0,
+        wideCameraTimeSec: 0,
+        keptPreviousCameraEvents: 0,
+        droppedShortDecisions: 0,
+      },
+      blockers,
+      warnings: [],
+      timelineMutation: "none",
+      sequenceMutation: "none",
+    };
+  }
+
+  function blockedApplyCameraDecisionsResult(blockers: string[], decisionCount: number): ApplyCameraDecisionsVisualOnlyResult {
+    return {
+      ok: false,
+      strategy: "apply-camera-decisions-overlap-aware-visual-only",
+      sourceSequenceId: state.timelineLayout?.sequenceId ?? null,
+      sourceSequenceName: state.timelineLayout?.sequenceName ?? null,
+      originalSequenceID: state.timelineLayout?.sequenceId ?? null,
+      duplicateSequenceID: null,
+      decisionsCount: decisionCount,
+      segmentsAttempted: decisionCount,
+      segmentsInserted: 0,
+      segmentsSkipped: 0,
+      generatedTargetTrackName: "Saad Auto Switch",
+      segmentResults: [],
+      blockers,
+      warnings: [],
+      errors: [],
+      originalTouched: false,
+      timelineMutation: "duplicate + visual-only reconstructed segments on duplicate only",
+    };
+  }
+
+  function bindSourceAttributionToTimeline(
+    proof: SpeakerSourceAttributionProof,
+    layout: PodcastTimelineLayout,
+  ): SpeakerSourceAttributionProof {
+    return {
+      ...proof,
+      sequenceId: layout.sequenceId ?? null,
+      sequenceName: layout.sequenceName ?? null,
+      decisionSource: "ffmpeg-rms",
+    };
+  }
+
+  function bindApplyResultToTimeline(
+    result: ApplyCameraDecisionsVisualOnlyResult,
+    layout: PodcastTimelineLayout | null,
+  ): ApplyCameraDecisionsVisualOnlyResult {
+    return {
+      ...result,
+      sourceSequenceId: layout?.sequenceId ?? null,
+      sourceSequenceName: layout?.sequenceName ?? null,
+    };
+  }
+
+  function getApplyCameraDecisionBlockers(): string[] {
+    const blockers: string[] = [];
+    const layout = state.timelineLayout;
+    const plan = state.cameraDecisionPlanProof;
+    if (!layout || layout.status !== "ready") blockers.push("TIMELINE_LAYOUT_REQUIRED_BEFORE_APPLY");
+    if (!plan) blockers.push("CAMERA_DECISION_PLAN_REQUIRED");
+    if (plan && plan.decisionSource !== "ffmpeg-rms") blockers.push("CAMERA_DECISION_PLAN_SOURCE_NOT_FFMPEG_RMS");
+    if (plan && layout && !planMatchesTimeline(plan, layout)) blockers.push("STALE_CAMERA_DECISION_PLAN");
+    if (plan?.blockers.length) blockers.push(...plan.blockers);
+    if (state.sourceAttributionProof && layout && !sourceProofMatchesTimeline(state.sourceAttributionProof, layout)) {
+      blockers.push("STALE_OR_UNBOUND_SOURCE_ATTRIBUTION_PROOF");
+    }
+    if (state.sourceAttributionProof) {
+      blockers.push(...getMappedTrackSourceBlockers(state.sourceAttributionProof));
+    }
+    return uniqueStrings(blockers);
+  }
+
+  function getMappedTrackSourceBlockers(proof: SpeakerSourceAttributionProof): string[] {
+    const blockers: string[] = [];
+    const globalBlockers = proof.blockers.filter(isGlobalSourceBlocker);
+    if (globalBlockers.length > 0) blockers.push(...globalBlockers);
+
+    const requiredTrackIndexes = new Set<number>();
+    for (const window of proof.dominantTrackAtTime) {
+      if (typeof window.audioTrackIndex === "number" && window.audioTrackIndex >= 0) {
+        requiredTrackIndexes.add(window.audioTrackIndex);
+      }
+    }
+
+    for (const track of proof.trackActivity) {
+      if (!requiredTrackIndexes.has(track.audioTrackIndex)) continue;
+      if (!track.sourcePath) blockers.push(`A${track.audioTrackIndex + 1}:NO_VALID_RMS_SOURCE_PATH`);
+      const mappedBlockers = track.blockers.filter(isMappedTrackSourceBlocker);
+      blockers.push(...mappedBlockers.map((blocker) => `A${track.audioTrackIndex + 1}:${blocker}`));
+      if (track.windows.some((window) =>
+        !Number.isFinite(window.sourceTimeSec)
+        || !Number.isFinite(window.timelineStartSec)
+        || !Number.isFinite(window.timelineEndSec)
+        || !(window.timelineEndSec > window.timelineStartSec)
+      )) {
+        blockers.push(`A${track.audioTrackIndex + 1}:INCOMPLETE_TIMELINE_SOURCE_TIME_MAPPING`);
+      }
+    }
+
+    return uniqueStrings(blockers);
+  }
+
+  function isGlobalSourceBlocker(blocker: string): boolean {
+    return [
+      "CEP_NODE_UNAVAILABLE",
+      "FFMPEG_NOT_READY",
+      "FFMPEG_UNAVAILABLE",
+      "FFMPEG_VERSION_UNSUPPORTED",
+      "FFMPEG_DIAGNOSTICS_FAILED",
+    ].includes(blocker);
+  }
+
+  function isMappedTrackSourceBlocker(blocker: string): boolean {
+    return [
+      "NO_VALID_RMS_SOURCE_PATH",
+      "INVALID_CLIP_TIMING",
+      "AUDIO_STREAM_SELECTION_REQUIRED",
+      "SELECTED_AUDIO_STREAM_NOT_FOUND",
+      "NO_AUDIO_STREAM_DETECTED",
+    ].includes(blocker);
+  }
+
+  function planMatchesTimeline(plan: PodcastCameraDecisionPlanProof, layout: PodcastTimelineLayout): boolean {
+    return sequenceIdentityMatches(
+      plan.sequenceId ?? null,
+      plan.sequenceName ?? null,
+      layout.sequenceId ?? null,
+      layout.sequenceName ?? null,
+    );
+  }
+
+  function sourceProofMatchesTimeline(proof: SpeakerSourceAttributionProof, layout: PodcastTimelineLayout): boolean {
+    return proof.decisionSource === "ffmpeg-rms"
+      && sequenceIdentityMatches(
+        proof.sequenceId ?? null,
+        proof.sequenceName ?? null,
+        layout.sequenceId ?? null,
+        layout.sequenceName ?? null,
+      );
+  }
+
+  function sequenceIdentityFromDiagnostics(diagnostics: PodcastDiagnostics): { sequenceId: string | null; sequenceName: string | null } {
+    return {
+      sequenceId: diagnostics.sequenceId ?? null,
+      sequenceName: diagnostics.sequenceName ?? null,
+    };
+  }
+
+  function sequenceIdentityChanged(
+    previous: { sequenceId: string | null; sequenceName: string | null },
+    next: { sequenceId: string | null; sequenceName: string | null },
+  ): boolean {
+    return !sequenceIdentityMatches(previous.sequenceId, previous.sequenceName, next.sequenceId, next.sequenceName);
+  }
+
+  function sequenceIdentityMatches(
+    leftId: string | null,
+    leftName: string | null,
+    rightId: string | null,
+    rightName: string | null,
+  ): boolean {
+    if (leftId && rightId) return leftId === rightId;
+    if (leftName && rightName) return leftName === rightName;
+    return !leftId && !rightId && !leftName && !rightName;
+  }
+
+  function uniqueStrings(items: string[]): string[] {
+    return Array.from(new Set(items));
   }
 
   async function runExecutionResearch(kind: "duplicate" | "disable" | "range" | "insert" | "reconstruct") {
@@ -1503,10 +2205,15 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function getAudioMappings(): AudioTrackSpeakerMapping[] {
-    return Object.entries(state.audioMappings).map(([speakerId, audioTrackIndex]) => ({
-      speakerId,
-      audioTrackIndex,
-      audioTrackLabel: `A${audioTrackIndex + 1}`,
+    const count = Math.max(
+      state.timelineLayout?.audioTracks.length ?? 0,
+      state.diagnostics.audioTrackCount ?? 0,
+      Object.keys(state.audioMappings).length,
+    );
+    return Array.from({ length: count }, (_, index) => ({
+      speakerId: `speaker_${index + 1}`,
+      audioTrackIndex: index,
+      audioTrackLabel: `A${index + 1}`,
     }));
   }
 }
@@ -1517,6 +2224,95 @@ function formatSeconds(value: number): string {
 
 function formatOptionalSeconds(value: number | undefined): string {
   return value == null ? "null" : formatSeconds(value);
+}
+
+function createEmptyApplyTrace(): ApplyTrace {
+  return {
+    lastCheckpoint: "NOT_STARTED",
+    checkpoints: [],
+    decisionCountPassedToApply: 0,
+    executionStrategyUsed: null,
+    duplicateSequenceCalled: false,
+    duplicateSequenceResult: "not-started",
+    applyCameraDecisionsCalled: false,
+    applyCameraDecisionsResult: "not-started",
+    error: null,
+  };
+}
+
+function pushApplyCheckpoint(trace: ApplyTrace, checkpoint: ApplyCheckpoint) {
+  trace.lastCheckpoint = checkpoint;
+  trace.checkpoints.push(checkpoint);
+}
+
+function formatMultiClipKeepSegments(segments: SilenceRemovalRunResult["apply"] extends infer Apply
+  ? Apply extends { multiClipKeepSegments?: infer Items } ? Items | undefined : never
+  : never): string {
+  if (!Array.isArray(segments) || !segments.length) return "None";
+  return segments.slice(0, 5).map((segment) => {
+    const videoByTrack = Array.isArray(segment.videoClipsMatchedByTrack) ? segment.videoClipsMatchedByTrack.join("/") : "";
+    const audioByTrack = Array.isArray(segment.audioClipsMatchedByTrack) ? segment.audioClipsMatchedByTrack.join("/") : "";
+    return `#${segment.keepSegmentIndex}: V${segment.matchedVideoClipCount} [${videoByTrack}] A${segment.matchedAudioClipCount} [${audioByTrack}]`;
+  }).join(" | ");
+}
+
+function formatResidualItems(items: SilenceRemovalRunResult["apply"] extends infer Apply
+  ? Apply extends { img5575Diagnostics?: infer Items } ? Items | undefined : never
+  : never): string {
+  if (!Array.isArray(items) || !items.length) return "None";
+  return items.slice(0, 5).map((item) =>
+    `${item.mediaKind} T${item.trackIndex + 1} ${formatSeconds(item.startSec)}-${formatSeconds(item.endSec)} disabled=${String(item.disabled)}`
+  ).join(" | ");
+}
+
+function formatSilenceSegments(segments: SilenceRemovalRunResult["analysis"]["droppedSilenceSegments"]): string {
+  if (!Array.isArray(segments) || !segments.length) return "None";
+  return segments.slice(0, 5).map((segment) =>
+    `${formatSeconds(segment.startSec)}-${formatSeconds(segment.endSec)} (${formatSeconds(segment.durationSec)})`
+  ).join(" | ");
+}
+
+function formatSilenceDiagnosticSegments(
+  segments: NonNullable<SilenceRemovalRunResult["analysis"]["silenceDetectionDiagnostics"]>["detectedSilenceSegments"] | undefined,
+): string {
+  if (!Array.isArray(segments) || !segments.length) return "None";
+  return segments.slice(0, 8).map((segment) => {
+    const rms = `rms ${formatDb(segment.rmsMinDb)}/${formatDb(segment.rmsMaxDb)}/${formatDb(segment.rmsAvgDb)}`;
+    const classification = segment.pauseClassification ? `${segment.pauseClassification}` : "unclassified";
+    const decision = segment.cutDecisionReason ? ` - ${segment.cutDecisionReason}` : "";
+    return `${formatSeconds(segment.startSec)}-${formatSeconds(segment.endSec)} (${formatSeconds(segment.durationSec)}) ${classification} ${segment.reason}${decision} ${rms}`;
+  }).join(" | ");
+}
+
+function formatDb(value: number | undefined): string {
+  if (value == null) return "n/a";
+  if (!Number.isFinite(value)) return String(value);
+  return `${Math.round(value * 1000) / 1000}dB`;
+}
+
+function formatTimelineV1A1(discovery: SilenceRemovalRunResult["apply"] extends infer Apply
+  ? Apply extends { timelineClipDiscovery?: infer Discovery } ? Discovery | undefined : never
+  : never): string {
+  if (!discovery) return "None";
+  return `V1:${discovery.v1ClipCount ?? 0} A1:${discovery.a1ClipCount ?? 0}`;
+}
+
+function formatSpeakerSegmentsPerMic(
+  items: NonNullable<PodcastCameraDecisionPlanProof["diagnostics"]>["speakerSegmentsPerMicrophone"] | undefined,
+): string {
+  if (!Array.isArray(items) || !items.length) return "None";
+  return items.map((item) => `A${item.audioTrackIndex + 1}:${item.segments}`).join(", ");
+}
+
+function formatApplyDecisionDiagnostics(
+  items: ApplyCameraDecisionsVisualOnlyResult["segmentResults"] | undefined,
+): string {
+  if (!Array.isArray(items) || !items.length) return "None";
+  return items.slice(0, 8).map((item) => {
+    const valid = item.isValidTiming === false ? `invalid:${item.invalidReason || "unknown"}` : "valid";
+    const clip = item.matchingSourceClipFound ? `${item.matchingClipName || item.clipName}` : "no-clip";
+    return `#${item.decisionIndex} ${item.cameraLabel} V${(item.videoTrackIndex ?? -1) + 1} ${formatSeconds(item.decisionStartSec)}-${formatSeconds(item.decisionEndSec)} ${valid} ${clip} overlap=${formatSeconds(item.overlapDurationSec ?? 0)}`;
+  }).join(" | ");
 }
 
 function sourcePathSummary(sources: AudioSourceInfo[]): string {

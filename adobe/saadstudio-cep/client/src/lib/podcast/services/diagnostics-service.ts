@@ -27,6 +27,7 @@ export async function getPodcastDiagnostics(): Promise<PodcastDiagnostics> {
 
   return {
     activeSequence,
+    sequenceId: sequence?.sequenceId ?? null,
     sequenceName: sequence?.sequenceName ?? null,
     premiereVersion: sequence?.premiereVersion ?? hostEnv?.appVersion ?? null,
     videoTrackCount: sequence?.videoTrackCount ?? 0,

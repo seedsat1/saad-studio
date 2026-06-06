@@ -84,6 +84,8 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"hailuo23f",     name:"Hailuo 2.3 Fast",         notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:6.0,   waveUsd:0,     userCreditsRate:1.03,  maxDuration:10,   isActive:true  },
   { id:"hailuo23",      name:"Hailuo 2.3",              notes:"pro",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:10,   isActive:true  },
   { id:"grok_vid",      name:"Grok Imagine Video",      notes:"T2V/I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:9.0,   waveUsd:0,     userCreditsRate:1.54,  maxDuration:20,   isActive:true  },
+  { id:"grok_vid_v15",  name:"Grok Imagine Video 1.5",  notes:"T2V",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:10.0,  waveUsd:0,     userCreditsRate:1.71,  maxDuration:15,   isActive:true  },
+  { id:"grok_vid_v15_i2v", name:"Grok Imagine Video 1.5 I2V", notes:"I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:11.0,  waveUsd:0,     userCreditsRate:1.88,  maxDuration:15,   isActive:true  },
   { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:6.0,  maxDuration:15,   isActive:true  },
   { id:"seedance2",     name:"Seedance 2.0",            notes:"HQ",           type:"video",  provider:"kie",       billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:7.0,  maxDuration:15,   isActive:true  },
   // ── CINEMA — per second via KIE ─────────────────────────────────────────────
