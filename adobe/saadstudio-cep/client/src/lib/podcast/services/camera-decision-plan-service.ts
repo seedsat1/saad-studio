@@ -1,4 +1,5 @@
 import type {
+  CameraMapping,
   DominantTrackWindow,
   PodcastCameraDecisionPlanProof,
   PodcastCameraDecisionProofItem,
@@ -13,6 +14,7 @@ export interface CameraDecisionPlanProofInput {
   dominantTrackAtTime: DominantTrackWindow[];
   overlaps: TrackOverlapWindow[];
   trackSpeakingSegments?: TrackSpeakingSegment[];
+  cameraMappings?: CameraMapping[];
   timelineDurationSec?: number;
   videoTrackCount?: number;
 }
@@ -25,11 +27,18 @@ export function generateCameraDecisionPlanProof(
   if (!input.dominantTrackAtTime.length) blockers.push("DOMINANT_TRACK_WINDOWS_REQUIRED");
 
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
+  const cameraMap = buildCameraMap(input.cameraMappings ?? []);
+  const usedSpeakerIds = usedSpeakerIdsFromInput(input);
+  const missingCameraMappings = usedSpeakerIds.filter((speakerId) => !cameraMap.has(speakerId));
+  if (missingCameraMappings.length > 0) {
+    blockers.push("MISSING_CAMERA_MAPPING_FOR_SPEAKER");
+    warnings.push(...missingCameraMappings.map((speakerId) => `MISSING_CAMERA_MAPPING_FOR_SPEAKER:${speakerId}`));
+  }
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
   const sourceDecisions = (input.trackSpeakingSegments?.length ?? 0) > 0
-    ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount)
+    ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount, cameraMap)
     : input.dominantTrackAtTime.map((window, index) =>
-      windowToCameraDecision(window, overlapKeys, index, videoTrackCount));
+      windowToCameraDecision(window, overlapKeys, index, videoTrackCount, cameraMap));
   const rawDecisions = sortDecisions(sourceDecisions);
   const merged = mergeAdjacentDecisions(rawDecisions);
   const compacted = mergeShortDecisions(merged);
@@ -60,21 +69,24 @@ function windowToCameraDecision(
   overlapKeys: Set<string>,
   index: number,
   videoTrackCount: number,
+  cameraMap: Map<string, number>,
 ): PodcastCameraDecisionProofItem {
   const hasOverlap = overlapKeys.has(timeKey(window.timelineStartSec, window.timelineEndSec));
   if (hasOverlap) {
-    const wideTrackIndex = Math.min(2, videoTrackCount - 1);
+    const wideTrackIndex = Math.min(cameraMap.get("wide") ?? 2, videoTrackCount - 1);
     return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlap detected; using wide camera");
   }
   if (typeof window.audioTrackIndex === "number" && window.audioTrackIndex >= 0) {
-    const videoTrackIndex = Math.min(window.audioTrackIndex, videoTrackCount - 1);
+    const speakerId = window.speakerId ?? `speaker_${window.audioTrackIndex + 1}`;
+    const mappedVideoTrackIndex = cameraMap.get(speakerId);
+    const videoTrackIndex = Math.min(mappedVideoTrackIndex ?? -1, videoTrackCount - 1);
     return makeDecision(
       window.timelineStartSec,
       window.timelineEndSec,
-      window.speakerId ?? `speaker_${window.audioTrackIndex + 1}`,
+      speakerId,
       window.audioTrackIndex,
       videoTrackIndex,
-      `V${videoTrackIndex + 1}`,
+      videoTrackIndex >= 0 ? `V${videoTrackIndex + 1}` : "UNMAPPED",
       "dominant microphone mapped to matching camera track",
     );
   }
@@ -92,6 +104,7 @@ function windowToCameraDecision(
 function decisionsFromSpeakingSegments(
   segments: TrackSpeakingSegment[],
   videoTrackCount: number,
+  cameraMap: Map<string, number>,
 ): PodcastCameraDecisionProofItem[] {
   const validSegments = segments
     .filter((segment) =>
@@ -120,25 +133,48 @@ function decisionsFromSpeakingSegments(
     }
 
     if (active.length > 1) {
-      const wideTrackIndex = Math.min(2, videoTrackCount - 1);
+      const wideTrackIndex = Math.min(cameraMap.get("wide") ?? 2, videoTrackCount - 1);
       decisions.push(makeDecision(startSec, endSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlapping speaking segments; using wide camera"));
       continue;
     }
 
     const segment = active[0];
-    const videoTrackIndex = Math.min(segment.audioTrackIndex, videoTrackCount - 1);
+    const mappedVideoTrackIndex = cameraMap.get(segment.speakerId);
+    const videoTrackIndex = Math.min(mappedVideoTrackIndex ?? -1, videoTrackCount - 1);
     decisions.push(makeDecision(
       startSec,
       endSec,
       segment.speakerId,
       segment.audioTrackIndex,
       videoTrackIndex,
-      `V${videoTrackIndex + 1}`,
+      videoTrackIndex >= 0 ? `V${videoTrackIndex + 1}` : "UNMAPPED",
       "speaking segment mapped to matching camera track",
     ));
   }
 
   return decisions;
+}
+
+function buildCameraMap(mappings: CameraMapping[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const mapping of mappings) {
+    if (!mapping.speakerId || !Number.isFinite(mapping.videoTrackIndex)) continue;
+    map.set(mapping.speakerId, mapping.videoTrackIndex);
+  }
+  return map;
+}
+
+function usedSpeakerIdsFromInput(input: CameraDecisionPlanProofInput): string[] {
+  const ids = new Set<string>();
+  for (const segment of input.trackSpeakingSegments ?? []) {
+    if (segment.speakerId) ids.add(segment.speakerId);
+  }
+  if (ids.size === 0) {
+    for (const window of input.dominantTrackAtTime) {
+      if (window.speakerId) ids.add(window.speakerId);
+    }
+  }
+  return [...ids].filter((speakerId) => speakerId !== "wide");
 }
 
 function makeDecision(
@@ -273,7 +309,8 @@ function isValidDecisionTiming(decision: PodcastCameraDecisionProofItem): boolea
     && Number.isFinite(decision.durationSec)
     && decision.startSec >= 0
     && decision.endSec > decision.startSec
-    && decision.durationSec > 0;
+    && decision.durationSec > 0
+    && decision.videoTrackIndex >= 0;
 }
 
 function findInvalidDecisions(decisions: PodcastCameraDecisionProofItem[]): Array<{ index: number; reason: string }> {

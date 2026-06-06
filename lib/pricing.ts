@@ -144,6 +144,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/v1-lite-text-to-video":              "seedance2f",
   "grok-imagine/text-to-video":                   "grok_vid",
   "grok-imagine/image-to-video":                  "grok_vid",
+  "grok-imagine/text-to-video-1-5":               "grok_vid_v15",
+  "grok-imagine/image-to-video-1-5":              "grok_vid_v15_i2v",
 
   // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
   "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
@@ -166,6 +168,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
   "x-ai/grok-imagine-video/text-to-video":        "grok_vid",
   "x-ai/grok-imagine-video/edit-video":           "grok_vid",
+  "x-ai/grok-imagine-video/text-to-video-1-5":    "grok_vid_v15",
+  "x-ai/grok-imagine-video/edit-video-1-5":       "grok_vid_v15_i2v",
 
   // ── 3D — app/api/3d (endpointKey = modelId.mode) ─────────────────────────
   "tripo3d-2.5.image":        "tripo25",

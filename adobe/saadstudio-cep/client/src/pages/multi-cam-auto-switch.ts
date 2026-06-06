@@ -273,9 +273,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ),
       ),
       el("div.podcast-camera-map", null,
-        renderMappingRow("speaker_1"),
-        renderMappingRow("speaker_2"),
-        renderMappingRow("speaker_3"),
+        ...getCameraMappingSpeakerIds().map((speakerId) => renderMappingRow(speakerId)),
       ),
       el("div.podcast-settings.podcast-settings--compact", null,
         renderField("Wide Camera Settings",
@@ -652,9 +650,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ),
       ),
       el("div.podcast-audio-map", null,
-        renderAudioMappingRow("speaker_1"),
-        renderAudioMappingRow("speaker_2"),
-        renderAudioMappingRow("speaker_3"),
+        ...getAudioMappingSpeakerIds().map((speakerId) => renderAudioMappingRow(speakerId)),
       ),
       proof
         ? el("div.podcast-proof", null,
@@ -1128,11 +1124,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function renderTimelineMapping(videoTracks: PodcastTrackInfo[], audioTracks: PodcastTrackInfo[]): HTMLElement {
-    const rows = ["speaker_1", "speaker_2", "speaker_3"].map((speakerId, index) => {
-      const audio = audioTracks[index];
-      const videoIndex = state.mappings[speakerId] ?? index;
+    const rows = getCameraMappingSpeakerIds().map((speakerId) => {
+      const audioIndex = state.audioMappings[speakerId] ?? speakerIndexFromId(speakerId);
+      const audio = audioTracks[audioIndex];
+      const videoIndex = state.mappings[speakerId] ?? 0;
       const video = videoTracks[videoIndex];
-      return `${audio ? `A${audio.index + 1}` : `A${index + 1}`} ${speakerId} -> ${video ? `V${video.index + 1}` : `V${videoIndex + 1}`}`;
+      return `${audio ? `A${audio.index + 1}` : `A${audioIndex + 1}`} ${speakerId} -> ${video ? `V${video.index + 1}` : `V${videoIndex + 1}`}`;
     });
     rows.push(`Wide -> V${(state.mappings.wide ?? 0) + 1}`);
     return el("div.podcast-track-group.podcast-track-group--wide", null,
@@ -1148,9 +1145,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         el("button.form-select", { disabled: true }, "Manual Speaker Segments JSON")),
       renderField("Camera Mapping Section",
         el("div.podcast-camera-map", null,
-          renderMappingRow("speaker_1"),
-          renderMappingRow("speaker_2"),
-          renderMappingRow("speaker_3"),
+          ...getCameraMappingSpeakerIds().map((speakerId) => renderMappingRow(speakerId)),
           renderMappingRow("wide"),
         ), true),
       renderField("Minimum Shot Length",
@@ -1466,7 +1461,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     try {
       state.timelineLayout = await analyzeTimelineLayout();
       const videoCount = state.timelineLayout.videoTracks.length;
+      ensureAudioMappingsForTimeline();
       if (videoCount > 0) {
+        ensureCameraMappingsForAudioTracks();
         for (const key of Object.keys(state.mappings)) {
           state.mappings[key] = Math.min(state.mappings[key] ?? 0, videoCount - 1);
         }
@@ -1493,6 +1490,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     try {
       const sourceProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
       state.sourceAttributionProof = bindSourceAttributionToTimeline(sourceProof, layout);
+      ensureCameraMappingsForAudioTracks();
       const sourceBlockers = getMappedTrackSourceBlockers(state.sourceAttributionProof);
       if (sourceBlockers.length > 0) {
         state.cameraDecisionPlanProof = blockedCameraDecisionPlan(sourceBlockers, layout);
@@ -1504,6 +1502,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         dominantTrackAtTime: state.sourceAttributionProof.dominantTrackAtTime,
         overlaps: state.sourceAttributionProof.overlaps,
         trackSpeakingSegments: state.sourceAttributionProof.trackSpeakingSegments,
+        cameraMappings: getCameraMappings(),
         timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
         videoTrackCount: layout.videoTracks.length,
         }),
@@ -1825,6 +1824,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       dominantTrackAtTime: state.sourceAttributionProof.dominantTrackAtTime,
       overlaps: state.sourceAttributionProof.overlaps,
       trackSpeakingSegments: state.sourceAttributionProof.trackSpeakingSegments,
+      cameraMappings: getCameraMappings(),
       timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
       videoTrackCount: layout.videoTracks.length,
       }),
@@ -2196,26 +2196,77 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function getCameraMappings(): CameraMapping[] {
-    return Object.entries(state.mappings).map(([speakerId, videoTrackIndex]) => ({
+    const visibleSpeakerIds = new Set([...getCameraMappingSpeakerIds(), "wide"]);
+    return [...visibleSpeakerIds].map((speakerId) => ({
       speakerId,
-      videoTrackIndex,
+      videoTrackIndex: state.mappings[speakerId],
       cameraLabel: speakerId === "wide" ? "Wide camera" : speakerId,
       fallback: speakerId === "wide",
-    }));
+    })).filter((mapping) => Number.isFinite(mapping.videoTrackIndex));
+  }
+
+  function getCameraMappingSpeakerIds(): string[] {
+    const activeSpeakerIds = new Set<string>();
+    for (const segment of state.sourceAttributionProof?.trackSpeakingSegments ?? []) {
+      if (segment.speakerId) activeSpeakerIds.add(segment.speakerId);
+    }
+    for (const window of state.sourceAttributionProof?.dominantTrackAtTime ?? []) {
+      if (window.speakerId) activeSpeakerIds.add(window.speakerId);
+    }
+    if (activeSpeakerIds.size > 0) {
+      return [...activeSpeakerIds].filter((speakerId) => speakerId !== "wide").sort(compareSpeakerIds);
+    }
+    return getAudioMappings().map((mapping) => mapping.speakerId);
+  }
+
+  function ensureCameraMappingsForAudioTracks() {
+    const videoCount = state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount;
+    if (videoCount <= 0) return;
+    const speakerIds = new Set([...getAudioMappingSpeakerIds(), ...getCameraMappingSpeakerIds()]);
+    for (const speakerId of speakerIds) {
+      if (speakerId === "wide") continue;
+      if (typeof state.mappings[speakerId] === "number") continue;
+      state.mappings[speakerId] = Math.min(speakerIndexFromId(speakerId), videoCount - 1);
+    }
+    if (typeof state.mappings.wide !== "number") state.mappings.wide = Math.min(2, videoCount - 1);
   }
 
   function getAudioMappings(): AudioTrackSpeakerMapping[] {
+    return getAudioMappingSpeakerIds().map((speakerId) => {
+      const fallbackAudioTrackIndex = speakerIndexFromId(speakerId);
+      const audioTrackIndex = state.audioMappings[speakerId] ?? fallbackAudioTrackIndex;
+      return {
+        speakerId,
+        audioTrackIndex,
+        audioTrackLabel: `A${audioTrackIndex + 1}`,
+      };
+    });
+  }
+
+  function getAudioMappingSpeakerIds(): string[] {
     const count = Math.max(
       state.timelineLayout?.audioTracks.length ?? 0,
       state.diagnostics.audioTrackCount ?? 0,
       Object.keys(state.audioMappings).length,
     );
-    return Array.from({ length: count }, (_, index) => ({
-      speakerId: `speaker_${index + 1}`,
-      audioTrackIndex: index,
-      audioTrackLabel: `A${index + 1}`,
-    }));
+    return Array.from({ length: count }, (_, index) => `speaker_${index + 1}`);
   }
+
+  function ensureAudioMappingsForTimeline() {
+    for (const speakerId of getAudioMappingSpeakerIds()) {
+      if (typeof state.audioMappings[speakerId] === "number") continue;
+      state.audioMappings[speakerId] = speakerIndexFromId(speakerId);
+    }
+  }
+}
+
+function compareSpeakerIds(a: string, b: string): number {
+  return speakerIndexFromId(a) - speakerIndexFromId(b) || a.localeCompare(b);
+}
+
+function speakerIndexFromId(speakerId: string): number {
+  const match = speakerId.match(/speaker_(\d+)/);
+  return match ? Math.max(0, Number(match[1]) - 1) : 0;
 }
 
 function formatSeconds(value: number): string {
