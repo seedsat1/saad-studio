@@ -139,6 +139,7 @@ const VIDEO_FEATURES = [
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
+  { label: "Video Extend",        href: "/video-extend",    icon: Film,         color: "text-pink-400",    description: "Upload a clip and extend its duration",  badge: "NEW" },
   { label: "Studio Edit",         href: "/studio-edit",     icon: Scissors,     color: "text-amber-400",   description: "AI post-production clipping, captions & dubbing", badge: "NEW" },
   { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
   { label: "Sora 2 Trends",       href: "/video?tool=sora-trends",      icon: TrendingUp,   color: "text-sky-400",     description: "Viral cinematic templates",              badge: "" },

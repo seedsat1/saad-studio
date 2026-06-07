@@ -98,8 +98,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!kind) {
     return NextResponse.json({ error: 'kind is required (image | video).' }, { status: 400 });
   }
-  if (!src) {
-    return NextResponse.json({ error: 'src (clip URL) is required.' }, { status: 400 });
+  if ((kind === 'image' || kind === 'psd') && !src) {
+    return NextResponse.json({ error: 'src (clip URL) is required for image expansion.' }, { status: 400 });
   }
 
   try {
