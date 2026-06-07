@@ -143,6 +143,10 @@ function detectMediaType(file: File): InputType {
   return file.type.startsWith("video/") ? "video" : "image";
 }
 
+function detectMediaTypeFromUrl(url: string): InputType {
+  return /\.(mp4|mov|webm|mkv|m4v)(\?|#|$)/i.test(url) ? "video" : "image";
+}
+
 function validateVideoDuration(file: File, minSec = 3, maxSec = 15): Promise<number> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
@@ -268,7 +272,7 @@ function getClosestAspectRatio(width: number, height: number): string {
   return closest.label;
 }
 
-function getMediaDimensions(file: File, type: "image" | "video"): Promise<{ width: number; height: number }> {
+function getMediaDimensions(file: File, type: "image" | "video"): Promise<{ width: number; height: number; duration?: number }> {
   return new Promise((resolve) => {
     if (type === "video") {
       const video = document.createElement("video");
@@ -279,7 +283,11 @@ function getMediaDimensions(file: File, type: "image" | "video"): Promise<{ widt
       video.src = url;
       video.onloadedmetadata = () => {
         URL.revokeObjectURL(url);
-        resolve({ width: video.videoWidth || 1920, height: video.videoHeight || 1080 });
+        resolve({
+          width: video.videoWidth || 1920,
+          height: video.videoHeight || 1080,
+          duration: Number.isFinite(video.duration) ? video.duration : undefined,
+        });
       };
       video.onerror = () => {
         URL.revokeObjectURL(url);
@@ -527,7 +535,7 @@ function InputSlot({
   slot,
   mediaUrl,
   mediaType,
-  frameReady,
+  frameReady = true,
   onFile,
   onClear,
   onUrlPaste,
@@ -588,10 +596,10 @@ function InputSlot({
         <div className="absolute bottom-1.5 left-2 flex items-center gap-1">
           {isVideo ? <Video className="h-2.5 w-2.5 text-white/50" /> : <ImageIcon className="h-2.5 w-2.5 text-white/50" />}
           <span className="text-[8px] text-white/50">{mediaType}</span>
-          {isVideo && frameReady && (
+          {false && isVideo && frameReady && (
             <span className="text-[8px] text-emerald-400 font-semibold">· frame ✓</span>
           )}
-          {isVideo && !frameReady && (
+          {false && isVideo && !frameReady && (
             <span className="text-[8px] text-amber-400 font-semibold">· extracting…</span>
           )}
         </div>
@@ -949,9 +957,11 @@ export default function TransitionsStudioPage() {
   const [inputAUrl, setInputAUrl] = useState<string | null>(null);
   const [inputAType, setInputAType] = useState<InputType>("image");
   const [inputAFrameUrl, setInputAFrameUrl] = useState<string | null>(null);
+  const [inputADuration, setInputADuration] = useState<number | null>(null);
   const [inputBUrl, setInputBUrl] = useState<string | null>(null);
   const [inputBType, setInputBType] = useState<InputType>("image");
   const [inputBFrameUrl, setInputBFrameUrl] = useState<string | null>(null);
+  const [inputBDuration, setInputBDuration] = useState<number | null>(null);
 
   // Settings
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
@@ -1184,18 +1194,8 @@ export default function TransitionsStudioPage() {
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputAType(type);
       setInputAUrl(uploadedUrl);
-      if (type === "video") {
-        const frame = await extractVideoFrame(previewUrl, "first").catch(() => null);
-        if (frame) {
-          const frameFile = dataUrlToFile(frame, `${file.name || "input-a"}-first-frame.jpg`);
-          const frameUrl = await uploadTransitionAsset(frameFile, "thumbnail");
-          setInputAFrameUrl(frameUrl);
-        } else {
-          setInputAFrameUrl(null);
-        }
-      } else {
-        setInputAFrameUrl(null);
-      }
+      setInputADuration(type === "video" ? dims.duration ?? null : null);
+      setInputAFrameUrl(null);
       URL.revokeObjectURL(previewUrl);
       markDirty();
       setGenStatus("idle");
@@ -1221,18 +1221,8 @@ export default function TransitionsStudioPage() {
       const uploadedUrl = await uploadTransitionAsset(file, type);
       setInputBType(type);
       setInputBUrl(uploadedUrl);
-      if (type === "video") {
-        const frame = await extractVideoFrame(previewUrl, "last").catch(() => null);
-        if (frame) {
-          const frameFile = dataUrlToFile(frame, `${file.name || "input-b"}-last-frame.jpg`);
-          const frameUrl = await uploadTransitionAsset(frameFile, "thumbnail");
-          setInputBFrameUrl(frameUrl);
-        } else {
-          setInputBFrameUrl(null);
-        }
-      } else {
-        setInputBFrameUrl(null);
-      }
+      setInputBDuration(type === "video" ? dims.duration ?? null : null);
+      setInputBFrameUrl(null);
       URL.revokeObjectURL(previewUrl);
       markDirty();
       setGenStatus("idle");
@@ -1265,11 +1255,12 @@ export default function TransitionsStudioPage() {
     setStageMode("input");
 
     try {
+      const preserveVideoInputs = inputAType === "video" && inputBType === "video";
       let activeAFrameUrl = inputAFrameUrl;
       let activeBFrameUrl = inputBFrameUrl;
 
       // Extract frames on-the-fly for video inputs if they are missing
-      if (inputAType === "video" && !activeAFrameUrl) {
+      if (!preserveVideoInputs && inputAType === "video" && !activeAFrameUrl) {
         setGenError("Extracting start frame from clip A...");
         const frame = await extractVideoFrame(inputAUrl, "first").catch(() => null);
         if (frame) {
@@ -1279,7 +1270,7 @@ export default function TransitionsStudioPage() {
         }
       }
 
-      if (inputBType === "video" && !activeBFrameUrl) {
+      if (!preserveVideoInputs && inputBType === "video" && !activeBFrameUrl) {
         setGenError("Extracting end frame from clip B...");
         const frame = await extractVideoFrame(inputBUrl, "last").catch(() => null);
         if (frame) {
@@ -1323,14 +1314,17 @@ export default function TransitionsStudioPage() {
 
       setGenStatus("queued");
 
-      const res = await fetch("/api/transitions/generate", {
+      const endpoint = preserveVideoInputs ? "/api/transitions/stitch" : "/api/transitions/generate";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: pid,
           presetId: selectedPresetId,
-          inputAUrl: activeAFrameUrl ?? inputAUrl,
-          inputBUrl: activeBFrameUrl ?? inputBUrl,
+          inputAUrl: preserveVideoInputs ? inputAUrl : activeAFrameUrl ?? inputAUrl,
+          inputBUrl: preserveVideoInputs ? inputBUrl : activeBFrameUrl ?? inputBUrl,
+          inputADuration,
+          inputBDuration,
           duration,
           aspectRatio,
           ...controls,
@@ -1348,8 +1342,17 @@ export default function TransitionsStudioPage() {
         throw new Error(data.error ?? "Generation failed");
       }
 
-      setCurrentJobId(data.jobId);
-      setGenStatus("processing");
+      if (data.status === "completed" && data.output) {
+        setGenStatus("completed");
+        setCurrentOutput(data.output);
+        setOutputs((prev) => [data.output, ...prev.filter((o) => o.id !== data.output.id)]);
+        setStageMode("output");
+        setGallerySaved(true);
+        setTimeout(() => setGallerySaved(false), 5000);
+      } else {
+        setCurrentJobId(data.jobId);
+        setGenStatus("processing");
+      }
       if (typeof data.remainingCredits === "number") setCreditBalance(data.remainingCredits);
     } catch (err) {
       setGenStatus("failed");
@@ -1362,6 +1365,7 @@ export default function TransitionsStudioPage() {
   const handleReuseAsA = (output: TransitionOutput) => {
     setInputAUrl(output.url);
     setInputAType("video");
+    setInputADuration(output.duration ?? null);
     setStageMode("input");
     setGenStatus("idle");
     markDirty();
@@ -1370,6 +1374,7 @@ export default function TransitionsStudioPage() {
   const handleReuseAsB = (output: TransitionOutput) => {
     setInputBUrl(output.url);
     setInputBType("video");
+    setInputBDuration(output.duration ?? null);
     setStageMode("input");
     setGenStatus("idle");
     markDirty();
@@ -1581,10 +1586,10 @@ export default function TransitionsStudioPage() {
                     slot="A"
                     mediaUrl={inputAUrl}
                     mediaType={inputAType}
-                    frameReady={inputAType === "video" ? !!inputAFrameUrl : undefined}
+                    frameReady
                     onFile={handleFileA}
-                    onClear={() => { setInputAUrl(null); setInputAFrameUrl(null); markDirty(); }}
-                    onUrlPaste={(url) => { setInputAUrl(url); setInputAType("image"); markDirty(); }}
+                    onClear={() => { setInputAUrl(null); setInputAFrameUrl(null); setInputADuration(null); markDirty(); }}
+                    onUrlPaste={(url) => { setInputAUrl(url); setInputAType(detectMediaTypeFromUrl(url)); setInputADuration(null); markDirty(); }}
                   />
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.05)" }} />
@@ -1598,10 +1603,10 @@ export default function TransitionsStudioPage() {
                     slot="B"
                     mediaUrl={inputBUrl}
                     mediaType={inputBType}
-                    frameReady={inputBType === "video" ? !!inputBFrameUrl : undefined}
+                    frameReady
                     onFile={handleFileB}
-                    onClear={() => { setInputBUrl(null); setInputBFrameUrl(null); markDirty(); }}
-                    onUrlPaste={(url) => { setInputBUrl(url); setInputBType("image"); markDirty(); }}
+                    onClear={() => { setInputBUrl(null); setInputBFrameUrl(null); setInputBDuration(null); markDirty(); }}
+                    onUrlPaste={(url) => { setInputBUrl(url); setInputBType(detectMediaTypeFromUrl(url)); setInputBDuration(null); markDirty(); }}
                   />
 
                   {selectedPreset && (
