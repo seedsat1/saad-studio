@@ -41,21 +41,30 @@ export async function POST(req: NextRequest) {
     }
 
     const completion = await openai.chat.completions.create({
-      model: process.env.PROMPT_EXTRACTOR_MODEL || "gpt-4o-mini",
-      temperature: 0.25,
-      max_tokens: 700,
+      model: process.env.PROMPT_EXTRACTOR_MODEL || "gpt-4o",
+      temperature: 0.12,
+      max_tokens: 1200,
       messages: [
         {
           role: "system",
           content:
-            "You convert images into production-ready prompts for image/video generation. Return one polished English prompt only. Include subject, setting, composition, camera/lens, lighting, color palette, materials, mood, style, and quality details. Do not mention that you analyzed an image.",
+            [
+              "You are an expert image-to-prompt and OCR analyst.",
+              "First identify every visible text element in the image, including Arabic, English, numbers, names, labels, captions, badges, and UI-like panels.",
+              "Preserve readable text verbatim whenever possible. Do not translate Arabic names or titles unless you also keep the original Arabic.",
+              "Then write a production-ready generation prompt that recreates the full design, not just the scene.",
+              "The prompt must include layout, typography, exact visible text, logos/icons, panels, colors, lighting, background, subject placement, materials, and style.",
+              "If any text is partially unreadable, mark it as partially readable instead of inventing it.",
+              "Return only the final prompt. No markdown heading.",
+            ].join(" "),
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Extract a detailed generation prompt from this image. Keep it cinematic, concrete, and directly usable.",
+              text:
+                "Extract a faithful prompt from this image. Include all readable Arabic and English text verbatim, the full graphic layout, and every important design element.",
             },
             {
               type: "image_url",
