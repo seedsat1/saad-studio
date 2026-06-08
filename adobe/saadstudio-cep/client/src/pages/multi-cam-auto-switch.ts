@@ -151,12 +151,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     silencePaddingBeforeSec: 0.08,
     silencePaddingAfterSec: 0.12,
     executionStrategy: "decision-plan-only" as PodcastExecutionStrategy,
-    mappings: {
-      speaker_1: 0,
-      speaker_2: 1,
-      speaker_3: 2,
-      wide: 0,
-    } as Record<string, number>,
+    mappings: {} as Record<string, number>,
+    cameraMappingTouched: false,
     audioMappings: {
       speaker_1: 0,
       speaker_2: 1,
@@ -444,7 +440,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         renderSummaryTile("Sequence", state.diagnostics.sequenceName || "No active sequence"),
         renderSummaryTile("Tracks", `${state.diagnostics.videoTrackCount || 0} video / ${state.diagnostics.audioTrackCount || 0} audio`),
         renderSummaryTile("Decisions", plan ? `${plan.summary.totalDecisions} camera cuts` : "Not previewed"),
-        renderSummaryTile("Wide Camera", plan ? `${formatSeconds(plan.summary.wideCameraTimeSec)}` : `V${(state.mappings.wide ?? 0) + 1}`),
+        renderSummaryTile("Wide Camera", plan ? `${formatSeconds(plan.summary.wideCameraTimeSec)}` : formatMappedCameraLabel("wide")),
         renderSummaryTile("Inserted", apply ? `${apply.segmentsInserted} visual segments` : "Not applied"),
         renderSummaryTile("Draft", apply?.ok ? "Created on duplicate sequence" : "Original untouched"),
       ),
@@ -1127,11 +1123,11 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const rows = getCameraMappingSpeakerIds().map((speakerId) => {
       const audioIndex = state.audioMappings[speakerId] ?? speakerIndexFromId(speakerId);
       const audio = audioTracks[audioIndex];
-      const videoIndex = state.mappings[speakerId] ?? 0;
-      const video = videoTracks[videoIndex];
-      return `${audio ? `A${audio.index + 1}` : `A${audioIndex + 1}`} ${speakerId} -> ${video ? `V${video.index + 1}` : `V${videoIndex + 1}`}`;
+      const videoIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, Math.max(1, videoTracks.length));
+      const video = videoIndex == null ? null : videoTracks[videoIndex];
+      return `${audio ? `A${audio.index + 1}` : `A${audioIndex + 1}`} ${speakerId} -> ${video ? `V${video.index + 1}` : "Unmapped"}`;
     });
-    rows.push(`Wide -> V${(state.mappings.wide ?? 0) + 1}`);
+    rows.push(`Wide -> ${formatMappedCameraLabel("wide")}`);
     return el("div.podcast-track-group.podcast-track-group--wide", null,
       el("h4", null, "Mapping"),
       ...rows.map((line) => el("div.podcast-track-row", null, el("span", null, line))),
@@ -1197,13 +1193,22 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function renderTrackSelect(speakerId: string): HTMLElement {
     const count = Math.max(1, state.diagnostics.videoTrackCount || 4);
+    const selectedTrackIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, count);
     return el("select.podcast-select", {
-      value: String(state.mappings[speakerId] ?? 0),
+      value: selectedTrackIndex == null ? "" : String(selectedTrackIndex),
       onChange: (event: Event) => {
-        state.mappings[speakerId] = Number((event.currentTarget as HTMLSelectElement).value);
+        state.cameraMappingTouched = true;
+        const value = (event.currentTarget as HTMLSelectElement).value;
+        if (value === "") {
+          delete state.mappings[speakerId];
+        } else {
+          state.mappings[speakerId] = Number(value);
+        }
         render();
       },
-    }, ...Array.from({ length: count }, (_, index) =>
+    },
+    el("option", { value: "" }, "Select camera"),
+    ...Array.from({ length: count }, (_, index) =>
       el("option", { value: String(index) }, `V${index + 1}`)));
   }
 
@@ -2197,12 +2202,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function getCameraMappings(): CameraMapping[] {
     const visibleSpeakerIds = new Set([...getCameraMappingSpeakerIds(), "wide"]);
-    return [...visibleSpeakerIds].map((speakerId) => ({
-      speakerId,
-      videoTrackIndex: state.mappings[speakerId],
-      cameraLabel: speakerId === "wide" ? "Wide camera" : speakerId,
-      fallback: speakerId === "wide",
-    })).filter((mapping) => Number.isFinite(mapping.videoTrackIndex));
+    const videoCount = Math.max(1, state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount ?? 4);
+    return [...visibleSpeakerIds].flatMap((speakerId) => {
+      const videoTrackIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, videoCount);
+      if (videoTrackIndex == null) return [];
+      return [{
+        speakerId,
+        videoTrackIndex,
+        cameraLabel: speakerId === "wide" ? "Wide camera" : speakerId,
+        fallback: speakerId === "wide",
+      }];
+    });
   }
 
   function getCameraMappingSpeakerIds(): string[] {
@@ -2222,13 +2232,26 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   function ensureCameraMappingsForAudioTracks() {
     const videoCount = state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount;
     if (videoCount <= 0) return;
-    const speakerIds = new Set([...getAudioMappingSpeakerIds(), ...getCameraMappingSpeakerIds()]);
-    for (const speakerId of speakerIds) {
-      if (speakerId === "wide") continue;
-      if (typeof state.mappings[speakerId] === "number") continue;
-      state.mappings[speakerId] = Math.min(speakerIndexFromId(speakerId), videoCount - 1);
+    for (const [speakerId, videoTrackIndex] of Object.entries(state.mappings)) {
+      if (!Number.isFinite(videoTrackIndex) || videoTrackIndex < 0 || videoTrackIndex >= videoCount) {
+        delete state.mappings[speakerId];
+      }
     }
-    if (typeof state.mappings.wide !== "number") state.mappings.wide = Math.min(2, videoCount - 1);
+  }
+
+  function getExplicitVideoTrackIndexForSpeaker(speakerId: string, videoTrackCount: number): number | null {
+    if (typeof state.mappings[speakerId] === "number") {
+      return Math.max(0, Math.min(state.mappings[speakerId], videoTrackCount - 1));
+    }
+    return null;
+  }
+
+  function formatMappedCameraLabel(speakerId: string): string {
+    const videoTrackIndex = getExplicitVideoTrackIndexForSpeaker(
+      speakerId,
+      Math.max(1, state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount ?? 4),
+    );
+    return videoTrackIndex == null ? "Unmapped" : `V${videoTrackIndex + 1}`;
   }
 
   function getAudioMappings(): AudioTrackSpeakerMapping[] {

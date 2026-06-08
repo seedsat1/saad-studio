@@ -34,11 +34,22 @@ export function generateCameraDecisionPlanProof(
     blockers.push("MISSING_CAMERA_MAPPING_FOR_SPEAKER");
     warnings.push(...missingCameraMappings.map((speakerId) => `MISSING_CAMERA_MAPPING_FOR_SPEAKER:${speakerId}`));
   }
+  if (input.overlaps.length > 0 && !cameraMap.has("wide")) {
+    blockers.push("MISSING_CAMERA_MAPPING_FOR_WIDE_CAMERA");
+  }
+  const mappedCameraIndexes = new Set(
+    usedSpeakerIds
+      .map((speakerId) => cameraMap.get(speakerId))
+      .filter((videoTrackIndex): videoTrackIndex is number => Number.isFinite(videoTrackIndex)),
+  );
+  if (usedSpeakerIds.length > 1 && mappedCameraIndexes.size <= 1 && videoTrackCount > 1) {
+    blockers.push("CAMERA_MAPPING_COLLAPSED_TO_SINGLE_CAMERA");
+  }
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
   const sourceDecisions = (input.trackSpeakingSegments?.length ?? 0) > 0
     ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount, cameraMap)
-    : input.dominantTrackAtTime.map((window, index) =>
-      windowToCameraDecision(window, overlapKeys, index, videoTrackCount, cameraMap));
+    : input.dominantTrackAtTime.map((window) =>
+      windowToCameraDecision(window, overlapKeys, videoTrackCount, cameraMap));
   const rawDecisions = sortDecisions(sourceDecisions);
   const merged = mergeAdjacentDecisions(rawDecisions);
   const compacted = mergeShortDecisions(merged);
@@ -67,14 +78,14 @@ export function generateCameraDecisionPlanProof(
 function windowToCameraDecision(
   window: DominantTrackWindow,
   overlapKeys: Set<string>,
-  index: number,
   videoTrackCount: number,
   cameraMap: Map<string, number>,
 ): PodcastCameraDecisionProofItem {
   const hasOverlap = overlapKeys.has(timeKey(window.timelineStartSec, window.timelineEndSec));
   if (hasOverlap) {
-    const wideTrackIndex = Math.min(cameraMap.get("wide") ?? 2, videoTrackCount - 1);
-    return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlap detected; using wide camera");
+    const mappedWideTrackIndex = cameraMap.get("wide");
+    const wideTrackIndex = typeof mappedWideTrackIndex === "number" ? Math.min(mappedWideTrackIndex, videoTrackCount - 1) : -1;
+    return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, wideTrackIndex, wideTrackIndex >= 0 ? `V${wideTrackIndex + 1}` : "UNMAPPED", "overlap detected; using wide camera");
   }
   if (typeof window.audioTrackIndex === "number" && window.audioTrackIndex >= 0) {
     const speakerId = window.speakerId ?? `speaker_${window.audioTrackIndex + 1}`;
@@ -95,8 +106,8 @@ function windowToCameraDecision(
     window.timelineEndSec,
     null,
     null,
-    index === 0 ? 0 : -1,
-    index === 0 ? "V1" : "KEEP_PREVIOUS",
+    -1,
+    "KEEP_PREVIOUS",
     "no dominant speaker; keep previous camera",
   );
 }
@@ -128,13 +139,13 @@ function decisionsFromSpeakingSegments(
 
     const active = validSegments.filter((segment) => segment.startSec < endSec && segment.endSec > startSec);
     if (!active.length) {
-      decisions.push(makeDecision(startSec, endSec, null, null, i === 0 ? 0 : -1, i === 0 ? "V1" : "KEEP_PREVIOUS", "no active speaking segment; keep previous camera"));
       continue;
     }
 
     if (active.length > 1) {
-      const wideTrackIndex = Math.min(cameraMap.get("wide") ?? 2, videoTrackCount - 1);
-      decisions.push(makeDecision(startSec, endSec, "wide", null, wideTrackIndex, `V${wideTrackIndex + 1}`, "overlapping speaking segments; using wide camera"));
+      const mappedWideTrackIndex = cameraMap.get("wide");
+      const wideTrackIndex = typeof mappedWideTrackIndex === "number" ? Math.min(mappedWideTrackIndex, videoTrackCount - 1) : -1;
+      decisions.push(makeDecision(startSec, endSec, "wide", null, wideTrackIndex, wideTrackIndex >= 0 ? `V${wideTrackIndex + 1}` : "UNMAPPED", "overlapping speaking segments; using wide camera"));
       continue;
     }
 
