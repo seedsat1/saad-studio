@@ -161,9 +161,22 @@ export default function VideoExtendPage() {
 
     try {
       let currentUrl = sourceUrl;
+      let currentDuration = sourceDuration;
 
       for (let pass = 1; pass <= extendPasses; pass++) {
-        setStatus(`Extending video... pass ${pass} of ${extendPasses}`);
+        const baseUrl = currentUrl;
+        setStatus(`Preparing continuation... pass ${pass} of ${extendPasses}`);
+        const frameRes = await fetch("/api/video-extend/last-frame", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ videoUrl: baseUrl }),
+        });
+        const frameData = await frameRes.json().catch(() => null);
+        if (!frameRes.ok || !frameData?.frameUrl) {
+          throw new Error(frameData?.error || "Could not read the last frame.");
+        }
+
+        setStatus(`Generating continuation... pass ${pass} of ${extendPasses}`);
         const startRes = await fetch("/api/cinematic-video/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,7 +187,7 @@ export default function VideoExtendPage() {
             resolution: "720p",
             durationSeconds: SECONDS_PER_PASS,
             generateAudio: false,
-            extendVideoUrl: currentUrl,
+            startImageUrl: frameData.frameUrl,
           }),
         });
         const startData = await startRes.json().catch(() => null);
@@ -183,6 +196,7 @@ export default function VideoExtendPage() {
         }
 
         let passCompleted = false;
+        let continuationUrl = "";
         for (let attempt = 1; attempt <= 60; attempt++) {
           await new Promise((resolve) => setTimeout(resolve, 10_000));
           setStatus(`Extending video... pass ${pass} of ${extendPasses}, ${attempt * 10}s`);
@@ -199,7 +213,7 @@ export default function VideoExtendPage() {
           if (!statusRes.ok) throw new Error(statusData?.error || "Status check failed.");
           if (statusData?.done) {
             if (statusData.status === "completed" && statusData.mediaUrl) {
-              currentUrl = String(statusData.mediaUrl);
+              continuationUrl = String(statusData.mediaUrl);
               passCompleted = true;
               break;
             }
@@ -210,10 +224,36 @@ export default function VideoExtendPage() {
         if (!passCompleted) {
           throw new Error("Video extension timed out.");
         }
+        if (!continuationUrl) {
+          throw new Error("Extension finished without output.");
+        }
+
+        setStatus(`Joining video... pass ${pass} of ${extendPasses}`);
+        const stitchRes = await fetch("/api/video-extend/stitch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceUrl: baseUrl,
+            continuationUrl,
+            aspectRatio,
+            sourceDuration: currentDuration,
+            continuationDuration: SECONDS_PER_PASS,
+          }),
+        });
+        const stitchData = await stitchRes.json().catch(() => null);
+        if (!stitchRes.ok || !stitchData?.extendedUrl) {
+          throw new Error(stitchData?.error || "Could not join the extended video.");
+        }
+        currentUrl = String(stitchData.extendedUrl);
+        currentDuration = typeof stitchData.duration === "number"
+          ? stitchData.duration
+          : currentDuration
+            ? currentDuration + SECONDS_PER_PASS
+            : null;
       }
 
       setResultUrl(currentUrl);
-      setResultDuration(null);
+      setResultDuration(currentDuration);
       setStatus("Video extended.");
     } catch (err) {
       setError(getSafeErrorMessage(err));
