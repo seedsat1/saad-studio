@@ -44,6 +44,77 @@ async function uploadVideoToStorage(file: File): Promise<string> {
   return String(data.publicUrl);
 }
 
+async function uploadImageToStorage(blob: Blob): Promise<string> {
+  const urlRes = await fetch("/api/studio/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: "video-extend-last-frame.jpg",
+      contentType: "image/jpeg",
+      assetType: "thumbnail",
+    }),
+  });
+  const data = await urlRes.json().catch(() => null);
+  if (!urlRes.ok || !data?.signedUrl || !data?.publicUrl) {
+    throw new Error(data?.error || "Could not prepare the frame upload.");
+  }
+
+  const putRes = await fetch(String(data.signedUrl), {
+    method: "PUT",
+    headers: { "Content-Type": "image/jpeg" },
+    body: blob,
+  });
+  if (!putRes.ok) throw new Error("Frame upload failed.");
+
+  return String(data.publicUrl);
+}
+
+function captureLastFrame(videoUrl: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+
+    const cleanup = () => {
+      video.removeAttribute("src");
+      video.load();
+    };
+
+    video.onerror = () => {
+      cleanup();
+      reject(new Error("Could not load the video frame."));
+    };
+
+    video.onloadedmetadata = () => {
+      const target = Math.max(0, (Number.isFinite(video.duration) ? video.duration : 0) - 0.12);
+      video.currentTime = target;
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not read the video frame.");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          cleanup();
+          if (blob) resolve(blob);
+          else reject(new Error("Could not export the video frame."));
+        }, "image/jpeg", 0.92);
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    video.src = videoUrl;
+  });
+}
+
 function formatDuration(seconds: number | null) {
   if (!Number.isFinite(seconds) || seconds === null || seconds <= 0) return "";
   const total = Math.round(seconds);
@@ -166,15 +237,9 @@ export default function VideoExtendPage() {
       for (let pass = 1; pass <= extendPasses; pass++) {
         const baseUrl = currentUrl;
         setStatus(`Preparing continuation... pass ${pass} of ${extendPasses}`);
-        const frameRes = await fetch("/api/video-extend/last-frame", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ videoUrl: baseUrl }),
-        });
-        const frameData = await frameRes.json().catch(() => null);
-        if (!frameRes.ok || !frameData?.frameUrl) {
-          throw new Error(frameData?.error || "Could not read the last frame.");
-        }
+        const frameSourceUrl = pass === 1 && previewUrl ? previewUrl : baseUrl;
+        const frameBlob = await captureLastFrame(frameSourceUrl);
+        const frameUrl = await uploadImageToStorage(frameBlob);
 
         setStatus(`Generating continuation... pass ${pass} of ${extendPasses}`);
         const startRes = await fetch("/api/cinematic-video/generate", {
@@ -187,7 +252,7 @@ export default function VideoExtendPage() {
             resolution: "720p",
             durationSeconds: SECONDS_PER_PASS,
             generateAudio: false,
-            startImageUrl: frameData.frameUrl,
+            startImageUrl: frameUrl,
           }),
         });
         const startData = await startRes.json().catch(() => null);
