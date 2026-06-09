@@ -95,11 +95,51 @@ export async function POST(req: Request) {
       );
     }
 
-    // Poll Google
-    const poll = await pollVeoOperation({
-      name: operationName,
-      model: raw.model || "veo-3.1-generate-preview",
-    });
+    // Poll Google. The Veo operation endpoint can intermittently fail while the
+    // long-running job is still settling, so keep the client polling instead of
+    // turning transient provider errors into a hard 500.
+    let poll: Awaited<ReturnType<typeof pollVeoOperation>>;
+    try {
+      poll = await pollVeoOperation({
+        name: operationName,
+        model: raw.model || "veo-3.1-generate-preview",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Veo status check failed";
+      const lower = message.toLowerCase();
+      const terminal =
+        lower.includes("safety") ||
+        lower.includes("policy") ||
+        lower.includes("blocked") ||
+        lower.includes("failed_precondition") ||
+        lower.includes("invalid_argument");
+
+      if (terminal) {
+        await rollbackGenerationCharge(
+          generation.id,
+          userId,
+          generation.cost,
+        ).catch(() => {});
+        await prismadb.generation
+          .update({
+            where: { id: generation.id },
+            data: { status: "failed" },
+          })
+          .catch(() => {});
+        return NextResponse.json({
+          done: true,
+          status: "failed",
+          error: message,
+        });
+      }
+
+      console.warn("[cinematic-video/status] transient poll error:", message);
+      return NextResponse.json({
+        done: false,
+        status: "running",
+        warning: message,
+      });
+    }
 
     if (!poll.done) {
       return NextResponse.json({ done: false, status: "running" });

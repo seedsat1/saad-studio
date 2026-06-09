@@ -144,19 +144,54 @@ export async function pollVeoOperation(
   handle: VeoOperationHandle,
 ): Promise<VeoPollResult> {
   const ai = getGenAI();
-  const operation: any = await (ai.operations as any).getVideosOperation({
-    operation: { name: handle.name },
-  });
+  const operationsApi = ai.operations as any;
+  let operation: any;
+  if (typeof operationsApi.getVideosOperation === "function") {
+    try {
+      operation = await operationsApi.getVideosOperation({
+        operation: { name: handle.name },
+      });
+    } catch (err) {
+      operation = await operationsApi.getVideosOperation({
+        operation: { name: handle.name },
+        model: handle.model,
+      }).catch(() => {
+        throw err;
+      });
+    }
+  } else if (typeof operationsApi.get === "function") {
+    operation = await operationsApi.get({ name: handle.name });
+  } else {
+    throw new Error("Gemini SDK does not expose a video operation poller.");
+  }
 
   if (!operation?.done) return { done: false };
+
+  const opError = operation.error ?? operation.response?.error;
+  if (opError) {
+    const message =
+      opError.message ??
+      opError.errorMessage ??
+      opError.status ??
+      "Veo operation failed.";
+    throw new Error(String(message));
+  }
 
   const generated =
     operation.response?.generatedVideos ??
     operation.response?.generated_videos ??
+    operation.generatedVideos ??
+    operation.generated_videos ??
     [];
   const first = Array.isArray(generated) ? generated[0] : null;
   const videoUri: string | null =
-    first?.video?.uri ?? first?.video?.url ?? null;
+    first?.video?.uri ??
+    first?.video?.url ??
+    first?.video?.videoUri ??
+    first?.video?.gcsUri ??
+    first?.uri ??
+    first?.url ??
+    null;
 
   return { done: true, videoUri, rawResponse: operation.response ?? null };
 }
