@@ -1,6 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { SAAD_PLANS } from "@/lib/pricing-models";
 
 function inferPlan(stripePriceId?: string | null, hasSubscription?: boolean) {
   const id = (stripePriceId ?? "").toLowerCase();
@@ -20,6 +21,10 @@ function inferPlanId(stripePriceId?: string | null, hasSubscription?: boolean) {
   return "free";
 }
 
+function sameCycleEnd(a: Date | null | undefined, b: Date | null | undefined): boolean {
+  return Boolean(a && b && a.getTime() === b.getTime());
+}
+
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -28,11 +33,27 @@ export async function GET() {
     const [userRow, subscription] = await Promise.all([
       prismadb.user.findUnique({
         where: { id: userId },
-        select: { name: true, email: true, phone: true, creditBalance: true },
+        select: {
+          name: true,
+          email: true,
+          phone: true,
+          creditBalance: true,
+          monthlyCredits: true,
+          creditsExpireAt: true,
+          creditAdvanceBalance: true,
+          creditAdvanceRequestedAt: true,
+          creditAdvanceCycleEnd: true,
+        },
       }),
       prismadb.userSubscription.findUnique({
         where: { userId },
-        select: { stripePriceId: true, stripeCurrentPeriodEnd: true, stripeSubscriptionId: true, billingInterval: true },
+        select: {
+          planId: true,
+          stripePriceId: true,
+          stripeCurrentPeriodEnd: true,
+          stripeSubscriptionId: true,
+          billingInterval: true,
+        },
       }),
     ]);
 
@@ -42,6 +63,9 @@ export async function GET() {
       subscription?.stripeCurrentPeriodEnd &&
         subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
     );
+    const inferredPlanId = subscription?.planId ?? inferPlanId(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId));
+    const planCredits = SAAD_PLANS.find((p) => p.id === inferredPlanId)?.credits ?? 0;
+    const monthlyCredits = Math.max(0, Math.floor(planCredits || userRow?.monthlyCredits || 0));
 
     return NextResponse.json({
       profile: {
@@ -51,12 +75,25 @@ export async function GET() {
       },
       subscription: {
         plan: inferPlan(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId)),
-        planId: inferPlanId(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId)),
+        planId: inferredPlanId,
         active: subscriptionActive,
         billingInterval: subscription?.billingInterval ?? null,
         nextBillingAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
       },
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
+      creditAdvance: {
+        balance: Math.max(0, Math.floor(userRow?.creditAdvanceBalance ?? 0)),
+        requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString() ?? null,
+        cycleEnd: userRow?.creditAdvanceCycleEnd?.toISOString() ?? null,
+        available: Boolean(
+          subscriptionActive &&
+            subscription?.billingInterval === "annual" &&
+            monthlyCredits > 0 &&
+            userRow?.creditsExpireAt &&
+            !sameCycleEnd(userRow.creditAdvanceCycleEnd, userRow.creditsExpireAt),
+        ),
+        amount: monthlyCredits,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load settings.";

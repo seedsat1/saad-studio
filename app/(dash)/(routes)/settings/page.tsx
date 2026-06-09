@@ -32,9 +32,19 @@ type SettingsApiResponse = {
   };
   subscription: {
     plan: "Free" | "Starter" | "Pro" | "Max" | string;
+    planId?: string | null;
+    active?: boolean;
+    billingInterval?: string | null;
     nextBillingAt: string | null;
   };
   credits: number;
+  creditAdvance?: {
+    balance: number;
+    requestedAt: string | null;
+    cycleEnd: string | null;
+    available: boolean;
+    amount: number;
+  };
 };
 
 type PreferenceState = {
@@ -199,6 +209,11 @@ export default function SettingsPage() {
   const [plan, setPlan] = useState<"Free" | "Starter" | "Pro" | "Max">("Free");
   const [nextBilling, setNextBilling] = useState<string | null>(null);
   const [credits, setCredits] = useState(0);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<string | null>(null);
+  const [creditAdvance, setCreditAdvance] = useState<SettingsApiResponse["creditAdvance"] | null>(null);
+  const [advanceBusy, setAdvanceBusy] = useState(false);
+  const [advanceMessage, setAdvanceMessage] = useState("");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -288,6 +303,9 @@ export default function SettingsPage() {
         setPlan((data.subscription?.plan as "Free" | "Starter" | "Pro" | "Max") || "Free");
         setNextBilling(data.subscription?.nextBillingAt ?? null);
         setCredits(Math.max(0, Math.floor(data.credits ?? 0)));
+        setSubscriptionActive(Boolean(data.subscription?.active));
+        setBillingInterval(data.subscription?.billingInterval ?? null);
+        setCreditAdvance(data.creditAdvance ?? null);
 
         const stored = ((user.unsafeMetadata ?? {}) as Record<string, unknown>).settingsPrefs as Partial<PreferenceState> | undefined;
         if (stored) {
@@ -311,6 +329,20 @@ export default function SettingsPage() {
       disposed = true;
     };
   }, [isLoaded, user]);
+
+  const reloadSettings = useCallback(async () => {
+    if (!user) return;
+    const res = await fetch("/api/profile/settings", { cache: "no-store" });
+    const data = (await res.json().catch(() => ({}))) as SettingsApiResponse & { error?: string };
+    if (!res.ok) throw new Error(data.error || "Failed to load settings.");
+
+    setPlan((data.subscription?.plan as "Free" | "Starter" | "Pro" | "Max") || "Free");
+    setNextBilling(data.subscription?.nextBillingAt ?? null);
+    setCredits(Math.max(0, Math.floor(data.credits ?? 0)));
+    setSubscriptionActive(Boolean(data.subscription?.active));
+    setBillingInterval(data.subscription?.billingInterval ?? null);
+    setCreditAdvance(data.creditAdvance ?? null);
+  }, [user]);
 
   useEffect(() => {
     applyThemeMode(prefs.darkMode);
@@ -340,6 +372,31 @@ export default function SettingsPage() {
       window.location.href = "/pricing";
     } catch {
       window.location.href = "/pricing";
+    }
+  };
+
+  const handleCreditAdvance = async () => {
+    if (!creditAdvance?.available || advanceBusy) return;
+    setAdvanceBusy(true);
+    setAdvanceMessage("");
+    setSettingsError("");
+    try {
+      const res = await fetch("/api/credits/advance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: creditAdvance.amount }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(typeof data?.error === "string" ? data.error : "Credit advance is not available.");
+      }
+      setAdvanceMessage("Early credits added. They will be deducted from your next annual refresh.");
+      await reloadSettings();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to request early credits.";
+      setSettingsError(msg);
+    } finally {
+      setAdvanceBusy(false);
     }
   };
 
@@ -442,6 +499,9 @@ export default function SettingsPage() {
     void savePreferencesToClerk(next);
   };
 
+  const showCreditAdvancePanel = subscriptionActive && billingInterval === "annual";
+  const canRequestCreditAdvance = Boolean(showCreditAdvancePanel && creditAdvance?.available && creditAdvance.amount > 0);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -498,6 +558,32 @@ export default function SettingsPage() {
                 <CreditCard className="w-4 h-4" /> Buy Credits
               </Link>
             </div>
+            {showCreditAdvancePanel && (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-amber-100">Early monthly credits</p>
+                    <p className="mt-0.5 text-xs text-amber-100/70">
+                      {creditAdvance?.balance
+                        ? `${creditAdvance.balance.toLocaleString()} credits will be deducted from your next refresh.`
+                        : `Request ${creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
+                    </p>
+                  </div>
+                  {canRequestCreditAdvance && (
+                    <button
+                      type="button"
+                      onClick={handleCreditAdvance}
+                      disabled={advanceBusy}
+                      className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {advanceBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                      {advanceBusy ? "Requesting..." : "Request early credits"}
+                    </button>
+                  )}
+                </div>
+                {advanceMessage && <p className="mt-2 text-xs text-amber-100/80">{advanceMessage}</p>}
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title="Profile Information" icon={User}>
