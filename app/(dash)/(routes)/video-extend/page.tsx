@@ -18,6 +18,9 @@ type AspectRatio = "16:9" | "9:16";
 type ExtendPasses = 1 | 2 | 3;
 const SECONDS_PER_PASS = 8;
 const CREDITS_PER_SECOND = 1.71;
+const POLL_INTERVAL_MS = 10_000;
+const MAX_STATUS_ATTEMPTS = 180;
+const WARNING_FAILURE_THRESHOLD = 8;
 
 async function uploadVideoToStorage(file: File): Promise<string> {
   const urlRes = await fetch("/api/studio/upload-url", {
@@ -276,9 +279,16 @@ export default function VideoExtendPage() {
 
         let passCompleted = false;
         let continuationUrl = "";
-        for (let attempt = 1; attempt <= 60; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, 10_000));
-          setStatus(`Extending video... pass ${pass} of ${extendPasses}, ${attempt * 10}s`);
+        let repeatedWarning = "";
+        let warningCount = 0;
+        for (let attempt = 1; attempt <= MAX_STATUS_ATTEMPTS; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+          const elapsedSeconds = Math.round((attempt * POLL_INTERVAL_MS) / 1000);
+          const elapsedLabel =
+            elapsedSeconds >= 60
+              ? `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s`
+              : `${elapsedSeconds}s`;
+          setStatus(`Extending video... pass ${pass} of ${extendPasses}, ${elapsedLabel}`);
           const statusRes = await fetch("/api/cinematic-video/status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -290,6 +300,14 @@ export default function VideoExtendPage() {
           });
           const statusData = await statusRes.json().catch(() => null);
           if (!statusRes.ok) throw new Error(statusData?.error || "Status check failed.");
+          if (statusData?.warning) {
+            const warning = String(statusData.warning);
+            warningCount = warning === repeatedWarning ? warningCount + 1 : 1;
+            repeatedWarning = warning;
+            if (warningCount >= WARNING_FAILURE_THRESHOLD) {
+              throw new Error(warning);
+            }
+          }
           if (statusData?.done) {
             if (statusData.status === "completed" && statusData.mediaUrl) {
               continuationUrl = String(statusData.mediaUrl);
@@ -301,7 +319,7 @@ export default function VideoExtendPage() {
         }
 
         if (!passCompleted) {
-          throw new Error("Video extension timed out.");
+          throw new Error("Video provider is still processing after 30 minutes. Try a shorter source clip or retry.");
         }
         if (!continuationUrl) {
           throw new Error("Extension finished without output.");

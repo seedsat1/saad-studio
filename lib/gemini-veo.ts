@@ -7,7 +7,7 @@
 // AUTH: Uses the official Google AI API key from env.
 // ============================================================
 
-import { GoogleGenAI } from "@google/genai";
+import { GenerateVideosOperation, GoogleGenAI } from "@google/genai";
 
 const KEY =
   process.env.GOOGLE_AI_API_KEY ||
@@ -146,21 +146,25 @@ export async function pollVeoOperation(
   const ai = getGenAI();
   const operationsApi = ai.operations as any;
   let operation: any;
+  const operationInput = new GenerateVideosOperation();
+  operationInput.name = handle.name;
+
   if (typeof operationsApi.getVideosOperation === "function") {
     try {
       operation = await operationsApi.getVideosOperation({
-        operation: { name: handle.name },
+        operation: operationInput,
       });
     } catch (err) {
+      const fallbackOperation = new GenerateVideosOperation();
+      fallbackOperation.name = handle.name;
       operation = await operationsApi.getVideosOperation({
-        operation: { name: handle.name },
-        model: handle.model,
+        operation: fallbackOperation,
       }).catch(() => {
         throw err;
       });
     }
   } else if (typeof operationsApi.get === "function") {
-    operation = await operationsApi.get({ name: handle.name });
+    operation = await operationsApi.get({ operation: operationInput });
   } else {
     throw new Error("Gemini SDK does not expose a video operation poller.");
   }
