@@ -49,6 +49,9 @@ model User {
   monthlyCredits     Int           @default(0)
   creditsExpireAt    DateTime?
   lastCreditRenewal  DateTime?
+  creditAdvanceBalance Int         @default(0)
+  creditAdvanceRequestedAt DateTime?
+  creditAdvanceCycleEnd DateTime?
   role               String        @default("USER")
   isBanned           Boolean       @default(false)
   createdAt          DateTime      @default(now())

@@ -98,6 +98,23 @@ export async function GET() {
 
     return NextResponse.json({
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
+      creditAdvance: {
+        balance: Math.max(0, Math.floor(userRow?.creditAdvanceBalance ?? 0)),
+        requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString?.() ?? null,
+        cycleEnd: userRow?.creditAdvanceCycleEnd?.toISOString?.() ?? null,
+        available: Boolean(
+          subscription?.stripeCurrentPeriodEnd &&
+            subscription.stripeCurrentPeriodEnd.getTime() > Date.now() &&
+            subscription.billingInterval === "annual" &&
+            (userRow?.monthlyCredits ?? 0) > 0 &&
+            !(
+              userRow?.creditAdvanceCycleEnd &&
+              userRow?.creditsExpireAt &&
+              userRow.creditAdvanceCycleEnd.getTime() === userRow.creditsExpireAt.getTime()
+            ),
+        ),
+        amount: Math.max(0, Math.floor(userRow?.monthlyCredits ?? 0)),
+      },
       subscription: {
         // STRICT TIMING: no grace period of any kind.
         active: Boolean(

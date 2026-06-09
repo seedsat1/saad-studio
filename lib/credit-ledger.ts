@@ -20,6 +20,13 @@ export class PolicyBlockedError extends Error {
   }
 }
 
+export class CreditAdvanceError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = "CreditAdvanceError";
+  }
+}
+
 export async function ensureUserRow(userId: string) {
   const existing = await prismadb.user.findUnique({ where: { id: userId } });
   if (existing) return existing;
@@ -119,13 +126,24 @@ async function handleCreditExpiry(userId: string): Promise<void> {
     const monthlyCredits = plan?.credits ?? user.monthlyCredits;
 
     if (monthlyCredits > 0) {
+      const advanceBalance = Math.max(0, Math.floor(user.creditAdvanceBalance ?? 0));
+      const advanceDeduction = Math.min(advanceBalance, monthlyCredits);
+      const remainingAdvance = advanceBalance - advanceDeduction;
+
       await prismadb.user.update({
         where: { id: userId },
         data: {
-          creditBalance: monthlyCredits,
+          creditBalance: monthlyCredits - advanceDeduction,
           monthlyCredits,
           creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
           lastCreditRenewal: now,
+          creditAdvanceBalance: remainingAdvance,
+          ...(remainingAdvance <= 0
+            ? {
+                creditAdvanceRequestedAt: null,
+                creditAdvanceCycleEnd: null,
+              }
+            : {}),
         },
       });
       return;
@@ -140,6 +158,9 @@ async function handleCreditExpiry(userId: string): Promise<void> {
       monthlyCredits: 0,
       creditsExpireAt: null,
       lastCreditRenewal: null,
+      creditAdvanceBalance: 0,
+      creditAdvanceRequestedAt: null,
+      creditAdvanceCycleEnd: null,
     },
   });
 }
@@ -174,9 +195,9 @@ function preserveExpiryOrFresh(current: Date | null | undefined): Date {
 export async function allocateSubscriptionCredits(
   userId: string,
   planId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   billingInterval: "monthly" | "annual",
 ): Promise<void> {
+  void billingInterval;
   await ensureUserRow(userId);
   const plan = SAAD_PLANS.find((p) => p.id === planId);
   if (!plan) return;
@@ -189,8 +210,105 @@ export async function allocateSubscriptionCredits(
       monthlyCredits: plan.credits,
       creditsExpireAt: new Date(now.getTime() + THIRTY_DAYS_MS),
       lastCreditRenewal: now,
+      creditAdvanceBalance: 0,
+      creditAdvanceRequestedAt: null,
+      creditAdvanceCycleEnd: null,
     },
   });
+}
+
+function sameCycleEnd(a: Date | null | undefined, b: Date | null | undefined): boolean {
+  return Boolean(a && b && a.getTime() === b.getTime());
+}
+
+export async function requestAnnualCreditAdvance(userId: string, requestedAmount?: number) {
+  await ensureUserRow(userId);
+  await handleCreditExpiry(userId);
+
+  const now = new Date();
+  const [user, subscription] = await Promise.all([
+    prismadb.user.findUnique({
+      where: { id: userId },
+      select: {
+        creditBalance: true,
+        monthlyCredits: true,
+        creditsExpireAt: true,
+        creditAdvanceBalance: true,
+        creditAdvanceCycleEnd: true,
+      },
+    }),
+    prismadb.userSubscription.findUnique({
+      where: { userId },
+      select: {
+        billingInterval: true,
+        planId: true,
+        stripePriceId: true,
+        stripeCurrentPeriodEnd: true,
+      },
+    }),
+  ]);
+
+  const isSubscriptionActive = Boolean(
+    subscription?.stripePriceId &&
+      subscription?.stripeCurrentPeriodEnd &&
+      subscription.stripeCurrentPeriodEnd.getTime() > now.getTime(),
+  );
+
+  if (!isSubscriptionActive || subscription?.billingInterval !== "annual") {
+    throw new CreditAdvanceError("annual_subscription_required", "Credit advance is available for active annual subscriptions only.");
+  }
+
+  if (!user?.creditsExpireAt || user.creditsExpireAt.getTime() <= now.getTime()) {
+    throw new CreditAdvanceError("no_active_credit_cycle", "No active credit cycle is available for advance credits.");
+  }
+
+  if (sameCycleEnd(user.creditAdvanceCycleEnd, user.creditsExpireAt)) {
+    throw new CreditAdvanceError("already_requested_this_cycle", "Credit advance was already requested for this credit cycle.");
+  }
+
+  const planCredits = subscription.planId
+    ? (SAAD_PLANS.find((p) => p.id === subscription.planId)?.credits ?? 0)
+    : 0;
+  const monthlyCredits = Math.max(0, Math.floor(planCredits || user.monthlyCredits || 0));
+  if (monthlyCredits <= 0) {
+    throw new CreditAdvanceError("no_monthly_allowance", "No monthly allowance is configured for this annual subscription.");
+  }
+
+  const amount = requestedAmount == null
+    ? monthlyCredits
+    : Math.max(0, Math.floor(requestedAmount));
+
+  if (amount <= 0 || amount > monthlyCredits) {
+    throw new CreditAdvanceError("invalid_advance_amount", "Advance amount must be between 1 and the monthly allowance.");
+  }
+
+  const updated = await prismadb.user.update({
+    where: { id: userId },
+    data: {
+      creditBalance: { increment: amount },
+      creditAdvanceBalance: { increment: amount },
+      creditAdvanceRequestedAt: now,
+      creditAdvanceCycleEnd: user.creditsExpireAt,
+    },
+    select: {
+      creditBalance: true,
+      monthlyCredits: true,
+      creditsExpireAt: true,
+      creditAdvanceBalance: true,
+      creditAdvanceRequestedAt: true,
+      creditAdvanceCycleEnd: true,
+    },
+  });
+
+  return {
+    credited: amount,
+    creditBalance: updated.creditBalance,
+    monthlyCredits: updated.monthlyCredits,
+    creditsExpireAt: updated.creditsExpireAt,
+    creditAdvanceBalance: updated.creditAdvanceBalance,
+    creditAdvanceRequestedAt: updated.creditAdvanceRequestedAt,
+    creditAdvanceCycleEnd: updated.creditAdvanceCycleEnd,
+  };
 }
 
 /**

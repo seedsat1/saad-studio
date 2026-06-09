@@ -27,6 +27,13 @@ const TYPE_GRADIENTS: Record<string, string> = {
 
 type ProfileOverview = {
   credits: number;
+  creditAdvance?: {
+    balance: number;
+    requestedAt: string | null;
+    cycleEnd: string | null;
+    available: boolean;
+    amount: number;
+  };
   subscription?: {
     active: boolean;
     planId: string | null;
@@ -283,6 +290,10 @@ export default function ProfilePage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [realCreditBalance, setRealCreditBalance] = useState<number | null>(null);
   const [overview, setOverview] = useState<ProfileOverview | null>(null);
+  const [advanceStatus, setAdvanceStatus] = useState<{ loading: boolean; message: string | null }>({
+    loading: false,
+    message: null,
+  });
   const { uploadedPhoto, activePreset, setAvatar } = useAvatar();
 
   const activeGradient = PRESET_AVATARS.find((p) => p.id === activePreset)?.gradient ?? "from-violet-500 to-indigo-600";
@@ -301,6 +312,46 @@ export default function ProfilePage() {
     setAvatar(photo, preset); setPickerOpen(false);
   };
 
+  const loadOverview = useCallback(async () => {
+    try {
+      const res = await fetch("/api/profile/overview", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (typeof data?.credits === "number") {
+        setOverview(data as ProfileOverview);
+        setRealCreditBalance(Math.max(0, Math.floor(data.credits)));
+      }
+    } catch {
+      // keep previous value if request fails
+    }
+  }, []);
+
+  const requestCreditAdvance = useCallback(async () => {
+    if (!overview?.creditAdvance?.available || advanceStatus.loading) return;
+
+    setAdvanceStatus({ loading: true, message: null });
+    try {
+      const res = await fetch("/api/credits/advance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: overview.creditAdvance.amount }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAdvanceStatus({
+          loading: false,
+          message: typeof data?.error === "string" ? data.error : "Credit advance is not available.",
+        });
+        return;
+      }
+
+      setAdvanceStatus({ loading: false, message: "Monthly credits added early. They will be deducted from the next annual refresh." });
+      await loadOverview();
+    } catch {
+      setAdvanceStatus({ loading: false, message: "Could not request credit advance right now." });
+    }
+  }, [advanceStatus.loading, loadOverview, overview?.creditAdvance]);
+
   useEffect(() => {
     if (!isLoaded || !userId) {
       setRealCreditBalance(null);
@@ -309,27 +360,18 @@ export default function ProfilePage() {
     }
 
     let disposed = false;
-    const loadOverview = async () => {
-      try {
-        const res = await fetch("/api/profile/overview", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!disposed && typeof data?.credits === "number") {
-          setOverview(data as ProfileOverview);
-          setRealCreditBalance(Math.max(0, Math.floor(data.credits)));
-        }
-      } catch {
-        // keep previous value if request fails
-      }
+    const safeLoadOverview = async () => {
+      if (disposed) return;
+      await loadOverview();
     };
 
-    loadOverview();
-    const timer = window.setInterval(loadOverview, 20000);
+    safeLoadOverview();
+    const timer = window.setInterval(safeLoadOverview, 20000);
     return () => {
       disposed = true;
       window.clearInterval(timer);
     };
-  }, [isLoaded, userId]);
+  }, [isLoaded, loadOverview, userId]);
 
   const usageStats = [
     {
@@ -365,6 +407,13 @@ export default function ProfilePage() {
       border: "border-orange-500/20",
     },
   ];
+
+  const canRequestCreditAdvance = Boolean(
+    overview?.subscription?.active &&
+      overview.subscription.billingInterval === "annual" &&
+      overview.creditAdvance?.available &&
+      overview.creditAdvance.amount > 0,
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -428,6 +477,35 @@ export default function ProfilePage() {
               <Star className="w-5 h-5 text-sky-400 flex-shrink-0" /><div><p className="text-xs text-slate-500">Projects</p><p className="text-lg font-bold text-sky-300">{overview?.topStats.projects ?? 0}</p></div>
             </div>
           </div>
+
+          {overview?.subscription?.active && overview.subscription.billingInterval === "annual" && (
+            <div className="mt-4 rounded-xl border border-amber-500/20 bg-slate-950/40 px-4 py-3">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-100">Early monthly credits</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {overview.creditAdvance?.balance
+                      ? `${overview.creditAdvance.balance.toLocaleString()} credits will be deducted from your next refresh.`
+                      : `Request ${overview.creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
+                  </p>
+                </div>
+                {canRequestCreditAdvance && (
+                  <button
+                    type="button"
+                    onClick={requestCreditAdvance}
+                    disabled={advanceStatus.loading}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Zap className="h-4 w-4" />
+                    {advanceStatus.loading ? "Requesting..." : "Request early credits"}
+                  </button>
+                )}
+              </div>
+              {advanceStatus.message && (
+                <p className="mt-2 text-xs text-slate-400">{advanceStatus.message}</p>
+              )}
+            </div>
+          )}
         </motion.div>
 
         <section>
