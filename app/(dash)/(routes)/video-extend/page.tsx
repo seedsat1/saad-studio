@@ -156,6 +156,7 @@ export default function VideoExtendPage() {
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
   const [extending, setExtending] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const busy = uploading || extending;
@@ -178,9 +179,7 @@ export default function VideoExtendPage() {
     setExtendPasses(1);
   };
 
-  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+  const uploadSelectedVideo = async (file: File) => {
     if (!file) return;
 
     if (!file.type.startsWith("video/")) {
@@ -211,6 +210,21 @@ export default function VideoExtendPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) await uploadSelectedVideo(file);
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragging(false);
+    if (busy) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) await uploadSelectedVideo(file);
   };
 
   const extendVideo = async () => {
@@ -347,13 +361,32 @@ export default function VideoExtendPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
+            onDragEnter={(event) => {
+              event.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (!busy) setDragging(true);
+            }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+              setDragging(false);
+            }}
+            onDrop={handleDrop}
             disabled={busy}
-            className="mt-6 flex aspect-video w-full flex-col items-center justify-center border border-dashed border-white/15 bg-white/[0.04] text-center transition hover:border-pink-300/50 hover:bg-white/[0.06] disabled:cursor-wait disabled:opacity-60"
+            className={[
+              "mt-6 flex aspect-video w-full flex-col items-center justify-center border border-dashed text-center transition disabled:cursor-wait disabled:opacity-60",
+              dragging
+                ? "border-pink-300/80 bg-pink-400/10 shadow-[0_0_36px_rgba(236,72,153,0.16)]"
+                : "border-white/15 bg-white/[0.04] hover:border-pink-300/50 hover:bg-white/[0.06]",
+            ].join(" ")}
           >
             <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleUpload} />
             {uploading ? <Loader2 size={34} className="animate-spin text-pink-200" /> : <Upload size={34} className="text-slate-400" />}
-            <span className="mt-3 text-sm font-black">{uploading ? "Uploading" : "Upload Video"}</span>
-            <span className="mt-1 max-w-[240px] text-xs leading-5 text-slate-500">MP4, MOV, or WEBM. Aspect ratio is detected automatically.</span>
+            <span className="mt-3 text-sm font-black">{uploading ? "Uploading" : dragging ? "Drop Video" : "Upload Video"}</span>
+            <span className="mt-1 max-w-[240px] text-xs leading-5 text-slate-500">Drop a video here or click to browse. MP4, MOV, or WEBM.</span>
           </button>
 
           {fileName && (
