@@ -17,6 +17,16 @@ const SAFE_VALIDATION_MESSAGES = new Set([
   "Please upload an image.",
   "Unsupported file type.",
   "File too large.",
+  "Video extension failed to start.",
+  "Video extension timed out.",
+  "Extension finished without output.",
+  "Status check failed.",
+  "Could not read the last frame.",
+  "Could not join the extended video.",
+  "Could not load the video frame.",
+  "Could not export the video frame.",
+  "Could not prepare the frame upload.",
+  "Frame upload failed.",
   "Please configure Cloudflare R2 storage to use reference images.",
   "Please check your storage configuration — reference image upload failed.",
 ]);
@@ -33,7 +43,16 @@ export function isSafePublicGenerationMessage(message: unknown): message is stri
     message.includes(" is required") ||
     message.includes(" required") ||
     message.includes("Unsupported file type") ||
-    message.includes("File too large")
+    message.includes("File too large") ||
+    message.includes("Veo") ||
+    message.includes("Gemini") ||
+    message.includes("Google") ||
+    message.includes("video") ||
+    message.includes("Video") ||
+    message.includes("frame") ||
+    message.includes("Frame") ||
+    message.includes("extension") ||
+    message.includes("Extension")
   );
 }
 
