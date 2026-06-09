@@ -54,9 +54,6 @@ const nextConfig = {
     ],
     outputFileTracingExcludes: {
       '*': [
-        'node_modules/fluent-ffmpeg/**/*',
-        'node_modules/@ffmpeg-installer/**/*',
-        'node_modules/ffmpeg-static/**/*',
         'public/img/beauty-tools/**/*',
         'public/landing/**/*',
         'public/uploads/**/*',
@@ -64,6 +61,25 @@ const nextConfig = {
         'public/explore/**/*',
         'public/transitions/**/*',
         'adobe/**/*',
+      ],
+    },
+    outputFileTracingIncludes: {
+      '/api/video-extend/stitch': [
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/ffmpeg-static/**/*',
+      ],
+      '/api/video-extend/last-frame': [
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/ffmpeg-static/**/*',
+      ],
+      '/api/transitions/stitch': [
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/ffmpeg-static/**/*',
+      ],
+      '/api/studio/export': [
+        'node_modules/fluent-ffmpeg/**/*',
+        'node_modules/@ffmpeg-installer/**/*',
+        'node_modules/ffmpeg-static/**/*',
       ],
     },
   },
