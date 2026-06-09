@@ -5,6 +5,7 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { isSafePublicHttpUrl } from "@/lib/security";
 
@@ -20,15 +21,6 @@ const RATIO_DIMS: Record<AspectRatio, [number, number]> = {
   "16:9": [1280, 720],
   "9:16": [720, 1280],
 };
-
-async function getFfmpegPath(): Promise<string> {
-  const staticMod = await import("ffmpeg-static");
-  const ffmpegPath = (staticMod.default || staticMod) as unknown as string;
-  try {
-    fs.chmodSync(ffmpegPath, 0o755);
-  } catch {}
-  return ffmpegPath;
-}
 
 async function downloadToTemp(url: string, tmpDir: string, name: string): Promise<string> {
   const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
