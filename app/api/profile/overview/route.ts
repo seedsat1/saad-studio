@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { ensureWelcomeCredits } from "@/lib/credit-ledger";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 
 type UsageBuckets = {
@@ -47,6 +46,54 @@ function inferPlanId(stripePriceId?: string | null, hasSubscription?: boolean) {
   return "free";
 }
 
+function isMissingCreditAdvanceColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  const message = String((error as { message?: string }).message ?? "");
+  return code === "P2022" && message.includes("creditAdvance");
+}
+
+async function findOverviewUser(userId: string) {
+  try {
+    return {
+      row: await prismadb.user.findUnique({
+        where: { id: userId },
+        select: {
+          creditBalance: true,
+          monthlyCredits: true,
+          creditsExpireAt: true,
+          creditAdvanceBalance: true,
+          creditAdvanceRequestedAt: true,
+          creditAdvanceCycleEnd: true,
+        },
+      }),
+      advanceColumnsReady: true,
+    };
+  } catch (error) {
+    if (!isMissingCreditAdvanceColumn(error)) throw error;
+    const row = await prismadb.user.findUnique({
+      where: { id: userId },
+      select: {
+        creditBalance: true,
+        monthlyCredits: true,
+        creditsExpireAt: true,
+      },
+    });
+
+    return {
+      row: row
+        ? {
+            ...row,
+            creditAdvanceBalance: 0,
+            creditAdvanceRequestedAt: null,
+            creditAdvanceCycleEnd: null,
+          }
+        : null,
+      advanceColumnsReady: false,
+    };
+  }
+}
+
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -54,8 +101,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const [userRow, subscription, projectCounts, recentRows, allRows] = await Promise.all([
-      ensureWelcomeCredits(userId),
+    const [userResult, subscription, projectCounts, recentRows, allRows] = await Promise.all([
+      findOverviewUser(userId),
       prismadb.userSubscription.findUnique({
         where: { userId },
         select: {
@@ -94,6 +141,7 @@ export async function GET() {
         select: { assetType: true },
       }),
     ]);
+    const userRow = userResult.row;
 
     const usage: UsageBuckets = { images: 0, videos: 0, music: 0, models3d: 0 };
     for (const row of allRows) {
@@ -127,6 +175,7 @@ export async function GET() {
         requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString?.() ?? null,
         cycleEnd: userRow?.creditAdvanceCycleEnd?.toISOString?.() ?? null,
         available: Boolean(
+          userResult.advanceColumnsReady &&
           subscriptionActive &&
             subscription.billingInterval === "annual" &&
             monthlyCredits > 0 &&
@@ -137,6 +186,7 @@ export async function GET() {
             ),
         ),
         amount: monthlyCredits,
+        needsMigration: !userResult.advanceColumnsReady,
       },
       subscription: {
         // STRICT TIMING: no grace period of any kind.

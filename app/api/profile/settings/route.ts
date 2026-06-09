@@ -25,13 +25,17 @@ function sameCycleEnd(a: Date | null | undefined, b: Date | null | undefined): b
   return Boolean(a && b && a.getTime() === b.getTime());
 }
 
-export async function GET() {
-  try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function isMissingCreditAdvanceColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  const message = String((error as { message?: string }).message ?? "");
+  return code === "P2022" && message.includes("creditAdvance");
+}
 
-    const [userRow, subscription] = await Promise.all([
-      prismadb.user.findUnique({
+async function findSettingsUser(userId: string) {
+  try {
+    return {
+      row: await prismadb.user.findUnique({
         where: { id: userId },
         select: {
           name: true,
@@ -45,6 +49,43 @@ export async function GET() {
           creditAdvanceCycleEnd: true,
         },
       }),
+      advanceColumnsReady: true,
+    };
+  } catch (error) {
+    if (!isMissingCreditAdvanceColumn(error)) throw error;
+    const row = await prismadb.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        creditBalance: true,
+        monthlyCredits: true,
+        creditsExpireAt: true,
+      },
+    });
+
+    return {
+      row: row
+        ? {
+            ...row,
+            creditAdvanceBalance: 0,
+            creditAdvanceRequestedAt: null,
+            creditAdvanceCycleEnd: null,
+          }
+        : null,
+      advanceColumnsReady: false,
+    };
+  }
+}
+
+export async function GET() {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const [userResult, subscription] = await Promise.all([
+      findSettingsUser(userId),
       prismadb.userSubscription.findUnique({
         where: { userId },
         select: {
@@ -56,6 +97,7 @@ export async function GET() {
         },
       }),
     ]);
+    const userRow = userResult.row;
 
     // STRICT TIMING: no grace period — subscription ends at the exact moment
     // stripeCurrentPeriodEnd passes.
@@ -86,6 +128,7 @@ export async function GET() {
         requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString() ?? null,
         cycleEnd: userRow?.creditAdvanceCycleEnd?.toISOString() ?? null,
         available: Boolean(
+          userResult.advanceColumnsReady &&
           subscriptionActive &&
             subscription?.billingInterval === "annual" &&
             monthlyCredits > 0 &&
@@ -93,6 +136,7 @@ export async function GET() {
             !sameCycleEnd(userRow.creditAdvanceCycleEnd, userRow.creditsExpireAt),
         ),
         amount: monthlyCredits,
+        needsMigration: !userResult.advanceColumnsReady,
       },
     });
   } catch (error) {
