@@ -33,6 +33,7 @@ type ProfileOverview = {
     cycleEnd: string | null;
     available: boolean;
     amount: number;
+    needsMigration?: boolean;
   };
   subscription?: {
     active: boolean;
@@ -414,6 +415,15 @@ export default function ProfilePage() {
       overview.creditAdvance?.available &&
       overview.creditAdvance.amount > 0,
   );
+  const creditAdvanceButtonLabel = advanceStatus.loading
+    ? "Requesting..."
+    : canRequestCreditAdvance
+      ? "Request early credits"
+      : overview?.creditAdvance?.needsMigration
+        ? "Setup required"
+        : overview?.creditAdvance?.balance
+          ? "Already requested"
+          : "Unavailable";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -489,18 +499,19 @@ export default function ProfilePage() {
                       : `Request ${overview.creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
                   </p>
                 </div>
-                {canRequestCreditAdvance && (
-                  <button
-                    type="button"
-                    onClick={requestCreditAdvance}
-                    disabled={advanceStatus.loading}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Zap className="h-4 w-4" />
-                    {advanceStatus.loading ? "Requesting..." : "Request early credits"}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={requestCreditAdvance}
+                  disabled={!canRequestCreditAdvance || advanceStatus.loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                >
+                  <Zap className="h-4 w-4" />
+                  {creditAdvanceButtonLabel}
+                </button>
               </div>
+              {overview.creditAdvance?.needsMigration && (
+                <p className="mt-2 text-xs text-amber-300">Database setup is required before early credits can be requested.</p>
+              )}
               {advanceStatus.message && (
                 <p className="mt-2 text-xs text-slate-400">{advanceStatus.message}</p>
               )}

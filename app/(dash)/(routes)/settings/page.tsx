@@ -44,6 +44,7 @@ type SettingsApiResponse = {
     cycleEnd: string | null;
     available: boolean;
     amount: number;
+    needsMigration?: boolean;
   };
 };
 
@@ -501,6 +502,15 @@ export default function SettingsPage() {
 
   const showCreditAdvancePanel = subscriptionActive && billingInterval === "annual";
   const canRequestCreditAdvance = Boolean(showCreditAdvancePanel && creditAdvance?.available && creditAdvance.amount > 0);
+  const creditAdvanceButtonLabel = advanceBusy
+    ? "Requesting..."
+    : canRequestCreditAdvance
+      ? "Request early credits"
+      : creditAdvance?.needsMigration
+        ? "Setup required"
+        : creditAdvance?.balance
+          ? "Already requested"
+          : "Unavailable";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -569,18 +579,19 @@ export default function SettingsPage() {
                         : `Request ${creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
                     </p>
                   </div>
-                  {canRequestCreditAdvance && (
-                    <button
-                      type="button"
-                      onClick={handleCreditAdvance}
-                      disabled={advanceBusy}
-                      className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {advanceBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                      {advanceBusy ? "Requesting..." : "Request early credits"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleCreditAdvance}
+                    disabled={!canRequestCreditAdvance || advanceBusy}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                  >
+                    {advanceBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {creditAdvanceButtonLabel}
+                  </button>
                 </div>
+                {creditAdvance?.needsMigration && (
+                  <p className="mt-2 text-xs text-amber-100/80">Database setup is required before early credits can be requested.</p>
+                )}
                 {advanceMessage && <p className="mt-2 text-xs text-amber-100/80">{advanceMessage}</p>}
               </div>
             )}
