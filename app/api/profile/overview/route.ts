@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { ensureWelcomeCredits } from "@/lib/credit-ledger";
+import { SAAD_PLANS } from "@/lib/pricing-models";
 
 type UsageBuckets = {
   images: number;
@@ -37,6 +38,15 @@ function mapAssetTypeToRecentType(raw: string): "Image" | "Video" | "Audio" | "3
   return "Image";
 }
 
+function inferPlanId(stripePriceId?: string | null, hasSubscription?: boolean) {
+  const id = (stripePriceId ?? "").toLowerCase();
+  if (id.includes("max") || id.includes("ultra")) return "max";
+  if (id.includes("pro") || hasSubscription) return "pro";
+  if (id.includes("plus")) return "plus";
+  if (id.includes("starter") || id.includes("basic")) return "starter";
+  return "free";
+}
+
 export async function GET() {
   try {
     const { userId } = await auth();
@@ -48,7 +58,13 @@ export async function GET() {
       ensureWelcomeCredits(userId),
       prismadb.userSubscription.findUnique({
         where: { userId },
-        select: { planId: true, billingInterval: true, stripeCurrentPeriodEnd: true },
+        select: {
+          planId: true,
+          billingInterval: true,
+          stripePriceId: true,
+          stripeSubscriptionId: true,
+          stripeCurrentPeriodEnd: true,
+        },
       }),
       Promise.all([
         prismadb.cinemaProject.count({ where: { userId } }),
@@ -95,6 +111,14 @@ export async function GET() {
       type: mapAssetTypeToRecentType(row.assetType),
       createdAt: row.createdAt.toISOString(),
     }));
+    const subscriptionActive = Boolean(
+      subscription?.stripeCurrentPeriodEnd &&
+        subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
+    );
+    const inferredPlanId = subscription?.planId ??
+      inferPlanId(subscription?.stripePriceId, Boolean(subscription?.stripeSubscriptionId));
+    const planCredits = SAAD_PLANS.find((p) => p.id === inferredPlanId)?.credits ?? 0;
+    const monthlyCredits = Math.max(0, Math.floor(planCredits || userRow?.monthlyCredits || 0));
 
     return NextResponse.json({
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
@@ -103,25 +127,21 @@ export async function GET() {
         requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString?.() ?? null,
         cycleEnd: userRow?.creditAdvanceCycleEnd?.toISOString?.() ?? null,
         available: Boolean(
-          subscription?.stripeCurrentPeriodEnd &&
-            subscription.stripeCurrentPeriodEnd.getTime() > Date.now() &&
+          subscriptionActive &&
             subscription.billingInterval === "annual" &&
-            (userRow?.monthlyCredits ?? 0) > 0 &&
+            monthlyCredits > 0 &&
             !(
               userRow?.creditAdvanceCycleEnd &&
               userRow?.creditsExpireAt &&
               userRow.creditAdvanceCycleEnd.getTime() === userRow.creditsExpireAt.getTime()
             ),
         ),
-        amount: Math.max(0, Math.floor(userRow?.monthlyCredits ?? 0)),
+        amount: monthlyCredits,
       },
       subscription: {
         // STRICT TIMING: no grace period of any kind.
-        active: Boolean(
-          subscription?.stripeCurrentPeriodEnd &&
-            subscription.stripeCurrentPeriodEnd.getTime() > Date.now(),
-        ),
-        planId: subscription?.planId ?? null,
+        active: subscriptionActive,
+        planId: inferredPlanId,
         billingInterval: subscription?.billingInterval ?? null,
         renewsAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
       },
