@@ -193,7 +193,10 @@ const SEED_FOOTER: FooterData = {
       ],
     },
   ],
-  socialLinks: [],
+  socialLinks: [
+    { _id: uid(), platform: "Instagram", href: "https://www.instagram.com/saadstudio.ai" },
+    { _id: uid(), platform: "Facebook", href: "https://www.facebook.com/Saadstudio" },
+  ],
   newsletterHeading: "Stay in the loop ✨",
   newsletterSubtitle: "New models & drops. No spam.",
 };

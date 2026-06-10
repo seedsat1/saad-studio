@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { Instagram, Youtube, Github, Linkedin, MessageCircle, Mail, Phone } from "lucide-react";
+import { Instagram, Facebook, Youtube, Github, Linkedin, MessageCircle, Mail, Phone } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
 
 interface FooterLink {
@@ -34,7 +34,10 @@ interface DiscoverCms {
   [k: string]: unknown;
 }
 
-const SOCIALS: Array<{ icon: typeof Instagram; href: string; label: string }> = [];
+const SOCIALS: Array<{ icon: typeof Instagram; href: string; label: string }> = [
+  { icon: Instagram, href: "https://www.instagram.com/saadstudio.ai", label: "Instagram" },
+  { icon: Facebook, href: "https://www.facebook.com/Saadstudio", label: "Facebook" },
+];
 
 const ALLOWED_FOOTER_LINKS = new Set([
   "/about",
@@ -127,6 +130,7 @@ const Footer = () => {
       .map((social) => {
         const iconMap = {
           Instagram,
+          Facebook,
           YouTube: Youtube,
           Youtube,
           GitHub: Github,
