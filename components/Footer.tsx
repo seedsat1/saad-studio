@@ -124,7 +124,7 @@ const Footer = () => {
       }),
     }))
     .filter((section) => section.links.length > 0);
-  const socials = footer?.socialLinks?.length
+  const cmsSocials = footer?.socialLinks?.length
     ? footer.socialLinks
       .filter((social) => social.href && social.href !== "#" && social.href.trim() !== "")
       .map((social) => {
@@ -144,7 +144,8 @@ const Footer = () => {
         const Icon = iconMap[social.platform as keyof typeof iconMap] || MessageCircle;
         return { icon: Icon, href: social.href, label: social.platform };
       })
-    : SOCIALS;
+    : [];
+  const socials = cmsSocials.length ? cmsSocials : SOCIALS;
   const newsletterHeading = footer?.newsletterHeading || "Stay in the loop";
   const newsletterSubtitle = footer?.newsletterSubtitle || "";
 
