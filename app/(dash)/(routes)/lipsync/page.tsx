@@ -186,6 +186,40 @@ const PRESET_AVATARS = [
   }
 ];
 
+const PRESET_PROMPTS = [
+  {
+    text: "تحدث بحماس وشغف",
+    promptValue: "Speak passionately, clear mouth movements, expressive face",
+    emoji: "🗣️",
+  },
+  {
+    text: "ابتسامة خفيفة ودودة",
+    promptValue: "Friendly speaking face, slight smile, natural lipsync",
+    emoji: "😊",
+  },
+  {
+    text: "نظرة جادة ورسمية",
+    promptValue: "Professional talking head, serious look, steady posture",
+    emoji: "🤨",
+  },
+  {
+    text: "نبرة هادئة ومريحة",
+    promptValue: "Calm delivery, soft mouth movements, gentle blinks",
+    emoji: "😌",
+  },
+  {
+    text: "تعبير متفاجئ وحيوي",
+    promptValue: "Surprised expression, energetic speech delivery, wide eyes",
+    emoji: "😲",
+  },
+  {
+    text: "تمثيل درامي معبر",
+    promptValue: "Dramatic speech, highly expressive face, natural head motion",
+    emoji: "🎭",
+  },
+];
+
+
 const FAMILY_GRADIENTS: Record<string, string> = {
   kling: "from-cyan-900 via-cyan-800 to-slate-900",
   other: "from-emerald-900 via-emerald-800 to-slate-900",
@@ -219,6 +253,7 @@ function LipsyncStudioPageInner() {
 
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(LIPSYNC_MODELS[0]);
   const [modelOpen, setModelOpen] = useState(false);
+  const [guideTab, setGuideTab] = useState<"steps" | "prompts">("steps");
 
   const [prompt, setPrompt] = useState("");
   const [startFrame, setStartFrame] = useState<File | null>(null);
@@ -845,39 +880,100 @@ function LipsyncStudioPageInner() {
               <div className="w-full flex flex-col items-center gap-6 relative z-10 max-w-xl text-center py-4">
                 
                 {/* Flow / Steps Demonstration */}
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-5 w-full shadow-inner">
-                  <div className="flex items-center gap-2 mb-4 justify-center sm:justify-start">
-                    <Sparkles size={14} className="text-cyan-400" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-[#06b6d4]">
-                      How Lipsync Studio Works
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs flex-shrink-0">1</div>
-                      <div className="text-left">
-                        <p className="text-xs font-semibold text-slate-200">Face Portrait</p>
-                        <p className="text-[10px] text-slate-500 leading-normal">Select a preset or upload a portrait</p>
-                      </div>
+                <div className="rounded-2xl border border-white/5 bg-black/25 p-5 w-full shadow-inner text-right" dir="rtl">
+                  {/* Tab controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={14} className="text-cyan-400" />
+                      <span className="text-xs font-bold text-slate-200">دليل استخدام Lipsync Studio</span>
                     </div>
-                    <div className="hidden sm:block text-slate-600 text-sm">→</div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs flex-shrink-0">2</div>
-                      <div className="text-left">
-                        <p className="text-xs font-semibold text-slate-200">Speech Audio</p>
-                        <p className="text-[10px] text-slate-500 leading-normal">Provide a clean voice recording</p>
-                      </div>
-                    </div>
-                    <div className="hidden sm:block text-slate-600 text-sm">→</div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs flex-shrink-0">3</div>
-                      <div className="text-left">
-                        <p className="text-xs font-semibold text-slate-200">Lipsync AI</p>
-                        <p className="text-[10px] text-slate-500 leading-normal">Sync avatar mouth moves to speech</p>
-                      </div>
+                    <div className="flex bg-slate-950/60 p-1 rounded-lg border border-white/5 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setGuideTab("steps")}
+                        className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                          guideTab === "steps" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        📖 خطوات الاستخدام
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGuideTab("prompts")}
+                        className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                          guideTab === "prompts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        💡 تعبيرات مقترحة
+                      </button>
                     </div>
                   </div>
+
+                  {guideTab === "steps" ? (
+                    /* Steps content */
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Step 1 */}
+                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/20 transition-all text-right">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">
+                            1
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-200">📸 صورة أو فيديو الوجه</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
+                          اختر أحد النماذج الافتراضية الجاهزة، أو ارفع صورتك الشخصية أو مقطع فيديو لوجهك.
+                        </p>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-emerald-500/20 transition-all text-right">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                            2
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-200">🎙️ الملف الصوتي</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
+                          ارفع ملف الصوت بصيغة MP3 أو WAV الذي يحتوي على الكلام لكي تتم مزامنته بالكامل.
+                        </p>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 transition-all text-right">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs">
+                            3
+                          </div>
+                          <h4 className="text-xs font-bold text-slate-200">🚀 توليد مطابقة الشفاه</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
+                          اكتب توجيه التعبير (اختياري) ثم اضغط على زر التوليد لتشغيل خوارزميات الذكاء الاصطناعي.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Prompts/Presets content */
+                    <div className="flex flex-col gap-3 text-right">
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        اضغط على أي من التعبيرات المقترحة لتعبئتها مباشرة في صندوق التوجيه ومزامنتها مع حركات الوجه:
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {PRESET_PROMPTS.map((p) => (
+                          <button
+                            key={p.text}
+                            type="button"
+                            onClick={() => setPrompt(p.promptValue)}
+                            className="flex items-center justify-between px-3 py-2 rounded-xl border border-white/5 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 text-right transition-all group"
+                          >
+                            <span className="text-[11px] font-medium text-slate-300 group-hover:text-cyan-400">
+                              {p.text}
+                            </span>
+                            <span className="text-xs">{p.emoji}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Example Avatars Section */}
