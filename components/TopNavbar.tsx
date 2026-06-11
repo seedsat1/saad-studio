@@ -140,17 +140,8 @@ const VIDEO_FEATURES = [
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Video Extend",        href: "/video-extend",    icon: Film,         color: "text-pink-400",    description: "Upload a clip and extend its duration",  badge: "NEW" },
-  { label: "Studio Edit",         href: "/studio-edit",     icon: Scissors,     color: "text-amber-400",   description: "AI post-production clipping, captions & dubbing", badge: "NEW" },
-  { label: "Click to Ad",         href: "/video?tool=click-to-ad",      icon: Megaphone,    color: "text-amber-400",   description: "1-click commercial generation",          badge: "" },
-  { label: "Sora 2 Trends",       href: "/video?tool=sora-trends",      icon: TrendingUp,   color: "text-sky-400",     description: "Viral cinematic templates",              badge: "" },
   { label: "Lipsync Studio",      href: "/video?tool=lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
-  { label: "Draw to Video",       href: "/video?tool=draw-to-video",    icon: Paintbrush,   color: "text-fuchsia-400", description: "Animate sketched concepts",              badge: "" },
-  { label: "Sketch to Video",     href: "/video?tool=sketch-to-video",  icon: PenTool,      color: "text-lime-400",    description: "Turn rough outlines into motion",        badge: "" },
-  { label: "UGC Factory",         href: "/video?tool=ugc-factory",      icon: Layers,       color: "text-teal-400",    description: "User-generated content simulator",       badge: "" },
   { label: "Video Upscale",       href: "/video?tool=video-upscale",    icon: Aperture,     color: "text-blue-400",    description: "Enhance resolution to 4K/8K",            badge: "" },
-  { label: "Character Animate",   href: "/video?tool=character-animate", icon: Sparkles,   color: "text-emerald-400", description: "Character and object animation",         badge: "" },
-  { label: "Vibe Motion",         href: "/video?tool=vibe-motion",      icon: Music,        color: "text-indigo-400",  description: "Music-synced dynamic edits",             badge: "" },
-  { label: "Recast Studio",       href: "/video?tool=recast-studio",    icon: Film,         color: "text-red-400",     description: "Repurpose existing videos",              badge: "" },
 ];
 
 const VIDEO_MODEL_GROUPS = [
@@ -341,7 +332,7 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 };
 
 function imageFeatureHref(label: string): string {
-  if (label === "Prompt") return "/prompt";
+  if (label === "Prompt") return "/gallery";
   if (label === "Prompt Extractor") return "/prompt-extractor";
 
   const editToolsMap: Record<string, string> = {
