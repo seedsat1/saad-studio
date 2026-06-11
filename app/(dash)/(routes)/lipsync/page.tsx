@@ -18,6 +18,11 @@ import {
   ChevronDown,
   AlertCircle,
   Eye,
+  Shield,
+  Zap,
+  Target,
+  Volume2,
+  Trash,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,6 +30,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
+
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
@@ -274,6 +280,26 @@ function LipsyncStudioPageInner() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // User design parameters
+  const [audioTab, setAudioTab] = useState<"upload" | "tts">("upload");
+  const [ttsText, setTtsText] = useState("");
+  const [ttsVoice, setTtsVoice] = useState("Sulafat");
+  const [resolution, setResolution] = useState<"480p" | "720p" | "1080p">("1080p");
+  
+  // Custom audio player state
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const GEMINI_VOICES = [
+    { id: "Sulafat", name: "Sulafat (أنثى - العربية)" },
+    { id: "Zephyr", name: "Zephyr (ذكر - إنجليزي)" },
+    { id: "Puck", name: "Puck (ذكر - إنجليزي)" },
+    { id: "Fenrir", name: "Fenrir (ذكر - إنجليزي)" },
+    { id: "Leda", name: "Leda (أنثى - إنجليزي)" },
+  ];
+
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -371,6 +397,71 @@ function LipsyncStudioPageInner() {
     return () => URL.revokeObjectURL(url);
   }, [lipsyncAudioFile]);
 
+  // Control Audio Element
+  useEffect(() => {
+    if (!lipsyncAudioPreview) {
+      setIsPlayingAudio(false);
+      setAudioCurrentTime(0);
+      setAudioDuration(0);
+      return;
+    }
+    const audio = new Audio(lipsyncAudioPreview);
+    audioRef.current = audio;
+
+    const handleLoadedMetadata = () => {
+      setAudioDuration(audio.duration);
+    };
+    const handleTimeUpdate = () => {
+      setAudioCurrentTime(audio.currentTime);
+    };
+    const handleEnded = () => {
+      setIsPlayingAudio(false);
+      setAudioCurrentTime(0);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("ended", handleEnded);
+      audioRef.current = null;
+    };
+  }, [lipsyncAudioPreview]);
+
+  const togglePlayAudio = () => {
+    if (!audioRef.current) return;
+    if (isPlayingAudio) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      audioRef.current.play().catch(() => {});
+      setIsPlayingAudio(true);
+    }
+  };
+
+  const formatTime = (secs: number) => {
+    if (isNaN(secs) || !isFinite(secs)) return "00:00";
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = Math.floor(secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const handleReset = () => {
+    setStartFrame(null);
+    setLinkedStartFrameUrl(null);
+    setStartFramePreview(null);
+    setLipsyncAudioFile(null);
+    setLipsyncAudioPreview(null);
+    setResultVideoUrl(null);
+    setPrompt("");
+    setTtsText("");
+    setGenerationError(null);
+  };
+
   // Load past Lipsync generations
   const loadHistory = useCallback(async () => {
     try {
@@ -382,7 +473,6 @@ function LipsyncStudioPageInner() {
       const mapped: MediaItem[] = data.assets.flatMap((asset: any) => {
         if (!asset?.url || seenUrls.has(asset.url)) return [];
         
-        // Filter specifically for lip-sync models
         const modelLower = String(asset.model || "").toLowerCase();
         const isLipsync = 
           modelLower.includes("lip-sync") || 
@@ -421,14 +511,17 @@ function LipsyncStudioPageInner() {
     void loadHistory();
   }, [loadHistory]);
 
-  const canGenerate = Boolean((startFrame || linkedStartFrameUrl) && lipsyncAudioFile);
+  const canGenerate = Boolean(
+    (startFrame || linkedStartFrameUrl) &&
+    (audioTab === "upload" ? lipsyncAudioFile : ttsText.trim())
+  );
 
   const handleGenerate = async () => {
     if (!canGenerate || isSubmitting) return;
     setGenerationError(null);
 
     const gate = await guardGeneration({
-      requiredCredits: 17, // Fixed Lipsync credits
+      requiredCredits: 17,
       action: `apps:lipsync:audio`,
     });
 
@@ -466,9 +559,28 @@ function LipsyncStudioPageInner() {
         }
       }
 
-      // 2. Upload Audio File
-      if (!lipsyncAudioFile) throw new Error("Audio file is required.");
-      const audioUrl = await uploadFileForGeneration(lipsyncAudioFile);
+      // 2. Prepare audio URL (upload or TTS generation)
+      let audioUrl = "";
+      if (audioTab === "tts") {
+        const ttsRes = await fetch("/api/generate/audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actionType: "tts",
+            text: ttsText.trim(),
+            voice: ttsVoice,
+            model: "gemini-3.1-flash-tts-preview",
+          }),
+        });
+        const ttsJson = await ttsRes.json().catch(() => ({}));
+        if (!ttsRes.ok || !ttsJson.audioUrl) {
+          throw new Error(ttsJson.error || "فشل توليد الصوت من النص المقترح.");
+        }
+        audioUrl = ttsJson.audioUrl;
+      } else {
+        if (!lipsyncAudioFile) throw new Error("ملف الصوت مطلوب.");
+        audioUrl = await uploadFileForGeneration(lipsyncAudioFile);
+      }
 
       // If the model is not a seedance model, the backend validation requires imageUrl and audioUrl.
       // Pass the video URL as imageUrl for these models to satisfy the backend validation constraint.
@@ -488,13 +600,14 @@ function LipsyncStudioPageInner() {
           imageUrl: imgUrl || undefined,
           videoUrl: videoUrl || undefined,
           audioUrl: audioUrl,
+          resolution: resolution,
           prompt: prompt.trim() || "Natural lip sync performance",
         }),
       });
 
       const lipsyncJson = await lipsyncRes.json().catch(() => ({}));
       if (!lipsyncRes.ok || !lipsyncJson.videoUrl) {
-        throw new Error(lipsyncJson.error || "Generation failed on server.");
+        throw new Error(lipsyncJson.error || "فشل توليد مطابقة الشفاه على الخادم.");
       }
 
       let finalVideoUrl = lipsyncJson.videoUrl;
@@ -579,576 +692,682 @@ function LipsyncStudioPageInner() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} h-[calc(100vh-64px)] overflow-hidden flex flex-col relative`}
-      style={{ background: "#060c18", color: "#e2e8f0", fontFamily: "var(--font-body, sans-serif)" }}
+      className={`${outfit.variable} ${plusJakarta.variable} h-[calc(100vh-64px)] overflow-hidden flex flex-col justify-between relative`}
+      style={{ background: "#030712", color: "#e2e8f0", fontFamily: "var(--font-body, sans-serif)" }}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes soundWave {
+          0%, 100% { transform: scaleY(0.35); }
+          50% { transform: scaleY(1.15); }
+        }
+        .animate-bar-1 { animation: soundWave 0.9s ease-in-out infinite alternate; }
+        .animate-bar-2 { animation: soundWave 0.6s ease-in-out infinite alternate; }
+        .animate-bar-3 { animation: soundWave 0.8s ease-in-out infinite alternate; }
+        .animate-bar-4 { animation: soundWave 0.7s ease-in-out infinite alternate; }
+      `}} />
+
       {/* Background radial effects */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[-15%] w-[600px] h-[600px] rounded-full opacity-[0.05]" style={{ background: "radial-gradient(circle, #06b6d4, transparent)" }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, #10b981, transparent)" }} />
+        <div className="absolute top-[-20%] right-[-15%] w-[800px] h-[800px] rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, #06b6d4, transparent)" }} />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, #8b5cf6, transparent)" }} />
       </div>
 
       {/* Header Navigation */}
-      <div className="relative z-10 px-6 pt-4 pb-1 flex-shrink-0">
-        <Link href="/apps" className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide uppercase transition-colors hover:text-slate-200" style={{ color: "#64748b" }}>
+      <div className="relative z-10 px-6 pt-3 pb-1 flex-shrink-0 flex items-center justify-between">
+        <Link href="/apps" className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide uppercase transition-colors hover:text-slate-200 text-slate-500">
           <ArrowLeft size={13} /> Back to Apps
         </Link>
       </div>
 
-      {/* Main split grid layout (No overflow on viewport, scroll happens inside the columns) */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 gap-6 px-6 pb-6 max-w-[1600px] mx-auto w-full">
+      {/* Standalone Main layout */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 gap-6 px-6 pb-2 max-w-[1650px] mx-auto w-full overflow-hidden">
         
-        {/* ── LEFT PANEL (INPUT CONTROLS): Span 4/12 ── */}
-        <div className="lg:col-span-4 flex flex-col gap-4 rounded-2xl border p-5 bg-[#0b1225]/40 backdrop-blur-xl border-white/5 shadow-2xl h-full overflow-y-auto scrollbar-thin">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2" style={{ fontFamily: "var(--font-display)" }}>
-              <Languages className="w-5 h-5 text-[#06b6d4]" />
-              <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Lipsync Studio
-              </span>
+        {/* ── LEFT COLUMN: Text Info & Timeline Timeline Guide (Span 3/12) ── */}
+        <div className="lg:col-span-3 flex flex-col justify-between py-2 overflow-y-auto pr-1 scrollbar-none">
+          <div className="flex flex-col text-right" dir="rtl">
+            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-400 tracking-tight font-display">
+              Lipsync
             </h1>
-            <p className="text-[11px] mt-0.5" style={{ color: "#64748b" }}>
-              Sync portrait avatar image with audio speech recording
+            <h2 className="text-xl font-bold text-slate-100 mt-4 leading-snug">
+              اجعل كلماتك تنبض بالحياة.
+            </h2>
+            <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
+              حوّل أي صوت إلى حركة شفاه واقعية بدقة عالية.
             </p>
-          </div>
 
-          <hr className="border-white/5 -mx-5" />
+            {/* Timeline Guide */}
+            <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest mt-8 mb-4 border-b border-white/5 pb-2">
+              طريقة الاستخدام
+            </h3>
 
-          {/* Model Selection Dropdown */}
-          <div ref={dropdownRef} className="flex flex-col gap-1.5 relative">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
-              AI Model
-            </label>
-            <button
-              type="button"
-              onClick={() => setModelOpen(v => !v)}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-left transition-all bg-[#101b30]/60 border border-white/5 hover:bg-[#101b30]/90 relative z-20"
-            >
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
-              <span className="flex-1 text-[13px] font-medium text-slate-200">{selectedModel.name}</span>
-              {bStyle && (
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                  style={{ background: bStyle.bg, color: bStyle.text }}
-                >
-                  {selectedModel.badge}
-                </span>
-              )}
-              <ChevronDown
-                size={13}
-                className="transition-transform duration-200"
-                style={{
-                  color: "#475569",
-                  transform: modelOpen ? "rotate(180deg)" : "none",
-                }}
-              />
-            </button>
+            <div className="relative flex flex-col gap-6 pr-5">
+              {/* Connecting vertical dashed line */}
+              <div className="absolute right-[19px] top-5 bottom-5 w-[1.5px] border-r-2 border-dashed border-white/10 z-0" />
 
-            <AnimatePresence>
-              {modelOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 right-0 mt-1 z-30 rounded-xl overflow-hidden py-1 border border-white/10 shadow-2xl bg-[#0a1220]"
-                >
-                  {LIPSYNC_MODELS.map(m => {
-                    const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedModel(m);
-                          setModelOpen(false);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-4 py-3 transition-all hover:bg-white/5 text-left"
-                        style={{
-                          background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
-                          color: selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
-                        }}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                        <span className="flex-1 text-left text-[13px] font-medium">{m.name}</span>
-                        {bs && (
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-black/40"
-                            style={{ background: bs.bg, color: bs.text }}
-                          >
-                            {m.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Model Description Box */}
-          <div
-            className="rounded-xl p-3 border bg-[#050a14]/60"
-            style={{
-              borderColor: hexA(selectedModel.family_color, 0.15),
-            }}
-          >
-            <p className="text-[11px] leading-relaxed text-slate-400">
-              {selectedModel.description}
-            </p>
-          </div>
-
-          {/* Avatar Image Input */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
-              {selectedModel.id === "sync-lipsync-3" ? "Face Video" : "Avatar Image / Video"}
-            </label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setStartFrame(file);
-              }}
-              accept={selectedModel.id === "sync-lipsync-3" ? "video/*" : "image/*,video/*"}
-              className="hidden"
-            />
-            {startFramePreview ? (
-              <div className="group relative rounded-xl overflow-hidden border border-white/5 aspect-[3/4] bg-black/40 shadow-inner max-h-[240px]">
-                {startFrame?.type?.startsWith("video/") || (linkedStartFrameUrl && /\.(mp4|mov|webm)(\?|$)/i.test(linkedStartFrameUrl)) ? (
-                  <video
-                    src={startFramePreview}
-                    controls
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <img
-                    src={startFramePreview}
-                    alt="Avatar portrait"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStartFrame(null);
-                    setLinkedStartFrameUrl(null);
-                  }}
-                  className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/60 hover:bg-black/80 text-slate-300 transition-colors shadow-md"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full py-10 rounded-xl border border-dashed bg-black/30 flex flex-col items-center justify-center gap-1.5 hover:bg-cyan-955/5 hover:border-cyan-500/30 transition-all border-white/10 text-slate-500 hover:text-cyan-400"
-              >
-                <ImageIcon size={24} className="opacity-70" />
-                <span className="text-xs font-semibold text-slate-300">
-                  {selectedModel.id === "sync-lipsync-3" ? "Upload Face Video" : "Upload Photo / Video"}
-                </span>
-                <span className="text-[9px] text-slate-500">
-                  {selectedModel.id === "sync-lipsync-3" ? "Clear face required" : "Face recommended"}
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* Audio Upload Box */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
-              Voice / Audio Recording
-            </label>
-            <input
-              type="file"
-              ref={audioInputRef}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setLipsyncAudioFile(file);
-              }}
-              accept="audio/*"
-              className="hidden"
-            />
-            {lipsyncAudioFile ? (
-              <div className="relative rounded-xl p-3 border bg-black/40 border-white/5 flex flex-col gap-2 shadow-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Music2 size={15} className="text-[#06b6d4] flex-shrink-0" />
-                    <span className="text-xs text-slate-300 font-medium truncate">
-                      {lipsyncAudioFile.name}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setLipsyncAudioFile(null)}
-                    className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-slate-400 hover:text-white transition-colors"
-                  >
-                    <X size={12} />
-                  </button>
+              {/* Step 1 */}
+              <div className="flex items-start gap-3.5 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 flex-shrink-0 shadow-lg shadow-cyan-500/5">
+                  <Upload size={16} />
                 </div>
-                {lipsyncAudioPreview && (
-                  <audio
-                    src={lipsyncAudioPreview}
-                    controls
-                    className="w-full h-8 mt-0.5 rounded bg-black/30 overflow-hidden text-xs"
-                  />
-                )}
-                <span className="text-[9px] text-slate-500">
-                  Size: {(lipsyncAudioFile.size / 1024 / 1024).toFixed(2)} MB
-                </span>
+                <div className="flex flex-col text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black text-cyan-400">1</span>
+                    <h4 className="text-xs font-bold text-slate-200">ارفع فيديو</h4>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">ارفع فيديو لشخص واضح الوجه.</p>
+                </div>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => audioInputRef.current?.click()}
-                className="w-full py-6 rounded-xl border border-dashed bg-black/30 flex flex-col items-center justify-center gap-1.5 hover:bg-cyan-955/5 hover:border-cyan-500/30 transition-all border-white/10 text-slate-500 hover:text-cyan-400"
-              >
-                <Music2 size={24} className="opacity-70" />
-                <span className="text-xs font-semibold text-slate-300">Upload Speech Audio</span>
-                <span className="text-[9px] text-slate-500">MP3, WAV, AAC (Max 50MB)</span>
-              </button>
-            )}
-          </div>
 
-          {/* Prompt/Expression Field */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
-              Prompt / Expression Control (Optional)
-            </label>
-            <textarea
-              rows={2}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="e.g., Speak naturally, smile slightly..."
-              className="w-full rounded-xl bg-black/30 border px-3 py-2 text-xs outline-none focus:border-cyan-500/50 resize-none border-white/10"
-            />
-          </div>
+              {/* Step 2 */}
+              <div className="flex items-start gap-3.5 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0 shadow-lg shadow-purple-500/5">
+                  <Music2 size={16} />
+                </div>
+                <div className="flex flex-col text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black text-purple-400">2</span>
+                    <h4 className="text-xs font-bold text-slate-200">أضف الصوت</h4>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">ارفع ملف صوتي أو أدخل نصاً ليتم تحويله إلى كلام.</p>
+                </div>
+              </div>
 
-          {/* Generation Error Block */}
-          {generationError && (
-            <div className="rounded-xl border border-red-500/20 bg-red-950/10 p-3 flex items-start gap-2 text-red-300 text-xs">
-              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
-              <span>{generationError}</span>
+              {/* Step 3 */}
+              <div className="flex items-start gap-3.5 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0 shadow-lg shadow-blue-500/5">
+                  <Languages size={16} />
+                </div>
+                <div className="flex flex-col text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black text-blue-400">3</span>
+                    <h4 className="text-xs font-bold text-slate-200">توليد حركة الشفاه</h4>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">تعتمد الذكاء الاصطناعي لمزامنة الشفتين مع الصوت بدقة.</p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="flex items-start gap-3.5 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0 shadow-lg shadow-emerald-500/5">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div className="flex flex-col text-right">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-black text-emerald-400">4</span>
+                    <h4 className="text-xs font-bold text-slate-200">حمّل النتيجة</h4>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">احصل على فيديو متزامن وجاهز للمشاركة.</p>
+                </div>
+              </div>
             </div>
-          )}
-
-          {/* Generate Button */}
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isSubmitting || !canGenerate}
-            className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg"
-            style={{
-              background: isSubmitting || !canGenerate
-                ? "rgba(255,255,255,0.03)"
-                : "linear-gradient(135deg, #06b6d4, #10b981)",
-              color: isSubmitting || !canGenerate ? "#475569" : "#ffffff",
-              border: `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "transparent"}`,
-              cursor: isSubmitting || !canGenerate ? "not-allowed" : "pointer",
-            }}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>Syncing Audio...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles size={14} />
-                <span>Generate Lipsync • 17 credits</span>
-              </>
-            )}
-          </button>
+          </div>
         </div>
 
-        {/* ── RIGHT PANEL (MAIN PREVIEW & HISTORY): Span 8/12 ── */}
-        <div className="lg:col-span-8 flex flex-col gap-5 h-full overflow-y-auto scrollbar-thin">
+        {/* ── RIGHT COLUMN: Main Bordered Box Container (Span 9/12) ── */}
+        <div className="lg:col-span-9 flex flex-col border border-white/5 bg-[#080d19]/45 rounded-3xl p-5 backdrop-blur-2xl shadow-2xl overflow-hidden h-full">
           
-          {/* Main active preview area */}
-          <div className="rounded-2xl border p-5 flex flex-col items-center justify-center min-h-[380px] bg-[#0b1225]/20 border-white/5 relative shadow-inner">
-            
-            {/* Absolute background card texture */}
-            <div className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
-            </div>
-
-            {/* Content states */}
-            {!isSubmitting && !resultVideoUrl && (
-              <div className="w-full flex flex-col items-center gap-6 relative z-10 max-w-xl text-center py-4">
-                
-                {/* Flow / Steps Demonstration */}
-                <div className="rounded-2xl border border-white/5 bg-black/25 p-5 w-full shadow-inner text-right" dir="rtl">
-                  {/* Tab controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles size={14} className="text-cyan-400" />
-                      <span className="text-xs font-bold text-slate-200">دليل استخدام Lipsync Studio</span>
-                    </div>
-                    <div className="flex bg-slate-950/60 p-1 rounded-lg border border-white/5 self-start sm:self-auto">
-                      <button
-                        type="button"
-                        onClick={() => setGuideTab("steps")}
-                        className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                          guideTab === "steps" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        📖 خطوات الاستخدام
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setGuideTab("prompts")}
-                        className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                          guideTab === "prompts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        💡 تعبيرات مقترحة
-                      </button>
-                    </div>
-                  </div>
-
-                  {guideTab === "steps" ? (
-                    /* Steps content */
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Step 1 */}
-                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-cyan-500/20 transition-all text-right">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-xs">
-                            1
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-200">📸 صورة أو فيديو الوجه</h4>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
-                          اختر أحد النماذج الافتراضية الجاهزة، أو ارفع صورتك الشخصية أو مقطع فيديو لوجهك.
-                        </p>
-                      </div>
-
-                      {/* Step 2 */}
-                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-emerald-500/20 transition-all text-right">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-xs">
-                            2
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-200">🎙️ الملف الصوتي</h4>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
-                          ارفع ملف الصوت بصيغة MP3 أو WAV الذي يحتوي على الكلام لكي تتم مزامنته بالكامل.
-                        </p>
-                      </div>
-
-                      {/* Step 3 */}
-                      <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-purple-500/20 transition-all text-right">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-xs">
-                            3
-                          </div>
-                          <h4 className="text-xs font-bold text-slate-200">🚀 توليد مطابقة الشفاه</h4>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-relaxed pr-1">
-                          اكتب توجيه التعبير (اختياري) ثم اضغط على زر التوليد لتشغيل خوارزميات الذكاء الاصطناعي.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Prompts/Presets content */
-                    <div className="flex flex-col gap-3 text-right">
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        اضغط على أي من التعبيرات المقترحة لتعبئتها مباشرة في صندوق التوجيه ومزامنتها مع حركات الوجه:
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {PRESET_PROMPTS.map((p) => (
-                          <button
-                            key={p.text}
-                            type="button"
-                            onClick={() => setPrompt(p.promptValue)}
-                            className="flex items-center justify-between px-3 py-2 rounded-xl border border-white/5 bg-slate-900/40 hover:bg-slate-900 hover:border-cyan-500/30 text-right transition-all group"
-                          >
-                            <span className="text-[11px] font-medium text-slate-300 group-hover:text-cyan-400">
-                              {p.text}
-                            </span>
-                            <span className="text-xs">{p.emoji}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Example Avatars Section */}
-                <div className="w-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ImageIcon size={14} className="text-emerald-400" />
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-[#10b981]">
-                      Or Try an Example Avatar
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-3 gap-3.5">
-                    {PRESET_AVATARS.map((avatar) => (
-                      <button
-                        key={avatar.url}
-                        type="button"
-                        onClick={() => {
-                          setLinkedStartFrameUrl(avatar.url);
-                          setStartFrame(null);
-                        }}
-                        className="group relative aspect-[3/4] rounded-2xl overflow-hidden border border-white/5 hover:border-cyan-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all text-left shadow-2xl bg-black/40"
-                      >
-                        <img
-                          src={avatar.url}
-                          alt={avatar.name}
-                          className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition duration-300"
-                        />
-                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-3 pt-6">
-                          <span className="text-[10px] font-bold text-slate-200 block truncate">
-                            {avatar.label}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {isSubmitting && (
-              <div className="flex flex-col items-center text-center p-6 relative z-10 select-none">
-                <div className="relative w-14 h-14 mb-4 flex items-center justify-center">
-                  <div className="absolute inset-0 border-2 border-t-transparent animate-spin rounded-full border-cyan-500" />
-                  <Languages className="w-5 h-5 text-cyan-400 animate-pulse" />
-                </div>
-                <h4 className="text-sm font-semibold text-slate-200">Processing Lip-sync...</h4>
-                <p className="text-[11px] text-slate-500 mt-1 max-w-xs leading-relaxed">
-                  Uploading files and generating your lip-sync video. This usually takes between 30 to 90 seconds. Please wait.
-                </p>
-              </div>
-            )}
-
-            {!isSubmitting && resultVideoUrl && (
-              <div className="w-full flex flex-col items-center gap-4 relative z-10 max-w-[320px] py-4">
-                <div className="w-full aspect-[9/16] rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10 ring-1 ring-black">
-                  <video
-                    src={resultVideoUrl}
-                    controls
-                    autoPlay
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                <div className="flex items-center gap-2 w-full mt-1">
-                  <button
-                    type="button"
-                    onClick={() => void handleDownload(resultVideoUrl, `${selectedModel.name} Generated Lipsync`)}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border bg-[#101b30]/60 border-white/5 hover:bg-[#101b30]/90 text-slate-200 shadow-lg"
-                  >
-                    <Download size={13} />
-                    Download Video
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setResultVideoUrl(null);
-                      setStartFrame(null);
-                      setLinkedStartFrameUrl(null);
-                      setLipsyncAudioFile(null);
-                    }}
-                    className="px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center border bg-[#101b30]/30 border-white/5 hover:bg-[#101b30]/50 text-slate-400"
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Inner Header Section */}
+          <div className="flex-shrink-0 flex items-center justify-between border-b border-white/5 pb-3.5">
+            <h3 className="text-lg font-bold tracking-wide text-slate-200 font-display">
+              Lipsync
+            </h3>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-[11px] font-extrabold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-all rounded-lg px-3.5 py-1.5 flex items-center gap-1.5 shadow-lg shadow-cyan-400/15"
+            >
+              <span>مشروع جديد</span>
+              <span className="text-xs">➕</span>
+            </button>
           </div>
 
-          {/* Lipsync Library/History */}
-          {results.length > 0 && (
-            <div className="flex flex-col gap-4 flex-shrink-0 pb-4">
-              <div className="flex items-center gap-2 border-b pb-2 border-white/5">
-                <Film size={14} className="text-[#06b6d4]" />
-                <h2 className="text-xs font-bold text-slate-300 uppercase tracking-widest" style={{ fontFamily: "var(--font-display)" }}>
-                  Lipsync Generation Library
-                </h2>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#06b6d4]/10 text-[#06b6d4]">
-                  {results.length}
-                </span>
+          {/* Main Grid Content Split */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 flex-1 min-h-0 mt-4 overflow-hidden">
+            
+            {/* ── INPUT PANELS: Span 5/12 ── */}
+            <div className="md:col-span-5 flex flex-col justify-between overflow-y-auto pr-1 pb-4 scrollbar-none gap-4">
+              
+              {/* 1. Video Input Dropzone */}
+              <div className="flex flex-col text-right" dir="rtl">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
+                  1. الفيديو / الصورة
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setStartFrame(file);
+                  }}
+                  accept={selectedModel.id === "sync-lipsync-3" ? "video/*" : "image/*,video/*"}
+                  className="hidden"
+                />
+
+                {startFramePreview ? (
+                  <div className="group relative rounded-2xl overflow-hidden border border-white/5 aspect-[16/10] bg-black/40 shadow-inner max-h-[160px]">
+                    {startFrame?.type?.startsWith("video/") || (linkedStartFrameUrl && /\.(mp4|mov|webm)(\?|$)/i.test(linkedStartFrameUrl)) ? (
+                      <video
+                        src={startFramePreview}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={startFramePreview}
+                        alt="Avatar portrait"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStartFrame(null);
+                        setLinkedStartFrameUrl(null);
+                      }}
+                      className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/75 hover:bg-black/90 text-slate-300 transition-colors shadow-md border border-white/5"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-7 rounded-2xl border border-dashed border-white/10 hover:border-cyan-500/30 bg-black/20 flex flex-col items-center justify-center gap-1.5 hover:bg-black/30 transition-all cursor-pointer group text-center"
+                  >
+                    <Upload size={22} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                    <span className="text-xs font-bold text-slate-300">
+                      ارفع الفيديو هنا
+                    </span>
+                    <span className="text-[9px] text-slate-500">
+                      أو اسحب وأفلت الملف
+                    </span>
+                    <span className="text-[8px] text-slate-600 mt-0.5">
+                      MP4, MOV, AVI (Max 500MB)
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Grid representation */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                <AnimatePresence>
-                  {results.map((item) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="group relative cursor-pointer aspect-[9/16] overflow-hidden rounded-xl bg-black border border-white/5 hover:border-cyan-500/40 shadow-lg"
-                      onClick={() => setInspectorAsset({
-                        type: "video",
-                        url: item.src,
-                        title: item.model,
-                        prompt: item.prompt,
-                        model: item.model,
-                      })}
-                    >
-                      {/* Video element for hover play / visual */}
-                      <video
-                        src={item.src}
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300"
-                      />
+              {/* 2. Audio Input Section */}
+              <div className="flex flex-col text-right" dir="rtl">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
+                  2. الصوت
+                </label>
+                
+                {/* Audio Tabs Switcher */}
+                <div className="flex w-full bg-black/45 p-1 rounded-xl border border-white/5 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setAudioTab("upload")}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-extrabold transition-all ${
+                      audioTab === "upload"
+                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/25 shadow"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    رفع ملف صوتي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAudioTab("tts")}
+                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-extrabold transition-all ${
+                      audioTab === "tts"
+                        ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/25 shadow"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    إدخال نص
+                  </button>
+                </div>
 
-                      {/* Header Badge */}
-                      <div className="absolute top-2 left-2 z-10 rounded px-1.5 py-0.5 text-[8px] font-bold tracking-wide uppercase text-white bg-black/60 shadow border border-white/5">
-                        {item.model}
-                      </div>
+                {/* Audio Upload Tab */}
+                {audioTab === "upload" && (
+                  <div>
+                    <input
+                      type="file"
+                      ref={audioInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setLipsyncAudioFile(file);
+                      }}
+                      accept="audio/*"
+                      className="hidden"
+                    />
 
-                      {/* Hover controls overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-2.5 opacity-0 group-hover:opacity-100 transition duration-200">
-                        <p className="text-[9px] text-slate-400 line-clamp-2 leading-relaxed mb-2">
-                          {item.prompt}
-                        </p>
-                        <div className="flex items-center gap-1.5 w-full">
+                    {lipsyncAudioFile ? (
+                      /* Custom Mimicked Waveform Player */
+                      <div className="border border-white/5 bg-black/35 rounded-2xl p-3 flex flex-col gap-2.5 shadow-lg relative">
+                        <div className="flex items-center gap-3">
+                          {/* Play Circle button */}
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setInspectorAsset({
-                                type: "video",
-                                url: item.src,
-                                title: item.model,
-                                prompt: item.prompt,
-                                model: item.model,
-                              });
-                            }}
-                            className="flex-1 py-1 rounded bg-white/10 hover:bg-white/20 text-[10px] font-semibold text-white flex items-center justify-center gap-1 ring-1 ring-white/10"
+                            onClick={togglePlayAudio}
+                            className="w-9 h-9 rounded-full bg-cyan-400 hover:bg-cyan-300 flex items-center justify-center text-slate-950 cursor-pointer shadow-lg shadow-cyan-400/20 hover:scale-105 active:scale-95 transition-all flex-shrink-0"
                           >
-                            <Eye size={10} />
-                            Preview
+                            {isPlayingAudio ? (
+                              <div className="flex gap-0.5 justify-center items-center">
+                                <span className="w-1 h-3.5 bg-slate-950 rounded-sm"></span>
+                                <span className="w-1 h-3.5 bg-slate-950 rounded-sm"></span>
+                              </div>
+                            ) : (
+                              <span className="mr-[-2px] text-xs">▶</span>
+                            )}
                           </button>
+
+                          {/* Sound wave bars */}
+                          <div className="flex-1 flex items-center justify-center gap-[3px] px-1 h-8">
+                            {Array.from({ length: 24 }).map((_, idx) => {
+                              const height = [10, 16, 24, 12, 18, 28, 20, 14, 22, 30, 24, 16, 12, 18, 26, 20, 14, 22, 28, 18, 12, 16, 24, 10][idx] || 16;
+                              const barAnimClass = isPlayingAudio ? `animate-bar-${(idx % 4) + 1}` : "";
+                              return (
+                                <span
+                                  key={idx}
+                                  className={`w-[2px] rounded-full bg-cyan-400 origin-center transition-all duration-300 ${barAnimClass}`}
+                                  style={{
+                                    height: `${height}px`,
+                                    transform: isPlayingAudio ? undefined : "scaleY(1)",
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          {/* Audio timestamps */}
+                          <div className="text-[9px] text-slate-400 font-mono flex-shrink-0 ml-1">
+                            {formatTime(audioCurrentTime)} / {formatTime(audioDuration)}
+                          </div>
+                        </div>
+
+                        {/* File Name & Delete button */}
+                        <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-0.5">
+                          <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[80%] pr-1">
+                            {lipsyncAudioFile.name}
+                          </span>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleDownload(item.src, item.model);
-                            }}
-                            className="p-1 rounded bg-white/10 hover:bg-white/20 text-white ring-1 ring-white/10"
+                            onClick={() => setLipsyncAudioFile(null)}
+                            className="p-1 rounded bg-white/[0.03] hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors border border-white/5"
                           >
-                            <Download size={10} />
+                            <Trash size={12} />
                           </button>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                    ) : (
+                      <div
+                        onClick={() => audioInputRef.current?.click()}
+                        className="w-full py-6 rounded-2xl border border-dashed border-white/10 hover:border-cyan-500/30 bg-black/20 flex flex-col items-center justify-center gap-1 hover:bg-black/30 transition-all cursor-pointer group"
+                      >
+                        <Music2 size={20} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                        <span className="text-xs font-bold text-slate-300">رفع ملف صوتي</span>
+                        <span className="text-[9px] text-slate-500">MP3, WAV, AAC (Max 50MB)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Audio TTS Tab */}
+                {audioTab === "tts" && (
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      rows={2}
+                      value={ttsText}
+                      onChange={(e) => setTtsText(e.target.value)}
+                      placeholder="اكتب النص المراد تحويله إلى كلام هنا وسنقوم بمزامنة الشفاه تلقائياً..."
+                      className="w-full rounded-xl bg-black/30 border border-white/5 px-3 py-2 text-xs outline-none focus:border-cyan-500/30 resize-none text-slate-200 text-right"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">الصوت الافتراضي:</span>
+                      <select
+                        value={ttsVoice}
+                        onChange={(e) => setTtsVoice(e.target.value)}
+                        className="bg-black/60 border border-white/5 rounded-lg px-2.5 py-1 text-[10px] outline-none text-slate-300 font-semibold focus:border-cyan-500/30 cursor-pointer"
+                      >
+                        {GEMINI_VOICES.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Settings Section */}
+              <div className="flex flex-col text-right animate-fade-in" dir="rtl">
+                <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
+                  3. إعدادات
+                </label>
+                
+                <div className="grid grid-cols-2 gap-3.5">
+                  {/* AI Model Dropdown */}
+                  <div ref={dropdownRef} className="flex flex-col gap-1 relative">
+                    <button
+                      type="button"
+                      onClick={() => setModelOpen(v => !v)}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-right transition-all bg-black/30 border border-white/5 hover:bg-black/50"
+                    >
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
+                      <span className="flex-1 text-[11px] font-bold text-slate-200 truncate">{selectedModel.name}</span>
+                      <ChevronDown size={11} className="text-slate-500 transition-transform duration-200" style={{ transform: modelOpen ? "rotate(180deg)" : "none" }} />
+                    </button>
+
+                    <AnimatePresence>
+                      {modelOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.1 }}
+                          className="absolute bottom-full left-0 right-0 mb-1 z-30 rounded-xl overflow-hidden py-1 border border-white/10 shadow-2xl bg-[#0a1220] max-h-[160px] overflow-y-auto"
+                        >
+                          {LIPSYNC_MODELS.map(m => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedModel(m);
+                                setModelOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-all hover:bg-white/5 text-right"
+                              style={{
+                                background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
+                                color: selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
+                              }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                              <span className="flex-1 text-right text-[11px] font-bold truncate">{m.name}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Resolution Dropdown */}
+                  <select
+                    value={resolution}
+                    onChange={(e) => setResolution(e.target.value as any)}
+                    className="bg-black/30 border border-white/5 rounded-xl px-3 py-2 text-[11px] font-bold outline-none text-slate-200 focus:border-cyan-500/30 cursor-pointer text-right"
+                  >
+                    <option value="1080p">(عالية) 1080p</option>
+                    <option value="720p">(متوسطة) 720p</option>
+                    <option value="480p">(منخفضة) 480p</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Optional Prompt Expression Control */}
+              <div className="flex flex-col text-right" dir="rtl">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  التوجيه والتعبير (اختياري)
+                </label>
+                <textarea
+                  rows={1}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="مثال: تحدث بحماس، ابتسامة خفيفة..."
+                  className="w-full rounded-xl bg-black/20 border border-white/5 px-3 py-1.5 text-[11px] outline-none focus:border-cyan-500/30 resize-none text-slate-200"
+                />
+              </div>
+
+              {/* Error Block */}
+              {generationError && (
+                <div className="rounded-xl border border-red-500/25 bg-red-950/10 p-2.5 flex items-start gap-2 text-red-300 text-[10px] text-right" dir="rtl">
+                  <AlertCircle size={13} className="mt-0.5 flex-shrink-0" />
+                  <span>{generationError}</span>
+                </div>
+              )}
+
+              {/* Submit Action Button */}
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isSubmitting || !canGenerate}
+                className="w-full py-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+                style={{
+                  background: isSubmitting || !canGenerate
+                    ? "rgba(255,255,255,0.03)"
+                    : "linear-gradient(135deg, #06b6d4, #10b981)",
+                  color: isSubmitting || !canGenerate ? "#475569" : "#030712",
+                  border: `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "transparent"}`,
+                  cursor: isSubmitting || !canGenerate ? "not-allowed" : "pointer",
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>جاري معالجة الصوت والشفاه...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} />
+                    <span>توليد Lipsync • 17 رصيد</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* ── PREVIEW & ARABIC GUIDE: Span 7/12 ── */}
+            <div className="md:col-span-7 flex flex-col justify-between overflow-y-auto pl-1 pb-4 scrollbar-none gap-4">
+              
+              {/* Before/After Dual Portrait Panel */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <div className="grid grid-cols-2 text-center text-[10px] font-bold text-slate-500 px-2">
+                  <span>بعد</span>
+                  <span>قبل</span>
+                </div>
+
+                <div className="relative aspect-[16/10] sm:aspect-[16/9.5] rounded-2xl border border-white/5 bg-black/40 p-2 shadow-inner min-h-[200px] overflow-hidden flex gap-2">
+                  
+                  {/* Glowing vertical divider with arrows */}
+                  <div className="absolute inset-y-0 left-1/2 -ml-[1px] w-[2px] bg-gradient-to-b from-transparent via-cyan-400 to-transparent z-10" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-black text-xs shadow-lg shadow-cyan-400/20 z-20 border border-slate-950 select-none">
+                    🔀
+                  </div>
+
+                  {/* Left Box: Before (قبل) */}
+                  <div className="flex-1 rounded-xl overflow-hidden relative bg-black/40">
+                    {startFramePreview ? (
+                      startFrame?.type?.startsWith("video/") || (linkedStartFrameUrl && /\.(mp4|mov|webm)(\?|$)/i.test(linkedStartFrameUrl)) ? (
+                        <video src={startFramePreview} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={startFramePreview} alt="Before" className="w-full h-full object-cover" />
+                      )
+                    ) : (
+                      <img src="/preset/Cinematic portrait.webp" alt="Before Preset" className="w-full h-full object-cover opacity-60" />
+                    )}
+                  </div>
+
+                  {/* Right Box: After (بعد) */}
+                  <div className="flex-1 rounded-xl overflow-hidden relative bg-black/40 flex items-center justify-center">
+                    {resultVideoUrl ? (
+                      <video src={resultVideoUrl} controls autoPlay className="w-full h-full object-cover rounded-xl" />
+                    ) : isSubmitting ? (
+                      <div className="flex flex-col items-center justify-center text-center p-3 select-none">
+                        <div className="relative w-10 h-10 mb-2.5 flex items-center justify-center">
+                          <div className="absolute inset-0 border-2 border-t-transparent animate-spin rounded-full border-cyan-400" />
+                          <Languages size={14} className="text-cyan-400 animate-pulse" />
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-bold">جاري المزامنة...</span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-center p-3 select-none relative">
+                        {startFramePreview ? (
+                          <div className="absolute inset-0 filter blur-[8px] opacity-40">
+                            {startFrame?.type?.startsWith("video/") || (linkedStartFrameUrl && /\.(mp4|mov|webm)(\?|$)/i.test(linkedStartFrameUrl)) ? (
+                              <video src={startFramePreview} className="w-full h-full object-cover" />
+                            ) : (
+                              <img src={startFramePreview} alt="Before blurred" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                        ) : (
+                          <img src="/preset/Cinematic portrait.webp" alt="Before Preset blurred" className="w-full h-full object-cover opacity-20 absolute inset-0 filter blur-[6px]" />
+                        )}
+                        
+                        <div className="relative z-10 flex flex-col items-center gap-1.5">
+                          <div className="w-9 h-9 rounded-full bg-slate-900/80 border border-white/5 flex items-center justify-center text-slate-400">
+                            <Eye size={15} />
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-bold">بانتظار التوليد</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Success/Guide Box */}
+              <div className="flex-1 min-h-0 flex flex-col justify-end">
+                {resultVideoUrl ? (
+                  /* Success and Download widget */
+                  <div className="rounded-2xl border border-emerald-500/10 bg-emerald-950/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
+                    <div className="flex items-center gap-3 text-right" dir="rtl">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                        <CheckCircle2 size={16} />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-100">تمت المعالجة بنجاح!</h5>
+                        <p className="text-[10px] text-slate-500 leading-normal mt-0.5">فيديو متزامن وجاهز للتنزيل.</p>
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => void handleDownload(resultVideoUrl, `${selectedModel.name} Generated Lipsync`)}
+                      className="px-5 py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-400/15 cursor-pointer"
+                    >
+                      <Download size={13} />
+                      تحميل الفيديو
+                    </button>
+                  </div>
+                ) : (
+                  /* Dynamic Arabic Tutorial Card placeholder */
+                  <div className="rounded-2xl border border-white/5 bg-black/25 p-4 w-full shadow-inner text-right" dir="rtl">
+                    {/* Tab controls */}
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3.5">
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={13} className="text-cyan-400" />
+                        <span className="text-[11px] font-bold text-slate-200">دليل استخدام Lipsync Studio</span>
+                      </div>
+                      <div className="flex bg-slate-950/70 p-1 rounded-lg border border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setGuideTab("steps")}
+                          className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                            guideTab === "steps" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          📖 الخطوات
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGuideTab("prompts")}
+                          className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${
+                            guideTab === "prompts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          💡 تعبيرات مقترحة
+                        </button>
+                      </div>
+                    </div>
+
+                    {guideTab === "steps" ? (
+                      /* Steps content */
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
+                          <h4 className="text-[10px] font-bold text-slate-300">📸 1. الوجه</h4>
+                          <p className="text-[9px] text-slate-500 leading-normal">
+                            اختر نموذجاً أو ارفع صورة شخصية/فيديو لوجه واضح.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
+                          <h4 className="text-[10px] font-bold text-slate-300">🎙️ 2. الصوت</h4>
+                          <p className="text-[9px] text-slate-500 leading-normal">
+                            ارفع تسجيلك الصوتي أو اكتب نصاً للتوليد الفوري.
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
+                          <h4 className="text-[10px] font-bold text-slate-300">🚀 3. المزامنة</h4>
+                          <p className="text-[9px] text-slate-500 leading-normal">
+                            اختر النموذج المناسب ثم انقر فوق زر التوليد.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Presets content */
+                      <div className="flex flex-col gap-2">
+                        <p className="text-[9px] text-slate-500 leading-relaxed mb-0.5">
+                          انقر على أي من التعبيرات المقترحة لتضمينها وتوجيه انفعالات الشفاه:
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {PRESET_PROMPTS.map((p) => (
+                            <button
+                              key={p.text}
+                              type="button"
+                              onClick={() => setPrompt(p.promptValue)}
+                              className="flex items-center justify-between px-2 py-1.5 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-slate-900 hover:border-cyan-500/20 text-right transition-all group"
+                            >
+                              <span className="text-[9px] font-bold text-slate-300 group-hover:text-cyan-400 truncate pr-0.5">
+                                {p.text}
+                              </span>
+                              <span className="text-[11px] flex-shrink-0">{p.emoji}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── BOTTOM ROW: Premium Feature Columns (Footer) ── */}
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 px-6 pt-3 pb-3 border-t border-white/5 bg-black/10 flex-shrink-0" dir="rtl">
+        {/* Quality */}
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <Film size={15} />
+          </div>
+          <div>
+            <h5 className="text-[10px] font-extrabold text-slate-200">جودة عالية</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">نتائج بدقة عالية تناسب جميع الاستخدامات.</p>
+          </div>
+        </div>
+
+        {/* Private */}
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <Shield size={15} />
+          </div>
+          <div>
+            <h5 className="text-[10px] font-extrabold text-slate-200">آمن وخاص</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">ملفاتك آمنة ولا تحفظ بعد المعالجة.</p>
+          </div>
+        </div>
+
+        {/* Smart */}
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <Zap size={15} />
+          </div>
+          <div>
+            <h5 className="text-[10px] font-extrabold text-slate-200">سريع وذكي</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">معالجة سريعة باستخدام الذكاء الاصطناعي.</p>
+          </div>
+        </div>
+
+        {/* Sync */}
+        <div className="flex items-center gap-3 text-right">
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <Target size={15} />
+          </div>
+          <div>
+            <h5 className="text-[10px] font-extrabold text-slate-200">مزامنة دقيقة</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">تطابق مثالي لحركة الشفاه مع الصوت.</p>
+          </div>
         </div>
       </div>
 
@@ -1162,6 +1381,7 @@ function LipsyncStudioPageInner() {
     </div>
   );
 }
+
 
 export default function LipsyncStudioPage() {
   return (
