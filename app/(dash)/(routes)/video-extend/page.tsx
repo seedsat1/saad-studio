@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, useEffect, type ChangeEvent } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -8,14 +8,20 @@ import {
   Film,
   Loader2,
   Play,
+  Pause,
   Sparkles,
   Upload,
   X,
+  Scissors,
+  Cpu,
+  ShieldCheck,
+  Zap,
+  Lock,
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 
 type AspectRatio = "16:9" | "9:16";
-type ExtendPasses = 1 | 2 | 3;
+type ExtendPasses = 1 | 2 | 3 | 4;
 const SECONDS_PER_PASS = 8;
 const CREDITS_PER_SECOND = 1.71;
 const POLL_INTERVAL_MS = 10_000;
@@ -118,6 +124,83 @@ function captureLastFrame(videoUrl: string): Promise<Blob> {
   });
 }
 
+function seekAndCapture(video: HTMLVideoElement, time: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 320;
+        canvas.height = 180;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No 2D canvas context"));
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            resolve(url);
+          } else {
+            reject(new Error("Could not convert canvas to blob"));
+          }
+        }, "image/jpeg", 0.85);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    
+    video.addEventListener("seeked", onSeeked);
+    video.currentTime = time;
+  });
+}
+
+function extractThumbnails(videoUrl: string, count: number = 4): Promise<string[]> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+
+    video.onloadedmetadata = async () => {
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
+        video.removeAttribute("src");
+        video.load();
+        resolve([]);
+        return;
+      }
+      
+      const urls: string[] = [];
+      const interval = duration / (count + 1);
+      
+      for (let i = 1; i <= count; i++) {
+        const targetTime = interval * i;
+        try {
+          const frameUrl = await seekAndCapture(video, targetTime);
+          urls.push(frameUrl);
+        } catch (e) {
+          console.warn(`Failed to capture thumbnail at ${targetTime}s:`, e);
+        }
+      }
+      
+      video.removeAttribute("src");
+      video.load();
+      resolve(urls);
+    };
+
+    video.onerror = () => {
+      video.removeAttribute("src");
+      video.load();
+      resolve([]);
+    };
+
+    video.src = videoUrl;
+  });
+}
+
 function formatDuration(seconds: number | null) {
   if (!Number.isFinite(seconds) || seconds === null || seconds <= 0) return "";
   const total = Math.round(seconds);
@@ -145,8 +228,25 @@ function inferVideoMetadata(file: File): Promise<{ aspect: AspectRatio; duration
   });
 }
 
+const VideoExtendLogo = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#06b6d4" />
+        <stop offset="100%" stopColor="#3b82f6" />
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="16" height="16" rx="3" stroke="url(#logoGrad)" strokeWidth="2" />
+    <path d="M6 2V6M14 2V6M2 7H18M2 13H18M6 14V18M14 14V18" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M7.5 8.5V11.5L10 10L7.5 8.5Z" fill="url(#logoGrad)" />
+    <path d="M19 8H22M22 8L20 6M22 8L20 10" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19 14H22M22 14L20 12M22 14L20 16" stroke="url(#logoGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export default function VideoExtendPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
+  
   const [sourceUrl, setSourceUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [fileName, setFileName] = useState("");
@@ -160,13 +260,94 @@ export default function VideoExtendPage() {
   const [uploading, setUploading] = useState(false);
   const [extending, setExtending] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [lastFrameUrl, setLastFrameUrl] = useState("");
+  const [sourceThumbnails, setSourceThumbnails] = useState<string[]>([]);
+  const [resultThumbnails, setResultThumbnails] = useState<string[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const originalVideoRef = useRef<HTMLVideoElement | null>(null);
+  const resultVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const busy = uploading || extending;
   const canExtend = useMemo(() => !!sourceUrl && !busy, [busy, sourceUrl]);
   const extendSeconds = extendPasses * SECONDS_PER_PASS;
   const expectedDuration = sourceDuration ? sourceDuration + extendSeconds : null;
   const requiredCredits = Math.ceil(CREDITS_PER_SECOND * SECONDS_PER_PASS * extendPasses);
+
+  const durationOptions = [
+    { label: "+5s", passes: 1 as ExtendPasses, displaySecs: 5 },
+    { label: "+10s", passes: 2 as ExtendPasses, displaySecs: 10 },
+    { label: "+15s", passes: 3 as ExtendPasses, displaySecs: 15 },
+    { label: "+20s", passes: 4 as ExtendPasses, displaySecs: 20 },
+  ];
+
+  // Handle frame and thumbnail updates
+  useEffect(() => {
+    if (!previewUrl) {
+      setLastFrameUrl("");
+      setSourceThumbnails((prev) => {
+        prev.forEach((url) => URL.revokeObjectURL(url));
+        return [];
+      });
+      return;
+    }
+
+    let active = true;
+
+    // Capture static last frame
+    captureLastFrame(previewUrl)
+      .then((blob) => {
+        if (active) {
+          const url = URL.createObjectURL(blob);
+          setLastFrameUrl(url);
+        }
+      })
+      .catch((err) => console.warn("Failed to capture last frame preview:", err));
+
+    // Extract thumbnails
+    extractThumbnails(previewUrl, 4).then((urls) => {
+      if (active) {
+        setSourceThumbnails((prev) => {
+          prev.forEach((url) => URL.revokeObjectURL(url));
+          return urls;
+        });
+      } else {
+        urls.forEach((url) => URL.revokeObjectURL(url));
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    if (!resultUrl) {
+      setResultThumbnails((prev) => {
+        prev.forEach((url) => URL.revokeObjectURL(url));
+        return [];
+      });
+      return;
+    }
+
+    let active = true;
+
+    extractThumbnails(resultUrl, 3).then((urls) => {
+      if (active) {
+        setResultThumbnails((prev) => {
+          prev.forEach((url) => URL.revokeObjectURL(url));
+          return urls;
+        });
+      } else {
+        urls.forEach((url) => URL.revokeObjectURL(url));
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [resultUrl]);
 
   const resetVideo = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -180,6 +361,7 @@ export default function VideoExtendPage() {
     setSourceDuration(null);
     setResultDuration(null);
     setExtendPasses(1);
+    setIsPlaying(false);
   };
 
   const uploadSelectedVideo = async (file: File) => {
@@ -221,9 +403,18 @@ export default function VideoExtendPage() {
     if (file) await uploadSelectedVideo(file);
   };
 
-  const handleDrop = async (event: React.DragEvent<HTMLButtonElement>) => {
+  const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
-    event.stopPropagation();
+    if (!busy) setDragging(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setDragging(false);
+  };
+
+  const handleDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
     setDragging(false);
     if (busy) return;
     const file = event.dataTransfer.files?.[0];
@@ -360,192 +551,484 @@ export default function VideoExtendPage() {
     }
   };
 
+  const togglePlayAll = () => {
+    const originalVideo = originalVideoRef.current;
+    const resultVideo = resultVideoRef.current;
+    
+    if (isPlaying) {
+      if (originalVideo) originalVideo.pause();
+      if (resultVideo) resultVideo.pause();
+      setIsPlaying(false);
+    } else {
+      if (originalVideo) originalVideo.play().catch(() => {});
+      if (resultVideo) resultVideo.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  const thumbAspectClass = aspectRatio === "9:16" ? "h-16 w-9" : "h-16 w-28";
+
   return (
-    <main className="fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#05070b] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_16%,rgba(236,72,153,.18),transparent_28%),radial-gradient(circle_at_78%_28%,rgba(56,189,248,.14),transparent_30%),linear-gradient(145deg,#05070b,#111017_48%,#090b12)]" />
+    <main className="fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#03060f] text-white">
+      {/* Sleek radial background glows */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(6,182,212,0.12),transparent_35%),radial-gradient(circle_at_75%_35%,rgba(59,130,246,0.08),transparent_40%)]" />
 
-      <section className="relative mx-auto grid h-full max-w-7xl grid-cols-[360px_minmax(0,1fr)] gap-4 p-5">
-        <aside className="border border-white/10 bg-black/35 p-5 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-500">
-              <Film size={21} />
-            </div>
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-[0.14em]">Video Extend</h1>
-              <p className="text-xs text-slate-500">Upload one video and extend it here.</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            onDragEnter={(event) => {
-              event.preventDefault();
-              if (!busy) setDragging(true);
-            }}
-            onDragOver={(event) => {
-              event.preventDefault();
-              if (!busy) setDragging(true);
-            }}
-            onDragLeave={(event) => {
-              event.preventDefault();
-              if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-              setDragging(false);
-            }}
-            onDrop={handleDrop}
-            disabled={busy}
-            className={[
-              "mt-6 flex aspect-video w-full flex-col items-center justify-center border border-dashed text-center transition disabled:cursor-wait disabled:opacity-60",
-              dragging
-                ? "border-pink-300/80 bg-pink-400/10 shadow-[0_0_36px_rgba(236,72,153,0.16)]"
-                : "border-white/15 bg-white/[0.04] hover:border-pink-300/50 hover:bg-white/[0.06]",
-            ].join(" ")}
-          >
-            <input ref={fileInputRef} type="file" accept="video/*" className="hidden" onChange={handleUpload} />
-            {uploading ? <Loader2 size={34} className="animate-spin text-pink-200" /> : <Upload size={34} className="text-slate-400" />}
-            <span className="mt-3 text-sm font-black">{uploading ? "Uploading" : dragging ? "Drop Video" : "Upload Video"}</span>
-            <span className="mt-1 max-w-[240px] text-xs leading-5 text-slate-500">Drop a video here or click to browse. MP4, MOV, or WEBM.</span>
-          </button>
-
-          {fileName && (
-            <div className="mt-3 flex items-center justify-between gap-3 border border-white/10 bg-white/[0.04] px-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{fileName}</p>
-                <p className="text-[11px] text-slate-500">
-                  {[
-                    `Auto aspect: ${aspectRatio}`,
-                    sourceDuration ? `Original: ${formatDuration(sourceDuration)}` : "",
-                    `Add: ${extendSeconds}s`,
-                    expectedDuration ? `Expected: ${formatDuration(expectedDuration)}` : "",
-                  ].filter(Boolean).join(" / ")}
+      <section className="relative mx-auto flex h-full max-w-7xl flex-col p-6 gap-5 justify-between">
+        {/* Main interactive grid: Sidebar on left, Comparison workspace on right */}
+        <div className="grid grid-cols-[300px_1fr] gap-6 items-stretch min-h-0 flex-1">
+          {/* Left Column: Title Block & Logo */}
+          <aside className="flex flex-col justify-between py-2 pr-6 border-r border-white/5">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
+                  <VideoExtendLogo />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent uppercase">Video Extend</h1>
+                  <p className="text-[10px] tracking-wider text-slate-500 uppercase font-black">AI Story Weaver</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3 mt-4">
+                <h2 className="text-lg font-bold leading-snug text-slate-200">
+                  Extend video and continue the story with advanced AI
+                </h2>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  AI analyzes the last frame of the video and completes the scene seamlessly and realistically.
                 </p>
               </div>
-              <button type="button" onClick={resetVideo} disabled={busy} className="grid h-8 w-8 place-items-center text-slate-400 hover:text-white disabled:opacity-40" aria-label="Remove video">
-                <X size={16} />
-              </button>
             </div>
-          )}
-
-          <div className="mt-3 border border-white/10 bg-white/[0.04] p-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Extension Time</div>
-            <div className="mt-2 grid grid-cols-3 gap-2">
-              {([1, 2, 3] as const).map((passes) => (
-                <button
-                  key={passes}
-                  type="button"
-                  onClick={() => setExtendPasses(passes)}
-                  disabled={busy}
-                  className={[
-                    "h-11 border text-sm font-black transition disabled:cursor-wait disabled:opacity-60",
-                    extendPasses === passes
-                      ? "border-pink-300 bg-pink-400/15 text-pink-100"
-                      : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]",
-                  ].join(" ")}
-                >
-                  +{passes * SECONDS_PER_PASS}s
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-[11px] leading-5 text-slate-500">
-              Longer times run multiple real extension passes.
-            </p>
-          </div>
-
-          <div className="mt-3 border border-white/10 bg-white/[0.04] p-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Credit Cost</div>
-            <div className="mt-2 flex items-end justify-between gap-3">
-              <div className="text-2xl font-black text-white">{requiredCredits} cr</div>
-              <div className="text-right text-[11px] leading-5 text-slate-500">
-                Checked before generation.
-                <br />
-                Charged by the generation API.
+            
+            {/* File info summary in sidebar */}
+            {fileName && (
+              <div className="rounded-xl border border-white/5 bg-slate-950/40 p-4 space-y-3 mt-auto backdrop-blur-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-slate-300">{fileName}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Aspect: <span className="text-slate-400">{aspectRatio}</span>
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resetVideo}
+                    disabled={busy}
+                    className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/5 disabled:opacity-40 transition"
+                    aria-label="Remove video"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="border-t border-white/5 pt-3 flex flex-col gap-2 text-[11px] text-slate-400">
+                  {sourceDuration && (
+                    <div className="flex justify-between">
+                      <span>Original Length:</span>
+                      <span className="font-bold text-slate-300">{formatDuration(sourceDuration)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Extension Add:</span>
+                    <span className="font-bold text-cyan-400">+{extendSeconds}s</span>
+                  </div>
+                  {expectedDuration && (
+                    <div className="flex justify-between border-t border-white/5 pt-2 mt-1">
+                      <span>Expected Output:</span>
+                      <span className="font-bold text-white">{formatDuration(expectedDuration)}</span>
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
+          </aside>
+
+          {/* Right Column: Main Playback / Upload / Status Workspace */}
+          <div className="flex flex-col gap-4 min-h-0">
+            {/* Top Center Slogan Header */}
+            <div className="flex items-center justify-center gap-2 py-1 select-none">
+              <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+              <h3 className="text-xs font-bold tracking-widest text-slate-300 uppercase">
+                Continue your story without limits
+              </h3>
+              <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+            </div>
+
+            {/* Split Screen Video Comparison */}
+            <div className="flex-1 min-h-0 relative grid grid-cols-2 gap-4">
+              {/* Left Side: Original Video */}
+              <div className="relative h-full w-full rounded-2xl border border-white/5 bg-slate-950/20 flex flex-col justify-center items-center overflow-hidden group">
+                {previewUrl ? (
+                  <>
+                    <video
+                      ref={originalVideoRef}
+                      src={previewUrl}
+                      muted
+                      loop
+                      playsInline
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      className="max-h-full max-w-full object-contain rounded-xl bg-black"
+                    />
+                    <div className="absolute top-4 left-4 bg-black/60 border border-white/10 text-white px-3 py-1.5 text-xs font-black tracking-wide rounded-lg select-none backdrop-blur-md">
+                      Original Video
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    disabled={busy}
+                    className={`flex flex-col items-center justify-center text-center p-6 w-full h-full transition rounded-2xl ${
+                      dragging
+                        ? "bg-cyan-500/10 border-2 border-dashed border-cyan-500 shadow-xl shadow-cyan-500/10"
+                        : "hover:bg-white/[0.02] border border-dashed border-white/10 hover:border-cyan-500/30"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      onChange={handleUpload}
+                    />
+                    {uploading ? (
+                      <Loader2 className="h-12 w-12 animate-spin text-cyan-400 mb-4" />
+                    ) : (
+                      <Upload className="h-12 w-12 text-slate-400 group-hover:text-cyan-400 transition mb-4" />
+                    )}
+                    <span className="text-sm font-bold text-white">
+                      {uploading ? "Uploading Video..." : "Upload Original Video"}
+                    </span>
+                    <span className="text-xs text-slate-500 mt-2 max-w-[220px] leading-relaxed">
+                      Drag & drop your clip here, or click to browse files. Supports MP4, MOV, WEBM.
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Right Side: After Extension / Status Preview */}
+              <div className="relative h-full w-full rounded-2xl border border-white/5 bg-slate-950/20 flex flex-col justify-center items-center overflow-hidden">
+                {resultUrl ? (
+                  <>
+                    <video
+                      ref={resultVideoRef}
+                      src={resultUrl}
+                      muted
+                      loop
+                      playsInline
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      className="max-h-full max-w-full object-contain rounded-xl bg-black"
+                    />
+                    <div className="absolute top-4 left-4 bg-cyan-600/90 border border-cyan-400/30 text-white px-3 py-1.5 text-xs font-black tracking-wide rounded-lg select-none backdrop-blur-md">
+                      After Extension
+                    </div>
+                    {/* Floating extension card overlay */}
+                    <div className="absolute right-4 bottom-4 bg-slate-950/90 border border-cyan-500/40 shadow-xl shadow-cyan-500/20 px-4 py-3 rounded-xl flex flex-col items-center justify-center min-w-[105px] z-10 backdrop-blur-sm">
+                      <span className="text-cyan-400 text-lg font-black tracking-tight">+{extendSeconds}s</span>
+                      <span className="text-slate-500 text-[9px] uppercase font-black tracking-widest mt-0.5">Extended</span>
+                    </div>
+                  </>
+                ) : extending ? (
+                  <div className="absolute inset-0 bg-[#03060f]/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 animate-fade-in">
+                    <Loader2 className="h-10 w-10 animate-spin text-cyan-400 mb-4" />
+                    <span className="text-sm font-black tracking-widest text-cyan-100 uppercase">
+                      {status || "Extending Video..."}
+                    </span>
+                    <span className="text-xs text-slate-500 mt-2 max-w-[240px] leading-relaxed">
+                      AI is running multiple frame passes. Please stay on this page.
+                    </span>
+                  </div>
+                ) : previewUrl ? (
+                  <>
+                    {lastFrameUrl && (
+                      <img
+                        src={lastFrameUrl}
+                        alt="Last frame placeholder"
+                        className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[2px]"
+                      />
+                    )}
+                    <div className="relative flex flex-col items-center justify-center p-6 text-center z-10">
+                      <Sparkles className="h-10 w-10 text-cyan-400 mb-3 animate-pulse" />
+                      <span className="text-sm font-bold text-white uppercase tracking-wider">Ready to Extend</span>
+                      <span className="text-xs text-slate-400 mt-2 max-w-[200px] leading-relaxed">
+                        Select extension duration at the bottom and click "Extend Video Now".
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-6 text-center">
+                    <Film className="h-12 w-12 text-slate-700 mb-3" />
+                    <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">AI Extend Preview</span>
+                    <span className="text-xs text-slate-600 mt-2 max-w-[180px] leading-relaxed">
+                      Upload a video on the left to activate extension.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Middle Comparison Split Bar / Divider Slider */}
+              {previewUrl && (
+                <div className="absolute top-4 bottom-4 left-1/2 w-px bg-cyan-500/20 -translate-x-1/2 pointer-events-none flex items-center justify-center z-10">
+                  <button
+                    type="button"
+                    onClick={togglePlayAll}
+                    className="w-8 h-8 rounded-full bg-slate-950 border border-cyan-500/30 shadow-lg shadow-cyan-500/10 flex items-center justify-center text-cyan-400 font-mono text-sm pointer-events-auto cursor-pointer hover:bg-slate-900 hover:scale-105 active:scale-95 transition"
+                  >
+                    »
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
+        {/* Storyboard keyframe track */}
+        <div className="border border-white/5 bg-slate-950/30 rounded-2xl p-4 flex items-center gap-4">
+          {/* Synchronized playback control */}
           <button
             type="button"
-            onClick={extendVideo}
-            disabled={!canExtend}
-            className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-500 text-sm font-black uppercase tracking-[0.14em] text-white transition hover:from-pink-400 hover:to-violet-400 disabled:cursor-not-allowed disabled:opacity-45"
+            onClick={togglePlayAll}
+            disabled={!previewUrl}
+            className="w-16 h-16 rounded-xl bg-slate-900 border border-white/5 hover:border-cyan-500/50 flex items-center justify-center text-cyan-400 transition hover:bg-slate-800/80 shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {extending ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}
-            {extending ? "Extending" : "Extend Video"}
+            {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
           </button>
 
-          {status && (
-            <div className="mt-4 flex items-center gap-2 border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-slate-300">
-              {resultUrl ? <CheckCircle2 size={16} className="text-emerald-300" /> : busy ? <Loader2 size={16} className="animate-spin text-pink-200" /> : <Play size={16} />}
-              {status}
+          {/* Original Video Frames */}
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider pl-1">
+              Original Video
+            </span>
+            <div className="border border-white/5 bg-slate-950/40 rounded-xl p-2 flex items-center gap-2 overflow-x-auto min-h-[82px]">
+              {previewUrl ? (
+                sourceThumbnails.length > 0 ? (
+                  sourceThumbnails.map((url, i) => (
+                    <div
+                      key={i}
+                      className={`relative ${thumbAspectClass} rounded-lg overflow-hidden bg-slate-900 border border-white/5 shrink-0`}
+                    >
+                      <img src={url} alt={`source-thumb-${i}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))
+                ) : (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`relative ${thumbAspectClass} rounded-lg bg-white/[0.02] border border-white/5 animate-pulse shrink-0 flex items-center justify-center`}
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
+                    </div>
+                  ))
+                )
+              ) : (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`relative ${thumbAspectClass} rounded-lg border border-dashed border-white/10 bg-white/[0.01] shrink-0`}
+                  />
+                ))
+              )}
             </div>
-          )}
-
-          {error && (
-            <div className="mt-4 flex items-start gap-2 border border-red-400/25 bg-red-500/10 px-3 py-3 text-sm font-semibold leading-6 text-red-100">
-              <AlertCircle size={17} className="mt-0.5 shrink-0" />
-              {error}
-            </div>
-          )}
-        </aside>
-
-        <section className="grid min-h-0 grid-rows-[1fr_auto] border border-white/10 bg-black/30 backdrop-blur-xl">
-          <div className="relative grid min-h-0 place-items-center p-6">
-            {resultUrl ? (
-              <video
-                src={resultUrl}
-                controls
-                autoPlay
-                loop
-                onLoadedMetadata={(event) => {
-                  const duration = event.currentTarget.duration;
-                  setResultDuration(Number.isFinite(duration) ? duration : null);
-                }}
-                className="max-h-full max-w-full rounded-lg bg-black shadow-2xl shadow-black/60"
-              />
-            ) : previewUrl ? (
-              <video src={previewUrl} controls className="max-h-full max-w-full rounded-lg bg-black opacity-90" />
-            ) : (
-              <div className="text-center text-slate-500">
-                <Play className="mx-auto h-14 w-14 text-slate-600" />
-                <p className="mt-4 text-sm font-black uppercase tracking-[0.18em] text-slate-400">Upload a video</p>
-                <p className="mt-2 text-sm">The preview and extended result will appear here.</p>
-              </div>
-            )}
-
-            {extending && (
-              <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-11 w-11 animate-spin text-pink-300" />
-                  <p className="mt-3 text-sm font-black uppercase tracking-[0.16em]">{status || "Extending video..."}</p>
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="border-t border-white/10 p-4">
-            {resultUrl ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
-                  <CheckCircle2 size={17} />
-                  {resultDuration ? `Done. Actual: ${formatDuration(resultDuration)}` : "Done."}
-                </div>
+          {/* Cut/Scissor icon divider */}
+          <div className="flex flex-col items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center text-slate-400 select-none">
+              <Scissors size={15} />
+            </div>
+          </div>
+
+          {/* AI Extended Frames (Cyan Halo) */}
+          <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+            <div className="flex items-center justify-between pl-1">
+              <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles size={10} className="animate-pulse" /> AI Extend
+              </span>
+            </div>
+            <div className="border border-cyan-500/25 bg-cyan-950/5 rounded-xl p-2 flex items-center gap-2 overflow-x-auto min-h-[82px] shadow-[inset_0_0_12px_rgba(6,182,212,0.05)]">
+              {resultUrl ? (
+                resultThumbnails.length > 0 ? (
+                  resultThumbnails.map((url, i) => (
+                    <div
+                      key={i}
+                      className={`relative ${thumbAspectClass} rounded-lg overflow-hidden bg-slate-900 border border-cyan-500/30 shrink-0 shadow-[0_0_8px_rgba(6,182,212,0.1)]`}
+                    >
+                      <img src={url} alt={`result-thumb-${i}`} className="w-full h-full object-cover" />
+                    </div>
+                  ))
+                ) : (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`relative ${thumbAspectClass} rounded-lg bg-cyan-500/[0.03] border border-cyan-500/10 animate-pulse shrink-0 flex items-center justify-center`}
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin text-cyan-500/30" />
+                    </div>
+                  ))
+                )
+              ) : extending ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`relative ${thumbAspectClass} rounded-lg bg-cyan-500/[0.03] border border-cyan-500/15 animate-pulse shrink-0 flex items-center justify-center`}
+                  >
+                    <Loader2 className="h-3 w-3 animate-spin text-cyan-500/30" />
+                  </div>
+                ))
+              ) : (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`relative ${thumbAspectClass} rounded-lg border border-dashed border-cyan-500/15 bg-cyan-500/[0.01] shrink-0`}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Dotted target Add Duration Card */}
+          <div className="flex flex-col gap-1.5 shrink-0">
+            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-right pr-1 select-none">
+              Add Duration
+            </span>
+            <div className={`relative ${thumbAspectClass} border border-dashed border-cyan-500/50 bg-cyan-500/5 rounded-xl flex flex-col items-center justify-center cursor-pointer shrink-0 hover:bg-cyan-500/10 transition`}>
+              <span className="text-cyan-400 text-sm font-black">+{extendSeconds}s</span>
+              <span className="text-cyan-500 text-[8px] uppercase font-bold tracking-wider mt-0.5">Duration</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Error notification banner */}
+        {error && (
+          <div className="flex items-start gap-2.5 border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-semibold leading-relaxed text-red-200 rounded-xl animate-shake">
+            <AlertCircle size={15} className="mt-0.5 shrink-0 text-red-400" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Bottom Bar: Feature Cards & Actions */}
+        <div className="grid grid-cols-[1fr_380px] gap-6 items-stretch">
+          {/* Features description column */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="border border-white/5 bg-slate-950/20 p-3 rounded-xl flex gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-500/10 text-cyan-400 shrink-0">
+                <Cpu size={16} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-bold text-slate-200">Advanced AI</h4>
+                <p className="text-[10px] text-slate-500 leading-normal">
+                  Understands motion and scenes, completing them in high resolution
+                </p>
+              </div>
+            </div>
+            
+            <div className="border border-white/5 bg-slate-950/20 p-3 rounded-xl flex gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-blue-500/10 text-blue-400 shrink-0">
+                <Sparkles size={16} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-bold text-slate-200">Perfect Continuity</h4>
+                <p className="text-[10px] text-slate-500 leading-normal">
+                  Maintains the same lighting, motion, and camera angles
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-white/5 bg-slate-950/20 p-3 rounded-xl flex gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-bold text-slate-200">Realistic Results</h4>
+                <p className="text-[10px] text-slate-500 leading-normal">
+                  Seamless extension without cuts or scene distortion
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-white/5 bg-slate-950/20 p-3 rounded-xl flex gap-3">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-amber-500/10 text-amber-400 shrink-0">
+                <Zap size={16} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-[11px] font-bold text-slate-200">Fast & Easy</h4>
+                <p className="text-[10px] text-slate-500 leading-normal">
+                  Extend videos in seconds with a single click
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action inputs & Button column */}
+          <div className="border border-white/5 bg-slate-950/40 p-4 rounded-2xl flex flex-col justify-between gap-3 backdrop-blur-md">
+            {/* Selection duration buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                Select Duration
+              </span>
+              <div className="flex gap-1.5">
+                {durationOptions.map((opt) => (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => setExtendPasses(opt.passes)}
+                    disabled={busy}
+                    className={`h-8 px-3 rounded-lg border text-xs font-bold transition ${
+                      extendPasses === opt.passes
+                        ? "border-cyan-500 bg-cyan-500/10 text-cyan-400"
+                        : "border-white/10 bg-white/[0.02] text-slate-400 hover:bg-white/[0.04] hover:text-slate-300"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA action button */}
+            <div className="flex gap-2">
+              {resultUrl && (
                 <button
                   type="button"
                   onClick={() => navigator.clipboard.writeText(resultUrl)}
-                  className="flex h-9 items-center gap-2 rounded-lg bg-white/10 px-3 text-xs font-black text-white hover:bg-white/15"
+                  className="px-4 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] flex items-center justify-center text-slate-300 transition shrink-0"
+                  title="Copy output URL"
                 >
-                  <Copy size={14} />
-                  Copy URL
+                  <Copy size={16} />
                 </button>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-400">
-                No extra settings. Upload a video, then extend.
-              </div>
-            )}
+              )}
+              <button
+                type="button"
+                onClick={extendVideo}
+                disabled={!canExtend}
+                className="flex-1 h-11 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-slate-800 disabled:to-slate-900 disabled:text-slate-600 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white rounded-xl shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2 transition active:scale-98"
+              >
+                {extending ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin text-cyan-200" />
+                    <span>Processing extension...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={15} />
+                    <span>Extend Video Now 🪄</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* Footer privacy banner */}
+        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-600 select-none pb-1">
+          <Lock size={10} />
+          <span>Secure • Private • Your clips are not saved after processing</span>
+        </div>
       </section>
     </main>
   );
 }
+
