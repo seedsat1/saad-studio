@@ -194,36 +194,37 @@ const PRESET_AVATARS = [
 
 const PRESET_PROMPTS = [
   {
-    text: "تحدث بحماس وشغف",
+    text: "Speak Passionately",
     promptValue: "Speak passionately, clear mouth movements, expressive face",
     emoji: "🗣️",
   },
   {
-    text: "ابتسامة خفيفة ودودة",
+    text: "Friendly Smile",
     promptValue: "Friendly speaking face, slight smile, natural lipsync",
     emoji: "😊",
   },
   {
-    text: "نظرة جادة ورسمية",
+    text: "Serious Look",
     promptValue: "Professional talking head, serious look, steady posture",
     emoji: "🤨",
   },
   {
-    text: "نبرة هادئة ومريحة",
+    text: "Calm Delivery",
     promptValue: "Calm delivery, soft mouth movements, gentle blinks",
     emoji: "😌",
   },
   {
-    text: "تعبير متفاجئ وحيوي",
+    text: "Surprised Face",
     promptValue: "Surprised expression, energetic speech delivery, wide eyes",
     emoji: "😲",
   },
   {
-    text: "تمثيل درامي معبر",
+    text: "Dramatic Acting",
     promptValue: "Dramatic speech, highly expressive face, natural head motion",
     emoji: "🎭",
   },
 ];
+
 
 
 const FAMILY_GRADIENTS: Record<string, string> = {
@@ -723,38 +724,38 @@ function LipsyncStudioPageInner() {
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 flex-1 min-h-0 gap-6 px-6 pb-2 max-w-[1650px] mx-auto w-full overflow-hidden">
         
         {/* ── LEFT COLUMN: Text Info & Timeline Timeline Guide (Span 3/12) ── */}
-        <div className="lg:col-span-3 flex flex-col justify-between py-2 overflow-y-auto pr-1 scrollbar-none">
-          <div className="flex flex-col text-right" dir="rtl">
+        <div className="lg:col-span-3 flex flex-col justify-between py-2 overflow-y-auto pl-1 scrollbar-none">
+          <div className="flex flex-col text-left">
             <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-sky-400 tracking-tight font-display">
               Lipsync
             </h1>
             <h2 className="text-xl font-bold text-slate-100 mt-4 leading-snug">
-              اجعل كلماتك تنبض بالحياة.
+              Make your words come to life.
             </h2>
             <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
-              حوّل أي صوت إلى حركة شفاه واقعية بدقة عالية.
+              Convert any audio into realistic lipsync with high precision.
             </p>
 
             {/* Timeline Guide */}
             <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-widest mt-8 mb-4 border-b border-white/5 pb-2">
-              طريقة الاستخدام
+              How to Use
             </h3>
 
-            <div className="relative flex flex-col gap-6 pr-5">
+            <div className="relative flex flex-col gap-6 pl-5">
               {/* Connecting vertical dashed line */}
-              <div className="absolute right-[19px] top-5 bottom-5 w-[1.5px] border-r-2 border-dashed border-white/10 z-0" />
+              <div className="absolute left-[19px] top-5 bottom-5 w-[1.5px] border-l-2 border-dashed border-white/10 z-0" />
 
               {/* Step 1 */}
               <div className="flex items-start gap-3.5 relative z-10">
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 flex-shrink-0 shadow-lg shadow-cyan-500/5">
                   <Upload size={16} />
                 </div>
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col text-left">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-black text-cyan-400">1</span>
-                    <h4 className="text-xs font-bold text-slate-200">ارفع فيديو</h4>
+                    <h4 className="text-xs font-bold text-slate-200">Upload Video</h4>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">ارفع فيديو لشخص واضح الوجه.</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Upload video of a person with a clear face.</p>
                 </div>
               </div>
 
@@ -763,12 +764,12 @@ function LipsyncStudioPageInner() {
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0 shadow-lg shadow-purple-500/5">
                   <Music2 size={16} />
                 </div>
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col text-left">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-black text-purple-400">2</span>
-                    <h4 className="text-xs font-bold text-slate-200">أضف الصوت</h4>
+                    <h4 className="text-xs font-bold text-slate-200">Add Audio</h4>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">ارفع ملف صوتي أو أدخل نصاً ليتم تحويله إلى كلام.</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Upload an audio recording or type text to convert to speech.</p>
                 </div>
               </div>
 
@@ -777,12 +778,12 @@ function LipsyncStudioPageInner() {
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0 shadow-lg shadow-blue-500/5">
                   <Languages size={16} />
                 </div>
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col text-left">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-black text-blue-400">3</span>
-                    <h4 className="text-xs font-bold text-slate-200">توليد حركة الشفاه</h4>
+                    <h4 className="text-xs font-bold text-slate-200">Generate Lipsync</h4>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">تعتمد الذكاء الاصطناعي لمزامنة الشفتين مع الصوت بدقة.</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">AI automatically syncs avatar mouth moves to the speech audio.</p>
                 </div>
               </div>
 
@@ -791,12 +792,12 @@ function LipsyncStudioPageInner() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0 shadow-lg shadow-emerald-500/5">
                   <CheckCircle2 size={16} />
                 </div>
-                <div className="flex flex-col text-right">
+                <div className="flex flex-col text-left">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-black text-emerald-400">4</span>
-                    <h4 className="text-xs font-bold text-slate-200">حمّل النتيجة</h4>
+                    <h4 className="text-xs font-bold text-slate-200">Get Result</h4>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">احصل على فيديو متزامن وجاهز للمشاركة.</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Download and share your high-precision synced video.</p>
                 </div>
               </div>
             </div>
@@ -816,7 +817,7 @@ function LipsyncStudioPageInner() {
               onClick={handleReset}
               className="text-[11px] font-extrabold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-all rounded-lg px-3.5 py-1.5 flex items-center gap-1.5 shadow-lg shadow-cyan-400/15"
             >
-              <span>مشروع جديد</span>
+              <span>New Project</span>
               <span className="text-xs">➕</span>
             </button>
           </div>
@@ -828,9 +829,9 @@ function LipsyncStudioPageInner() {
             <div className="md:col-span-5 flex flex-col justify-between overflow-y-auto pr-1 pb-4 scrollbar-none gap-4">
               
               {/* 1. Video Input Dropzone */}
-              <div className="flex flex-col text-right" dir="rtl">
+              <div className="flex flex-col text-left">
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                  1. الفيديو / الصورة
+                  1. Video / Image
                 </label>
                 <input
                   type="file"
@@ -875,10 +876,10 @@ function LipsyncStudioPageInner() {
                   >
                     <Upload size={22} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
                     <span className="text-xs font-bold text-slate-300">
-                      ارفع الفيديو هنا
+                      Upload Video Here
                     </span>
                     <span className="text-[9px] text-slate-500">
-                      أو اسحب وأفلت الملف
+                      or drag & drop file
                     </span>
                     <span className="text-[8px] text-slate-600 mt-0.5">
                       MP4, MOV, AVI (Max 500MB)
@@ -888,9 +889,9 @@ function LipsyncStudioPageInner() {
               </div>
 
               {/* 2. Audio Input Section */}
-              <div className="flex flex-col text-right" dir="rtl">
+              <div className="flex flex-col text-left">
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                  2. الصوت
+                  2. Audio Source
                 </label>
                 
                 {/* Audio Tabs Switcher */}
@@ -904,7 +905,7 @@ function LipsyncStudioPageInner() {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    رفع ملف صوتي
+                    Upload Audio File
                   </button>
                   <button
                     type="button"
@@ -915,7 +916,7 @@ function LipsyncStudioPageInner() {
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    إدخال نص
+                    Enter Text
                   </button>
                 </div>
 
@@ -979,7 +980,7 @@ function LipsyncStudioPageInner() {
 
                         {/* File Name & Delete button */}
                         <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-0.5">
-                          <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[80%] pr-1">
+                          <span className="text-[10px] text-slate-400 font-semibold truncate max-w-[80%] pl-1">
                             {lipsyncAudioFile.name}
                           </span>
                           <button
@@ -994,10 +995,10 @@ function LipsyncStudioPageInner() {
                     ) : (
                       <div
                         onClick={() => audioInputRef.current?.click()}
-                        className="w-full py-6 rounded-2xl border border-dashed border-white/10 hover:border-cyan-500/30 bg-black/20 flex flex-col items-center justify-center gap-1 hover:bg-black/30 transition-all cursor-pointer group"
+                        className="w-full py-6 rounded-2xl border border-dashed border-white/10 hover:border-cyan-500/30 bg-black/20 flex flex-col items-center justify-center gap-1 hover:bg-black/30 transition-all cursor-pointer group text-center"
                       >
                         <Music2 size={20} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
-                        <span className="text-xs font-bold text-slate-300">رفع ملف صوتي</span>
+                        <span className="text-xs font-bold text-slate-300">Upload Audio File</span>
                         <span className="text-[9px] text-slate-500">MP3, WAV, AAC (Max 50MB)</span>
                       </div>
                     )}
@@ -1011,11 +1012,11 @@ function LipsyncStudioPageInner() {
                       rows={2}
                       value={ttsText}
                       onChange={(e) => setTtsText(e.target.value)}
-                      placeholder="اكتب النص المراد تحويله إلى كلام هنا وسنقوم بمزامنة الشفاه تلقائياً..."
-                      className="w-full rounded-xl bg-black/30 border border-white/5 px-3 py-2 text-xs outline-none focus:border-cyan-500/30 resize-none text-slate-200 text-right"
+                      placeholder="Type the script to convert into speech audio and auto-sync to avatar..."
+                      className="w-full rounded-xl bg-black/30 border border-white/5 px-3 py-2 text-xs outline-none focus:border-cyan-500/30 resize-none text-slate-200 text-left"
                     />
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">الصوت الافتراضي:</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide">Default Voice:</span>
                       <select
                         value={ttsVoice}
                         onChange={(e) => setTtsVoice(e.target.value)}
@@ -1033,9 +1034,9 @@ function LipsyncStudioPageInner() {
               </div>
 
               {/* 3. Settings Section */}
-              <div className="flex flex-col text-right animate-fade-in" dir="rtl">
+              <div className="flex flex-col text-left animate-fade-in">
                 <label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
-                  3. إعدادات
+                  3. Settings
                 </label>
                 
                 <div className="grid grid-cols-2 gap-3.5">
@@ -1044,7 +1045,7 @@ function LipsyncStudioPageInner() {
                     <button
                       type="button"
                       onClick={() => setModelOpen(v => !v)}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-right transition-all bg-black/30 border border-white/5 hover:bg-black/50"
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-all bg-black/30 border border-white/5 hover:bg-black/50"
                     >
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
                       <span className="flex-1 text-[11px] font-bold text-slate-200 truncate">{selectedModel.name}</span>
@@ -1068,14 +1069,14 @@ function LipsyncStudioPageInner() {
                                 setSelectedModel(m);
                                 setModelOpen(false);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-all hover:bg-white/5 text-right"
+                              className="w-full flex items-center gap-2 px-3 py-2.5 transition-all hover:bg-white/5 text-left"
                               style={{
                                 background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
                                 color: selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
                               }}
                             >
                               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                              <span className="flex-1 text-right text-[11px] font-bold truncate">{m.name}</span>
+                              <span className="flex-1 text-left text-[11px] font-bold truncate">{m.name}</span>
                             </button>
                           ))}
                         </motion.div>
@@ -1087,32 +1088,32 @@ function LipsyncStudioPageInner() {
                   <select
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value as any)}
-                    className="bg-black/30 border border-white/5 rounded-xl px-3 py-2 text-[11px] font-bold outline-none text-slate-200 focus:border-cyan-500/30 cursor-pointer text-right"
+                    className="bg-black/30 border border-white/5 rounded-xl px-3 py-2 text-[11px] font-bold outline-none text-slate-200 focus:border-cyan-500/30 cursor-pointer text-left"
                   >
-                    <option value="1080p">(عالية) 1080p</option>
-                    <option value="720p">(متوسطة) 720p</option>
-                    <option value="480p">(منخفضة) 480p</option>
+                    <option value="1080p">1080p (High)</option>
+                    <option value="720p">720p (Medium)</option>
+                    <option value="480p">480p (Low)</option>
                   </select>
                 </div>
               </div>
 
               {/* Optional Prompt Expression Control */}
-              <div className="flex flex-col text-right" dir="rtl">
+              <div className="flex flex-col text-left">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  التوجيه والتعبير (اختياري)
+                  Expression / Emotion (Optional)
                 </label>
                 <textarea
                   rows={1}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="مثال: تحدث بحماس، ابتسامة خفيفة..."
+                  placeholder="e.g., Speak passionately, slight smile..."
                   className="w-full rounded-xl bg-black/20 border border-white/5 px-3 py-1.5 text-[11px] outline-none focus:border-cyan-500/30 resize-none text-slate-200"
                 />
               </div>
 
               {/* Error Block */}
               {generationError && (
-                <div className="rounded-xl border border-red-500/25 bg-red-950/10 p-2.5 flex items-start gap-2 text-red-300 text-[10px] text-right" dir="rtl">
+                <div className="rounded-xl border border-red-500/25 bg-red-950/10 p-2.5 flex items-start gap-2 text-red-300 text-[10px] text-left">
                   <AlertCircle size={13} className="mt-0.5 flex-shrink-0" />
                   <span>{generationError}</span>
                 </div>
@@ -1136,25 +1137,25 @@ function LipsyncStudioPageInner() {
                 {isSubmitting ? (
                   <>
                     <Loader2 size={13} className="animate-spin" />
-                    <span>جاري معالجة الصوت والشفاه...</span>
+                    <span>Syncing Audio & Lipsync...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={13} />
-                    <span>توليد Lipsync • 17 رصيد</span>
+                    <span>Generate Lipsync • 17 credits</span>
                   </>
                 )}
               </button>
             </div>
 
-            {/* ── PREVIEW & ARABIC GUIDE: Span 7/12 ── */}
+            {/* ── PREVIEW & ENGLISH GUIDE: Span 7/12 ── */}
             <div className="md:col-span-7 flex flex-col justify-between overflow-y-auto pl-1 pb-4 scrollbar-none gap-4">
               
               {/* Before/After Dual Portrait Panel */}
               <div className="flex flex-col gap-1.5 w-full">
                 <div className="grid grid-cols-2 text-center text-[10px] font-bold text-slate-500 px-2">
-                  <span>بعد</span>
-                  <span>قبل</span>
+                  <span>Before</span>
+                  <span>After</span>
                 </div>
 
                 <div className="relative aspect-[16/10] sm:aspect-[16/9.5] rounded-2xl border border-white/5 bg-black/40 p-2 shadow-inner min-h-[200px] overflow-hidden flex gap-2">
@@ -1165,7 +1166,7 @@ function LipsyncStudioPageInner() {
                     🔀
                   </div>
 
-                  {/* Left Box: Before (قبل) */}
+                  {/* Left Box: Before */}
                   <div className="flex-1 rounded-xl overflow-hidden relative bg-black/40">
                     {startFramePreview ? (
                       startFrame?.type?.startsWith("video/") || (linkedStartFrameUrl && /\.(mp4|mov|webm)(\?|$)/i.test(linkedStartFrameUrl)) ? (
@@ -1178,7 +1179,7 @@ function LipsyncStudioPageInner() {
                     )}
                   </div>
 
-                  {/* Right Box: After (بعد) */}
+                  {/* Right Box: After */}
                   <div className="flex-1 rounded-xl overflow-hidden relative bg-black/40 flex items-center justify-center">
                     {resultVideoUrl ? (
                       <video src={resultVideoUrl} controls autoPlay className="w-full h-full object-cover rounded-xl" />
@@ -1188,7 +1189,7 @@ function LipsyncStudioPageInner() {
                           <div className="absolute inset-0 border-2 border-t-transparent animate-spin rounded-full border-cyan-400" />
                           <Languages size={14} className="text-cyan-400 animate-pulse" />
                         </div>
-                        <span className="text-[10px] text-slate-400 font-bold">جاري المزامنة...</span>
+                        <span className="text-[10px] text-slate-400 font-bold">Syncing...</span>
                       </div>
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-center p-3 select-none relative">
@@ -1208,7 +1209,7 @@ function LipsyncStudioPageInner() {
                           <div className="w-9 h-9 rounded-full bg-slate-900/80 border border-white/5 flex items-center justify-center text-slate-400">
                             <Eye size={15} />
                           </div>
-                          <span className="text-[10px] text-slate-500 font-bold">بانتظار التوليد</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Waiting for Generation</span>
                         </div>
                       </div>
                     )}
@@ -1221,13 +1222,13 @@ function LipsyncStudioPageInner() {
                 {resultVideoUrl ? (
                   /* Success and Download widget */
                   <div className="rounded-2xl border border-emerald-500/10 bg-emerald-950/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-inner">
-                    <div className="flex items-center gap-3 text-right" dir="rtl">
+                    <div className="flex items-center gap-3 text-left">
                       <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 flex-shrink-0">
                         <CheckCircle2 size={16} />
                       </div>
                       <div>
-                        <h5 className="text-xs font-bold text-slate-100">تمت المعالجة بنجاح!</h5>
-                        <p className="text-[10px] text-slate-500 leading-normal mt-0.5">فيديو متزامن وجاهز للتنزيل.</p>
+                        <h5 className="text-xs font-bold text-slate-100">Processed Successfully!</h5>
+                        <p className="text-[10px] text-slate-500 leading-normal mt-0.5">Video synced and ready to download.</p>
                       </div>
                     </div>
                     
@@ -1237,17 +1238,17 @@ function LipsyncStudioPageInner() {
                       className="px-5 py-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-lg shadow-cyan-400/15 cursor-pointer"
                     >
                       <Download size={13} />
-                      تحميل الفيديو
+                      Download Video
                     </button>
                   </div>
                 ) : (
-                  /* Dynamic Arabic Tutorial Card placeholder */
-                  <div className="rounded-2xl border border-white/5 bg-black/25 p-4 w-full shadow-inner text-right" dir="rtl">
+                  /* English Tutorial Card placeholder */
+                  <div className="rounded-2xl border border-white/5 bg-black/25 p-4 w-full shadow-inner text-left">
                     {/* Tab controls */}
                     <div className="flex items-center justify-between border-b border-white/5 pb-2.5 mb-3.5">
                       <div className="flex items-center gap-2">
                         <Sparkles size={13} className="text-cyan-400" />
-                        <span className="text-[11px] font-bold text-slate-200">دليل استخدام Lipsync Studio</span>
+                        <span className="text-[11px] font-bold text-slate-200">Lipsync Studio Guide</span>
                       </div>
                       <div className="flex bg-slate-950/70 p-1 rounded-lg border border-white/5">
                         <button
@@ -1257,7 +1258,7 @@ function LipsyncStudioPageInner() {
                             guideTab === "steps" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200"
                           }`}
                         >
-                          📖 الخطوات
+                          📖 Steps
                         </button>
                         <button
                           type="button"
@@ -1266,7 +1267,7 @@ function LipsyncStudioPageInner() {
                             guideTab === "prompts" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/20" : "text-slate-400 hover:text-slate-200"
                           }`}
                         >
-                          💡 تعبيرات مقترحة
+                          💡 Presets
                         </button>
                       </div>
                     </div>
@@ -1274,22 +1275,22 @@ function LipsyncStudioPageInner() {
                     {guideTab === "steps" ? (
                       /* Steps content */
                       <div className="grid grid-cols-3 gap-3">
-                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
-                          <h4 className="text-[10px] font-bold text-slate-300">📸 1. الوجه</h4>
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-left">
+                          <h4 className="text-[10px] font-bold text-slate-300">📸 1. Face</h4>
                           <p className="text-[9px] text-slate-500 leading-normal">
-                            اختر نموذجاً أو ارفع صورة شخصية/فيديو لوجه واضح.
+                            Select a preset avatar or upload a picture/video with a clear face.
                           </p>
                         </div>
-                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
-                          <h4 className="text-[10px] font-bold text-slate-300">🎙️ 2. الصوت</h4>
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-left">
+                          <h4 className="text-[10px] font-bold text-slate-300">🎙️ 2. Audio</h4>
                           <p className="text-[9px] text-slate-500 leading-normal">
-                            ارفع تسجيلك الصوتي أو اكتب نصاً للتوليد الفوري.
+                            Upload your speech recording or type a script for instant TTS generation.
                           </p>
                         </div>
-                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-right">
-                          <h4 className="text-[10px] font-bold text-slate-300">🚀 3. المزامنة</h4>
+                        <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-white/[0.01] border border-white/[0.03] text-left">
+                          <h4 className="text-[10px] font-bold text-slate-300">🚀 3. Sync</h4>
                           <p className="text-[9px] text-slate-500 leading-normal">
-                            اختر النموذج المناسب ثم انقر فوق زر التوليد.
+                            Choose your preferred AI Model and click Generate to start.
                           </p>
                         </div>
                       </div>
@@ -1297,7 +1298,7 @@ function LipsyncStudioPageInner() {
                       /* Presets content */
                       <div className="flex flex-col gap-2">
                         <p className="text-[9px] text-slate-500 leading-relaxed mb-0.5">
-                          انقر على أي من التعبيرات المقترحة لتضمينها وتوجيه انفعالات الشفاه:
+                          Click on any suggested emotion tag below to pre-fill the expression prompt:
                         </p>
                         <div className="grid grid-cols-3 gap-2">
                           {PRESET_PROMPTS.map((p) => (
@@ -1305,7 +1306,7 @@ function LipsyncStudioPageInner() {
                               key={p.text}
                               type="button"
                               onClick={() => setPrompt(p.promptValue)}
-                              className="flex items-center justify-between px-2 py-1.5 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-slate-900 hover:border-cyan-500/20 text-right transition-all group"
+                              className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-white/5 bg-slate-900/30 hover:bg-slate-900 hover:border-cyan-500/20 text-left transition-all group"
                             >
                               <span className="text-[9px] font-bold text-slate-300 group-hover:text-cyan-400 truncate pr-0.5">
                                 {p.text}
@@ -1325,51 +1326,52 @@ function LipsyncStudioPageInner() {
       </div>
 
       {/* ── BOTTOM ROW: Premium Feature Columns (Footer) ── */}
-      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 px-6 pt-3 pb-3 border-t border-white/5 bg-black/10 flex-shrink-0" dir="rtl">
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 px-6 pt-3 pb-3 border-t border-white/5 bg-black/10 flex-shrink-0">
         {/* Quality */}
-        <div className="flex items-center gap-3 text-right">
+        <div className="flex items-center gap-3 text-left">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
             <Film size={15} />
           </div>
           <div>
-            <h5 className="text-[10px] font-extrabold text-slate-200">جودة عالية</h5>
-            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">نتائج بدقة عالية تناسب جميع الاستخدامات.</p>
+            <h5 className="text-[10px] font-extrabold text-slate-200">High Quality</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">High resolution output suitable for professional use.</p>
           </div>
         </div>
 
         {/* Private */}
-        <div className="flex items-center gap-3 text-right">
+        <div className="flex items-center gap-3 text-left">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
             <Shield size={15} />
           </div>
           <div>
-            <h5 className="text-[10px] font-extrabold text-slate-200">آمن وخاص</h5>
-            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">ملفاتك آمنة ولا تحفظ بعد المعالجة.</p>
+            <h5 className="text-[10px] font-extrabold text-slate-200">Safe & Private</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">Your uploads are protected and deleted after processing.</p>
           </div>
         </div>
 
         {/* Smart */}
-        <div className="flex items-center gap-3 text-right">
+        <div className="flex items-center gap-3 text-left">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
             <Zap size={15} />
           </div>
           <div>
-            <h5 className="text-[10px] font-extrabold text-slate-200">سريع وذكي</h5>
-            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">معالجة سريعة باستخدام الذكاء الاصطناعي.</p>
+            <h5 className="text-[10px] font-extrabold text-slate-200">Fast & Smart</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">Rapid processing powered by deep learning AI models.</p>
           </div>
         </div>
 
         {/* Sync */}
-        <div className="flex items-center gap-3 text-right">
+        <div className="flex items-center gap-3 text-left">
           <div className="w-8 h-8 rounded-lg bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-cyan-400 flex-shrink-0">
             <Target size={15} />
           </div>
           <div>
-            <h5 className="text-[10px] font-extrabold text-slate-200">مزامنة دقيقة</h5>
-            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">تطابق مثالي لحركة الشفاه مع الصوت.</p>
+            <h5 className="text-[10px] font-extrabold text-slate-200">Precise Sync</h5>
+            <p className="text-[9px] text-slate-500 leading-normal mt-0.5">Perfect pixel alignment of lipsync to matching audio tracks.</p>
           </div>
         </div>
       </div>
+
 
       {/* Asset Inspector Popup for detailed preview */}
       {inspectorAsset && (
