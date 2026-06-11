@@ -127,14 +127,15 @@ export async function generateVideo(input: VideoGenInput): Promise<ProviderResul
 // ─── Diagnostics ───────────────────────────────────────────────────────
 
 /** Quick env-var probe used by the admin dashboard / health route. */
-export function listProviderHealth(): Array<{ provider: ProviderId; configured: boolean; missing: string[] }> {
-  const checks: Record<ProviderId, string[]> = {
+export function listProviderHealth(): Array<{ provider: ProjectProviderId; configured: boolean; missing: string[] }> {
+  const checks: Record<ProjectProviderId, string[]> = {
     google:   ["GOOGLE_API_KEY", "GOOGLE_AI_API_KEY", "GEMINI_API_KEY"],   // any of these
     byteplus: ["BYTEPLUS_API_KEY"],
     openai:   ["OPENAI_API_KEY"],
     kie:      ["KIE_API_KEY"],
+    reap:     ["REAP_API_KEY"],
   };
-  return (Object.keys(checks) as ProviderId[]).map((p) => {
+  return (Object.keys(checks) as ProjectProviderId[]).map((p) => {
     const present = checks[p].some((v) => Boolean(process.env[v]));
     return { provider: p, configured: present, missing: present ? [] : checks[p] };
   });

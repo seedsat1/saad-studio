@@ -140,7 +140,7 @@ const VIDEO_FEATURES = [
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Video Extend",        href: "/video-extend",    icon: Film,         color: "text-pink-400",    description: "Upload a clip and extend its duration",  badge: "NEW" },
-  { label: "Lipsync Studio",      href: "/video?tool=lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
+  { label: "Lipsync Studio",      href: "/lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
   { label: "Video Upscale",       href: "/video?tool=video-upscale",    icon: Aperture,     color: "text-blue-400",    description: "Enhance resolution to 4K/8K",            badge: "" },
 ];
 
@@ -697,7 +697,7 @@ const HoverNavItem = ({
   };
 
   const pathname = usePathname();
-  const isActive = pathname.startsWith(href) && href !== "/";
+  const isActive = (pathname.startsWith(href) || (href === "/video" && pathname.startsWith("/lipsync"))) && href !== "/";
 
   return (
     <div className="relative" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>

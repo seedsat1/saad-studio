@@ -209,13 +209,13 @@ function isKieTtsModelSupported(model?: string): boolean {
 
 function resolveLipSyncModel(model?: string): string {
   const normalized = String(model || "").trim().toLowerCase();
-  if (normalized === KIE_FROM_AUDIO_MODEL) return KIE_FROM_AUDIO_MODEL;
-  if (normalized === KIE_AI_AVATAR_PRO_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
+  if (normalized === KIE_FROM_AUDIO_MODEL || normalized === "infinitalk/from-audio") return KIE_FROM_AUDIO_MODEL;
+  if (normalized === KIE_AI_AVATAR_PRO_MODEL || normalized === "kling-ai-avatar-pro" || normalized === "kling/ai-avatar-pro") return KIE_AI_AVATAR_PRO_MODEL;
   if (normalized === KIE_SEEDANCE_2_MODEL) return KIE_SEEDANCE_2_MODEL;
   if (normalized === KIE_SEEDANCE_2_FAST_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
   // Route WaveSpeed-only lip-sync selection to a KIE equivalent.
-  if (normalized === WS_LIPSYNC_MODEL) return KIE_SEEDANCE_2_FAST_MODEL;
-  return KIE_SEEDANCE_2_FAST_MODEL;
+  if (normalized === WS_LIPSYNC_MODEL) return KIE_AI_AVATAR_PRO_MODEL;
+  return KIE_AI_AVATAR_PRO_MODEL;
 }
 
 function isGoogleLyriaModel(model: string): boolean {

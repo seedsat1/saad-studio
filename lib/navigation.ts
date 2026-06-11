@@ -42,7 +42,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { label: "Next Scene", href: "/cinema-studio", description: "Professional cinematic production", badge: "TOP" },
       { label: "Mixed Media", href: "/video", description: "Combine multiple visual styles" },
       { label: "Edit Video", href: "/edit", description: "Advanced AI timeline editing" },
-      { label: "Lipsync Studio", href: "/video", description: "Audio-driven facial animation" },
+      { label: "Lipsync Studio", href: "/lipsync", description: "Audio-driven facial animation" },
       { label: "Video Upscale", href: "/video", description: "Enhance to 4K/8K" },
     ],
   },

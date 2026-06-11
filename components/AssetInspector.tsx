@@ -919,12 +919,12 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
       // ── VIDEO ─────────────────────────────────────────────────────────────
       case "Lipsync / Dubbing":
-        router.push("/video/create-video?tab=lipsync" + (url ? `&videoUrl=${encodeURIComponent(url)}` : ""));
+        router.push("/lipsync" + (url ? `?imageUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();
         break;
 
       case "Extend Video":
-        router.push("/video/create-video" + (url ? `?videoUrl=${encodeURIComponent(url)}` : ""));
+        router.push("/video?tool=image-to-video" + (url ? `&imageUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();
         break;
 
@@ -935,12 +935,12 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
       // ── AUDIO ─────────────────────────────────────────────────────────────
       case "Use for Lipsync":
-        router.push("/video/create-video?tab=lipsync" + (url ? `&audioUrl=${encodeURIComponent(url)}` : ""));
+        router.push("/lipsync" + (url ? `?audioUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();
         break;
 
       case "Add to Video":
-        router.push("/video/create-video" + (url ? `?audioUrl=${encodeURIComponent(url)}` : ""));
+        router.push("/lipsync" + (url ? `?audioUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();
         break;
 

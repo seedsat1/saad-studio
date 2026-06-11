@@ -370,7 +370,6 @@ const TOOLS: VideoTool[] = [
   { id: "seedance-2", label: "Seedance 2", description: "Reference based cinematic video", icon: Sparkles },
   { id: "veo-fast", label: "Veo 3.1 Fast", description: "Fast commercial video drafts", icon: Video },
   { id: "hailuo-i2v", label: "Hailuo I2V", description: "Image to video animation preset", icon: PenTool },
-  { id: "lipsync", label: "Lipsync AI", description: "Sync avatar lips to audio", icon: Languages },
 ];
 
 const TOOL_ALIASES: Record<string, VideoToolId> = {
@@ -416,44 +415,86 @@ const TOOL_PROMPT_PREFIX: Record<VideoToolId, string> = {
   "lipsync": "",
 };
 
-const LIPSYNC_MODEL: WaveSpeedVideoModel = {
-  id: "kling-ai-avatar-pro",
-  name: "Kling AI Avatar Pro",
-  family: "kling",
-  family_label: "Kling",
-  family_color: "#06b6d4",
-  badge: "PRO",
-  description: "Sync avatar lips to audio. Provide a face image and an audio recording.",
-  api_route: "kling/ai-avatar-pro",
-  route_confirmed: true,
-  capabilities: {
-    requires_image: true,
-    optional_image: false,
-    requires_video: false,
-    has_end_frame: false,
-    aspect_ratios: [],
-    sizes: [],
-    durations: [],
-    resolutions: [],
-    quality_param: "resolution",
-    max_reference_images: 0,
-    max_reference_videos: 0,
-    max_reference_video_total_seconds: 0,
-    max_reference_audios: 0,
-    max_reference_audio_total_seconds: 0,
-    has_negative_prompt: false,
-    has_seed: false,
-    has_cfg_scale: false,
-    has_sound: true,
-    sound_param: "sound",
-    has_shot_type: false,
-    has_multi_prompt: false,
-    has_element_list: false,
-    has_scene_control: false,
-    has_orientation: false,
-    has_omni_tabs: false,
+const LIPSYNC_MODELS: WaveSpeedVideoModel[] = [
+  {
+    id: "kling-ai-avatar-pro",
+    name: "Kling AI Avatar 2.0",
+    family: "kling",
+    family_label: "Kling",
+    family_color: "#06b6d4",
+    badge: "PRO",
+    description: "Sync avatar lips to audio. Provide a clear face portrait image and an audio recording.",
+    api_route: "kling/ai-avatar-pro",
+    route_confirmed: true,
+    capabilities: {
+      requires_image: true,
+      optional_image: false,
+      requires_video: false,
+      has_end_frame: false,
+      aspect_ratios: [],
+      sizes: [],
+      durations: [],
+      resolutions: [],
+      quality_param: "resolution",
+      max_reference_images: 0,
+      max_reference_videos: 0,
+      max_reference_video_total_seconds: 0,
+      max_reference_audios: 0,
+      max_reference_audio_total_seconds: 0,
+      has_negative_prompt: false,
+      has_seed: false,
+      has_cfg_scale: false,
+      has_sound: true,
+      sound_param: "sound",
+      has_shot_type: false,
+      has_multi_prompt: false,
+      has_element_list: false,
+      has_scene_control: false,
+      has_orientation: false,
+      has_omni_tabs: false,
+    }
+  },
+  {
+    id: "infinitalk-from-audio",
+    name: "Infinitalk API-AI lip-sync generator",
+    family: "other",
+    family_label: "Other",
+    family_color: "#10b981",
+    badge: "NEW",
+    description: "Speech to video talking head lip-sync generator. Provide a clear face portrait image and an audio recording.",
+    api_route: "infinitalk/from-audio",
+    route_confirmed: true,
+    capabilities: {
+      requires_image: true,
+      optional_image: false,
+      requires_video: false,
+      has_end_frame: false,
+      aspect_ratios: [],
+      sizes: [],
+      durations: [],
+      resolutions: [],
+      quality_param: "resolution",
+      max_reference_images: 0,
+      max_reference_videos: 0,
+      max_reference_video_total_seconds: 0,
+      max_reference_audios: 0,
+      max_reference_audio_total_seconds: 0,
+      has_negative_prompt: false,
+      has_seed: false,
+      has_cfg_scale: false,
+      has_sound: true,
+      sound_param: "sound",
+      has_shot_type: false,
+      has_multi_prompt: false,
+      has_element_list: false,
+      has_scene_control: false,
+      has_orientation: false,
+      has_omni_tabs: false,
+    }
   }
-};
+];
+
+const LIPSYNC_MODEL = LIPSYNC_MODELS[0];
 
 const FAMILY_GRADIENTS: Record<string, string> = {
   wan22:     "from-orange-900 via-orange-800 to-slate-900",
@@ -468,6 +509,7 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   pixverse:  "from-rose-900   via-rose-800   to-slate-900",
   runway:    "from-teal-900   via-teal-800   to-slate-900",
   grok:      "from-red-900    via-red-800    to-slate-900",
+  other:     "from-teal-900   via-teal-800   to-slate-900",
 };
 
 const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
@@ -604,7 +646,11 @@ function VideoPageInner() {
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   useEffect(() => {
-    const requestedTool = resolveVideoTool(searchParams.get("tool"));
+    let requestedTool = resolveVideoTool(searchParams.get("tool"));
+    const requestedAudioUrl = searchParams.get("audioUrl");
+    if (requestedAudioUrl && /^https?:\/\//i.test(requestedAudioUrl)) {
+      requestedTool = "lipsync";
+    }
     if (requestedTool) setActiveTool(requestedTool);
 
     const requestedModel = searchParams.get("model");
@@ -732,6 +778,32 @@ function VideoPageInner() {
       })
       .catch(() => {
         if (!cancelled) setLinkedStartFrameUrl(requestedImageUrl);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  // Load audioUrl from searchParams
+  useEffect(() => {
+    const requestedAudioUrl = searchParams.get("audioUrl");
+    if (!requestedAudioUrl || !/^https?:\/\//i.test(requestedAudioUrl)) return;
+
+    let cancelled = false;
+    void fetch(requestedAudioUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to load linked audio");
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        const type = blob.type || "audio/mpeg";
+        const ext = type.includes("wav") ? "wav" : type.includes("aac") ? "aac" : "mp3";
+        setLipsyncAudioFile(new File([blob], `linked-audio.${ext}`, { type }));
+      })
+      .catch((err) => {
+        console.error("Failed to load searchParam audio:", err);
       });
 
     return () => {
@@ -998,7 +1070,26 @@ function VideoPageInner() {
 
   useEffect(() => {
     if (activeTool === "lipsync") {
-      setSelectedModel(LIPSYNC_MODEL);
+      if (!LIPSYNC_MODELS.some((m) => m.id === selectedModel.id)) {
+        setSelectedModel(LIPSYNC_MODEL);
+      }
+      // Reset configurations to prevent state leakage from other tools
+      setStartFrame(null);
+      setLinkedStartFrameUrl(null);
+      setEndFrame(null);
+      setMotionVideo(null);
+      setReferenceImages([]);
+      setShotType("intelligent");
+      setMultiPrompts([""]);
+      setElementList([""]);
+      setKlingEls([]);
+      setKling30MultiEnabled(false);
+      setKling30MultiMode("auto");
+      setKling30CustomShots([{ prompt: "", duration: 5 }]);
+      setCfgScale(0.5);
+      setSound(false);
+      setSceneControl(false);
+      setOrientation("video");
       return;
     }
     const toolModelId = TOOL_DEFAULT_MODEL_ID[activeTool];
@@ -1393,7 +1484,7 @@ function VideoPageInner() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             actionType: "lip-sync",
-            model: "kling/ai-avatar-pro",
+            model: selectedModel.api_route || "kling/ai-avatar-pro",
             imageUrl: imgUrl,
             audioUrl: audioUrl,
             prompt: prompt.trim() || "Natural lip sync performance",
@@ -1434,12 +1525,12 @@ function VideoPageInner() {
           id: "gen-" + (lipsyncJson.generationId || crypto.randomUUID()),
           type: "video",
           src: finalVideoUrl,
-          model: LIPSYNC_MODEL.name,
-          modelColor: LIPSYNC_MODEL.family_color,
+          model: selectedModel.name,
+          modelColor: selectedModel.family_color,
           ratio: "9:16",
           duration: "auto",
           prompt: prompt.trim() || "Natural lip sync performance",
-          gradient: FAMILY_GRADIENTS[LIPSYNC_MODEL.family] ?? "from-cyan-900 via-cyan-800 to-slate-900",
+          gradient: FAMILY_GRADIENTS[selectedModel.family] ?? "from-cyan-900 via-cyan-800 to-slate-900",
           createdAt: new Date(),
         };
 
@@ -1453,7 +1544,7 @@ function VideoPageInner() {
           type: "video",
           url: finalVideoUrl,
           prompt: prompt.trim() || "Natural lip sync performance",
-          model: LIPSYNC_MODEL.name,
+          model: selectedModel.name,
         });
 
         setIsSubmitting(false);
@@ -2175,33 +2266,35 @@ function VideoPageInner() {
         <div className="flex flex-col gap-5 p-4 flex-1">
           {activeTool === "lipsync" ? (
             <div className="flex-grow flex flex-col gap-5">
-              {/* Kling Avatar Info */}
+              {/* Dynamic Avatar/Lipsync Info */}
               <div
                 className="rounded-xl p-3"
                 style={{
-                  background: "rgba(6,182,212,0.06)",
-                  border: "1px solid rgba(6,182,212,0.25)",
+                  background: hexA(selectedModel.family_color, 0.06),
+                  border: `1px solid ${hexA(selectedModel.family_color, 0.25)}`,
                 }}
               >
                 <div className="flex items-start gap-2.5">
                   <span
                     className="w-2.5 h-2.5 rounded-full mt-0.5 flex-shrink-0"
-                    style={{ background: "#06b6d4" }}
+                    style={{ background: selectedModel.family_color }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-[13px] font-semibold text-[#06b6d4]">
-                        Kling AI Avatar Pro
+                      <span className="text-[13px] font-semibold" style={{ color: selectedModel.family_color }}>
+                        {selectedModel.name}
                       </span>
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                        style={{
-                          background: "rgba(6,182,212,0.15)",
-                          color: "#06b6d4",
-                        }}
-                      >
-                        PRO
-                      </span>
+                      {selectedModel.badge && (
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                          style={{
+                            background: hexA(selectedModel.family_color, 0.15),
+                            color: selectedModel.family_color,
+                          }}
+                        >
+                          {selectedModel.badge}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] leading-relaxed" style={{ color: "#94a3b8" }}>
                       Sync avatar lips to audio. Provide a clear face portrait image and an audio recording.
@@ -3028,116 +3121,196 @@ function VideoPageInner() {
               )}
 
           {/* -- AI Model dropdown ------------------------------------------- */}
+          {/* -- AI Model dropdown ------------------------------------------- */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
               AI Model
             </label>
-            <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />
-            {(() => {
-              const veoModel = allModels.find((m) => m.id === "google-veo3.1-t2v");
-              if (!veoModel || selectedModel.id === veoModel.id) return null;
-              return (
-                <button
-                  type="button"
-                  onClick={() => selectModel(veoModel)}
-                  className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all"
-                  style={{
-                    background: "rgba(59,130,246,0.08)",
-                    border: "1px solid rgba(59,130,246,0.22)",
-                    color: "#bfdbfe",
-                  }}
-                >
-                  <span className="text-[12px] font-semibold">Switch to Google Veo 3.1</span>
-                  <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>NEW</span>
-                </button>
-              );
-            })()}
-            <div className="relative">
-              <button
-                onClick={() => setModelOpen(v => !v)}
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-              >
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
-                <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
-                {bStyle && (
-                  <span
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                    style={{ background: bStyle.bg, color: bStyle.text }}
+            {activeTool !== "lipsync" ? (
+              // Regular video models
+              <>
+                <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />
+                {(() => {
+                  const veoModel = allModels.find((m) => m.id === "google-veo3.1-t2v");
+                  if (!veoModel || selectedModel.id === veoModel.id) return null;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => selectModel(veoModel)}
+                      className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all"
+                      style={{
+                        background: "rgba(59,130,246,0.08)",
+                        border: "1px solid rgba(59,130,246,0.22)",
+                        color: "#bfdbfe",
+                      }}
+                    >
+                      <span className="text-[12px] font-semibold">Switch to Google Veo 3.1</span>
+                      <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>NEW</span>
+                    </button>
+                  );
+                })()}
+                <div className="relative">
+                  <button
+                    onClick={() => setModelOpen(v => !v)}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
                   >
-                    {selectedModel.badge}
-                  </span>
-                )}
-                <ChevronDown
-                  size={13}
-                  style={{
-                    color: "#475569",
-                    transform: modelOpen ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s",
-                  }}
-                />
-              </button>
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
+                    <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
+                    {bStyle && (
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                        style={{ background: bStyle.bg, color: bStyle.text }}
+                      >
+                        {selectedModel.badge}
+                      </span>
+                    )}
+                    <ChevronDown
+                      size={13}
+                      style={{
+                        color: "#475569",
+                        transform: modelOpen ? "rotate(180deg)" : "none",
+                        transition: "transform 0.2s",
+                      }}
+                    />
+                  </button>
 
-              <AnimatePresence>
-                {modelOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-y-auto py-1"
-                    style={{
-                      background: "#0a1220",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
-                      maxHeight: 320,
-                    }}
-                  >
-                    {MODEL_GROUPS.map(g => (
-                      <div key={g.family}>
-                        <div className="flex items-center gap-2 px-3 pt-3 pb-1 select-none">
-                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: g.family_color }} />
-                          <span
-                            className="text-[10px] font-bold uppercase tracking-widest"
-                            style={{ color: g.family_color, opacity: 0.85 }}
-                          >
-                            {g.family_label}
-                          </span>
-                          <div className="flex-1 h-px" style={{ background: hexA(g.family_color, 0.2) }} />
-                        </div>
-                        {g.models.map(m => {
-                          const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
-                          return (
-                            <button
-                              key={m.id}
-                              onClick={() => selectModel(m)}
-                              className="w-full flex items-center gap-2 px-4 py-2 transition-all"
-                              style={{
-                                background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
-                                color:      selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
-                              }}
-                              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-                              onMouseLeave={e => (e.currentTarget.style.background = selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent")}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
-                              <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
-                              {bs && (
-                                <span
-                                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                                  style={{ background: bs.bg, color: bs.text }}
+                  <AnimatePresence>
+                    {modelOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-y-auto py-1"
+                        style={{
+                          background: "#0a1220",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
+                          maxHeight: 320,
+                        }}
+                      >
+                        {MODEL_GROUPS.map(g => (
+                          <div key={g.family}>
+                            <div className="flex items-center gap-2 px-3 pt-3 pb-1 select-none">
+                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: g.family_color }} />
+                              <span
+                                className="text-[10px] font-bold uppercase tracking-widest"
+                                style={{ color: g.family_color, opacity: 0.85 }}
+                              >
+                                {g.family_label}
+                              </span>
+                              <div className="flex-1 h-px" style={{ background: hexA(g.family_color, 0.2) }} />
+                            </div>
+                            {g.models.map(m => {
+                              const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                              return (
+                                <button
+                                  key={m.id}
+                                  onClick={() => selectModel(m)}
+                                  className="w-full flex items-center gap-2 px-4 py-2 transition-all"
+                                  style={{
+                                    background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
+                                    color:      selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
+                                  }}
+                                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                                  onMouseLeave={e => (e.currentTarget.style.background = selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent")}
                                 >
-                                  {m.badge}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                                  <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                                  {bs && (
+                                    <span
+                                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                                      style={{ background: bs.bg, color: bs.text }}
+                                    >
+                                      {m.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
+            ) : (
+              // Lipsync models only
+              <div className="relative">
+                <button
+                  onClick={() => setModelOpen(v => !v)}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left transition-all"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                >
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: selectedModel.family_color }} />
+                  <span className="flex-1 text-[13px]" style={{ color: "#e2e8f0" }}>{prettyModelName(selectedModel.name)}</span>
+                  {bStyle && (
+                    <span
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                      style={{ background: bStyle.bg, color: bStyle.text }}
+                    >
+                      {selectedModel.badge}
+                    </span>
+                  )}
+                  <ChevronDown
+                    size={13}
+                    style={{
+                      color: "#475569",
+                      transform: modelOpen ? "rotate(180deg)" : "none",
+                      transition: "transform 0.2s",
+                    }}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {modelOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-y-auto py-1"
+                      style={{
+                        background: "#0a1220",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        boxShadow: "0 16px 32px rgba(0,0,0,0.6)",
+                        maxHeight: 320,
+                      }}
+                    >
+                      {LIPSYNC_MODELS.map(m => {
+                        const bs = m.badge ? BADGE_STYLE[m.badge as keyof typeof BADGE_STYLE] : null;
+                        return (
+                          <button
+                            key={m.id}
+                            onClick={() => selectModel(m)}
+                            className="w-full flex items-center gap-2 px-4 py-2 transition-all"
+                            style={{
+                              background: selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent",
+                              color:      selectedModel.id === m.id ? "#e2e8f0" : "#94a3b8",
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = selectedModel.id === m.id ? "rgba(255,255,255,0.06)" : "transparent")}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: m.family_color }} />
+                            <span className="flex-1 text-left text-[13px]">{prettyModelName(m.name)}</span>
+                            {bs && (
+                              <span
+                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
+                                style={{ background: bs.bg, color: bs.text }}
+                              >
+                                {m.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {supportsCharacterReference && (
