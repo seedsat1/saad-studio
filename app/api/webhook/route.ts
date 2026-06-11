@@ -6,6 +6,13 @@ import prismadb from "@/lib/prismadb"
 import { stripe } from "@/lib/stripe"
 import { allocateSubscriptionCredits } from "@/lib/credit-ledger"
 import { SAAD_PLANS } from "@/lib/pricing-models"
+import { sendInvoiceEmail } from "@/lib/email-templates/invoice"
+import {
+    claimNotificationDelivery,
+    getNotificationPreferences,
+    releaseNotificationDelivery,
+    sendDedupedNotification,
+} from "@/lib/notifications"
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +90,63 @@ async function recordStripeTransaction(input: {
             paymentStatus: "COMPLETED",
         },
     });
+}
+
+async function sendStripePaymentSuccess(input: {
+    eventId: string;
+    userId: string;
+    orderId: string;
+    planId: string;
+    billingInterval: string;
+    amountCents: number | null | undefined;
+    credits: number;
+    startsAt: Date;
+    endsAt: Date;
+}) {
+    const [user, prefs] = await Promise.all([
+        prismadb.user.findUnique({ where: { id: input.userId }, select: { email: true } }),
+        getNotificationPreferences(input.userId),
+    ]);
+    if (!user?.email) return;
+
+    if (prefs.emailReceipts) {
+        const deliveryKey = `stripe-receipt:${input.eventId}`;
+        const claimed = await claimNotificationDelivery({
+            key: deliveryKey,
+            userId: input.userId,
+            kind: "payment_receipt",
+        });
+        if (!claimed) return;
+
+        const result = await sendInvoiceEmail({
+            to: user.email,
+            orderId: input.orderId,
+            displayPlan: `${input.planId} (${input.billingInterval})`,
+            amount: Math.max(0, Number(input.amountCents ?? 0)) / 100,
+            credits: input.credits,
+            startsAt: input.startsAt,
+            endsAt: input.endsAt,
+            method: "Stripe",
+        });
+        if (!result.ok) {
+            await releaseNotificationDelivery(deliveryKey).catch(() => {});
+        }
+        return;
+    }
+
+    if (prefs.paymentConfirm) {
+        await sendDedupedNotification({
+            key: `stripe-success:${input.eventId}`,
+            userId: input.userId,
+            kind: "payment_status",
+            to: user.email,
+            subject: "Your Saad Studio payment was successful",
+            heading: "Payment approved",
+            message: `Your ${input.planId} payment was approved and ${input.credits.toLocaleString()} credits were added to your account.`,
+            actionLabel: "View account",
+            actionUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app").replace(/\/$/, "")}/profile`,
+        });
+    }
 }
 
 export async function POST(req: Request) {
@@ -170,6 +234,19 @@ export async function POST(req: Request) {
                 stripeObjectId: session.id,
                 type: "checkout",
             });
+            await sendStripePaymentSuccess({
+                eventId: event.id,
+                userId,
+                orderId: session.id,
+                planId,
+                billingInterval,
+                amountCents: session.amount_total ?? priceItem.price.unit_amount,
+                credits: creditsForPlan(planId),
+                startsAt: new Date(),
+                endsAt: new Date(subscription.current_period_end * 1000),
+            }).catch((error) => {
+                console.error("[stripe-webhook] payment notification failed", error);
+            });
         }
 
         if (event.type === "invoice.payment_succeeded") {
@@ -222,6 +299,19 @@ export async function POST(req: Request) {
                     eventId: event.id,
                     stripeObjectId: invoice.id,
                     type: "renewal",
+                });
+                await sendStripePaymentSuccess({
+                    eventId: event.id,
+                    userId: existingSub.userId,
+                    orderId: invoice.id,
+                    planId: existingSub.planId,
+                    billingInterval: existingSub.billingInterval ?? "monthly",
+                    amountCents: invoice.amount_paid,
+                    credits: creditsForPlan(existingSub.planId),
+                    startsAt: new Date(),
+                    endsAt: new Date(subscription.current_period_end * 1000),
+                }).catch((error) => {
+                    console.error("[stripe-webhook] payment notification failed", error);
                 });
             }
         }
@@ -318,9 +408,32 @@ export async function POST(req: Request) {
                 console.warn(
                     `[stripe-webhook] Payment failed: user=${existing?.userId ?? "unknown"} plan=${existing?.planId ?? "?"} invoice=${invoice.id} attempt=${invoice.attempt_count}`,
                 );
-                // TODO (optional): trigger a "your payment failed" email
-                // here. The subscription stays active until Stripe gives
-                // up retrying and fires customer.subscription.deleted.
+                if (existing?.userId) {
+                    await (async () => {
+                        const [user, prefs] = await Promise.all([
+                            prismadb.user.findUnique({
+                                where: { id: existing.userId },
+                                select: { email: true },
+                            }),
+                            getNotificationPreferences(existing.userId),
+                        ]);
+                        if (user?.email && prefs.paymentConfirm) {
+                            await sendDedupedNotification({
+                                key: `stripe-failed:${invoice.id}:${invoice.attempt_count ?? 0}`,
+                                userId: existing.userId,
+                                kind: "payment_status",
+                                to: user.email,
+                                subject: "Your Saad Studio payment needs attention",
+                                heading: "Payment failed",
+                                message: "Stripe could not complete your subscription payment. Please update your payment method to avoid an interruption.",
+                                actionLabel: "Open billing",
+                                actionUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app").replace(/\/$/, "")}/profile`,
+                            });
+                        }
+                    })().catch((error) => {
+                        console.error("[stripe-webhook] payment failure notification failed", error);
+                    });
+                }
             }
         }
     } catch (error) {

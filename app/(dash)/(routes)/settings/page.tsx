@@ -38,6 +38,10 @@ type SettingsApiResponse = {
     nextBillingAt: string | null;
   };
   credits: number;
+  notifications?: Pick<
+    PreferenceState,
+    "emailReceipts" | "creditAlerts" | "paymentConfirm" | "productUpdates" | "weeklyDigest"
+  >;
   creditAdvance?: {
     balance: number;
     requestedAt: string | null;
@@ -250,6 +254,23 @@ export default function SettingsPage() {
       if (!user) return;
       setSavingPrefs(true);
       try {
+        const notifications = {
+          emailReceipts: nextPrefs.emailReceipts,
+          creditAlerts: nextPrefs.creditAlerts,
+          paymentConfirm: nextPrefs.paymentConfirm,
+          productUpdates: nextPrefs.productUpdates,
+          weeklyDigest: nextPrefs.weeklyDigest,
+        };
+        const response = await fetch("/api/profile/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notifications }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.error || "Failed to save notification preferences.");
+        }
+
         const unsafe = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
         await user.update({
           unsafeMetadata: {
@@ -309,12 +330,11 @@ export default function SettingsPage() {
         setCreditAdvance(data.creditAdvance ?? null);
 
         const stored = ((user.unsafeMetadata ?? {}) as Record<string, unknown>).settingsPrefs as Partial<PreferenceState> | undefined;
-        if (stored) {
-          setPrefs({
-            ...DEFAULT_PREFS,
-            ...stored,
-          });
-        }
+        setPrefs({
+          ...DEFAULT_PREFS,
+          ...stored,
+          ...data.notifications,
+        });
       } catch (e) {
         if (!disposed) {
           const msg = e instanceof Error ? e.message : "Failed to load settings.";

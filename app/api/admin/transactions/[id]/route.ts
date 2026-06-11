@@ -4,6 +4,10 @@ import prismadb from "@/lib/prismadb";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { sendInvoiceEmail } from "@/lib/email-templates/invoice";
 import { allocateSubscriptionCredits, applyTopupCredits } from "@/lib/credit-ledger";
+import {
+  getNotificationPreferences,
+  sendDedupedNotification,
+} from "@/lib/notifications";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
@@ -177,10 +181,13 @@ export async function PATCH(
       }
 
       try {
-        const user = await prismadb.user.findUnique({ where: { id: tx.userId }, select: { email: true } });
+        const [user, prefs] = await Promise.all([
+          prismadb.user.findUnique({ where: { id: tx.userId }, select: { email: true } }),
+          getNotificationPreferences(tx.userId),
+        ]);
         const to = user?.email;
         const orderId = extractOrderId(tx.plan) ?? tx.id;
-        if (to) {
+        if (to && prefs.emailReceipts) {
           const now = new Date();
           const { isTopup, planId, billingInterval } = parsePlanString(tx.plan ?? "");
           const endsAt = isTopup
@@ -196,6 +203,18 @@ export async function PATCH(
             endsAt,
             method: extractMethod(tx.plan),
           });
+        } else if (to && prefs.paymentConfirm) {
+          await sendDedupedNotification({
+            key: `manual-payment-approved:${tx.id}`,
+            userId: tx.userId,
+            kind: "payment_status",
+            to,
+            subject: "Your Saad Studio payment was approved",
+            heading: "Payment approved",
+            message: `Your payment was approved and ${Number(tx.credits ?? 0).toLocaleString()} credits were added to your account.`,
+            actionLabel: "View account",
+            actionUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app").replace(/\/$/, "")}/profile`,
+          });
         }
       } catch (err) {
         console.error("[admin/transactions] approval email error:", err);
@@ -208,6 +227,30 @@ export async function PATCH(
       where: { id },
       data: { paymentStatus: nextStatus },
     });
+
+    if (nextStatus === "FAILED") {
+      try {
+        const [user, prefs] = await Promise.all([
+          prismadb.user.findUnique({ where: { id: tx.userId }, select: { email: true } }),
+          getNotificationPreferences(tx.userId),
+        ]);
+        if (user?.email && prefs.paymentConfirm) {
+          await sendDedupedNotification({
+            key: `manual-payment-failed:${tx.id}`,
+            userId: tx.userId,
+            kind: "payment_status",
+            to: user.email,
+            subject: "Your Saad Studio payment was not approved",
+            heading: "Payment rejected",
+            message: "Your payment could not be approved. Please review the payment details or contact support for help.",
+            actionLabel: "Contact support",
+            actionUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app").replace(/\/$/, "")}/contact`,
+          });
+        }
+      } catch (error) {
+        console.error("[admin/transactions] failure email error:", error);
+      }
+    }
 
     return NextResponse.json({ ok: true, status: nextStatus });
   } catch (error) {

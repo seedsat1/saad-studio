@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { getUserIdsWithPreferenceEnabled } from "@/lib/notifications";
 
 const DAY_MS = 86_400_000;
 
@@ -61,7 +62,10 @@ async function resolveActiveSubscriberEmails(params: { planId?: string | null })
     select: { userId: true },
   });
 
-  const userIds = Array.from(new Set(subs.map((s) => s.userId).filter(Boolean)));
+  const optedInUserIds = new Set(await getUserIdsWithPreferenceEnabled("productUpdates"));
+  const userIds = Array.from(new Set(
+    subs.map((s) => s.userId).filter((userId) => Boolean(userId) && optedInUserIds.has(userId)),
+  ));
   if (!userIds.length) return [];
 
   const users = await prismadb.user.findMany({

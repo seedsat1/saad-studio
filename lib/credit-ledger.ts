@@ -3,6 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { WELCOME_SIGNUP_CREDITS } from "@/lib/credits-config";
 import { SAAD_PLANS } from "@/lib/pricing-models";
 import { isStorageConfigured, uploadUrlToStorage } from "@/lib/supabase-storage";
+import { maybeSendLowCreditAlert } from "@/lib/notifications";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -398,7 +399,7 @@ export async function spendCredits(input: SpendCreditsInput) {
   // Handle credit expiry/renewal before checking balance
   await handleCreditExpiry(input.userId);
 
-  return prismadb.$transaction(async (tx) => {
+  const result = await prismadb.$transaction(async (tx) => {
     const updatedCount = await tx.user.updateMany({
       where: {
         id: input.userId,
@@ -445,6 +446,12 @@ export async function spendCredits(input: SpendCreditsInput) {
 
     return { remainingCredits: Math.max(0, updated?.creditBalance ?? 0), generationId: generation.id };
   });
+
+  await maybeSendLowCreditAlert(input.userId, result.remainingCredits).catch((error) => {
+    console.error("[credit alert] failed:", error);
+  });
+
+  return result;
 }
 
 export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credits">) {

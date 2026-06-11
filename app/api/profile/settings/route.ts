@@ -2,6 +2,11 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { SAAD_PLANS } from "@/lib/pricing-models";
+import {
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  type NotificationPreferences,
+} from "@/lib/notifications";
 
 function inferPlan(stripePriceId?: string | null, hasSubscription?: boolean) {
   const id = (stripePriceId ?? "").toLowerCase();
@@ -84,7 +89,7 @@ export async function GET() {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const [userResult, subscription] = await Promise.all([
+    const [userResult, subscription, notifications] = await Promise.all([
       findSettingsUser(userId),
       prismadb.userSubscription.findUnique({
         where: { userId },
@@ -96,6 +101,7 @@ export async function GET() {
           billingInterval: true,
         },
       }),
+      getNotificationPreferences(userId),
     ]);
     const userRow = userResult.row;
 
@@ -123,6 +129,7 @@ export async function GET() {
         nextBillingAt: subscription?.stripeCurrentPeriodEnd?.toISOString() ?? null,
       },
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),
+      notifications,
       creditAdvance: {
         balance: Math.max(0, Math.floor(userRow?.creditAdvanceBalance ?? 0)),
         requestedAt: userRow?.creditAdvanceRequestedAt?.toISOString() ?? null,
@@ -151,6 +158,24 @@ export async function PATCH(req: Request) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
+    if (body?.notifications && typeof body.notifications === "object") {
+      const allowed: Array<keyof NotificationPreferences> = [
+        "emailReceipts",
+        "creditAlerts",
+        "paymentConfirm",
+        "productUpdates",
+        "weeklyDigest",
+      ];
+      const partial: Partial<NotificationPreferences> = {};
+      for (const key of allowed) {
+        if (typeof body.notifications[key] === "boolean") {
+          partial[key] = body.notifications[key];
+        }
+      }
+      const notifications = await updateNotificationPreferences(userId, partial);
+      return NextResponse.json({ notifications });
+    }
+
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim() : "";
     const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
