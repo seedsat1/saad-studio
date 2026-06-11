@@ -704,11 +704,19 @@ export default function StoryboardProductionPage() {
       className={`${outfit.variable} ${plusJakarta.variable} ${caveat.variable} fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#030610] text-slate-100 font-sans`}
       style={{ fontFamily: "var(--font-body, sans-serif)" }}
     >
+      {/* Global page scroll lock */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        html, body {
+          overflow: hidden !important;
+          height: 100% !important;
+        }
+      `}} />
+
       {/* Radial glows */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(6,182,212,0.1),transparent_35%),radial-gradient(circle_at_80%_80%,rgba(139,92,246,0.06),transparent_40%)]" />
 
       {/* Main split grid */}
-      <section className="relative mx-auto flex h-full max-w-7xl gap-6 p-6 justify-between select-none">
+      <section className="relative flex h-full w-full max-w-none gap-6 p-6 justify-between select-none">
         
         {/* ── LEFT SIDEBAR: Brand & Info ── */}
         <aside className="w-[300px] flex flex-col justify-between py-2 pr-6 border-r border-white/5 shrink-0">
