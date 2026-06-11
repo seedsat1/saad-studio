@@ -353,7 +353,8 @@ export default function StoryboardProductionPage() {
       throw new Error(data?.error || "Failed to load storyboard assets.");
     }
     const storyboardAssets = data.assets.filter((asset: { model?: string; url?: string }) =>
-      asset.model?.includes("qwen-image-edit-multiple-angles") && typeof asset.url === "string"
+      (asset.model?.includes("qwen-image-edit-multiple-angles") || asset.model?.includes("seedream")) &&
+      typeof asset.url === "string"
     );
     setHistory(storyboardAssets.map((asset: { id: string; url: string; prompt?: string; model?: string; date?: string }) => ({
       id: asset.id,

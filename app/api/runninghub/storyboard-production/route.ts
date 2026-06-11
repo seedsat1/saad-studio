@@ -29,7 +29,7 @@ const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
 };
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
-const WAVESPEED_MODEL = "wavespeed-ai/qwen-image/edit-2509-multiple-angles";
+const WAVESPEED_MODEL = "bytedance/seedream-v4.5/edit-sequential";
 
 /**
  * Each panel is a unique camera angle/distance combo.
@@ -226,21 +226,24 @@ async function createWavespeedTask(
   seed?: number,
   prompt?: string,
 ): Promise<string> {
+  let size = "1024x1024";
+  if (aspectRatio) {
+    if (aspectRatio === "16:9") size = "1024x576";
+    else if (aspectRatio === "9:16") size = "576x1024";
+    else if (aspectRatio === "4:3") size = "1024x768";
+    else if (aspectRatio === "3:4") size = "768x1024";
+  }
+
   const body: Record<string, unknown> = {
     images: [imageUrl],
-    horizontal_angle: angle.horizontal_angle,
-    vertical_angle: angle.vertical_angle,
-    distance: angle.distance,
-    output_format: outputFormat ?? "jpeg",
-    seed: typeof seed === "number" ? seed : -1,
+    prompt: prompt ?? "A storyboard panel",
+    size,
+    max_images: 1,
     enable_base64_output: false,
     enable_sync_mode: false,
-    // Provider-side safety filter (WaveSpeed/KIE-compatible where supported).
     nsfw_checker: true,
     safety_checker: true,
   };
-  if (aspectRatio && SUPPORTED_ASPECT_RATIOS.has(aspectRatio)) body.aspect_ratio = aspectRatio;
-  if (prompt) body.prompt = prompt;
 
   const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
     method: "POST",
@@ -423,7 +426,7 @@ export async function POST(req: NextRequest) {
         credits: creditsPerPanel,
         prompt: `${storyLabel} – Panel ${i + 1}/${numPanels}`,
         assetType: "STORYBOARD",
-        modelUsed: "wavespeed/qwen-image-edit-multiple-angles",
+        modelUsed: "bytedance/seedream-v4.5/edit-sequential",
       });
       panelGenerationIds.push(spent.generationId);
       if (i === 0) firstGenerationId = spent.generationId;
