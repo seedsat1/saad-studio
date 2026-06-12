@@ -29,7 +29,7 @@ const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
 };
 
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
-const WAVESPEED_MODEL = "bytedance/seedream-v4.5/edit-sequential";
+const WAVESPEED_MODEL = "bytedance/seedream-v4.5/edit";
 
 class StoryboardProviderError extends Error {
   constructor(
@@ -238,23 +238,21 @@ async function createWavespeedTask(
   seed?: number,
   prompt?: string,
 ): Promise<string> {
-  let size = "1024x1024";
+  // Seedream rejects dimensions below roughly 3.7 megapixels.
+  let size = "2048*2048";
   if (aspectRatio) {
-    if (aspectRatio === "16:9") size = "1024x576";
-    else if (aspectRatio === "9:16") size = "576x1024";
-    else if (aspectRatio === "4:3") size = "1024x768";
-    else if (aspectRatio === "3:4") size = "768x1024";
+    if (aspectRatio === "16:9") size = "2560*1440";
+    else if (aspectRatio === "9:16") size = "1440*2560";
+    else if (aspectRatio === "4:3") size = "2304*1728";
+    else if (aspectRatio === "3:4") size = "1728*2304";
   }
 
   const body: Record<string, unknown> = {
     images: [imageUrl],
     prompt: prompt ?? "A storyboard panel",
     size,
-    max_images: 1,
     enable_base64_output: false,
     enable_sync_mode: false,
-    nsfw_checker: true,
-    safety_checker: true,
   };
 
   const res = await fetch(`${WAVESPEED_BASE}/${WAVESPEED_MODEL}`, {
@@ -310,7 +308,11 @@ async function pollWavespeedTask(
     }
 
     if (status === "failed") {
-      return { status: "fail", urls: [], error: data?.error ?? "WaveSpeed task failed" };
+      const providerError = typeof data?.error === "string" && data.error.trim()
+        ? data.error
+        : "WaveSpeed task failed";
+      const providerCode = data?.code ? ` (${data.code})` : "";
+      return { status: "fail", urls: [], error: `${providerError}${providerCode}` };
     }
     // created / pending / processing — keep polling
   }
@@ -321,7 +323,7 @@ async function pollWavespeedTask(
 /**
  * POST /api/runninghub/storyboard-production
  *
- * Generates storyboard panels via WaveSpeed API (qwen-image/edit-2509-multiple-angles).
+ * Generates storyboard panels via the WaveSpeed Seedream image-edit API.
  * Each panel uses a different camera angle/distance.
  *
  * Body: { imageDataUrl, numPanels?, prompt? }
@@ -439,7 +441,7 @@ export async function POST(req: NextRequest) {
         credits: creditsPerPanel,
         prompt: `${storyLabel} – Panel ${i + 1}/${numPanels}`,
         assetType: "STORYBOARD",
-        modelUsed: "bytedance/seedream-v4.5/edit-sequential",
+        modelUsed: WAVESPEED_MODEL,
       });
       panelGenerationIds.push(spent.generationId);
       chargedCredits += creditsPerPanel;
@@ -498,6 +500,11 @@ export async function POST(req: NextRequest) {
 
     // If all failed, return error
     if (outputs.length === 0) {
+      console.error("[STORYBOARD_PRODUCTION_ALL_FAILED]", {
+        model: WAVESPEED_MODEL,
+        failures,
+        refundedPanels: panelGenerationIds.length,
+      });
       return NextResponse.json(
         { error: failures[0] || "All panels failed. Credits refunded." },
         { status: 502 },
