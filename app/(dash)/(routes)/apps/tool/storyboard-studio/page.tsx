@@ -141,7 +141,7 @@ const DEMO_STORIES = [
   {
     num: "01",
     type: "EXT. CITY - DAY",
-    image: "/img/storyboard/storyboard-panel-02.jpg",
+    image: "/img/storyboard/1.jpg",
     action: "The young explorer arrives at the city of the future.",
     camera: "WIDE SHOT - Wide Background",
     notes: "Showcase the grand scale and advanced architecture of the city."
@@ -149,7 +149,7 @@ const DEMO_STORIES = [
   {
     num: "02",
     type: "MED. SHOT",
-    image: "/img/storyboard/storyboard-panel-03.jpg",
+    image: "/img/storyboard/2.jpg",
     action: "The explorer contemplates the futuristic surrounding.",
     camera: "MEDIUM SHOT - Mid-range perspective",
     notes: "Focus on facial expressions of wonder and surprise."
@@ -157,7 +157,7 @@ const DEMO_STORIES = [
   {
     num: "03",
     type: "WIDE SHOT",
-    image: "/img/storyboard/storyboard-panel-04.jpg",
+    image: "/img/storyboard/3.jpg",
     action: "Walking down the main street surrounded by autonomous vehicles.",
     camera: "WIDE SHOT - Street level pan",
     notes: "Capture the active traffic flow and digital billboards."
@@ -165,7 +165,7 @@ const DEMO_STORIES = [
   {
     num: "04",
     type: "CLOSE UP",
-    image: "/img/storyboard/storyboard-panel-05.jpg",
+    image: "/img/storyboard/4.jpg",
     action: "He spots an incredible piece of holographic tech ahead.",
     camera: "CLOSE UP - Tight focus",
     notes: "Accentuate the reaction in his eyes and facial details."
@@ -173,7 +173,7 @@ const DEMO_STORIES = [
   {
     num: "05",
     type: "OVER THE SHOULDER",
-    image: "/img/storyboard/storyboard-panel-06.jpg",
+    image: "/img/storyboard/5.jpg",
     action: "Interacting with the floating digital projection interface.",
     camera: "OTS - Over the shoulder perspective",
     notes: "Highlight the bright hologram map reflecting light on his face."
@@ -181,7 +181,7 @@ const DEMO_STORIES = [
   {
     num: "06",
     type: "EXT. CITY - SUNSET",
-    image: "/img/storyboard/storyboard-panel-07.jpg",
+    image: "/img/storyboard/6.jpg",
     action: "The day ends with the character looking towards the golden sunset.",
     camera: "WIDE SHOT - Cinematic skyline frame",
     notes: "Inspiring ending scene showing hope and adventure."
@@ -189,7 +189,7 @@ const DEMO_STORIES = [
   {
     num: "07",
     type: "MEDIUM SHOT",
-    image: "/img/storyboard/storyboard-panel-08.jpg",
+    image: "/img/storyboard/7.jpg",
     action: "He reviews the gathered data in his lab environment.",
     camera: "MEDIUM SHOT - Scientific workspace",
     notes: "Show the hologram interface glowing in a dimmer room."
@@ -197,7 +197,7 @@ const DEMO_STORIES = [
   {
     num: "08",
     type: "CLOSE UP",
-    image: "/img/storyboard/storyboard-panel-09.jpg",
+    image: "/img/storyboard/creation_3139417698.jpg",
     action: "Close-up of the final device activation sequence.",
     camera: "CLOSE UP - Detail macro focus",
     notes: "Emphasize the lighting changes on the device."
