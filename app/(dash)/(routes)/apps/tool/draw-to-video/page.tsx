@@ -20,7 +20,6 @@ import {
   Plus,
   Redo2,
   RefreshCw,
-  Settings2,
   Sparkles,
   Square,
   Trash2,
@@ -153,7 +152,7 @@ const MODES: { id: StudioMode; label: string; icon: typeof Pencil; badge?: strin
 ];
 
 const ASPECTS: { id: AspectRatio; label: string; css: string }[] = [
-  { id: "auto", label: "Auto", css: "16 / 9" },
+  { id: "auto", label: "Source", css: "16 / 9" },
   { id: "1:1", label: "1:1", css: "1 / 1" },
   { id: "16:9", label: "16:9", css: "16 / 9" },
   { id: "9:16", label: "9:16", css: "9 / 16" },
@@ -249,14 +248,12 @@ export default function DrawToVideoPage() {
   const [brushSize, setBrushSize] = useState(8);
   const [prompt, setPrompt] = useState("");
   const [editAction, setEditAction] = useState<EditAction>("animate");
-  const [selectedModelId, setSelectedModelId] = useState(VIDEO_MODELS[2].id);
+  const [selectedModelId, setSelectedModelId] = useState(VIDEO_MODELS[5].id);
   const [selectedEditModelId, setSelectedEditModelId] = useState<EditModel["id"]>(EDIT_MODELS[0].id);
   const [duration, setDuration] = useState(6);
-  const [resolution, setResolution] = useState("768P");
+  const [resolution, setResolution] = useState("720p");
   const [aspect, setAspect] = useState<AspectRatio>("16:9");
   const [modelOpen, setModelOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [aspectOpen, setAspectOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -353,6 +350,12 @@ export default function DrawToVideoPage() {
       setResolution("768P");
     }
   }, [duration, resolution, selectedModel.family]);
+
+  useEffect(() => {
+    if (studioMode === "draw-edit" && aspect === "auto") {
+      setAspect("16:9");
+    }
+  }, [aspect, studioMode]);
 
   const pointFromEvent = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
@@ -602,20 +605,42 @@ export default function DrawToVideoPage() {
     { id: "arrow", icon: ArrowUpRight, label: "Arrow" },
     { id: "text", icon: Type, label: "Text" },
   ];
+  const visibleAspects = studioMode === "draw-edit"
+    ? ASPECTS.filter((item) => item.id !== "auto")
+    : ASPECTS.filter((item) => selectedModel.aspects.includes(item.id));
+  const displayedQuality = studioMode === "draw-edit" ? selectedEditModel.quality : resolution || "Provider native";
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[#05070d] px-3 py-4 text-white md:px-5">
+    <main className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,#102349_0,#070b18_38%,#040711_78%)] px-3 py-5 text-white md:px-6">
       <div className="mx-auto max-w-[1580px]">
-        <div className="mb-3 flex items-center justify-between">
-          <Link href="/apps" className="inline-flex items-center gap-2 text-xs text-slate-500 hover:text-white">
-            <ArrowLeft className="h-4 w-4" /> Back to Apps
-          </Link>
-          <span className="text-[11px] font-bold text-amber-300">{estimatedCredits} credits</span>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Link href="/apps" className="mb-4 inline-flex items-center gap-2 text-xs text-cyan-300/70 hover:text-cyan-200">
+              <ArrowLeft className="h-4 w-4" /> Back to Apps
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 shadow-[0_0_32px_rgba(34,211,238,.2)]">
+                <Wand2 className="h-5 w-5 text-[#06101b]" />
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.32em] text-cyan-300">Saad Motion Lab</p>
+                <h1 className="text-2xl font-black tracking-tight">Visual Direction Studio</h1>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] px-4 py-2 text-right">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Live estimate</p>
+            <span className="text-sm font-black text-cyan-200">{estimatedCredits} credits</span>
+          </div>
         </div>
 
-        <section className="relative overflow-hidden rounded-[22px] border border-white/10 bg-[#171717] p-3 shadow-2xl">
-          <div className="mb-3 flex justify-center">
-            <div className="inline-flex rounded-full border border-white/5 bg-[#202226] p-1">
+        <section className="relative overflow-hidden rounded-[26px] border border-cyan-300/10 bg-[#080d1b]/95 p-4 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-4">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">Choose workflow</p>
+              <p className="mt-1 text-xs text-slate-400">Create with Saad Studio&apos;s drawing and AI editing pipeline.</p>
+            </div>
+            <div className="grid w-full gap-2 sm:grid-cols-3 lg:w-auto">
               {MODES.map((mode) => {
                 const Icon = mode.icon;
                 return (
@@ -628,22 +653,22 @@ export default function DrawToVideoPage() {
                       setImageUrl("");
                       setError("");
                     }}
-                    className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-xs font-bold transition ${
                       studioMode === mode.id
-                        ? "border border-white/10 bg-[#292c31] text-white shadow-lg"
-                        : "text-zinc-500 hover:text-zinc-300"
+                        ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_8px_24px_rgba(34,211,238,.08)]"
+                        : "border-white/5 bg-white/[0.025] text-slate-500 hover:border-white/15 hover:text-white"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
                     {mode.label}
-                    {mode.badge && <span className="rounded bg-lime-400 px-1.5 py-0.5 text-[9px] font-black text-black">{mode.badge}</span>}
+                    {mode.badge && <span className="rounded bg-violet-400/15 px-1.5 py-0.5 text-[8px] font-black text-violet-300">{mode.badge}</span>}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="relative mx-auto flex min-h-[620px] items-center justify-center overflow-hidden rounded-sm bg-[#0c0c0c]">
+          <div className="relative mx-auto flex min-h-[620px] items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_center,#152344_0,#080d19_62%)] p-4">
             {(videoUrl || imageUrl) ? (
               <div className="relative flex h-full w-full items-center justify-center bg-black">
                 {videoUrl ? (
@@ -674,7 +699,7 @@ export default function DrawToVideoPage() {
               </div>
             ) : (
               <div
-                className="relative h-[72vh] max-h-[620px] max-w-full overflow-hidden"
+                className="relative h-[68vh] max-h-[590px] max-w-full overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(0,0,0,.45)]"
                 style={{
                   aspectRatio: selectedAspect.css,
                   backgroundColor: studioMode === "sketch-video" ? "#f6f1e7" : "#151515",
@@ -700,7 +725,7 @@ export default function DrawToVideoPage() {
               <button
                 type="button"
                 onClick={() => uploadRef.current?.click()}
-                className="absolute inset-0 m-auto flex h-28 w-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/20 text-zinc-500 backdrop-blur-sm hover:border-violet-400/50 hover:text-zinc-300"
+                className="absolute inset-0 m-auto flex h-32 w-72 flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/25 bg-[#07101f]/85 text-slate-500 backdrop-blur-sm hover:border-cyan-300/60 hover:text-cyan-200"
               >
                 <ImagePlus className="mb-2 h-6 w-6" />
                 <span className="text-sm font-bold">Upload image or start drawing</span>
@@ -717,6 +742,97 @@ export default function DrawToVideoPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="mt-4 grid gap-3 rounded-2xl border border-white/5 bg-[#0c1328] p-4 lg:grid-cols-3">
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Frame ratio</p>
+                <span className="text-[10px] font-bold text-cyan-300">{aspect}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {visibleAspects.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setAspect(item.id)}
+                    className={`rounded-xl border px-2 py-2.5 text-[10px] font-black transition ${
+                      aspect === item.id
+                        ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                        : "border-white/5 bg-white/[0.025] text-slate-500 hover:text-white"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {visibleAspects.length === 1 && (
+                <p className="mt-2 text-[9px] text-slate-600">This model inherits the source image ratio.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Duration</p>
+                <span className="text-[10px] font-bold text-violet-300">{studioMode === "draw-edit" ? "Still image" : `${duration}s`}</span>
+              </div>
+              {studioMode === "draw-edit" ? (
+                <div className="rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2.5 text-[10px] font-bold text-slate-500">No video duration</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedModel.durations.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setDuration(value)}
+                      className={`rounded-xl border py-2.5 text-[10px] font-black transition ${
+                        duration === value
+                          ? "border-violet-400/50 bg-violet-400/10 text-violet-200"
+                          : "border-white/5 bg-white/[0.025] text-slate-500 hover:text-white"
+                      }`}
+                    >
+                      {value}s
+                    </button>
+                  ))}
+                </div>
+              )}
+              {studioMode !== "draw-edit" && selectedModel.durations.length === 1 && (
+                <p className="mt-2 text-[9px] text-slate-600">Fixed by the selected provider.</p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Output quality</p>
+                <span className="text-[10px] font-bold text-cyan-300">{displayedQuality}</span>
+              </div>
+              {studioMode === "draw-edit" ? (
+                <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-3 py-2.5 text-[10px] font-black text-cyan-100">{selectedEditModel.quality}</div>
+              ) : selectedModel.resolutions.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedModel.resolutions.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      disabled={selectedModel.family === "Hailuo" && duration === 10 && value === "1080P"}
+                      onClick={() => setResolution(value)}
+                      className={`rounded-xl border py-2.5 text-[10px] font-black transition disabled:cursor-not-allowed disabled:opacity-25 ${
+                        resolution === value
+                          ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                          : "border-white/5 bg-white/[0.025] text-slate-500 hover:text-white"
+                      }`}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2.5 text-[10px] font-bold text-slate-500">Provider native quality</div>
+              )}
+              {selectedModel.family === "Hailuo" && duration === 10 && (
+                <p className="mt-2 text-[9px] text-amber-300/70">10 seconds is available at 768P only.</p>
+              )}
+            </div>
           </div>
 
           <input
@@ -754,15 +870,6 @@ export default function DrawToVideoPage() {
                 <span className="truncate">{studioMode === "draw-edit" ? selectedEditModel.name : selectedModel.name}</span>
                 <ChevronDown className="h-4 w-4 text-zinc-500" />
               </button>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen((value) => !value)}
-                disabled={studioMode === "draw-edit"}
-                className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-[#202020] text-zinc-300 disabled:opacity-40"
-              >
-                <Settings2 className="h-4 w-4" />
-              </button>
-
               {modelOpen && (
                 <div className="absolute bottom-14 left-0 z-30 max-h-[560px] w-[390px] overflow-y-auto rounded-2xl border border-white/10 bg-[#181818] p-2 shadow-2xl">
                   <p className="px-3 pb-2 pt-1 text-xs font-semibold text-zinc-400">Select model</p>
@@ -808,35 +915,6 @@ export default function DrawToVideoPage() {
                 </div>
               )}
 
-              {settingsOpen && (
-                <div className="absolute bottom-14 left-0 z-30 w-72 rounded-2xl border border-white/10 bg-[#202020] p-4 shadow-2xl">
-                  <p className="mb-2 text-xs font-bold text-zinc-400">Duration</p>
-                  <div className="grid grid-cols-3 gap-1 rounded-xl bg-black/20 p-1">
-                    {selectedModel.durations.map((value) => (
-                      <button key={value} type="button" onClick={() => setDuration(value)} className={`rounded-lg py-2 text-xs font-bold ${duration === value ? "bg-white text-black" : "text-zinc-400"}`}>{value}s</button>
-                    ))}
-                  </div>
-                  <p className="mb-2 mt-4 text-xs font-bold text-zinc-400">Resolution</p>
-                  {selectedModel.resolutions.length > 0 ? (
-                    <div className="grid grid-cols-3 gap-1 rounded-xl bg-black/20 p-1">
-                      {selectedModel.resolutions.map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          disabled={selectedModel.family === "Hailuo" && duration === 10 && value === "1080P"}
-                          onClick={() => setResolution(value)}
-                          className={`rounded-lg py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-25 ${resolution === value ? "bg-white text-black" : "text-zinc-400"}`}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-xl bg-black/20 px-3 py-2 text-xs text-zinc-500">Fixed by provider</p>
-                  )}
-                  <p className="mt-3 text-[10px] text-zinc-600">Available options follow the selected model&apos;s real capabilities.</p>
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col items-center gap-2">
@@ -849,7 +927,7 @@ export default function DrawToVideoPage() {
                       type="button"
                       onClick={() => setEditAction(action.id)}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition ${
-                        editAction === action.id ? "bg-white text-black" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                        editAction === action.id ? "bg-gradient-to-r from-cyan-300 to-violet-400 text-[#06101b]" : "text-zinc-400 hover:bg-white/5 hover:text-white"
                       }`}
                       title={action.hint}
                     >
@@ -952,15 +1030,11 @@ export default function DrawToVideoPage() {
                 type="button"
                 onClick={generate}
                 disabled={!prompt.trim() || isGenerating}
-                className="flex h-11 items-center gap-2 rounded-xl bg-lime-300 px-5 text-sm font-black text-black hover:bg-lime-200 disabled:opacity-40"
+                className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-5 text-sm font-black text-[#06101b] shadow-[0_10px_28px_rgba(34,211,238,.14)] hover:brightness-110 disabled:opacity-40"
               >
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : studioMode === "draw-edit" ? <Sparkles className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 {studioMode === "draw-edit" ? "Generate Edit" : "Generate Video"}
-                <span className="text-xs">✦{estimatedCredits}</span>
-              </button>
-              <button type="button" onClick={() => setAspectOpen((value) => !value)} className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-[#202020] px-3 text-xs font-bold">
-                <span className="h-3 w-5 rounded-sm border border-zinc-400" />
-                {aspect === "auto" ? "Auto" : aspect}
+                <span className="text-xs">{estimatedCredits} cr</span>
               </button>
               <button type="button" onClick={resetBlank} className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-[#202020] text-zinc-400 hover:text-rose-300" title="Clear canvas">
                 <Trash2 className="h-4 w-4" />
@@ -969,17 +1043,6 @@ export default function DrawToVideoPage() {
                 <Info className="h-4 w-4" />
               </button>
 
-              {aspectOpen && (
-                <div className="absolute bottom-14 right-20 z-30 w-56 rounded-2xl border border-white/10 bg-[#181818] p-2 shadow-2xl">
-                  {ASPECTS.filter((item) => selectedModel.aspects.includes(item.id) || studioMode === "draw-edit").map((item) => (
-                    <button key={item.id} type="button" onClick={() => { setAspect(item.id); setAspectOpen(false); }} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${aspect === item.id ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5"}`}>
-                      <span className="grid h-5 w-6 place-items-center"><span className="block border border-current" style={{ width: item.id === "9:16" || item.id === "3:4" ? 10 : 17, height: item.id === "1:1" ? 14 : item.id === "9:16" || item.id === "3:4" ? 17 : 11 }} /></span>
-                      {item.label}
-                      {aspect === item.id && <Check className="ml-auto h-4 w-4" />}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
