@@ -1,5 +1,7 @@
 "use client";
 
+// Trigger Vercel build: settings sidebar integrated directly
+
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Outfit, Plus_Jakarta_Sans, Caveat } from "next/font/google";
 import {
