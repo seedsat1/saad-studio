@@ -107,6 +107,7 @@ function getAngleDirective(angleId: string, angle: AnglePreset): string {
     "eye-level": "Use neutral eye-level framing with natural perspective.",
     "3-4-view": "Use a three-quarter view showing depth of the face/body.",
     "pov": "Use first-person POV perspective as if seen through the subject's own eyes.",
+    "medium-long": "Use a medium long shot showing the subject from knees up with clear background context.",
   };
   return directives[angleId] ?? fallback;
 }
@@ -189,6 +190,7 @@ const CAMERA_ANGLE_MAP: Record<string, AnglePreset> = {
   "eye-level": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Eye level" },
   "3-4-view": { horizontal_angle: 45, vertical_angle: 0, distance: 1, label: "3/4 view" },
   "pov": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "POV" },
+  "medium-long": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Medium long" },
 };
 
 function getWavespeedApiKey(): string {

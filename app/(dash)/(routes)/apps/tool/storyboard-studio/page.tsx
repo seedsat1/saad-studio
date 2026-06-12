@@ -68,6 +68,7 @@ const CAMERA_ANGLES = [
   { id: "dutch-angle", label: "Dutch angle" },
   { id: "pov", label: "POV" },
   { id: "long-shot", label: "Long shot" },
+  { id: "medium-long", label: "Medium long" },
   { id: "extreme-closeup", label: "Extreme closeup" },
   { id: "med-closeup", label: "Med. closeup" },
   { id: "ots", label: "OTS" },
@@ -87,6 +88,7 @@ const PRIMARY_CAMERA_SEQUENCE = [
   "dutch-angle",
   "pov",
   "long-shot",
+  "medium-long",
   "med-closeup",
   "wide",
   "ots",
@@ -343,7 +345,6 @@ export default function StoryboardProductionPage() {
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
 
   // Redesign state variables
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [boardTab, setBoardTab] = useState<"demo" | "result" | "library">("demo");
 
   const loadStoryboardAssets = useCallback(async () => {
@@ -625,7 +626,6 @@ export default function StoryboardProductionPage() {
     setResult(null);
     setGenerationStatus("generating");
     setBoardTab("result");
-    setDrawerOpen(false); // Close drawer during active generation
     setStatusMessage("Preparing approved reference image...");
 
     try {
@@ -718,88 +718,265 @@ export default function StoryboardProductionPage() {
       {/* Main split grid */}
       <section className="relative flex h-full w-full max-w-none gap-6 p-6 justify-between select-none">
         
-        {/* ── LEFT SIDEBAR: Brand & Info ── */}
-        <aside className="w-[300px] flex flex-col justify-between py-2 pr-6 border-r border-white/5 shrink-0">
-          <div className="flex flex-col gap-6">
+        {/* ── LEFT SIDEBAR: Configuration Control Panel ── */}
+        <aside className="w-[360px] flex flex-col justify-between py-2 pr-6 border-r border-white/5 shrink-0 overflow-y-auto select-none bg-slate-950/20 p-4 rounded-2xl gap-5">
+          <div className="flex flex-col gap-4 overflow-y-auto pb-4 scrollbar-thin">
             {/* Logo */}
-            <div className="flex items-center gap-3 select-none">
-              <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                <Film size={24} className="text-white" />
+            <div className="flex items-center gap-3 select-none border-b border-white/5 pb-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
+                <Film size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-white uppercase leading-none flex items-center gap-1">
+                <h1 className="text-xl font-black tracking-tight text-white uppercase leading-none flex items-center gap-1">
                   Storyboard <span className="text-cyan-400">AI</span>
                 </h1>
-                <p className="text-[9px] tracking-[0.25em] text-slate-500 uppercase font-bold mt-1">Saad Studio</p>
+                <p className="text-[8px] tracking-[0.25em] text-slate-500 uppercase font-bold mt-0.5">Saad Studio</p>
               </div>
             </div>
 
-            {/* Slogan */}
-            <div className="space-y-3 mt-4">
-              <h2 className="text-lg font-bold leading-snug text-slate-200">
-                Convert your idea into professional scenes in seconds.
-              </h2>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Create a complete storyboard with descriptions for each shot and easily organize the visual flow of your film.
-              </p>
+            {/* Upload Zone */}
+            <div>
+              <SectionLabel>Reference Image</SectionLabel>
+              <div
+                className={`relative rounded-xl transition-all duration-300 cursor-pointer overflow-hidden ${
+                  isDragging ? "scale-[1.01]" : ""
+                }`}
+                style={{
+                  border: `2px ${imageDataUrl ? "solid" : "dashed"} ${isDragging ? "#8b5cf6" : imageDataUrl ? "rgba(6,182,212,0.3)" : "#334155"}`,
+                  background: isDragging ? "rgba(139,92,246,0.02)" : imageDataUrl ? "transparent" : "rgba(255,255,255,0.005)",
+                  padding: imageDataUrl ? "8px" : "24px 16px",
+                  textAlign: imageDataUrl ? undefined : "center",
+                }}
+                onClick={() => !imageDataUrl && !isCheckingImageSafety && fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {imageDataUrl ? (
+                  <div className="relative">
+                    <img src={imageDataUrl} alt="Reference" className="w-full rounded-lg object-contain" style={{ maxHeight: 120 }} />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center bg-black/70 border border-white/10 hover:bg-black/90 transition text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImageDataUrl(null);
+                        setSafeReferenceImageDataUrl(null);
+                        setReferenceSafetyToken(null);
+                        setResult(null);
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : isCheckingImageSafety ? (
+                  <div className="py-2 select-none">
+                    <Loader2 size={20} className="animate-spin text-cyan-400 mx-auto mb-2" />
+                    <div className="text-[10px] font-bold text-white uppercase tracking-wider">Verifying Safety...</div>
+                  </div>
+                ) : (
+                  <div className="select-none py-1">
+                    <Upload size={20} className="text-slate-400 mx-auto mb-2" />
+                    <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Upload Reference Image</div>
+                    <div className="text-[8px] text-slate-500 mt-0.5">Drag & drop or click to browse</div>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFileSelect(f);
+                }}
+              />
             </div>
 
-            {/* Vertical Features checklist */}
-            <div className="space-y-4 mt-2">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Sparkles size={14} />
-                </div>
-                <div className="text-[11px] leading-relaxed">
-                  <span className="font-bold text-slate-200 block">Automatic AI Generation</span>
-                  <span className="text-slate-400">Convert your concept or script into visual panels</span>
+            {/* Quick settings toolbar row */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Aspect Ratio */}
+              <div>
+                <SectionLabel>Aspect Ratio</SectionLabel>
+                <div className="relative">
+                  <button
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
+                    onClick={() => {
+                      setRatioOpen((prev) => !prev);
+                      setPanelsOpen(false);
+                      setQualityOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-1 truncate">
+                      <RatioIcon ratio={aspectRatio} />
+                      {aspectRatio}
+                    </span>
+                    <ChevronDown size={10} style={{ color: "#64748b", transform: ratioOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} className="shrink-0" />
+                  </button>
+                  {ratioOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
+                      {ASPECT_RATIOS.map((r) => (
+                        <button
+                          key={r}
+                          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-[10px] font-bold text-left transition hover:bg-white/5"
+                          style={{
+                            background: aspectRatio === r ? "rgba(6,182,212,0.1)" : "transparent",
+                            color: aspectRatio === r ? "#06b6d4" : "#94a3b8",
+                          }}
+                          onClick={() => {
+                            setAspectRatio(r);
+                            setRatioOpen(false);
+                          }}
+                        >
+                          <RatioIcon ratio={r} />
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Film size={14} />
-                </div>
-                <div className="text-[11px] leading-relaxed">
-                  <span className="font-bold text-slate-200 block">Cinematic Sequence</span>
-                  <span className="text-slate-400">Arrange storyboard scenes in logical film order</span>
+
+              {/* Grid / Panels count */}
+              <div>
+                <SectionLabel>Grid size</SectionLabel>
+                <div className="relative">
+                  <button
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
+                    onClick={() => {
+                      setPanelsOpen((prev) => !prev);
+                      setQualityOpen(false);
+                      setRatioOpen(false);
+                    }}
+                  >
+                    <span className="truncate">{numPanels === 4 ? "2x2 (4)" : numPanels === 9 ? "3x3 (9)" : `${numPanels} panels`}</span>
+                    <ChevronDown size={10} style={{ color: "#64748b", transform: panelsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} className="shrink-0" />
+                  </button>
+                  {panelsOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                        <button
+                          key={n}
+                          className="w-full px-2 py-1.5 text-[10px] font-bold text-left transition hover:bg-white/5"
+                          style={{
+                            background: numPanels === n ? "rgba(6,182,212,0.1)" : "transparent",
+                            color: numPanels === n ? "#06b6d4" : "#94a3b8",
+                          }}
+                          onClick={() => {
+                            setNumPanels(n);
+                            setPanelsOpen(false);
+                          }}
+                        >
+                          {n === 4 ? "2x2 (4 Panels)" : n === 9 ? "3x3 (9 Panels)" : `${n} Panel${n !== 1 ? "s" : ""}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                  <ListChecks size={14} />
-                </div>
-                <div className="text-[11px] leading-relaxed">
-                  <span className="font-bold text-slate-200 block">Detailed Shot Specs</span>
-                  <span className="text-slate-400">Get directing annotations and camera angles</span>
+
+              {/* Resolution / Quality */}
+              <div>
+                <SectionLabel>Quality</SectionLabel>
+                <div className="relative">
+                  <button
+                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-[10px] font-bold transition border border-white/10 bg-slate-900/40 text-cyan-400"
+                    onClick={() => {
+                      setQualityOpen((prev) => !prev);
+                      setPanelsOpen(false);
+                      setRatioOpen(false);
+                    }}
+                  >
+                    <span className="truncate">{selectedQuality.label}</span>
+                    <ChevronDown size={10} style={{ color: "#64748b", transform: qualityOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} className="shrink-0" />
+                  </button>
+                  {qualityOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
+                      {QUALITY_OPTIONS.map((q) => (
+                        <button
+                          key={q.id}
+                          className="w-full px-2 py-1.5 text-[10px] font-bold text-left transition hover:bg-white/5"
+                          style={{
+                            background: quality === q.id ? "rgba(6,182,212,0.1)" : "transparent",
+                            color: quality === q.id ? "#06b6d4" : "#94a3b8",
+                          }}
+                          onClick={() => {
+                            setQuality(q.id);
+                            setQualityOpen(false);
+                          }}
+                        >
+                          {q.label} Quality
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Share2 size={14} />
-                </div>
-                <div className="text-[11px] leading-relaxed">
-                  <span className="font-bold text-slate-200 block">Production Ready</span>
-                  <span className="text-slate-400">Export completed storyboard and share with team</span>
-                </div>
+            </div>
+
+            {/* Perspectives angles Checklist */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <SectionLabel>Perspectives</SectionLabel>
+                <span className="text-[9px] font-black text-slate-500">({selectedAngles.length}/{numPanels})</span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 bg-slate-950/40 border border-white/5 rounded-xl p-3 max-h-[300px] overflow-y-auto scrollbar-thin">
+                {CAMERA_ANGLES.map((angle) => {
+                  const isSelected = selectedAngles.includes(angle.id);
+                  return (
+                    <button
+                      key={angle.id}
+                      type="button"
+                      className={`flex items-center gap-2 py-1.5 rounded text-[10px] font-extrabold text-left transition ${
+                        isSelected ? "text-slate-100" : "text-slate-500 hover:text-slate-400"
+                      }`}
+                      onClick={() => toggleCameraAngle(angle.id)}
+                    >
+                      <span className={`w-3.5 h-3.5 rounded-[4px] border flex items-center justify-center shrink-0 transition ${
+                        isSelected ? "bg-blue-600 border-blue-500 text-white" : "border-slate-800 bg-slate-900/50"
+                      }`}>
+                        {isSelected && (
+                          <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                            <path d="M2 5.5L4 7.5L8 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="truncate">{angle.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Primary Action Button */}
-          <div className="mt-auto space-y-4">
+          {/* Action Generate block */}
+          <div className="mt-auto pt-3 border-t border-white/5 space-y-2.5">
             <button
-              onClick={() => setDrawerOpen(true)}
-              className="w-full h-11 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-xs font-black uppercase tracking-wider text-white rounded-xl shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2 transition active:scale-98"
+              type="button"
+              onClick={handleGenerate}
+              disabled={isBusy || !imageDataUrl}
+              className="w-full h-11 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"
             >
-              <span className="font-bold">Create Storyboard Now +</span>
+              {isCheckingImageSafety ? (
+                <>
+                  <Loader2 size={13} className="animate-spin text-cyan-200" />
+                  <span>Checking...</span>
+                </>
+              ) : isGenerating ? (
+                <>
+                  <Loader2 size={13} className="animate-spin text-cyan-200" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={13} />
+                  <span>Generate Storyboard</span>
+                </>
+              )}
             </button>
-
-            {/* Micro feature icons list */}
-            <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 pt-2 border-t border-white/5">
-              <span className="flex items-center gap-1.5"><Download size={10} /> Multi-format</span>
-              <span className="flex items-center gap-1.5"><Users size={10} /> Team Share</span>
-              <span className="flex items-center gap-1.5"><Cloud size={10} /> Cloud Sync</span>
-              <span className="flex items-center gap-1.5"><Sliders size={10} /> Customize</span>
+            <div className="text-center text-[9px] text-slate-500">
+              Consumes <span className="font-bold text-violet-400">{totalCost} credits</span> for {numPanels} panels.
             </div>
           </div>
         </aside>
@@ -1315,325 +1492,6 @@ export default function StoryboardProductionPage() {
           </div>
         </div>
       </section>
-
-      {/* ── RETRACTABLE RIGHT-SIDE CONFIGURATION DRAWER ── */}
-      <AnimatePresence>
-        {drawerOpen && (
-          <>
-            {/* Click-outside dim background */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setDrawerOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
-            />
-
-            {/* Sidebar drawer content */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", duration: 0.3 }}
-              className="fixed top-16 right-0 bottom-0 w-[420px] bg-slate-950/95 border-l border-white/5 z-50 flex flex-col p-6 gap-5 justify-between backdrop-blur-xl shadow-2xl overflow-y-auto"
-            >
-              <div className="space-y-5">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/5 pb-4 select-none">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-cyan-400" />
-                    <h3 className="text-sm font-black uppercase tracking-wider">Storyboard Settings</h3>
-                  </div>
-                  <button
-                    onClick={() => setDrawerOpen(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-
-                {/* Reference Image upload */}
-                <div>
-                  <SectionLabel>Reference Image</SectionLabel>
-                  <div
-                    className={`relative rounded-xl transition-all duration-300 cursor-pointer overflow-hidden ${
-                      isDragging ? "scale-[1.01]" : ""
-                    }`}
-                    style={{
-                      border: `2px ${imageDataUrl ? "solid" : "dashed"} ${isDragging ? "#8b5cf6" : imageDataUrl ? "rgba(6,182,212,0.3)" : "#334155"}`,
-                      background: isDragging ? "rgba(139,92,246,0.02)" : imageDataUrl ? "transparent" : "rgba(255,255,255,0.005)",
-                      padding: imageDataUrl ? "8px" : "24px 16px",
-                      textAlign: imageDataUrl ? undefined : "center",
-                    }}
-                    onClick={() => !imageDataUrl && !isCheckingImageSafety && fileInputRef.current?.click()}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    {imageDataUrl ? (
-                      <div className="relative">
-                        <img src={imageDataUrl} alt="Reference" className="w-full rounded-lg object-contain" style={{ maxHeight: 180 }} />
-                        <button
-                          type="button"
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center bg-black/70 border border-white/10 hover:bg-black/90 transition text-white"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setImageDataUrl(null);
-                            setSafeReferenceImageDataUrl(null);
-                            setReferenceSafetyToken(null);
-                            setResult(null);
-                          }}
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ) : isCheckingImageSafety ? (
-                      <div className="py-2 select-none">
-                        <Loader2 size={24} className="animate-spin text-cyan-400 mx-auto mb-3" />
-                        <div className="text-xs font-bold text-white uppercase tracking-wider">Verifying Safety...</div>
-                        <div className="text-[10px] text-slate-500 mt-1">Analyzing content tags. Please wait.</div>
-                      </div>
-                    ) : (
-                      <div className="select-none">
-                        <Upload size={24} className="text-slate-400 mx-auto mb-3" />
-                        <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">Upload Reference Image</div>
-                        <div className="text-[10px] text-slate-500 mt-1">Drag & drop or click to browse. PNG, JPG, WEBP.</div>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleFileSelect(f);
-                    }}
-                  />
-                </div>
-
-                {/* Storyboard Type */}
-                <div className="select-none">
-                  <SectionLabel>Storyboard Type</SectionLabel>
-                  <div className="relative">
-                    <button
-                      className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-xs font-bold transition border border-white/10 bg-slate-950/60 text-cyan-400"
-                      onClick={() => setStoryboardTypeOpen((prev) => !prev)}
-                    >
-                      <span>{STORYBOARD_TYPES.find((type) => type.id === storyboardType)?.label ?? "Storyboard Production"}</span>
-                      <ChevronDown size={14} style={{ color: "#64748b", transform: storyboardTypeOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </button>
-                    {storyboardTypeOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
-                        {STORYBOARD_TYPES.map((t) => (
-                          <button
-                            key={t.id}
-                            className="w-full py-2 px-3 text-xs font-bold text-left transition hover:bg-white/5"
-                            style={{
-                              background: storyboardType === t.id ? "rgba(6,182,212,0.1)" : "transparent",
-                              color: storyboardType === t.id ? "#06b6d4" : "#94a3b8",
-                            }}
-                            onClick={() => {
-                              setStoryboardType(t.id);
-                              setStoryboardTypeOpen(false);
-                            }}
-                          >
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Aspect Ratio */}
-                <div className="select-none">
-                  <SectionLabel>Aspect Ratio</SectionLabel>
-                  <div className="relative">
-                    <button
-                      className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-xs font-bold transition border border-white/10 bg-slate-950/60 text-cyan-400"
-                      onClick={() => {
-                        setRatioOpen((prev) => !prev);
-                        setPanelsOpen(false);
-                        setQualityOpen(false);
-                      }}
-                    >
-                      <span className="flex items-center gap-2">
-                        <RatioIcon ratio={aspectRatio} />
-                        {aspectRatio}
-                      </span>
-                      <ChevronDown size={14} style={{ color: "#64748b", transform: ratioOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </button>
-                    {ratioOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
-                        {ASPECT_RATIOS.map((r) => (
-                          <button
-                            key={r}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-left transition hover:bg-white/5"
-                            style={{
-                              background: aspectRatio === r ? "rgba(6,182,212,0.1)" : "transparent",
-                              color: aspectRatio === r ? "#06b6d4" : "#94a3b8",
-                            }}
-                            onClick={() => {
-                              setAspectRatio(r);
-                              setRatioOpen(false);
-                            }}
-                          >
-                            <RatioIcon ratio={r} />
-                            {r}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Panels Count */}
-                <div className="select-none">
-                  <SectionLabel>Number of Panels</SectionLabel>
-                  <div className="relative">
-                    <button
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold transition border border-white/10 bg-slate-950/60 text-cyan-400"
-                      onClick={() => {
-                        setPanelsOpen((prev) => !prev);
-                        setQualityOpen(false);
-                        setRatioOpen(false);
-                      }}
-                    >
-                      <span>{numPanels} panel{numPanels !== 1 ? "s" : ""}</span>
-                      <ChevronDown size={14} style={{ color: "#64748b", transform: panelsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </button>
-                    {panelsOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                          <button
-                            key={n}
-                            className="w-full px-3 py-2 text-xs font-bold text-left transition hover:bg-white/5"
-                            style={{
-                              background: numPanels === n ? "rgba(6,182,212,0.1)" : "transparent",
-                              color: numPanels === n ? "#06b6d4" : "#94a3b8",
-                            }}
-                            onClick={() => {
-                              setNumPanels(n);
-                              setPanelsOpen(false);
-                            }}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quality Tier */}
-                <div className="select-none">
-                  <SectionLabel>Resolution Quality</SectionLabel>
-                  <div className="relative">
-                    <button
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-bold transition border border-white/10 bg-slate-950/60 text-cyan-400"
-                      onClick={() => {
-                        setQualityOpen((prev) => !prev);
-                        setPanelsOpen(false);
-                        setRatioOpen(false);
-                      }}
-                    >
-                      <span>{selectedQuality.label} Quality</span>
-                      <ChevronDown size={14} style={{ color: "#64748b", transform: qualityOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                    </button>
-                    {qualityOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1.5 z-20 rounded-lg overflow-hidden bg-slate-900 border border-white/10 shadow-2xl">
-                        {QUALITY_OPTIONS.map((q) => (
-                          <button
-                            key={q.id}
-                            className="w-full px-3 py-2 text-xs font-bold text-left transition hover:bg-white/5"
-                            style={{
-                              background: quality === q.id ? "rgba(6,182,212,0.1)" : "transparent",
-                              color: quality === q.id ? "#06b6d4" : "#94a3b8",
-                            }}
-                            onClick={() => {
-                              setQuality(q.id);
-                              setQualityOpen(false);
-                            }}
-                          >
-                            {q.label} Quality
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Camera Angles Selection */}
-                <div>
-                  <SectionLabel>Camera Angles ({selectedAngles.length}/{numPanels})</SectionLabel>
-                  <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                    {CAMERA_ANGLES.map((angle) => {
-                      const isSelected = selectedAngles.includes(angle.id);
-                      return (
-                        <button
-                          key={angle.id}
-                          type="button"
-                          className={`px-3 py-2 rounded-lg text-[10px] font-bold text-left transition border ${
-                            isSelected
-                              ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-400 font-extrabold"
-                              : "border-white/5 bg-slate-900/60 text-slate-400 hover:text-slate-300"
-                          }`}
-                          onClick={() => toggleCameraAngle(angle.id)}
-                        >
-                          <span className="flex items-center gap-2">
-                            <span className={`w-3 h-3 rounded-[3px] border flex items-center justify-center shrink-0 ${
-                              isSelected ? "bg-cyan-500 border-cyan-400 text-slate-950" : "border-slate-600"
-                            }`}>
-                              {isSelected && (
-                                <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                  <path d="M2 5.5L4 7.5L8 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              )}
-                            </span>
-                            {angle.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Generate button */}
-              <div className="border-t border-white/5 pt-4 space-y-2 select-none shrink-0">
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={isBusy || !imageDataUrl}
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 disabled:from-slate-800 disabled:to-slate-900 disabled:text-slate-500 disabled:cursor-not-allowed text-xs font-black uppercase tracking-wider text-white flex items-center justify-center gap-2 transition"
-                >
-                  {isCheckingImageSafety ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin text-cyan-200" />
-                      <span>Checking Reference...</span>
-                    </>
-                  ) : isGenerating ? (
-                    <>
-                      <Loader2 size={15} className="animate-spin text-cyan-200" />
-                      <span>Generating Scenes...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={15} />
-                      <span>Generate Storyboard</span>
-                    </>
-                  )}
-                </button>
-                <div className="text-center text-[10px] text-slate-500">
-                  Consumes <span className="font-bold text-violet-400">{totalCost} credits</span> for {numPanels} panels.
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* ── Asset Inspector Modal ── */}
       <AnimatePresence>
