@@ -126,6 +126,21 @@ const Footer = () => {
       }),
     }))
     .filter((section) => section.links.length > 0);
+  const hasCookiePolicyLink = sections.some((section) =>
+    section.links.some((link) => link.href === "/cookies")
+  );
+  if (!hasCookiePolicyLink) {
+    const companySection = sections.find((section) => section.title.toLowerCase() === "company");
+    if (companySection) {
+      companySection.links.push({ label: "Cookie Policy", href: "/cookies" });
+    } else {
+      sections.push({
+        _id: "legal",
+        title: "Legal",
+        links: [{ label: "Cookie Policy", href: "/cookies" }],
+      });
+    }
+  }
   const cmsSocials = footer?.socialLinks?.length
     ? footer.socialLinks
       .filter((social) => social.href && social.href !== "#" && social.href.trim() !== "")
