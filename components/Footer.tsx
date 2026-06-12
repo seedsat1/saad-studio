@@ -49,6 +49,7 @@ const ALLOWED_FOOTER_LINKS = new Set([
   "/apps",
   "/pricing",
   "/privacy",
+  "/cookies",
   "/terms",
 ]);
 
