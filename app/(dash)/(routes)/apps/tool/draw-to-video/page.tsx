@@ -611,11 +611,11 @@ export default function DrawToVideoPage() {
   const displayedQuality = studioMode === "draw-edit" ? selectedEditModel.quality : resolution || "Provider native";
 
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,#102349_0,#070b18_38%,#040711_78%)] px-3 py-5 text-white md:px-6">
-      <div className="mx-auto max-w-[1580px]">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+    <main className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,#102349_0,#070b18_38%,#040711_78%)] p-3 text-white">
+      <div className="w-full">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-4 px-2">
           <div>
-            <Link href="/apps" className="mb-4 inline-flex items-center gap-2 text-xs text-cyan-300/70 hover:text-cyan-200">
+            <Link href="/apps" className="mb-2 inline-flex items-center gap-2 text-xs text-cyan-300/70 hover:text-cyan-200">
               <ArrowLeft className="h-4 w-4" /> Back to Apps
             </Link>
             <div className="flex items-center gap-3">
@@ -634,8 +634,8 @@ export default function DrawToVideoPage() {
           </div>
         </div>
 
-        <section className="relative overflow-hidden rounded-[26px] border border-cyan-300/10 bg-[#080d1b]/95 p-4 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-4">
+        <section className="relative overflow-hidden rounded-[22px] border border-cyan-300/10 bg-[#080d1b]/95 p-3 shadow-[0_30px_90px_rgba(0,0,0,.45)] lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3 lg:col-span-2 lg:mb-0">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">Choose workflow</p>
               <p className="mt-1 text-xs text-slate-400">Create with Saad Studio&apos;s drawing and AI editing pipeline.</p>
@@ -668,7 +668,7 @@ export default function DrawToVideoPage() {
             </div>
           </div>
 
-          <div className="relative mx-auto flex min-h-[620px] items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_center,#152344_0,#080d19_62%)] p-4">
+          <div className="relative mx-auto flex min-h-[560px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_center,#152344_0,#080d19_62%)] p-4 lg:col-start-2 lg:row-start-2 lg:min-h-[calc(100vh-330px)]">
             {(videoUrl || imageUrl) ? (
               <div className="relative flex h-full w-full items-center justify-center bg-black">
                 {videoUrl ? (
@@ -699,7 +699,7 @@ export default function DrawToVideoPage() {
               </div>
             ) : (
               <div
-                className="relative h-[68vh] max-h-[590px] max-w-full overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(0,0,0,.45)]"
+                className="relative h-[68vh] max-h-[calc(100vh-360px)] max-w-full overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(0,0,0,.45)]"
                 style={{
                   aspectRatio: selectedAspect.css,
                   backgroundColor: studioMode === "sketch-video" ? "#f6f1e7" : "#151515",
@@ -744,7 +744,7 @@ export default function DrawToVideoPage() {
             )}
           </div>
 
-          <div className="mt-4 grid gap-3 rounded-2xl border border-white/5 bg-[#0c1328] p-4 lg:grid-cols-3">
+          <div className="mt-3 grid content-start gap-5 rounded-2xl border border-white/5 bg-[#0c1328] p-4 lg:col-start-1 lg:row-start-2 lg:mt-0">
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Frame ratio</p>
@@ -860,7 +860,7 @@ export default function DrawToVideoPage() {
             }}
           />
 
-          <div className="mt-3 grid gap-3 lg:grid-cols-[auto_1fr_auto] lg:items-end">
+          <div className="mt-3 grid gap-3 lg:col-span-2 lg:row-start-3 lg:grid-cols-[auto_1fr_auto] lg:items-end">
             <div className="relative flex items-center gap-2">
               <button
                 type="button"
