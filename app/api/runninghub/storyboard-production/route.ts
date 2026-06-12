@@ -31,6 +31,16 @@ const QUALITY_CREDIT_PER_PANEL: Record<QualityTier, number> = {
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
 const WAVESPEED_MODEL = "bytedance/seedream-v4.5/edit-sequential";
 
+class StoryboardProviderError extends Error {
+  constructor(
+    message: string,
+    readonly providerStatus: number,
+  ) {
+    super(message);
+    this.name = "StoryboardProviderError";
+  }
+}
+
 /**
  * Each panel is a unique camera angle/distance combo.
  * horizontal_angle: -90 (left), -45, 0 (front), 45, 90 (right)
@@ -259,8 +269,9 @@ async function createWavespeedTask(
   const json = await res.json().catch(() => ({}));
   const predId = json?.data?.id ?? json?.id;
   if (!res.ok || !predId) {
-    throw new Error(
+    throw new StoryboardProviderError(
       `WaveSpeed submit failed (${res.status}): ${json?.message ?? json?.msg ?? JSON.stringify(json)}`,
+      res.status,
     );
   }
   return predId as string;
@@ -319,7 +330,6 @@ export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedCreditsPerPanel = QUALITY_CREDIT_PER_PANEL["1k"];
   let chargedUserId: string | null = null;
-  let generationId: string | null = null;
   const panelGenerationIds: string[] = [];
 
   try {
@@ -397,7 +407,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A valid reference image is required." }, { status: 400 });
     }
 
-    const totalCost = numPanels * creditsPerPanel;
     const storyLabel = sbType.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
     const imageHash = getStoryboardReferenceImageHash(imageDataUrl);
@@ -421,6 +430,8 @@ export async function POST(req: NextRequest) {
     // Create one Generation row per panel so each image is persisted in assets
     let firstGenerationId: string | null = null;
     let remainingCredits = 0;
+    chargedUserId = userId;
+    chargedCreditsPerPanel = creditsPerPanel;
 
     for (let i = 0; i < numPanels; i++) {
       const spent = await spendCredits({
@@ -431,13 +442,10 @@ export async function POST(req: NextRequest) {
         modelUsed: "bytedance/seedream-v4.5/edit-sequential",
       });
       panelGenerationIds.push(spent.generationId);
+      chargedCredits += creditsPerPanel;
       if (i === 0) firstGenerationId = spent.generationId;
       remainingCredits = spent.remainingCredits;
     }
-    chargedCredits = totalCost;
-    chargedCreditsPerPanel = creditsPerPanel;
-    chargedUserId = userId;
-    generationId = firstGenerationId;
 
     // Launch all panel tasks in parallel
     const predictionIds: string[] = [];
@@ -531,6 +539,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: err.message },
         { status: 400 },
+      );
+    }
+
+    if (err instanceof StoryboardProviderError) {
+      console.error("[STORYBOARD_PRODUCTION_PROVIDER]", {
+        status: err.providerStatus,
+        message: err.message,
+        refundedPanels: panelGenerationIds.length,
+      });
+      return NextResponse.json(
+        {
+          error: err.providerStatus === 401 || err.providerStatus === 403
+            ? "Storyboard provider authentication failed. Credits were refunded."
+            : "Storyboard provider is temporarily unavailable. Credits were refunded.",
+        },
+        { status: 502 },
       );
     }
 
