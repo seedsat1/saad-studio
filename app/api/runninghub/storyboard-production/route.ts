@@ -201,7 +201,7 @@ function getWavespeedApiKey(): string {
 
 /** Upload base64 image to Supabase Storage and return a public URL */
 async function uploadRefImage(base64DataUrl: string, userId: string, genId: string): Promise<string> {
-  const match = base64DataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  const match = base64DataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) throw new Error("Invalid base64 data URL for reference image");
   const contentType = match[1];
   const buffer = Buffer.from(match[2], "base64");
