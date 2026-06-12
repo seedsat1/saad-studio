@@ -824,11 +824,18 @@ export default function VideoExtendPage() {
                   ))
                 )
               ) : (
-                Array.from({ length: 4 }).map((_, i) => (
+                [
+                  "/img/video-extend/creation_3139458473.jpg",
+                  "/img/video-extend/creation_3139458482.jpg",
+                  "/img/video-extend/creation_3139458490.jpg",
+                  "/img/video-extend/creation_3139458498.jpg"
+                ].map((url, i) => (
                   <div
                     key={i}
-                    className={`relative ${thumbAspectClass} rounded-lg border border-dashed border-white/10 bg-white/[0.01] shrink-0`}
-                  />
+                    className={`relative ${thumbAspectClass} rounded-lg overflow-hidden bg-slate-900 border border-white/5 shrink-0`}
+                  >
+                    <img src={url} alt={`source-placeholder-${i}`} className="w-full h-full object-cover opacity-80" />
+                  </div>
                 ))
               )}
             </div>
@@ -879,11 +886,19 @@ export default function VideoExtendPage() {
                   </div>
                 ))
               ) : (
-                Array.from({ length: 3 }).map((_, i) => (
+                [
+                  "/img/video-extend/creation_3139458509.jpg",
+                  "/img/video-extend/creation_3139458513.jpg",
+                  "/img/video-extend/creation_3139458525.jpg",
+                  "/img/video-extend/creation_3139458535.jpg",
+                  "/img/video-extend/creation_3139458545.jpg"
+                ].map((url, i) => (
                   <div
                     key={i}
-                    className={`relative ${thumbAspectClass} rounded-lg border border-dashed border-cyan-500/15 bg-cyan-500/[0.01] shrink-0`}
-                  />
+                    className={`relative ${thumbAspectClass} rounded-lg overflow-hidden bg-slate-900 border border-cyan-500/30 shrink-0 shadow-[0_0_8px_rgba(6,182,212,0.1)]`}
+                  >
+                    <img src={url} alt={`result-placeholder-${i}`} className="w-full h-full object-cover opacity-80" />
+                  </div>
                 ))
               )}
             </div>
