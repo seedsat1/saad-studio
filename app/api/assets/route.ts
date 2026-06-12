@@ -2,6 +2,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
+import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 
@@ -45,6 +46,12 @@ export async function GET(req: NextRequest) {
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();
+
+    // Resolve this user's pending Seedance jobs before loading the gallery.
+    // This works even when the original browser session was closed.
+    await reconcilePendingBytePlusGenerations(5, userId).catch((error) => {
+      console.error("[api/assets] BytePlus reconciliation failed", error);
+    });
 
     const rows = await prismadb.generation.findMany({
       where: {

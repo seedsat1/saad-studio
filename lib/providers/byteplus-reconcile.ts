@@ -179,9 +179,11 @@ export async function reconcileBytePlusGeneration(generation: {
 
 export async function reconcilePendingBytePlusGenerations(
   limit = 25,
+  userId?: string,
 ): Promise<BytePlusReconcileSummary> {
   const generations = await prismadb.generation.findMany({
     where: {
+      ...(userId ? { userId } : {}),
       status: "processing",
       mediaUrl: { startsWith: "task:ark:" },
       modelUsed: { in: [
