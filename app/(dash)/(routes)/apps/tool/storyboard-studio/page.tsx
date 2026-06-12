@@ -852,7 +852,7 @@ export default function StoryboardProductionPage() {
                       setRatioOpen(false);
                     }}
                   >
-                    <span className="truncate">{numPanels === 4 ? "2x2 (4)" : numPanels === 9 ? "3x3 (9)" : `${numPanels} panels`}</span>
+                    <span className="truncate">{numPanels} Panel{numPanels !== 1 ? "s" : ""}</span>
                     <ChevronDown size={10} style={{ color: "#64748b", transform: panelsOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} className="shrink-0" />
                   </button>
                   {panelsOpen && (
@@ -870,7 +870,7 @@ export default function StoryboardProductionPage() {
                             setPanelsOpen(false);
                           }}
                         >
-                          {n === 4 ? "2x2 (4 Panels)" : n === 9 ? "3x3 (9 Panels)" : `${n} Panel${n !== 1 ? "s" : ""}`}
+                          {n} Panel{n !== 1 ? "s" : ""}
                         </button>
                       ))}
                     </div>
