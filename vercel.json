@@ -17,6 +17,7 @@
     "app/api/runninghub/**":         { "maxDuration": 300 },
     "app/api/image/**":              { "maxDuration": 60 },
     "app/api/3d/**":                 { "maxDuration": 60 },
+    "app/api/cron/byteplus-reconcile/route.ts": { "maxDuration": 60 },
     "app/api/webhook/**":            { "maxDuration": 30 },
     "app/api/webhooks/**":           { "maxDuration": 30 }
   },
@@ -31,6 +32,10 @@
     }
   ],
   "crons": [
+    {
+      "path": "/api/cron/byteplus-reconcile",
+      "schedule": "* * * * *"
+    },
     {
       "path": "/api/cron/kie-sync",
       "schedule": "0 0 * * *"

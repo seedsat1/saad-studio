@@ -14,6 +14,7 @@ import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, get
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, type VeoImageInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -1854,7 +1855,7 @@ export async function GET(req: Request) {
 
       const linkedGeneration = await prismadb.generation.findFirst({
         where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
-        select: { id: true, cost: true, mediaUrl: true },
+        select: { id: true, cost: true, mediaUrl: true, createdAt: true },
         orderBy: { createdAt: "desc" },
       }).catch(() => null);
 
@@ -1864,44 +1865,21 @@ export async function GET(req: Request) {
         }
       }
 
-      const pollRes = await fetch(`${BYTEPLUS_CONTENT_TASKS_URL}/${encodeURIComponent(arkTaskId)}`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${arkKey}` },
-        cache: "no-store",
-      });
-      let pollJson: Record<string, unknown> | null = null;
-      try { pollJson = await pollRes.json(); } catch { /* ignore */ }
-      if (pollRes.status === 404) {
-        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Task not found" });
-      }
-      if (!pollRes.ok || !pollJson) {
-        const pollError = pollJson
-          ? providerFailureMessage(pollJson, pollRes.status)
-          : `BytePlus ModelArk status check failed (${pollRes.status})`;
-        if (linkedGeneration && linkedGeneration.cost > 0) {
-          await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
-            reason: "generation_refund_provider_failed",
-            clearMediaUrl: true,
-          }).catch(() => {});
-        }
-        return NextResponse.json({ taskId, status: "failed", outputs: [], error: pollError });
+      let result;
+      try {
+        result = await fetchBytePlusTask(arkTaskId);
+      } catch (pollError) {
+        console.error("[api/video GET] BytePlus poll error", pollError);
+        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
       }
 
-      const data = ((pollJson.data ?? pollJson) as Record<string, unknown>) || {};
-      const status = normalizeTaskState(String(data.status ?? data.task_status ?? data.state ?? pollJson.status ?? ""));
-      const outputs = (() => {
-        for (const field of [data.content, data.output, data.outputs, data.result, data.response, data.video_url, data.videoUrl]) {
-          const found = extractOutputs(field);
-          if (found.length) return found;
-        }
-        return [] as string[];
-      })();
-      const error =
-        typeof data.error === "string" ? data.error :
-        data.error && typeof data.error === "object" && typeof (data.error as Record<string, unknown>).message === "string"
-          ? String((data.error as Record<string, unknown>).message)
-          : typeof data.error_message === "string" ? data.error_message
-          : null;
+      const withinMissingTaskGrace =
+        result.missing &&
+        linkedGeneration &&
+        Date.now() - linkedGeneration.createdAt.getTime() < 15 * 60_000;
+      const status = withinMissingTaskGrace ? "processing" : result.status;
+      const outputs = result.outputs;
+      const error = withinMissingTaskGrace ? null : result.error;
 
       try {
         if (status === "completed" && outputs.length > 0 && linkedGeneration) {
