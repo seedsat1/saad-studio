@@ -59,23 +59,24 @@ const QUALITY_OPTIONS = [
 ] as const;
 
 const CAMERA_ANGLES = [
-  { id: "ext-long-shot", label: "Ext. long shot" },
-  { id: "eye-level", label: "Eye level" },
-  { id: "closeup", label: "Closeup" },
-  { id: "back-view", label: "Back view" },
-  { id: "profile", label: "Profile" },
-  { id: "aerial", label: "Aerial" },
-  { id: "low-angle", label: "Low angle" },
-  { id: "high-angle", label: "High angle" },
-  { id: "dutch-angle", label: "Dutch angle" },
-  { id: "pov", label: "POV" },
-  { id: "long-shot", label: "Long shot" },
-  { id: "medium-long", label: "Medium long" },
-  { id: "extreme-closeup", label: "Extreme closeup" },
-  { id: "med-closeup", label: "Med. closeup" },
-  { id: "ots", label: "OTS" },
-  { id: "wide", label: "Wide" },
-  { id: "3-4-view", label: "3/4 view" },
+  { id: "ext-long-shot", label: "Establishing Shot" },
+  { id: "eye-level", label: "Straight On" },
+  { id: "closeup", label: "Close-Up Portrait" },
+  { id: "back-view", label: "Rear View" },
+  { id: "profile", label: "Side Profile" },
+  { id: "aerial", label: "Bird's-Eye View" },
+  { id: "low-angle", label: "Hero Angle" },
+  { id: "high-angle", label: "Top Angle" },
+  { id: "dutch-angle", label: "Dynamic Tilt" },
+  { id: "pov", label: "First-Person POV" },
+  { id: "long-shot", label: "Long Framing" },
+  { id: "full-body", label: "Full Body" },
+  { id: "medium-long", label: "Knee-Up Shot" },
+  { id: "extreme-closeup", label: "Detail Close-Up" },
+  { id: "med-closeup", label: "Chest-Up Shot" },
+  { id: "ots", label: "Over Shoulder" },
+  { id: "wide", label: "Wide Scene" },
+  { id: "3-4-view", label: "Three-Quarter" },
 ] as const;
 
 const PRIMARY_CAMERA_SEQUENCE = [
@@ -90,6 +91,7 @@ const PRIMARY_CAMERA_SEQUENCE = [
   "dutch-angle",
   "pov",
   "long-shot",
+  "full-body",
   "medium-long",
   "med-closeup",
   "wide",
@@ -348,6 +350,7 @@ export default function StoryboardProductionPage() {
   const [panelsOpen, setPanelsOpen] = useState(false);
   const [qualityOpen, setQualityOpen] = useState(false);
   const [selectedAngles, setSelectedAngles] = useState<string[]>(() => getAutoAngleSelection(4));
+  const [scenePrompt, setScenePrompt] = useState("");
   const [quality, setQuality] = useState<(typeof QUALITY_OPTIONS)[number]["id"]>("1k");
   const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
   const [result, setResult] = useState<ResultState | null>(null);
@@ -663,6 +666,7 @@ export default function StoryboardProductionPage() {
           quality,
           outputFormat: selectedQuality.outputFormat,
           cameraAngles: orderedAngles,
+          prompt: scenePrompt.trim(),
           referenceSafetyToken,
         }),
       });
@@ -931,6 +935,21 @@ export default function StoryboardProductionPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Optional scene direction */}
+            <div>
+              <div className="flex items-center justify-between">
+                <SectionLabel>Scene Prompt</SectionLabel>
+                <span className="text-[8px] font-bold text-slate-600">{scenePrompt.length}/600</span>
+              </div>
+              <textarea
+                value={scenePrompt}
+                onChange={(event) => setScenePrompt(event.target.value.slice(0, 600))}
+                placeholder="Describe the action, mood, lighting, or scene details..."
+                rows={3}
+                className="w-full resize-none rounded-xl border border-white/10 bg-slate-950/50 px-3 py-2 text-[10px] font-medium leading-relaxed text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20"
+              />
             </div>
 
             {/* Perspectives angles Checklist */}

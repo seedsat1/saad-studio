@@ -103,6 +103,7 @@ function getAngleDirective(angleId: string, angle: AnglePreset): string {
   const directives: Record<string, string> = {
     "ext-long-shot": "Use an extreme long shot with the subject small in frame and strong environmental context.",
     "long-shot": "Use a long shot showing full body and surrounding environment.",
+    "full-body": "Show the subject's complete body from head to feet. Keep both feet fully visible with comfortable space above the head and below the feet; do not crop any limbs.",
     "closeup": "Use a closeup emphasizing face details and expression.",
     "extreme-closeup": "Use an extreme closeup focused on one key facial feature with tight crop.",
     "back-view": "Subject must face away from camera; show the back clearly and do not show a front-facing portrait.",
@@ -186,6 +187,7 @@ const ANGLE_PRESETS: Record<StoryboardType, AnglePreset[]> = {
 const CAMERA_ANGLE_MAP: Record<string, AnglePreset> = {
   "ext-long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 2, label: "Ext. long shot" },
   "long-shot": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Long shot" },
+  "full-body": { horizontal_angle: 0, vertical_angle: 0, distance: 1, label: "Full Body" },
   "closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Closeup" },
   "extreme-closeup": { horizontal_angle: 0, vertical_angle: 0, distance: 0, label: "Extreme closeup" },
   "back-view": { horizontal_angle: 90, vertical_angle: 0, distance: 1, label: "Back view" },
@@ -365,7 +367,8 @@ export async function POST(req: NextRequest) {
       referenceSafetyToken?: string;
     };
 
-    const { imageDataUrl, prompt, cameraAngles } = body;
+    const { imageDataUrl, cameraAngles } = body;
+    const prompt = typeof body.prompt === "string" ? body.prompt.trim().slice(0, 600) : "";
     const numPanels = Math.max(1, Math.min(MAX_PANELS, body.numPanels ?? 4));
     const quality: QualityTier = body.quality === "2k" || body.quality === "4k" ? body.quality : "1k";
     const creditsPerPanel = QUALITY_CREDIT_PER_PANEL[quality];
