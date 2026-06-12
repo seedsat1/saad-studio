@@ -72,6 +72,7 @@ const DEFAULT_SECTIONS: FooterSection[] = [
       { label: "Contact", href: "/contact" },
       { label: "Pricing", href: "/pricing" },
       { label: "Privacy Policy", href: "/privacy" },
+      { label: "Cookie Policy", href: "/cookies" },
       { label: "Terms & Conditions", href: "/terms" },
     ],
   },

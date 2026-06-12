@@ -11,6 +11,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ModalProvider } from "@/components/modal-provider";
 import { AvatarProvider } from "@/lib/avatar-context";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 
 
 const outfit = Outfit({
@@ -202,6 +203,7 @@ export default function RootLayout({
           <ModalProvider />
           <AvatarProvider>{children}</AvatarProvider>
           <WhatsAppButton />
+          <CookieConsentBanner />
         </body>
       </html>
     </ClerkProvider>
