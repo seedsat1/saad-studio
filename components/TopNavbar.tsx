@@ -137,6 +137,7 @@ const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
+  { label: "Draw to Video",       href: "/apps/tool/draw-to-video", icon: PenTool, color: "text-lime-300", description: "Draw, add, remove, replace and animate elements", badge: "NEW" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Video Extend",        href: "/video-extend",    icon: Film,         color: "text-pink-400",    description: "Upload a clip and extend its duration",  badge: "NEW" },
@@ -423,6 +424,7 @@ const STUDIO_LINKS = [
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
+  { label: "Draw to Video", href: "/apps/tool/draw-to-video", icon: PenTool, color: "text-lime-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
