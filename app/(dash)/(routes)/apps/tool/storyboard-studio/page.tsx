@@ -140,67 +140,67 @@ const STORYBOARD_ALBUMS_STORAGE_KEY = "saad_studio_storyboard_albums_v1";
 const DEMO_STORIES = [
   {
     num: "01",
-    type: "EXT. CITY - DAY",
+    type: "MED. SHOT",
     image: "/img/storyboard/1.jpg",
-    action: "The young explorer arrives at the city of the future.",
-    camera: "WIDE SHOT - Wide Background",
-    notes: "Showcase the grand scale and advanced architecture of the city."
+    action: "A professional woman in a modern minimalist office holding a silver tablet.",
+    camera: "MEDIUM SHOT - Eye Level",
+    notes: "Neutral tones, clean office background with soft interior lighting."
   },
   {
     num: "02",
-    type: "MED. SHOT",
+    type: "SIDE PROFILE",
     image: "/img/storyboard/2.jpg",
-    action: "The explorer contemplates the futuristic surrounding.",
-    camera: "MEDIUM SHOT - Mid-range perspective",
-    notes: "Focus on facial expressions of wonder and surprise."
+    action: "Side profile of the woman drawing wireframes and UI designs on a glass whiteboard.",
+    camera: "OTS - Side Profile View",
+    notes: "Sharp focus on the hand holding a white stylus, with glass reflections."
   },
   {
     num: "03",
-    type: "WIDE SHOT",
+    type: "CLOSE UP",
     image: "/img/storyboard/3.jpg",
-    action: "Walking down the main street surrounded by autonomous vehicles.",
-    camera: "WIDE SHOT - Street level pan",
-    notes: "Capture the active traffic flow and digital billboards."
+    action: "Close-up portrait of the woman smiling gently while working on a laptop screen.",
+    camera: "CLOSE UP - Soft Focus",
+    notes: "Warm side lighting, shallow depth of field highlighting facial expressions."
   },
   {
     num: "04",
-    type: "CLOSE UP",
+    type: "MED. CLOSE-UP",
     image: "/img/storyboard/4.jpg",
-    action: "He spots an incredible piece of holographic tech ahead.",
-    camera: "CLOSE UP - Tight focus",
-    notes: "Accentuate the reaction in his eyes and facial details."
+    action: "The woman actively presenting, gesturing with her hands in a studio setting.",
+    camera: "MEDIUM CLOSE-UP - Presenter Angle",
+    notes: "Natural hand movements, gold watch visible, vanity lighting in background."
   },
   {
     num: "05",
-    type: "OVER THE SHOULDER",
+    type: "WIDE SHOT",
     image: "/img/storyboard/5.jpg",
-    action: "Interacting with the floating digital projection interface.",
-    camera: "OTS - Over the shoulder perspective",
-    notes: "Highlight the bright hologram map reflecting light on his face."
+    action: "The woman standing next to a large meeting table in a premium corporate conference room.",
+    camera: "WIDE SHOT - Establishing view",
+    notes: "Saad Studio logo displayed on the large presentation screen, warm wall lights."
   },
   {
     num: "06",
     type: "EXT. CITY - SUNSET",
     image: "/img/storyboard/6.jpg",
-    action: "The day ends with the character looking towards the golden sunset.",
-    camera: "WIDE SHOT - Cinematic skyline frame",
-    notes: "Inspiring ending scene showing hope and adventure."
+    action: "Leaning against a pillar by floor-to-ceiling windows, looking at the city skyline.",
+    camera: "WIDE SHOT - Sunset Skyline View",
+    notes: "Golden hour warm sunlight casting soft shadows across the modern workspace."
   },
   {
     num: "07",
-    type: "MEDIUM SHOT",
+    type: "CLOSE UP",
     image: "/img/storyboard/7.jpg",
-    action: "He reviews the gathered data in his lab environment.",
-    camera: "MEDIUM SHOT - Scientific workspace",
-    notes: "Show the hologram interface glowing in a dimmer room."
+    action: "A close-up view of the woman using her silver smartphone, looking downwards.",
+    camera: "CLOSE UP - Downward Angle",
+    notes: "Focused attention, warm ambient studio lighting accentuating hair details."
   },
   {
     num: "08",
-    type: "CLOSE UP",
+    type: "EXTREME CLOSEUP",
     image: "/img/storyboard/creation_3139417698.jpg",
-    action: "Close-up of the final device activation sequence.",
-    camera: "CLOSE UP - Detail macro focus",
-    notes: "Emphasize the lighting changes on the device."
+    action: "A direct headshot portrait of the woman looking straight into the camera.",
+    camera: "EXTREME CLOSEUP - Studio Portrait",
+    notes: "Perfect symmetry, soft background lights, professional studio makeup."
   }
 ];
 
