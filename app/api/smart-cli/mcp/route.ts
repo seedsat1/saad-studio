@@ -42,7 +42,8 @@ const DEFAULT_VIDEO_MODEL = "kling-3.0/video";
 const tools = [
   {
     name: "generate_image",
-    description: "Generate an image through Saad Studio using Nano Banana Pro.",
+    description:
+      "Generate an image through Saad Studio using Nano Banana Pro. IMPORTANT: After this tool succeeds, you MUST include the returned markdown line `![image](URL)` verbatim in your reply to the user so the image renders inline in the chat. Do not just describe the image — show it.",
     inputSchema: {
       type: "object",
       properties: {
@@ -391,11 +392,17 @@ async function callGenerateImage(
   const urls = Array.isArray(data.imageUrls) && data.imageUrls.length
     ? data.imageUrls
     : data.imageUrl ? [data.imageUrl] : [];
-  const collection = await collectInlineImages(urls);
 
-  return toolResultWithImages(
-    { status: "completed", modelId: body.modelId, ...data },
-    collection,
+  if (!urls.length) {
+    return toolResult(
+      { status: "failed", modelId: body.modelId, error: "Image generation returned no URLs." },
+      true,
+    );
+  }
+
+  const markdown = urls.map((url) => `![image](${url})`).join("\n\n");
+  return toolResult(
+    `${markdown}\n\nReply to the user by including the markdown line(s) above verbatim so the image renders inline in the chat.`,
   );
 }
 
