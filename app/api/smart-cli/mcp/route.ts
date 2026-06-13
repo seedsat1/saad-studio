@@ -29,11 +29,7 @@ type JsonRpcPayload = {
 
 type ToolContent =
   | { type: "text"; text: string }
-  | { type: "image"; data: string; mimeType: string }
-  | {
-      type: "resource";
-      resource: { uri: string; mimeType: string; text: string };
-    };
+  | { type: "image"; data: string; mimeType: string };
 
 type ToolResult = {
   content: ToolContent[];
@@ -297,72 +293,17 @@ async function collectInlineImages(urls: string[]): Promise<InlineCollection> {
   return { blocks, diagnostics: { attached, skipped, reasons } };
 }
 
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function buildGenerateImageWidget(args: {
-  prompt: string;
-  modelId: string;
-  aspectRatio: string;
-  imageUrl: string;
-}): string {
-  const prompt = escapeHtml(args.prompt);
-  const modelId = escapeHtml(args.modelId);
-  const aspectRatio = escapeHtml(args.aspectRatio);
-  const url = escapeHtml(args.imageUrl);
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saad Studio</title><style>
-*{box-sizing:border-box}
-body{margin:0;padding:14px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0f1c;color:#e2e8f0;border:1px solid rgba(34,211,238,.18);border-radius:14px}
-.hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.lg{width:30px;height:30px;background:linear-gradient(135deg,#22d3ee,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;letter-spacing:.5px}
-.br{font-size:13px;color:#94a3b8}
-.br strong{color:#fff;font-weight:700}
-.tl{color:#67e8f9;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
-.pr{font-size:13.5px;line-height:1.55;color:#cbd5e1;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.pr.ex{-webkit-line-clamp:unset;display:block}
-.tg{background:none;border:none;padding:0 0 12px 0;color:#67e8f9;cursor:pointer;font-size:12px;font-weight:600}
-.bg{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.bd{background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.22);color:#67e8f9;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600}
-.fr{position:relative;border-radius:10px;overflow:hidden;background:#04060c;border:1px solid rgba(255,255,255,.06)}
-.fr img{width:100%;height:auto;display:block}
-.st{position:absolute;top:10px;left:10px;background:rgba(16,185,129,.18);border:1px solid rgba(16,185,129,.45);color:#6ee7b7;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;backdrop-filter:blur(6px)}
-.ac{position:absolute;top:10px;right:10px;display:flex;gap:6px}
-.bt{background:rgba(8,12,22,.85);border:1px solid rgba(255,255,255,.1);color:#e2e8f0;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;backdrop-filter:blur(6px)}
-.bt:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.45)}
-</style></head><body>
-<div class="hd"><div class="lg">SS</div><div class="br"><strong>Saad Studio</strong> · <span class="tl">generate_image</span></div></div>
-<div class="pr" id="p">${prompt}</div>
-<button class="tg" id="t">Show more</button>
-<div class="bg"><span class="bd">${modelId}</span><span class="bd">${aspectRatio}</span></div>
-<div class="fr"><span class="st">✓ Done</span><div class="ac"><a class="bt" href="${url}" download target="_blank" rel="noopener">Download</a><a class="bt" href="${url}" target="_blank" rel="noopener">Fullscreen</a></div><img src="${url}" alt="Generated image"></div>
-<script>(function(){var p=document.getElementById('p'),t=document.getElementById('t');if(!p||!t)return;t.addEventListener('click',function(){p.classList.toggle('ex');t.textContent=p.classList.contains('ex')?'Show less':'Show more'});requestAnimationFrame(function(){if(p.scrollHeight<=p.clientHeight+2)t.style.display='none'})})();</script>
-</body></html>`;
-}
-
-function toolResultWithImages(
-  value: unknown,
-  collection: InlineCollection,
-  widget?: { uri: string; html: string },
-): ToolResult {
+function toolResultWithImages(value: unknown, collection: InlineCollection): ToolResult {
   const annotated = typeof value === "object" && value !== null
     ? { ...(value as Record<string, unknown>), _inlineImages: collection.diagnostics }
     : { value, _inlineImages: collection.diagnostics };
-  const blocks: ToolContent[] = [];
-  if (widget) {
-    blocks.push({
-      type: "resource",
-      resource: { uri: widget.uri, mimeType: "text/html", text: widget.html },
-    });
-  }
-  blocks.push(...collection.blocks);
-  blocks.push({ type: "text", text: JSON.stringify(annotated, null, 2) });
-  return { content: blocks, isError: false };
+  return {
+    content: [
+      ...collection.blocks,
+      { type: "text", text: JSON.stringify(annotated, null, 2) },
+    ],
+    isError: false,
+  };
 }
 
 function getBearerToken(request: Request) {
@@ -452,22 +393,9 @@ async function callGenerateImage(
     : data.imageUrl ? [data.imageUrl] : [];
   const collection = await collectInlineImages(urls);
 
-  const widget = urls[0]
-    ? {
-        uri: `ui://saadstudio/generate-image/${data.generationId ?? "preview"}`,
-        html: buildGenerateImageWidget({
-          prompt,
-          modelId: body.modelId,
-          aspectRatio: body.aspectRatio,
-          imageUrl: urls[0],
-        }),
-      }
-    : undefined;
-
   return toolResultWithImages(
     { status: "completed", modelId: body.modelId, ...data },
     collection,
-    widget,
   );
 }
 
