@@ -57,15 +57,23 @@ export function createSmartCliAuthorizationCode(input: {
   return `${PREFIX}${payload}_${sign(payload)}`;
 }
 
+// HMAC-SHA256 → 32 bytes → exactly 43 base64url chars (no padding).
+// Both payload and signature use base64url, whose alphabet INCLUDES "_", so
+// splitting on lastIndexOf("_") can find an underscore inside the signature
+// and corrupt the split. Use fixed-length signature parsing instead.
+const SCO_SIG_LEN = 43;
+
 export function verifySmartCliAuthorizationCode(code: string): OAuthCodePayload | null {
   try {
     if (!code.startsWith(PREFIX)) return null;
     const rest = code.slice(PREFIX.length);
-    const lastUnderscore = rest.lastIndexOf("_");
-    if (lastUnderscore < 0) return null;
+    if (rest.length < SCO_SIG_LEN + 2) return null;
 
-    const payload = rest.slice(0, lastUnderscore);
-    const signature = rest.slice(lastUnderscore + 1);
+    const sepIdx = rest.length - SCO_SIG_LEN - 1;
+    if (rest[sepIdx] !== "_") return null;
+
+    const payload = rest.slice(0, sepIdx);
+    const signature = rest.slice(sepIdx + 1);
     const expected = sign(payload);
     if (!timingSafeEqualText(signature, expected)) return null;
 

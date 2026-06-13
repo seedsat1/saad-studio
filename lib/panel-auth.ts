@@ -48,11 +48,17 @@ export function verifyPanelToken(token: string): { userId: string } | null {
     }
 
     const rest = token.slice(PREFIX.length);
-    const lastUnderscore = rest.lastIndexOf("_");
-    if (lastUnderscore < 0) return null;
 
-    const payload = rest.slice(0, lastUnderscore);
-    const sig = rest.slice(lastUnderscore + 1);
+    // HMAC-SHA256 → 32 bytes → exactly 43 base64url chars (no padding).
+    // base64url alphabet includes "_", so lastIndexOf("_") can land inside
+    // the signature and corrupt the split. Use fixed-length parsing.
+    const SIG_LEN = 43;
+    if (rest.length < SIG_LEN + 2) return null;
+    const sepIdx = rest.length - SIG_LEN - 1;
+    if (rest[sepIdx] !== "_") return null;
+
+    const payload = rest.slice(0, sepIdx);
+    const sig = rest.slice(sepIdx + 1);
 
     const expected = createHmac("sha256", getSecret())
       .update(payload)
