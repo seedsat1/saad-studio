@@ -610,21 +610,33 @@ export default function DrawToVideoPage() {
     : ASPECTS.filter((item) => selectedModel.aspects.includes(item.id));
   const displayedQuality = studioMode === "draw-edit" ? selectedEditModel.quality : resolution || "Provider native";
 
+  useEffect(() => {
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
+  }, []);
+
   return (
-    <main className="min-h-[calc(100vh-4rem)] bg-[radial-gradient(circle_at_top_left,#102349_0,#070b18_38%,#040711_78%)] p-3 text-white">
-      <div className="w-full">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-4 px-2">
+    <main className="fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[radial-gradient(circle_at_top_left,#102349_0,#070b18_38%,#040711_78%)] p-2 text-white">
+      <div className="flex h-full min-h-0 w-full flex-col">
+        <div className="flex h-14 shrink-0 items-center justify-between gap-4 px-2">
           <div>
-            <Link href="/apps" className="mb-2 inline-flex items-center gap-2 text-xs text-cyan-300/70 hover:text-cyan-200">
-              <ArrowLeft className="h-4 w-4" /> Back to Apps
-            </Link>
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 shadow-[0_0_32px_rgba(34,211,238,.2)]">
-                <Wand2 className="h-5 w-5 text-[#06101b]" />
+              <Link href="/apps" className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-slate-400 transition hover:bg-white/5 hover:text-white" title="Back to Apps">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-violet-400 shadow-[0_0_24px_rgba(34,211,238,.18)]">
+                <Wand2 className="h-4 w-4 text-[#06101b]" />
               </div>
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.32em] text-cyan-300">Saad Motion Lab</p>
-                <h1 className="text-2xl font-black tracking-tight">Visual Direction Studio</h1>
+                <h1 className="text-lg font-black tracking-tight">Visual Direction Studio</h1>
               </div>
             </div>
           </div>
@@ -634,13 +646,12 @@ export default function DrawToVideoPage() {
           </div>
         </div>
 
-        <section className="relative overflow-hidden rounded-[22px] border border-cyan-300/10 bg-[#080d1b]/95 p-3 shadow-[0_30px_90px_rgba(0,0,0,.45)] lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-3">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3 lg:col-span-2 lg:mb-0">
+        <section className="relative grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)] grid-rows-[52px_minmax(0,1fr)_150px] gap-2 overflow-hidden rounded-[20px] border border-cyan-300/10 bg-[#080d1b]/95 p-2 shadow-[0_30px_90px_rgba(0,0,0,.45)]">
+          <div className="col-span-2 flex min-w-0 items-center justify-between gap-3 border-b border-white/5 px-2">
             <div>
               <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-600">Choose workflow</p>
-              <p className="mt-1 text-xs text-slate-400">Create with Saad Studio&apos;s drawing and AI editing pipeline.</p>
             </div>
-            <div className="grid w-full gap-2 sm:grid-cols-3 lg:w-auto">
+            <div className="grid w-[540px] max-w-[65%] grid-cols-3 gap-2">
               {MODES.map((mode) => {
                 const Icon = mode.icon;
                 return (
@@ -653,7 +664,7 @@ export default function DrawToVideoPage() {
                       setImageUrl("");
                       setError("");
                     }}
-                    className={`flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-xs font-bold transition ${
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition ${
                       studioMode === mode.id
                         ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100 shadow-[0_8px_24px_rgba(34,211,238,.08)]"
                         : "border-white/5 bg-white/[0.025] text-slate-500 hover:border-white/15 hover:text-white"
@@ -668,7 +679,7 @@ export default function DrawToVideoPage() {
             </div>
           </div>
 
-          <div className="relative mx-auto flex min-h-[560px] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_center,#152344_0,#080d19_62%)] p-4 lg:col-start-2 lg:row-start-2 lg:min-h-[calc(100vh-330px)]">
+          <div className="relative col-start-2 row-start-2 flex min-h-0 min-w-0 items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-[radial-gradient(circle_at_center,#152344_0,#080d19_62%)] p-3">
             {(videoUrl || imageUrl) ? (
               <div className="relative flex h-full w-full items-center justify-center bg-black">
                 {videoUrl ? (
@@ -699,7 +710,7 @@ export default function DrawToVideoPage() {
               </div>
             ) : (
               <div
-                className="relative h-[68vh] max-h-[calc(100vh-360px)] max-w-full overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(0,0,0,.45)]"
+                className="relative h-full max-h-full w-auto max-w-full overflow-hidden rounded-lg shadow-[0_24px_70px_rgba(0,0,0,.45)]"
                 style={{
                   aspectRatio: selectedAspect.css,
                   backgroundColor: studioMode === "sketch-video" ? "#f6f1e7" : "#151515",
@@ -744,7 +755,7 @@ export default function DrawToVideoPage() {
             )}
           </div>
 
-          <div className="mt-3 grid content-start gap-5 rounded-2xl border border-white/5 bg-[#0c1328] p-4 lg:col-start-1 lg:row-start-2 lg:mt-0">
+          <div className="col-start-1 row-start-2 grid min-h-0 content-start gap-4 overflow-hidden rounded-2xl border border-white/5 bg-[#0c1328] p-3">
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">Frame ratio</p>
@@ -860,7 +871,7 @@ export default function DrawToVideoPage() {
             }}
           />
 
-          <div className="mt-3 grid gap-3 lg:col-span-2 lg:row-start-3 lg:grid-cols-[auto_1fr_auto] lg:items-end">
+          <div className="col-span-2 row-start-3 grid min-h-0 grid-cols-[210px_minmax(0,1fr)_auto] items-end gap-3 overflow-visible rounded-2xl border border-white/5 bg-[#0a1020] p-3">
             <div className="relative flex items-center gap-2">
               <button
                 type="button"
