@@ -27,8 +27,12 @@ type JsonRpcPayload = {
   };
 };
 
+type ToolContent =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
+
 type ToolResult = {
-  content: Array<{ type: "text"; text: string }>;
+  content: ToolContent[];
   isError: boolean;
 };
 
@@ -220,6 +224,56 @@ function toolResult(value: unknown, isError = false): ToolResult {
   };
 }
 
+// 24 MB hard cap on a single tool response payload — Claude.ai refuses larger.
+// Each image is base64 (~33% overhead), so we budget ~5 MB raw per image and
+// stop attaching once we cross the cap. Failed fetches are silently dropped
+// and the text content (with the public URL) still lets the client click through.
+const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_TOTAL_INLINE_BYTES = 18 * 1024 * 1024;
+
+async function fetchInlineImage(
+  url: string,
+): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const buffer = Buffer.from(await res.arrayBuffer());
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_INLINE_IMAGE_BYTES) return null;
+    const mimeType = res.headers.get("content-type")?.split(";")[0]?.trim() || "image/png";
+    if (!mimeType.startsWith("image/")) return null;
+    return { data: buffer.toString("base64"), mimeType };
+  } catch {
+    return null;
+  }
+}
+
+async function collectInlineImages(urls: string[]): Promise<ToolContent[]> {
+  const fetched = await Promise.all(urls.map(fetchInlineImage));
+  const blocks: ToolContent[] = [];
+  let total = 0;
+  for (const item of fetched) {
+    if (!item) continue;
+    const size = item.data.length;
+    if (total + size > MAX_TOTAL_INLINE_BYTES) break;
+    blocks.push({ type: "image", data: item.data, mimeType: item.mimeType });
+    total += size;
+  }
+  return blocks;
+}
+
+function toolResultWithImages(value: unknown, images: ToolContent[]): ToolResult {
+  return {
+    content: [
+      ...images,
+      {
+        type: "text",
+        text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
+      },
+    ],
+    isError: false,
+  };
+}
+
 function getBearerToken(request: Request) {
   const header = request.headers.get("authorization");
   if (header?.startsWith("Bearer ")) return header.slice(7).trim();
@@ -301,7 +355,16 @@ async function callGenerateImage(
     );
   }
 
-  return toolResult({ status: "completed", modelId: body.modelId, ...(res.data as object) });
+  const data = res.data as { imageUrls?: string[]; imageUrl?: string | null; generationId?: string };
+  const urls = Array.isArray(data.imageUrls) && data.imageUrls.length
+    ? data.imageUrls
+    : data.imageUrl ? [data.imageUrl] : [];
+  const images = await collectInlineImages(urls);
+
+  return toolResultWithImages(
+    { status: "completed", modelId: body.modelId, ...data },
+    images,
+  );
 }
 
 async function callGenerateStoryboard(
@@ -348,7 +411,9 @@ async function callGenerateStoryboard(
     label: `Concept ${index + 1}`,
   }));
 
-  return toolResult({
+  const images = await collectInlineImages(urls);
+
+  return toolResultWithImages({
     status: "completed",
     idea,
     style: style || null,
@@ -357,7 +422,7 @@ async function callGenerateStoryboard(
     nextStep:
       "Ask the user to pick a concept (1-N), then call generate_video with imageUrl set to that concept's imageUrl.",
     generationId: data.generationId ?? null,
-  });
+  }, images);
 }
 
 async function callGenerateVideo(

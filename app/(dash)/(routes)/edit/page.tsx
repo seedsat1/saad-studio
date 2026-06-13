@@ -69,26 +69,48 @@ type EditModel = {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const EDIT_TOOLS: EditTool[] = [
   {
-    id: "upscale",
-    label: "AI Upscale & Enhance",
-    icon: Layers,
-    color: "text-teal-400",
-    border: "border-teal-500",
-    glow: "shadow-teal-500/50",
-    hex: "#14b8a6",
-    glowHex: "rgba(20,184,166,0.45)",
-    description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
+    id: "bgremove",
+    label: "Background Remover",
+    icon: Eraser,
+    color: "text-blue-400",
+    border: "border-blue-500",
+    glow: "shadow-blue-500/50",
+    hex: "#3b82f6",
+    glowHex: "rgba(59,130,246,0.45)",
+    description: "Remove image backgrounds instantly and replace them with transparency or solid colors.",
   },
   {
     id: "inpaint",
     label: "Smart Inpaint",
     icon: PenTool,
-    color: "text-violet-400",
-    border: "border-violet-500",
-    glow: "shadow-violet-500/50",
-    hex: "#8b5cf6",
-    glowHex: "rgba(139,92,246,0.45)",
+    color: "text-purple-400",
+    border: "border-purple-500",
+    glow: "shadow-purple-500/50",
+    hex: "#a855f7",
+    glowHex: "rgba(168,85,247,0.45)",
     description: "Fill or restore masked areas using AI context from surrounding pixels.",
+  },
+  {
+    id: "replace",
+    label: "Object Remover",
+    icon: Ban,
+    color: "text-rose-400",
+    border: "border-rose-500",
+    glow: "shadow-rose-500/50",
+    hex: "#f43f5e",
+    glowHex: "rgba(244,63,94,0.45)",
+    description: "Paint an object and specify a prompt to replace it with a new AI-generated element.",
+  },
+  {
+    id: "faceswap",
+    label: "Face Swap Pro",
+    icon: Smile,
+    color: "text-emerald-400",
+    border: "border-emerald-500",
+    glow: "shadow-emerald-500/50",
+    hex: "#10b981",
+    glowHex: "rgba(16,185,129,0.45)",
+    description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
   },
   {
     id: "relight",
@@ -102,26 +124,26 @@ const EDIT_TOOLS: EditTool[] = [
     description: "Non-destructively shift light direction, color, and intensity.",
   },
   {
-    id: "faceswap",
-    label: "Face Swap Pro",
-    icon: Smile,
-    color: "text-fuchsia-400",
-    border: "border-fuchsia-500",
-    glow: "shadow-fuchsia-500/50",
-    hex: "#d946ef",
-    glowHex: "rgba(217,70,239,0.45)",
-    description: "Instant online AI face swap for photos, delivering realistic, watermark-free results.",
+    id: "upscale",
+    label: "AI Upscale & Enhance",
+    icon: Layers,
+    color: "text-teal-400",
+    border: "border-teal-500",
+    glow: "shadow-teal-500/50",
+    hex: "#14b8a6",
+    glowHex: "rgba(20,184,166,0.45)",
+    description: "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.",
   },
   {
-    id: "bgremove",
-    label: "Background Remover",
-    icon: Eraser,
-    color: "text-rose-400",
-    border: "border-rose-500",
-    glow: "shadow-rose-500/50",
-    hex: "#f43f5e",
-    glowHex: "rgba(244,63,94,0.45)",
-    description: "Remove image backgrounds instantly and replace them with transparency or solid colors.",
+    id: "style",
+    label: "Style Transfer",
+    icon: Palette,
+    color: "text-pink-400",
+    border: "border-pink-500",
+    glow: "shadow-pink-500/50",
+    hex: "#ec4899",
+    glowHex: "rgba(236,72,153,0.45)",
+    description: "Apply modern artistic and cinematic styles to your images.",
   },
   {
     id: "watermark",
@@ -310,6 +332,13 @@ export default function EditPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [simulatedWarning, setSimulatedWarning] = useState<string | null>(null);
+
+  // Redesign states
+  const [originalMediaUrl, setOriginalMediaUrl] = useState("/explore/tool-upscale.jpg");
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+  const [upscaleSharpness, setUpscaleSharpness] = useState(0.6);
+  const sliderRef = useRef<HTMLDivElement>(null);
 
   // Drawing & Canvas States
   const [isDrawing, setIsDrawing] = useState(false);
@@ -585,6 +614,7 @@ export default function EditPage() {
 
       if (publicUrl) {
         setMediaUrl(publicUrl);
+        setOriginalMediaUrl(publicUrl);
         const isVid = file.type.startsWith("video/");
         setMediaType(isVid ? "video" : "image");
         setShowResult(false);
@@ -697,6 +727,7 @@ export default function EditPage() {
     const imgUrl = searchParams.get("image") || searchParams.get("url");
     if (imgUrl) {
       setMediaUrl(imgUrl);
+      setOriginalMediaUrl(imgUrl);
       const isVid = imgUrl.match(/\.(mp4|webm|mov|mkv|3gp|avi|ogg)/i) || searchParams.get("type") === "video";
       setMediaType(isVid ? "video" : "image");
     }
@@ -976,6 +1007,8 @@ export default function EditPage() {
       setUpscaleDenoise(0.3);
       setUpscaleFaceEnhance(true);
       setUpscaleModel("topaz");
+      setMediaUrl("/explore/tool-upscale.jpg");
+      setOriginalMediaUrl("/explore/tool-upscale.jpg");
     } else if (activeTool === "relight") {
       setLightAngle(180);
       setLightIntensity(0.7);
@@ -1133,6 +1166,7 @@ export default function EditPage() {
     handleClearMask();
     if (id === "upscale") {
       setMediaUrl("/explore/tool-upscale.jpg");
+      setOriginalMediaUrl("/explore/tool-upscale.jpg");
       setMediaType("image");
     }
   };

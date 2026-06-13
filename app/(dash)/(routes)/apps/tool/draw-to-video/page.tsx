@@ -871,7 +871,7 @@ export default function DrawToVideoPage() {
             }}
           />
 
-          <div className="col-span-2 row-start-3 grid min-h-0 grid-cols-[210px_minmax(0,1fr)_auto] items-end gap-3 overflow-visible rounded-2xl border border-white/5 bg-[#0a1020] p-3">
+          <div className="col-span-2 row-start-3 grid min-h-0 grid-cols-[210px_minmax(0,1fr)_auto] items-start gap-3 overflow-visible rounded-2xl border border-white/5 bg-[#0a1020] p-3">
             <div className="relative flex items-center gap-2">
               <button
                 type="button"
