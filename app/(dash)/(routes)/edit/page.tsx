@@ -340,6 +340,11 @@ export default function EditPage() {
   const [upscaleSharpness, setUpscaleSharpness] = useState(0.6);
   const sliderRef = useRef<HTMLDivElement>(null);
 
+  // Interactive shoe slider states for Background Remover
+  const [shoeSliderPosition, setShoeSliderPosition] = useState(50);
+  const [isDraggingShoe, setIsDraggingShoe] = useState(false);
+  const shoeSliderRef = useRef<HTMLDivElement>(null);
+
   // Drawing & Canvas States
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEraser, setIsEraser] = useState(false);
@@ -381,16 +386,23 @@ export default function EditPage() {
   const [motionDirection, setMotionDirection] = useState("forward");
   const [motionSpeed, setMotionSpeed] = useState(5);
 
-  const [upscaleFactor, setUpscaleFactor] = useState("1");
-  const [upscaleResolution, setUpscaleResolution] = useState("720"); // 480, 720, 1080
-  const [upscaleDenoise, setUpscaleDenoise] = useState(0.3);
+  const [upscaleFactor, setUpscaleFactor] = useState("2");
+  const [upscaleResolution, setUpscaleResolution] = useState("1080"); // 480, 720, 1080
+  const [upscaleDenoise, setUpscaleDenoise] = useState(0.75);
   const [upscaleFaceEnhance, setUpscaleFaceEnhance] = useState(true);
   const [upscaleModel, setUpscaleModel] = useState("topaz");
   const [upscaleModelOpen, setUpscaleModelOpen] = useState(false);
   const [upscaleAdvancedOpen, setUpscaleAdvancedOpen] = useState(false);
   const [uploadedMediaList, setUploadedMediaList] = useState<Array<{ url: string; type: "image" | "video" }>>([
-    { url: "/explore/gallery-mixed-media-1.jpg", type: "image" },
+    { url: "/explore/tool-upscale.jpg", type: "image" },
     { url: "/explore/gallery-soul-cinema-1.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-2.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-3.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-4.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-5.jpg", type: "image" },
+    { url: "/explore/gallery-soul-cinema-6.jpg", type: "image" },
+    { url: "/explore/gallery-mixed-media-1.jpg", type: "image" },
+    { url: "/explore/gallery-mixed-media-2.jpg", type: "image" },
   ]);
 
   const lastCoordsRef = useRef<{ x: number; y: number } | null>(null);
@@ -398,7 +410,7 @@ export default function EditPage() {
   const getActionLabel = () => {
     switch (activeTool) {
       case "upscale":
-        return "Upscale";
+        return "Upscale ↗";
       case "watermark":
         return "Remove Watermark";
       case "faceswap":
@@ -1204,6 +1216,25 @@ export default function EditPage() {
     handleMove(e.clientX);
   }, [isDraggingSlider, handleMove]);
 
+  // Interactive shoe slider callbacks for Background Remover
+  const handleShoeMove = useCallback((clientX: number) => {
+    if (!shoeSliderRef.current) return;
+    const rect = shoeSliderRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setShoeSliderPosition(position);
+  }, []);
+
+  const handleShoeTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDraggingShoe) return;
+    handleShoeMove(e.touches[0].clientX);
+  }, [isDraggingShoe, handleShoeMove]);
+
+  const handleShoeMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingShoe) return;
+    handleShoeMove(e.clientX);
+  }, [isDraggingShoe, handleShoeMove]);
+
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none w-full">
       {/* ─── Left Sidebar ─── */}
@@ -1224,12 +1255,12 @@ export default function EditPage() {
                 type="button"
                 onClick={() => handleToolSelect(tool.id)}
                 className={cn(
-                  "w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-bold transition-all duration-300 border text-left cursor-pointer",
+                  "w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-bold transition-all duration-300 border text-left cursor-pointer mb-2.5",
                   isActive
-                    ? "bg-[#0b1020]/80 text-white shadow-[0_0_20px_-3px_rgba(20,184,166,0.15)]"
-                    : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.02]"
+                    ? "bg-[#0c1224] text-white border-white/[0.08] shadow-lg"
+                    : "bg-white/[0.02] border-white/[0.03] text-zinc-400 hover:bg-white/[0.04] hover:border-white/[0.06] hover:text-zinc-200"
                 )}
-                style={isActive ? { borderColor: `${tool.hex}40`, boxShadow: `0 0 15px -3px ${tool.hex}20` } : {}}
+                style={isActive ? { borderColor: `${tool.hex}55`, boxShadow: `0 0 18px -4px ${tool.hex}30` } : {}}
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -1597,9 +1628,15 @@ export default function EditPage() {
 
               {/* Horizontal Media Gallery Bar (At Bottom of Center Area) */}
               {mediaUrl && (
-                <div className="w-full flex items-center justify-center py-4 bg-transparent shrink-0">
-                  <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl p-2 px-3 shadow-2xl">
-                    <label className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-all shrink-0 group">
+                <div className="w-full flex items-center justify-center py-5 bg-transparent shrink-0">
+                  <div className="flex items-center gap-4 bg-[#05070f]/90 backdrop-blur-md border border-white/[0.05] rounded-3xl p-3 px-4 shadow-2xl relative">
+                    <button type="button" className="text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer">
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+
+                    <div className="h-6 w-px bg-white/5" />
+
+                    <label className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-all shrink-0 group">
                       <input
                         type="file"
                         accept="image/*,video/*"
@@ -1612,9 +1649,9 @@ export default function EditPage() {
                       <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
                     </label>
 
-                    <div className="h-6 w-px bg-white/10" />
+                    <div className="h-6 w-px bg-white/5" />
 
-                    <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-none max-w-[500px]">
+                    <div className="flex items-center gap-3 overflow-x-auto scrollbar-none max-w-[600px] py-1 px-0.5">
                       {uploadedMediaList.map((item, idx) => {
                         const isSelected = mediaUrl === item.url;
                         return (
@@ -1629,8 +1666,10 @@ export default function EditPage() {
                               handleClearMask();
                             }}
                             className={cn(
-                              "h-12 w-16 rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 relative cursor-pointer",
-                              isSelected ? "border-cyan-400 ring-2 ring-cyan-500/20" : "border-white/10"
+                              "h-14 w-20 rounded-2xl overflow-hidden border transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 relative cursor-pointer",
+                              isSelected 
+                                ? "border-cyan-400 ring-2 ring-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.2)]" 
+                                : "border-white/5 hover:border-white/10"
                             )}
                           >
                             {item.type === "video" ? (
@@ -1642,6 +1681,12 @@ export default function EditPage() {
                         );
                       })}
                     </div>
+
+                    <div className="h-6 w-px bg-white/5" />
+
+                    <button type="button" className="text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer">
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               )}
@@ -2045,22 +2090,22 @@ export default function EditPage() {
                       </span>
                       <div className="grid grid-cols-2 gap-2">
                         {[
-                          { id: "png", label: "PNG", sub: "Transparent backing" },
-                          { id: "jpg", label: "JPEG", sub: "Solid back (White)" }
+                          { id: "png", label: "PNG", sub: "Transparent Backing" },
+                          { id: "jpg", label: "JPEG", sub: "Solid Back (W/H)" }
                         ].map((fmt) => (
                           <button
                             key={fmt.id}
                             type="button"
                             onClick={() => setBgFormat(fmt.id)}
                             className={cn(
-                              "rounded-xl border p-2.5 text-left transition-all text-xs flex flex-col gap-0.5",
+                              "rounded-xl border p-3 text-left transition-all text-xs flex flex-col gap-1 cursor-pointer",
                               bgFormat === fmt.id
-                                ? "border-rose-500 bg-rose-500/10 text-white"
-                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                                ? "border-rose-500 bg-rose-950/20 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.18)]"
+                                : "border-white/5 bg-zinc-950/60 text-zinc-500 hover:bg-white/[0.02] hover:text-zinc-300"
                             )}
                           >
-                            <span className="font-bold">{fmt.label}</span>
-                            <span className="text-[9px] text-zinc-500">{fmt.sub}</span>
+                            <span className="font-black text-xs">{fmt.label}</span>
+                            <span className="text-[9px] text-zinc-500 font-medium">{fmt.sub}</span>
                           </button>
                         ))}
                       </div>
@@ -2075,6 +2120,125 @@ export default function EditPage() {
                       displayValue={`${bgFeather}px`}
                       onChange={setBgFeather}
                     />
+
+                    {/* Interactive Showcase */}
+                    <div className="space-y-3 pt-2 border-t border-white/5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-cyan-400" />
+                          Interactive Showcase
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShoeSliderPosition(50)}
+                          className="text-[9px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-wider cursor-pointer"
+                        >
+                          Reset Demo
+                        </button>
+                      </div>
+
+                      <div className="bg-zinc-950 border border-white/5 rounded-2xl p-4 space-y-3 shadow-inner">
+                        <div className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                          Background Remove
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-relaxed font-semibold">
+                          Isolate subjects and strip backgrounds instantly. Ideal for high-quality product and portrait renders.
+                        </p>
+
+                        {/* Shoe Before/After Slider */}
+                        <div 
+                          ref={shoeSliderRef}
+                          className="relative rounded-xl overflow-hidden border border-white/10 aspect-[4/3] bg-[#0c0c0e] select-none cursor-ew-resize group"
+                          onMouseMove={handleShoeMouseMove}
+                          onMouseDown={() => setIsDraggingShoe(true)}
+                          onMouseUp={() => setIsDraggingShoe(false)}
+                          onMouseLeave={() => setIsDraggingShoe(false)}
+                          onTouchMove={handleShoeTouchMove}
+                          onTouchStart={() => setIsDraggingShoe(true)}
+                          onTouchEnd={() => setIsDraggingShoe(false)}
+                        >
+                          {/* Background (Solid White/Dark) representing original */}
+                          <div className="absolute inset-0 bg-[#080b11] flex items-center justify-center pointer-events-none">
+                            <img
+                              src="/explore/red_sneaker.png"
+                              alt="Shoe Original"
+                              className="max-h-[85%] max-w-[85%] object-contain"
+                            />
+                          </div>
+
+                          {/* Foreground (Clipped transparent Checkerboard representing cut background) */}
+                          <div 
+                            className="absolute inset-0 pointer-events-none overflow-hidden"
+                            style={{
+                              clipPath: `polygon(${shoeSliderPosition}% 0, 100% 0, 100% 100%, ${shoeSliderPosition}% 100%)`,
+                              backgroundImage: `linear-gradient(45deg, #18181b 25%, transparent 25%), 
+                                                linear-gradient(-45deg, #18181b 25%, transparent 25%), 
+                                                linear-gradient(45deg, transparent 75%, #18181b 75%), 
+                                                linear-gradient(-45deg, transparent 75%, #18181b 75%)`,
+                              backgroundSize: '12px 12px',
+                              backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0px',
+                              backgroundColor: '#0c0c0e'
+                            }}
+                          >
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <img
+                                src="/explore/red_sneaker.png"
+                                alt="Shoe Removed"
+                                className="max-h-[85%] max-w-[85%] object-contain"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Drag line */}
+                          <div 
+                            className="absolute inset-y-0 w-0.5 bg-cyan-400/80 cursor-ew-resize"
+                            style={{ left: `${shoeSliderPosition}%` }}
+                          >
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black border border-cyan-400/40 flex items-center justify-center shadow-lg transition-transform hover:scale-110">
+                              <span className="text-cyan-400 text-[9px] font-bold tracking-tighter">&lt;&gt;</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-[9px] text-zinc-600 text-center font-semibold tracking-wider">
+                          Slide to reveal background removal checkerboard
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step-by-Step Instructions */}
+                    <div className="space-y-3 pt-2 border-t border-white/5">
+                      <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <SlidersHorizontal className="h-3.5 w-3.5 text-cyan-400" />
+                        Step-by-Step Instructions
+                      </span>
+                      <div className="space-y-3.5 text-xs text-zinc-400">
+                        <div className="flex gap-3 items-start">
+                          <span className="h-5 w-5 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-[10px] font-bold text-cyan-400 shrink-0 mt-0.5 shadow-inner">
+                            1
+                          </span>
+                          <p className="text-[10px] leading-relaxed font-semibold">
+                            Upload any image containing clear subjects or foreground elements.
+                          </p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                          <span className="h-5 w-5 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-[10px] font-bold text-cyan-400 shrink-0 mt-0.5 shadow-inner">
+                            2
+                          </span>
+                          <p className="text-[10px] leading-relaxed font-semibold">
+                            Choose edge-feathering radius and transparency formats (PNG/WebP).
+                          </p>
+                        </div>
+                        <div className="flex gap-3 items-start">
+                          <span className="h-5 w-5 rounded-full bg-zinc-950 border border-white/10 flex items-center justify-center text-[10px] font-bold text-cyan-400 shrink-0 mt-0.5 shadow-inner">
+                            3
+                          </span>
+                          <p className="text-[10px] leading-relaxed font-semibold">
+                            Click Apply to execute background removal.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -2411,8 +2575,8 @@ export default function EditPage() {
                               className={cn(
                                 "h-10 w-12 rounded-xl text-xs font-bold transition-all duration-300 border flex items-center justify-center cursor-pointer",
                                 isActive
-                                  ? "bg-zinc-950 text-cyan-400 border-cyan-500 shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-                                  : "bg-zinc-900 text-zinc-400 border-white/5 hover:border-white/10 hover:text-zinc-200"
+                                  ? "bg-zinc-950 text-cyan-400 border-cyan-500/50 shadow-[0_0_12px_rgba(34,211,238,0.25)] font-black"
+                                  : "bg-zinc-900/40 text-zinc-500 border-white/5 hover:border-white/10 hover:text-zinc-300"
                               )}
                             >
                               x{fac}
@@ -2427,7 +2591,7 @@ export default function EditPage() {
                       <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
                         Quality
                       </span>
-                      <div className="grid grid-cols-3 gap-1 bg-zinc-950 border border-white/5 rounded-2xl p-1">
+                      <div className="grid grid-cols-3 gap-1 bg-zinc-950/80 border border-white/5 rounded-2xl p-1">
                         {[
                           { id: "480", label: "Standard" },
                           { id: "720", label: "High" },
@@ -2442,7 +2606,7 @@ export default function EditPage() {
                               className={cn(
                                 "py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer",
                                 isActive
-                                  ? "bg-zinc-900 text-white shadow-inner font-extrabold border border-white/5"
+                                  ? "bg-white/[0.08] text-white font-extrabold border border-white/10 shadow-inner"
                                   : "text-zinc-500 hover:text-zinc-300"
                               )}
                             >
