@@ -1186,12 +1186,36 @@ export default function EditPage() {
     }
   }
 
+  const handleMove = useCallback((clientX: number) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const position = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderPosition(position);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDraggingSlider) return;
+    handleMove(e.touches[0].clientX);
+  }, [isDraggingSlider, handleMove]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingSlider) return;
+    handleMove(e.clientX);
+  }, [isDraggingSlider, handleMove]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none">
-      
-      {/* ─── Top Tab Bar Navigation Switcher ─── */}
-      <div className="flex items-center justify-between border-b border-white/5 bg-[#050914] px-6 py-2.5 shrink-0 z-20">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-[#03060d] text-white select-none w-full">
+      {/* ─── Left Sidebar ─── */}
+      <aside className="w-[280px] shrink-0 bg-[#05070f] border-r border-white/[0.05] flex flex-col p-5 space-y-6 select-none z-30">
+        <div>
+          <h1 className="text-sm font-black tracking-wider uppercase flex items-center gap-1">
+            <span className="text-white">EDIT</span>
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">AI</span>
+          </h1>
+        </div>
+
+        <div className="flex-1 space-y-2 overflow-y-auto scrollbar-none">
           {EDIT_TOOLS.map((tool) => {
             const isActive = activeTool === tool.id;
             return (
@@ -1200,40 +1224,34 @@ export default function EditPage() {
                 type="button"
                 onClick={() => handleToolSelect(tool.id)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 border",
+                  "w-full flex items-center justify-between p-3.5 rounded-2xl text-xs font-bold transition-all duration-300 border text-left cursor-pointer",
                   isActive
-                    ? "bg-[#0b1528] text-white shadow-lg shadow-black/40"
-                    : "border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.02]"
+                    ? "bg-[#0b1020]/80 text-white shadow-[0_0_20px_-3px_rgba(20,184,166,0.15)]"
+                    : "border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.02]"
                 )}
-                style={isActive ? { borderColor: `${tool.hex}40`, color: tool.hex, boxShadow: `0 0 15px -3px ${tool.hex}25` } : {}}
+                style={isActive ? { borderColor: `${tool.hex}40`, boxShadow: `0 0 15px -3px ${tool.hex}20` } : {}}
               >
-                <tool.icon className={cn("h-4 w-4", isActive ? tool.color : "text-zinc-500")} />
-                <span>{tool.label}</span>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="h-8 w-8 rounded-xl flex items-center justify-center shadow-inner text-white shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${tool.hex} 0%, ${tool.hex}cc 100%)`,
+                      boxShadow: `0 2px 8px -1px ${tool.hex}30`
+                    }}
+                  >
+                    <tool.icon className="h-4 w-4" />
+                  </div>
+                  <span>{tool.label}</span>
+                </div>
+                {isActive && <span className="text-zinc-500 font-normal ml-2">&gt;</span>}
               </button>
             );
           })}
         </div>
-        
-        {/* Right side status badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 shadow-md">
-            <motion.div
-              className="h-1.5 w-1.5 rounded-full"
-              style={{
-                backgroundColor: isProcessing ? "#eab308" : showResult ? "#10b981" : "#52525b",
-              }}
-              animate={isProcessing ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : { opacity: 1 }}
-              transition={isProcessing ? { duration: 0.8, repeat: Infinity } : {}}
-            />
-            <span className="text-zinc-400">
-              {isProcessing ? "Applying edit..." : showResult ? "Edit Applied" : "Ready"}
-            </span>
-          </div>
-        </div>
-      </div>
+      </aside>
 
-      {/* ─── Active Tool Sub-views & Core Workspace Layout ─── */}
-      <div className="flex-1 overflow-hidden relative flex flex-col">
+      {/* ─── Content Pane ─── */}
+      <div className="flex-1 overflow-hidden relative flex flex-col h-full bg-[#02040a]">
         {activeTool === "relight" && (
           <div className="flex-1 overflow-hidden">
             <RelightPage isEmbedded />
@@ -1250,1219 +1268,1194 @@ export default function EditPage() {
           </div>
         )}
 
-        {/* Standard 2-Panel layout for upscale and watermark */}
+        {/* Standard 2-Panel layout for upscale, watermark, bgremove, etc. */}
         {!["relight", "faceswap", "inpaint"].includes(activeTool) && (
           <div className="flex flex-1 overflow-hidden w-full h-full">
-            {/* CENTER — Masking Canvas & Prompt Engine */}
+            {/* CENTER PANEL — Canvas & Prompt Engine */}
             <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden bg-[#02040a]">
-        
-        {/* Canvas Toolbar */}
-        <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
-          {activeTool !== "upscale" && (
-            <>
-              <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
-              <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
-              
-              <div className="h-5 w-px bg-white/10 mx-1.5" />
-              
-              <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
-              <ToolbarBtn
-                icon={isEraser ? PenTool : Eraser}
-                label={isEraser ? "Draw Mode" : "Eraser Mode"}
-                shortcut="E"
-                active={isEraser}
-                onClick={() => setIsEraser(!isEraser)}
-              />
-              
-              <div className="h-5 w-px bg-white/10 mx-1.5" />
-            </>
-          )}
-          
-          <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
-          <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
+              {/* Canvas Toolbar */}
+              <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
+                {activeTool !== "upscale" && (
+                  <>
+                    <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
+                    <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
+                    <div className="h-5 w-px bg-white/10 mx-1.5" />
+                    <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
+                    <ToolbarBtn
+                      icon={isEraser ? PenTool : Eraser}
+                      label={isEraser ? "Draw Mode" : "Eraser Mode"}
+                      shortcut="E"
+                      active={isEraser}
+                      onClick={() => setIsEraser(!isEraser)}
+                    />
+                    <div className="h-5 w-px bg-white/10 mx-1.5" />
+                  </>
+                )}
+                
+                <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
+                <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
 
-          <div className="flex-1" />
+                <div className="flex-1" />
 
-          {/* Status badge */}
-          <div className="flex items-center gap-2 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 shadow-md">
-            <motion.div
-              className="h-1.5 w-1.5 rounded-full"
-              style={{
-                backgroundColor: isProcessing ? "#eab308" : showResult ? "#10b981" : "#52525b",
-              }}
-              animate={isProcessing ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : { opacity: 1 }}
-              transition={isProcessing ? { duration: 0.8, repeat: Infinity } : {}}
-            />
-            <span className="text-zinc-400">
-              {isProcessing ? "Applying edit..." : showResult ? "Edit Applied" : "Ready"}
-            </span>
-          </div>
+                {/* Status Badge */}
+                <div className="flex items-center gap-2 text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 shadow-md">
+                  <motion.div
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      backgroundColor: isProcessing ? "#eab308" : showResult ? "#10b981" : "#52525b",
+                    }}
+                    animate={isProcessing ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : { opacity: 1 }}
+                    transition={isProcessing ? { duration: 0.8, repeat: Infinity } : {}}
+                  />
+                  <span className="text-zinc-400">
+                    {isProcessing ? "Applying edit..." : showResult ? "Edit Applied" : "Ready"}
+                  </span>
+                </div>
 
-          {/* Active tool display */}
-          <div
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-black uppercase tracking-wider ml-1"
-            style={{
-              borderColor: `${currentTool.hex}40`,
-              color: currentTool.hex,
-              backgroundColor: `${currentTool.hex}0d`,
-              filter: `drop-shadow(0 0 4px ${currentTool.hex}20)`,
-            }}
-          >
-            <currentTool.icon className="h-3 w-3" />
-            <span>{currentTool.label}</span>
-          </div>
-        </div>
-
-        {/* Canvas Body Area */}
-        <div
-          className="flex-1 relative overflow-hidden flex items-center justify-center p-8"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-          }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          {isUploading && (
-            <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
-              <div className="h-10 w-10 rounded-full border-2 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-              <span className="text-sm font-bold text-zinc-300">Uploading media to secure storage...</span>
-            </div>
-          )}
-
-          {!mediaUrl ? (
-            <div
-              className={cn(
-                "w-full max-w-lg aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-all duration-300 backdrop-blur-xl z-20",
-                isDraggingOver
-                  ? "border-cyan-400 bg-cyan-950/20 scale-105 shadow-lg shadow-cyan-500/10"
-                  : "border-white/10 bg-white/[0.02] hover:border-white/20"
-              )}
-            >
-              <label className="cursor-pointer flex flex-col items-center gap-4 group w-full h-full justify-center">
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) await handleFileUpload(file);
+                {/* Active Tool Name */}
+                <div
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-black uppercase tracking-wider ml-1"
+                  style={{
+                    borderColor: `${currentTool.hex}40`,
+                    color: currentTool.hex,
+                    backgroundColor: `${currentTool.hex}0d`,
+                    filter: `drop-shadow(0 0 4px ${currentTool.hex}20)`,
                   }}
-                />
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                  <Upload className="h-6 w-6 text-cyan-400" />
+                >
+                  <currentTool.icon className="h-3 w-3" />
+                  <span>{currentTool.label}</span>
                 </div>
-                <div>
-                  <p className="text-sm font-extrabold text-zinc-200">
-                    Drag & drop or <span className="text-cyan-400 group-hover:underline">browse</span>
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-1.5">Supports high-res Images & Videos up to 25MB</p>
-                </div>
-              </label>
-            </div>
-          ) : (
-            /* Centered canvas wrapper card */
-            <div
-              className={cn(
-                "relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none",
-                activeTool === "upscale" ? "cursor-default" : "cursor-crosshair"
-              )}
-              style={{
-                width: `${containerWidth}px`,
-                height: `${containerHeight}px`,
-                transform: `scale(${scale})`,
-              }}
-            >
-              {/* ── Background Image/Video layers ── */}
-              <div className="absolute inset-0 select-none pointer-events-none">
-                <AnimatePresence mode="wait">
-                  {!showResult ? (
-                    <motion.div
-                      key="backdrop-original"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, scale: 1.02 }}
-                      transition={{ duration: 0.5 }}
-                      className="absolute inset-0"
-                    >
-                      {mediaType === "video" ? (
-                        <video
-                          src={mediaUrl}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                          style={{
-                            backgroundImage: `url('${mediaUrl}')`,
-                          }}
-                        />
-                      )}
-                      {/* Dark gradient shadow */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      
-                      {/* Dimension Badge label */}
-                      <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
-                        <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                        <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[180px]">
-                          {mediaUrl.split('/').pop()} · {mediaType === "video" ? "Video Clip" : "2048 × 1536"}
-                        </span>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="backdrop-result"
-                      initial={{ opacity: 0, scale: 1.03 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute inset-0"
-                    >
-                      {mediaType === "video" ? (
-                        <video
-                          src={mediaUrl}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          controls
-                          style={{
-                            filter: simulatedWarning ? (currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)") : "none",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                          style={{
-                            backgroundImage: `url('${mediaUrl}')`,
-                            filter: simulatedWarning ? (currentTool.id === "relight" ? "hue-rotate(60deg) saturate(1.4)" : "hue-rotate(-45deg) brightness(1.15)") : "none",
-                          }}
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      
-                      {/* Result Success badge */}
-                      <div className="absolute top-4 left-4 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
-                        <Check className="h-3 w-3 text-emerald-400" />
-                        <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
-                          AI EDIT APPLIED
-                        </span>
-                      </div>
+              </div>
 
-                      {/* Download Button */}
+              {/* Canvas Workspace Body */}
+              <div
+                className="flex-1 relative overflow-hidden flex items-center justify-center p-8"
+                style={{
+                  backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
+                  backgroundSize: "20px 20px",
+                }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                {isUploading && (
+                  <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
+                    <div className="h-10 w-10 rounded-full border-2 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+                    <span className="text-sm font-bold text-zinc-300">Uploading media to secure storage...</span>
+                  </div>
+                )}
+
+                {!mediaUrl ? (
+                  <div
+                    className={cn(
+                      "w-full max-w-lg aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-8 text-center transition-all duration-300 backdrop-blur-xl z-20",
+                      isDraggingOver
+                        ? "border-cyan-400 bg-cyan-950/20 scale-105 shadow-lg shadow-cyan-500/10"
+                        : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                    )}
+                  >
+                    <label className="cursor-pointer flex flex-col items-center gap-4 group w-full h-full justify-center">
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleFileUpload(file);
+                        }}
+                      />
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                        <Upload className="h-6 w-6 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-extrabold text-zinc-200">
+                          Drag & drop or <span className="text-cyan-400 group-hover:underline">browse</span>
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1.5">Supports high-res Images & Videos up to 25MB</p>
+                      </div>
+                    </label>
+                  </div>
+                ) : (
+                  /* Center Canvas Wrapper Card */
+                  <div
+                    className={cn(
+                      "relative rounded-2xl overflow-hidden shadow-[0_20px_80px_rgba(0,0,0,0.85)] ring-1 ring-white/10 bg-zinc-950 transition-transform duration-200 select-none",
+                      activeTool === "upscale" ? "cursor-default" : "cursor-crosshair"
+                    )}
+                    style={{
+                      width: `${containerWidth}px`,
+                      height: `${containerHeight}px`,
+                      transform: `scale(${scale})`,
+                    }}
+                  >
+                    {/* Before/After Split Comparison Slider */}
+                    {showResult ? (
+                      <div 
+                        ref={sliderRef}
+                        className="absolute inset-0 select-none overflow-hidden z-20"
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={() => setIsDraggingSlider(false)}
+                        onMouseLeave={() => setIsDraggingSlider(false)}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={() => setIsDraggingSlider(false)}
+                      >
+                        {/* BEFORE Image/Video */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          {mediaType === "video" ? (
+                            <video
+                              src={originalMediaUrl || mediaUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <div
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url('${originalMediaUrl || mediaUrl}')` }}
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-zinc-400 font-bold uppercase tracking-widest z-20">
+                            BEFORE
+                          </div>
+                        </div>
+
+                        {/* AFTER Image/Video (Clipped) */}
+                        <div 
+                          className="absolute inset-0 pointer-events-none overflow-hidden"
+                          style={{ clipPath: `polygon(0 0, ${sliderPosition}% 0, ${sliderPosition}% 100%, 0 100%)` }}
+                        >
+                          {mediaType === "video" ? (
+                            <video
+                              src={mediaUrl}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              loop
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <div
+                              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                              style={{ backgroundImage: `url('${mediaUrl}')` }}
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 text-[10px] text-zinc-400 font-bold uppercase tracking-widest z-20">
+                            AFTER
+                          </div>
+                        </div>
+
+                        {/* Drag Bar & Handle */}
+                        <div 
+                          className="absolute inset-y-0 w-0.5 bg-cyan-400/80 cursor-ew-resize z-20"
+                          style={{ left: `${sliderPosition}%` }}
+                          onMouseDown={() => setIsDraggingSlider(true)}
+                          onTouchStart={() => setIsDraggingSlider(true)}
+                        >
+                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/80 backdrop-blur-md border border-cyan-400/40 shadow-[0_0_15px_rgba(34,211,238,0.3)] flex items-center justify-center cursor-ew-resize select-none transition-transform hover:scale-110 active:scale-95">
+                            <span className="text-cyan-400 text-xs font-black tracking-tighter">&lt;&gt;</span>
+                          </div>
+                        </div>
+
+                        {/* Success Badge */}
+                        <div className="absolute top-4 left-4 bg-emerald-950/80 backdrop-blur-md border border-emerald-500/30 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
+                          <Check className="h-3 w-3 text-emerald-400" />
+                          <span className="text-[10px] text-emerald-400 font-bold font-mono uppercase tracking-wider">
+                            AI EDIT APPLIED
+                          </span>
+                        </div>
+
+                        {/* Download Pinned */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const link = document.createElement("a");
+                            link.href = mediaUrl;
+                            link.download = mediaUrl.split("/").pop() || "result";
+                            link.target = "_blank";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5 shrink-0" />
+                          <span>Download Result</span>
+                        </button>
+                      </div>
+                    ) : (
+                      /* Backdrop Original Image/Video when no edit is applied yet */
+                      <div className="absolute inset-0 select-none pointer-events-none">
+                        {mediaType === "video" ? (
+                          <video
+                            src={mediaUrl}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                            style={{ backgroundImage: `url('${mediaUrl}')` }}
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        
+                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-lg z-20">
+                          <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
+                          <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[180px]">
+                            {mediaUrl.split('/').pop()} · {mediaType === "video" ? "Video Clip" : "2048 × 1536"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Interactive Canvas overlay for drawing masks */}
+                    <canvas
+                      ref={canvasRef}
+                      width={containerWidth}
+                      height={containerHeight}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      style={{ cursor: activeTool === "upscale" ? "default" : cursorStyle }}
+                      className={cn(
+                        "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
+                        (showInlight && activeTool !== "upscale") ? "opacity-75" : "opacity-0 pointer-events-none"
+                      )}
+                    />
+
+                    {/* Scanline Processing overlay */}
+                    <AnimatePresence>
+                      {isProcessing && (
+                        <motion.div
+                          key="scan-overlay"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="absolute inset-0 z-20 overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                          <motion.div
+                            className="absolute left-0 right-0 h-[3px] pointer-events-none"
+                            style={{
+                              background: `linear-gradient(90deg, transparent 0%, ${currentTool.hex} 30%, #a78bfa 50%, ${currentTool.hex} 70%, transparent 100%)`,
+                              boxShadow: `0 0 20px 8px ${currentTool.glowHex}, 0 0 6px 2px ${currentTool.hex}`,
+                            }}
+                            initial={{ top: "-2px" }}
+                            animate={{ top: "100%" }}
+                            transition={{ duration: 2.5, ease: "linear", repeat: Infinity }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <motion.div
+                              initial={{ scale: 0.95, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              className="bg-[#090e18]/90 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl backdrop-blur-2xl"
+                            >
+                              <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
+                              <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
+                              <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
+                                {selectedModel.label} · {currentTool.label}
+                              </span>
+                              <div className="flex gap-1 mt-1">
+                                {[0, 1, 2, 3].map((dot) => (
+                                  <motion.div
+                                    key={dot}
+                                    className="h-1.5 w-1.5 rounded-full"
+                                    style={{ backgroundColor: currentTool.hex }}
+                                    animate={{ opacity: [0.2, 1, 0.2] }}
+                                    transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
+                                  />
+                                ))}
+                              </div>
+                            </motion.div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Floating Center Action trigger */}
+                    {activeTool === "upscale" && !isProcessing && !showResult && (
+                      <button
+                        type="button"
+                        onClick={handleApply}
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white hover:bg-zinc-100 text-zinc-900 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-zinc-200/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 animate-pulse cursor-pointer"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 fill-current text-zinc-800" />
+                        <span>Upscale</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Horizontal Media Gallery Bar (At Bottom of Center Area) */}
+              {mediaUrl && (
+                <div className="w-full flex items-center justify-center py-4 bg-transparent shrink-0">
+                  <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl p-2 px-3 shadow-2xl">
+                    <label className="h-12 w-12 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-all shrink-0 group">
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleFileUpload(file);
+                        }}
+                      />
+                      <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
+                    </label>
+
+                    <div className="h-6 w-px bg-white/10" />
+
+                    <div className="flex items-center gap-2.5 overflow-x-auto scrollbar-none max-w-[500px]">
+                      {uploadedMediaList.map((item, idx) => {
+                        const isSelected = mediaUrl === item.url;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setMediaUrl(item.url);
+                              setOriginalMediaUrl(item.url);
+                              setMediaType(item.type);
+                              setShowResult(false);
+                              handleClearMask();
+                            }}
+                            className={cn(
+                              "h-12 w-16 rounded-xl overflow-hidden border transition-all duration-300 hover:scale-105 active:scale-95 shrink-0 relative cursor-pointer",
+                              isSelected ? "border-cyan-400 ring-2 ring-cyan-500/20" : "border-white/10"
+                            )}
+                          >
+                            {item.type === "video" ? (
+                              <video src={item.url} className="h-full w-full object-cover pointer-events-none" />
+                            ) : (
+                              <img src={item.url} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </main>
+
+            {/* RIGHT SIDEBAR — Settings Panel */}
+            <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/5 bg-[#050914] z-10 h-full">
+              {/* Sidebar Header */}
+              <div className="relative px-5 py-5 border-b border-white/5 flex items-center justify-between overflow-visible shrink-0">
+                {activeTool === "upscale" && (
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-500 text-[8px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg z-20">
+                    50% OFF
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center shadow-inner">
+                    {activeTool === "upscale" ? (
+                      <Layers className="h-4 w-4 text-cyan-400" />
+                    ) : (
+                      React.createElement(currentTool.icon, { className: "h-4 w-4 text-cyan-400" })
+                    )}
+                  </div>
+                  <div>
+                    <p className={cn(
+                      "text-zinc-200 font-extrabold",
+                      activeTool === "upscale" ? "text-sm tracking-normal" : "text-xs font-black uppercase tracking-widest text-zinc-300"
+                    )}>
+                      {activeTool === "upscale" ? "Upscale & Enhance" : currentTool.label}
+                    </p>
+                    {activeTool !== "upscale" && (
+                      <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetTool}
+                  className={cn(
+                    "text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors tracking-wider flex items-center gap-1.5 cursor-pointer",
+                    activeTool !== "upscale" && "uppercase"
+                  )}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>Reset</span>
+                </button>
+              </div>
+
+              {/* Configurations scroll area */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
+                {/* 0. Source Media Control (Upload & Reset) */}
+                <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                      Source Media
+                    </span>
+                    {mediaUrl && (
                       <button
                         type="button"
                         onClick={() => {
-                          const link = document.createElement("a");
-                          link.href = mediaUrl;
-                          link.download = mediaUrl.split("/").pop() || "result";
-                          link.target = "_blank";
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
+                          setMediaUrl("");
+                          setOriginalMediaUrl("");
+                          handleClearMask();
                         }}
-                        className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
+                        className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider cursor-pointer"
                       >
-                        <Download className="h-3.5 w-3.5 shrink-0" />
-                        <span>Download Result</span>
+                        Clear Media
                       </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* ── Interactive Drawing HTML5 Canvas ── */}
-              <canvas
-                ref={canvasRef}
-                width={containerWidth}
-                height={containerHeight}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                style={{ cursor: activeTool === "upscale" ? "default" : cursorStyle }}
-                className={cn(
-                  "absolute inset-0 z-10 w-full h-full opacity-70 transition-opacity duration-300",
-                  (showInlight && activeTool !== "upscale") ? "opacity-75" : "opacity-0 pointer-events-none"
-                )}
-              />
-
-            {/* ── Processing Scan Animation overlay ── */}
-            <AnimatePresence>
-              {isProcessing && (
-                <motion.div
-                  key="scan-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 z-20 overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                  
-                  {/* Glowing Laser Scanline */}
-                  <motion.div
-                    className="absolute left-0 right-0 h-[3px] pointer-events-none"
-                    style={{
-                      background: `linear-gradient(90deg, transparent 0%, ${currentTool.hex} 30%, #a78bfa 50%, ${currentTool.hex} 70%, transparent 100%)`,
-                      boxShadow: `0 0 20px 8px ${currentTool.glowHex}, 0 0 6px 2px ${currentTool.hex}`,
-                    }}
-                    initial={{ top: "-2px" }}
-                    animate={{ top: "100%" }}
-                    transition={{ duration: 2.5, ease: "linear", repeat: Infinity }}
-                  />
-
-                  {/* Processing Status box */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="bg-[#090e18]/90 border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-3 shadow-2xl backdrop-blur-2xl"
-                    >
-                      <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
-                      <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
-                      <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
-                        {selectedModel.label} · {currentTool.label}
-                      </span>
-                      <div className="flex gap-1 mt-1">
-                        {[0, 1, 2, 3].map((dot) => (
-                          <motion.div
-                            key={dot}
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: currentTool.hex }}
-                            animate={{ opacity: [0.2, 1, 0.2] }}
-                            transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.15 }}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
+                    )}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
-            {/* Floating Upscale Button in Center of Canvas */}
-            {activeTool === "upscale" && !isProcessing && !showResult && (
-              <button
-                type="button"
-                onClick={handleApply}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 bg-white hover:bg-zinc-100 text-zinc-900 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-[0_4px_25px_rgba(0,0,0,0.5)] border border-zinc-200/20 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 animate-pulse"
-              >
-                <Sparkles className="h-3.5 w-3.5 fill-current text-zinc-800" />
-                <span>Upscale</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Floating Media Gallery Bar (Left Side of Workspace) */}
-        {mediaUrl && (
-          <div className="absolute left-6 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-2.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-2 shadow-2xl">
-            <label className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors group">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (file) await handleFileUpload(file);
-                }}
-              />
-              <span className="text-zinc-400 text-lg font-light group-hover:text-white transition-colors">+</span>
-            </label>
-            
-            <div className="w-5 h-px bg-white/10" />
-
-            {uploadedMediaList.map((item, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setMediaUrl(item.url);
-                  setMediaType(item.type);
-                  setShowResult(false);
-                  handleClearMask();
-                }}
-                className={cn(
-                  "h-9 w-9 rounded-xl overflow-hidden border transition-all duration-200 hover:scale-105 active:scale-95 relative",
-                  mediaUrl === item.url ? "border-cyan-400 ring-2 ring-cyan-500/20" : "border-white/10"
-                )}
-              >
-                {item.type === "video" ? (
-                  <video src={item.url} className="h-full w-full object-cover pointer-events-none" />
-                ) : (
-                  <img src={item.url} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-
-
-      </main>
-
-      {/* ════════════════════════════════════════════════════════════════
-          RIGHT SIDEBAR — Settings Panel
-      ════════════════════════════════════════════════════════════════ */}
-      <aside className="w-[320px] shrink-0 flex flex-col border-l border-white/5 bg-[#050914] z-10">
-        {/* Sidebar Header */}
-        <div className="relative px-5 py-5 border-b border-white/5 flex items-center justify-between overflow-visible">
-          {activeTool === "upscale" && (
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-rose-500 text-[8px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-widest shadow-lg z-20">
-              50% OFF
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 flex items-center justify-center shadow-inner">
-              {activeTool === "upscale" ? (
-                <Layers className="h-4 w-4 text-cyan-400" />
-              ) : (
-                React.createElement(currentTool.icon, { className: "h-4 w-4 text-cyan-400" })
-              )}
-            </div>
-            <div>
-              <p className={cn(
-                "text-zinc-200 font-extrabold",
-                activeTool === "upscale" ? "text-base font-bold tracking-normal" : "text-xs font-black uppercase tracking-widest text-zinc-300"
-              )}>
-                {activeTool === "upscale" ? "Upscale" : currentTool.label}
-              </p>
-              {activeTool !== "upscale" && (
-                <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleResetTool}
-            className={cn(
-              "text-[10px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors tracking-wider flex items-center gap-1.5",
-              activeTool !== "upscale" && "uppercase"
-            )}
-          >
-            <RotateCcw className="h-3 w-3" />
-            <span>Reset</span>
-          </button>
-        </div>
-
-        {/* Configuration settings widgets */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
-          
-          {/* ────────────────────────────────────────────────────────────
-              0. Source Media Control (Upload & Reset)
-          ──────────────────────────────────────────────────────────── */}
-          <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                Source Media
-              </span>
-              {mediaUrl && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMediaUrl("");
-                    handleClearMask();
-                  }}
-                  className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider"
-                >
-                  Clear Media
-                </button>
-              )}
-            </div>
-
-            {mediaUrl ? (
-              <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-video bg-zinc-950">
-                {mediaType === "video" ? (
-                  <video
-                    src={mediaUrl}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <img
-                    src={mediaUrl}
-                    alt="Source"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
-                  <Upload className="h-5 w-5 text-white mr-2" />
-                  <span className="text-xs font-bold text-white">Change File</span>
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) await handleFileUpload(file);
-                    }}
-                  />
-                </label>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
-                <Upload className="h-5 w-5 text-zinc-500 group-hover:text-cyan-400 transition-colors mb-2 animate-pulse" />
-                <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                  Upload Image/Video
-                </span>
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) await handleFileUpload(file);
-                  }}
-                />
-              </label>
-            )}
-          </div>
-          
-          {/* ────────────────────────────────────────────────────────────
-              1. Inpaint & Replace Settings
-          ──────────────────────────────────────────────────────────── */}
-          {(activeTool === "inpaint" || activeTool === "replace") && (
-            <div className="space-y-6">
-              {/* Prompt Textarea */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 block uppercase tracking-widest">
-                  Prompt
-                </span>
-                <textarea
-                  placeholder="Describe what to add, replace, or alter in the painted region..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
-                />
-              </div>
-
-              {/* AI Model Selection */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  AI Generation Model
-                </span>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setModelOpen(!modelOpen)}
-                    className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 hover:bg-white/[0.04] transition-all text-left text-sm"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-zinc-200 font-bold text-xs truncate">
-                        {selectedModel.label}
-                      </div>
-                      <div className="text-[10px] text-zinc-500 truncate mt-0.5">
-                        {selectedModel.sublabel}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {selectedModel.badge && (
-                        <span className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
-                          {selectedModel.badge}
-                        </span>
+                  {mediaUrl ? (
+                    <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-video bg-zinc-950">
+                      {mediaType === "video" ? (
+                        <video
+                          src={mediaUrl}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={mediaUrl}
+                          alt="Source"
+                          className="w-full h-full object-cover"
+                        />
                       )}
-                      <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", modelOpen && "rotate-180")} />
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
+                        <Upload className="h-5 w-5 text-white mr-2" />
+                        <span className="text-xs font-bold text-white">Change File</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) await handleFileUpload(file);
+                          }}
+                        />
+                      </label>
                     </div>
-                  </button>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
+                      <Upload className="h-5 w-5 text-zinc-500 group-hover:text-cyan-400 transition-colors mb-2 animate-pulse" />
+                      <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                        Upload Image/Video
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleFileUpload(file);
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
 
-                  <AnimatePresence>
-                    {modelOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
-                      >
-                        {EDIT_MODELS.map((model) => (
-                          <button
-                            key={model.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedModel(model);
-                              setModelOpen(false);
-                            }}
-                            className={cn(
-                              "w-full px-3.5 py-2.5 rounded-lg text-left transition-colors flex items-center justify-between gap-2",
-                              selectedModel.id === model.id ? "bg-white/[0.05] text-white" : "hover:bg-white/[0.02] text-zinc-400"
-                            )}
-                          >
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold">{model.label}</div>
-                              <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
+                {/* 1. Inpaint & Replace Settings */}
+                {(activeTool === "inpaint" || activeTool === "replace") && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 block uppercase tracking-widest">
+                        Prompt
+                      </span>
+                      <textarea
+                        placeholder="Describe what to add, replace, or alter in the painted region..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        AI Generation Model
+                      </span>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setModelOpen(!modelOpen)}
+                          className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/15 hover:bg-white/[0.04] transition-all text-left text-sm"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-zinc-200 font-bold text-xs truncate">
+                              {selectedModel.label}
                             </div>
-                            {model.badge && (
-                              <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                {model.badge}
+                            <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                              {selectedModel.sublabel}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {selectedModel.badge && (
+                              <span className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                {selectedModel.badge}
                               </span>
                             )}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
+                            <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", modelOpen && "rotate-180")} />
+                          </div>
+                        </button>
 
-              <div className="border-t border-white/5" />
-
-              {/* Brush Settings */}
-              <PremiumSlider
-                label="Brush Radius"
-                value={brushSize}
-                min={4}
-                max={80}
-                step={1}
-                displayValue={`${brushSize}px`}
-                onChange={setBrushSize}
-              />
-
-              <PremiumSlider
-                label="Brush Opacity"
-                value={brushOpacity}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={`${Math.round(brushOpacity * 100)}%`}
-                onChange={setBrushOpacity}
-              />
-
-              <PremiumSlider
-                label="Edit Strength"
-                value={editStrength}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={editStrength.toFixed(2)}
-                onChange={setEditStrength}
-              />
-
-              <div className="border-t border-white/5" />
-
-              {/* Show Mask Overlay toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
-                  Show Mask Overlay
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowInlight(!showInlight)}
-                  className={cn(
-                    "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
-                    showInlight ? "bg-cyan-500 border-cyan-500" : "bg-zinc-900 border-white/10"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
-                      showInlight ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              {/* Advanced Settings */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setAdvancedOpen(!advancedOpen)}
-                  className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
-                >
-                  <span>Advanced AI Settings</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
-                </button>
-                
-                <AnimatePresence initial={false}>
-                  {advancedOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden space-y-4 pt-2 pb-1"
-                    >
-                      <PremiumSlider
-                        label="Sampling Steps"
-                        value={steps}
-                        min={10}
-                        max={50}
-                        step={1}
-                        displayValue={steps.toString()}
-                        onChange={setSteps}
-                      />
-                      <PremiumSlider
-                        label="CFG Scale"
-                        value={cfg}
-                        min={1.0}
-                        max={20.0}
-                        step={0.5}
-                        displayValue={cfg.toFixed(1)}
-                        onChange={setCfg}
-                      />
-                      <div className="space-y-1.5">
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                          Seed
-                        </span>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={seed}
-                            onChange={(e) => setSeed(e.target.value)}
-                            className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
-                          />
-                          <button
-                            type="button"
-                            className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-colors shrink-0"
-                            onClick={() => setSeed(Math.floor(Math.random() * 99999999).toString())}
-                          >
-                            Random
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              2. AI Relight Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "relight" && (
-            <div className="space-y-6">
-              {/* Light Source Angle */}
-              <PremiumSlider
-                label="Light Source Angle"
-                value={lightAngle}
-                min={0}
-                max={360}
-                step={5}
-                displayValue={`${lightAngle}°`}
-                onChange={setLightAngle}
-              />
-
-              {/* Light Intensity */}
-              <PremiumSlider
-                label="Light Intensity"
-                value={lightIntensity}
-                min={0.1}
-                max={2.0}
-                step={0.05}
-                displayValue={`${Math.round(lightIntensity * 100)}%`}
-                onChange={setLightIntensity}
-              />
-
-              {/* Light Color temperature */}
-              <div className="space-y-2.5">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Light Color
-                </span>
-                {/* Quick Swatches */}
-                <div className="flex flex-wrap gap-2.5 items-center">
-                  {[
-                    { name: "Warm Yellow", hex: "#fcd34d" },
-                    { name: "Cool White", hex: "#f8fafc" },
-                    { name: "Neon Rose", hex: "#f43f5e" },
-                    { name: "Cyber Cyan", hex: "#06b6d4" },
-                    { name: "Lime Green", hex: "#10b981" }
-                  ].map((color) => (
-                    <button
-                      key={color.hex}
-                      type="button"
-                      onClick={() => setLightColor(color.hex)}
-                      className={cn(
-                        "h-6 w-6 rounded-full border transition-all transform active:scale-95",
-                        lightColor === color.hex ? "border-white ring-2 ring-cyan-500" : "border-transparent hover:scale-105"
-                      )}
-                      style={{ backgroundColor: color.hex }}
-                      title={color.name}
-                    />
-                  ))}
-                  {/* Custom Picker */}
-                  <input
-                    type="color"
-                    value={lightColor}
-                    onChange={(e) => setLightColor(e.target.value)}
-                    className="h-7 w-7 rounded-md cursor-pointer bg-transparent border-0"
-                    title="Custom color"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              <PremiumSlider
-                label="Relight Effect Strength"
-                value={editStrength}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={editStrength.toFixed(2)}
-                onChange={setEditStrength}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              3. Background Remove Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "bgremove" && (
-            <div className="space-y-6">
-              {/* Output Format */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Output Format
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "png", label: "PNG", sub: "Transparent backing" },
-                    { id: "jpg", label: "JPEG", sub: "Solid back (White)" }
-                  ].map((fmt) => (
-                    <button
-                      key={fmt.id}
-                      type="button"
-                      onClick={() => setBgFormat(fmt.id)}
-                      className={cn(
-                        "rounded-xl border p-2.5 text-left transition-all text-xs flex flex-col gap-0.5",
-                        bgFormat === fmt.id
-                          ? "border-rose-500 bg-rose-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
-                      )}
-                    >
-                      <span className="font-bold">{fmt.label}</span>
-                      <span className="text-[9px] text-zinc-500">{fmt.sub}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Edge Feather */}
-              <PremiumSlider
-                label="Edge Feathering"
-                value={bgFeather}
-                min={0}
-                max={10}
-                step={1}
-                displayValue={`${bgFeather}px`}
-                onChange={setBgFeather}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              4. Expand & Outpaint Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "outpaint" && (
-            <div className="space-y-6">
-              {/* Outpaint directions */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Expansion direction
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "all", label: "All Sides", icon: LayoutGrid },
-                    { id: "top", label: "Top", icon: ArrowUp },
-                    { id: "bottom", label: "Bottom", icon: ArrowDown },
-                    { id: "left", label: "Left", icon: ArrowLeft },
-                    { id: "right", label: "Right", icon: ArrowRight }
-                  ].map((dir) => (
-                    <button
-                      key={dir.id}
-                      type="button"
-                      onClick={() => setOutpaintDirection(dir.id)}
-                      className={cn(
-                        "rounded-xl border p-2 flex flex-col items-center justify-center gap-1.5 transition-all text-xs font-semibold select-none",
-                        outpaintDirection === dir.id
-                          ? "border-emerald-500 bg-emerald-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
-                      )}
-                    >
-                      <dir.icon className="h-4 w-4 shrink-0" />
-                      <span className="text-[9px]">{dir.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Outpaint margin */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Outpaint Margin
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {[10, 25, 50].map((margin) => (
-                    <button
-                      key={margin}
-                      type="button"
-                      onClick={() => setOutpaintMargin(margin)}
-                      className={cn(
-                        "rounded-xl border py-2 text-center text-xs font-bold transition-all",
-                        outpaintMargin === margin
-                          ? "border-emerald-500 bg-emerald-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
-                      )}
-                    >
-                      +{margin}%
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              <PremiumSlider
-                label="Expansion Quality"
-                value={editStrength}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={editStrength.toFixed(2)}
-                onChange={setEditStrength}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              5. Style Transfer Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "style" && (
-            <div className="space-y-6">
-              {/* Presets Gallery */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Artistic Style Presets
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "cyberpunk", label: "Cyberpunk 🌆" },
-                    { id: "anime", label: "Anime 🌸" },
-                    { id: "oil_painting", label: "Oil Paint 🎨" },
-                    { id: "cinematic", label: "Cinematic 🎬" },
-                    { id: "watercolor", label: "Watercolor 💧" }
-                  ].map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => setStylePreset(preset.id)}
-                      className={cn(
-                        "rounded-xl border p-3 text-center transition-all text-xs font-bold",
-                        stylePreset === preset.id
-                          ? "border-pink-500 bg-pink-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
-                      )}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Style Influence */}
-              <PremiumSlider
-                label="Style Influence"
-                value={styleStrength}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={`${Math.round(styleStrength * 100)}%`}
-                onChange={setStyleStrength}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              6. Draw to Edit Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "draw" && (
-            <div className="space-y-6">
-              {/* Custom Brush Color Palette */}
-              <div className="space-y-2.5">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Sketching Color
-                </span>
-                <div className="flex flex-wrap gap-2.5 items-center">
-                  {[
-                    "#ff0000", // Red
-                    "#f97316", // Orange
-                    "#eab308", // Yellow
-                    "#22c55e", // Green
-                    "#06b6d4", // Cyan
-                    "#3b82f6", // Blue
-                    "#a855f7", // Violet
-                    "#ffffff", // White
-                    "#000000"  // Black
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setDrawColor(color)}
-                      className={cn(
-                        "h-6 w-6 rounded-full border transition-all transform active:scale-95",
-                        drawColor === color ? "border-white ring-2 ring-blue-500" : "border-transparent hover:scale-105"
-                      )}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                  {/* Custom Picker */}
-                  <input
-                    type="color"
-                    value={drawColor}
-                    onChange={(e) => setDrawColor(e.target.value)}
-                    className="h-7 w-7 bg-transparent border-0 cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-white/5" />
-
-              {/* Brush radius */}
-              <PremiumSlider
-                label="Sketch Pen Size"
-                value={brushSize}
-                min={4}
-                max={80}
-                step={1}
-                displayValue={`${brushSize}px`}
-                onChange={setBrushSize}
-              />
-
-              <PremiumSlider
-                label="Sketch Opacity"
-                value={brushOpacity}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={`${Math.round(brushOpacity * 100)}%`}
-                onChange={setBrushOpacity}
-              />
-
-              {/* Edit Strength */}
-              <PremiumSlider
-                label="Drawing Influence"
-                value={editStrength}
-                min={0.1}
-                max={1.0}
-                step={0.05}
-                displayValue={editStrength.toFixed(2)}
-                onChange={setEditStrength}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              7. Motion Track Edit Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "motion" && (
-            <div className="space-y-6">
-              {/* Motion Direction */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                  Motion Direction
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "forward", label: "Forward" },
-                    { id: "backward", label: "Backward" },
-                    { id: "circular", label: "Circular" }
-                  ].map((dir) => (
-                    <button
-                      key={dir.id}
-                      type="button"
-                      onClick={() => setMotionDirection(dir.id)}
-                      className={cn(
-                        "rounded-xl border py-2.5 text-center text-xs font-bold transition-all",
-                        motionDirection === dir.id
-                          ? "border-orange-500 bg-orange-500/10 text-white"
-                          : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
-                      )}
-                    >
-                      {dir.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Motion Speed */}
-              <PremiumSlider
-                label="Motion Speed"
-                value={motionSpeed}
-                min={1}
-                max={10}
-                step={1}
-                displayValue={motionSpeed.toString()}
-                onChange={setMotionSpeed}
-              />
-            </div>
-          )}
-
-          {/* ────────────────────────────────────────────────────────────
-              8. AI Upscale & Enhance Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "upscale" && (
-            <div className="space-y-6">
-              {/* Model Dropdown Selection */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 block">
-                  Model
-                </span>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setUpscaleModelOpen(!upscaleModelOpen)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-900/80 transition-all text-left text-sm"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-zinc-950 border border-white/5 flex items-center justify-center shrink-0">
-                        {upscaleModel === "topaz" ? (
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4.5 w-4.5 text-zinc-400">
-                            <rect x="4" y="4" width="6" height="6" rx="1.5" fill="currentColor" />
-                            <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
-                            <rect x="14" y="14" width="6" height="6" rx="1.5" fill="currentColor" />
-                          </svg>
-                        ) : (
-                          <Aperture className="h-4.5 w-4.5 text-teal-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-zinc-200 font-bold text-xs lowercase text-left">
-                          {upscaleModel}
-                        </div>
-                        <div className="text-[9px] text-zinc-500 truncate mt-0.5 text-left leading-tight">
-                          {upscaleModel === "topaz" ? "The default model for general-purpose..." : 
-                           upscaleModel === "realesrgan" ? "Best for digital art, anime, and illustrations." : 
-                           "High fidelity photographic details & face restoration."}
-                        </div>
+                        <AnimatePresence>
+                          {modelOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
+                            >
+                              {EDIT_MODELS.map((model) => (
+                                <button
+                                  key={model.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedModel(model);
+                                    setModelOpen(false);
+                                  }}
+                                  className={cn(
+                                    "w-full px-3.5 py-2.5 rounded-lg text-left transition-colors flex items-center justify-between gap-2",
+                                    selectedModel.id === model.id ? "bg-white/[0.05] text-white" : "hover:bg-white/[0.02] text-zinc-400"
+                                  )}
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold">{model.label}</div>
+                                    <div className="text-[9px] text-zinc-500 mt-0.5">{model.sublabel}</div>
+                                  </div>
+                                  {model.badge && (
+                                    <span className="bg-white/5 border border-white/10 text-[8px] font-black text-zinc-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                      {model.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                    <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition-transform duration-200 shrink-0", upscaleModelOpen && "rotate-180")} />
-                  </button>
 
-                  <AnimatePresence>
-                    {upscaleModelOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
-                      >
-                        {[
-                          { id: "topaz", label: "topaz", desc: "The default model for general-purpose..." },
-                          { id: "realesrgan", label: "realesrgan", desc: "Best for digital art, anime, and illustrations." },
-                          { id: "realsr", label: "realsr", desc: "High fidelity photographic details & face restoration." }
-                        ].map((model) => (
-                          <button
-                            key={model.id}
-                            type="button"
-                            onClick={() => {
-                              setUpscaleModel(model.id);
-                              setUpscaleModelOpen(false);
-                            }}
-                            className={cn(
-                              "w-full px-3 py-2.5 rounded-lg text-left transition-colors flex items-center gap-3",
-                              upscaleModel === model.id ? "bg-white/5 text-white" : "text-zinc-400 hover:bg-white/[0.02]"
-                            )}
-                          >
-                            {model.id === "topaz" ? (
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-zinc-400 shrink-0">
-                                <rect x="4" y="4" width="6" height="6" rx="1.5" fill="currentColor" />
-                                <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" />
-                                <rect x="14" y="14" width="6" height="6" rx="1.5" fill="currentColor" />
-                              </svg>
-                            ) : (
-                              <Aperture className="h-4 w-4 text-teal-400 shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              <div className="text-xs font-bold lowercase">{model.label}</div>
-                              <div className="text-[8px] text-zinc-500 truncate mt-0.5">{model.desc}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
+                    <div className="border-t border-white/5" />
 
-              {/* Scale Factor segmented control */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 block">
-                  Scale factor
-                </span>
-                <div className="grid grid-cols-4 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
-                  {["1", "2", "4", mediaType === "video" ? "4" : "8"].map((fac) => (
-                    mediaType === "video" && fac === "8" ? null : (
+                    <PremiumSlider
+                      label="Brush Radius"
+                      value={brushSize}
+                      min={4}
+                      max={80}
+                      step={1}
+                      displayValue={`${brushSize}px`}
+                      onChange={setBrushSize}
+                    />
+
+                    <PremiumSlider
+                      label="Brush Opacity"
+                      value={brushOpacity}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={`${Math.round(brushOpacity * 100)}%`}
+                      onChange={setBrushOpacity}
+                    />
+
+                    <PremiumSlider
+                      label="Edit Strength"
+                      value={editStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={editStrength.toFixed(2)}
+                      onChange={setEditStrength}
+                    />
+
+                    <div className="border-t border-white/5" />
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                        Show Mask Overlay
+                      </span>
                       <button
-                        key={fac}
                         type="button"
-                        onClick={() => setUpscaleFactor(fac)}
+                        onClick={() => setShowInlight(!showInlight)}
                         className={cn(
-                          "py-1.5 rounded-lg text-xs font-bold transition-all",
-                          upscaleFactor === fac
-                            ? "bg-white text-black font-extrabold shadow-sm"
-                            : "text-zinc-400 hover:text-zinc-200"
+                          "w-11 h-6 rounded-full p-0.5 transition-colors relative border",
+                          showInlight ? "bg-cyan-500 border-cyan-500" : "bg-zinc-900 border-white/10"
                         )}
                       >
-                        x{fac}
+                        <div
+                          className={cn(
+                            "h-4.5 w-4.5 rounded-full bg-white shadow-md transition-transform",
+                            showInlight ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
                       </button>
-                    )
-                  ))}
-                </div>
-              </div>
+                    </div>
 
-              {/* Resolution selector */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-bold text-zinc-400 block">
-                  Target Resolution
-                </span>
-                <div className="grid grid-cols-3 gap-1 bg-zinc-950 border border-white/5 rounded-xl p-1">
-                  {["480", "720", "1080"].map((res) => (
-                    <button
-                      key={res}
-                      type="button"
-                      onClick={() => setUpscaleResolution(res)}
-                      className={cn(
-                        "py-1.5 rounded-lg text-xs font-bold transition-all",
-                        upscaleResolution === res
-                          ? "bg-white text-black font-extrabold shadow-sm"
-                          : "text-zinc-400 hover:text-zinc-200"
-                      )}
-                    >
-                      {res}p
-                    </button>
-                  ))}
-                </div>
-              </div>
+                    <div className="border-t border-white/5" />
 
-              {/* Collapsible Advanced Settings */}
-              <div className="border-t border-white/5 pt-4 space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setUpscaleAdvancedOpen(!upscaleAdvancedOpen)}
-                  className="w-full flex items-center justify-between text-zinc-400 hover:text-zinc-200 transition-colors"
-                >
-                  <span className="text-[11px] font-bold tracking-wider">
-                    Advanced Settings
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", upscaleAdvancedOpen && "rotate-180")} />
-                </button>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => setAdvancedOpen(!advancedOpen)}
+                        className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
+                      >
+                        <span>Advanced AI Settings</span>
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
+                      </button>
+                      
+                      <AnimatePresence initial={false}>
+                        {advancedOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden space-y-4 pt-2 pb-1"
+                          >
+                            <PremiumSlider
+                              label="Sampling Steps"
+                              value={steps}
+                              min={10}
+                              max={50}
+                              step={1}
+                              displayValue={steps.toString()}
+                              onChange={setSteps}
+                            />
+                            <PremiumSlider
+                              label="CFG Scale"
+                              value={cfg}
+                              min={1.0}
+                              max={20.0}
+                              step={0.5}
+                              displayValue={cfg.toFixed(1)}
+                              onChange={setCfg}
+                            />
+                            <div className="space-y-1.5">
+                              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                                Seed
+                              </span>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={seed}
+                                  onChange={(e) => setSeed(e.target.value)}
+                                  className="flex-1 bg-white/[0.02] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 font-mono focus:outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  className="px-2.5 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[10px] font-bold hover:bg-white/10 transition-colors shrink-0"
+                                  onClick={() => setSeed(Math.floor(Math.random() * 99999999).toString())}
+                                >
+                                  Random
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
 
-                {upscaleAdvancedOpen && (
-                  <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Denoise Strength slider */}
+                {/* 2. AI Relight Settings */}
+                {activeTool === "relight" && (
+                  <div className="space-y-6">
                     <PremiumSlider
-                      label="Denoise Strength"
+                      label="Light Source Angle"
+                      value={lightAngle}
+                      min={0}
+                      max={360}
+                      step={5}
+                      displayValue={`${lightAngle}°`}
+                      onChange={setLightAngle}
+                    />
+
+                    <PremiumSlider
+                      label="Light Intensity"
+                      value={lightIntensity}
+                      min={0.1}
+                      max={2.0}
+                      step={0.05}
+                      displayValue={`${Math.round(lightIntensity * 100)}%`}
+                      onChange={setLightIntensity}
+                    />
+
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Light Color
+                      </span>
+                      <div className="flex flex-wrap gap-2.5 items-center">
+                        {[
+                          { name: "Warm Yellow", hex: "#fcd34d" },
+                          { name: "Cool White", hex: "#f8fafc" },
+                          { name: "Neon Rose", hex: "#f43f5e" },
+                          { name: "Cyber Cyan", hex: "#06b6d4" },
+                          { name: "Lime Green", hex: "#10b981" }
+                        ].map((color) => (
+                          <button
+                            key={color.hex}
+                            type="button"
+                            onClick={() => setLightColor(color.hex)}
+                            className={cn(
+                              "h-6 w-6 rounded-full border transition-all transform active:scale-95",
+                              lightColor === color.hex ? "border-white ring-2 ring-cyan-500" : "border-transparent hover:scale-105"
+                            )}
+                            style={{ backgroundColor: color.hex }}
+                            title={color.name}
+                          />
+                        ))}
+                        <input
+                          type="color"
+                          value={lightColor}
+                          onChange={(e) => setLightColor(e.target.value)}
+                          className="h-7 w-7 rounded-md cursor-pointer bg-transparent border-0"
+                          title="Custom color"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5" />
+
+                    <PremiumSlider
+                      label="Relight Effect Strength"
+                      value={editStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={editStrength.toFixed(2)}
+                      onChange={setEditStrength}
+                    />
+                  </div>
+                )}
+
+                {/* 3. Background Remove Settings */}
+                {activeTool === "bgremove" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Output Format
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "png", label: "PNG", sub: "Transparent backing" },
+                          { id: "jpg", label: "JPEG", sub: "Solid back (White)" }
+                        ].map((fmt) => (
+                          <button
+                            key={fmt.id}
+                            type="button"
+                            onClick={() => setBgFormat(fmt.id)}
+                            className={cn(
+                              "rounded-xl border p-2.5 text-left transition-all text-xs flex flex-col gap-0.5",
+                              bgFormat === fmt.id
+                                ? "border-rose-500 bg-rose-500/10 text-white"
+                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            <span className="font-bold">{fmt.label}</span>
+                            <span className="text-[9px] text-zinc-500">{fmt.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <PremiumSlider
+                      label="Edge Feathering"
+                      value={bgFeather}
+                      min={0}
+                      max={10}
+                      step={1}
+                      displayValue={`${bgFeather}px`}
+                      onChange={setBgFeather}
+                    />
+                  </div>
+                )}
+
+                {/* 4. Expand & Outpaint Settings */}
+                {activeTool === "outpaint" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Expansion direction
+                      </span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "all", label: "All Sides", icon: LayoutGrid },
+                          { id: "top", label: "Top", icon: ArrowUp },
+                          { id: "bottom", label: "Bottom", icon: ArrowDown },
+                          { id: "left", label: "Left", icon: ArrowLeft },
+                          { id: "right", label: "Right", icon: ArrowRight }
+                        ].map((dir) => (
+                          <button
+                            key={dir.id}
+                            type="button"
+                            onClick={() => setOutpaintDirection(dir.id)}
+                            className={cn(
+                              "rounded-xl border p-2 flex flex-col items-center justify-center gap-1.5 transition-all text-xs font-semibold select-none",
+                              outpaintDirection === dir.id
+                                ? "border-emerald-500 bg-emerald-500/10 text-white"
+                                : "border-white/10 bg-white/[0.02] text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"
+                            )}
+                          >
+                            <dir.icon className="h-4 w-4 shrink-0" />
+                            <span className="text-[9px]">{dir.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Outpaint Margin
+                      </span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[10, 25, 50].map((margin) => (
+                          <button
+                            key={margin}
+                            type="button"
+                            onClick={() => setOutpaintMargin(margin)}
+                            className={cn(
+                              "rounded-xl border py-2 text-center text-xs font-bold transition-all",
+                              outpaintMargin === margin
+                                ? "border-emerald-500 bg-emerald-500/10 text-white"
+                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            +{margin}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5" />
+
+                    <PremiumSlider
+                      label="Expansion Quality"
+                      value={editStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={editStrength.toFixed(2)}
+                      onChange={setEditStrength}
+                    />
+                  </div>
+                )}
+
+                {/* 5. Style Transfer Settings */}
+                {activeTool === "style" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Artistic Style Presets
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "cyberpunk", label: "Cyberpunk 🌆" },
+                          { id: "anime", label: "Anime 🌸" },
+                          { id: "oil_painting", label: "Oil Paint 🎨" },
+                          { id: "cinematic", label: "Cinematic 🎬" },
+                          { id: "watercolor", label: "Watercolor 💧" }
+                        ].map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setStylePreset(preset.id)}
+                            className={cn(
+                              "rounded-xl border p-3 text-center transition-all text-xs font-bold",
+                              stylePreset === preset.id
+                                ? "border-pink-500 bg-pink-500/10 text-white"
+                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <PremiumSlider
+                      label="Style Influence"
+                      value={styleStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={`${Math.round(styleStrength * 100)}%`}
+                      onChange={setStyleStrength}
+                    />
+                  </div>
+                )}
+
+                {/* 6. Object Remover Settings (mappings to replace) */}
+                {activeTool === "replace" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 block uppercase tracking-widest">
+                        Removal Prompt
+                      </span>
+                      <textarea
+                        placeholder="Specify details about the object to remove or replace..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
+                      />
+                    </div>
+
+                    <div className="border-t border-white/5" />
+
+                    <PremiumSlider
+                      label="Brush Radius"
+                      value={brushSize}
+                      min={4}
+                      max={80}
+                      step={1}
+                      displayValue={`${brushSize}px`}
+                      onChange={setBrushSize}
+                    />
+
+                    <PremiumSlider
+                      label="Removal Influence"
+                      value={editStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={editStrength.toFixed(2)}
+                      onChange={setEditStrength}
+                    />
+                  </div>
+                )}
+
+                {/* 7. Draw to Edit Settings */}
+                {activeTool === "draw" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Sketching Color
+                      </span>
+                      <div className="flex flex-wrap gap-2.5 items-center">
+                        {[
+                          "#ff0000", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#a855f7", "#ffffff", "#000000"
+                        ].map((color) => (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setDrawColor(color)}
+                            className={cn(
+                              "h-6 w-6 rounded-full border transition-all transform active:scale-95",
+                              drawColor === color ? "border-white ring-2 ring-blue-500" : "border-transparent hover:scale-105"
+                            )}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                        <input
+                          type="color"
+                          value={drawColor}
+                          onChange={(e) => setDrawColor(e.target.value)}
+                          className="h-7 w-7 bg-transparent border-0 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5" />
+
+                    <PremiumSlider
+                      label="Sketch Pen Size"
+                      value={brushSize}
+                      min={4}
+                      max={80}
+                      step={1}
+                      displayValue={`${brushSize}px`}
+                      onChange={setBrushSize}
+                    />
+
+                    <PremiumSlider
+                      label="Sketch Opacity"
+                      value={brushOpacity}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={`${Math.round(brushOpacity * 100)}%`}
+                      onChange={setBrushOpacity}
+                    />
+
+                    <PremiumSlider
+                      label="Drawing Influence"
+                      value={editStrength}
+                      min={0.1}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={editStrength.toFixed(2)}
+                      onChange={setEditStrength}
+                    />
+                  </div>
+                )}
+
+                {/* 8. Motion Track Settings */}
+                {activeTool === "motion" && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Motion Direction
+                      </span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "forward", label: "Forward" },
+                          { id: "backward", label: "Backward" },
+                          { id: "circular", label: "Circular" }
+                        ].map((dir) => (
+                          <button
+                            key={dir.id}
+                            type="button"
+                            onClick={() => setMotionDirection(dir.id)}
+                            className={cn(
+                              "rounded-xl border py-2.5 text-center text-xs font-bold transition-all",
+                              motionDirection === dir.id
+                                ? "border-orange-500 bg-orange-500/10 text-white"
+                                : "border-white/10 bg-white/[0.02] text-zinc-400 hover:bg-white/[0.04]"
+                            )}
+                          >
+                            {dir.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <PremiumSlider
+                      label="Motion Speed"
+                      value={motionSpeed}
+                      min={1}
+                      max={10}
+                      step={1}
+                      displayValue={motionSpeed.toString()}
+                      onChange={setMotionSpeed}
+                    />
+                  </div>
+                )}
+
+                {/* 9. AI Upscale & Enhance Settings (Mockup Aligned) */}
+                {activeTool === "upscale" && (
+                  <div className="space-y-6">
+                    {/* Model Dropdown Selection */}
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Model
+                      </span>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setUpscaleModelOpen(!upscaleModelOpen)}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl bg-zinc-900 border border-white/5 hover:bg-zinc-900/80 transition-all text-left text-sm"
+                        >
+                          <span className="text-zinc-200 font-extrabold text-xs truncate">
+                            {upscaleModel === "topaz" ? "Portrait Enhancer v2.4" : 
+                             upscaleModel === "realesrgan" ? "Anime & Art Enhancer" : 
+                             "Photo Fidelity Enhancer"}
+                          </span>
+                          <ChevronDown className={cn("h-4 w-4 text-zinc-400 transition-transform duration-200 shrink-0", upscaleModelOpen && "rotate-180")} />
+                        </button>
+
+                        <AnimatePresence>
+                          {upscaleModelOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              className="absolute top-full left-0 right-0 z-50 mt-1.5 rounded-xl bg-[#090f1d] border border-white/10 shadow-2xl overflow-hidden p-1"
+                            >
+                              {[
+                                { id: "topaz", label: "Portrait Enhancer v2.4" },
+                                { id: "realesrgan", label: "Anime & Art Enhancer" },
+                                { id: "realsr", label: "Photo Fidelity Enhancer" }
+                              ].map((model) => (
+                                <button
+                                  key={model.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setUpscaleModel(model.id);
+                                    setUpscaleModelOpen(false);
+                                  }}
+                                  className={cn(
+                                    "w-full px-4 py-3 rounded-lg text-left transition-colors text-xs font-bold",
+                                    upscaleModel === model.id ? "bg-white/5 text-white" : "text-zinc-400 hover:bg-white/[0.02]"
+                                  )}
+                                >
+                                  {model.label}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    {/* Scale Factor segmented control */}
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Scale factor
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {["1", "2", "4", mediaType === "video" ? "4" : "8"].map((fac) => {
+                          if (mediaType === "video" && fac === "8") return null;
+                          const isActive = upscaleFactor === fac;
+                          return (
+                            <button
+                              key={fac}
+                              type="button"
+                              onClick={() => setUpscaleFactor(fac)}
+                              className={cn(
+                                "h-10 w-12 rounded-xl text-xs font-bold transition-all duration-300 border flex items-center justify-center cursor-pointer",
+                                isActive
+                                  ? "bg-zinc-950 text-cyan-400 border-cyan-500 shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+                                  : "bg-zinc-900 text-zinc-400 border-white/5 hover:border-white/10 hover:text-zinc-200"
+                              )}
+                            >
+                              x{fac}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Quality selector */}
+                    <div className="space-y-2.5">
+                      <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                        Quality
+                      </span>
+                      <div className="grid grid-cols-3 gap-1 bg-zinc-950 border border-white/5 rounded-2xl p-1">
+                        {[
+                          { id: "480", label: "Standard" },
+                          { id: "720", label: "High" },
+                          { id: "1080", label: "Ultra" }
+                        ].map((res) => {
+                          const isActive = upscaleResolution === res.id;
+                          return (
+                            <button
+                              key={res.id}
+                              type="button"
+                              onClick={() => setUpscaleResolution(res.id)}
+                              className={cn(
+                                "py-2 px-1 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer",
+                                isActive
+                                  ? "bg-zinc-900 text-white shadow-inner font-extrabold border border-white/5"
+                                  : "text-zinc-500 hover:text-zinc-300"
+                              )}
+                            >
+                              {res.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Custom Sliders for Noise and Sharpness */}
+                    <PremiumSlider
+                      label="Noise Reduction"
                       value={upscaleDenoise}
                       min={0.0}
                       max={1.0}
@@ -2471,7 +2464,17 @@ export default function EditPage() {
                       onChange={setUpscaleDenoise}
                     />
 
-                    {/* Face Details Enhance toggle */}
+                    <PremiumSlider
+                      label="Sharpness"
+                      value={upscaleSharpness}
+                      min={0.0}
+                      max={1.0}
+                      step={0.05}
+                      displayValue={`${Math.round(upscaleSharpness * 100)}%`}
+                      onChange={setUpscaleSharpness}
+                    />
+
+                    {/* Collapsible Face details */}
                     <div className="flex items-center justify-between border-t border-white/5 pt-4">
                       <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
                         Face Details Enhance
@@ -2494,220 +2497,212 @@ export default function EditPage() {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
 
-          {/* ────────────────────────────────────────────────────────────
-              9. Face Swap Pro Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "faceswap" && (
-            <div className="space-y-6">
-              {/* Reference Face Image Control (Upload & Reset) */}
-              <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
-                    Reference Face Image
-                  </span>
-                  {faceImageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFaceImageUrl("");
-                      }}
-                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider"
-                    >
-                      Clear Face
-                    </button>
-                  )}
-                </div>
+                {/* 10. Face Swap Pro Settings */}
+                {activeTool === "faceswap" && (
+                  <div className="space-y-6">
+                    <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest block">
+                          Reference Face Image
+                        </span>
+                        {faceImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setFaceImageUrl("")}
+                            className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-wider"
+                          >
+                            Clear Face
+                          </button>
+                        )}
+                      </div>
 
-                {isUploadingFace ? (
-                  <div className="flex flex-col items-center justify-center p-6 border border-white/10 rounded-xl bg-zinc-950/40">
-                    <div className="h-6 w-6 rounded-full border border-t-cyan-400 border-r-transparent animate-spin mb-2" />
-                    <span className="text-[10px] text-zinc-400 font-bold">Uploading face image...</span>
+                      {isUploadingFace ? (
+                        <div className="flex flex-col items-center justify-center p-6 border border-white/10 rounded-xl bg-zinc-950/40">
+                          <div className="h-6 w-6 rounded-full border border-t-cyan-400 border-r-transparent animate-spin mb-2" />
+                          <span className="text-[10px] text-zinc-400 font-bold">Uploading face image...</span>
+                        </div>
+                      ) : faceImageUrl ? (
+                        <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square w-32 mx-auto bg-zinc-950">
+                          <img
+                            src={faceImageUrl}
+                            alt="Reference Face"
+                            className="w-full h-full object-cover"
+                          />
+                          <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
+                            <Upload className="h-4 w-4 text-white mr-1.5" />
+                            <span className="text-[10px] font-bold text-white">Change</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleFaceUpload(file);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-fuchsia-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
+                          <Upload className="h-5 w-5 text-zinc-500 group-hover:text-fuchsia-400 transition-colors mb-2" />
+                          <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                            Upload Face Photo
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) await handleFaceUpload(file);
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="bg-[#120a1c]/60 border border-fuchsia-500/10 rounded-xl p-3.5 space-y-2">
+                      <p className="text-[10px] font-bold text-fuchsia-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 shrink-0" />
+                        <span>Pro Swap Tips</span>
+                      </p>
+                      <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
+                        <li>Use high-resolution, front-facing face portraits.</li>
+                        <li>Ensure consistent lighting between both images.</li>
+                        <li>Avoid angles, occlusions (hands, hair), or motion blur.</li>
+                        <li>Works best with human faces (anime results may vary).</li>
+                      </ul>
+                    </div>
                   </div>
-                ) : faceImageUrl ? (
-                  <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square w-32 mx-auto bg-zinc-950">
-                    <img
-                      src={faceImageUrl}
-                      alt="Reference Face"
-                      className="w-full h-full object-cover"
-                    />
-                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity z-10">
-                      <Upload className="h-4 w-4 text-white mr-1.5" />
-                      <span className="text-[10px] font-bold text-white">Change</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (file) await handleFaceUpload(file);
-                        }}
-                      />
-                    </label>
-                  </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center p-6 border border-dashed border-white/10 rounded-xl hover:border-fuchsia-500/50 hover:bg-white/[0.01] transition-all cursor-pointer group">
-                    <Upload className="h-5 w-5 text-zinc-500 group-hover:text-fuchsia-400 transition-colors mb-2" />
-                    <span className="text-xs font-bold text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                      Upload Face Photo
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) await handleFaceUpload(file);
-                      }}
-                    />
-                  </label>
                 )}
-              </div>
 
-              {/* Best Practice Note / Tips for Face Swap */}
-              <div className="bg-[#120a1c]/60 border border-fuchsia-500/10 rounded-xl p-3.5 space-y-2">
-                <p className="text-[10px] font-bold text-fuchsia-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Info className="h-3.5 w-3.5 shrink-0" />
-                  <span>Pro Swap Tips</span>
-                </p>
-                <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
-                  <li>Use high-resolution, front-facing face portraits.</li>
-                  <li>Ensure consistent lighting between both images.</li>
-                  <li>Avoid angles, occlusions (hands, hair), or motion blur.</li>
-                  <li>Works best with human faces (anime results may vary).</li>
-                </ul>
-              </div>
-            </div>
-          )}
+                {/* 11. Video Watermark Remover Settings */}
+                {activeTool === "watermark" && (
+                  <div className="space-y-6">
+                    {mediaUrl && mediaType !== "video" && (
+                      <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl p-3.5 flex items-start gap-2.5">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                        <div className="text-xs font-semibold">
+                          <p className="font-bold">Invalid Media Type</p>
+                          <p className="text-[10px] text-rose-400/80 mt-0.5 leading-relaxed">
+                            Watermark removal only supports video files. Please clear this media or upload a video.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
-          {/* ────────────────────────────────────────────────────────────
-              10. Video Watermark Remover Settings
-          ──────────────────────────────────────────────────────────── */}
-          {activeTool === "watermark" && (
-            <div className="space-y-6">
-              {/* Media validation alert */}
-              {mediaUrl && mediaType !== "video" && (
-                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl p-3.5 flex items-start gap-2.5">
-                  <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                  <div className="text-xs font-semibold">
-                    <p className="font-bold">Invalid Media Type</p>
-                    <p className="text-[10px] text-rose-400/80 mt-0.5 leading-relaxed">
-                      Watermark removal only supports video files. Please clear this media or upload a video.
-                    </p>
+                    {mediaUrl && mediaType === "video" && (
+                      <div className="bg-[#0c1328]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
+                        <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">
+                          Duration & Pricing Cost
+                        </span>
+                        
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-zinc-400 font-semibold">Billed Duration:</span>
+                          <span className="text-slate-200 font-mono font-bold">
+                            {Math.max(5, Math.ceil(videoDuration || 5))}s
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
+                          <span className="text-zinc-400 font-semibold">Pricing Rate:</span>
+                          <span className="text-slate-200 font-semibold">
+                            0.4 Credits / sec
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
+                          <span className="text-indigo-400 font-bold">Estimated Cost:</span>
+                          <span className="text-indigo-400 font-black font-mono">
+                            {(Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1)} Credits
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-[#0b101c]/60 border border-indigo-500/10 rounded-xl p-3.5 space-y-2">
+                      <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Info className="h-3.5 w-3.5 shrink-0" />
+                        <span>Removal Guidelines</span>
+                      </p>
+                      <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
+                        <li>Temporal-aware inpainting avoids flickering and keeps motions stable.</li>
+                        <li>Reconstructs textures, grains, and lighting beneath overlays.</li>
+                        <li>Supports removing subtitles, lower-thirds, moving corner bugs, and logos.</li>
+                        <li>Supports video files up to 10 minutes in length.</li>
+                      </ul>
+                    </div>
                   </div>
+                )}
+
+                <div className="border-t border-white/5" />
+                <ToolShowcase activeTool={activeTool} />
+              </div>
+
+              {/* Bottom Pinned Trigger Button */}
+              <div className="p-5 border-t border-white/5 bg-[#040710] space-y-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
+                  className={cn(
+                    "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg cursor-pointer",
+                    isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
+                      ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-cyan-400 to-violet-600 hover:from-cyan-300 hover:to-violet-500 text-black border-transparent shadow-[0_4px_20px_rgba(20,184,166,0.25)]"
+                  )}
+                >
+                  <span className="font-extrabold">{getActionLabel()}</span>
+                  <Sparkles className="h-4 w-4 fill-current shrink-0" />
+                  {!isProcessing && (["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) || prompt.trim()) && (
+                    <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
+                      <Star className="h-3 w-3 fill-current" />
+                      <span>{activeTool === "watermark" ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1) : "5"}</span>
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {showResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Generation applied successfully!</span>
+                    </motion.div>
+                  )}
+
+                  {simulatedWarning && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-start gap-2 py-2 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-semibold leading-relaxed"
+                    >
+                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>{simulatedWarning}</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Status Bar */}
+              <div className="px-5 py-3.5 border-t border-white/5 bg-[#03050c] flex items-center justify-between text-[10px] text-zinc-500 font-bold shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Auto-Saved</span>
                 </div>
-              )}
-
-              {/* Dynamic Billing Estimator card */}
-              {mediaUrl && mediaType === "video" && (
-                <div className="bg-[#0c1328]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
-                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">
-                    Duration & Pricing Cost
-                  </span>
-                  
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-400 font-semibold">Billed Duration:</span>
-                    <span className="text-slate-200 font-mono font-bold">
-                      {Math.max(5, Math.ceil(videoDuration || 5))}s
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
-                    <span className="text-zinc-400 font-semibold">Pricing Rate:</span>
-                    <span className="text-slate-200 font-semibold">
-                      0.4 Credits / sec
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-xs border-t border-white/5 pt-2">
-                    <span className="text-indigo-400 font-bold">Estimated Cost:</span>
-                    <span className="text-indigo-400 font-black font-mono">
-                      {(Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1)} Credits
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Best Practice Note / Tips for Watermark Removal */}
-              <div className="bg-[#0b101c]/60 border border-indigo-500/10 rounded-xl p-3.5 space-y-2">
-                <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Info className="h-3.5 w-3.5 shrink-0" />
-                  <span>Removal Guidelines</span>
-                </p>
-                <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
-                  <li>Temporal-aware inpainting avoids flickering and keeps motions stable.</li>
-                  <li>Reconstructs textures, grains, and lighting beneath overlays.</li>
-                  <li>Supports removing subtitles, lower-thirds, moving corner bugs, and logos.</li>
-                  <li>Supports video files up to 10 minutes in length.</li>
-                </ul>
+                <div>GPU: 80%</div>
+                <div>Version 1.2</div>
               </div>
-            </div>
-          )}
-
-          <div className="border-t border-white/5" />
-
-          {/* Interactive Tool Showcase & Guide */}
-          <ToolShowcase activeTool={activeTool} />
-
-        </div>
-
-        {/* Bottom Pinned Trigger button */}
-        <div className="p-5 border-t border-white/5 bg-[#040710] space-y-3">
-          <button
-            type="button"
-            onClick={handleApply}
-            disabled={isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())}
-            className={cn(
-              "w-full py-4 rounded-xl font-black text-sm tracking-wider flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] border shadow-lg",
-              isProcessing || (!["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) && !prompt.trim())
-                ? "bg-zinc-900 border-white/5 text-zinc-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black border-transparent shadow-lg shadow-cyan-500/10"
-            )}
-          >
-            <span>{getActionLabel()}</span>
-            <Sparkles className="h-4 w-4 fill-current shrink-0" />
-            {!isProcessing && (["bgremove", "upscale", "faceswap", "watermark"].includes(activeTool) || prompt.trim()) && (
-              <span className="inline-flex items-center gap-1 text-[11px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
-                <Star className="h-3 w-3 fill-current" />
-                <span>{activeTool === "watermark" ? (Math.max(5, Math.ceil(videoDuration || 5)) * 0.4).toFixed(1) : "5"}</span>
-              </span>
-            )}
-          </button>
-
-          <AnimatePresence>
-            {showResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold"
-              >
-                <Check className="h-3.5 w-3.5" />
-                <span>Generation applied successfully!</span>
-              </motion.div>
-            )}
-
-            {simulatedWarning && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="flex items-start gap-2 py-2 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-semibold leading-relaxed"
-              >
-                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>{simulatedWarning}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </aside>
+            </aside>
           </div>
         )}
       </div>
-
     </div>
   );
 }

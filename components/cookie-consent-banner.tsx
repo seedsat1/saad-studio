@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Cookie, Settings2, ShieldCheck, X } from "lucide-react";
+import { Cookie, Settings2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -180,20 +180,6 @@ export function CookieConsentBanner() {
         </section>
       )}
 
-      {!isOpen && (
-        <button
-          type="button"
-          onClick={() => {
-            setShowPreferences(true);
-            setIsOpen(true);
-          }}
-          className="fixed bottom-4 left-4 z-[90] inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-slate-950/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-cyan-400/40 hover:text-cyan-300"
-          aria-label="Open cookie settings"
-          title="Cookie settings"
-        >
-          <ShieldCheck className="h-4 w-4" />
-        </button>
-      )}
     </>
   );
 }
