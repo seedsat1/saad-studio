@@ -14,6 +14,7 @@ type JsonRpcRequest = {
     name?: string;
     arguments?: Record<string, unknown>;
     protocolVersion?: string;
+    uri?: string;
   };
 };
 
@@ -34,6 +35,8 @@ type ToolContent =
 type ToolResult = {
   content: ToolContent[];
   isError: boolean;
+  structuredContent?: Record<string, unknown>;
+  _meta?: Record<string, unknown>;
 };
 
 const DEFAULT_IMAGE_MODEL = "nano-banana-pro";
@@ -172,6 +175,77 @@ const tools = [
   },
 ];
 
+// MCP Apps UI resource — declared via resources/list, served by resources/read.
+// Clients that understand MCP Apps render this widget inline in chat (like
+// Higgsfield). Clients that don't will still receive the image_content block
+// in the tool result as a fallback.
+const GENERATE_IMAGE_UI_URI = "ui://saadstudio/generate-image";
+
+const UI_RESOURCES = [
+  {
+    uri: GENERATE_IMAGE_UI_URI,
+    name: "Saad Studio · generate_image",
+    description:
+      "Inline widget rendering the generated image with brand header, prompt summary, model/aspect badges, and download/fullscreen actions.",
+    mimeType: "text/html+mcp",
+  },
+];
+
+const GENERATE_IMAGE_WIDGET_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saad Studio</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0f1c;color:#e2e8f0;padding:14px;border:1px solid rgba(34,211,238,.18);border-radius:14px;font-size:14px}
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.lg{width:30px;height:30px;background:linear-gradient(135deg,#22d3ee,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;letter-spacing:.5px}
+.br{font-size:13px;color:#94a3b8}
+.br strong{color:#fff;font-weight:700}
+.tl{color:#67e8f9;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.pr{font-size:13.5px;line-height:1.55;color:#cbd5e1;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pr.ex{-webkit-line-clamp:unset;display:block}
+.tg{background:none;border:none;padding:0 0 12px 0;color:#67e8f9;cursor:pointer;font-size:12px;font-weight:600}
+.bg{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.bd{background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.22);color:#67e8f9;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.fr{position:relative;border-radius:10px;overflow:hidden;background:#04060c;border:1px solid rgba(255,255,255,.06)}
+.fr img{width:100%;height:auto;display:block}
+.st{position:absolute;top:10px;left:10px;background:rgba(16,185,129,.18);border:1px solid rgba(16,185,129,.45);color:#6ee7b7;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.3px;backdrop-filter:blur(6px)}
+.ac{position:absolute;top:10px;right:10px;display:flex;gap:6px}
+.bt{background:rgba(8,12,22,.85);border:1px solid rgba(255,255,255,.1);color:#e2e8f0;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;backdrop-filter:blur(6px)}
+.bt:hover{background:rgba(34,211,238,.18);border-color:rgba(34,211,238,.45)}
+.empty{color:#64748b;font-size:13px;padding:24px;text-align:center}
+</style></head><body>
+<div id="root" class="empty">Waiting for image data...</div>
+<script>(function(){
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function read(){
+  var o=window.openai&&window.openai.toolOutput;
+  if(o)return o;
+  var m=window.mcp&&(window.mcp.toolOutput||window.mcp.output||window.mcp.structuredContent);
+  if(m)return m;
+  if(window.__mcp_output__)return window.__mcp_output__;
+  return null;
+}
+function render(d){
+  var root=document.getElementById('root');
+  if(!d||!d.imageUrl){root.className='empty';root.textContent='No image data.';return}
+  var url=esc(d.imageUrl),pr=esc(d.prompt||""),mo=esc(d.modelId||""),ar=esc(d.aspectRatio||"");
+  root.className='';
+  root.innerHTML=
+    '<div class="hd"><div class="lg">SS</div><div class="br"><strong>Saad Studio</strong> · <span class="tl">generate_image</span></div></div>'+
+    (pr?'<div class="pr" id="p">'+pr+'</div><button class="tg" id="t">Show more</button>':'')+
+    '<div class="bg">'+(mo?'<span class="bd">'+mo+'</span>':'')+(ar?'<span class="bd">'+ar+'</span>':'')+'</div>'+
+    '<div class="fr"><span class="st">✓ Done</span><div class="ac">'+
+    '<a class="bt" href="'+url+'" download target="_blank" rel="noopener">Download</a>'+
+    '<a class="bt" href="'+url+'" target="_blank" rel="noopener">Fullscreen</a>'+
+    '</div><img src="'+url+'" alt="Generated image"></div>';
+  var p=document.getElementById('p'),t=document.getElementById('t');
+  if(p&&t){t.addEventListener('click',function(){p.classList.toggle('ex');t.textContent=p.classList.contains('ex')?'Show less':'Show more'});requestAnimationFrame(function(){if(p.scrollHeight<=p.clientHeight+2)t.style.display='none'})}
+}
+var d=read();
+if(d){render(d);return}
+window.addEventListener('message',function(e){if(e&&e.data){var x=e.data.toolOutput||e.data.output||e.data.structuredContent||(e.data.type==='tool_output'?e.data.payload:null);if(x)render(x)}});
+var n=0,t=setInterval(function(){n++;var x=read();if(x){clearInterval(t);render(x)}else if(n>30){clearInterval(t);var r=document.getElementById('root');if(r&&r.className==='empty')r.textContent='Image data not available.'}},100);
+})();</script>
+</body></html>`;
+
 function withMcpHeaders(response: NextResponse) {
   response.headers.set("Cache-Control", "no-store");
   response.headers.set("MCP-Protocol-Version", "2024-11-05");
@@ -293,17 +367,27 @@ async function collectInlineImages(urls: string[]): Promise<InlineCollection> {
   return { blocks, diagnostics: { attached, skipped, reasons } };
 }
 
-function toolResultWithImages(value: unknown, collection: InlineCollection): ToolResult {
+function toolResultWithImages(
+  value: unknown,
+  collection: InlineCollection,
+  extras?: {
+    structuredContent?: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+  },
+): ToolResult {
   const annotated = typeof value === "object" && value !== null
     ? { ...(value as Record<string, unknown>), _inlineImages: collection.diagnostics }
     : { value, _inlineImages: collection.diagnostics };
-  return {
+  const result: ToolResult = {
     content: [
       ...collection.blocks,
       { type: "text", text: JSON.stringify(annotated, null, 2) },
     ],
     isError: false,
   };
+  if (extras?.structuredContent) result.structuredContent = extras.structuredContent;
+  if (extras?.meta) result._meta = extras.meta;
+  return result;
 }
 
 function getBearerToken(request: Request) {
@@ -393,9 +477,33 @@ async function callGenerateImage(
     : data.imageUrl ? [data.imageUrl] : [];
   const collection = await collectInlineImages(urls);
 
+  const structuredContent = urls[0]
+    ? {
+        status: "completed",
+        imageUrl: urls[0],
+        imageUrls: urls,
+        prompt,
+        modelId: body.modelId,
+        aspectRatio: body.aspectRatio,
+        resolution: body.resolution,
+        generationId: data.generationId ?? null,
+      }
+    : undefined;
+
+  // Three _meta variants for maximum compatibility across MCP Apps clients.
+  // Clients ignore unknown _meta keys, so sending all three is safe.
+  const meta = urls[0]
+    ? {
+        "ui/resourceUri": GENERATE_IMAGE_UI_URI,
+        ui: { resourceUri: GENERATE_IMAGE_UI_URI },
+        "openai/outputTemplate": GENERATE_IMAGE_UI_URI,
+      }
+    : undefined;
+
   return toolResultWithImages(
     { status: "completed", modelId: body.modelId, ...data },
     collection,
+    { structuredContent, meta },
   );
 }
 
@@ -706,15 +814,43 @@ async function handleRpcPayload(body: JsonRpcRequest, request: Request): Promise
   if (method.startsWith("notifications/")) return null;
 
   if (method === "initialize") {
+    console.log("[smart-cli/mcp] initialize", {
+      clientProtocolVersion: body?.params?.protocolVersion,
+    });
     return rpcPayload(id, {
       protocolVersion: body?.params?.protocolVersion ?? "2024-11-05",
-      capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "saad-studio-smart-cli", version: "0.2.0" },
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { listChanged: false, subscribe: false },
+      },
+      serverInfo: { name: "saad-studio-smart-cli", version: "0.3.0" },
     });
   }
 
   if (method === "ping") return rpcPayload(id, {});
   if (method === "tools/list") return rpcPayload(id, { tools });
+
+  if (method === "resources/list") {
+    console.log("[smart-cli/mcp] resources/list");
+    return rpcPayload(id, { resources: UI_RESOURCES });
+  }
+
+  if (method === "resources/read") {
+    const uri = body?.params?.uri;
+    console.log("[smart-cli/mcp] resources/read", { uri });
+    if (uri === GENERATE_IMAGE_UI_URI) {
+      return rpcPayload(id, {
+        contents: [
+          {
+            uri,
+            mimeType: "text/html+mcp",
+            text: GENERATE_IMAGE_WIDGET_HTML,
+          },
+        ],
+      });
+    }
+    return rpcErrorPayload(id, -32602, `Unknown resource URI: ${String(uri ?? "missing")}`);
+  }
 
   if (method === "tools/call") {
     const requestedName = body?.params?.name;
