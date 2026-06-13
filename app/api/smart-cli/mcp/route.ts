@@ -224,51 +224,83 @@ function toolResult(value: unknown, isError = false): ToolResult {
   };
 }
 
-// 24 MB hard cap on a single tool response payload — Claude.ai refuses larger.
-// Each image is base64 (~33% overhead), so we budget ~5 MB raw per image and
-// stop attaching once we cross the cap. Failed fetches are silently dropped
-// and the text content (with the public URL) still lets the client click through.
-const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024;
-const MAX_TOTAL_INLINE_BYTES = 18 * 1024 * 1024;
+// 25 MB cap on a single tool response payload (Claude.ai refuses much larger).
+// Each image is base64 (~33% overhead). Cap individuals at 10 MB raw so we can
+// fit ~2 hi-res images per response, and stop at 22 MB total to leave room for
+// the JSON text block.
+const MAX_INLINE_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_INLINE_BYTES = 22 * 1024 * 1024;
 
-async function fetchInlineImage(
-  url: string,
-): Promise<{ data: string; mimeType: string } | null> {
+function guessImageMimeFromUrl(url: string): string | null {
+  const path = url.split("?")[0]?.toLowerCase() ?? "";
+  if (path.endsWith(".png")) return "image/png";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".webp")) return "image/webp";
+  if (path.endsWith(".gif")) return "image/gif";
+  return null;
+}
+
+type InlineFetchOk = { ok: true; data: string; mimeType: string; bytes: number };
+type InlineFetchErr = { ok: false; reason: string };
+
+async function fetchInlineImage(url: string): Promise<InlineFetchOk | InlineFetchErr> {
   try {
     const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, reason: `http_${res.status}` };
     const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.byteLength === 0 || buffer.byteLength > MAX_INLINE_IMAGE_BYTES) return null;
-    const mimeType = res.headers.get("content-type")?.split(";")[0]?.trim() || "image/png";
-    if (!mimeType.startsWith("image/")) return null;
-    return { data: buffer.toString("base64"), mimeType };
-  } catch {
-    return null;
+    if (buffer.byteLength === 0) return { ok: false, reason: "empty_body" };
+    if (buffer.byteLength > MAX_INLINE_IMAGE_BYTES) {
+      return { ok: false, reason: `too_large_${buffer.byteLength}` };
+    }
+    const headerMime = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    const mimeType = headerMime.startsWith("image/")
+      ? headerMime
+      : guessImageMimeFromUrl(url) ?? "image/png";
+    return { ok: true, data: buffer.toString("base64"), mimeType, bytes: buffer.byteLength };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    return { ok: false, reason: `fetch_failed:${msg.slice(0, 80)}` };
   }
 }
 
-async function collectInlineImages(urls: string[]): Promise<ToolContent[]> {
+type InlineCollection = {
+  blocks: ToolContent[];
+  diagnostics: { attached: number; skipped: number; reasons: string[] };
+};
+
+async function collectInlineImages(urls: string[]): Promise<InlineCollection> {
   const fetched = await Promise.all(urls.map(fetchInlineImage));
   const blocks: ToolContent[] = [];
+  const reasons: string[] = [];
   let total = 0;
+  let attached = 0;
+  let skipped = 0;
   for (const item of fetched) {
-    if (!item) continue;
-    const size = item.data.length;
-    if (total + size > MAX_TOTAL_INLINE_BYTES) break;
+    if (!item.ok) {
+      skipped += 1;
+      reasons.push(item.reason);
+      continue;
+    }
+    if (total + item.data.length > MAX_TOTAL_INLINE_BYTES) {
+      skipped += 1;
+      reasons.push("payload_cap_reached");
+      continue;
+    }
     blocks.push({ type: "image", data: item.data, mimeType: item.mimeType });
-    total += size;
+    total += item.data.length;
+    attached += 1;
   }
-  return blocks;
+  return { blocks, diagnostics: { attached, skipped, reasons } };
 }
 
-function toolResultWithImages(value: unknown, images: ToolContent[]): ToolResult {
+function toolResultWithImages(value: unknown, collection: InlineCollection): ToolResult {
+  const annotated = typeof value === "object" && value !== null
+    ? { ...(value as Record<string, unknown>), _inlineImages: collection.diagnostics }
+    : { value, _inlineImages: collection.diagnostics };
   return {
     content: [
-      ...images,
-      {
-        type: "text",
-        text: typeof value === "string" ? value : JSON.stringify(value, null, 2),
-      },
+      ...collection.blocks,
+      { type: "text", text: JSON.stringify(annotated, null, 2) },
     ],
     isError: false,
   };
@@ -359,11 +391,11 @@ async function callGenerateImage(
   const urls = Array.isArray(data.imageUrls) && data.imageUrls.length
     ? data.imageUrls
     : data.imageUrl ? [data.imageUrl] : [];
-  const images = await collectInlineImages(urls);
+  const collection = await collectInlineImages(urls);
 
   return toolResultWithImages(
     { status: "completed", modelId: body.modelId, ...data },
-    images,
+    collection,
   );
 }
 
@@ -411,7 +443,7 @@ async function callGenerateStoryboard(
     label: `Concept ${index + 1}`,
   }));
 
-  const images = await collectInlineImages(urls);
+  const collection = await collectInlineImages(urls);
 
   return toolResultWithImages({
     status: "completed",
@@ -422,7 +454,7 @@ async function callGenerateStoryboard(
     nextStep:
       "Ask the user to pick a concept (1-N), then call generate_video with imageUrl set to that concept's imageUrl.",
     generationId: data.generationId ?? null,
-  }, images);
+  }, collection);
 }
 
 async function callGenerateVideo(
