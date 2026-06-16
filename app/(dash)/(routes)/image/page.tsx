@@ -49,6 +49,7 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "nano-banana-2",
   "nano-banana-pro",
 ]);
+const ANNUAL_UNLIMITED_IMAGE_PLAN_IDS = new Set(["pro", "max"]);
 const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "google/imagen4-ultra",
   "flux-2/max",
@@ -1282,7 +1283,12 @@ export default function ImageWorkspacePage() {
       .then((data) => {
         if (cancelled) return;
         const subscription = data?.subscription;
-        setHasAnnualUnlimitedImages(Boolean(subscription?.active && subscription?.billingInterval === "annual"));
+        const planId = String(subscription?.planId ?? "").toLowerCase();
+        setHasAnnualUnlimitedImages(Boolean(
+          subscription?.active &&
+            subscription?.billingInterval === "annual" &&
+            ANNUAL_UNLIMITED_IMAGE_PLAN_IDS.has(planId),
+        ));
       })
       .catch(() => {
         if (!cancelled) setHasAnnualUnlimitedImages(false);
@@ -1291,6 +1297,12 @@ export default function ImageWorkspacePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!canUseAnnualUnlimitedCreate && annualUnlimitedEnabled) {
+      setAnnualUnlimitedEnabled(false);
+    }
+  }, [annualUnlimitedEnabled, canUseAnnualUnlimitedCreate]);
 
   const composer = useMemo(() => {
     if (activeTool === "create") {

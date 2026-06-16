@@ -530,7 +530,7 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                {billingCycle === "annual" && ["plus", "pro", "max"].includes(plan.id) && (
+                {billingCycle === "annual" && ["pro", "max"].includes(plan.id) && (
                   <div className="mb-5 rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">

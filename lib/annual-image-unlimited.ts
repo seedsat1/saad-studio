@@ -2,8 +2,6 @@ import prismadb from "@/lib/prismadb";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_DAILY_LIMIT_BY_PLAN: Record<string, number> = {
-  starter: 25,
-  plus: 50,
   pro: 100,
   max: 200,
 };
@@ -35,6 +33,7 @@ export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
 ] as const;
 
 const ANNUAL_UNLIMITED_IMAGE_MODEL_SET = new Set<string>(ANNUAL_UNLIMITED_IMAGE_MODELS);
+const ANNUAL_UNLIMITED_IMAGE_PLAN_SET = new Set<string>(["pro", "max"]);
 const IMAGE_MODEL_PREFIXES: string[] = [];
 const EXCLUDED_ANNUAL_UNLIMITED_IMAGE_MODELS = new Set<string>([
   "google/imagen4-ultra",
@@ -137,6 +136,9 @@ export async function getAnnualUnlimitedImageEligibility(input: {
 }> {
   const planId = await getActiveAnnualPlanId(input.userId);
   if (!planId) return { eligible: false, planId: null, reason: "not_annual" };
+  if (!ANNUAL_UNLIMITED_IMAGE_PLAN_SET.has(planId)) {
+    return { eligible: false, planId, reason: "plan_not_included" };
+  }
   if (!isAnnualUnlimitedImageModel(input.modelId)) {
     return { eligible: false, planId, reason: "model_not_included" };
   }
