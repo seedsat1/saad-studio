@@ -699,9 +699,11 @@
             }
 
             var seq = result.newSequence;
-            var targetTrack = seq.videoTracks && seq.videoTracks.numTracks > 0 ? seq.videoTracks[0] : null;
+            var targetTrackInfo = findSafeAutoSwitchTargetTrack(seq);
+            var targetTrack = targetTrackInfo.track;
+            result.targetVideoTrackIndex = targetTrackInfo.index;
             if (!targetTrack || !targetTrack.overwriteClip) {
-                result.blockers.push("TARGET_OVERWRITECLIP_NOT_AVAILABLE");
+                result.blockers.push(targetTrackInfo.blocker || "TARGET_OVERWRITECLIP_NOT_AVAILABLE");
                 result.ok = false;
                 return stripRuntimeSequence(result);
             }
@@ -735,6 +737,7 @@
                 if (!segment.subclip) continue;
                 try {
                     targetTrack.overwriteClip(segment.subclip, secondsToTicksString(publicResult.overlapStartSec));
+                    publicResult.targetVideoTrackIndex = targetTrackInfo.index;
                     publicResult.overwriteResult = true;
                     result.segmentsInserted += 1;
                 } catch (eOverwriteApply) {
@@ -750,6 +753,32 @@
             return stripRuntimeSequence(result);
         });
     };
+
+    function findSafeAutoSwitchTargetTrack(seq) {
+        var result = {
+            track: null,
+            index: null,
+            blocker: null
+        };
+        if (!seq || !seq.videoTracks || seq.videoTracks.numTracks <= 0) {
+            result.blocker = "TARGET_VIDEO_TRACK_NOT_AVAILABLE";
+            return result;
+        }
+
+        for (var t = seq.videoTracks.numTracks - 1; t >= 0; t--) {
+            var track = seq.videoTracks[t];
+            if (!track || !track.overwriteClip) continue;
+            var clips = track.clips;
+            if (!clips || clips.numItems === 0) {
+                result.track = track;
+                result.index = t;
+                return result;
+            }
+        }
+
+        result.blocker = "NO_EMPTY_TOP_VIDEO_TRACK_FOR_SAFE_OUTPUT";
+        return result;
+    }
 
     host.saadstudio.applyPodcastSilenceRemovalVisualOnly = function (keepSegments, silenceRemovedCount, totalRemovedDurationSec, sequenceDurationSec, analyzedDurationSec, audioSourceDurationSec) {
         return safe(function () {
@@ -2426,9 +2455,9 @@
         }
         info.sourcePath = String(sourcePath);
         info.sourceKind = podcastSourceKindFromPath(info.sourcePath);
-        info.mediaAvailable = clipCount === 1;
+        info.mediaAvailable = true;
         if (clipCount > 1) {
-            info.reason = "Audio track has multiple clips; version 1 does not infer continuity.";
+            info.reason = "Audio track has multiple clips; each clip must be analyzed independently.";
         }
         return info;
     }

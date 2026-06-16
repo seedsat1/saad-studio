@@ -17,6 +17,7 @@ export interface CameraDecisionPlanProofInput {
   cameraMappings?: CameraMapping[];
   timelineDurationSec?: number;
   videoTrackCount?: number;
+  minimumShotLengthSec?: number;
 }
 
 export function generateCameraDecisionPlanProof(
@@ -27,6 +28,7 @@ export function generateCameraDecisionPlanProof(
   if (!input.dominantTrackAtTime.length) blockers.push("DOMINANT_TRACK_WINDOWS_REQUIRED");
 
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
+  const minimumShotLengthSec = normalizeMinimumShotLength(input.minimumShotLengthSec);
   const cameraMap = buildCameraMap(input.cameraMappings ?? []);
   const usedSpeakerIds = usedSpeakerIdsFromInput(input);
   const missingCameraMappings = usedSpeakerIds.filter((speakerId) => !cameraMap.has(speakerId));
@@ -35,7 +37,7 @@ export function generateCameraDecisionPlanProof(
     warnings.push(...missingCameraMappings.map((speakerId) => `MISSING_CAMERA_MAPPING_FOR_SPEAKER:${speakerId}`));
   }
   if (input.overlaps.length > 0 && !cameraMap.has("wide")) {
-    blockers.push("MISSING_CAMERA_MAPPING_FOR_WIDE_CAMERA");
+    warnings.push("WIDE_CAMERA_NOT_MAPPED_USING_DOMINANT_SPEAKER");
   }
   const mappedCameraIndexes = new Set(
     usedSpeakerIds
@@ -45,6 +47,21 @@ export function generateCameraDecisionPlanProof(
   if (usedSpeakerIds.length > 1 && mappedCameraIndexes.size <= 1 && videoTrackCount > 1) {
     blockers.push("CAMERA_MAPPING_COLLAPSED_TO_SINGLE_CAMERA");
   }
+  if (blockers.some((blocker) => blocker.startsWith("MISSING_CAMERA_MAPPING") || blocker === "CAMERA_MAPPING_COLLAPSED_TO_SINGLE_CAMERA")) {
+    const diagnostics = buildDecisionDiagnostics(input, [], [], [], []);
+    return {
+      cameraDecisions: [],
+      summary: {
+        ...summarizeDecisions([], 0),
+        ...diagnostics,
+      },
+      diagnostics,
+      blockers,
+      warnings,
+      timelineMutation: "none",
+      sequenceMutation: "none",
+    };
+  }
   const overlapKeys = new Set(input.overlaps.map((item) => timeKey(item.timelineStartSec, item.timelineEndSec)));
   const sourceDecisions = (input.trackSpeakingSegments?.length ?? 0) > 0
     ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount, cameraMap)
@@ -52,10 +69,20 @@ export function generateCameraDecisionPlanProof(
       windowToCameraDecision(window, overlapKeys, videoTrackCount, cameraMap));
   const rawDecisions = sortDecisions(sourceDecisions);
   const merged = mergeAdjacentDecisions(rawDecisions);
-  const compacted = mergeShortDecisions(merged);
+  const gapFilled = fillDecisionGapsWithPreviousCamera(merged, input.timelineDurationSec);
+  const compacted = mergeShortDecisions(gapFilled, minimumShotLengthSec);
   const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
   const invalidDecisions = findInvalidDecisions(finalDecisions);
   if (invalidDecisions.length > 0) blockers.push("INVALID_CAMERA_DECISION_TIMING");
+  const finalCameraIndexes = new Set(
+    finalDecisions
+      .map((decision) => decision.videoTrackIndex)
+      .filter((videoTrackIndex) => videoTrackIndex >= 0),
+  );
+  if (mappedCameraIndexes.size > 1 && finalDecisions.length > 0 && finalCameraIndexes.size <= 1) {
+    blockers.push("CAMERA_DECISION_PLAN_SINGLE_CAMERA_OUTPUT");
+    warnings.push("CAMERA_DECISION_PLAN_SINGLE_CAMERA_OUTPUT: mapped microphones did not produce usable camera switches");
+  }
   const diagnostics = buildDecisionDiagnostics(input, rawDecisions, merged, compacted.decisions, finalDecisions);
   const summary = {
     ...summarizeDecisions(finalDecisions, compacted.droppedShortDecisions),
@@ -82,7 +109,7 @@ function windowToCameraDecision(
   cameraMap: Map<string, number>,
 ): PodcastCameraDecisionProofItem {
   const hasOverlap = overlapKeys.has(timeKey(window.timelineStartSec, window.timelineEndSec));
-  if (hasOverlap) {
+  if (hasOverlap && cameraMap.has("wide")) {
     const mappedWideTrackIndex = cameraMap.get("wide");
     const wideTrackIndex = typeof mappedWideTrackIndex === "number" ? Math.min(mappedWideTrackIndex, videoTrackCount - 1) : -1;
     return makeDecision(window.timelineStartSec, window.timelineEndSec, "wide", null, wideTrackIndex, wideTrackIndex >= 0 ? `V${wideTrackIndex + 1}` : "UNMAPPED", "overlap detected; using wide camera");
@@ -142,14 +169,14 @@ function decisionsFromSpeakingSegments(
       continue;
     }
 
-    if (active.length > 1) {
+    if (active.length > 1 && cameraMap.has("wide")) {
       const mappedWideTrackIndex = cameraMap.get("wide");
       const wideTrackIndex = typeof mappedWideTrackIndex === "number" ? Math.min(mappedWideTrackIndex, videoTrackCount - 1) : -1;
       decisions.push(makeDecision(startSec, endSec, "wide", null, wideTrackIndex, wideTrackIndex >= 0 ? `V${wideTrackIndex + 1}` : "UNMAPPED", "overlapping speaking segments; using wide camera"));
       continue;
     }
 
-    const segment = active[0];
+    const segment = active.length > 1 ? chooseBestOverlapSegment(active, startSec, endSec) : active[0];
     const mappedVideoTrackIndex = cameraMap.get(segment.speakerId);
     const videoTrackIndex = Math.min(mappedVideoTrackIndex ?? -1, videoTrackCount - 1);
     decisions.push(makeDecision(
@@ -159,11 +186,25 @@ function decisionsFromSpeakingSegments(
       segment.audioTrackIndex,
       videoTrackIndex,
       videoTrackIndex >= 0 ? `V${videoTrackIndex + 1}` : "UNMAPPED",
-      "speaking segment mapped to matching camera track",
+      active.length > 1
+        ? "overlapping speaking segments; wide camera not mapped, using strongest timeline overlap"
+        : "speaking segment mapped to matching camera track",
     ));
   }
 
   return decisions;
+}
+
+function chooseBestOverlapSegment(
+  segments: TrackSpeakingSegment[],
+  startSec: number,
+  endSec: number,
+): TrackSpeakingSegment {
+  return [...segments].sort((a, b) => {
+    const aOverlap = Math.max(0, Math.min(a.endSec, endSec) - Math.max(a.startSec, startSec));
+    const bOverlap = Math.max(0, Math.min(b.endSec, endSec) - Math.max(b.startSec, startSec));
+    return bOverlap - aOverlap || a.audioTrackIndex - b.audioTrackIndex || a.startSec - b.startSec;
+  })[0];
 }
 
 function buildCameraMap(mappings: CameraMapping[]): Map<string, number> {
@@ -235,6 +276,56 @@ function mergeAdjacentDecisions(decisions: PodcastCameraDecisionProofItem[]): Po
   return merged;
 }
 
+function fillDecisionGapsWithPreviousCamera(
+  decisions: PodcastCameraDecisionProofItem[],
+  timelineDurationSec: number | undefined,
+): PodcastCameraDecisionProofItem[] {
+  const ordered = sortDecisions(decisions).filter(isValidDecisionTiming);
+  if (!ordered.length) return [];
+
+  const filled: PodcastCameraDecisionProofItem[] = [];
+  const first = ordered[0];
+  if (first.startSec > 0) {
+    filled.push({
+      ...first,
+      startSec: 0,
+      endSec: first.startSec,
+      durationSec: roundTime(first.startSec),
+      reason: "filled leading gap with first camera",
+    });
+  }
+
+  for (const decision of ordered) {
+    const previous = filled[filled.length - 1];
+    if (previous && decision.startSec > previous.endSec) {
+      filled.push({
+        ...previous,
+        startSec: previous.endSec,
+        endSec: decision.startSec,
+        durationSec: roundTime(decision.startSec - previous.endSec),
+        reason: "filled timeline gap with previous camera",
+      });
+    }
+    filled.push({ ...decision });
+  }
+
+  const duration = Number.isFinite(timelineDurationSec) && typeof timelineDurationSec === "number"
+    ? Math.max(0, timelineDurationSec)
+    : null;
+  const last = filled[filled.length - 1];
+  if (duration !== null && last && duration > last.endSec) {
+    filled.push({
+      ...last,
+      startSec: last.endSec,
+      endSec: duration,
+      durationSec: roundTime(duration - last.endSec),
+      reason: "filled trailing gap with previous camera",
+    });
+  }
+
+  return filled.filter(isValidDecisionTiming);
+}
+
 function normalizeKeepPrevious(
   decision: PodcastCameraDecisionProofItem,
   previous: PodcastCameraDecisionProofItem | null,
@@ -249,7 +340,7 @@ function normalizeKeepPrevious(
   };
 }
 
-function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
+function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[], minimumShotLengthSec: number): {
   decisions: PodcastCameraDecisionProofItem[];
   droppedShortDecisions: number;
 } {
@@ -260,14 +351,14 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
     const previous = output[output.length - 1];
     if (!previous) {
       output.push({ ...decision });
-      if (decision.durationSec < MINIMUM_SHOT_LENGTH_SEC) {
+      if (decision.durationSec < minimumShotLengthSec) {
         droppedShortDecisions += 1;
         output[0].reason = "absorbed leading short decision below minimum shot length";
       }
       continue;
     }
 
-    if (decision.durationSec < MINIMUM_SHOT_LENGTH_SEC) {
+    if (decision.durationSec < minimumShotLengthSec) {
       droppedShortDecisions += 1;
       if (decision.startSec >= previous.endSec && decision.endSec > previous.endSec) {
         previous.endSec = decision.endSec;
@@ -277,7 +368,7 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
       continue;
     }
 
-    if (previous.durationSec < MINIMUM_SHOT_LENGTH_SEC && decision.startSec >= previous.endSec) {
+    if (previous.durationSec < minimumShotLengthSec && decision.startSec >= previous.endSec) {
       previous.endSec = decision.endSec;
       previous.durationSec = roundTime(previous.endSec - previous.startSec);
       previous.speakerId = decision.speakerId;
@@ -303,6 +394,11 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[]): {
     }
   }
   return { decisions: output.filter(isValidDecisionTiming), droppedShortDecisions };
+}
+
+function normalizeMinimumShotLength(value: number | undefined): number {
+  if (!Number.isFinite(value) || typeof value !== "number") return MINIMUM_SHOT_LENGTH_SEC;
+  return Math.max(0.5, Math.min(10, value));
 }
 
 function sortDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {

@@ -7,7 +7,7 @@ import {
   Zap, ChevronRight, Upload, X, CheckCircle2, Clock,
   XCircle, AlertCircle, Copy, Check,
   Star, Rocket, Crown, Sparkles, FileText, RefreshCw,
-  MessageCircle,
+  MessageCircle, CreditCard,
 } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
 
@@ -185,6 +185,23 @@ function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: {
 
 // ─── ProofUpload ──────────────────────────────────────────────────────────────
 
+function OnlinePaymentNotice({ orderId }: { orderId: string }) {
+  return (
+    <div className="mt-5 p-5 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-3">
+      <p className="text-sm font-semibold text-white flex items-center gap-2">
+        <CreditCard className="w-4 h-4 text-red-300" /> ZainCash Online Payment
+      </p>
+      <p className="text-sm text-slate-300">
+        You will be redirected to the secure ZainCash gateway. Your credits are activated automatically after payment approval.
+      </p>
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <span>Order:</span>
+        <code className="px-2 py-1 rounded-lg bg-slate-950/60 border border-red-500/20 font-mono text-slate-200">{orderId}</code>
+      </div>
+    </div>
+  );
+}
+
 function ProofUpload({ file, onFile, onClear }: { file: File | null; onFile: (f: File) => void; onClear: () => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -308,6 +325,7 @@ export default function PaymentPage() {
   const [orderType, setOrderType]           = useState<OrderType>("plan");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedTopupId, setSelectedTopupId] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState("zaincash");
 
   // Live methods from CMS with styling fallback
   const liveMethods = useMemo(() => {
@@ -327,6 +345,13 @@ export default function PaymentPage() {
   }, [cms?.paymentMethods]);
 
   const liveWhatsApp = cms?.whatsappNumber ?? "9647902585579";
+
+  useEffect(() => {
+    if (!liveMethods.length) return;
+    if (!liveMethods.some((m) => m.id === selectedMethod)) {
+      setSelectedMethod(liveMethods.find((m) => m.id === "zaincash")?.id ?? liveMethods[0].id);
+    }
+  }, [liveMethods, selectedMethod]);
 
   // Live plans from CMS (USD only — IQD removed)
   const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
@@ -367,7 +392,6 @@ export default function PaymentPage() {
     return map;
   }, [cms?.plans]);
 
-  const [selectedMethod, setSelectedMethod] = useState(METHODS[0].id);
   const [status, setStatus]                 = useState<Status>("idle");
   const [rejectionReason]                   = useState("The transfer reference number could not be verified. Please resubmit with a clear screenshot.");
   const [orderId, setOrderId]               = useState("");
@@ -447,6 +471,7 @@ export default function PaymentPage() {
   };
 
   const method      = liveMethods.find((m) => m.id === selectedMethod) ?? liveMethods[0];
+  const isZainCashOnline = method?.id === "zaincash";
   const lockedType: OrderType | null = incomingType === "topup" ? "topup" : incomingType === "plan" ? "plan" : null;
   const effectiveOrderType: OrderType = lockedType ?? orderType;
   const effectivePlanId =
@@ -477,10 +502,7 @@ export default function PaymentPage() {
   };
 
   const handleSubmit = async () => {
-    let hasError = false;
     setSubmitError("");
-    if (!proofFile) { setProofError("Please upload your payment proof."); hasError = true; } else setProofError("");
-    if (hasError) return;
     if (!selectedItem) {
       setSubmitError("Please select a plan or top-up.");
       return;
@@ -500,10 +522,43 @@ export default function PaymentPage() {
       return;
     }
 
+    if (!isZainCashOnline) {
+      let hasError = false;
+      if (!proofFile) { setProofError("Please upload your payment proof."); hasError = true; } else setProofError("");
+      if (hasError) return;
+    }
+
     setLoading(true);
     try {
+      if (isZainCashOnline) {
+        const zainRes = await fetch("/api/payments/zaincash/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId,
+            orderType: effectiveOrderType,
+            planId: effectiveOrderType === "plan" ? effectivePlanId : null,
+            planLabel: effectiveOrderType === "plan" ? (selectedPlan?.label ?? effectivePlanId ?? null) : null,
+            billingCycle,
+            topupId: effectiveOrderType === "topup" ? effectiveTopupId : null,
+            amount,
+            credits,
+          }),
+        });
+
+        const payload = await zainRes.json().catch(() => ({}));
+        if (!zainRes.ok || !payload?.url) {
+          throw new Error(payload?.error ?? `Failed to start ZainCash payment (${zainRes.status})`);
+        }
+
+        setStatus("pending");
+        setStep(3);
+        window.location.href = payload.url;
+        return;
+      }
+
       const fd = new FormData();
-      fd.append("file", proofFile);
+      fd.append("file", proofFile!);
       fd.append("orderId", orderId);
 
       const uploadRes = await fetch("/api/payments/upload-proof", {
@@ -559,7 +614,7 @@ export default function PaymentPage() {
     const nextId = generateOrderId();
     setOrderId(nextId);
     setStep(1); setStatus("idle"); setSelectedPlanId(""); setSelectedTopupId("");
-    setSelectedMethod(liveMethods[0]?.id ?? METHODS[0].id);
+    setSelectedMethod(liveMethods.find((m) => m.id === "zaincash")?.id ?? liveMethods[0]?.id ?? METHODS[0].id);
     setProofFile(null); setProofError("");
   };
 
@@ -736,10 +791,15 @@ export default function PaymentPage() {
                 ))}
               </div>
 
-              <TransferInstructions method={method} orderId={orderId} orderLabel={orderLabel} whatsappNumber={liveWhatsApp} />
-
-              <ProofUpload file={proofFile} onFile={(f) => { setProofFile(f); setProofError(""); }} onClear={() => setProofFile(null)} />
-              {proofError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{proofError}</p>}
+              {isZainCashOnline ? (
+                <OnlinePaymentNotice orderId={orderId} />
+              ) : (
+                <>
+                  <TransferInstructions method={method} orderId={orderId} orderLabel={orderLabel} whatsappNumber={liveWhatsApp} />
+                  <ProofUpload file={proofFile} onFile={(f) => { setProofFile(f); setProofError(""); }} onClear={() => setProofFile(null)} />
+                  {proofError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{proofError}</p>}
+                </>
+              )}
               {submitError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{submitError}</p>}
 
               <div className="flex gap-3">
@@ -747,8 +807,8 @@ export default function PaymentPage() {
                 <button onClick={handleSubmit} disabled={loading}
                   className="flex-[4] py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-violet-500/25">
                   {loading
-                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting…</>
-                    : <>Submit for Verification <ChevronRight className="w-4 h-4" /></>}
+                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{isZainCashOnline ? "Opening gateway..." : "Submitting..."}</>
+                    : isZainCashOnline ? <>Pay with ZainCash <ChevronRight className="w-4 h-4" /></> : <>Submit for Verification <ChevronRight className="w-4 h-4" /></>}
                 </button>
               </div>
             </motion.div>

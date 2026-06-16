@@ -173,6 +173,7 @@ export interface RmsPreviewPoint {
 export interface SilenceRemovalSettings {
   audioTrackIndex: number;
   silenceThresholdDb: number;
+  autoMode?: boolean;
   minimumSilenceDurationSec: number;
   minimumCutGapSec?: number;
   minimumKeepSegmentDurationSec?: number;

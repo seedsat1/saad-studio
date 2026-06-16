@@ -37,7 +37,7 @@ const RMS_PROOF_DURATION_SEC = 5;
 const FULL_ACTIVITY_DURATION_SEC = 30;
 const FULL_ACTIVITY_THRESHOLD_DB = -35;
 const FULL_ACTIVITY_MIN_SPEECH_SEC = 0.4;
-const MULTICAM_ATTRIBUTION_MAX_DURATION_SEC = 90;
+const MAX_SUPPORTED_TIMELINE_DURATION_SEC = 4 * 60 * 60;
 const DEFAULT_MINIMUM_CUT_GAP_SEC = 0.7;
 const DEFAULT_MINIMUM_KEEP_SEGMENT_SEC = 1.5;
 const DEFAULT_MERGE_ADJACENT_KEEP_GAP_SEC = 0.7;
@@ -398,7 +398,10 @@ export async function analyzeSilenceRemovalAudio(
     windows.push(...sourceWindows);
   }
   windows.sort((a, b) => a.timelineStartSec - b.timelineStartSec);
-  const segments = buildSilenceAndKeepSegments(windows, analyzedDurationSec, settings);
+  const effectiveSettings = settings.autoMode
+    ? buildAutomaticSilenceSettings(settings, windows)
+    : settings;
+  const segments = buildSilenceAndKeepSegments(windows, analyzedDurationSec, effectiveSettings);
   return {
     ok: segments.keepSegments.length > 0,
     audioTrackIndex: settings.audioTrackIndex,
@@ -413,17 +416,19 @@ export async function analyzeSilenceRemovalAudio(
     droppedSilenceSegments: segments.droppedSilenceSegments,
     longestDroppedSilenceSec: segments.droppedSilenceSegments.reduce((max, segment) => Math.max(max, segment.durationSec), 0),
     silenceDetectionDiagnostics: {
-      thresholdUsed: settings.silenceThresholdDb,
-      minimumDurationUsed: settings.minimumSilenceDurationSec,
+      thresholdUsed: effectiveSettings.silenceThresholdDb,
+      minimumDurationUsed: effectiveSettings.minimumSilenceDurationSec,
       detectedSilenceSegments: segments.silenceSegments.map((segment) =>
-        toSilenceDiagnosticSegment(segment, "ACCEPTED_SILENCE", settings)
+        toSilenceDiagnosticSegment(segment, "ACCEPTED_SILENCE", effectiveSettings)
       ),
       rejectedSilenceSegments: segments.rejectedSilenceSegments,
     },
     keepSegments: segments.keepSegments,
     totalRemovedDurationSec: segments.totalRemovedDurationSec,
     blockers: segments.keepSegments.length > 0 ? [] : ["NO_KEEP_SEGMENTS_GENERATED"],
-    warnings: uniqueBlockers(warnings),
+    warnings: uniqueBlockers(settings.autoMode
+      ? [...warnings, `AUTO_SILENCE_SETTINGS:${effectiveSettings.silenceThresholdDb}dB/${effectiveSettings.minimumSilenceDurationSec}s/${effectiveSettings.minimumCutGapSec}s`]
+      : warnings),
     timelineMutation: "none",
     sequenceMutation: "none",
   };
@@ -449,75 +454,102 @@ export async function runSpeakerSourceAttributionProof(
   let analyzedDurationSec = 0;
 
   for (const mapping of mappings) {
-    const source = inspection.sources.find((item) =>
+    const sources = inspection.sources.filter((item) =>
       item.audioTrackIndex === mapping.audioTrackIndex && isValidRmsProofSource(item)
-    ) ?? null;
-    if (!source?.sourcePath) {
+    ).sort((a, b) => (a.timelineStartSec ?? 0) - (b.timelineStartSec ?? 0));
+    if (sources.length === 0) {
       trackActivity.push(emptyTrackActivity(mapping, ["NO_VALID_RMS_SOURCE_PATH"], []));
       continue;
     }
 
-    const streamProof = await inspectAudioStreamsForSingleSource(runtime, source);
-    const trackBlockers = [...streamProof.blockers.filter((blocker) => blocker !== "AUDIO_STREAM_SELECTION_REQUIRED")];
-    const trackWarnings = [...streamProof.warnings];
-    const effectiveStreamIndex = streamProof.ffprobeAudioStreams.length === 1
-      ? 0
-      : typeof selectedAudioStreamIndex === "number"
-        ? selectedAudioStreamIndex
-        : null;
+    const trackBlockers: string[] = [];
+    const trackWarnings: string[] = [];
+    const rawWindows: TrackActivityWindow[] = [];
+    let firstSourcePath: string | null = null;
+    let firstStreamIndex: number | null = null;
 
-    if (streamProof.ffprobeAudioStreams.length > 1 && effectiveStreamIndex == null) {
-      trackBlockers.push("AUDIO_STREAM_SELECTION_REQUIRED");
+    for (const source of sources) {
+      if (!source.sourcePath) continue;
+      firstSourcePath ??= source.sourcePath;
+      const sourceDurationSec = Math.max(0, source.durationSec ?? 0);
+      if (sourceDurationSec <= 0) {
+        trackBlockers.push(`INVALID_CLIP_TIMING:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`);
+        continue;
+      }
+      if ((source.timelineEndSec ?? sourceDurationSec) > MAX_SUPPORTED_TIMELINE_DURATION_SEC) {
+        trackBlockers.push("SYSTEM_LIMIT_REACHED");
+        continue;
+      }
+
+      const streamProof = await inspectAudioStreamsForSingleSource(runtime, source);
+      trackWarnings.push(...streamProof.warnings);
+      const sourceBlockers = streamProof.blockers.filter((blocker) => blocker !== "AUDIO_STREAM_SELECTION_REQUIRED");
+      const effectiveStreamIndex = streamProof.ffprobeAudioStreams.length === 1
+        ? 0
+        : typeof selectedAudioStreamIndex === "number"
+          ? selectedAudioStreamIndex
+          : null;
+      firstStreamIndex ??= effectiveStreamIndex;
+
+      if (streamProof.ffprobeAudioStreams.length > 1 && effectiveStreamIndex == null) {
+        sourceBlockers.push("AUDIO_STREAM_SELECTION_REQUIRED");
+      }
+      if (effectiveStreamIndex != null && !streamProof.ffprobeAudioStreams.some((stream) => stream.audioStreamIndex === effectiveStreamIndex)) {
+        sourceBlockers.push("SELECTED_AUDIO_STREAM_NOT_FOUND");
+      }
+      if (sourceBlockers.length > 0 || effectiveStreamIndex == null) {
+        trackBlockers.push(...sourceBlockers.map((blocker) =>
+          `${blocker}:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`
+        ));
+        continue;
+      }
+
+      analyzedDurationSec = Math.max(analyzedDurationSec, source.timelineEndSec ?? sourceDurationSec);
+      const rmsWindows = await runRmsPreview(
+        runtime.cp,
+        diagnostics.selectedPath,
+        source,
+        sourceDurationSec,
+        Number.POSITIVE_INFINITY,
+        effectiveStreamIndex,
+      );
+      rawWindows.push(...rmsWindows.map((window): TrackActivityWindow => ({
+        audioTrackIndex: mapping.audioTrackIndex,
+        speakerId: mapping.speakerId,
+        sourcePath: source.sourcePath ?? "",
+        selectedAudioStreamIndex: effectiveStreamIndex,
+        sourceTimeSec: window.sourceTimeSec,
+        timelineStartSec: window.timelineStartSec,
+        timelineEndSec: window.timelineEndSec,
+        rmsDb: window.rmsDb,
+        active: Number.isFinite(window.rmsDb) && window.rmsDb >= FULL_ACTIVITY_THRESHOLD_DB,
+      })));
     }
-    if (effectiveStreamIndex != null && !streamProof.ffprobeAudioStreams.some((stream) => stream.audioStreamIndex === effectiveStreamIndex)) {
-      trackBlockers.push("SELECTED_AUDIO_STREAM_NOT_FOUND");
-    }
-    if (trackBlockers.length > 0 || effectiveStreamIndex == null) {
-      trackActivity.push(emptyTrackActivity(mapping, uniqueBlockers(trackBlockers), uniqueBlockers(trackWarnings), source.sourcePath, effectiveStreamIndex));
+
+    const windows = normalizeTrackWindows(rawWindows);
+    if (windows.length === 0) {
+      trackActivity.push(emptyTrackActivity(
+        mapping,
+        uniqueBlockers(trackBlockers.length > 0 ? trackBlockers : ["NO_VALID_RMS_SOURCE_PATH"]),
+        uniqueBlockers(trackWarnings),
+        firstSourcePath,
+        firstStreamIndex,
+      ));
       continue;
     }
-
-    const sourceDurationSec = Math.max(0, source.durationSec ?? FULL_ACTIVITY_DURATION_SEC);
-    const analysisDurationSec = Math.min(
-      sourceDurationSec > 0 ? sourceDurationSec : FULL_ACTIVITY_DURATION_SEC,
-      MULTICAM_ATTRIBUTION_MAX_DURATION_SEC,
-    );
-    if (sourceDurationSec > MULTICAM_ATTRIBUTION_MAX_DURATION_SEC) {
-      warnings.push(`MULTICAM_ATTRIBUTION_TRUNCATED_A${mapping.audioTrackIndex + 1}:${MULTICAM_ATTRIBUTION_MAX_DURATION_SEC}s`);
-    }
-    analyzedDurationSec = Math.max(analyzedDurationSec, source.timelineEndSec ?? sourceDurationSec);
-    const rmsWindows = await runRmsPreview(
-      runtime.cp,
-      diagnostics.selectedPath,
-      source,
-      analysisDurationSec,
-      Number.POSITIVE_INFINITY,
-      effectiveStreamIndex,
-    );
-    const windows = rmsWindows.map((window): TrackActivityWindow => ({
-      audioTrackIndex: mapping.audioTrackIndex,
-      speakerId: mapping.speakerId,
-      sourcePath: source.sourcePath ?? "",
-      selectedAudioStreamIndex: effectiveStreamIndex,
-      sourceTimeSec: window.sourceTimeSec,
-      timelineStartSec: window.timelineStartSec,
-      timelineEndSec: window.timelineEndSec,
-      rmsDb: window.rmsDb,
-      active: Number.isFinite(window.rmsDb) && window.rmsDb >= FULL_ACTIVITY_THRESHOLD_DB,
-    }));
     const segmentResult = buildTrackSpeakingSegments(windows, mapping);
     warnings.push(...segmentResult.warnings);
     trackSpeakingSegments.push(...segmentResult.speakingSegments);
     trackActivity.push({
       audioTrackIndex: mapping.audioTrackIndex,
       speakerId: mapping.speakerId,
-      sourcePath: source.sourcePath,
-      selectedAudioStreamIndex: effectiveStreamIndex,
+      sourcePath: firstSourcePath,
+      selectedAudioStreamIndex: firstStreamIndex,
       totalRmsWindows: windows.length,
       activeWindowsCount: windows.filter((window) => window.active).length,
       inactiveWindowsCount: windows.filter((window) => !window.active).length,
       windows,
-      blockers: [],
+      blockers: uniqueBlockers(trackBlockers),
       warnings: uniqueBlockers(trackWarnings),
     });
   }
@@ -531,7 +563,6 @@ export async function runSpeakerSourceAttributionProof(
       ? uniqueBlockers([...track.warnings, `TRACK_ACTIVITY_WINDOWS_TRUNCATED:${track.windows.length}`])
       : track.warnings,
   }));
-  const trackBlockers = trackActivity.flatMap((track) => track.blockers);
   return {
     trackActivity: returnedTrackActivity,
     trackSpeakingSegments: trackSpeakingSegments.map((segment, index) => ({ ...segment, id: `track_speech_${index + 1}` })),
@@ -541,7 +572,7 @@ export async function runSpeakerSourceAttributionProof(
     analysisWindowSec: RMS_PREVIEW_WINDOW_SEC,
     thresholdUsed: FULL_ACTIVITY_THRESHOLD_DB,
     minimumSpeechDurationSec: FULL_ACTIVITY_MIN_SPEECH_SEC,
-    blockers: uniqueBlockers([...blockers, ...trackBlockers]),
+    blockers: uniqueBlockers(blockers),
     warnings: uniqueBlockers(warnings),
     timelineMutation: "none",
     sequenceMutation: "none",
@@ -1001,6 +1032,48 @@ function buildSilenceAndKeepSegments(
   };
 }
 
+function buildAutomaticSilenceSettings(
+  settings: SilenceRemovalSettings,
+  windows: RmsPreviewPoint[],
+): SilenceRemovalSettings {
+  const rmsValues = windows
+    .map((window) => window.rmsDb)
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+  if (!rmsValues.length) {
+    return {
+      ...settings,
+      silenceThresholdDb: settings.silenceThresholdDb,
+      minimumSilenceDurationSec: 0.25,
+      minimumCutGapSec: 0.35,
+      minimumKeepSegmentDurationSec: 0.8,
+      mergeAdjacentKeepGapSec: 0.2,
+    };
+  }
+
+  const quietFloor = percentile(rmsValues, 0.15);
+  const median = percentile(rmsValues, 0.5);
+  const adaptiveThreshold = clamp(roundDb(Math.min(median - 6, quietFloor + 16)), -38, -28);
+  return {
+    ...settings,
+    silenceThresholdDb: adaptiveThreshold,
+    minimumSilenceDurationSec: 0.2,
+    minimumCutGapSec: 0.25,
+    minimumKeepSegmentDurationSec: 0.6,
+    mergeAdjacentKeepGapSec: 0.12,
+  };
+}
+
+function percentile(values: number[], ratio: number): number {
+  if (!values.length) return 0;
+  const index = Math.max(0, Math.min(values.length - 1, Math.floor((values.length - 1) * ratio)));
+  return values[index];
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 function buildKeepSegmentsFromCutSilences(silenceSegments: SilenceSegment[], durationSec: number): KeepSegment[] {
   const keepSegments: KeepSegment[] = [];
   let cursor = 0;
@@ -1021,8 +1094,13 @@ function mergeShortKeepSegments(
   minimumKeepSegmentDurationSec: number,
   mergeAdjacentKeepGapSec: number,
 ): KeepSegment[] {
+  const boundaryKeepMinSec = Math.min(0.5, minimumKeepSegmentDurationSec);
+  const editableKeepSegments = keepSegments.filter((segment, index) => {
+    const isBoundary = index === 0 || index === keepSegments.length - 1;
+    return !isBoundary || segment.durationSec >= boundaryKeepMinSec;
+  });
   const merged: KeepSegment[] = [];
-  for (const segment of keepSegments) {
+  for (const segment of editableKeepSegments) {
     const previous = merged[merged.length - 1];
     if (previous && shouldMergeKeepSegment(previous, segment, minimumKeepSegmentDurationSec, mergeAdjacentKeepGapSec)) {
       previous.endSec = segment.endSec;
@@ -1042,6 +1120,7 @@ function shouldMergeKeepSegment(
   mergeAdjacentKeepGapSec: number,
 ): boolean {
   const gapSec = Math.max(0, current.startSec - previous.endSec);
+  if (gapSec >= mergeAdjacentKeepGapSec) return false;
   return previous.durationSec < minimumKeepSegmentDurationSec
     || current.durationSec < minimumKeepSegmentDurationSec
     || gapSec < mergeAdjacentKeepGapSec;
@@ -1292,16 +1371,51 @@ function buildDominantTrackWindows(trackActivity: TrackActivity[]): DominantTrac
 }
 
 function collectWindowsByTime(trackActivity: TrackActivity[]): Map<string, TrackActivityWindow[]> {
-  const windowsByTime = new Map<string, TrackActivityWindow[]>();
+  const windowsByBucket = new Map<number, Map<number, TrackActivityWindow>>();
   for (const track of trackActivity) {
     for (const window of track.windows) {
-      const key = `${window.timelineStartSec}-${window.timelineEndSec}`;
-      const group = windowsByTime.get(key) ?? [];
-      group.push(window);
-      windowsByTime.set(key, group);
+      const bucketIndex = timelineBucketIndex(window);
+      const tracksInBucket = windowsByBucket.get(bucketIndex) ?? new Map<number, TrackActivityWindow>();
+      const existing = tracksInBucket.get(window.audioTrackIndex);
+      if (!existing || window.rmsDb > existing.rmsDb) {
+        tracksInBucket.set(window.audioTrackIndex, toCanonicalTimelineWindow(window, bucketIndex));
+      }
+      windowsByBucket.set(bucketIndex, tracksInBucket);
     }
   }
-  return windowsByTime;
+  const sorted = new Map<string, TrackActivityWindow[]>();
+  for (const bucketIndex of [...windowsByBucket.keys()].sort((a, b) => a - b)) {
+    sorted.set(String(bucketIndex), [...(windowsByBucket.get(bucketIndex)?.values() ?? [])]);
+  }
+  return sorted;
+}
+
+function normalizeTrackWindows(windows: TrackActivityWindow[]): TrackActivityWindow[] {
+  const byBucket = new Map<number, TrackActivityWindow>();
+  for (const window of windows) {
+    const bucketIndex = timelineBucketIndex(window);
+    const existing = byBucket.get(bucketIndex);
+    if (!existing || window.rmsDb > existing.rmsDb) {
+      byBucket.set(bucketIndex, toCanonicalTimelineWindow(window, bucketIndex));
+    }
+  }
+  return [...byBucket.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, window]) => window);
+}
+
+function timelineBucketIndex(window: Pick<TrackActivityWindow, "timelineStartSec" | "timelineEndSec">): number {
+  const midpointSec = (window.timelineStartSec + window.timelineEndSec) / 2;
+  return Math.max(0, Math.floor((midpointSec + 0.000001) / RMS_PREVIEW_WINDOW_SEC));
+}
+
+function toCanonicalTimelineWindow(window: TrackActivityWindow, bucketIndex: number): TrackActivityWindow {
+  const timelineStartSec = roundTime(bucketIndex * RMS_PREVIEW_WINDOW_SEC);
+  return {
+    ...window,
+    timelineStartSec,
+    timelineEndSec: roundTime(timelineStartSec + RMS_PREVIEW_WINDOW_SEC),
+  };
 }
 
 function rmsTimestampInterpretation() {

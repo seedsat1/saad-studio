@@ -107,6 +107,8 @@ const SILENCE_PRESETS = [
   { id: "conservative", label: "Conservative", thresholdDb: -40, minimumDurationSec: 0.6, minimumCutGapSec: 0.9, minimumKeepSegmentDurationSec: 2 },
 ];
 
+const DEFAULT_CAMERA_ROLES = ["CAM WIDE", "CAM HOST", "CAM GUEST", "CAM GUESTS", "CAM DRONE / CRANE"];
+
 export function MultiCamAutoSwitchPage(): HTMLElement {
   const state = {
     loading: false,
@@ -152,6 +154,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     silencePaddingAfterSec: 0.12,
     executionStrategy: "decision-plan-only" as PodcastExecutionStrategy,
     mappings: {} as Record<string, number>,
+    cameraLabels: {} as Record<number, string>,
     cameraMappingTouched: false,
     audioMappings: {
       speaker_1: 0,
@@ -272,6 +275,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ...getCameraMappingSpeakerIds().map((speakerId) => renderMappingRow(speakerId)),
       ),
       el("div.podcast-settings.podcast-settings--compact", null,
+        renderField("Camera Names",
+          renderCameraNameFields(), true),
         renderField("Wide Camera Settings",
           el("div.podcast-camera-map", null, renderMappingRow("wide")), true),
         renderField("Minimum Shot Length",
@@ -319,7 +324,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       el("div.podcast-section-head", null,
         el("div", null,
           el("h3", null, "Silence Removal"),
-          el("p", null, "Create a synced audio/video draft from the detected keep segments. The original timeline is not changed."),
+          el("p", null, "Automatically detect pauses and create a synced audio/video draft. The original timeline is not changed."),
         ),
       ),
       renderSilencePresetButtons(),
@@ -438,7 +443,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       ),
       el("div.podcast-summary-grid", null,
         renderSummaryTile("Sequence", state.diagnostics.sequenceName || "No active sequence"),
-        renderSummaryTile("Tracks", `${state.diagnostics.videoTrackCount || 0} video / ${state.diagnostics.audioTrackCount || 0} audio`),
+        renderSummaryTile("Tracks", state.timelineLayout?.status === "ready"
+          ? `${getActiveVideoTracks().length} video / ${getActiveAudioTracks().length} audio`
+          : `${state.diagnostics.videoTrackCount || 0} video / ${state.diagnostics.audioTrackCount || 0} audio`),
         renderSummaryTile("Decisions", plan ? `${plan.summary.totalDecisions} camera cuts` : "Not previewed"),
         renderSummaryTile("Wide Camera", plan ? `${formatSeconds(plan.summary.wideCameraTimeSec)}` : formatMappedCameraLabel("wide")),
         renderSummaryTile("Inserted", apply ? `${apply.segmentsInserted} visual segments` : "Not applied"),
@@ -1125,7 +1132,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       const audio = audioTracks[audioIndex];
       const videoIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, Math.max(1, videoTracks.length));
       const video = videoIndex == null ? null : videoTracks[videoIndex];
-      return `${audio ? `A${audio.index + 1}` : `A${audioIndex + 1}`} ${speakerId} -> ${video ? `V${video.index + 1}` : "Unmapped"}`;
+      return `${audio ? `A${audio.index + 1}` : `A${audioIndex + 1}`} ${speakerId} -> ${video ? getVideoTrackOptionLabel(video.index) : "Unmapped"}`;
     });
     rows.push(`Wide -> ${formatMappedCameraLabel("wide")}`);
     return el("div.podcast-track-group.podcast-track-group--wide", null,
@@ -1186,30 +1193,87 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function renderMappingRow(speakerId: string): HTMLElement {
     return el("label.podcast-map-row", null,
-      el("strong", null, speakerId),
+      el("strong", null, getSpeakerMappingLabel(speakerId)),
       renderTrackSelect(speakerId),
     );
   }
 
+  function renderCameraNameFields(): HTMLElement {
+    const tracks = getSelectableVideoTracks();
+    return el("div.podcast-camera-map", null,
+      ...tracks.map((track) =>
+        el("label.podcast-map-row", null,
+          el("strong", null, `V${track.index + 1}`),
+          el("input.podcast-input", {
+            type: "text",
+            value: getCameraRoleLabel(track.index),
+            placeholder: defaultCameraRoleLabel(track.index),
+            onInput: (event: Event) => {
+              const value = (event.currentTarget as HTMLInputElement).value.trim();
+              if (value) {
+                state.cameraLabels[track.index] = value;
+              } else {
+                delete state.cameraLabels[track.index];
+              }
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
+            },
+          }),
+        ),
+      ),
+    );
+  }
+
   function renderTrackSelect(speakerId: string): HTMLElement {
-    const count = Math.max(1, state.diagnostics.videoTrackCount || 4);
+    const videoTracks = getSelectableVideoTracks();
+    const count = Math.max(1, state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount ?? 4);
     const selectedTrackIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, count);
-    return el("select.podcast-select", {
+    const onSelectCamera = (event: Event) => {
+      state.cameraMappingTouched = true;
+      const value = (event.currentTarget as HTMLSelectElement).value;
+      if (value === "") {
+        delete state.mappings[speakerId];
+      } else {
+        state.mappings[speakerId] = Number(value);
+      }
+      state.cameraDecisionPlanProof = null;
+      state.applyCameraDecisionsResult = null;
+      render();
+    };
+    const select = el("select.podcast-select", {
+      dataset: { cameraSpeakerId: speakerId },
       value: selectedTrackIndex == null ? "" : String(selectedTrackIndex),
-      onChange: (event: Event) => {
-        state.cameraMappingTouched = true;
-        const value = (event.currentTarget as HTMLSelectElement).value;
-        if (value === "") {
-          delete state.mappings[speakerId];
-        } else {
-          state.mappings[speakerId] = Number(value);
-        }
-        render();
-      },
+      onInput: onSelectCamera,
+      onChange: onSelectCamera,
     },
-    el("option", { value: "" }, "Select camera"),
-    ...Array.from({ length: count }, (_, index) =>
-      el("option", { value: String(index) }, `V${index + 1}`)));
+    el("option", { value: "", selected: selectedTrackIndex == null }, speakerId === "wide" ? "No wide camera" : "Ignore / not mapped"),
+    ...videoTracks.map((track) =>
+      el("option", { value: String(track.index), selected: selectedTrackIndex === track.index }, getVideoTrackOptionLabel(track.index))));
+    (select as HTMLSelectElement).value = selectedTrackIndex == null ? "" : String(selectedTrackIndex);
+    return select;
+  }
+
+  function getSpeakerMappingLabel(speakerId: string): string {
+    if (speakerId === "wide") return "Wide";
+    const audioTrackIndex = state.audioMappings[speakerId] ?? speakerIndexFromId(speakerId);
+    const track = state.timelineLayout?.audioTracks[audioTrackIndex];
+    const trackLabel = `A${audioTrackIndex + 1}`;
+    const name = track?.name?.trim();
+    return name ? `${trackLabel} - ${name} (${speakerId})` : `${trackLabel} - ${speakerId}`;
+  }
+
+  function getVideoTrackOptionLabel(videoTrackIndex: number): string {
+    const trackLabel = `V${videoTrackIndex + 1}`;
+    return `${getCameraRoleLabel(videoTrackIndex)} (${trackLabel})`;
+  }
+
+  function getCameraRoleLabel(videoTrackIndex: number): string {
+    const customLabel = state.cameraLabels[videoTrackIndex]?.trim();
+    return customLabel || defaultCameraRoleLabel(videoTrackIndex);
+  }
+
+  function defaultCameraRoleLabel(videoTrackIndex: number): string {
+    return DEFAULT_CAMERA_ROLES[videoTrackIndex] ?? `CAM ${videoTrackIndex + 1}`;
   }
 
   function renderStrategySelect(): HTMLElement {
@@ -1419,7 +1483,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   function readableTimelineStatus(): string {
     if (!state.timelineLayout) return "Not analyzed";
     if (state.timelineLayout.status === "ready") {
-      return `${state.timelineLayout.videoTracks.length} cameras / ${state.timelineLayout.audioTracks.length} mics`;
+      return `${getActiveVideoTracks().length} cameras / ${getActiveAudioTracks().length} mics`;
     }
     return state.timelineLayout.status;
   }
@@ -1481,6 +1545,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   async function previewAutoSwitch() {
     if (isProductionBusy()) return;
+    syncCameraMappingsFromDom();
     const layout = state.timelineLayout;
     if (!layout || layout.status !== "ready") {
       state.sourceAttributionProof = null;
@@ -1493,7 +1558,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     state.sourceAttributionProofLoading = true;
     render();
     try {
-      const sourceProof = await runSpeakerSourceAttributionProof(getAudioMappings(), state.selectedAudioStreamIndex);
+      const audioMappings = getAudioMappings();
+      if (audioMappings.length === 0) {
+        state.sourceAttributionProof = null;
+        state.cameraDecisionPlanProof = blockedCameraDecisionPlan(["AUDIO_TRACK_CAMERA_MAPPING_REQUIRED"], layout);
+        state.applyCameraDecisionsResult = null;
+        return;
+      }
+      const sourceProof = await runSpeakerSourceAttributionProof(audioMappings, state.selectedAudioStreamIndex);
       state.sourceAttributionProof = bindSourceAttributionToTimeline(sourceProof, layout);
       ensureCameraMappingsForAudioTracks();
       const sourceBlockers = getMappedTrackSourceBlockers(state.sourceAttributionProof);
@@ -1510,6 +1582,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         cameraMappings: getCameraMappings(),
         timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
         videoTrackCount: layout.videoTracks.length,
+        minimumShotLengthSec: state.minimumShotLengthSec,
         }),
         sequenceId: layout.sequenceId ?? null,
         sequenceName: layout.sequenceName ?? null,
@@ -1567,6 +1640,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.silenceRemovalResult = await runSilenceRemovalDraft({
         audioTrackIndex: 0,
         silenceThresholdDb: state.silenceThresholdDb,
+        autoMode: true,
         minimumSilenceDurationSec: state.minimumSilenceDurationSec,
         minimumCutGapSec: state.minimumCutGapSec,
         minimumKeepSegmentDurationSec: state.minimumKeepSegmentDurationSec,
@@ -1832,6 +1906,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       cameraMappings: getCameraMappings(),
       timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
       videoTrackCount: layout.videoTracks.length,
+      minimumShotLengthSec: state.minimumShotLengthSec,
       }),
       sequenceId: layout.sequenceId ?? null,
       sequenceName: layout.sequenceName ?? null,
@@ -2070,13 +2145,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function isMappedTrackSourceBlocker(blocker: string): boolean {
+    const code = blocker.split(":")[0];
     return [
       "NO_VALID_RMS_SOURCE_PATH",
       "INVALID_CLIP_TIMING",
       "AUDIO_STREAM_SELECTION_REQUIRED",
       "SELECTED_AUDIO_STREAM_NOT_FOUND",
       "NO_AUDIO_STREAM_DETECTED",
-    ].includes(blocker);
+    ].includes(code);
   }
 
   function planMatchesTimeline(plan: PodcastCameraDecisionPlanProof, layout: PodcastTimelineLayout): boolean {
@@ -2202,14 +2278,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function getCameraMappings(): CameraMapping[] {
     const visibleSpeakerIds = new Set([...getCameraMappingSpeakerIds(), "wide"]);
-    const videoCount = Math.max(1, state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount ?? 4);
+    const videoCount = Math.max(1, state.timelineLayout?.videoTracks.length ?? 0);
     return [...visibleSpeakerIds].flatMap((speakerId) => {
       const videoTrackIndex = getExplicitVideoTrackIndexForSpeaker(speakerId, videoCount);
       if (videoTrackIndex == null) return [];
       return [{
         speakerId,
         videoTrackIndex,
-        cameraLabel: speakerId === "wide" ? "Wide camera" : speakerId,
+        cameraLabel: getCameraRoleLabel(videoTrackIndex),
         fallback: speakerId === "wide",
       }];
     });
@@ -2226,15 +2302,31 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     if (activeSpeakerIds.size > 0) {
       return [...activeSpeakerIds].filter((speakerId) => speakerId !== "wide").sort(compareSpeakerIds);
     }
-    return getAudioMappings().map((mapping) => mapping.speakerId);
+    return getAudioMappingSpeakerIds();
   }
 
   function ensureCameraMappingsForAudioTracks() {
-    const videoCount = state.timelineLayout?.videoTracks.length ?? state.diagnostics.videoTrackCount;
+    const videoCount = state.timelineLayout?.videoTracks.length ?? 0;
     if (videoCount <= 0) return;
     for (const [speakerId, videoTrackIndex] of Object.entries(state.mappings)) {
       if (!Number.isFinite(videoTrackIndex) || videoTrackIndex < 0 || videoTrackIndex >= videoCount) {
         delete state.mappings[speakerId];
+      }
+    }
+  }
+
+  function syncCameraMappingsFromDom() {
+    const selects = page.querySelectorAll<HTMLSelectElement>("select[data-camera-speaker-id]");
+    for (const select of selects) {
+      const speakerId = select.dataset.cameraSpeakerId;
+      if (!speakerId) continue;
+      if (select.value === "") {
+        delete state.mappings[speakerId];
+        continue;
+      }
+      const videoTrackIndex = Number(select.value);
+      if (Number.isFinite(videoTrackIndex)) {
+        state.mappings[speakerId] = videoTrackIndex;
       }
     }
   }
@@ -2255,7 +2347,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function getAudioMappings(): AudioTrackSpeakerMapping[] {
-    return getAudioMappingSpeakerIds().map((speakerId) => {
+    return getCameraMappingSpeakerIds().filter((speakerId) =>
+      typeof state.mappings[speakerId] === "number"
+    ).map((speakerId) => {
       const fallbackAudioTrackIndex = speakerIndexFromId(speakerId);
       const audioTrackIndex = state.audioMappings[speakerId] ?? fallbackAudioTrackIndex;
       return {
@@ -2267,6 +2361,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function getAudioMappingSpeakerIds(): string[] {
+    const activeAudioTracks = getActiveAudioTracks();
+    if (activeAudioTracks.length > 0) {
+      return activeAudioTracks.map((track) => `speaker_${track.index + 1}`);
+    }
     const count = Math.max(
       state.timelineLayout?.audioTracks.length ?? 0,
       state.diagnostics.audioTrackCount ?? 0,
@@ -2281,6 +2379,32 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.audioMappings[speakerId] = speakerIndexFromId(speakerId);
     }
   }
+
+  function getActiveVideoTracks(): PodcastTrackInfo[] {
+    return (state.timelineLayout?.videoTracks ?? []).filter(trackHasClips);
+  }
+
+  function getActiveAudioTracks(): PodcastTrackInfo[] {
+    return (state.timelineLayout?.audioTracks ?? []).filter(trackHasClips);
+  }
+
+  function getSelectableVideoTracks(): PodcastTrackInfo[] {
+    const activeTracks = getActiveVideoTracks();
+    if (activeTracks.length > 0) return activeTracks;
+    const tracks = state.timelineLayout?.videoTracks ?? [];
+    if (tracks.length > 0) return tracks;
+    const count = Math.max(1, state.diagnostics.videoTrackCount ?? 4);
+    return Array.from({ length: count }, (_, index) => ({
+      kind: "video",
+      index,
+      name: `Video ${index + 1}`,
+      clipCount: 0,
+    }));
+  }
+}
+
+function trackHasClips(track: PodcastTrackInfo): boolean {
+  return (track.clipCount ?? 0) > 0;
 }
 
 function compareSpeakerIds(a: string, b: string): number {
