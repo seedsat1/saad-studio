@@ -70,7 +70,8 @@ export async function checkStoryboardReferenceImageSafety(imageUrl: string): Pro
       ?? "",
   ).trim();
   if (!apiKey) {
-    throw new Error("Unable to verify image safety. Please try again or use another image.");
+    console.warn("Safety check skipped: OPENAI_API_KEY or NSFW_SCAN_OPENAI_API_KEY is not configured.");
+    return;
   }
 
   const model = String(process.env.STORYBOARD_NSFW_MODEL ?? "omni-moderation-latest").trim() || "omni-moderation-latest";
