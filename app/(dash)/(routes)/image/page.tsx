@@ -620,6 +620,8 @@ function CompareSlider({ before, after }: { before: string; after: string }) {
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+  const [bulkDownloadError, setBulkDownloadError] = useState("");
   const [albums, setAlbums] = useState<Album[]>([]);
   const [showAlbumPicker, setShowAlbumPicker] = useState(false);
 
@@ -676,19 +678,42 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
   }, [selectedIds, onBulkDelete]);
 
   const handleBulkDownload = useCallback(async () => {
-    const urls = items.filter((i) => selectedIds.has(i.id) && i.url).map((i) => i.url);
-    for (const url of urls) {
+    const selectedItems = items.filter((item) => selectedIds.has(item.id) && item.url && !item.isPending);
+    if (selectedItems.length === 0 || isBulkDownloading) return;
+
+    setIsBulkDownloading(true);
+    setBulkDownloadError("");
+    try {
+      const response = await fetch("/api/download/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: selectedItems.map((item, index) => ({
+            url: item.url,
+            filename: `saadstudio-image-${index + 1}`,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error || "Could not prepare the selected images.");
+      }
+
+      const archive = await response.blob();
+      const objectUrl = URL.createObjectURL(archive);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `saadstudio_image_${Date.now()}`;
-      a.target = "_blank";
+      a.href = objectUrl;
+      a.download = `saadstudio-images-${new Date().toISOString().slice(0, 10)}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      // small delay so the browser handles each download
-      await new Promise((r) => setTimeout(r, 200));
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1_000);
+    } catch (error) {
+      setBulkDownloadError(error instanceof Error ? error.message : "Could not download the selected images.");
+    } finally {
+      setIsBulkDownloading(false);
     }
-  }, [items, selectedIds]);
+  }, [isBulkDownloading, items, selectedIds]);
 
   if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
 
@@ -750,8 +775,12 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
             <span className="text-[11px] text-zinc-400">{selectedIds.size} selected</span>
             {selectedIds.size > 0 && (
               <>
-                <button onClick={() => void handleBulkDownload()} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10">
-                  <Download className="h-3 w-3" /> Download
+                <button
+                  onClick={() => void handleBulkDownload()}
+                  disabled={isBulkDownloading}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+                >
+                  <Download className="h-3 w-3" /> {isBulkDownloading ? "Preparing ZIP..." : "Download"}
                 </button>
                 <button onClick={() => setShowAlbumPicker(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
                   <FolderPlus className="h-3 w-3" /> Add to album
@@ -761,6 +790,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                 </button>
               </>
             )}
+            {bulkDownloadError && <span className="text-[11px] text-red-300">{bulkDownloadError}</span>}
           </>
         )}
       </div>
