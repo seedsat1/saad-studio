@@ -74,6 +74,41 @@ const FALLBACK_LANGUAGES = [
   { code: "hu-HU", label: "Hungarian (Hungary)" },
 ];
 
+const LANGUAGES_WITH_FLAGS = [
+  { code: "en-US", label: "English (United States)", flag: "🇺🇸" },
+  { code: "en-GB", label: "English (United Kingdom)", flag: "🇬🇧" },
+  { code: "ar-SA", label: "Arabic (Saudi Arabia)", flag: "🇸🇦" },
+  { code: "ar-EG", label: "Arabic (Egypt)", flag: "🇪🇬" },
+  { code: "es-ES", label: "Spanish (Spain)", flag: "🇪🇸" },
+  { code: "es-MX", label: "Spanish (Mexico)", flag: "🇲🇽" },
+  { code: "fr-FR", label: "French (France)", flag: "🇫🇷" },
+  { code: "fr-CA", label: "French (Canada)", flag: "🇨🇦" },
+  { code: "de-DE", label: "German (Germany)", flag: "🇩🇪" },
+  { code: "it-IT", label: "Italian (Italy)", flag: "🇮🇹" },
+  { code: "pt-BR", label: "Portuguese (Brazil)", flag: "🇧🇷" },
+  { code: "pt-PT", label: "Portuguese (Portugal)", flag: "🇵🇹" },
+  { code: "ru-RU", label: "Russian (Russia)", flag: "🇷🇺" },
+  { code: "zh-CN", label: "Chinese (Simplified)", flag: "🇨🇳" },
+  { code: "zh-TW", label: "Chinese (Traditional)", flag: "🇹🇼" },
+  { code: "ja-JP", label: "Japanese (Japan)", flag: "🇯🇵" },
+  { code: "ko-KR", label: "Korean (South Korea)", flag: "🇰🇷" },
+  { code: "tr-TR", label: "Turkish (Turkey)", flag: "🇹🇷" },
+  { code: "hi-IN", label: "Hindi (India)", flag: "🇮🇳" },
+  { code: "nl-NL", label: "Dutch (Netherlands)", flag: "🇳🇱" },
+  { code: "sv-SE", label: "Swedish (Sweden)", flag: "🇸🇪" },
+  { code: "pl-PL", label: "Polish (Poland)", flag: "🇵🇱" },
+  { code: "id-ID", label: "Indonesian (Indonesia)", flag: "🇮🇩" },
+  { code: "vi-VN", label: "Vietnamese (Vietnam)", flag: "🇻🇳" },
+  { code: "th-TH", label: "Thai (Thailand)", flag: "🇹🇭" },
+  { code: "he-IL", label: "Hebrew (Israel)", flag: "🇮🇱" },
+  { code: "el-GR", label: "Greek (Greece)", flag: "🇬🇷" },
+  { code: "ro-RO", label: "Romanian (Romania)", flag: "🇷🇴" },
+  { code: "da-DK", label: "Danish (Denmark)", flag: "🇩🇰" },
+  { code: "fi-FI", label: "Finnish (Finland)", flag: "🇫🇮" },
+  { code: "no-NO", label: "Norwegian (Norway)", flag: "🇳🇴" },
+  { code: "hu-HU", label: "Hungarian (Hungary)", flag: "🇭🇺" }
+];
+
 const PRESET_STYLES: Record<string, {
   font: string;
   fontSize: number;
@@ -300,11 +335,12 @@ export default function ClipCraftStudioPage() {
   // Form options
   const [language, setLanguage] = useState("auto");
   const [sourceLang, setSourceLang] = useState("en-US");
-  const [targetLang, setTargetLang] = useState("es-ES");
+  const [targetLang, setTargetLang] = useState("ar-EG");
   const [captionStyle, setCaptionStyle] = useState("");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [editPrompt, setEditPrompt] = useState("");
   const [brandTemplateId, setBrandTemplateId] = useState("");
+  const [dubbingVoice, setDubbingVoice] = useState("Omar");
 
   // Audiogram form options
   const [waveformTemplate, setWaveformTemplate] = useState("wave");
@@ -396,16 +432,29 @@ export default function ClipCraftStudioPage() {
   });
 
   const combinedCaptionPresets = useMemo(() => {
-    const defaultNew = [
-      { id: "system_candy", label: "Candy 🍭 (NEW)" },
-      { id: "system_glitch", label: "Glitch 👾 (NEW)" },
-      { id: "system_prism", label: "Prism 🌈 (NEW)" },
-      { id: "system_ticker", label: "Ticker 📰 (NEW)" },
-      { id: "system_trophy", label: "Trophy 🏆 (NEW)" },
-      { id: "system_typewriter", label: "Typewriter ⌨️ (NEW)" },
-      { id: "system_wavy", label: "Wavy 🌊 (NEW)" },
-      { id: "system_wiggle", label: "Wiggle 💃 (NEW)" },
-    ];
+    const defaultNew = Object.keys(PRESET_STYLES).map((key) => {
+      const name = key.replace("system_", "").replace(/_/g, " ");
+      const capitalized = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      
+      let emoji = "";
+      if (key === "system_candy") emoji = " 🍭";
+      else if (key === "system_glitch") emoji = " 👾";
+      else if (key === "system_prism") emoji = " 🌈";
+      else if (key === "system_ticker") emoji = " 📰";
+      else if (key === "system_trophy") emoji = " 🏆";
+      else if (key === "system_typewriter") emoji = " ⌨️";
+      else if (key === "system_wavy") emoji = " 🌊";
+      else if (key === "system_wiggle") emoji = " 💃";
+      else if (key === "system_beasty") emoji = " 🔥";
+      else if (key === "system_luxury") emoji = " ✨";
+      else if (key === "system_karaoke") emoji = " 🎤";
+      else if (key === "system_minimal") emoji = " 💼";
+
+      return {
+        id: key,
+        label: capitalized + emoji
+      };
+    });
     const existing = catalog.captionPresets;
     const ids = new Set(existing.map(p => p.id));
     const merged = [...existing];
@@ -746,7 +795,7 @@ export default function ClipCraftStudioPage() {
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1.5 custom-scrollbar">
                   {filterPresetsByCategory(combinedCaptionPresets, selectedPresetCategory).map((preset) => {
                     const isSelected = captionStyle === preset.id;
                     const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
@@ -997,23 +1046,25 @@ export default function ClipCraftStudioPage() {
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { name: "Omar", label: "Natural", emoji: "👨" },
-                { name: "Layla", label: "Warm", emoji: "👩" },
-                { name: "Hamed", label: "Deep", emoji: "🧔" },
-                { name: "Sera", label: "Soft", emoji: "👧" }
+                { name: "Omar", label: "Natural", image: "/omar_avatar.png" },
+                { name: "Layla", label: "Warm", image: "/layla_avatar.png" },
+                { name: "Hamed", label: "Deep", image: "/hamed_avatar.png" },
+                { name: "Sera", label: "Soft", image: "/sera_avatar.png" }
               ].map((vc, i) => (
                 <button
                   key={i}
-                  onClick={() => setBrandTemplateId(vc.name)}
-                  className={`p-2 rounded-lg border text-center transition-all ${
-                    brandTemplateId === vc.name
-                      ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-400"
-                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800"
+                  onClick={() => setDubbingVoice(vc.name)}
+                  className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                    dubbingVoice === vc.name
+                      ? "bg-indigo-500/10 border-indigo-500/50 text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800 hover:bg-slate-900/80"
                   }`}
                 >
-                  <div className="text-lg mb-1">{vc.emoji}</div>
-                  <div className="text-[9px] font-bold truncate">{vc.name}</div>
-                  <div className="text-[8px] text-slate-505 truncate">{vc.label}</div>
+                  <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-850 bg-slate-950 flex items-center justify-center mb-1">
+                    <img src={vc.image} alt={vc.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="text-[10px] font-bold truncate w-full">{vc.name}</div>
+                  <div className="text-[8px] text-slate-505 truncate w-full">{vc.label}</div>
                 </button>
               ))}
             </div>
@@ -1068,8 +1119,11 @@ export default function ClipCraftStudioPage() {
                   onChange={(e) => setSourceLang(e.target.value)}
                   className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
                 >
-                  <option value="en-US">English (US)</option>
-                  <option value="ar-SA">Arabic (Saudi)</option>
+                  {LANGUAGES_WITH_FLAGS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1080,20 +1134,25 @@ export default function ClipCraftStudioPage() {
                   onChange={(e) => setTargetLang(e.target.value)}
                   className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
                 >
-                  <option value="ar-EG">Arabic (Egypt)</option>
-                  <option value="es-ES">Spanish (Spain)</option>
+                  {LANGUAGES_WITH_FLAGS.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="space-y-1">
                 <label className="text-[9px] font-bold text-slate-405 uppercase">Voice Accent</label>
                 <select
-                  value={brandTemplateId}
-                  onChange={(e) => setBrandTemplateId(e.target.value)}
+                  value={dubbingVoice}
+                  onChange={(e) => setDubbingVoice(e.target.value)}
                   className="w-full rounded-lg bg-slate-900 border border-slate-855 p-2 text-xs text-slate-200 outline-none"
                 >
                   <option value="Omar">Omar (Natural)</option>
                   <option value="Layla">Layla (Warm)</option>
+                  <option value="Hamed">Hamed (Deep)</option>
+                  <option value="Sera">Sera (Soft)</option>
                 </select>
               </div>
 
@@ -2175,7 +2234,7 @@ export default function ClipCraftStudioPage() {
 
       <FloatingParticles />
 
-      <div className="relative z-10 w-full max-w-none px-4 md:px-8 py-6 pb-24 space-y-6">
+      <div className="relative z-10 max-w-[1360px] mx-auto w-full px-4 md:px-8 py-6 pb-24 space-y-6">
         {/* Compact Workspace Header & Navigator */}
         <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 bg-slate-950/40 backdrop-blur-xl border border-slate-900/60 p-3 rounded-2xl w-full">
           <div className="flex items-center gap-2.5 pl-2">
@@ -2246,16 +2305,18 @@ export default function ClipCraftStudioPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {isDemoMode && (
+                {(isDemoMode || file || sourceUrl.trim()) && (
                   <button
                     onClick={() => {
                       setIsDemoMode(false);
                       setFile(null);
                       setSourceUrl("");
+                      setError("");
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-bold transition-all"
+                    className="px-3.5 py-1.5 rounded-lg border border-slate-800/80 bg-slate-900/30 text-slate-300 hover:text-slate-100 hover:bg-slate-900/60 hover:border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
                   >
-                    Reset Demo
+                    <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{isDemoMode ? "Upload Your Own File" : "Upload New File"}</span>
                   </button>
                 )}
                 <button
