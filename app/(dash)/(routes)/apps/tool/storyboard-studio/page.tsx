@@ -34,6 +34,7 @@ import {
   Brain,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
@@ -335,6 +336,7 @@ const CardPins = () => (
 
 export default function StoryboardProductionPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
@@ -389,13 +391,15 @@ export default function StoryboardProductionPage() {
 
   // Load saved storyboard panels on mount
   useEffect(() => {
+    if (!isAuthLoaded || !isSignedIn) return;
+
     const load = async () => {
       try {
         await loadStoryboardAssets();
       } catch { /* ignore */ }
     };
     void load();
-  }, [loadStoryboardAssets]);
+  }, [isAuthLoaded, isSignedIn, loadStoryboardAssets]);
 
   useEffect(() => {
     setAlbums(loadAlbums());
@@ -526,6 +530,16 @@ export default function StoryboardProductionPage() {
 
   const handleFileSelect = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
+
+    const gate = await guardGeneration({
+      requiredCredits: 0,
+      action: "apps:storyboard:safety-check",
+    });
+    if (!gate.ok) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     setIsCheckingImageSafety(true);
     setImageDataUrl(null);
     setSafeReferenceImageDataUrl(null);
@@ -569,7 +583,7 @@ export default function StoryboardProductionPage() {
       setIsCheckingImageSafety(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [getSafeErrorMessage]);
+  }, [getSafeErrorMessage, guardGeneration]);
 
   const toggleCameraAngle = (angleId: string) => {
     setSelectedAngles((prev) => {
