@@ -477,7 +477,7 @@ export default function DrawToVideoPage() {
     }
 
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
     if (!canvas || !context) return;
 
     const image = new Image();
@@ -511,7 +511,7 @@ export default function DrawToVideoPage() {
 
   const restore = useCallback((data: string) => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
     if (!canvas || !context) return;
     const image = new Image();
     image.onload = () => {
@@ -523,7 +523,7 @@ export default function DrawToVideoPage() {
 
   const resetBlank = useCallback(() => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
     if (!canvas || !context) return;
     context.clearRect(0, 0, canvas.width, canvas.height);
     setBackgroundImage("");
@@ -541,7 +541,7 @@ export default function DrawToVideoPage() {
     const { width, height } = canvasDimensions(aspect);
     canvas.width = width;
     canvas.height = height;
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) return;
     context.clearRect(0, 0, width, height);
     if (previous && undoRef.current.length) {
@@ -609,7 +609,7 @@ export default function DrawToVideoPage() {
     }
     
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
     if (canvas && context) {
       startImageDataRef.current = context.getImageData(0, 0, canvas.width, canvas.height);
     }
@@ -632,7 +632,7 @@ export default function DrawToVideoPage() {
 
   const onPointerMove = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!drawingRef.current || !lastRef.current) return;
-    const context = canvasRef.current?.getContext("2d");
+    const context = canvasRef.current?.getContext("2d", { willReadFrequently: true });
     if (!context) return;
     const point = pointFromEvent(event);
 
@@ -674,7 +674,7 @@ export default function DrawToVideoPage() {
 
   const onPointerUp = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!drawingRef.current || !startRef.current) return;
-    const context = canvasRef.current?.getContext("2d");
+    const context = canvasRef.current?.getContext("2d", { willReadFrequently: true });
     const end = pointFromEvent(event);
     
     if (context) {
@@ -721,7 +721,7 @@ export default function DrawToVideoPage() {
     if (!file.type.startsWith("image/")) return;
     const data = await readFile(file);
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
     if (!canvas || !context) return;
     const image = new Image();
     image.onload = () => {

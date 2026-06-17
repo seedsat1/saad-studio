@@ -1061,6 +1061,8 @@ function buildAutomaticSilenceSettings(
     minimumCutGapSec: 0.25,
     minimumKeepSegmentDurationSec: 0.6,
     mergeAdjacentKeepGapSec: 0.12,
+    paddingBeforeSec: 0.03,
+    paddingAfterSec: 0.05,
   };
 }
 
@@ -1151,13 +1153,14 @@ function pushSilenceSegment(
 
 function classifyPodcastPause(segment: SilenceSegment, minimumCutGapSec: number): SilenceSegment {
   const duration = roundTime(segment.endSec - segment.startSec);
-  if (duration < 0.5) {
+  const naturalPauseFloorSec = Math.min(0.5, minimumCutGapSec);
+  if (duration < naturalPauseFloorSec) {
     return {
       ...segment,
       durationSec: duration,
       pauseClassification: "Natural breathing pause",
       cutEligible: false,
-      cutDecisionReason: "pause shorter than 0.5s",
+      cutDecisionReason: `pause shorter than ${naturalPauseFloorSec}s`,
     };
   }
   if (duration < minimumCutGapSec) {

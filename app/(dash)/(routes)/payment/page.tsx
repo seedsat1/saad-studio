@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, Upload, X, CheckCircle2, Clock,
@@ -56,9 +56,9 @@ const METHODS = [
   },
   {
     id: "zaincash",
-    name: "Zain Cash",
-    account: "07902585579",
-    logoText: "ZC",
+    name: "Secure Online Payment",
+    account: "Instant wallet/card checkout",
+    logoText: "PAY",
     gradient: "from-red-600 to-rose-700",
     bg: "bg-red-500/10",
     border: "border-red-500/30",
@@ -86,7 +86,7 @@ function generateOrderId() {
 
 // ─── StepBar ─────────────────────────────────────────────────────────────────
 
-const STEP_LABELS = ["Select Order", "Payment Method", "Status"];
+const STEP_LABELS = ["Select Order", "Payment", "Status"];
 
 function StepBar({ step }: { step: Step }) {
   return (
@@ -185,20 +185,82 @@ function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: {
 
 // ─── ProofUpload ──────────────────────────────────────────────────────────────
 
-function OnlinePaymentNotice({ orderId }: { orderId: string }) {
+function CardCheckoutForm({ orderId, amount }: { orderId: string; amount: number }) {
+  const [message, setMessage] = useState("");
+
+  const handleCardSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setMessage("Card payment fields need the bank's official embedded gateway SDK before live charging can be enabled.");
+  };
+
   return (
-    <div className="mt-5 p-5 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-3">
+    <form onSubmit={handleCardSubmit} className="mt-5 p-5 rounded-2xl bg-slate-900/70 border border-slate-700 space-y-4">
       <p className="text-sm font-semibold text-white flex items-center gap-2">
-        <CreditCard className="w-4 h-4 text-red-300" /> ZainCash Online Payment
+        <CreditCard className="w-4 h-4 text-violet-300" /> Card details
       </p>
-      <p className="text-sm text-slate-300">
-        You will be redirected to the secure ZainCash gateway. Your credits are activated automatically after payment approval.
-      </p>
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <span>Order:</span>
-        <code className="px-2 py-1 rounded-lg bg-slate-950/60 border border-red-500/20 font-mono text-slate-200">{orderId}</code>
+      <div className="grid gap-3">
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+          Email
+          <input
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+          />
+        </label>
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+          Card information
+          <input
+            inputMode="numeric"
+            autoComplete="cc-number"
+            placeholder="1234 1234 1234 1234"
+            className="h-11 rounded-t-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+          />
+          <div className="-mt-3 grid grid-cols-2">
+            <input
+              inputMode="numeric"
+              autoComplete="cc-exp"
+              placeholder="MM / YY"
+              className="h-11 rounded-bl-xl border border-r-0 border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+            />
+            <input
+              inputMode="numeric"
+              autoComplete="cc-csc"
+              placeholder="CVC"
+              className="h-11 rounded-br-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+            />
+          </div>
+        </label>
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+          Cardholder name
+          <input
+            autoComplete="cc-name"
+            placeholder="Name on card"
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+          />
+        </label>
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
+          Country or region
+          <select
+            defaultValue="IQ"
+            className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
+          >
+            <option value="IQ">Iraq</option>
+          </select>
+        </label>
       </div>
-    </div>
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
+        <span>Order</span>
+        <code className="font-mono text-slate-200">{orderId}</code>
+      </div>
+      {message && <p className="text-xs text-amber-300">{message}</p>}
+      <button
+        type="submit"
+        className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-slate-950 transition-colors hover:bg-emerald-400"
+      >
+        Pay ${amount.toLocaleString()}
+      </button>
+    </form>
   );
 }
 
@@ -337,9 +399,9 @@ export default function PaymentPage() {
     const defaultStyle = { gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-500/10", border: "border-blue-500/30", glow: "shadow-[0_0_20px_rgba(59,130,246,0.2)]", activeBorder: "border-blue-400" };
     return cms.paymentMethods.map((pm) => ({
       id: pm.name.toLowerCase().replace(/\s+/g, ""),
-      name: pm.name,
-      account: pm.account,
-      logoText: pm.logoText,
+      name: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "Secure Online Payment" : pm.name,
+      account: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "Instant wallet/card checkout" : pm.account,
+      logoText: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "PAY" : pm.logoText,
       ...(STYLE_MAP[pm.name.toLowerCase().replace(/\s+/g, "")] ?? defaultStyle),
     }));
   }, [cms?.paymentMethods]);
@@ -548,7 +610,12 @@ export default function PaymentPage() {
 
         const payload = await zainRes.json().catch(() => ({}));
         if (!zainRes.ok || !payload?.url) {
-          throw new Error(payload?.error ?? `Failed to start ZainCash payment (${zainRes.status})`);
+          if (zainRes.status === 401) {
+            const currentUrl = typeof window !== "undefined" ? window.location.href : "/payment";
+            window.location.href = `/sign-in?redirect_url=${encodeURIComponent(currentUrl)}`;
+            return;
+          }
+          throw new Error(payload?.error ?? `Failed to start payment (${zainRes.status})`);
         }
 
         setStatus("pending");
@@ -759,8 +826,8 @@ export default function PaymentPage() {
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} className="space-y-5">
               <div>
-                <h2 className="text-lg font-bold text-white">Choose payment method</h2>
-                <p className="text-sm text-slate-400 mt-1">Select how you want to transfer</p>
+                <h2 className="text-lg font-bold text-white">Complete checkout</h2>
+                <p className="text-sm text-slate-400 mt-1">Review your order and enter your card details</p>
               </div>
 
               {/* Order summary */}
@@ -785,14 +852,23 @@ export default function PaymentPage() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                {liveMethods.map((m) => (
-                  <PaymentMethodCard key={m.id} method={m} selected={selectedMethod === m.id} onSelect={() => setSelectedMethod(m.id)} />
-                ))}
-              </div>
+              {!isZainCashOnline && (
+                <div className="space-y-3">
+                  {liveMethods.map((m) => (
+                    <PaymentMethodCard key={m.id} method={m} selected={selectedMethod === m.id} onSelect={() => setSelectedMethod(m.id)} />
+                  ))}
+                </div>
+              )}
 
               {isZainCashOnline ? (
-                <OnlinePaymentNotice orderId={orderId} />
+                <CardCheckoutForm
+                  orderId={orderId}
+                  amount={
+                    effectiveOrderType === "plan"
+                      ? Number(selectedPlanBilling?.usd ?? 0)
+                      : Number((selectedItem as { usd?: number })?.usd ?? 0)
+                  }
+                />
               ) : (
                 <>
                   <TransferInstructions method={method} orderId={orderId} orderLabel={orderLabel} whatsappNumber={liveWhatsApp} />
@@ -804,12 +880,14 @@ export default function PaymentPage() {
 
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors">← Back</button>
-                <button onClick={handleSubmit} disabled={loading}
-                  className="flex-[4] py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-violet-500/25">
-                  {loading
-                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{isZainCashOnline ? "Opening gateway..." : "Submitting..."}</>
-                    : isZainCashOnline ? <>Pay with ZainCash <ChevronRight className="w-4 h-4" /></> : <>Submit for Verification <ChevronRight className="w-4 h-4" /></>}
-                </button>
+                {!isZainCashOnline && (
+                  <button onClick={handleSubmit} disabled={loading}
+                    className="flex-[4] py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-violet-500/25">
+                    {loading
+                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</>
+                      : <>Submit for Verification <ChevronRight className="w-4 h-4" /></>}
+                  </button>
+                )}
               </div>
             </motion.div>
           )}

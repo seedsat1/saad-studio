@@ -829,7 +829,7 @@
             var draftName = (activeSeqName || "Sequence") + " - Saad Silence Removed Draft";
             var result = emptyPodcastExecutionResult();
             result.strategy = "silence-removal-audio-video";
-            result.timelineMutation = "clean sequence + audio-video silence-removed reconstruction only";
+            result.timelineMutation = "duplicate + remove original duplicate items + audio-video silence-removed reconstruction only";
             result.originalTouched = false;
             result.originalSequenceID = readSequenceID(activeSeq);
             result.duplicateSequenceID = null;
@@ -894,14 +894,24 @@
                 result.ok = false;
                 return stripRuntimeSequence(result);
             }
-            var cleanSequence = createCleanSilenceSequence(draftName, result);
-            if (!cleanSequence) {
+            var duplicateResult = createPodcastResearchDuplicate("Silence Removed Draft", draftName);
+            if (!duplicateResult.ok || !duplicateResult.newSequence) {
+                appendAll(result.blockers, duplicateResult.blockers);
+                appendAll(result.errors, duplicateResult.errors);
+                if (result.blockers.length === 0) result.blockers.push("SILENCE_DUPLICATE_SEQUENCE_FAILED");
                 result.ok = false;
                 return stripRuntimeSequence(result);
             }
+            result.cloneResult = duplicateResult.cloneResult;
+            result.renameResult = duplicateResult.renameResult;
+            result.duplicateValidationPassed = duplicateResult.duplicateValidationPassed;
+            result.newSequenceID = duplicateResult.newSequenceID;
+            result.newSequenceName = duplicateResult.newSequenceName;
+            var cleanSequence = duplicateResult.newSequence;
             result.newSequence = cleanSequence;
             result.duplicateSequenceID = readSequenceID(cleanSequence);
             result.draftSequenceName = cleanSequence.name || draftName;
+            removeOriginalPodcastTrackItemsOnDuplicate(cleanSequence, result);
             prepareSilenceRemovalTracks(cleanSequence, result);
             if (!cleanSequenceHasEnoughTracks(cleanSequence, activeSeq, result)) {
                 result.ok = false;
