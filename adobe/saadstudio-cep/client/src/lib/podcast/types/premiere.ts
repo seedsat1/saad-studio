@@ -45,6 +45,37 @@ export interface PodcastTimelineLayout {
   messages: string[];
 }
 
+export interface PodcastTimelineClipInfo {
+  kind: "video" | "audio";
+  trackIndex: number;
+  clipIndex: number;
+  trackName?: string | null;
+  clipName?: string | null;
+  projectItemName?: string | null;
+  sourcePath?: string | null;
+  mediaAvailable: boolean;
+  timelineStartSec: number | null;
+  timelineEndSec: number | null;
+  sourceInPointSec: number | null;
+  sourceOutPointSec: number | null;
+  durationSec: number | null;
+}
+
+export interface PodcastSynchronizationSnapshot {
+  status: "ready" | "no-sequence" | "unsupported" | "error";
+  sequenceId?: string | null;
+  sequenceName?: string | null;
+  sequenceDurationSec?: number | null;
+  videoTrackCount: number;
+  audioTrackCount: number;
+  videoClips: PodcastTimelineClipInfo[];
+  audioClips: PodcastTimelineClipInfo[];
+  messages: string[];
+  blockers: string[];
+  timelineMutation: "none";
+  sequenceMutation: "none";
+}
+
 export interface CreatePodcastSequenceInput {
   name: string;
   sourceSequenceId?: string | null;

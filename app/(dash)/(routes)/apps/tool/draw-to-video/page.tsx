@@ -326,11 +326,12 @@ interface TextLayer {
 
 export default function DrawToVideoPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
-  const undoRef = useRef<string[]>([]);
-  const redoRef = useRef<string[]>([]);
+  const undoRef = useRef<{ drawing: string; background: string }[]>([]);
+  const redoRef = useRef<{ drawing: string; background: string }[]>([]);
   const uploadRef = useRef<HTMLInputElement>(null);
   const referenceUploadRef = useRef<HTMLInputElement>(null);
   const sourceBeforeGenerationRef = useRef("");
@@ -484,6 +485,16 @@ export default function DrawToVideoPage() {
     image.onload = () => {
       setBackgroundImage(demo.image);
       context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const imgCanvas = imageCanvasRef.current;
+      const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+      if (imgCanvas && imgContext) {
+        imgCanvas.width = canvas.width;
+        imgCanvas.height = canvas.height;
+        imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+        imgContext.drawImage(image, 0, 0, imgCanvas.width, imgCanvas.height);
+      }
+      
       undoRef.current = [];
       redoRef.current = [];
       snapshot();
@@ -500,32 +511,57 @@ export default function DrawToVideoPage() {
 
   const snapshot = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const data = canvas.toDataURL("image/png");
-    if (undoRef.current.at(-1) === data) return;
-    undoRef.current = [...undoRef.current.slice(-29), data];
+    const imgCanvas = imageCanvasRef.current;
+    if (!canvas || !imgCanvas) return;
+    const drawingData = canvas.toDataURL("image/png");
+    const bgData = imgCanvas.toDataURL("image/png");
+    
+    const lastItem = undoRef.current.at(-1);
+    if (lastItem && lastItem.drawing === drawingData && lastItem.background === bgData) return;
+    
+    undoRef.current = [...undoRef.current.slice(-29), { drawing: drawingData, background: bgData }];
     redoRef.current = [];
-    sourceBeforeGenerationRef.current = data;
+    sourceBeforeGenerationRef.current = drawingData;
     rerenderHistory((value) => value + 1);
   }, []);
 
-  const restore = useCallback((data: string) => {
+  const restore = useCallback((data: { drawing: string; background: string }) => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d", { willReadFrequently: true });
-    if (!canvas || !context) return;
-    const image = new Image();
-    image.onload = () => {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    };
-    image.src = data;
+    if (canvas && context) {
+      const image = new Image();
+      image.onload = () => {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      };
+      image.src = data.drawing;
+    }
+    
+    const imgCanvas = imageCanvasRef.current;
+    const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+    if (imgCanvas && imgContext) {
+      const image = new Image();
+      image.onload = () => {
+        imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+        imgContext.drawImage(image, 0, 0, imgCanvas.width, imgCanvas.height);
+      };
+      image.src = data.background;
+    }
   }, []);
 
   const resetBlank = useCallback(() => {
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d", { willReadFrequently: true });
-    if (!canvas || !context) return;
-    context.clearRect(0, 0, canvas.width, canvas.height);
+    const imgCanvas = imageCanvasRef.current;
+    const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+    
+    if (canvas && context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    if (imgCanvas && imgContext) {
+      imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+    }
+    
     setBackgroundImage("");
     setReferenceImages([]);
     undoRef.current = [];
@@ -541,6 +577,13 @@ export default function DrawToVideoPage() {
     const { width, height } = canvasDimensions(aspect);
     canvas.width = width;
     canvas.height = height;
+    
+    const imgCanvas = imageCanvasRef.current;
+    if (imgCanvas) {
+      imgCanvas.width = width;
+      imgCanvas.height = height;
+    }
+    
     const context = canvas.getContext("2d", { willReadFrequently: true });
     if (!context) return;
     context.clearRect(0, 0, width, height);
@@ -548,11 +591,42 @@ export default function DrawToVideoPage() {
       const image = new Image();
       image.onload = () => {
         context.drawImage(image, 0, 0, width, height);
-        snapshot();
+        
+        if (backgroundImage) {
+          const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+          if (imgCanvas && imgContext) {
+            const bgImage = new Image();
+            bgImage.onload = () => {
+              imgContext.clearRect(0, 0, width, height);
+              imgContext.drawImage(bgImage, 0, 0, width, height);
+              snapshot();
+            };
+            bgImage.src = backgroundImage;
+          } else {
+            snapshot();
+          }
+        } else {
+          snapshot();
+        }
       };
       image.src = previous;
     } else {
-      snapshot();
+      if (backgroundImage) {
+        const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+        if (imgCanvas && imgContext) {
+          const bgImage = new Image();
+          bgImage.onload = () => {
+            imgContext.clearRect(0, 0, width, height);
+            imgContext.drawImage(bgImage, 0, 0, width, height);
+            snapshot();
+          };
+          bgImage.src = backgroundImage;
+        } else {
+          snapshot();
+        }
+      } else {
+        snapshot();
+      }
     }
   }, [aspect, imageUrl, snapshot, studioMode, videoUrl]);
 
@@ -572,6 +646,29 @@ export default function DrawToVideoPage() {
       setResolution("768P");
     }
   }, [duration, resolution, selectedModel.family]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
+      
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedTextId) {
+        e.preventDefault();
+        setTextLayers((prev) => prev.filter((l) => l.id !== selectedTextId));
+        setSelectedTextId(null);
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedTextId]);
 
   const pointFromEvent = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
@@ -654,6 +751,25 @@ export default function DrawToVideoPage() {
       context.lineTo(point.x, point.y);
       context.stroke();
       context.restore();
+
+      // Erase background image if using eraser
+      if (tool === "eraser") {
+        const imgContext = imageCanvasRef.current?.getContext("2d", { willReadFrequently: true });
+        if (imgContext) {
+          imgContext.save();
+          imgContext.lineCap = "round";
+          imgContext.lineJoin = "round";
+          imgContext.lineWidth = brushSize * 2.5;
+          imgContext.globalCompositeOperation = "destination-out";
+          imgContext.strokeStyle = "rgba(0,0,0,1)";
+          imgContext.beginPath();
+          imgContext.moveTo(lastRef.current.x, lastRef.current.y);
+          imgContext.lineTo(point.x, point.y);
+          imgContext.stroke();
+          imgContext.restore();
+        }
+      }
+
       lastRef.current = point;
     } else if (["rectangle", "arrow"].includes(tool)) {
       if (startImageDataRef.current) {
@@ -727,6 +843,16 @@ export default function DrawToVideoPage() {
     image.onload = () => {
       setBackgroundImage(data);
       context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const imgCanvas = imageCanvasRef.current;
+      const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+      if (imgCanvas && imgContext) {
+        imgCanvas.width = canvas.width;
+        imgCanvas.height = canvas.height;
+        imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+        imgContext.drawImage(image, 0, 0, imgCanvas.width, imgCanvas.height);
+      }
+      
       undoRef.current = [];
       redoRef.current = [];
       snapshot();
@@ -735,7 +861,8 @@ export default function DrawToVideoPage() {
   }, [snapshot]);
 
   const generate = useCallback(async () => {
-    if (!canvasRef.current || !prompt.trim() || isGenerating) return;
+    const promptNeeded = studioMode !== "draw-edit" || editAction !== "remove";
+    if (!canvasRef.current || (promptNeeded && !prompt.trim()) || isGenerating) return;
     const gate = await guardGeneration({
       requiredCredits: estimatedCredits,
       action: `apps:${studioMode}`,
@@ -758,17 +885,9 @@ export default function DrawToVideoPage() {
       if (!sourceContext) throw new Error("Canvas export is unavailable.");
       sourceContext.fillStyle = studioMode === "sketch-video" ? "#f6f1e7" : "#151515";
       sourceContext.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
-      if (backgroundImage) {
-        const base = new Image();
-        await new Promise<void>((resolve, reject) => {
-          base.onload = () => resolve();
-          base.onerror = () => reject(new Error("Unable to decode the uploaded image."));
-          base.src = backgroundImage;
-        });
-        const scale = Math.min(sourceCanvas.width / base.width, sourceCanvas.height / base.height);
-        const width = base.width * scale;
-        const height = base.height * scale;
-        sourceContext.drawImage(base, (sourceCanvas.width - width) / 2, (sourceCanvas.height - height) / 2, width, height);
+      
+      if (imageCanvasRef.current) {
+        sourceContext.drawImage(imageCanvasRef.current, 0, 0);
       }
       sourceContext.drawImage(canvasRef.current, 0, 0);
 
@@ -1080,7 +1199,6 @@ export default function DrawToVideoPage() {
               <div 
                 className="absolute inset-0 w-full h-full bg-contain bg-center bg-no-repeat"
                 style={{
-                  backgroundImage: backgroundImage ? `url('${backgroundImage}')` : undefined,
                   backgroundColor: studioMode === "sketch-video" ? "#f6f1e7" : (studioMode === "draw-edit" && editAction === "remove" ? "#18181b" : "#121620"),
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "center",
@@ -1164,6 +1282,43 @@ export default function DrawToVideoPage() {
                       <ArrowLeft className="h-3.5 w-3.5" />
                       <span>Back to canvas</span>
                     </button>
+
+                    {imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBackgroundImage(imageUrl);
+                          setImageUrl("");
+                          setVideoUrl("");
+                          
+                          // Clear annotation drawing canvas
+                          const canvas = canvasRef.current;
+                          const context = canvas?.getContext("2d", { willReadFrequently: true });
+                          if (canvas && context) {
+                            context.clearRect(0, 0, canvas.width, canvas.height);
+                          }
+                          
+                          // Draw new background image onto the background canvas
+                          const imgCanvas = imageCanvasRef.current;
+                          const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+                          if (imgCanvas && imgContext) {
+                            const image = new Image();
+                            image.onload = () => {
+                              imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+                              imgContext.drawImage(image, 0, 0, imgCanvas.width, imgCanvas.height);
+                              snapshot();
+                            };
+                            image.src = imageUrl;
+                          } else {
+                            snapshot();
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500 transition-all duration-200"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        <span>Apply to Canvas (تطبيق على لوحة الرسم)</span>
+                      </button>
+                    )}
                   </div>
 
                   <a
@@ -1178,6 +1333,10 @@ export default function DrawToVideoPage() {
                 </div>
               ) : (
                 <>
+                  <canvas
+                    ref={imageCanvasRef}
+                    className="absolute inset-0 h-full w-full pointer-events-none z-0"
+                  />
                   <canvas
                     ref={canvasRef}
                     onPointerDown={onPointerDown}
@@ -1426,7 +1585,9 @@ export default function DrawToVideoPage() {
                     ? "Describe what the sketch should turn into..."
                     : studioMode === "draw-video"
                       ? "Bicycle rides forward, camera pans left..."
-                      : "Put the orange juice in the person's hand..."
+                      : editAction === "remove"
+                        ? "Optional: Describe what to remove (e.g. the bird) or leave empty to delete marked area directly..."
+                        : "Put the orange juice in the person's hand..."
                 }
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value.slice(0, 1000))}
@@ -1471,7 +1632,7 @@ export default function DrawToVideoPage() {
                 <button
                   type="button"
                   onClick={generate}
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating || (studioMode !== "draw-edit" || editAction !== "remove" ? !prompt.trim() : false)}
                   className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-xs shadow-md shadow-violet-500/20 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? (
@@ -1481,7 +1642,17 @@ export default function DrawToVideoPage() {
                     </>
                   ) : (
                     <>
-                      <span>{studioMode === "draw-edit" ? "Generate Edit" : "Generate Video"}</span>
+                      <span>
+                        {studioMode === "draw-edit"
+                          ? editAction === "remove"
+                            ? "Remove Object (حذف مباشر)"
+                            : editAction === "replace"
+                              ? "Replace Object (معالجة واستبدال)"
+                              : editAction === "add"
+                                ? "Add Object (إضافة مباشرة)"
+                                : "Generate Edit (معالجة الصورة)"
+                          : "Generate Video (توليد فيديو)"}
+                      </span>
                       <span className="font-sans font-black flex items-center gap-0.5 bg-black/15 px-1.5 py-0.5 rounded text-[10px]">
                         ✦ {estimatedCredits}
                       </span>

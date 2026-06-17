@@ -289,6 +289,39 @@
         });
     };
 
+    host.saadstudio.getPodcastSynchronizationSnapshot = function () {
+        return safe(function () {
+            if (!IS_PPRO) {
+                return podcastEmptySynchronizationSnapshot("unsupported", "Synchronization only works inside Premiere Pro.");
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                return podcastEmptySynchronizationSnapshot("no-sequence", "No active Premiere sequence detected.");
+            }
+            var sequenceId = null;
+            try {
+                sequenceId = seq.sequenceID || seq.id || (seq.projectItem && seq.projectItem.nodeId) || null;
+            } catch (eId) { sequenceId = null; }
+            return {
+                status: "ready",
+                sequenceId: sequenceId,
+                sequenceName: seq.name || null,
+                sequenceDurationSec: readSequenceDurationSec(seq),
+                videoTrackCount: seq.videoTracks ? seq.videoTracks.numTracks : 0,
+                audioTrackCount: seq.audioTracks ? seq.audioTracks.numTracks : 0,
+                videoClips: readPodcastTimelineClips(seq.videoTracks, "video"),
+                audioClips: readPodcastTimelineClips(seq.audioTracks, "audio"),
+                messages: [
+                    "Synchronization snapshot read only. No clips were moved.",
+                    "Offset calculation requires waveform proof before any timeline movement."
+                ],
+                blockers: [],
+                timelineMutation: "none",
+                sequenceMutation: "none"
+            };
+        });
+    };
+
     host.saadstudio.inspectPodcastAudioSources = function (mappings) {
         return safe(function () {
             var result = {
@@ -2368,6 +2401,64 @@
             });
         }
         return out;
+    }
+
+    function podcastEmptySynchronizationSnapshot(status, message) {
+        return {
+            status: status,
+            sequenceId: null,
+            sequenceName: null,
+            sequenceDurationSec: null,
+            videoTrackCount: 0,
+            audioTrackCount: 0,
+            videoClips: [],
+            audioClips: [],
+            messages: [message],
+            blockers: [],
+            timelineMutation: "none",
+            sequenceMutation: "none"
+        };
+    }
+
+    function readPodcastTimelineClips(tracks, kind) {
+        var out = [];
+        if (!tracks) return out;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var track = tracks[t];
+            var clips = track && track.clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                out.push(readPodcastTimelineClip(track, clips[c], kind, t, c));
+            }
+        }
+        return out;
+    }
+
+    function readPodcastTimelineClip(track, clip, kind, trackIndex, clipIndex) {
+        var projectItem = clip && clip.projectItem;
+        var sourcePath = null;
+        try {
+            sourcePath = projectItem && projectItem.getMediaPath ? projectItem.getMediaPath() : null;
+        } catch (ePath) { sourcePath = null; }
+        var timelineStartSec = readTimeSeconds(clip && clip.start);
+        var timelineEndSec = readTimeSeconds(clip && clip.end);
+        return {
+            kind: kind,
+            trackIndex: trackIndex,
+            clipIndex: clipIndex,
+            trackName: readTrackName(track, kind, trackIndex),
+            clipName: clip && clip.name ? String(clip.name) : null,
+            projectItemName: projectItem && projectItem.name ? String(projectItem.name) : null,
+            sourcePath: sourcePath ? String(sourcePath) : null,
+            mediaAvailable: !!sourcePath,
+            timelineStartSec: timelineStartSec,
+            timelineEndSec: timelineEndSec,
+            sourceInPointSec: readTimeSeconds(clip && clip.inPoint),
+            sourceOutPointSec: readTimeSeconds(clip && clip.outPoint),
+            durationSec: (typeof timelineStartSec === "number" && typeof timelineEndSec === "number")
+                ? Math.max(0, timelineEndSec - timelineStartSec)
+                : selectedTimelineDurationSec(clip)
+        };
     }
 
     function readTrackName(track, kind, index) {
