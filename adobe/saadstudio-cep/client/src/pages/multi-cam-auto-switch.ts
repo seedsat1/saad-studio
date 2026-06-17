@@ -2085,6 +2085,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function clearAutoSwitchRuntimeState() {
+    state.synchronizationPlan = null;
     state.sourceAttributionProof = null;
     state.cameraDecisionPlanProof = null;
     state.applyCameraDecisionsResult = null;

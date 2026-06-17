@@ -146,6 +146,15 @@ export const APPS: AppDef[] = [
     color: "#22d3ee", // teal
   },
   {
+    id: "synchronize",
+    name: "Synchronize",
+    description: "Check podcast timeline sync before automatic camera switching.",
+    route: "/multi-cam-auto-switch",
+    icon: "video",
+    color: "#22c55e", // green
+    badge: "NEW",
+  },
+  {
     id: "multi-cam-auto-switch",
     name: "Multi-Cam Auto Switch",
     description: "Read-only diagnostics for podcast camera switching automation.",
