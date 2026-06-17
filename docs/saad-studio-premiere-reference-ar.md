@@ -4,6 +4,15 @@
 
 هذا الملف هو المرجع التشغيلي المختصر للمحادثات اللاحقة. عند التعارض، تكون الأولوية للوثائق الرسمية، ثم لاختبارات Runtime المثبتة داخل Premiere، ثم للمرجع المعماري v3.1.
 
+## بيئة التشغيل والحقائق المعروفة
+
+- إصدار المضيف المستهدف: **Premiere Pro 26.2.0**.
+- التكامل الحالي: **CEP Extension** باستخدام ExtendScript، وليس UXP.
+- **FFmpeg مطلوب** للتحليل الصوتي خارج Premiere.
+- اكتشاف نشاط المتحدث في Multi-Cam يعتمد قياسات **RMS**.
+- أداتا **Multi-Cam Auto Switch** و**Silence Removal** فعّالتان.
+- **Reap API** مسار منفصل عن تنفيذ المونتاج داخل Premiere.
+
 ## فصل نطاقي العمل
 
 - **Reap API**: خدمة خارجية لإنتاج المقاطع القصيرة، captions، reframing، dubbing، transcription والنشر الاجتماعي. ليست محرّك تبديل كاميرات الـ timeline، ولا نعتمد عليها لتحليل نشاط متحدثي Multi-Cam في الإصدار الأول.
@@ -35,11 +44,9 @@
 
 - توجد ملاحة وأدوات Multi-Cam Auto Switch وSilence Removal داخل إضافة CEP.
 - التنفيذ الحالي يستخدم `createSubClip` و`overwriteClip` لإعادة بناء أجزاء مطلوبة بدل Razor غير الموجود.
-- العناصر المولّدة تُنظّم في Project Panel تحت:
-  - `Saad Studio Generated / Multi-Cam Auto Switch`
-  - `Saad Studio Generated / Silence Removal`
+- السلوك الحالي في worktree ينظّم العناصر المولّدة في Project Panel تحت bin رئيسي باسم `Saad Studio - <Premiere Project Name>` ثم bin فرعي لكل أداة، ومنها `Multi-Cam Auto Switch` و`Silence Removal`.
 - عند تشغيل الأداة، تُنقل العناصر القديمة المعروفة من جذر المشروع إلى bin الأداة المناسب.
-- عناصر Runtime proof غير المقصودة لا تُنقل تلقائيًا.
+- عناصر Runtime Proof تُفصل في bin مستقل ولا تُخلط بمخرجات الأدوات الإنتاجية.
 
 ## Reap: المعلومات المحفوظة
 

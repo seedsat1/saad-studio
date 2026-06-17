@@ -658,11 +658,11 @@ export default function StudioEditPage() {
                 ))}
                 {optionsError ? (
                   <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-                    Reap presets request failed: {optionsError}
+                    Studio presets request failed: {optionsError}
                   </div>
                 ) : brandPresets.length === 0 && (
                   <div className="rounded-xl border border-white/10 bg-[#202020] px-4 py-3 text-xs text-zinc-400">
-                    No Reap brand templates returned yet.
+                    No brand templates returned yet.
                   </div>
                 )}
                 <button

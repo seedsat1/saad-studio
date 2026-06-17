@@ -18,6 +18,7 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
+export const dynamic = "force-dynamic";
 
 const MAX_PANELS = 9;
 

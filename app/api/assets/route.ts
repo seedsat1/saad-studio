@@ -1,8 +1,10 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
+
+export const dynamic = "force-dynamic";
 
 type AssetType = "image" | "video" | "audio" | "3d" | "text";
 

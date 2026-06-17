@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -29,7 +30,11 @@ import {
   Music,
   Settings,
   Layers,
-  History
+  History,
+  Film,
+  Target,
+  FolderOpen,
+  Sliders
 } from "lucide-react";
 import { FloatingParticles } from "@/components/FloatingParticles";
 
@@ -67,7 +72,69 @@ const FALLBACK_LANGUAGES = [
   { code: "no-NO", label: "Norwegian (Norway)" },
   { code: "cs-CZ", label: "Czech (Czechia)" },
   { code: "hu-HU", label: "Hungarian (Hungary)" },
-  { code: "uk-UA", label: "Ukrainian (Ukraine)" }
+];
+
+const PRESET_STYLES: Record<string, {
+  font: string;
+  fontSize: number;
+  textColor: string;
+  bgColor: string;
+  yPosition: number;
+  text: string;
+}> = {
+  system_candy: { font: "Montserrat", fontSize: 32, textColor: "#facc15", bgColor: "#ef4444", yPosition: 75, text: "Sweet Candy Captions! 🍭" },
+  system_glitch: { font: "monospace", fontSize: 28, textColor: "#00ffcc", bgColor: "#000000", yPosition: 65, text: "SYSTEM ERROR: GLITCH 👾" },
+  system_prism: { font: "Georgia", fontSize: 30, textColor: "#c084fc", bgColor: "#6366f1", yPosition: 50, text: "Prism Color spectrum 🌈" },
+  system_ticker: { font: "sans-serif", fontSize: 24, textColor: "#ffffff", bgColor: "#000000", yPosition: 85, text: "Breaking News: Live Ticker Update 📰" },
+  system_trophy: { font: "Montserrat", fontSize: 34, textColor: "#facc15", bgColor: "", yPosition: 40, text: "CHAMPIONS TROPHY 🏆" },
+  system_typewriter: { font: "monospace", fontSize: 26, textColor: "#ffffff", bgColor: "", yPosition: 50, text: "Typing out the script... ⌨️" },
+  system_wavy: { font: "cursive", fontSize: 30, textColor: "#06b6d4", bgColor: "#ffffff", yPosition: 70, text: "Riding the wavy motion 🌊" },
+  system_wiggle: { font: "cursive", fontSize: 32, textColor: "#ef4444", bgColor: "#facc15", yPosition: 60, text: "Wiggle it around! 💃" },
+  system_beasty: { font: "Impact", fontSize: 36, textColor: "#4ade80", bgColor: "#000000", yPosition: 75, text: "BEAST VIRAL STYLE 🔥" },
+  system_luxury: { font: "Georgia", fontSize: 28, textColor: "#facc15", bgColor: "", yPosition: 80, text: "Elegant Luxury Gold ✨" },
+  system_karaoke: { font: "Montserrat", fontSize: 30, textColor: "#06b6d4", bgColor: "", yPosition: 70, text: "Karaoke bouncing word 🎤" },
+  system_minimal: { font: "sans-serif", fontSize: 22, textColor: "#ffffff", bgColor: "", yPosition: 85, text: "Simple minimal caption" },
+  system_solid: { font: "sans-serif", fontSize: 26, textColor: "#ffffff", bgColor: "#1e293b", yPosition: 75, text: "Solid background box" },
+  system_blue: { font: "Montserrat", fontSize: 30, textColor: "#00d2ff", bgColor: "", yPosition: 75, text: "Blue Caption Style" },
+  system_deep_diver: { font: "sans-serif", fontSize: 26, textColor: "#000000", bgColor: "#ffffff", yPosition: 75, text: "Deep Diver Style" },
+  system_popline: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "#7c3aed", yPosition: 75, text: "Popline Style" },
+  system_phantom: { font: "Impact", fontSize: 34, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "PHANTOM STYLE" },
+  system_playdate: { font: "Georgia", fontSize: 30, textColor: "#f97316", bgColor: "", yPosition: 75, text: "Playdate Style" },
+  system_galaxy: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "#5b21b6", yPosition: 75, text: "Galaxy Style" },
+  system_turban: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "#4f46e5", yPosition: 75, text: "Turban Style" },
+  system_flipper: { font: "Montserrat", fontSize: 32, textColor: "#000000", bgColor: "#eab308", yPosition: 75, text: "Flipper Style" },
+  system_spell: { font: "Montserrat", fontSize: 30, textColor: "#ffffff", bgColor: "#a855f7", yPosition: 75, text: "Spell Style" },
+  system_youshaei: { font: "Montserrat", fontSize: 32, textColor: "#22c55e", bgColor: "", yPosition: 75, text: "Youshaei Style" },
+  system_noah: { font: "sans-serif", fontSize: 30, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "Noah Style" },
+  system_drive: { font: "Impact", fontSize: 32, textColor: "#3b82f6", bgColor: "#000000", yPosition: 75, text: "DRIVE STYLE" },
+  system_orange: { font: "Impact", fontSize: 34, textColor: "#ea580c", bgColor: "", yPosition: 75, text: "ORANGE STYLE" },
+  system_ghost: { font: "sans-serif", fontSize: 30, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "Ghost Style" },
+  system_pro_box: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "#0f172a", yPosition: 75, text: "Pro Box Style" },
+  system_webster: { font: "Montserrat", fontSize: 30, textColor: "#ef4444", bgColor: "", yPosition: 75, text: "Webster Style" },
+  system_lumina: { font: "Georgia", fontSize: 32, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "Lumina Style" },
+  system_indigo: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "#4338ca", yPosition: 75, text: "Indigo Style" },
+  system_ember: { font: "Impact", fontSize: 32, textColor: "#f97316", bgColor: "", yPosition: 75, text: "EMBER STYLE" },
+  system_glow: { font: "sans-serif", fontSize: 32, textColor: "#22c55e", bgColor: "", yPosition: 75, text: "Glow Style" },
+  system_impact: { font: "Impact", fontSize: 36, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "IMPACT STYLE" },
+  system_notes: { font: "cursive", fontSize: 28, textColor: "#facc15", bgColor: "", yPosition: 75, text: "Notes Style" },
+  system_vintage: { font: "Georgia", fontSize: 26, textColor: "#d1fae5", bgColor: "", yPosition: 75, text: "Vintage Classic Style" },
+  system_mint: { font: "Montserrat", fontSize: 30, textColor: "#a7f3d0", bgColor: "", yPosition: 75, text: "Mint Fresh Style" },
+  system_one_punch: { font: "Impact", fontSize: 36, textColor: "#ef4444", bgColor: "#000000", yPosition: 75, text: "ONE PUNCH POWER" },
+  system_silka: { font: "sans-serif", fontSize: 28, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "Silka Clean Caption" },
+  system_headlines: { font: "Montserrat", fontSize: 34, textColor: "#ffffff", bgColor: "#1e3a8a", yPosition: 75, text: "HEADLINES NEWS STYLE" },
+  system_wasabi: { font: "Montserrat", fontSize: 30, textColor: "#84cc16", bgColor: "", yPosition: 75, text: "Wasabi Green Style" },
+  system_zen: { font: "Georgia", fontSize: 26, textColor: "#f5f5f4", bgColor: "", yPosition: 75, text: "Zen Peaceful Caption" },
+  system_tech_talk: { font: "monospace", fontSize: 28, textColor: "#38bdf8", bgColor: "#090d16", yPosition: 75, text: "Tech Talk Terminal" },
+  system_yc: { font: "Montserrat", fontSize: 32, textColor: "#ff6600", bgColor: "", yPosition: 75, text: "YC Orange Style" },
+  system_popping: { font: "Montserrat", fontSize: 34, textColor: "#ec4899", bgColor: "", yPosition: 75, text: "Popping Pink Style" },
+};
+
+const PRESET_CATEGORIES = [
+  { id: "all", label: "All Styles" },
+  { id: "dynamic", label: "Dynamic & Glitch" },
+  { id: "glow", label: "Neon & Glow" },
+  { id: "bold", label: "Bold & Viral" },
+  { id: "clean", label: "Clean & Minimal" },
 ];
 
 type ToolType = "captions" | "dubbing" | "reframe" | "transcription" | "edit-videos" | "audiogram";
@@ -205,8 +272,27 @@ const STEPS = [
 
 export default function ClipCraftStudioPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [activeTool, setActiveTool] = useState<ToolType>("captions");
+
+  useEffect(() => {
+    if (pathname.includes("/clipcraft-studio/captions")) {
+      setActiveTool("captions");
+    } else if (pathname.includes("/clipcraft-studio/dubbing")) {
+      setActiveTool("dubbing");
+    } else if (pathname.includes("/clipcraft-studio/reframe")) {
+      setActiveTool("reframe");
+    } else if (pathname.includes("/clipcraft-studio/transcription")) {
+      setActiveTool("transcription");
+    } else if (pathname.includes("/clipcraft-studio/edit-videos")) {
+      setActiveTool("edit-videos");
+    } else if (pathname.includes("/clipcraft-studio/audiogram")) {
+      setActiveTool("audiogram");
+    }
+  }, [pathname]);
+
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,6 +329,21 @@ export default function ClipCraftStudioPage() {
   const [enableEmojis, setEnableEmojis] = useState(true);
   const [enableHighlights, setEnableHighlights] = useState(true);
   const [activeStyleTab, setActiveStyleTab] = useState<"presets" | "brands">("presets");
+  const [selectedPresetCategory, setSelectedPresetCategory] = useState("all");
+  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [activeSubTab, setActiveSubTab] = useState("templates");
+
+  useEffect(() => {
+    if (activeTool === "captions" || activeTool === "audiogram") {
+      setActiveSubTab("templates");
+    } else if (activeTool === "reframe") {
+      setActiveSubTab("reframe");
+    } else if (activeTool === "transcription") {
+      setActiveSubTab("transcript");
+    } else if (activeTool === "edit-videos") {
+      setActiveSubTab("tools");
+    }
+  }, [activeTool]);
 
   // Reframe & clipping advanced options
   const [disableAutoSplit, setDisableAutoSplit] = useState(false);
@@ -315,6 +416,1203 @@ export default function ClipCraftStudioPage() {
     }
     return merged;
   }, [catalog.captionPresets]);
+
+  const applyPresetStyles = (presetId: string) => {
+    const normalizedId = presetId.toLowerCase().startsWith("system_") 
+      ? presetId 
+      : `system_${presetId.toLowerCase().replace(/[\s-]/g, "_")}`;
+      
+    const style = PRESET_STYLES[presetId] || PRESET_STYLES[normalizedId] || PRESET_STYLES[presetId.toLowerCase()];
+    if (style) {
+      setCanvasFont(style.font);
+      setCanvasFontSize(style.fontSize);
+      setCanvasTextColor(style.textColor);
+      setCanvasBgColor(style.bgColor);
+      setCanvasYPosition(style.yPosition);
+      
+      // If canvasText is empty or is one of the preset texts, update it to the new preset text
+      const isPresetText = Object.values(PRESET_STYLES).some(p => p.text === canvasText);
+      if (canvasText.trim() === "" || canvasText === "Double-click to edit this caption text!" || isPresetText) {
+        setCanvasText(style.text);
+      }
+    }
+  };
+
+  const applyBrandStyles = (brandId: string, label: string) => {
+    setCanvasFont("Montserrat");
+    setCanvasFontSize(30);
+    setCanvasTextColor("#ffffff");
+    setCanvasBgColor("#6366f1");
+    setCanvasYPosition(75);
+    setCanvasText(`Saad Studio: ${label}`);
+  };
+
+  const getPresetAnimationClass = (presetId: string) => {
+    const id = presetId.toLowerCase().replace("system_", "");
+    if (id.includes("glitch")) return "animate-mini-glitch";
+    if (id.includes("glow") || id.includes("lumina")) return "animate-mini-glow";
+    if (id.includes("wiggle")) return "animate-mini-wiggle";
+    if (id.includes("wavy")) return "animate-mini-float";
+    if (id.includes("typewriter")) return "animate-mini-blink";
+    if (id.includes("candy") || id.includes("prism") || id.includes("spell")) return "animate-mini-pulse";
+    if (id.includes("beasty") || id.includes("one_punch") || id.includes("impact")) return "animate-mini-bounce";
+    if (id.includes("luxury") || id.includes("gold") || id.includes("ember")) return "animate-mini-skew";
+    if (id.includes("ticker") || id.includes("headlines")) return "animate-mini-tracking";
+    if (id.includes("flipper") || id.includes("wasabi")) return "animate-mini-shake";
+    return "animate-mini-slide";
+  };
+
+  const filterPresetsByCategory = (presets: any[], categoryId: string) => {
+    if (categoryId === "all") return presets;
+    return presets.filter(preset => {
+      const id = preset.id.toLowerCase();
+      if (categoryId === "dynamic") {
+        return id.includes("glitch") || id.includes("wavy") || id.includes("wiggle") || id.includes("spell") || id.includes("kinetic") || id.includes("typewriter") || id.includes("candy") || id.includes("prism") || id.includes("flipper") || id.includes("wasabi") || id.includes("ember");
+      }
+      if (categoryId === "glow") {
+        return id.includes("glow") || id.includes("lumina") || id.includes("neon") || id.includes("halo") || id.includes("pulse") || id.includes("blue") || id.includes("deep") || id.includes("galaxy") || id.includes("indigo") || id.includes("prism");
+      }
+      if (categoryId === "bold") {
+        return id.includes("beasty") || id.includes("impact") || id.includes("one_punch") || id.includes("headlines") || id.includes("trophy") || id.includes("drive") || id.includes("orange") || id.includes("ember") || id.includes("hype") || id.includes("phantom");
+      }
+      if (categoryId === "clean") {
+        return id.includes("minimal") || id.includes("solid") || id.includes("silka") || id.includes("zen") || id.includes("notes") || id.includes("vintage") || id.includes("mint") || id.includes("playdate") || id.includes("youshaei") || id.includes("noah") || id.includes("ghost") || id.includes("turban");
+      }
+      return true;
+    });
+  };
+
+  const renderPresetCard = (
+    preset: { id: string; label: string },
+    isSelected: boolean,
+    onClick: () => void
+  ) => {
+    const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`];
+    const animClass = getPresetAnimationClass(preset.id);
+    
+    const font = styleInfo?.font || "sans-serif";
+    const textColor = styleInfo?.textColor || "#ffffff";
+    const bgColor = styleInfo?.bgColor || "";
+    
+    return (
+      <button
+        key={preset.id}
+        type="button"
+        onClick={onClick}
+        className={`h-11 w-32 flex-shrink-0 flex items-center justify-center gap-1.5 rounded-lg border text-center transition-all duration-200 relative overflow-hidden select-none px-2 ${
+          isSelected
+            ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] scale-105 z-10"
+            : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-350 hover:scale-[1.02]"
+        }`}
+        style={{
+          fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
+        }}
+      >
+        <span
+          className={`text-[10px] font-extrabold truncate uppercase tracking-wider ${animClass}`}
+          style={{
+            color: isSelected ? undefined : textColor,
+            backgroundColor: bgColor && !isSelected ? `${bgColor}33` : undefined,
+            padding: bgColor && !isSelected ? "2px 4px" : undefined,
+            borderRadius: bgColor ? "3px" : undefined,
+            textShadow: bgColor ? "none" : "1px 1px 1px rgba(0,0,0,0.5)"
+          }}
+        >
+          {preset.label.replace(" (NEW)", "").replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '') || preset.label}
+        </span>
+        {preset.label.includes("🍭") && <span className="text-xs">🍭</span>}
+        {preset.label.includes("👾") && <span className="text-xs">👾</span>}
+        {preset.label.includes("🌈") && <span className="text-xs">🌈</span>}
+        {preset.label.includes("📰") && <span className="text-xs">📰</span>}
+        {preset.label.includes("🏆") && <span className="text-xs">🏆</span>}
+        {preset.label.includes("⌨️") && <span className="text-xs">⌨️</span>}
+        {preset.label.includes("🌊") && <span className="text-xs">🌊</span>}
+        {preset.label.includes("💃") && <span className="text-xs">💃</span>}
+        {preset.label.includes("🔥") && <span className="text-xs">🔥</span>}
+        {preset.label.includes("✨") && <span className="text-xs">✨</span>}
+        {preset.label.includes("🎤") && <span className="text-xs">🎤</span>}
+        {preset.label.includes("💼") && <span className="text-xs">💼</span>}
+      </button>
+    );
+  };
+
+  const renderBrandCard = (
+    template: { id?: string; code?: string; label: string },
+    isSelected: boolean,
+    onClick: () => void
+  ) => {
+    return (
+      <button
+        key={template.id || template.code || template.label}
+        type="button"
+        onClick={onClick}
+        className={`h-11 w-32 flex-shrink-0 flex items-center justify-center gap-1.5 rounded-lg border text-center transition-all duration-200 px-2 relative ${
+          isSelected
+            ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] scale-105 z-10"
+            : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-350 hover:scale-[1.02]"
+        }`}
+      >
+        <span className="text-xs">💼</span>
+        <span className="text-[10px] font-bold truncate max-w-full">
+          {template.label}
+        </span>
+      </button>
+    );
+  };
+
+  const getExportButtonConfig = () => {
+    switch (activeTool) {
+      case "captions":
+        return { label: "Export Captions", color: "bg-cyan-500 text-slate-950 hover:bg-cyan-400" };
+      case "dubbing":
+        return { label: "Export", color: "bg-purple-650 text-slate-100 hover:bg-purple-550" };
+      case "reframe":
+        return { label: "Export All", color: "bg-rose-500 text-slate-100 hover:bg-rose-450" };
+      case "transcription":
+        return { label: "Export", color: "bg-teal-500 text-slate-950 hover:bg-teal-400" };
+      case "edit-videos":
+        return { label: "Export Video", color: "bg-orange-500 text-slate-950 hover:bg-orange-400" };
+      case "audiogram":
+        return { label: "Export", color: "bg-violet-650 text-slate-100 hover:bg-violet-550" };
+      default:
+        return { label: "Export", color: "bg-cyan-500 text-slate-950 hover:bg-cyan-400" };
+    }
+  };
+
+  const renderUploadLandingView = () => {
+    return (
+      <div className="max-w-4xl mx-auto py-10 space-y-8">
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5" />
+            Next-Gen Video Post-Production
+          </div>
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            ClipCraft Studio
+          </h1>
+          <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
+            Upload your raw footage or audio clip to automatically generate subtitles, translate voices, smart edit, reframe and create stunning posts in seconds.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div
+            onDragEnter={handleDrag}
+            onDragOver={handleDrag}
+            onDragLeave={handleDrag}
+            onDrop={handleDrop}
+            onClick={triggerFileSelect}
+            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-4 bg-slate-950/40 backdrop-blur-xl ${
+              dragActive
+                ? "border-cyan-500 bg-cyan-500/5"
+                : "border-slate-800 hover:border-slate-700 hover:bg-slate-900/10"
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*,audio/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div className="p-4 rounded-full bg-slate-900 text-cyan-400 border border-slate-800">
+              <Upload className="w-8 h-8" />
+            </div>
+            <div>
+              <p className="text-base font-bold text-slate-200">Upload Media File</p>
+              <p className="text-xs text-slate-500 mt-1 max-w-[240px] mx-auto">
+                Drag and drop your MP4, MOV, MP3, or WAV here, or click to browse
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-8 bg-slate-950/40 backdrop-blur-xl border border-slate-800/80 flex flex-col justify-between gap-6">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Paste Media Link
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://example.com/video.mp4"
+                  value={sourceUrl}
+                  onChange={(e) => setSourceUrl(e.target.value)}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-805 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
+                />
+              </div>
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-slate-800/60"></div>
+                <span className="flex-shrink mx-4 text-xs font-bold text-slate-600 uppercase">Or</span>
+                <div className="flex-grow border-t border-slate-800/60"></div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-300 font-sans">No files ready?</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Start with a simulated demo project to test all workspaces immediately.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsDemoMode(true);
+                setCanvasText("Create videos that captivate your audience.");
+                setCanvasTextColor("#ffffff");
+                setCanvasBgColor("#06b6d4");
+                setCanvasFont("Montserrat");
+              }}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 font-bold text-slate-950 transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Use Simulated Demo Project
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderActiveWorkspace = () => {
+    switch (activeTool) {
+      case "captions":
+        return renderCaptionsWorkspace();
+      case "dubbing":
+        return renderDubbingWorkspace();
+      case "reframe":
+        return renderReframeWorkspace();
+      case "transcription":
+        return renderTranscriptionWorkspace();
+      case "edit-videos":
+        return renderVideoEditorWorkspace();
+      case "audiogram":
+        return renderAudiogramsWorkspace();
+      default:
+        return null;
+    }
+  };
+
+  const renderCaptionsWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
+          <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
+            {[
+              { id: "templates", label: "Templates", icon: Sparkles },
+              { id: "text", label: "Text", icon: Type },
+              { id: "animations", label: "Animations", icon: Activity },
+              { id: "position", label: "Position", icon: Maximize2 },
+              { id: "settings", label: "Settings", icon: Settings },
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id)}
+                  title={tab.label}
+                  className={`p-2.5 rounded-lg transition-all ${
+                    activeSubTab === tab.id
+                      ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex-grow p-5 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+            {activeSubTab === "templates" && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Style Library</h3>
+                  <button className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded font-bold border border-cyan-500/20 hover:bg-cyan-500/25">
+                    + New Style
+                  </button>
+                </div>
+                <div className="flex gap-1 overflow-x-auto pb-1 custom-scrollbar">
+                  {PRESET_CATEGORIES.map(cat => (
+                    <button
+                      type="button"
+                      key={cat.id}
+                      onClick={() => setSelectedPresetCategory(cat.id)}
+                      className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border transition-all flex-shrink-0 ${
+                        selectedPresetCategory === cat.id
+                          ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400"
+                          : "bg-slate-900/40 border-slate-850 text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {filterPresetsByCategory(combinedCaptionPresets, selectedPresetCategory).map((preset) => {
+                    const isSelected = captionStyle === preset.id;
+                    const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
+                    const font = styleInfo.font;
+                    const textColor = styleInfo.textColor;
+                    const bgColor = styleInfo.bgColor;
+                    const animClass = getPresetAnimationClass(preset.id);
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => {
+                          setCaptionStyle(preset.id);
+                          setBrandTemplateId("");
+                          applyPresetStyles(preset.id);
+                        }}
+                        className={`group relative rounded-xl border text-left transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 ${
+                          isSelected
+                            ? "bg-slate-900 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                            : "bg-slate-950/40 border-slate-900 hover:border-slate-800 hover:bg-slate-900/10"
+                        }`}
+                      >
+                        <span className={`text-[9px] font-extrabold uppercase tracking-wider transition-colors truncate max-w-full block ${
+                          isSelected ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-205"
+                        }`}>
+                          {preset.label.replace(" (NEW)", "")}
+                        </span>
+                        
+                        <div className="h-10 w-full rounded bg-slate-950/80 border border-slate-900 flex items-center justify-center overflow-hidden relative">
+                          <span
+                            className={`text-[9px] font-extrabold px-1 py-0.5 rounded text-center truncate ${animClass}`}
+                            style={{
+                              fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
+                              color: textColor || '#ffffff',
+                              backgroundColor: bgColor ? `${bgColor}66` : 'transparent',
+                              border: bgColor ? `1px solid ${bgColor}99` : 'none',
+                              textShadow: bgColor ? 'none' : '1px 1px 1px rgba(0,0,0,0.8)'
+                            }}
+                          >
+                            The quick brown fox
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === "text" && (
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Font Options</h3>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-slate-500 uppercase">Font Family</label>
+                    <select
+                      value={canvasFont}
+                      onChange={(e) => setCanvasFont(e.target.value)}
+                      className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
+                    >
+                      <option value="sans-serif">System Sans</option>
+                      <option value="Montserrat">Montserrat (Modern)</option>
+                      <option value="Impact">Impact (Meme/Viral)</option>
+                      <option value="Georgia">Georgia (Serif)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-slate-505">Size ({canvasFontSize}px)</label>
+                    <input
+                      type="range"
+                      min={14}
+                      max={42}
+                      value={canvasFontSize}
+                      onChange={(e) => setCanvasFontSize(Number(e.target.value))}
+                      className="w-full accent-cyan-500 mt-1 cursor-pointer bg-slate-850"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-slate-505">Text</label>
+                    <textarea
+                      value={canvasText}
+                      onChange={(e) => setCanvasText(e.target.value)}
+                      className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none resize-none"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === "animations" && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Animations</h3>
+                <p className="text-[10px] text-slate-505">Select how words animate when spoken.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {["Bounce", "Pulse", "Glitch", "Fade", "Slide"].map(anim => (
+                    <button
+                      key={anim}
+                      className="p-2.5 rounded-lg border border-slate-900 bg-slate-900/40 text-left text-xs font-medium text-slate-300 hover:border-slate-850"
+                    >
+                      {anim}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === "position" && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Position</h3>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-semibold text-slate-505">Vertical Alignment ({canvasYPosition}%)</label>
+                  <input
+                    type="range"
+                    min={10}
+                    max={90}
+                    value={canvasYPosition}
+                    onChange={(e) => setCanvasYPosition(Number(e.target.value))}
+                    className="w-full accent-cyan-500 mt-1"
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === "settings" && (
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Advanced</h3>
+                <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                  <span className="text-xs text-slate-300">Enable Emojis</span>
+                  <input
+                    type="checkbox"
+                    checked={enableEmojis}
+                    onChange={(e) => setEnableEmojis(e.target.checked)}
+                    className="accent-cyan-500"
+                  />
+                </div>
+                <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                  <span className="text-xs text-slate-300">Word Highlights</span>
+                  <input
+                    type="checkbox"
+                    checked={enableHighlights}
+                    onChange={(e) => setEnableHighlights(e.target.checked)}
+                    className="accent-cyan-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-8 flex flex-col justify-between gap-4">
+          <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-between relative min-h-[360px]">
+            <div className="flex-grow relative w-full overflow-hidden border border-slate-900 bg-slate-900/40 rounded-xl flex items-center justify-center aspect-video max-h-[340px]">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Video className="w-12 h-12 text-slate-800" />
+                <span className="text-xs">Interactive Video Preview</span>
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '10%',
+                  right: '10%',
+                  top: `${canvasYPosition}%`,
+                  transform: 'translateY(-50%)',
+                  fontFamily: canvasFont === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : canvasFont,
+                  fontSize: `${canvasFontSize}px`,
+                  color: canvasTextColor,
+                  backgroundColor: canvasBgColor ? `${canvasBgColor}cc` : 'transparent',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  lineHeight: '1.25',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
+                  textShadow: canvasBgColor ? 'none' : '1px 1px 2px rgba(0,0,0,0.8)',
+                  wordBreak: 'break-word',
+                  zIndex: 30,
+                }}
+              >
+                {canvasText}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-3 text-slate-400 text-xs px-1 border-t border-slate-900 pt-3">
+              <div className="flex items-center gap-3">
+                <button className="text-cyan-400 hover:text-cyan-300">
+                  <Play className="w-4 h-4 fill-current" />
+                </button>
+                <span>00:03 / 09:12</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button className="text-cyan-400 font-extrabold">CC</button>
+                <Maximize2 className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Subtitles Timeline Track</span>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { start: "00:00", text: "Create videos", active: false },
+                { start: "00:03", text: "that captivate", active: true },
+                { start: "00:06", text: "your audience.", active: false }
+              ].map((sub, i) => (
+                <div
+                  key={i}
+                  className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                    sub.active
+                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800"
+                  }`}
+                  onClick={() => setCanvasText(sub.text)}
+                >
+                  <div className="text-[9px] text-slate-500 font-mono mb-1">{sub.start}</div>
+                  <div className="text-xs font-semibold">{sub.text}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDubbingWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider mb-2 block">Original Video</span>
+            <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden flex-grow">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Video className="w-10 h-10 text-slate-800" />
+                <span className="text-[10px]">Playhead: 00:03</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-slate-400 text-[10px] mt-2 border-t border-slate-900 pt-2">
+              <Play className="w-3.5 h-3.5 text-indigo-400 fill-current" />
+              <span>00:03 / 00:12</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Voices</span>
+              <button className="text-[9px] text-indigo-400 font-bold hover:underline">More Voices</button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { name: "Omar", label: "Natural", emoji: "👨" },
+                { name: "Layla", label: "Warm", emoji: "👩" },
+                { name: "Hamed", label: "Deep", emoji: "🧔" },
+                { name: "Sera", label: "Soft", emoji: "👧" }
+              ].map((vc, i) => (
+                <button
+                  key={i}
+                  onClick={() => setBrandTemplateId(vc.name)}
+                  className={`p-2 rounded-lg border text-center transition-all ${
+                    brandTemplateId === vc.name
+                      ? "bg-indigo-500/10 border-indigo-500/40 text-indigo-400"
+                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800"
+                  }`}
+                >
+                  <div className="text-lg mb-1">{vc.emoji}</div>
+                  <div className="text-[9px] font-bold truncate">{vc.name}</div>
+                  <div className="text-[8px] text-slate-505 truncate">{vc.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-5 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4">
+          <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Waveforms Comparison</span>
+
+          <div className="space-y-4 flex-grow flex flex-col justify-center">
+            <div className="space-y-1 bg-slate-900/30 p-3 rounded-lg border border-slate-900">
+              <div className="flex justify-between text-[10px] text-slate-505">
+                <span>Original (English)</span>
+                <span>00:12</span>
+              </div>
+              <div className="h-10 flex gap-0.5 items-center justify-center">
+                {[1, 2, 4, 6, 8, 3, 2, 5, 7, 4, 3, 6, 9, 8, 5, 2, 4, 6, 3, 1].map((h, i) => (
+                  <div key={i} className="w-1 bg-indigo-500 rounded-full" style={{ height: `${h * 10}%` }} />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <button className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                <Languages className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1 bg-slate-900/30 p-3 rounded-lg border border-slate-900">
+              <div className="flex justify-between text-[10px] text-slate-550">
+                <span>Dubbed (Arabic)</span>
+                <span>00:12</span>
+              </div>
+              <div className="h-10 flex gap-0.5 items-center justify-center">
+                {[1, 3, 5, 2, 4, 7, 9, 6, 4, 2, 5, 8, 7, 4, 3, 6, 5, 2, 1, 1].map((h, i) => (
+                  <div key={i} className="w-1 bg-purple-500 rounded-full" style={{ height: `${h * 10}%` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-3 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4 flex-grow">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">Dubbing Settings</span>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-405 uppercase">Source Language</label>
+                <select
+                  value={sourceLang}
+                  onChange={(e) => setSourceLang(e.target.value)}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
+                >
+                  <option value="en-US">English (US)</option>
+                  <option value="ar-SA">Arabic (Saudi)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-405 uppercase">Target Language</label>
+                <select
+                  value={targetLang}
+                  onChange={(e) => setTargetLang(e.target.value)}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
+                >
+                  <option value="ar-EG">Arabic (Egypt)</option>
+                  <option value="es-ES">Spanish (Spain)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-bold text-slate-405 uppercase">Voice Accent</label>
+                <select
+                  value={brandTemplateId}
+                  onChange={(e) => setBrandTemplateId(e.target.value)}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-855 p-2 text-xs text-slate-200 outline-none"
+                >
+                  <option value="Omar">Omar (Natural)</option>
+                  <option value="Layla">Layla (Warm)</option>
+                </select>
+              </div>
+
+              <button className="w-full py-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold rounded-lg transition-colors">
+                Preview Voice
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block">Advanced Settings</span>
+            <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900 text-xs">
+              <span className="text-slate-300">Lip Sync</span>
+              <input
+                type="checkbox"
+                checked={enableFaceTracking}
+                onChange={(e) => setEnableFaceTracking(e.target.checked)}
+                className="accent-indigo-500"
+              />
+            </div>
+            <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900 text-xs">
+              <span className="text-slate-300">Remove Noise</span>
+              <input
+                type="checkbox"
+                checked={enableAutoHooks}
+                onChange={(e) => setEnableAutoHooks(e.target.checked)}
+                className="accent-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReframeWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
+          <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
+            {[
+              { id: "reframe", label: "Reframe", icon: Maximize2 },
+              { id: "target", label: "Target", icon: Target },
+              { id: "tracking", label: "Tracking", icon: Activity },
+              { id: "settings", label: "Settings", icon: Settings },
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id)}
+                  title={tab.label}
+                  className={`p-2.5 rounded-lg transition-all ${
+                    activeSubTab === tab.id
+                      ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex-grow p-5 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider capitalize">{activeSubTab} Config</h3>
+            {activeSubTab === "reframe" && (
+              <div className="space-y-3 text-xs">
+                <p className="text-[10px] text-slate-505">Select orientation formats to export reframed files.</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                    <span className="text-slate-300 font-medium">9:16 vertical</span>
+                    <input type="checkbox" checked={aspectRatio === "9:16"} onChange={() => setAspectRatio("9:16")} className="accent-rose-500" />
+                  </div>
+                  <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                    <span className="text-slate-300 font-medium">1:1 square</span>
+                    <input type="checkbox" checked={aspectRatio === "1:1"} onChange={() => setAspectRatio("1:1")} className="accent-rose-500" />
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeSubTab === "target" && (
+              <div className="space-y-3">
+                <label className="text-[9px] font-bold text-slate-505 uppercase">Video Genre</label>
+                <select
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
+                >
+                  <option value="talking">Talking Head 🗣️</option>
+                  <option value="screenshare">Screen Share 🖥️</option>
+                  <option value="gaming">Gaming Content 🎮</option>
+                </select>
+              </div>
+            )}
+            {activeSubTab === "tracking" && (
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                  <span className="text-slate-300">Face Tracking</span>
+                  <input type="checkbox" checked={enableFaceTracking} onChange={(e) => setEnableFaceTracking(e.target.checked)} className="accent-rose-500" />
+                </div>
+                <div className="flex justify-between items-center p-2 rounded bg-slate-900/20 border border-slate-900">
+                  <span className="text-slate-300">Smart Crop</span>
+                  <input type="checkbox" checked={enableAutoHooks} onChange={(e) => setEnableAutoHooks(e.target.checked)} className="accent-rose-500" />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-9 flex flex-col justify-between gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow items-center">
+            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-400">16:9 YouTube</span>
+              <div className="w-full aspect-video bg-slate-900 rounded-lg flex items-center justify-center border border-slate-850 relative overflow-hidden">
+                <div className="absolute inset-x-2 inset-y-1 border-2 border-dashed border-rose-500/40 rounded flex items-center justify-center">
+                  <span className="text-[8px] text-rose-400 font-mono">1920 x 1080</span>
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">1920 x 1080</span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col items-center gap-3">
+              <span className="text-[10px] font-bold text-rose-400">9:16 Stories/Reels</span>
+              <div className="w-full aspect-square md:aspect-[9/16] bg-slate-900 rounded-lg flex items-center justify-center border border-slate-850 relative overflow-hidden max-h-[170px]">
+                <div className="absolute inset-x-6 inset-y-2 border-2 border-dashed border-rose-500 rounded flex items-center justify-center">
+                  <span className="text-[8px] text-rose-400 font-mono">1080 x 1920</span>
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">1080 x 1920</span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col items-center gap-3">
+              <span className="text-[10px] font-bold text-slate-400">1:1 Instagram Post</span>
+              <div className="w-full aspect-square bg-slate-900 rounded-lg flex items-center justify-center border border-slate-855 relative overflow-hidden max-h-[170px]">
+                <div className="absolute inset-4 border-2 border-dashed border-rose-500/40 rounded flex items-center justify-center">
+                  <span className="text-[8px] text-rose-400 font-mono">1080 x 1080</span>
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-mono">1080 x 1080</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Timeline tracking strip</span>
+              <div className="flex items-center gap-4 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={enableFaceTracking} onChange={(e) => setEnableFaceTracking(e.target.checked)} className="accent-rose-500" />
+                  <span className="text-slate-350">Face Tracking</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" checked={enableAutoHooks} onChange={(e) => setEnableAutoHooks(e.target.checked)} className="accent-rose-500" />
+                  <span className="text-slate-355">Smart Crop</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="relative h-12 bg-slate-900 rounded-lg border border-slate-850 overflow-hidden flex items-center justify-between px-2">
+              <div className="absolute top-0 bottom-0 left-[20%] w-0.5 bg-rose-500 z-10" />
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="w-12 h-8 bg-slate-800/40 border border-slate-700/30 rounded flex items-center justify-center">
+                  <Film className="w-4 h-4 text-slate-600" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderTranscriptionWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider mb-2 block">Transcription Player</span>
+            <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden flex-grow">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-655 gap-2">
+                <Video className="w-10 h-10 text-slate-800" />
+                <span className="text-[10px]">Playhead: 00:03</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-slate-400 text-[10px] mt-2 border-t border-slate-900 pt-2">
+              <Play className="w-3.5 h-3.5 text-teal-400 fill-current" />
+              <span>00:03 / 00:12</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block">Speakers Activity</span>
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <div className="flex justify-between font-semibold">
+                  <span className="text-slate-350">Speaker 1</span>
+                  <span className="text-teal-400">85%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                  <div className="h-full bg-teal-500" style={{ width: "85%" }} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between font-semibold">
+                  <span className="text-slate-355">Speaker 2</span>
+                  <span className="text-slate-500">15%</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                  <div className="h-full bg-slate-700" style={{ width: "15%" }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-8 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-2">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Timed Transcript editor</span>
+            <div className="relative max-w-xs w-48">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search transcript..."
+                className="w-full rounded bg-slate-900 border border-slate-850 pl-8 pr-2 py-1 text-[10px] text-slate-200 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex-grow space-y-3 overflow-y-auto max-h-[360px] pr-1 custom-scrollbar">
+            {[
+              { time: "00:00", text: "Creating content is more competitive than ever.", active: false },
+              { time: "00:03", text: "The key is to create videos that truly captivate your audience.", active: true },
+              { time: "00:06", text: "With ClipCraft Studio, you can edit faster and smarter using AI.", active: false },
+              { time: "00:09", text: "From subtitles to dubbing and reframing, everything is automatic.", active: false },
+              { time: "00:12", text: "Save time, increase engagement, and grow your brand.", active: false }
+            ].map((item, i) => (
+              <div
+                key={i}
+                className={`p-3 rounded-lg border text-xs leading-relaxed transition-all cursor-pointer flex gap-3 ${
+                  item.active
+                    ? "bg-teal-500/10 border-teal-500/30 text-teal-400 shadow-[0_2px_8px_rgba(20,184,166,0.05)]"
+                    : "bg-slate-900/40 border-slate-900/60 text-slate-400 hover:border-slate-800"
+                }`}
+              >
+                <span className="font-mono text-slate-500 text-[10px] mt-0.5 shrink-0">{item.time}</span>
+                <p className="font-medium">{item.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <button className="w-full py-2 bg-slate-900 hover:bg-slate-800 border border-slate-805 text-slate-300 text-xs font-semibold rounded-lg transition-colors">
+            + Add custom subtitle note block
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderVideoEditorWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex flex-col items-center py-4 gap-4 justify-start">
+          {[
+            { id: "tools", label: "AI Tools", icon: Sparkles },
+            { id: "media", label: "Media", icon: FolderOpen },
+            { id: "text", label: "Text", icon: Type },
+            { id: "elements", label: "Elements", icon: Layers },
+            { id: "audio", label: "Audio", icon: Music },
+            { id: "transitions", label: "Transitions", icon: Sliders },
+            { id: "filters", label: "Filters", icon: Activity },
+          ].map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveSubTab(tab.id)}
+                title={tab.label}
+                className={`p-2.5 rounded-lg transition-all flex flex-col items-center gap-1 ${
+                  activeSubTab === tab.id
+                    ? "bg-orange-500/10 text-orange-400 border border-orange-500/20"
+                    : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="text-[8px] scale-90 font-bold tracking-tight">{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="lg:col-span-8 flex flex-col justify-between gap-6">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-between flex-grow min-h-[300px]">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider">Video Editor Viewport</span>
+              <span className="text-[10px] bg-slate-900 border border-slate-805 px-2 py-0.5 rounded text-orange-400 font-bold">16:9 Landscape</span>
+            </div>
+
+            <div className="flex-grow aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden max-h-[300px]">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Film className="w-12 h-12 text-slate-800" />
+                <span className="text-xs">Project timeline viewport simulation</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-3 text-slate-400 text-xs px-1 border-t border-slate-900 pt-3">
+              <div className="flex items-center gap-3">
+                <button className="text-orange-400 hover:text-orange-300">
+                  <Play className="w-4 h-4 fill-current" />
+                </button>
+                <span>00:03 / 00:12</span>
+              </div>
+              <Maximize2 className="w-3.5 h-3.5" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block">Timeline editor tracks</span>
+
+            <div className="space-y-2 text-[10px]">
+              <div className="flex gap-2 items-center">
+                <span className="w-10 text-slate-500 font-bold">Video</span>
+                <div className="flex-grow h-7 bg-orange-950/20 border border-orange-900/40 rounded flex items-center px-2 justify-between">
+                  <div className="w-1/3 h-5 bg-orange-500/20 rounded border border-orange-500/30 flex items-center justify-center font-bold text-[8px] text-orange-400">Clip #1</div>
+                  <div className="w-1/3 h-5 bg-orange-500/20 rounded border border-orange-500/30 flex items-center justify-center font-bold text-[8px] text-orange-400">Clip #2</div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <span className="w-10 text-slate-500 font-bold">Audio</span>
+                <div className="flex-grow h-7 bg-slate-900/60 border border-slate-800 rounded flex items-center px-2 justify-center">
+                  <div className="h-2 w-full bg-slate-850 rounded overflow-hidden relative">
+                    <div className="absolute inset-y-0 left-[10%] right-[30%] bg-indigo-500/40 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <span className="w-10 text-slate-500 font-bold">Text</span>
+                <div className="flex-grow h-7 bg-slate-900/60 border border-slate-800 rounded flex items-center px-2">
+                  <div className="w-1/4 h-5 bg-cyan-500/20 rounded border border-cyan-500/30 flex items-center justify-center font-bold text-[8px] text-cyan-400">Subtitle block</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4">
+          <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">AI Tools</span>
+
+          <div className="space-y-3">
+            {[
+              { label: "Cut Silence", desc: "Remove silent parts automatically", active: true },
+              { label: "Remove Filler Words", desc: "Like uhm, ah, you know", active: true },
+              { label: "Smart Edit", desc: "Auto improve edits and cuts", active: false },
+              { label: "Auto Caption", desc: "Add captions instantly", active: false },
+              { label: "Auto B-Roll", desc: "Add matching stock overlays", active: false }
+            ].map((tool, i) => (
+              <div key={i} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-900 bg-slate-900/20 text-xs">
+                <div>
+                  <div className="font-semibold text-slate-200">{tool.label}</div>
+                  <div className="text-[9px] text-slate-505 font-medium">{tool.desc}</div>
+                </div>
+                <input type="checkbox" checked={tool.active} className="accent-orange-500 cursor-pointer" readOnly />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAudiogramsWorkspace = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
+          <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
+            {[
+              { id: "templates", label: "Templates", icon: Sparkles },
+              { id: "audio", label: "Audio", icon: Music },
+              { id: "style", label: "Style", icon: Sliders },
+              { id: "text", label: "Text", icon: Type },
+              { id: "settings", label: "Settings", icon: Settings },
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id)}
+                  title={tab.label}
+                  className={`p-2.5 rounded-lg transition-all ${
+                    activeSubTab === tab.id
+                      ? "bg-violet-500/10 text-violet-400 border border-violet-500/20"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex-grow p-4 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider capitalize">{activeSubTab} options</h3>
+            {activeSubTab === "templates" && (
+              <div className="space-y-3">
+                <p className="text-[10px] text-slate-505">Pick Cover templates.</p>
+                <div className="space-y-2">
+                  <button className="w-full p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-xs text-left text-slate-200">
+                    Modern Dark Cover
+                  </button>
+                  <button className="w-full p-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-xs text-left text-slate-200">
+                    Minimal Gradient Cover
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-6 rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-center items-center gap-4">
+          <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider self-start">Audiogram Preview</span>
+
+          <div
+            className="w-full max-w-[320px] aspect-square rounded-2xl p-6 flex flex-col justify-between items-center text-center shadow-2xl relative overflow-hidden"
+            style={{
+              background: canvasBgColor ? `${canvasBgColor}` : "#0c0a1c",
+              border: "1px solid rgba(255,255,255,0.05)"
+            }}
+          >
+            <div className="space-y-1 mt-2 z-10">
+              <span className="text-[8px] font-bold uppercase tracking-widest text-violet-400">Podcast Episode</span>
+              <h4 className="text-sm font-extrabold text-slate-100 leading-tight">How to Create Better Content</h4>
+            </div>
+
+            <div className="w-16 h-16 rounded-full border-2 border-violet-500 bg-slate-900 flex items-center justify-center overflow-hidden z-10">
+              <span className="text-2xl">🎙️</span>
+            </div>
+
+            <div className="w-full z-10">
+              <div className="flex gap-1 items-end justify-center h-10 w-full px-4">
+                {[1, 2, 4, 3, 5, 2, 1, 3, 6, 8, 5, 3, 2, 4, 1].map((h, i) => (
+                  <div
+                    key={i}
+                    className="w-1 bg-violet-400 rounded-t-sm"
+                    style={{
+                      height: `${h * 10}%`,
+                      backgroundColor: canvasTextColor ? canvasTextColor : "#c084fc",
+                      animation: "wave-bars 1s ease-in-out infinite alternate",
+                      animationDelay: `${i * 0.05}s`
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="text-[8px] text-slate-505 font-mono mt-2">00:03 / 00:45</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-5 flex flex-col justify-between">
+          <div className="space-y-4">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">Waveform Styles</span>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "wave", name: "Wave lines" },
+                { id: "bars", name: "Jumping Bars" },
+                { id: "circle", name: "Circular Wave" },
+                { id: "bricks", name: "Blocks" }
+              ].map(wave => (
+                <button
+                  key={wave.id}
+                  onClick={() => setWaveformTemplate(wave.id)}
+                  className={`p-2.5 rounded border text-xs font-semibold text-center transition-all ${
+                    waveformTemplate === wave.id
+                      ? "bg-violet-500/10 border-violet-500/40 text-violet-400"
+                      : "bg-slate-900/40 border-slate-900 text-slate-400"
+                  }`}
+                >
+                  {wave.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block">Style & Colors</span>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Background</span>
+                <input
+                  type="color"
+                  value={canvasBgColor}
+                  onChange={(e) => setCanvasBgColor(e.target.value)}
+                  className="w-6 h-6 rounded border border-slate-800 bg-transparent cursor-pointer"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Wave Color</span>
+                <input
+                  type="color"
+                  value={canvasTextColor}
+                  onChange={(e) => setCanvasTextColor(e.target.value)}
+                  className="w-6 h-6 rounded border border-slate-800 bg-transparent cursor-pointer"
+                />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Animation speed</span>
+                <select className="bg-slate-900 border border-slate-855 p-1 text-[10px] text-slate-200 outline-none rounded">
+                  <option value="slow">Slow</option>
+                  <option value="normal">Normal</option>
+                  <option value="fast">Fast</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -812,1720 +2110,167 @@ export default function ClipCraftStudioPage() {
       lang="en"
       dir="ltr"
     >
+      <style>{`
+        @keyframes mini-float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-3px); }
+          100% { transform: translateY(0px); }
+        }
+        @keyframes mini-wiggle {
+          0%, 100% { transform: rotate(-2deg); }
+          50% { transform: rotate(2deg); }
+        }
+        @keyframes mini-pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.04); opacity: 0.9; }
+        }
+        @keyframes mini-glitch {
+          0%, 100% { transform: translate(0); }
+          20% { transform: translate(-1px, 1px); }
+          40% { transform: translate(-1px, -1px); }
+          60% { transform: translate(1px, 1px); }
+          80% { transform: translate(1px, -1px); }
+        }
+        @keyframes mini-glow {
+          0%, 100% { text-shadow: 0 0 4px rgba(6, 182, 212, 0.4); }
+          50% { text-shadow: 0 0 12px rgba(6, 182, 212, 0.8), 0 0 20px rgba(99, 102, 241, 0.4); }
+        }
+        @keyframes mini-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        @keyframes mini-skew {
+          0%, 100% { transform: skewX(0deg); }
+          50% { transform: skewX(-5deg); }
+        }
+        @keyframes mini-blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        @keyframes mini-shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-1.5px); }
+          75% { transform: translateX(1.5px); }
+        }
+        @keyframes mini-tracking {
+          0%, 100% { letter-spacing: -0.5px; }
+          50% { letter-spacing: 0.8px; }
+        }
+        @keyframes mini-slide {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(2px); }
+        }
+        .animate-mini-float { animation: mini-float 2.5s ease-in-out infinite; }
+        .animate-mini-wiggle { animation: mini-wiggle 0.5s ease-in-out infinite; }
+        .animate-mini-pulse { animation: mini-pulse 1.8s ease-in-out infinite; }
+        .animate-mini-glitch { animation: mini-glitch 0.4s linear infinite; }
+        .animate-mini-glow { animation: mini-glow 2s ease-in-out infinite; }
+        .animate-mini-bounce { animation: mini-bounce 0.8s ease-in-out infinite; }
+        .animate-mini-skew { animation: mini-skew 1.5s ease-in-out infinite; }
+        .animate-mini-blink { animation: mini-blink 0.7s infinite; }
+        .animate-mini-shake { animation: mini-shake 0.4s ease-in-out infinite; }
+        .animate-mini-tracking { animation: mini-tracking 3s ease-in-out infinite; }
+        .animate-mini-slide { animation: mini-slide 1.5s ease-in-out infinite; }
+      `}</style>
+
       <FloatingParticles />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8 py-10 pb-24 space-y-12">
-        {/* Header Block */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-4">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            AI Video Post-Production Suite
+      <div className="relative z-10 w-full max-w-none px-4 md:px-8 py-6 pb-24 space-y-6">
+        {/* Compact Workspace Header & Navigator */}
+        <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 bg-slate-950/40 backdrop-blur-xl border border-slate-900/60 p-3 rounded-2xl w-full">
+          <div className="flex items-center gap-2.5 pl-2">
+            <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
+            <div>
+              <span className="text-sm font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent block">
+                ClipCraft Studio
+              </span>
+              <span className="text-[10px] text-slate-500 font-medium block mt-0.5 leading-none">
+                AI Video Post-Production Suite
+              </span>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            ClipCraft Studio
-          </h1>
-          <p className="mt-4 text-slate-400 text-base max-w-2xl mx-auto">
-            Automate voice dubbing, animated captions, aspect ratios, and smart text-based video edits in one place.
-          </p>
-        </div>
+          
+          <div className="flex flex-wrap gap-1 bg-slate-900/40 p-1 rounded-xl border border-slate-800/60">
+            {(Object.keys(TOOL_DETAILS) as ToolType[]).map((key) => {
+              const t = TOOL_DETAILS[key];
+              const Icon = t.icon;
+              const active = activeTool === key;
 
-        {/* Tab Selection */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {(Object.keys(TOOL_DETAILS) as ToolType[]).map((key) => {
-            const t = TOOL_DETAILS[key];
-            const Icon = t.icon;
-            const active = activeTool === key;
-
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  if (status === "idle" || status === "completed" || status === "failed") {
-                    setActiveTool(key);
-                    setError("");
-                  }
-                }}
-                disabled={status !== "idle" && status !== "completed" && status !== "failed"}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-300 ${
-                  active
-                    ? "bg-slate-900/80 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)] text-slate-100"
-                    : "bg-slate-950/40 border-slate-800/80 hover:border-slate-700/60 text-slate-400 disabled:opacity-40"
-                }`}
-              >
-                <div className={`p-2.5 rounded-lg bg-gradient-to-br ${t.color} text-slate-950 mb-2.5`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-sm font-semibold text-center">{t.title}</span>
-                <span className="text-[10px] text-slate-500 mt-1 font-medium">
-                  {t.cost} Credits
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Form & Upload Area (Left) */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-6 shadow-xl space-y-6">
-              <h2 className="text-xl font-bold border-b border-slate-800/80 pb-3 flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500/10 text-cyan-400 text-sm">1</span>
-                Add Source Media
-              </h2>
-
-              {/* Paste URL Input */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Paste Video / Audio Link
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Drop a video link (e.g. https://example.com/video.mp4)..."
-                    value={sourceUrl}
-                    onChange={(e) => {
-                      setSourceUrl(e.target.value);
-                      if (e.target.value.trim().length > 0) {
-                        setFile(null); // Clear file if URL is provided
-                      }
-                    }}
-                    className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                  />
-                  {sourceUrl && (
-                    <button
-                      onClick={() => setSourceUrl("")}
-                      className="absolute right-3 top-2 text-xs font-bold text-cyan-400 hover:text-cyan-300"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                {!sourceUrl && (
-                  <p className="text-[10px] text-slate-500 text-center font-medium">Or upload a file instead:</p>
-                )}
-              </div>
-
-              {/* Upload Dropzone */}
-              {!sourceUrl.trim() && (
-                <div
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  onClick={triggerFileSelect}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
-                    dragActive
-                      ? "border-cyan-500 bg-cyan-500/5"
-                      : file
-                      ? "border-slate-700 bg-slate-900/20"
-                      : "border-slate-800 hover:border-slate-700 hover:bg-slate-900/10"
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="video/*,audio/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-
-                  <div className="flex flex-col items-center justify-center gap-3">
-                    <div className="p-3 rounded-full bg-slate-900 text-cyan-400 border border-slate-800">
-                      <Upload className="w-6 h-6" />
-                    </div>
-                    {file ? (
-                      <div>
-                        <p className="text-sm font-semibold text-slate-200">{file.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {(file.size / (1024 * 1024)).toFixed(2)} MB
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <p className="text-sm font-semibold text-slate-200">
-                          Drag and drop your file here, or click to browse
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1.5">
-                          Supports MP4, MOV, WAV, MP3 and other media files
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Configurable options for each tool */}
-              <div className="space-y-4 pt-2">
-                <h2 className="text-xl font-bold border-b border-slate-800/80 pb-3 flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500/10 text-cyan-400 text-sm">2</span>
-                  Configuration Options
-                </h2>
-
-                {activeTool === "captions" && (
-                  <div className="space-y-5">
-                    {/* Visual Preset Selector Tabs */}
-                    <div className="space-y-3">
-                      <div className="flex border-b border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => setActiveStyleTab("presets")}
-                          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                            activeStyleTab === "presets"
-                              ? "border-cyan-500 text-cyan-400"
-                              : "border-transparent text-slate-500 hover:text-slate-350"
-                          }`}
-                        >
-                          Caption Styles
-                        </button>
-                        {catalog.brandTemplates.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setActiveStyleTab("brands")}
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                              activeStyleTab === "brands"
-                                ? "border-cyan-500 text-cyan-400"
-                                : "border-transparent text-slate-500 hover:text-slate-350"
-                            }`}
-                          >
-                            Brand Templates
-                          </button>
-                        )}
-                      </div>
-
-                      {activeStyleTab === "presets" ? (
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Choose Caption Style
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {combinedCaptionPresets.map((preset) => {
-                              const isSelected = captionStyle === preset.id;
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCaptionStyle(preset.id);
-                                    setBrandTemplateId("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    {preset.id.startsWith("system_") ? "✨" : "📝"}
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {preset.label.replace(" (NEW)", "")}
-                                  </span>
-                                  {preset.label.includes("(NEW)") && (
-                                    <span className="text-[8px] bg-cyan-500/10 text-cyan-400 px-1 py-0.2 rounded mt-0.5 font-bold uppercase tracking-wide">
-                                      New
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Choose Brand Template
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {catalog.brandTemplates.map((template) => {
-                              const isSelected = brandTemplateId === template.id;
-                              return (
-                                <button
-                                  key={template.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setBrandTemplateId(template.id);
-                                    setCaptionStyle("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    💼
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {template.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Advanced Inputs Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-900 pt-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Language
-                        </label>
-                        <select
-                          value={language}
-                          onChange={(e) => setLanguage(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="auto">Auto Detect</option>
-                          {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                            <option key={l.code || l.id} value={l.code || l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Translate to
-                        </label>
-                        <select
-                          value={translateTo}
-                          onChange={(e) => setTranslateTo(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="none">None (No translation)</option>
-                          {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                            <option key={l.code || l.id} value={l.code || l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Script
-                        </label>
-                        <select
-                          value={transcriptionScript}
-                          onChange={(e) => setTranscriptionScript(e.target.value as any)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="native">Native script</option>
-                          <option value="roman">Romanized (Latin)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Resolution
-                        </label>
-                        <select
-                          value={resolution}
-                          onChange={(e) => setResolution(Number(e.target.value))}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value={720}>720p</option>
-                          <option value={1080}>1080p</option>
-                          <option value={1440}>1440p (2K)</option>
-                          <option value={2160}>2160p (4K)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Toggles stack */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Add Emoji 🤩</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Include relevant emojis in captions</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={enableEmojis}
-                            onChange={(e) => setEnableEmojis(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Word Highlight</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Highlight currently spoken words</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={enableHighlights}
-                            onChange={(e) => setEnableHighlights(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20 md:col-span-2">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Auto Hooks</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Automatically generate viral attention-grabbing titles/hooks</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={enableAutoHooks}
-                            onChange={(e) => setEnableAutoHooks(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === "dubbing" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Original Language
-                      </label>
-                      <select
-                        value={sourceLang}
-                        onChange={(e) => setSourceLang(e.target.value)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                      >
-                        {catalog.dubbingSourceLanguages.map((l) => (
-                          <option key={l.code || l.id} value={l.code || l.id}>
-                            {l.label}
-                          </option>
-                        ))}
-                        {!catalog.dubbingSourceLanguages.length && (
-                          <option value="en-US">English (US)</option>
-                        )}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Target Language (Dub)
-                      </label>
-                      <select
-                        value={targetLang}
-                        onChange={(e) => setTargetLang(e.target.value)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                      >
-                        {catalog.dubbingLanguages.map((l) => (
-                          <option key={l.code || l.id} value={l.code || l.id}>
-                            {l.label}
-                          </option>
-                        ))}
-                        {!catalog.dubbingLanguages.length && (
-                          <>
-                            <option value="ar-EG">Arabic (Egypt)</option>
-                            <option value="en-US">English (US)</option>
-                            <option value="es-ES">Spanish (Spain)</option>
-                            <option value="fr-FR">French (France)</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === "reframe" && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Target Orientation
-                      </label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { ratio: "9:16", label: "Vertical (TikTok/Reels)" },
-                          { ratio: "1:1", label: "Square (Post/Feed)" }
-                        ].map((item) => (
-                          <button
-                            key={item.ratio}
-                            type="button"
-                            onClick={() => setAspectRatio(item.ratio)}
-                            className={`p-3 rounded-lg border text-sm font-semibold transition-all duration-200 text-center ${
-                              aspectRatio === item.ratio
-                                ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
-                                : "bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300"
-                            }`}
-                          >
-                            <div className="text-base mb-1">{item.ratio}</div>
-                            <div className="text-[10px] text-slate-500 font-medium">{item.label}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Video Genre
-                        </label>
-                        <select
-                          value={genre}
-                          onChange={(e) => setGenre(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="talking">Talking Head 🗣️</option>
-                          <option value="screenshare">Screen Share 🖥️</option>
-                          <option value="gaming">Gaming Content 🎮</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3.5 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-sm font-semibold text-slate-200">Disable Auto Split</div>
-                          <div className="text-xs text-slate-500">Do not split reframed video into segments</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={disableAutoSplit}
-                            onChange={(e) => setDisableAutoSplit(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === "transcription" && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Audio Language
-                      </label>
-                      <select
-                        value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                      >
-                        <option value="auto">Auto Detect</option>
-                        {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                          <option key={l.code || l.id} value={l.code || l.id}>
-                            {l.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Translate to
-                      </label>
-                      <select
-                        value={translateTo}
-                        onChange={(e) => setTranslateTo(e.target.value)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                      >
-                        <option value="none">None (No translation)</option>
-                        {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                          <option key={l.code || l.id} value={l.code || l.id}>
-                            {l.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Script
-                      </label>
-                      <select
-                        value={transcriptionScript}
-                        onChange={(e) => setTranscriptionScript(e.target.value as any)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                      >
-                        <option value="native">Native script</option>
-                        <option value="roman">Romanized (Latin)</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === "edit-videos" && (
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Editing prompt / Guidance
-                      </label>
-                      <textarea
-                        value={editPrompt}
-                        onChange={(e) => setEditPrompt(e.target.value)}
-                        placeholder="E.g., highlight reel of the funniest moments under 30 seconds"
-                        rows={3}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 p-3 text-sm text-slate-200 outline-none focus:border-cyan-500/50 placeholder-slate-600 resize-none"
-                      />
-                    </div>
-
-                    {/* Styling Gallery for Video Editor Clips */}
-                    <div className="space-y-3">
-                      <div className="flex border-b border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => setActiveStyleTab("presets")}
-                          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                            activeStyleTab === "presets"
-                              ? "border-cyan-500 text-cyan-400"
-                              : "border-transparent text-slate-500 hover:text-slate-350"
-                          }`}
-                        >
-                          Clip Caption Styles
-                        </button>
-                        {catalog.brandTemplates.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setActiveStyleTab("brands")}
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                              activeStyleTab === "brands"
-                                ? "border-cyan-500 text-cyan-400"
-                                : "border-transparent text-slate-500 hover:text-slate-350"
-                            }`}
-                          >
-                            Brand Templates
-                          </button>
-                        )}
-                      </div>
-
-                      {activeStyleTab === "presets" ? (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {combinedCaptionPresets.map((preset) => {
-                              const isSelected = captionStyle === preset.id;
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCaptionStyle(preset.id);
-                                    setBrandTemplateId("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    {preset.id.startsWith("system_") ? "✨" : "📝"}
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {preset.label.replace(" (NEW)", "")}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {catalog.brandTemplates.map((template) => {
-                              const isSelected = brandTemplateId === template.id;
-                              return (
-                                <button
-                                  key={template.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setBrandTemplateId(template.id);
-                                    setCaptionStyle("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    💼
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {template.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Advanced Options Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-900 pt-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Video Genre
-                        </label>
-                        <select
-                          value={genre}
-                          onChange={(e) => setGenre(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="talking">Talking Head 🗣️</option>
-                          <option value="screenshare">Screen Share 🖥️</option>
-                          <option value="gaming">Gaming Content 🎮</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Language
-                        </label>
-                        <select
-                          value={language}
-                          onChange={(e) => setLanguage(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="auto">Auto Detect</option>
-                          {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                            <option key={l.code || l.id} value={l.code || l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Translate to
-                        </label>
-                        <select
-                          value={translateTo}
-                          onChange={(e) => setTranslateTo(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="none">None (No translation)</option>
-                          {(catalog.languages.length ? catalog.languages : FALLBACK_LANGUAGES).map((l) => (
-                            <option key={l.code || l.id} value={l.code || l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Script
-                        </label>
-                        <select
-                          value={transcriptionScript}
-                          onChange={(e) => setTranscriptionScript(e.target.value as any)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="native">Native script</option>
-                          <option value="roman">Romanized (Latin)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Export Orientation
-                        </label>
-                        <select
-                          value={exportOrientation}
-                          onChange={(e) => setExportOrientation(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="landscape">Landscape (16:9)</option>
-                          <option value="portrait">Portrait (9:16)</option>
-                          <option value="square">Square (1:1)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Export Resolution
-                        </label>
-                        <select
-                          value={exportResolution}
-                          onChange={(e) => setExportResolution(Number(e.target.value))}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value={720}>720p</option>
-                          <option value={1080}>1080p</option>
-                          <option value={1440}>1440p (2K)</option>
-                          <option value={2160}>2160p (4K)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Topic Preferences (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="E.g. product intro, pricing plans"
-                          value={topics}
-                          onChange={(e) => setTopics(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Start (sec)
-                          </label>
-                          <input
-                            type="number"
-                            placeholder="Auto"
-                            value={selectedStart}
-                            onChange={(e) => setSelectedStart(e.target.value)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            End (sec)
-                          </label>
-                          <input
-                            type="number"
-                            placeholder="Auto"
-                            value={selectedEnd}
-                            onChange={(e) => setSelectedEnd(e.target.value)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Clip Duration Ranges */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Preferred Clip Durations
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { range: [0, 30] as [number, number], label: "0-30s" },
-                          { range: [30, 60] as [number, number], label: "30-60s" },
-                          { range: [60, 90] as [number, number], label: "60-90s" },
-                          { range: [90, 180] as [number, number], label: "90-180s" },
-                          { range: [180, 300] as [number, number], label: "180-300s" }
-                        ].map((item) => {
-                          const isSelected = clipDurations.some(d => d[0] === item.range[0] && d[1] === item.range[1]);
-                          return (
-                            <button
-                              key={item.label}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setClipDurations(clipDurations.filter(d => !(d[0] === item.range[0] && d[1] === item.range[1])));
-                                } else {
-                                  setClipDurations([...clipDurations, item.range]);
-                                }
-                              }}
-                              className={`px-3.5 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-200 ${
-                                isSelected
-                                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
-                                  : "bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300"
-                              }`}
-                            >
-                              {item.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Advanced Toggles */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Reframe Clips</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Reframe aspect ratios</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={reframeClips}
-                            onChange={(e) => setReframeClips(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Add Emoji</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Use contextual emojis</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={enableEmojis}
-                            onChange={(e) => setEnableEmojis(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-
-                      <div className="flex items-center justify-between p-3 rounded-lg border border-slate-800/80 bg-slate-900/20">
-                        <div>
-                          <div className="text-xs font-semibold text-slate-200">Word Highlight</div>
-                          <div className="text-[10px] text-slate-500 font-medium">Highlight keywords</div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={enableHighlights}
-                            onChange={(e) => setEnableHighlights(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-cyan-500 peer-checked:after:bg-slate-950"></div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTool === "audiogram" && (
-                  <div className="space-y-4">
-                    {/* Visual Preset Selector Tabs */}
-                    <div className="space-y-3">
-                      <div className="flex border-b border-slate-800">
-                        <button
-                          type="button"
-                          onClick={() => setActiveStyleTab("presets")}
-                          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                            activeStyleTab === "presets"
-                              ? "border-cyan-500 text-cyan-400"
-                              : "border-transparent text-slate-500 hover:text-slate-350"
-                          }`}
-                        >
-                          Caption Styles
-                        </button>
-                        {catalog.brandTemplates.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setActiveStyleTab("brands")}
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                              activeStyleTab === "brands"
-                                ? "border-cyan-500 text-cyan-400"
-                                : "border-transparent text-slate-500 hover:text-slate-350"
-                            }`}
-                          >
-                            Brand Templates
-                          </button>
-                        )}
-                      </div>
-
-                      {activeStyleTab === "presets" ? (
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Choose Caption Style
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {combinedCaptionPresets.map((preset) => {
-                              const isSelected = captionStyle === preset.id;
-                              return (
-                                <button
-                                  key={preset.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCaptionStyle(preset.id);
-                                    setBrandTemplateId("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    {preset.id.startsWith("system_") ? "✨" : "📝"}
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {preset.label.replace(" (NEW)", "")}
-                                  </span>
-                                  {preset.label.includes("(NEW)") && (
-                                    <span className="text-[8px] bg-cyan-500/10 text-cyan-400 px-1 py-0.2 rounded mt-0.5 font-bold uppercase tracking-wide">
-                                      New
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Choose Brand Template
-                          </label>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {catalog.brandTemplates.map((template) => {
-                              const isSelected = brandTemplateId === template.id;
-                              return (
-                                <button
-                                  key={template.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setBrandTemplateId(template.id);
-                                    setCaptionStyle("");
-                                  }}
-                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all ${
-                                    isSelected
-                                      ? "bg-slate-900 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]"
-                                      : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-300"
-                                  }`}
-                                >
-                                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-1.5 text-base shadow-inner">
-                                    💼
-                                  </div>
-                                  <span className="text-xs font-semibold truncate max-w-full">
-                                    {template.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Advanced Inputs Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-900 pt-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Audio Language
-                        </label>
-                        <select
-                          value={language}
-                          onChange={(e) => setLanguage(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="auto">Auto Detect</option>
-                          {catalog.languages.map((l) => (
-                            <option key={l.id} value={l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Translate to
-                        </label>
-                        <select
-                          value={translateTo}
-                          onChange={(e) => setTranslateTo(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="none">None (No translation)</option>
-                          {catalog.languages.map((l) => (
-                            <option key={l.id} value={l.id}>
-                              {l.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Script
-                        </label>
-                        <select
-                          value={transcriptionScript}
-                          onChange={(e) => setTranscriptionScript(e.target.value as any)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="native">Native script</option>
-                          <option value="roman">Romanized (Latin)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Resolution
-                        </label>
-                        <select
-                          value={resolution}
-                          onChange={(e) => setResolution(Number(e.target.value))}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value={720}>720p</option>
-                          <option value={1080}>1080p</option>
-                          <option value={1440}>1440p (2K)</option>
-                          <option value={2160}>2160p (4K)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Waveform Template
-                        </label>
-                        <select
-                          value={waveformTemplate}
-                          onChange={(e) => setWaveformTemplate(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="wave">Sinusoidal Wave 🌊</option>
-                          <option value="bars">Jumping Bars 📊</option>
-                          <option value="circle">Circular Wave ⭕</option>
-                          <option value="line">Flat Line ➖</option>
-                          <option value="bricks">Visual Blocks 🧱</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                          Layout Orientation
-                        </label>
-                        <select
-                          value={audiogramOrientation}
-                          onChange={(e) => setAudiogramOrientation(e.target.value)}
-                          className="w-full rounded-lg bg-slate-900 border border-slate-800 px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500/50"
-                        >
-                          <option value="square">Square (1:1 - Insta/LinkedIn)</option>
-                          <option value="vertical">Vertical (9:16 - TikTok/Shorts)</option>
-                          <option value="landscape">Landscape (16:9 - YouTube)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Logo & Background Brand Assets uploads */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                          <span>Brand Logo (Optional)</span>
-                          {logoUploadId && <span className="text-emerald-400 text-[10px] font-bold">Uploaded ✓</span>}
-                        </label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-lg">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoUpload}
-                            disabled={logoUploading}
-                            className="hidden"
-                            id="logo-upload-input"
-                          />
-                          <label
-                            htmlFor="logo-upload-input"
-                            className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer transition-colors"
-                          >
-                            {logoUploading ? "Uploading..." : "Choose File"}
-                          </label>
-                          <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                            {logoFile ? logoFile.name : "No file chosen"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                          <span>Background Image (Optional)</span>
-                          {backgroundUploadId && <span className="text-emerald-400 text-[10px] font-bold">Uploaded ✓</span>}
-                        </label>
-                        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-lg">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleBackgroundUpload}
-                            disabled={backgroundUploading}
-                            className="hidden"
-                            id="bg-upload-input"
-                          />
-                          <label
-                            htmlFor="bg-upload-input"
-                            className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 cursor-pointer transition-colors"
-                          >
-                            {backgroundUploading ? "Uploading..." : "Choose File"}
-                          </label>
-                          <span className="text-xs text-slate-500 truncate max-w-[150px]">
-                            {backgroundFile ? backgroundFile.name : "No file chosen"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Generate Button / Progress Bar */}
-              <div className="pt-4 border-t border-slate-900 space-y-4">
-                {status !== "idle" && status !== "completed" && status !== "failed" && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-xs font-medium text-slate-400">
-                      <span className="capitalize flex items-center gap-1.5">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-                        {status === "uploading"
-                          ? "Uploading..."
-                          : status === "queued"
-                          ? "Queued..."
-                          : "Processing..."}
-                      </span>
-                      {progress !== null && <span>{progress}%</span>}
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500"
-                        initial={{ width: "0%" }}
-                        animate={{
-                          width:
-                            status === "uploading"
-                              ? "20%"
-                              : status === "queued"
-                              ? "40%"
-                              : status === "processing"
-                              ? `${40 + (progress ?? 0) * 0.5}%`
-                              : "0%"
-                        }}
-                        transition={{ duration: 0.5 }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {error && (
-                  <div className="flex gap-2 p-3.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
-                    <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
+              return (
                 <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={(!file && !sourceUrl.trim()) || (status !== "idle" && status !== "completed" && status !== "failed")}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 font-bold text-slate-950 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2"
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  Generate ({toolCost} Credits)
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Results & Illustration Guide Area (Right) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Output Result Card */}
-            <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-6 shadow-xl min-h-[350px] flex flex-col justify-between">
-              <h2 className="text-xl font-bold border-b border-slate-800/80 pb-3 mb-4 flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-cyan-500/10 text-cyan-400 text-sm">3</span>
-                Output Results
-              </h2>
-
-              <div className="flex-grow flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                  {status === "idle" && (
-                    <motion.div
-                      key="idle-state"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center text-slate-500 space-y-2 py-10"
-                    >
-                      <Video className="w-12 h-12 mx-auto text-slate-800" />
-                      <p className="text-sm">Configure options and click generate to process media</p>
-                    </motion.div>
-                  )}
-
-                  {(status === "uploading" || status === "queued" || status === "processing") && (
-                    <motion.div
-                      key="loading-state"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center space-y-3 py-10"
-                    >
-                      <Loader2 className="w-10 h-10 mx-auto text-cyan-400 animate-spin" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-200">
-                          {status === "uploading"
-                            ? "Uploading file to storage..."
-                            : status === "queued"
-                            ? "Queueing in AI post-processing systems..."
-                            : "AI processing video content..."}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">This might take a couple of minutes</p>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {status === "failed" && (
-                    <motion.div
-                      key="failed-state"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center text-rose-400 space-y-2 py-10"
-                    >
-                      <AlertTriangle className="w-12 h-12 mx-auto text-rose-800" />
-                      <p className="text-sm font-semibold">Generation Failed</p>
-                      <p className="text-xs text-slate-500">Check error logs for details</p>
-                    </motion.div>
-                  )}
-
-                  {status === "completed" && (
-                    <motion.div
-                      key="completed-state"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="w-full space-y-4"
-                    >
-                      {/* Search Toolbar for Clips */}
-                      {clipsList.length > 0 && (
-                        <div className="relative">
-                          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-                          <input
-                            type="text"
-                            placeholder="Search generated clips..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full rounded-lg bg-slate-900 border border-slate-800 pl-9 pr-3 py-2 text-xs text-slate-200 outline-none focus:border-cyan-500/50"
-                          />
-                        </div>
-                      )}
-
-                      {/* Video Player or multi outputs */}
-                      {resultUrl && activeTool !== "transcription" && (
-                        <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-video flex items-center justify-center">
-                          <video
-                            src={resultUrl}
-                            controls
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      )}
-
-                      {/* Display transcript text */}
-                      {activeTool === "transcription" && metadata?.text && (
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                              Transcript text
-                            </span>
-                            <button
-                              onClick={() => copyToClipboard(metadata.text)}
-                              className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                            >
-                              {copied ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5" />
-                                  Copied
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5" />
-                                  Copy Text
-                                </>
-                              )}
-                            </button>
-                          </div>
-                          <div className="w-full max-h-60 overflow-y-auto rounded-lg bg-slate-900 border border-slate-800 p-3.5 text-sm leading-relaxed text-slate-300">
-                            {metadata.text}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Clips Dashboard List */}
-                      {clipsList.length > 0 && (
-                        <div className="space-y-3">
-                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            Generated Video Clips ({clipsList.length})
-                          </label>
-                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            {clipsList
-                              .filter((clip) =>
-                                clip.label.toLowerCase().includes(searchQuery.toLowerCase())
-                              )
-                              .map((clip, i) => (
-                                <div
-                                  key={clip.id}
-                                  className="flex flex-col gap-2.5 p-3 rounded-lg border border-slate-800 bg-slate-900/40 text-xs"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-slate-200">
-                                        {clip.label}
-                                      </span>
-                                      {/* Status Label Dropdown */}
-                                      <select
-                                        value={clip.status}
-                                        onChange={(e) =>
-                                          handleChangeClipStatus(
-                                            clip.id,
-                                            e.target.value as any
-                                          )
-                                        }
-                                        className={`rounded px-1.5 py-0.5 text-[10px] font-bold border border-slate-800 bg-slate-950 outline-none ${
-                                          clip.status === "Published"
-                                            ? "text-emerald-400"
-                                            : clip.status === "Scheduled"
-                                            ? "text-cyan-400"
-                                            : "text-amber-400"
-                                        }`}
-                                      >
-                                        <option value="Draft">Draft</option>
-                                        <option value="Scheduled">Scheduled</option>
-                                        <option value="Published">Published</option>
-                                      </select>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      {/* Duplicate Clip */}
-                                      <button
-                                        onClick={() => handleDuplicateClip(clip.id)}
-                                        title="Duplicate Clip"
-                                        className="p-1 rounded bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-cyan-400 transition-colors"
-                                      >
-                                        <Plus className="w-3.5 h-3.5" />
-                                      </button>
-                                      {/* Delete Clip */}
-                                      <button
-                                        onClick={() => handleDeleteClip(clip.id)}
-                                        title="Delete Clip"
-                                        className="p-1 rounded bg-slate-850 hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition-colors"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center justify-between border-t border-slate-800/60 pt-2">
-                                    {/* Suggest Hooks */}
-                                    <button
-                                      onClick={() => {
-                                        setSelectedClipIndex(i);
-                                        setShowHooksModal(true);
-                                      }}
-                                      className="text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
-                                    >
-                                      <Sparkles className="w-3.5 h-3.5" />
-                                      AI Hooks
-                                    </button>
-
-                                    <div className="flex items-center gap-2">
-                                      {/* Set as current player video */}
-                                      <button
-                                        onClick={() => setResultUrl(clip.url)}
-                                        className="text-slate-400 hover:text-slate-200 font-medium flex items-center gap-0.5"
-                                      >
-                                        <Play className="w-3 h-3 fill-current" />
-                                        Preview
-                                      </button>
-
-                                      <a
-                                        href={clip.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
-                                      >
-                                        <Download className="w-3.5 h-3.5" />
-                                        Download
-                                      </a>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Download Button */}
-                      {resultUrl && (
-                        <a
-                          href={resultUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full py-2.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
-                        >
-                          <Download className="w-4 h-4 animate-bounce" />
-                          Download Selected File
-                        </a>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Interactive Design Canvas preview card */}
-            {["captions", "audiogram", "edit-videos"].includes(activeTool) ? (
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 shadow-xl space-y-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-cyan-400">
-                    <Sparkles className="w-4 h-4" />
-                    <h3 className="text-sm font-semibold">Interactive Customizer Canvas</h3>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                    Position: {canvasYPosition}%
-                  </span>
-                </div>
-
-                {/* Draggable canvas frame */}
-                <div
-                  className={`relative w-full overflow-hidden border border-slate-800 bg-slate-900 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                    activeTool === "captions" || (activeTool === "audiogram" && audiogramOrientation === "vertical") || (activeTool === "edit-videos" && exportOrientation === "portrait")
-                      ? "aspect-[9/16] max-w-[280px] mx-auto"
-                      : (activeTool === "audiogram" && audiogramOrientation === "landscape") || (activeTool === "edit-videos" && exportOrientation === "landscape")
-                      ? "aspect-video"
-                      : "aspect-square"
+                  key={key}
+                  onClick={() => {
+                    if (status === "idle" || status === "completed" || status === "failed") {
+                      router.push("/clipcraft-studio/" + key);
+                      setError("");
+                    }
+                  }}
+                  disabled={status !== "idle" && status !== "completed" && status !== "failed"}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 text-xs font-bold ${
+                    active
+                      ? "bg-slate-800/90 border border-slate-700/80 text-cyan-400 shadow-[0_2px_8px_rgba(6,182,212,0.15)]"
+                      : "text-slate-400 hover:text-slate-200 disabled:opacity-40"
                   }`}
-                  onMouseMove={(e) => {
-                    if (!isDraggingCanvas) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const relativeY = e.clientY - rect.top;
-                    const percentage = Math.max(10, Math.min(90, Math.round((relativeY / rect.height) * 100)));
-                    setCanvasYPosition(percentage);
-                  }}
-                  onMouseUp={() => setIsDraggingCanvas(false)}
-                  onMouseLeave={() => setIsDraggingCanvas(false)}
-                  onTouchMove={(e) => {
-                    if (!isDraggingCanvas) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    const relativeY = touch.clientY - rect.top;
-                    const percentage = Math.max(10, Math.min(90, Math.round((relativeY / rect.height) * 100)));
-                    setCanvasYPosition(percentage);
-                  }}
-                  onTouchEnd={() => setIsDraggingCanvas(false)}
                 >
-                  {/* Backdrop template illustration / visualizer / upload BG preview */}
-                  {activeTool === "audiogram" && backgroundUploadId ? (
-                    <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${backgroundFile ? URL.createObjectURL(backgroundFile) : ''})` }} />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
-                  )}
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{t.title}</span>
+                  <span className={`text-[8px] px-1 py-0.2 rounded font-extrabold bg-slate-950/60 text-slate-500 ${active ? "text-cyan-400/80" : ""}`}>
+                    {t.cost}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-                  {/* Logo overlay for audiogram */}
-                  {activeTool === "audiogram" && logoUploadId && logoFile && (
-                    <div className="absolute top-4 left-4 w-10 h-10 rounded border border-slate-700 bg-slate-950/50 backdrop-blur p-1 flex items-center justify-center overflow-hidden z-20">
-                      <img src={URL.createObjectURL(logoFile)} alt="Logo" className="max-w-full max-h-full object-contain" />
-                    </div>
-                  )}
-
-                  {/* Waveform visualizer simulation for audiograms */}
-                  {activeTool === "audiogram" && (
-                    <div className="absolute inset-x-0 bottom-1/3 flex items-center justify-center h-20 pointer-events-none z-10">
-                      {waveformTemplate === "circle" ? (
-                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-cyan-500/40 animate-spin" />
-                      ) : waveformTemplate === "bars" ? (
-                        <div className="flex gap-1.5 items-end justify-center h-12 w-full px-4">
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((h, i) => (
-                            <div
-                              key={i}
-                              className="w-1 bg-cyan-400 rounded-t-sm"
-                              style={{
-                                height: `${h * 10}%`,
-                                animation: `wave-bars 1s ease-in-out infinite alternate`,
-                                animationDelay: `${i * 0.05}s`
-                              }}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <svg className="w-full h-12 stroke-cyan-400 stroke-2 fill-none" viewBox="0 0 100 20">
-                          <path d="M 0,10 Q 12.5,0 25,10 T 50,10 T 75,10 T 100,10" className="animate-[pulse_1.5s_infinite]" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Draggable caption/headline block */}
-                  <div
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setIsDraggingCanvas(true);
-                    }}
-                    onTouchStart={(e) => {
-                      setIsDraggingCanvas(true);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      left: '5%',
-                      right: '5%',
-                      top: `${canvasYPosition}%`,
-                      transform: 'translateY(-50%)',
-                      fontFamily: canvasFont === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : canvasFont,
-                      fontSize: `${canvasFontSize}px`,
-                      color: canvasTextColor,
-                      backgroundColor: canvasBgColor ? `${canvasBgColor}cc` : 'transparent',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      textAlign: 'center',
-                      fontWeight: 'bold',
-                      lineHeight: '1.25',
-                      cursor: isDraggingCanvas ? 'grabbing' : 'grab',
-                      userSelect: 'none',
-                      border: isDraggingCanvas ? '1px dashed #06b6d4' : '1px solid transparent',
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
-                      textShadow: canvasBgColor ? 'none' : '1px 1px 2px rgba(0,0,0,0.8)',
-                      wordBreak: 'break-word',
-                      zIndex: 30,
-                    }}
-                  >
-                    {canvasText}
-                  </div>
+        {!file && !sourceUrl.trim() && !isDemoMode ? (
+          renderUploadLandingView()
+        ) : (
+          <div className="space-y-6 w-full">
+            {/* Unified Workspace Header */}
+            <div className="flex items-center justify-between p-4 bg-slate-950/60 backdrop-blur-xl border border-slate-900 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${TOOL_DETAILS[activeTool].color} text-slate-950`}>
+                  {(() => {
+                    const ToolIcon = TOOL_DETAILS[activeTool].icon;
+                    return <ToolIcon className="w-5 h-5" />;
+                  })()}
                 </div>
-
-                {/* Controls widgets */}
-                <div className="space-y-3 pt-2 border-t border-slate-900 text-xs">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Preview Caption / Headline Content
-                    </label>
-                    <textarea
-                      value={canvasText}
-                      onChange={(e) => setCanvasText(e.target.value)}
-                      className="w-full rounded-lg bg-slate-900 border border-slate-800 p-2.5 text-slate-200 outline-none resize-none focus:border-cyan-500/50"
-                      rows={2}
-                      maxLength={120}
-                      placeholder="Type text overlays..."
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Font Family
-                      </label>
-                      <select
-                        value={canvasFont}
-                        onChange={(e) => setCanvasFont(e.target.value)}
-                        className="w-full rounded-lg bg-slate-900 border border-slate-800 p-1.5 text-slate-200 outline-none focus:border-cyan-500/50 font-medium"
-                      >
-                        <option value="sans-serif">System Sans</option>
-                        <option value="Montserrat">Montserrat (Modern)</option>
-                        <option value="Impact">Impact (Meme/Viral)</option>
-                        <option value="Georgia">Georgia (Serif)</option>
-                        <option value="monospace">Monospace (Code)</option>
-                        <option value="cursive">Comic Styled (Wacky)</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Font Size ({canvasFontSize}px)
-                      </label>
-                      <input
-                        type="range"
-                        min={14}
-                        max={42}
-                        value={canvasFontSize}
-                        onChange={(e) => setCanvasFontSize(Number(e.target.value))}
-                        className="w-full accent-cyan-500 mt-1 cursor-pointer bg-slate-800"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Text Color
-                      </label>
-                      <div className="flex gap-1.5 items-center mt-1">
-                        {[
-                          { color: "#ffffff", name: "White" },
-                          { color: "#facc15", name: "Yellow" },
-                          { color: "#06b6d4", name: "Cyan" },
-                          { color: "#4ade80", name: "Green" },
-                          { color: "#c084fc", name: "Purple" }
-                        ].map((c) => (
-                          <button
-                            key={c.color}
-                            type="button"
-                            onClick={() => setCanvasTextColor(c.color)}
-                            className={`w-5 h-5 rounded-full border transition-all ${
-                              canvasTextColor === c.color ? "border-cyan-400 scale-110 shadow" : "border-slate-800 hover:scale-105"
-                            }`}
-                            style={{ backgroundColor: c.color }}
-                            title={c.name}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                        Highlight Background
-                      </label>
-                      <div className="flex gap-1.5 items-center mt-1">
-                        {[
-                          { color: "", name: "Transparent" },
-                          { color: "#000000", name: "Black" },
-                          { color: "#ef4444", name: "Red" },
-                          { color: "#06b6d4", name: "Cyan" },
-                          { color: "#6366f1", name: "Indigo" }
-                        ].map((c) => (
-                          <button
-                            key={c.color}
-                            type="button"
-                            onClick={() => setCanvasBgColor(c.color)}
-                            className={`w-5 h-5 rounded-full border transition-all relative flex items-center justify-center ${
-                              canvasBgColor === c.color ? "border-cyan-400 scale-110 shadow" : "border-slate-800 hover:scale-105"
-                            }`}
-                            style={{ backgroundColor: c.color || "#1e293b" }}
-                            title={c.name}
-                          >
-                            {c.color === "" && <span className="text-[10px] font-bold text-slate-400">×</span>}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-[9px] text-slate-500 italic mt-2 text-center">
-                    * Interactive styles simulation guides the video rendering engine positioning config.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              /* Visual Guide Card (Default fallback for transcription / dubbing / reframe) */
-              <div className="rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 shadow-xl space-y-4">
-                <div className="flex items-center gap-2 text-cyan-400">
-                  <HelpCircle className="w-4 h-4" />
-                  <h3 className="text-sm font-semibold">Visual Explanation Guide</h3>
-                </div>
-
-                <div className="relative rounded-xl overflow-hidden aspect-video border border-slate-800 bg-slate-950 flex items-center justify-center">
-                  <img
-                    src={TOOL_DETAILS[activeTool].illustration}
-                    alt={TOOL_DETAILS[activeTool].title}
-                    className="w-full h-full object-cover opacity-80"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-base font-bold text-slate-100">
+                <div>
+                  <h1 className="text-xl font-extrabold tracking-tight text-slate-100 flex items-center gap-2">
                     {TOOL_DETAILS[activeTool].title}
-                  </h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  </h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
                     {TOOL_DETAILS[activeTool].desc}
                   </p>
                 </div>
-
-                <div className="pt-2 border-t border-slate-900 space-y-1.5">
-                  {TOOL_DETAILS[activeTool].features.map((feat, index) => (
-                    <div key={index} className="flex items-center gap-2 text-[11px] text-slate-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
-                      <span>{feat}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
+              <div className="flex items-center gap-3">
+                {isDemoMode && (
+                  <button
+                    onClick={() => {
+                      setIsDemoMode(false);
+                      setFile(null);
+                      setSourceUrl("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-slate-800 text-slate-400 hover:text-slate-200 text-xs font-bold transition-all"
+                  >
+                    Reset Demo
+                  </button>
+                )}
+                <button
+                  onClick={handleGenerate}
+                  className={`px-5 py-2 rounded-xl text-xs font-extrabold transition-all duration-300 shadow-md ${getExportButtonConfig().color}`}
+                >
+                  {getExportButtonConfig().label}
+                </button>
+              </div>
+            </div>
+
+            {/* Render active workspace */}
+            {renderActiveWorkspace()}
           </div>
-        </div>
+        )}
 
         {/* Recent Projects / Generation History */}
         {!historyLoading && historyList.length > 0 && (

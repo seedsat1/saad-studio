@@ -17,6 +17,8 @@ import {
   isStorageConfigured,
 } from "@/lib/r2-storage";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();

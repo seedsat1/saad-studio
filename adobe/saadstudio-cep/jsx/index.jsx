@@ -520,6 +520,9 @@
             try {
                 if (newSeq.projectItem) newSeq.projectItem.name = desiredName;
             } catch (eProjectItemName) { proof.errors.push(String(eProjectItemName.message || eProjectItemName)); }
+            try {
+                if (newSeq.projectItem) moveGeneratedProjectItemToBin(newSeq.projectItem, "Sequences", proof);
+            } catch (eMoveSequence) {}
             proof.finalNewSequenceName = newSeq.name || null;
             proof.renameResult = proof.finalNewSequenceName === desiredName;
             var activeAfter = app.project && app.project.activeSequence;
@@ -738,6 +741,133 @@
             }
             result.ok = result.blockers.length === 0 && result.segmentsInserted === result.segmentsAttempted;
             return stripRuntimeSequence(result);
+        });
+    };
+
+    host.saadstudio.inspectAutoZoomTimeline = function () {
+        return safe(function () {
+            var result = emptyAutoZoomInspectionResult();
+            if (!IS_PPRO) {
+                result.blockers.push("PREMIERE_REQUIRED");
+                return result;
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
+                return result;
+            }
+            result.sequenceName = seq.name || null;
+            result.sequenceId = readSequenceID(seq);
+            result.durationSec = readSequenceDurationSec(seq);
+            result.videoTrackCount = seq.videoTracks ? seq.videoTracks.numTracks : 0;
+            result.cutEventsSec = collectAutoZoomCutEvents(seq, null);
+            result.adjustmentLayerCount = countAdjustmentLayersInProject(app.project.rootItem);
+            try {
+                app.enableQE();
+                result.qeAvailable = typeof qe !== "undefined" && !!qe.project;
+                result.newAdjustmentLayerAvailable = result.qeAvailable
+                    && typeof qe.project.newAdjustmentLayer === "function";
+            } catch (eQE) {
+                result.warnings.push("QE_RUNTIME_UNAVAILABLE:" + String(eQE.message || eQE));
+            }
+            if (result.videoTrackCount < 2) result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
+            if (!result.cutEventsSec.length) result.warnings.push("NO_TIMELINE_CUTS_DETECTED");
+            if (!result.newAdjustmentLayerAvailable) result.blockers.push("NEW_ADJUSTMENT_LAYER_RUNTIME_UNAVAILABLE");
+            result.ok = result.blockers.length === 0;
+            return result;
+        });
+    };
+
+    host.saadstudio.applyAutoZoom = function (settings) {
+        return safe(function () {
+            var input = settings || {};
+            var result = emptyAutoZoomApplyResult();
+            if (!IS_PPRO) {
+                result.blockers.push("PREMIERE_REQUIRED");
+                return result;
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
+                return result;
+            }
+            result.sequenceName = seq.name || null;
+            var analyzedTracks = input.analyzedVideoTrackIndexes || [0];
+            var targetTrackIndex = Number(input.targetVideoTrackIndex);
+            var maxAnalyzedTrackIndex = -1;
+            for (var a = 0; a < analyzedTracks.length; a++) {
+                var analyzedIndex = Number(analyzedTracks[a]);
+                if (analyzedIndex > maxAnalyzedTrackIndex) maxAnalyzedTrackIndex = analyzedIndex;
+            }
+            if (!seq.videoTracks || targetTrackIndex < 0 || targetTrackIndex >= seq.videoTracks.numTracks) {
+                result.blockers.push("AUTO_ZOOM_TARGET_TRACK_NOT_FOUND");
+                return result;
+            }
+            if (targetTrackIndex <= maxAnalyzedTrackIndex) {
+                result.blockers.push("AUTO_ZOOM_TARGET_TRACK_MUST_BE_ABOVE_ANALYZED_TRACKS");
+                return result;
+            }
+            var styles = normalizeAutoZoomStyles(input.styles);
+            if (!styles.length) styles.push("smooth");
+            var maxZoomPercentage = clampNumber(Number(input.maxZoomPercentage || 1.3), 1.01, 2);
+            var zoomDurationSec = clampNumber(Number(input.zoomDurationSec || 1.5), 0.25, 10);
+            var rhythmPercentage = clampNumber(Number(input.rhythmPercentage || 0.6), 0.1, 1);
+            var events = collectAutoZoomCutEvents(seq, analyzedTracks);
+            result.eventsDetected = events.length;
+            var selectedEvents = selectAutoZoomEvents(events, rhythmPercentage);
+            if (selectedEvents.length > 300) {
+                result.blockers.push("TOO_MANY_AUTO_ZOOM_EVENTS_MAX_300");
+                return result;
+            }
+            result.eventsSelected = selectedEvents.length;
+            if (!selectedEvents.length) {
+                result.blockers.push("NO_AUTO_ZOOM_EVENTS");
+                return result;
+            }
+            var adjustmentItem = getOrCreateAutoZoomAdjustmentLayer(seq, zoomDurationSec, result);
+            if (!adjustmentItem) {
+                if (!result.blockers.length) result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
+                return result;
+            }
+            result.createdProjectItemName = adjustmentItem.name || null;
+            moveGeneratedProjectItemToBin(adjustmentItem, "Auto Zoom", result);
+            var targetTrack = seq.videoTracks[targetTrackIndex];
+            try { targetTrack.name = "Saad Auto Zoom"; } catch (eTrackName) {}
+            for (var i = 0; i < selectedEvents.length; i++) {
+                var startSec = selectedEvents[i];
+                var endSec = Math.min(readSequenceDurationSec(seq), startSec + zoomDurationSec);
+                var style = styles[i % styles.length];
+                var eventResult = {
+                    timeSec: startSec,
+                    endSec: endSec,
+                    style: style,
+                    inserted: false,
+                    effectApplied: false,
+                    error: null
+                };
+                try {
+                    targetTrack.overwriteClip(adjustmentItem, secondsToTicksString(startSec));
+                    var inserted = findTrackItemAtTime(targetTrack, startSec, adjustmentItem.name || "");
+                    if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
+                    eventResult.inserted = true;
+                    result.adjustmentLayersInserted += 1;
+                    if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, result)) {
+                        throw new Error("Transform effect or Scale keyframes could not be applied.");
+                    }
+                    eventResult.effectApplied = true;
+                    result.effectsApplied += 1;
+                } catch (eEvent) {
+                    eventResult.error = String(eEvent.message || eEvent);
+                    result.failedEvents += 1;
+                }
+                result.eventResults.push(eventResult);
+            }
+            result.timelineMutation = "adjustment layers added on V" + (targetTrackIndex + 1);
+            result.ok = result.blockers.length === 0
+                && result.adjustmentLayersInserted > 0
+                && result.effectsApplied === result.adjustmentLayersInserted;
+            if (!result.ok && !result.blockers.length) result.blockers.push("AUTO_ZOOM_PARTIAL_OR_FAILED");
+            return result;
         });
     };
 
@@ -1918,6 +2048,330 @@
         return { publicResult: publicResult, subclip: subclip };
     }
 
+    function emptyAutoZoomInspectionResult() {
+        return {
+            ok: false,
+            sequenceName: null,
+            sequenceId: null,
+            durationSec: 0,
+            videoTrackCount: 0,
+            cutEventsSec: [],
+            adjustmentLayerCount: 0,
+            qeAvailable: false,
+            newAdjustmentLayerAvailable: false,
+            blockers: [],
+            warnings: []
+        };
+    }
+
+    function emptyAutoZoomApplyResult() {
+        return {
+            ok: false,
+            sequenceName: null,
+            eventsDetected: 0,
+            eventsSelected: 0,
+            adjustmentLayersInserted: 0,
+            effectsApplied: 0,
+            failedEvents: 0,
+            createdProjectItemName: null,
+            eventResults: [],
+            blockers: [],
+            warnings: [],
+            errors: [],
+            timelineMutation: "none"
+        };
+    }
+
+    function readSequenceDurationSec(seq) {
+        var duration = readTimeSeconds(seq && seq.end);
+        if (duration > 0) return duration;
+        var maxEnd = 0;
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return maxEnd;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var clips = tracks[t] && tracks[t].clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                maxEnd = Math.max(maxEnd, readTimeSeconds(clips[c] && clips[c].end));
+            }
+        }
+        return maxEnd;
+    }
+
+    function collectAutoZoomCutEvents(seq, trackIndexes) {
+        var events = [];
+        var seen = {};
+        var duration = readSequenceDurationSec(seq);
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return events;
+        var indexes = trackIndexes;
+        if (!indexes || !indexes.length) {
+            indexes = [];
+            for (var all = 0; all < tracks.numTracks; all++) indexes.push(all);
+        }
+        for (var i = 0; i < indexes.length; i++) {
+            var trackIndex = Number(indexes[i]);
+            if (trackIndex < 0 || trackIndex >= tracks.numTracks) continue;
+            var clips = tracks[trackIndex] && tracks[trackIndex].clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var start = readTimeSeconds(clips[c] && clips[c].start);
+                var end = readTimeSeconds(clips[c] && clips[c].end);
+                addAutoZoomCutEvent(events, seen, start, duration);
+                addAutoZoomCutEvent(events, seen, end, duration);
+            }
+        }
+        events.sort(function (a, b) { return a - b; });
+        return events;
+    }
+
+    function addAutoZoomCutEvent(events, seen, timeSec, durationSec) {
+        if (!(timeSec > 0.001) || !(timeSec < durationSec - 0.001)) return;
+        var frameAligned = Math.round(timeSec * 1000) / 1000;
+        var key = String(frameAligned);
+        if (seen[key]) return;
+        seen[key] = true;
+        events.push(frameAligned);
+    }
+
+    function selectAutoZoomEvents(events, rhythmPercentage) {
+        if (rhythmPercentage >= 0.999) return events.slice(0);
+        var selected = [];
+        var accumulator = 0;
+        for (var i = 0; i < events.length; i++) {
+            accumulator += rhythmPercentage;
+            if (accumulator >= 1) {
+                selected.push(events[i]);
+                accumulator -= 1;
+            }
+        }
+        if (!selected.length && events.length) selected.push(events[0]);
+        return selected;
+    }
+
+    function normalizeAutoZoomStyles(styles) {
+        var out = [];
+        var input = styles || [];
+        for (var i = 0; i < input.length; i++) {
+            var style = String(input[i]);
+            if (style !== "jump" && style !== "smooth" && style !== "snap") continue;
+            var exists = false;
+            for (var j = 0; j < out.length; j++) if (out[j] === style) exists = true;
+            if (!exists) out.push(style);
+        }
+        return out;
+    }
+
+    function clampNumber(value, min, max) {
+        if (!isFinite(value)) return min;
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function countAdjustmentLayersInProject(parent) {
+        var count = 0;
+        var children = parent && parent.children;
+        if (!children) return count;
+        for (var i = 0; i < children.numItems; i++) {
+            var child = children[i];
+            try {
+                if (child && child.isAdjustmentLayer && child.isAdjustmentLayer()) count += 1;
+            } catch (eAdjustment) {}
+            count += countAdjustmentLayersInProject(child);
+        }
+        return count;
+    }
+
+    function collectAdjustmentLayerNodeIds(parent, ids) {
+        var children = parent && parent.children;
+        if (!children) return;
+        for (var i = 0; i < children.numItems; i++) {
+            var child = children[i];
+            try {
+                if (child && child.isAdjustmentLayer && child.isAdjustmentLayer()) {
+                    ids[String(child.nodeId || child.treePath || child.name)] = true;
+                }
+            } catch (eAdjustment) {}
+            collectAdjustmentLayerNodeIds(child, ids);
+        }
+    }
+
+    function findNewAdjustmentLayer(parent, beforeIds) {
+        var children = parent && parent.children;
+        if (!children) return null;
+        for (var i = 0; i < children.numItems; i++) {
+            var child = children[i];
+            try {
+                if (child && child.isAdjustmentLayer && child.isAdjustmentLayer()) {
+                    var key = String(child.nodeId || child.treePath || child.name);
+                    if (!beforeIds[key]) return child;
+                }
+            } catch (eAdjustment) {}
+            var nested = findNewAdjustmentLayer(child, beforeIds);
+            if (nested) return nested;
+        }
+        return null;
+    }
+
+    function getOrCreateAutoZoomAdjustmentLayer(seq, durationSec, result) {
+        var bin = getOrCreateSaadGeneratedToolBin("Auto Zoom");
+        var children = bin && bin.children;
+        if (children) {
+            for (var i = 0; i < children.numItems; i++) {
+                var existing = children[i];
+                try {
+                    if (existing && existing.isAdjustmentLayer && existing.isAdjustmentLayer()
+                        && String(existing.name).indexOf("Saad Auto Zoom Adjustment") === 0) return existing;
+                } catch (eExisting) {}
+            }
+        }
+        var beforeIds = {};
+        collectAdjustmentLayerNodeIds(app.project.rootItem, beforeIds);
+        try { app.enableQE(); } catch (eEnableQE) {
+            result.blockers.push("QE_RUNTIME_UNAVAILABLE");
+            result.errors.push(String(eEnableQE.message || eEnableQE));
+            return null;
+        }
+        if (typeof qe === "undefined" || !qe.project || typeof qe.project.newAdjustmentLayer !== "function") {
+            result.blockers.push("NEW_ADJUSTMENT_LAYER_RUNTIME_UNAVAILABLE");
+            return null;
+        }
+        var width = Number(seq.frameSizeHorizontal || 1920);
+        var height = Number(seq.frameSizeVertical || 1080);
+        var fps = 25;
+        try { fps = PREMIERE_TICKS_PER_SECOND / Number(seq.timebase || PREMIERE_TICKS_PER_SECOND / 25); } catch (eFps) {}
+        var created = null;
+        for (var a = 0; a < 3 && !created; a++) {
+            try {
+                if (a === 0) qe.project.newAdjustmentLayer(width, height, 1, 1, fps, durationSec);
+                if (a === 1) qe.project.newAdjustmentLayer(width, height, 1, 1, Math.round(fps), durationSec);
+                if (a === 2) qe.project.newAdjustmentLayer(width, height, 1, fps, durationSec);
+            } catch (eCreate) {
+                result.warnings.push("ADJUSTMENT_LAYER_SIGNATURE_" + (a + 1) + "_FAILED");
+            }
+            created = findNewAdjustmentLayer(app.project.rootItem, beforeIds);
+        }
+        if (!created) {
+            result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
+            return null;
+        }
+        try { created.name = "Saad Auto Zoom Adjustment " + ts(); } catch (eName) {}
+        moveGeneratedProjectItemToBin(created, "Auto Zoom", result);
+        return created;
+    }
+
+    function findTrackItemAtTime(track, startSec, expectedName) {
+        var clips = track && track.clips;
+        if (!clips) return null;
+        var best = null;
+        var bestDistance = 999999;
+        for (var i = 0; i < clips.numItems; i++) {
+            var clip = clips[i];
+            var distance = Math.abs(readTimeSeconds(clip.start) - startSec);
+            var nameMatches = !expectedName || String(clip.name || "") === String(expectedName);
+            if (distance < 0.05 && nameMatches && distance < bestDistance) {
+                best = { clip: clip, index: i };
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    function applyAutoZoomTransform(seq, trackIndex, clipIndex, clip, startSec, endSec, style, zoomRatio, result) {
+        try { app.enableQE(); } catch (eQE) { return false; }
+        var qeSeq = qe.project.getActiveSequence();
+        if (!qeSeq) return false;
+        var qeTrack = qeSeq.getVideoTrackAt(trackIndex);
+        if (!qeTrack || clipIndex < 0 || clipIndex >= qeTrack.numItems) return false;
+        var qeClip = qeTrack.getItemAt(clipIndex);
+        if (!qeClip || !qeClip.addVideoEffect) return false;
+        var transform = null;
+        try { transform = qe.project.getVideoEffectByName("Transform"); } catch (eEffect) {}
+        if (!transform) {
+            result.warnings.push("TRANSFORM_VIDEO_EFFECT_NOT_FOUND");
+            return false;
+        }
+        try { qeClip.addVideoEffect(transform); } catch (eAddEffect) {
+            result.warnings.push("TRANSFORM_VIDEO_EFFECT_ADD_FAILED");
+            return false;
+        }
+        var component = findAutoZoomTransformComponent(clip);
+        if (!component) return false;
+        var scaleWidth = findComponentPropertyByNames(component, ["Scale Width", "Scale"]);
+        var scaleHeight = findComponentPropertyByNames(component, ["Scale Height"]);
+        if (!scaleWidth && component.properties && component.properties.numItems > 3) scaleWidth = component.properties[3];
+        if (!scaleHeight && component.properties && component.properties.numItems > 2) scaleHeight = component.properties[2];
+        if (!scaleWidth) return false;
+        var maxScale = zoomRatio * 100;
+        if (style === "jump") {
+            setComponentPropertyStatic(scaleWidth, maxScale);
+            if (scaleHeight && scaleHeight !== scaleWidth) setComponentPropertyStatic(scaleHeight, maxScale);
+            return true;
+        }
+        var entryDuration = style === "snap" ? 0.16 : Math.min(0.3, (endSec - startSec) / 3);
+        var keys = style === "snap"
+            ? [{ time: startSec, value: 100 }, { time: Math.min(endSec, startSec + entryDuration), value: maxScale }]
+            : [
+                { time: startSec, value: 100 },
+                { time: Math.min(endSec, startSec + entryDuration), value: maxScale },
+                { time: Math.max(startSec, endSec - entryDuration), value: maxScale },
+                { time: endSec, value: 100 }
+            ];
+        var widthOk = setComponentPropertyKeys(scaleWidth, keys);
+        var heightOk = true;
+        if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, keys);
+        return widthOk && heightOk;
+    }
+
+    function findAutoZoomTransformComponent(clip) {
+        var components = clip && clip.components;
+        if (!components) return null;
+        for (var i = components.numItems - 1; i >= 0; i--) {
+            var component = components[i];
+            var name = "";
+            try { name = String(component.displayName || component.matchName || "").toLowerCase(); } catch (eName) {}
+            if (name.indexOf("transform") >= 0 || name.indexOf("geometry2") >= 0) return component;
+            if (findComponentPropertyByNames(component, ["Scale Width"]) && findComponentPropertyByNames(component, ["Scale Height"])) {
+                return component;
+            }
+        }
+        return null;
+    }
+
+    function findComponentPropertyByNames(component, names) {
+        var properties = component && component.properties;
+        if (!properties) return null;
+        for (var i = 0; i < properties.numItems; i++) {
+            var property = properties[i];
+            var label = "";
+            try { label = String(property.displayName || property.matchName || "").toLowerCase(); } catch (eLabel) {}
+            for (var n = 0; n < names.length; n++) {
+                if (label === String(names[n]).toLowerCase()) return property;
+            }
+        }
+        return null;
+    }
+
+    function setComponentPropertyStatic(property, value) {
+        try {
+            if (property.setTimeVarying) property.setTimeVarying(false);
+            return property.setValue(value, true) === 0;
+        } catch (eSet) { return false; }
+    }
+
+    function setComponentPropertyKeys(property, keys) {
+        try {
+            property.setTimeVarying(true);
+            for (var i = 0; i < keys.length; i++) {
+                var time = new Time();
+                time.seconds = keys[i].time;
+                property.addKey(time);
+                property.setValueAtKey(time, keys[i].value, true);
+                try { property.setInterpolationTypeAtKey(time, 1, true); } catch (eInterpolation) {}
+            }
+            return true;
+        } catch (eKeys) { return false; }
+    }
+
     function organizeExistingGeneratedProjectItems(result) {
         var root = app.project && app.project.rootItem;
         if (!root || !root.children) return;
@@ -1952,18 +2406,33 @@
     function getOrCreateSaadGeneratedToolBin(toolBinName) {
         var root = app.project && app.project.rootItem;
         if (!root) return null;
-        var generatedRoot = findDirectProjectBin(root, "Saad Studio Generated");
+        var generatedRootName = "Saad Studio - " + readSaadProjectName();
+        var generatedRoot = findDirectProjectBin(root, generatedRootName);
         if (!generatedRoot && root.createBin) {
-            try { root.createBin("Saad Studio Generated"); } catch (eRootBin) {}
-            generatedRoot = findDirectProjectBin(root, "Saad Studio Generated");
+            try {
+                generatedRoot = root.createBin(generatedRootName);
+            } catch (eRootBin) {}
+            if (!generatedRoot) generatedRoot = findDirectProjectBin(root, generatedRootName);
         }
         if (!generatedRoot) return null;
         var toolBin = findDirectProjectBin(generatedRoot, toolBinName);
         if (!toolBin && generatedRoot.createBin) {
-            try { generatedRoot.createBin(toolBinName); } catch (eToolBin) {}
-            toolBin = findDirectProjectBin(generatedRoot, toolBinName);
+            try {
+                toolBin = generatedRoot.createBin(toolBinName);
+            } catch (eToolBin) {}
+            if (!toolBin) toolBin = findDirectProjectBin(generatedRoot, toolBinName);
         }
         return toolBin;
+    }
+
+    function readSaadProjectName() {
+        var projectName = "Untitled Project";
+        try {
+            if (app.project && app.project.name) projectName = String(app.project.name);
+        } catch (eProjectName) {}
+        projectName = projectName.replace(/\.prproj$/i, "");
+        projectName = projectName.replace(/[\\\/:*?"<>|]/g, "-");
+        return projectName || "Untitled Project";
     }
 
     function findDirectProjectBin(parent, name) {
@@ -2167,6 +2636,7 @@
             : String((result.originalSequenceName || "Sequence") + " - Saad " + label);
         try { newSeq.name = desiredName; } catch (eName) { result.errors.push(String(eName.message || eName)); }
         try { if (newSeq.projectItem) newSeq.projectItem.name = desiredName; } catch (ePiName) { result.errors.push(String(ePiName.message || ePiName)); }
+        try { if (newSeq.projectItem) moveGeneratedProjectItemToBin(newSeq.projectItem, "Sequences", result); } catch (eMoveSequence) {}
         result.newSequence = newSeq;
         result.newSequenceName = newSeq.name || null;
         result.newSequenceID = readSequenceID(newSeq);
@@ -2237,6 +2707,7 @@
             return null;
         }
         try { newSeq.name = sequenceName; } catch (eRenameClean) {}
+        try { if (newSeq.projectItem) moveGeneratedProjectItemToBin(newSeq.projectItem, "Silence Removal", result); } catch (eMoveCleanSequence) {}
         result.newSequence = newSeq;
         result.newSequenceID = readSequenceID(newSeq);
         result.newSequenceName = newSeq.name || sequenceName;
@@ -2397,6 +2868,7 @@
             result.blockers.push("CREATE_SUBCLIP_FAILED");
             return result;
         }
+        moveGeneratedProjectItemToBin(subclip, "Runtime Proof", result);
         result.createSubClipResult = "success";
         result.subclipName = subclip.name || null;
         result.overwriteAttempted = true;
@@ -2930,13 +3402,14 @@
         return String(value || "").replace(/\//g, "\\").toLowerCase();
     }
 
-    function importProjectItemOnly(path) {
+    function importProjectItemOnly(path, toolBinName) {
         if (!path) throw new Error("No path provided");
         var f = new File(path);
         if (!f.exists) throw new Error("File not found: " + path);
 
         if (IS_PPRO) {
-            app.project.importFiles([f.fsName], true, app.project.rootItem, false);
+            var destinationBin = getOrCreateSaadGeneratedToolBin(toolBinName || "Generated Media");
+            app.project.importFiles([f.fsName], true, destinationBin || app.project.rootItem, false);
             return {
                 ok: true,
                 imported: true,
@@ -2962,13 +3435,13 @@
 
     host.saadstudio.importAssetToProject = function (path) {
         return safe(function () {
-            return importProjectItemOnly(path);
+            return importProjectItemOnly(path, "Generated Media");
         });
     };
 
     host.saadstudio.importSrtToProject = function (path) {
         return safe(function () {
-            return importProjectItemOnly(path);
+            return importProjectItemOnly(path, "Captions");
         });
     };
 
@@ -2988,20 +3461,22 @@
     // Imports a file into the project bin. In Premiere it also adds the
     // clip to the active sequence at the playhead.
 
-    host.saadstudio.importMediaFromPath = function (path) {
+    host.saadstudio.importMediaFromPath = function (path, toolBinName) {
         return safe(function () {
             if (!path) throw new Error("No path provided");
             var f = new File(path);
             if (!f.exists) throw new Error("File not found: " + path);
 
             if (IS_PPRO) {
+                var destinationBin = getOrCreateSaadGeneratedToolBin(toolBinName || "Generated Media");
                 app.project.importFiles([f.fsName], true,
-                    app.project.rootItem, false);
+                    destinationBin || app.project.rootItem, false);
                 // Try to insert at the playhead of the active sequence
                 try {
                     var seq = app.project.activeSequence;
                     if (seq) {
-                        var imported = findRootItemByPath(f.fsName);
+                        var imported = findProjectItemByPath(destinationBin || app.project.rootItem, f.fsName)
+                            || findRootItemByPath(f.fsName);
                         if (imported && seq.videoTracks && seq.videoTracks.numTracks > 0) {
                             seq.videoTracks[0].insertClip(imported, seq.getPlayerPosition());
                         }
@@ -3025,11 +3500,21 @@
     };
 
     function findRootItemByPath(fsName) {
-        var root = app.project.rootItem;
-        for (var i = 0; i < root.children.numItems; i++) {
-            var ch = root.children[i];
-            try { if (ch.getMediaPath && ch.getMediaPath() === fsName) return ch; }
-            catch (e) {}
+        return findProjectItemByPath(app.project && app.project.rootItem, fsName);
+    }
+
+    function findProjectItemByPath(parent, fsName) {
+        var children = parent && parent.children;
+        if (!children) return null;
+        for (var i = 0; i < children.numItems; i++) {
+            var child = children[i];
+            try {
+                if (child.getMediaPath && normalizePathValue(child.getMediaPath()) === normalizePathValue(fsName)) {
+                    return child;
+                }
+            } catch (ePath) {}
+            var nested = findProjectItemByPath(child, fsName);
+            if (nested) return nested;
         }
         return null;
     }
@@ -3039,7 +3524,7 @@
 
     host.saadstudio.importRemoveBackgroundMaskFromPath = function (path) {
         return safe(function () {
-            var res = host.saadstudio.importMediaFromPath(path);
+            var res = host.saadstudio.importMediaFromPath(path, "Remove Background");
             if (res && res.__error) return res;
             // No additional matte wiring yet — host the imported clip and
             // let the user blend it manually. Slot kept for future logic.
@@ -3108,20 +3593,22 @@
     //   - in After Effects, adds the layer to the active comp at time 0
     // No user click needed.
 
-    host.saadstudio.importAndPlaceOnTimeline = function (path) {
+    host.saadstudio.importAndPlaceOnTimeline = function (path, toolBinName) {
         return safe(function () {
             if (!path) throw new Error("No path provided");
             var f = new File(path);
             if (!f.exists) throw new Error("File not found: " + path);
 
             if (IS_PPRO) {
+                var destinationBin = getOrCreateSaadGeneratedToolBin(toolBinName || "Generated Media");
                 app.project.importFiles([f.fsName], true,
-                    app.project.rootItem, false);
+                    destinationBin || app.project.rootItem, false);
 
                 var seq = app.project.activeSequence;
                 if (!seq) return { ok: true, placed: false, reason: "no active sequence" };
 
-                var imported = findRootItemByPath(f.fsName);
+                var imported = findProjectItemByPath(destinationBin || app.project.rootItem, f.fsName)
+                    || findRootItemByPath(f.fsName);
                 if (!imported) return { ok: true, placed: false, reason: "import succeeded but item not found" };
 
                 // Find which track holds the selected clip (if any).
@@ -3212,10 +3699,12 @@
             if (!f.exists) throw new Error("SRT not found: " + srtPath);
 
             if (IS_PPRO) {
+                var destinationBin = getOrCreateSaadGeneratedToolBin("Captions");
                 app.project.importFiles([f.fsName], true,
-                    app.project.rootItem, false);
+                    destinationBin || app.project.rootItem, false);
 
-                var imported = findRootItemByPath(f.fsName);
+                var imported = findProjectItemByPath(destinationBin || app.project.rootItem, f.fsName)
+                    || findRootItemByPath(f.fsName);
                 if (!imported) {
                     return { ok: true, placed: false,
                         reason: "Imported but item not found in bin.",
