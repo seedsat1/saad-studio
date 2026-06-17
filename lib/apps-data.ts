@@ -28,6 +28,7 @@ export const TOOL_ROUTE_MAP: Record<string, string> = {
   "beauty2-studio": "/beauty2.html",
   "storyboard-studio": "/apps/tool/storyboard-studio",
   lipsync: "/lipsync",
+  "clipcraft-studio": "/clipcraft-studio",
 };
 
 const APP_CATEGORIES_RAW: AppCategory[] = [
@@ -99,6 +100,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
       { id: "video-bg-remover", title: "Video Background Remover", description: "Strip video backgrounds with AI", href: "/apps/tool/video-bg-remover", badge: null, gradient: "from-emerald-600/30 to-green-900/30" },
       { id: "breakdown", title: "Breakdown", description: "Split image into individual components", href: "/apps/tool/breakdown", badge: null, gradient: "from-amber-600/30 to-orange-900/30" },
       { id: "lipsync", title: "Lipsync Studio", description: "Perfect AI lip-sync generation", href: "/lipsync", badge: "NEW", gradient: "from-rose-600/30 to-pink-900/30" },
+      { id: "clipcraft-studio", title: "ClipCraft Studio", description: "Auto captions, dubbing, reframe, audiograms, transcription, & video editing", href: "/clipcraft-studio", badge: "NEW", gradient: "from-emerald-600/30 to-teal-900/30" },
       { id: "video-upscale", title: "Video Upscale", description: "Enhance video resolution to 4K", href: "/apps/tool/video-upscale", badge: "PRO", gradient: "from-sky-600/30 to-blue-900/30" },
       { id: "draw-to-video", title: "Draw to Video", description: "Draw, add, remove, replace and animate elements in images and video", href: "/apps/tool/draw-to-video", badge: "NEW", gradient: "from-lime-500/30 to-emerald-900/30" },
       { id: "mixed-media", title: "Mixed Media", description: "Transform videos with artistic presets", href: "/apps/tool/mixed-media", badge: "TOP", gradient: "from-pink-600/30 to-fuchsia-900/30" },

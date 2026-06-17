@@ -37,10 +37,10 @@ const routes = [
         href: '/video',
     },
     {
-        label: 'Captions Studio',
+        label: 'ClipCraft Studio',
         icon: FileText,
         color: "text-cyan-400",
-        href: '/captions',
+        href: '/clipcraft-studio',
     },
     {
         label: 'Music Generation',

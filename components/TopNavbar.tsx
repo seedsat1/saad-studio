@@ -142,6 +142,7 @@ const VIDEO_FEATURES = [
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
   { label: "Video Extend",        href: "/video-extend",    icon: Film,         color: "text-pink-400",    description: "Upload a clip and extend its duration",  badge: "NEW" },
   { label: "Lipsync Studio",      href: "/lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
+  { label: "ClipCraft Studio",    href: "/clipcraft-studio", icon: Sparkles,     color: "text-emerald-400", description: "Auto captions, reframe, AI dubbing, & translation", badge: "NEW" },
   { label: "Video Upscale",       href: "/video?tool=video-upscale",    icon: Aperture,     color: "text-blue-400",    description: "Enhance resolution to 4K/8K",            badge: "" },
 ];
 
@@ -426,6 +427,7 @@ const STUDIO_LINKS = [
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
   { label: "Draw to Video", href: "/apps/tool/draw-to-video", icon: PenTool, color: "text-lime-300" },
   { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
+  { label: "ClipCraft Studio", href: "/clipcraft-studio", icon: Sparkles, color: "text-emerald-400" },
   { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 

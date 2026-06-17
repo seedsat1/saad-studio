@@ -20,7 +20,12 @@ import {
 import { generateSpeakerActivityProof } from "../lib/podcast/services/speaker-activity-service";
 import { generateCameraDecisionPlanProof } from "../lib/podcast/services/camera-decision-plan-service";
 import { runSilenceRemovalDraft, type SilenceRemovalRunResult } from "../lib/podcast/services/silence-removal-service";
-import { analyzeSynchronizationPlan, type SynchronizationPlan } from "../lib/podcast/services/synchronization-service";
+import {
+  analyzeSynchronizationPlan,
+  applySynchronizationOffsets,
+  type SynchronizationApplyResult,
+  type SynchronizationPlan,
+} from "../lib/podcast/services/synchronization-service";
 import {
   applyCameraDecisionsVisualOnly,
   testDisableEnableOnDuplicate,
@@ -124,6 +129,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     applyCameraDecisionsLoading: false,
     silenceRemovalLoading: false,
     synchronizationLoading: false,
+    synchronizationApplyLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
     streamProofLoading: false,
     safeCopyConfirmed: false,
@@ -138,6 +144,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     applyTrace: createEmptyApplyTrace(),
     silenceRemovalResult: null as SilenceRemovalRunResult | null,
     synchronizationPlan: null as SynchronizationPlan | null,
+    synchronizationApplyResult: null as SynchronizationApplyResult | null,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
     streamProof: null as AudioStreamSelectionProof | null,
     selectedAudioStreamIndex: null as number | null,
@@ -249,21 +256,29 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           el("p", null, "Inspect timeline audio/video alignment before running Multi-Cam. This step is read-only."),
         ),
       ),
-      el("div.podcast-action-row.podcast-action-row--single", null,
+      el("div.podcast-action-row", null,
         el("button.btn-secondary", {
           disabled: busy,
           onClick: analyzeSynchronization,
         }, state.synchronizationLoading ? "Analyzing sync..." : "Analyze Sync"),
+        el("button.btn-primary", {
+          disabled: busy || !plan?.offsetsReady,
+          onClick: applySynchronization,
+        }, state.synchronizationApplyLoading ? "Applying sync..." : "Apply Sync"),
       ),
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-        renderSummaryTile("Status", !plan ? "Not analyzed" : plan.ok ? "Ready for sync proof" : "Blocked"),
+        renderSummaryTile("Status", !plan ? "Not analyzed" : plan.offsetsReady ? "Offsets ready" : plan.ok ? "Analyzed" : "Blocked"),
         renderSummaryTile("Sequence", plan?.sequenceName || state.diagnostics.sequenceName || "No active sequence"),
         renderSummaryTile("Tracks", plan ? `${plan.videoTrackCount} video / ${plan.audioTrackCount} audio` : "Waiting"),
         renderSummaryTile("Clips", plan ? `${plan.videoClipCount} video / ${plan.audioClipCount} audio` : "Waiting"),
         renderSummaryTile("Reference", plan?.referenceAudioTrackIndex !== null && plan?.referenceAudioTrackIndex !== undefined
           ? `A${plan.referenceAudioTrackIndex + 1}`
           : "Not selected"),
-        renderSummaryTile("Offset candidates", plan ? String(plan.offsetCandidateTracks) : "Waiting"),
+        renderSummaryTile("Offsets", plan ? `${plan.offsetsComputed}/${Math.max(0, plan.waveformOffsets.length - 1)} ready` : "Waiting"),
+        renderSummaryTile("Largest move", plan ? formatLargestSyncMove(plan) : "Waiting"),
+        renderSummaryTile("Applied", state.synchronizationApplyResult
+          ? `${state.synchronizationApplyResult.clipsMoved} clips`
+          : "Not applied"),
       ),
       renderSynchronizationMessages(plan),
     );
@@ -276,16 +291,30 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     } else {
       if (plan.blockers.length) messages.push(`Sync blocked: ${plan.blockers.join(", ")}`);
       if (plan.warnings.length) messages.push(`Warnings: ${plan.warnings.join(", ")}`);
-      if (!plan.blockers.length && plan.offsetCandidateTracks === 0) {
-        messages.push("Timeline clip starts are aligned. Waveform sync is still required before automatic movement.");
+      if (!plan.blockers.length && plan.offsetsReady) {
+        messages.push("Waveform offsets were calculated automatically from the timeline audio. No clips were moved yet.");
       }
-      if (!plan.blockers.length && plan.offsetCandidateTracks > 0) {
-        messages.push("Some tracks start at different timeline positions. Automatic offset movement is intentionally not applied yet.");
+      if (!plan.blockers.length && !plan.offsetsReady) {
+        messages.push("Timeline was read, but waveform offsets are not ready yet.");
+      }
+      if (state.synchronizationApplyResult?.ok) {
+        messages.push(`Sync applied on the current sequence: ${state.synchronizationApplyResult.clipsMoved} clips moved.`);
+      }
+      if (state.synchronizationApplyResult && !state.synchronizationApplyResult.ok) {
+        messages.push(`Apply Sync blocked: ${state.synchronizationApplyResult.blockers.join(", ")}`);
       }
     }
     return el("div.podcast-human-messages", null,
       ...messages.map((message) => el("div.podcast-human-message", null, message)),
     );
+  }
+
+  function formatLargestSyncMove(plan: SynchronizationPlan): string {
+    const moves = plan.waveformOffsets
+      .filter((offset) => offset.status === "ready" && typeof offset.suggestedMoveSec === "number")
+      .map((offset) => Math.abs(offset.suggestedMoveSec ?? 0));
+    if (!moves.length) return "0s";
+    return formatSeconds(Math.max(...moves));
   }
 
   function renderSilenceSummary(): HTMLElement | null {
@@ -302,7 +331,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       renderSummaryTile("Kept segments", String(result.analysis.keepSegments.length)),
       renderSummaryTile("Threshold", `${diagnostics?.thresholdUsed ?? state.silenceThresholdDb} dB`),
       renderSummaryTile("Min duration", formatSeconds(diagnostics?.minimumDurationUsed ?? state.minimumSilenceDurationSec)),
-      renderSummaryTile("Timeline", "Not changed"),
+      renderSummaryTile("Timeline", result.apply?.ok ? "Current sequence updated" : "Waiting"),
     );
   }
 
@@ -380,7 +409,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       el("div.podcast-section-head", null,
         el("div", null,
           el("h3", null, "Silence Removal"),
-          el("p", null, "Automatically detect pauses and create a synced audio/video draft. The original timeline is not changed."),
+          el("p", null, "Automatically detect pauses and rebuild the current timeline without internal silence."),
         ),
       ),
       renderSilencePresetButtons(),
@@ -485,7 +514,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       || state.previewAutoSwitchLoading
       || state.applyCameraDecisionsLoading
       || state.silenceRemovalLoading
-      || state.synchronizationLoading;
+      || state.synchronizationLoading
+      || state.synchronizationApplyLoading;
   }
 
   function renderProductionSummary(): HTMLElement {
@@ -1563,6 +1593,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
       if (sequenceIdentityChanged(previousIdentity, nextIdentity)) {
         state.timelineLayout = null;
+        clearSynchronizationRuntimeState();
         clearAutoSwitchRuntimeState();
       }
       state.diagnostics = nextDiagnostics;
@@ -1585,6 +1616,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     render();
     try {
       state.synchronizationPlan = await analyzeSynchronizationPlan();
+      state.synchronizationApplyResult = null;
     } catch (err) {
       state.synchronizationPlan = {
         ok: false,
@@ -1598,6 +1630,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         audioClipCount: 0,
         alignedStartTracks: 0,
         offsetCandidateTracks: 0,
+        waveformOffsets: [],
+        offsetsComputed: 0,
+        offsetsReady: false,
         trackReadiness: [],
         blockers: ["SYNCHRONIZATION_ANALYSIS_FAILED", (err as Error).message],
         warnings: [],
@@ -1607,6 +1642,35 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       };
     } finally {
       state.synchronizationLoading = false;
+      render();
+    }
+  }
+
+  async function applySynchronization() {
+    if (isProductionBusy() || !state.synchronizationPlan) return;
+    state.synchronizationApplyLoading = true;
+    render();
+    try {
+      state.synchronizationApplyResult = await applySynchronizationOffsets(state.synchronizationPlan);
+      if (state.synchronizationApplyResult.ok) {
+        state.timelineLayout = null;
+        clearAutoSwitchRuntimeState();
+      }
+    } catch (err) {
+      state.synchronizationApplyResult = {
+        ok: false,
+        sequenceName: state.synchronizationPlan.sequenceName ?? null,
+        sequenceId: state.synchronizationPlan.sequenceId ?? null,
+        offsetsApplied: 0,
+        clipsMoved: 0,
+        movedItems: [],
+        blockers: ["APPLY_SYNC_FAILED", (err as Error).message],
+        warnings: [],
+        timelineMutation: "move current timeline clips",
+        sequenceMutation: "none",
+      };
+    } finally {
+      state.synchronizationApplyLoading = false;
       render();
     }
   }
@@ -2085,11 +2149,15 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function clearAutoSwitchRuntimeState() {
-    state.synchronizationPlan = null;
     state.sourceAttributionProof = null;
     state.cameraDecisionPlanProof = null;
     state.applyCameraDecisionsResult = null;
     state.applyTrace = createEmptyApplyTrace();
+  }
+
+  function clearSynchronizationRuntimeState() {
+    state.synchronizationPlan = null;
+    state.synchronizationApplyResult = null;
   }
 
   function getCurrentCameraDecisionPlan(): PodcastCameraDecisionPlanProof | null {

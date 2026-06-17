@@ -322,6 +322,67 @@
         });
     };
 
+    host.saadstudio.applyPodcastSynchronizationOffsets = function (offsets) {
+        return safe(function () {
+            var result = {
+                ok: false,
+                sequenceName: null,
+                sequenceId: null,
+                offsetsApplied: 0,
+                clipsMoved: 0,
+                movedItems: [],
+                blockers: [],
+                warnings: [],
+                timelineMutation: "move current timeline clips",
+                sequenceMutation: "none"
+            };
+            if (!IS_PPRO) {
+                result.blockers.push("PREMIERE_REQUIRED");
+                return result;
+            }
+            var seq = app.project && app.project.activeSequence;
+            if (!seq) {
+                result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
+                return result;
+            }
+            result.sequenceName = seq.name || null;
+            try { result.sequenceId = seq.sequenceID || seq.id || (seq.projectItem && seq.projectItem.nodeId) || null; } catch (eSeqId) {}
+            var list = offsets || [];
+            if (!list.length) {
+                result.blockers.push("SYNC_OFFSETS_REQUIRED_BEFORE_APPLY");
+                return result;
+            }
+            for (var i = 0; i < list.length; i++) {
+                var offset = list[i];
+                var moveSec = Number(offset.suggestedMoveSec || 0);
+                if (!(Math.abs(moveSec) > 0.001)) continue;
+                var movedForOffset = 0;
+                if (typeof offset.pairedVideoTrackIndex === "number") {
+                    movedForOffset += moveSyncTrackItem(
+                        seq.videoTracks,
+                        "video",
+                        Number(offset.pairedVideoTrackIndex),
+                        Number(offset.pairedVideoClipIndex || 0),
+                        moveSec,
+                        result
+                    );
+                }
+                movedForOffset += moveSyncTrackItem(
+                    seq.audioTracks,
+                    "audio",
+                    Number(offset.audioTrackIndex),
+                    Number(offset.audioClipIndex || 0),
+                    moveSec,
+                    result
+                );
+                if (movedForOffset > 0) result.offsetsApplied += 1;
+            }
+            result.ok = result.blockers.length === 0 && result.clipsMoved > 0;
+            if (!result.ok && result.blockers.length === 0) result.blockers.push("NO_SYNC_CLIPS_MOVED");
+            return result;
+        });
+    };
+
     host.saadstudio.inspectPodcastAudioSources = function (mappings) {
         return safe(function () {
             var result = {
@@ -718,6 +779,7 @@
             result.segmentsSkipped = 0;
             result.segmentResults = [];
             result.warnings = [];
+            organizeExistingGeneratedProjectItems(result);
 
             if (!decisions.length) {
                 result.blockers.push("CAMERA_DECISIONS_REQUIRED");
@@ -859,11 +921,11 @@
                 };
             }
 
-            var draftName = (activeSeqName || "Sequence") + " - Saad Silence Removed Draft";
+            var draftName = activeSeqName || "Sequence";
             var result = emptyPodcastExecutionResult();
             result.strategy = "silence-removal-audio-video";
-            result.timelineMutation = "duplicate + remove original duplicate items + audio-video silence-removed reconstruction only";
-            result.originalTouched = false;
+            result.timelineMutation = "reconstruct silence-removed audio/video on current sequence";
+            result.originalTouched = true;
             result.originalSequenceID = readSequenceID(activeSeq);
             result.duplicateSequenceID = null;
             result.draftSequenceName = draftName;
@@ -912,6 +974,7 @@
             result.executionElapsedTimeMs = 0;
             result.originalTracksHiddenOrDisabledOnDuplicate = false;
             result.warnings = [];
+            organizeExistingGeneratedProjectItems(result);
             resetSilenceRemovalDiagnosticsLog(result);
 
             if (!segments.length) {
@@ -927,29 +990,12 @@
                 result.ok = false;
                 return stripRuntimeSequence(result);
             }
-            var duplicateResult = createPodcastResearchDuplicate("Silence Removed Draft", draftName);
-            if (!duplicateResult.ok || !duplicateResult.newSequence) {
-                appendAll(result.blockers, duplicateResult.blockers);
-                appendAll(result.errors, duplicateResult.errors);
-                if (result.blockers.length === 0) result.blockers.push("SILENCE_DUPLICATE_SEQUENCE_FAILED");
-                result.ok = false;
-                return stripRuntimeSequence(result);
-            }
-            result.cloneResult = duplicateResult.cloneResult;
-            result.renameResult = duplicateResult.renameResult;
-            result.duplicateValidationPassed = duplicateResult.duplicateValidationPassed;
-            result.newSequenceID = duplicateResult.newSequenceID;
-            result.newSequenceName = duplicateResult.newSequenceName;
-            var cleanSequence = duplicateResult.newSequence;
+            var cleanSequence = activeSeq;
             result.newSequence = cleanSequence;
-            result.duplicateSequenceID = readSequenceID(cleanSequence);
+            result.duplicateSequenceID = null;
             result.draftSequenceName = cleanSequence.name || draftName;
             removeOriginalPodcastTrackItemsOnDuplicate(cleanSequence, result);
             prepareSilenceRemovalTracks(cleanSequence, result);
-            if (!cleanSequenceHasEnoughTracks(cleanSequence, activeSeq, result)) {
-                result.ok = false;
-                return stripRuntimeSequence(result);
-            }
             result.executionStartMs = new Date().getTime();
             writeSilenceRemovalDiagnostic(result, "operation_plan_ready", {
                 operationPlanCount: operationPlan.length,
@@ -959,6 +1005,7 @@
             });
             result.originalTracksHiddenOrDisabledOnDuplicate = true;
             applySilenceRemovalOperationPlan(cleanSequence, operationPlan, result);
+            removeSilenceCrossMediaInsertions(cleanSequence, result);
             result.executionElapsedTimeMs = new Date().getTime() - result.executionStartMs;
             collectOriginalResidualTrackItems(cleanSequence, result);
             writeSilenceRemovalDiagnostic(result, "operation_plan_complete", {
@@ -1294,7 +1341,7 @@
     }
 
     function appendSilenceOperationsForTrack(track, trackIndex, mediaKind, startSec, endSec, segmentIndex, targetStartSec, operations, result) {
-        var matches = findOverlapClipsInTrack(track, startSec, endSec);
+        var matches = findOverlapClipsInTrack(track, startSec, endSec, true);
         if (!matches.length) {
             var skipped = mediaKind === "audio" ? result.skippedSegmentsByTrack.audio : result.skippedSegmentsByTrack.video;
             skipped[trackIndex] = (skipped[trackIndex] || 0) + 1;
@@ -1400,6 +1447,47 @@
         }
     }
 
+    function removeSilenceCrossMediaInsertions(seq, result) {
+        var removedVideoFromAudio = removeNamedSilenceItemsFromTracks(
+            seq && seq.videoTracks,
+            "Saad Silence audio"
+        );
+        var removedAudioFromVideo = removeNamedSilenceItemsFromTracks(
+            seq && seq.audioTracks,
+            "Saad Silence video"
+        );
+        result.crossMediaVideoItemsRemoved = removedVideoFromAudio;
+        result.crossMediaAudioItemsRemoved = removedAudioFromVideo;
+        if (removedVideoFromAudio > 0 || removedAudioFromVideo > 0) {
+            result.warnings.push(
+                "CROSS_MEDIA_INSERTIONS_REMOVED:video=" + removedVideoFromAudio
+                + ",audio=" + removedAudioFromVideo
+            );
+        }
+    }
+
+    function removeNamedSilenceItemsFromTracks(tracks, namePrefix) {
+        var removed = 0;
+        if (!tracks) return removed;
+        for (var t = 0; t < tracks.numTracks; t++) {
+            var clips = tracks[t] && tracks[t].clips;
+            if (!clips) continue;
+            for (var c = clips.numItems - 1; c >= 0; c--) {
+                var clip = clips[c];
+                var clipName = "";
+                var projectItemName = "";
+                try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (eClipName) {}
+                try { projectItemName = clip && clip.projectItem && clip.projectItem.name ? String(clip.projectItem.name) : ""; } catch (eProjectName) {}
+                if (clipName.indexOf(namePrefix) !== 0 && projectItemName.indexOf(namePrefix) !== 0) continue;
+                try {
+                    clip.remove(false, false);
+                    removed += 1;
+                } catch (eRemove) {}
+            }
+        }
+        return removed;
+    }
+
     function applySilenceOperation(operation, targetTrack, result) {
         return applySilencePlannedSegment(operation, targetTrack, result);
     }
@@ -1435,7 +1523,7 @@
                 "Saad Silence " + operation.mediaKind + " Keep " + (operation.segmentIndex + 1) + " " + ts(),
                 secondsToTicksString(sourceInSec),
                 secondsToTicksString(sourceOutSec),
-                1,
+                0,
                 operation.mediaKind === "video" ? 1 : 0,
                 operation.mediaKind === "audio" ? 1 : 0
             );
@@ -1461,6 +1549,7 @@
             });
             return false;
         }
+        moveGeneratedProjectItemToBin(subclip, "Silence Removal", result);
         try {
             result.overwriteClipStartTimestamp = new Date().toString();
             result.overwriteClipEndTimestamp = null;
@@ -1605,6 +1694,7 @@
             });
             return false;
         }
+        moveGeneratedProjectItemToBin(subclip, "Silence Removal", result);
         try {
             result.overwriteClipStartTimestamp = new Date().toString();
             result.overwriteClipEndTimestamp = null;
@@ -1672,13 +1762,13 @@
         return findOverlapClipsInTrack(seq.audioTracks[audioTrackIndex], startSec, endSec);
     }
 
-    function findOverlapClipsInTrack(track, startSec, endSec) {
+    function findOverlapClipsInTrack(track, startSec, endSec, allowGeneratedSilence) {
         var out = [];
         var clips = track && track.clips;
         if (!clips) return out;
         for (var c = 0; c < clips.numItems; c++) {
             var clip = clips[c];
-            if (isGeneratedPodcastSourceClip(clip)) continue;
+            if (isGeneratedPodcastSourceClip(clip) && !(allowGeneratedSilence && isGeneratedSilenceSourceClip(clip))) continue;
             var clipStart = readTimeSeconds(clip.start);
             var clipEnd = readTimeSeconds(clip.end);
             var overlapStart = Math.max(startSec, clipStart);
@@ -1696,6 +1786,15 @@
             }
         }
         return out;
+    }
+
+    function isGeneratedSilenceSourceClip(clip) {
+        var clipName = "";
+        var projectItemName = "";
+        try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (eClipName) {}
+        try { projectItemName = clip && clip.projectItem && clip.projectItem.name ? String(clip.projectItem.name) : ""; } catch (ePiName) {}
+        return clipName.indexOf("Saad Silence ") === 0
+            || projectItemName.indexOf("Saad Silence ") === 0;
     }
 
     function prepareVisualOnlyCameraDecisionSegment(seq, decision, index) {
@@ -1813,8 +1912,70 @@
             return { publicResult: publicResult, subclip: null };
         }
 
+        moveGeneratedProjectItemToBin(subclip, "Multi-Cam Auto Switch", publicResult);
+
         publicResult.subclipCreated = true;
         return { publicResult: publicResult, subclip: subclip };
+    }
+
+    function organizeExistingGeneratedProjectItems(result) {
+        var root = app.project && app.project.rootItem;
+        if (!root || !root.children) return;
+        for (var i = root.children.numItems - 1; i >= 0; i--) {
+            var item = root.children[i];
+            var name = "";
+            try { name = item && item.name ? String(item.name) : ""; } catch (eName) {}
+            if (name.indexOf("Saad Silence ") === 0) {
+                moveGeneratedProjectItemToBin(item, "Silence Removal", result);
+            } else if (name.indexOf("Saad Auto Switch ") === 0) {
+                moveGeneratedProjectItemToBin(item, "Multi-Cam Auto Switch", result);
+            }
+        }
+    }
+
+    function moveGeneratedProjectItemToBin(projectItem, toolBinName, result) {
+        if (!projectItem || !projectItem.moveBin) return false;
+        var toolBin = getOrCreateSaadGeneratedToolBin(toolBinName);
+        if (!toolBin) {
+            if (result && result.warnings) result.warnings.push("GENERATED_PROJECT_BIN_UNAVAILABLE:" + toolBinName);
+            return false;
+        }
+        try {
+            projectItem.moveBin(toolBin);
+            return true;
+        } catch (eMoveBin) {
+            if (result && result.warnings) result.warnings.push("GENERATED_PROJECT_ITEM_MOVE_FAILED:" + toolBinName);
+            return false;
+        }
+    }
+
+    function getOrCreateSaadGeneratedToolBin(toolBinName) {
+        var root = app.project && app.project.rootItem;
+        if (!root) return null;
+        var generatedRoot = findDirectProjectBin(root, "Saad Studio Generated");
+        if (!generatedRoot && root.createBin) {
+            try { root.createBin("Saad Studio Generated"); } catch (eRootBin) {}
+            generatedRoot = findDirectProjectBin(root, "Saad Studio Generated");
+        }
+        if (!generatedRoot) return null;
+        var toolBin = findDirectProjectBin(generatedRoot, toolBinName);
+        if (!toolBin && generatedRoot.createBin) {
+            try { generatedRoot.createBin(toolBinName); } catch (eToolBin) {}
+            toolBin = findDirectProjectBin(generatedRoot, toolBinName);
+        }
+        return toolBin;
+    }
+
+    function findDirectProjectBin(parent, name) {
+        var children = parent && parent.children;
+        if (!children) return null;
+        for (var i = 0; i < children.numItems; i++) {
+            var child = children[i];
+            try {
+                if (child && child.name === name && child.children) return child;
+            } catch (eChild) {}
+        }
+        return null;
     }
 
     function emptyApplyCameraDecisionSegmentResult(decision, index) {
@@ -2459,6 +2620,47 @@
                 ? Math.max(0, timelineEndSec - timelineStartSec)
                 : selectedTimelineDurationSec(clip)
         };
+    }
+
+    function moveSyncTrackItem(tracks, kind, trackIndex, clipIndex, moveSec, result) {
+        if (!tracks || trackIndex < 0 || trackIndex >= tracks.numTracks) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_TRACK_NOT_FOUND:" + (trackIndex + 1));
+            return 0;
+        }
+        var track = tracks[trackIndex];
+        var clips = track && track.clips;
+        if (!clips || clipIndex < 0 || clipIndex >= clips.numItems) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_NOT_FOUND:" + (trackIndex + 1) + ":" + clipIndex);
+            return 0;
+        }
+        var clip = clips[clipIndex];
+        if (!clip || !clip.move) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_MOVE_UNAVAILABLE:" + (trackIndex + 1) + ":" + clipIndex);
+            return 0;
+        }
+        var before = readTimeSeconds(clip.start);
+        var moveTime = new Time();
+        moveTime.seconds = moveSec;
+        var moveResult = null;
+        try {
+            moveResult = clip.move(moveTime);
+        } catch (eMove) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_MOVE_FAILED:" + String(eMove.message || eMove));
+            return 0;
+        }
+        var after = readTimeSeconds(clip.start);
+        result.clipsMoved += 1;
+        result.movedItems.push({
+            kind: kind,
+            trackIndex: trackIndex,
+            clipIndex: clipIndex,
+            clipName: clip && clip.name ? String(clip.name) : null,
+            moveSec: moveSec,
+            beforeStartSec: before,
+            afterStartSec: after,
+            result: moveResult
+        });
+        return 1;
     }
 
     function readTrackName(track, kind, index) {

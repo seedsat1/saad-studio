@@ -1177,8 +1177,8 @@ function classifyPodcastPause(segment: SilenceSegment, minimumCutGapSec: number)
       ...segment,
       durationSec: duration,
       pauseClassification: "Thinking pause",
-      cutEligible: false,
-      cutDecisionReason: "short thinking pause kept for conversational flow",
+      cutEligible: true,
+      cutDecisionReason: "pause exceeds the configured minimum cut gap",
     };
   }
   if (duration < 2) {

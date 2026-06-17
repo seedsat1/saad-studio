@@ -1,4 +1,4 @@
-﻿/** Reap.video public automation API adapter.
+/** Reap.video public automation API adapter.
  *
  * Wraps every endpoint at https://public.reap.video/api/v1/automation/*
  * so the panel route can dispatch the supported tools (captions, reframe,
@@ -243,6 +243,95 @@ export function normalizeReapOptions(tool: ReapTool, raw: Record<string, unknown
     });
   }
 
+  if (tool === "reframe") {
+    const orientation = pickString(raw.orientation) ?? (raw.aspectRatio === "1:1" || raw.aspectRatio === "square" ? "square" : "portrait");
+    const genre = ["talking", "screenshare", "gaming"].includes(String(raw.genre)) ? String(raw.genre) : "talking";
+    return stripUndefined({
+      orientation,
+      genre,
+      disableAutoSplit: raw.disableAutoSplit !== undefined ? Boolean(raw.disableAutoSplit) : undefined,
+    });
+  }
+
+  if (tool === "dubbing") {
+    return stripUndefined({
+      sourceLanguage: pickString(raw.sourceLanguage),
+      targetLanguage: pickString(raw.targetLanguage),
+    });
+  }
+
+  if (tool === "transcription") {
+    const transcriptionScriptRaw =
+      pickString(raw.transcriptionScript) ??
+      pickString(raw.script) ??
+      "native";
+    const transcriptionScript = transcriptionScriptRaw.toLowerCase() === "roman" ||
+      transcriptionScriptRaw.toLowerCase() === "latin"
+        ? "roman"
+        : "native";
+    const translationLanguage =
+      pickString(raw.translationLanguage) ??
+      pickString(raw.translateTo);
+    return stripUndefined({
+      language: pickString(raw.language) && raw.language !== "auto" ? pickString(raw.language) : undefined,
+      translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
+      transcriptionScript,
+    });
+  }
+
+  if (tool === "edit-videos") {
+    const translationLanguage =
+      pickString(raw.translationLanguage) ??
+      pickString(raw.translateTo);
+
+    const transcriptionScriptRaw =
+      pickString(raw.transcriptionScript) ??
+      pickString(raw.script) ??
+      "native";
+
+    const transcriptionScript = transcriptionScriptRaw.toLowerCase() === "roman" ||
+      transcriptionScriptRaw.toLowerCase() === "latin"
+        ? "roman"
+        : "native";
+
+    const exportResolution = Number(raw.exportResolution ?? raw.resolution ?? 720);
+    const exportOrientation = pickString(raw.exportOrientation) ?? "landscape";
+    const genre = ["talking", "screenshare", "gaming"].includes(String(raw.genre)) ? String(raw.genre) : "talking";
+
+    let clipDurations: Array<[number, number]> = [];
+    if (Array.isArray(raw.clipDurations)) {
+      clipDurations = raw.clipDurations.filter(
+        (pair): pair is [number, number] => Array.isArray(pair) && pair.length === 2 && typeof pair[0] === "number" && typeof pair[1] === "number"
+      );
+    }
+
+    let topics: string[] = [];
+    if (Array.isArray(raw.topics)) {
+      topics = raw.topics.map(t => String(t).trim()).filter(Boolean);
+    }
+
+    const selectedStart = typeof raw.selectedStart === "number" ? raw.selectedStart : undefined;
+    const selectedEnd = typeof raw.selectedEnd === "number" ? raw.selectedEnd : undefined;
+
+    return stripUndefined({
+      prompt: pickString(raw.prompt) ?? pickString(raw.instructions) ?? "",
+      reframeClips: raw.reframeClips !== undefined ? Boolean(raw.reframeClips) : undefined,
+      exportOrientation: ["landscape", "portrait", "square"].includes(exportOrientation) ? exportOrientation : "landscape",
+      exportResolution: [720, 1080, 1440, 2160].includes(exportResolution) ? exportResolution : 720,
+      captionsPreset: pickString(raw.captionsPreset) ?? pickString(raw.brandTemplateId) ?? undefined,
+      enableEmojis: raw.enableEmojis !== undefined ? Boolean(raw.enableEmojis) : undefined,
+      enableHighlights: raw.enableHighlights !== undefined ? Boolean(raw.enableHighlights) : undefined,
+      language: pickString(raw.language) && raw.language !== "auto" ? pickString(raw.language) : undefined,
+      translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
+      transcriptionScript,
+      genre,
+      selectedStart,
+      selectedEnd,
+      clipDurations: clipDurations.length > 0 ? clipDurations : undefined,
+      topics: topics.length > 0 ? topics : undefined,
+    });
+  }
+
   if (tool !== "captions") return stripUndefined(raw);
 
   const translationLanguage =
@@ -263,7 +352,7 @@ export function normalizeReapOptions(tool: ReapTool, raw: Record<string, unknown
   const resolution = Number(raw.resolution ?? raw.exportResolution ?? 720);
 
   return stripUndefined({
-    captionsPreset: pickString(raw.captionsPreset) ?? "system_beasty",
+    captionsPreset: pickString(raw.captionsPreset) ?? pickString(raw.brandTemplateId) ?? "system_beasty",
     language: pickString(raw.language),
     translationLanguage: translationLanguage && translationLanguage !== "none" ? translationLanguage : undefined,
     transcriptionScript,

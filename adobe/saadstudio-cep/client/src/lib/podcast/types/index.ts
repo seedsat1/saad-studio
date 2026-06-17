@@ -359,8 +359,10 @@ export interface SilenceRemovalApplyResult {
   blockers: string[];
   warnings: string[];
   errors: string[];
-  originalTouched: false;
-  timelineMutation: "duplicate + audio-video silence-removed draft on duplicate only";
+  originalTouched: boolean;
+  timelineMutation:
+    | "duplicate + audio-video silence-removed draft on duplicate only"
+    | "reconstruct silence-removed audio/video on current sequence";
 }
 
 export interface RmsTimestampInterpretation {
