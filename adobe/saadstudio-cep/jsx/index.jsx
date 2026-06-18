@@ -355,7 +355,12 @@
             for (var i = 0; i < list.length; i++) {
                 var offset = list[i];
                 var moveSec = Number(offset.suggestedMoveSec || 0);
+                var targetStartSec = Number(offset.suggestedTimelineStartSec);
                 if (!(Math.abs(moveSec) > 0.001)) continue;
+                if (!isFinite(targetStartSec) || targetStartSec < 0) {
+                    result.blockers.push("INVALID_SYNC_TARGET_START:" + targetStartSec);
+                    continue;
+                }
                 var movedForOffset = 0;
                 if (typeof offset.pairedVideoTrackIndex === "number") {
                     movedForOffset += moveSyncTrackItem(
@@ -364,6 +369,7 @@
                         Number(offset.pairedVideoTrackIndex),
                         Number(offset.pairedVideoClipIndex || 0),
                         moveSec,
+                        targetStartSec,
                         result
                     );
                 }
@@ -373,6 +379,7 @@
                     Number(offset.audioTrackIndex),
                     Number(offset.audioClipIndex || 0),
                     moveSec,
+                    targetStartSec,
                     result
                 );
                 if (movedForOffset > 0) result.offsetsApplied += 1;
@@ -3094,7 +3101,7 @@
         };
     }
 
-    function moveSyncTrackItem(tracks, kind, trackIndex, clipIndex, moveSec, result) {
+    function moveSyncTrackItem(tracks, kind, trackIndex, clipIndex, moveSec, targetStartSec, result) {
         if (!tracks || trackIndex < 0 || trackIndex >= tracks.numTracks) {
             result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_TRACK_NOT_FOUND:" + (trackIndex + 1));
             return 0;
@@ -3106,21 +3113,45 @@
             return 0;
         }
         var clip = clips[clipIndex];
-        if (!clip || !clip.move) {
-            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_MOVE_UNAVAILABLE:" + (trackIndex + 1) + ":" + clipIndex);
+        if (!clip || !clip.start || !clip.end) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_TIMELINE_RANGE_UNAVAILABLE:" + (trackIndex + 1) + ":" + clipIndex);
             return 0;
         }
         var before = readTimeSeconds(clip.start);
-        var moveTime = new Time();
-        moveTime.seconds = moveSec;
+        var beforeEnd = readTimeSeconds(clip.end);
+        if (typeof before !== "number" || typeof beforeEnd !== "number" || !(beforeEnd > before)) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_TIMELINE_RANGE_INVALID:" + before + ":" + beforeEnd);
+            return 0;
+        }
+        var durationSec = beforeEnd - before;
+        var targetEndSec = targetStartSec + durationSec;
+        var targetStartTime = new Time();
+        targetStartTime.seconds = targetStartSec;
+        var targetEndTime = new Time();
+        targetEndTime.seconds = targetEndSec;
         var moveResult = null;
         try {
-            moveResult = clip.move(moveTime);
+            if (targetStartSec >= before) {
+                clip.end = targetEndTime;
+                clip.start = targetStartTime;
+            } else {
+                clip.start = targetStartTime;
+                clip.end = targetEndTime;
+            }
+            moveResult = 0;
         } catch (eMove) {
-            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_MOVE_FAILED:" + String(eMove.message || eMove));
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_RANGE_WRITE_FAILED:" + String(eMove.message || eMove));
             return 0;
         }
         var after = readTimeSeconds(clip.start);
+        var afterEnd = readTimeSeconds(clip.end);
+        if (typeof after !== "number" || typeof afterEnd !== "number"
+            || Math.abs(after - targetStartSec) > 0.05
+            || Math.abs(afterEnd - targetEndSec) > 0.05) {
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_RANGE_WRITE_NOT_VERIFIED:"
+                + targetStartSec + ":" + after + ":" + targetEndSec + ":" + afterEnd);
+            return 0;
+        }
         result.clipsMoved += 1;
         result.movedItems.push({
             kind: kind,

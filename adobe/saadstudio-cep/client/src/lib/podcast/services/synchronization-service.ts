@@ -151,8 +151,12 @@ export interface SynchronizationApplyResult {
 
 export async function applySynchronizationOffsets(plan: SynchronizationPlan): Promise<SynchronizationApplyResult> {
   const offsets = plan.waveformOffsets.filter((offset) =>
-    offset.status === "ready"
+    (offset.status === "ready" || offset.status === "reference")
     && typeof offset.suggestedMoveSec === "number"
+    && typeof offset.suggestedTimelineStartSec === "number"
+    && Number.isFinite(offset.suggestedTimelineStartSec)
+    && offset.suggestedTimelineStartSec >= 0
+    && offset.confidence >= 0.08
     && Math.abs(offset.suggestedMoveSec) > 0.001
   );
   if (!plan.offsetsReady || offsets.length === 0) {
@@ -183,7 +187,7 @@ async function analyzeWaveformOffsets(
     };
   }
   const audioClips = firstMediaClipByTrack(snapshot.audioClips);
-  const videoClips = firstMediaClipByTrack(snapshot.videoClips);
+  const videoClips = snapshot.videoClips.filter((clip) => clip.mediaAvailable && clip.sourcePath);
   const referenceTrack = plan.referenceAudioTrackIndex;
   const referenceClip = referenceTrack == null ? null : audioClips.get(referenceTrack) ?? null;
   if (referenceTrack == null || !referenceClip?.sourcePath) {
@@ -193,6 +197,7 @@ async function analyzeWaveformOffsets(
     };
   }
   const referenceTrackIndex: number = referenceTrack;
+  const referenceVideo = findPairedVideoClip(referenceClip, videoClips);
 
   const runtime = getSyncNodeRuntime();
   const ffmpegPath = resolveSyncFfmpegPath(runtime);
@@ -208,10 +213,10 @@ async function analyzeWaveformOffsets(
   offsets.push({
     audioTrackIndex: referenceTrackIndex,
     audioClipIndex: referenceClip.clipIndex,
-    pairedVideoTrackIndex: videoClips.has(referenceTrackIndex) ? referenceTrackIndex : null,
-    pairedVideoClipIndex: videoClips.get(referenceTrackIndex)?.clipIndex ?? null,
+    pairedVideoTrackIndex: referenceVideo?.trackIndex ?? null,
+    pairedVideoClipIndex: referenceVideo?.clipIndex ?? null,
     audioClipName: referenceClip.clipName ?? referenceClip.projectItemName ?? null,
-    videoClipName: videoClips.get(referenceTrackIndex)?.clipName ?? videoClips.get(referenceTrackIndex)?.projectItemName ?? null,
+    videoClipName: referenceVideo?.clipName ?? referenceVideo?.projectItemName ?? null,
     sourcePath: referenceClip.sourcePath ?? null,
     currentTimelineStartSec: referenceClip.timelineStartSec,
     referenceTimelineStartSec: referenceClip.timelineStartSec,
@@ -230,7 +235,7 @@ async function analyzeWaveformOffsets(
     const warnings: string[] = [];
     if (!clip.sourcePath) blockers.push("AUDIO_SOURCE_PATH_REQUIRED");
     if (!isUsableSyncClip(clip)) blockers.push("INVALID_CLIP_TIMING");
-    const pairedVideo = videoClips.get(trackIndex) ?? null;
+    const pairedVideo = findPairedVideoClip(clip, videoClips);
     if (!pairedVideo) warnings.push("PAIRED_VIDEO_TRACK_NOT_FOUND");
 
     let estimatedLagSec: number | null = null;
@@ -245,15 +250,18 @@ async function analyzeWaveformOffsets(
       confidence = roundConfidence(match.confidence);
       const currentStart = clip.timelineStartSec ?? 0;
       const referenceStart = referenceClip.timelineStartSec ?? 0;
-      suggestedMoveSec = roundTime(referenceStart + estimatedLagSec - currentStart);
-      suggestedTimelineStartSec = roundTime(currentStart + suggestedMoveSec);
-      if (confidence < 0.08) warnings.push("LOW_WAVEFORM_CORRELATION_CONFIDENCE");
+      suggestedTimelineStartSec = roundTime(referenceStart - estimatedLagSec);
+      suggestedMoveSec = roundTime(suggestedTimelineStartSec - currentStart);
+      if (confidence < 0.08) blockers.push("LOW_WAVEFORM_CORRELATION_CONFIDENCE");
+      if (!Number.isFinite(suggestedTimelineStartSec)) {
+        blockers.push("INVALID_SUGGESTED_TIMELINE_START");
+      }
     }
 
     offsets.push({
       audioTrackIndex: trackIndex,
       audioClipIndex: clip.clipIndex,
-      pairedVideoTrackIndex: pairedVideo ? trackIndex : null,
+      pairedVideoTrackIndex: pairedVideo?.trackIndex ?? null,
       pairedVideoClipIndex: pairedVideo?.clipIndex ?? null,
       audioClipName: clip.clipName ?? clip.projectItemName ?? null,
       videoClipName: pairedVideo?.clipName ?? pairedVideo?.projectItemName ?? null,
@@ -270,12 +278,17 @@ async function analyzeWaveformOffsets(
     });
   }
 
+  normalizeSynchronizationStarts(offsets);
+
   const computed = offsets.filter((offset) => offset.status === "ready").length;
+  const finalBlockers = unique([...plan.blockers, ...offsets.flatMap((offset) => offset.blockers)]);
   return {
     ...plan,
+    ok: finalBlockers.length === 0,
     waveformOffsets: offsets,
     offsetsComputed: computed,
     offsetsReady: offsets.length > 1 && offsets.every((offset) => offset.status === "reference" || offset.status === "ready"),
+    blockers: finalBlockers,
     warnings: unique([...plan.warnings, ...offsets.flatMap((offset) => offset.warnings)]),
   };
 }
@@ -369,7 +382,7 @@ async function extractSyncEnvelope(
   clip: PodcastTimelineClipInfo,
 ): Promise<number[]> {
   const sourceIn = Math.max(0, clip.sourceInPointSec ?? 0);
-  const duration = Math.min(45, Math.max(0.5, (clip.sourceOutPointSec ?? sourceIn + 45) - sourceIn));
+  const duration = Math.min(900, Math.max(0.5, (clip.sourceOutPointSec ?? sourceIn + 900) - sourceIn));
   const args = [
     "-hide_banner",
     "-nostdin",
@@ -389,7 +402,7 @@ async function extractSyncEnvelope(
     "pipe:1",
   ];
   const buffer = await execFileBuffer(runtime.cp, ffmpegPath, args);
-  return pcm16ToEnvelope(buffer, 8000, 0.05);
+  return pcm16ToEnvelope(buffer, 8000, 0.1);
 }
 
 function execFileBuffer(
@@ -427,23 +440,31 @@ function pcm16ToEnvelope(buffer: Buffer, sampleRate: number, windowSec: number):
 }
 
 function correlateEnvelopes(reference: number[], target: number[]): { lagSec: number; confidence: number } {
-  const stepSec = 0.05;
-  const maxLag = Math.min(Math.max(reference.length, target.length) - 1, Math.floor(30 / stepSec));
-  let bestLag = 0;
-  let bestScore = Number.NEGATIVE_INFINITY;
-  for (let lag = -maxLag; lag <= maxLag; lag++) {
-    let score = 0;
-    let count = 0;
-    for (let i = 0; i < reference.length; i++) {
-      const j = i + lag;
-      if (j < 0 || j >= target.length) continue;
-      score += reference[i] * target[j];
-      count++;
+  const stepSec = 0.1;
+  const coarseFactor = 10;
+  const coarseReference = downsampleEnvelope(reference, coarseFactor);
+  const coarseTarget = downsampleEnvelope(target, coarseFactor);
+  const minCoarseOverlap = Math.max(10, Math.floor(10 / (stepSec * coarseFactor)));
+  const coarseMaxLag = Math.max(0, Math.max(coarseReference.length, coarseTarget.length) - minCoarseOverlap);
+  let coarseBestLag = 0;
+  let coarseBestScore = Number.NEGATIVE_INFINITY;
+  for (let lag = -coarseMaxLag; lag <= coarseMaxLag; lag++) {
+    const score = normalizedCorrelationAtLag(coarseReference, coarseTarget, lag, minCoarseOverlap);
+    if (score > coarseBestScore) {
+      coarseBestScore = score;
+      coarseBestLag = lag;
     }
-    if (count < 10) continue;
-    const normalizedScore = score / count;
-    if (normalizedScore > bestScore) {
-      bestScore = normalizedScore;
+  }
+
+  const fineCenter = coarseBestLag * coarseFactor;
+  const fineRadius = coarseFactor * 2;
+  const minFineOverlap = Math.max(100, Math.floor(10 / stepSec));
+  let bestLag = fineCenter;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let lag = fineCenter - fineRadius; lag <= fineCenter + fineRadius; lag++) {
+    const score = normalizedCorrelationAtLag(reference, target, lag, minFineOverlap);
+    if (score > bestScore) {
+      bestScore = score;
       bestLag = lag;
     }
   }
@@ -451,6 +472,81 @@ function correlateEnvelopes(reference: number[], target: number[]): { lagSec: nu
     lagSec: bestLag * stepSec,
     confidence: Number.isFinite(bestScore) ? Math.max(0, bestScore) : 0,
   };
+}
+
+function downsampleEnvelope(values: number[], factor: number): number[] {
+  const out: number[] = [];
+  for (let start = 0; start < values.length; start += factor) {
+    const end = Math.min(values.length, start + factor);
+    let sum = 0;
+    for (let index = start; index < end; index++) sum += values[index];
+    out.push(sum / Math.max(1, end - start));
+  }
+  return normalize(out);
+}
+
+function normalizedCorrelationAtLag(
+  reference: number[],
+  target: number[],
+  lag: number,
+  minimumOverlap: number,
+): number {
+  const referenceStart = Math.max(0, -lag);
+  const targetStart = Math.max(0, lag);
+  const count = Math.min(reference.length - referenceStart, target.length - targetStart);
+  if (count < minimumOverlap) return Number.NEGATIVE_INFINITY;
+  let product = 0;
+  let referenceEnergy = 0;
+  let targetEnergy = 0;
+  for (let offset = 0; offset < count; offset++) {
+    const a = reference[referenceStart + offset];
+    const b = target[targetStart + offset];
+    product += a * b;
+    referenceEnergy += a * a;
+    targetEnergy += b * b;
+  }
+  const denominator = Math.sqrt(referenceEnergy * targetEnergy);
+  return denominator > 0 ? product / denominator : Number.NEGATIVE_INFINITY;
+}
+
+function findPairedVideoClip(
+  audioClip: PodcastTimelineClipInfo,
+  videoClips: PodcastTimelineClipInfo[],
+): PodcastTimelineClipInfo | null {
+  const audioPath = normalizeSourcePath(audioClip.sourcePath);
+  if (audioPath) {
+    const pathMatch = videoClips.find((clip) => normalizeSourcePath(clip.sourcePath) === audioPath);
+    if (pathMatch) return pathMatch;
+  }
+  const audioProjectItem = (audioClip.projectItemName ?? "").trim().toLowerCase();
+  if (audioProjectItem) {
+    const itemMatch = videoClips.find((clip) =>
+      (clip.projectItemName ?? "").trim().toLowerCase() === audioProjectItem
+    );
+    if (itemMatch) return itemMatch;
+  }
+  return null;
+}
+
+function normalizeSourcePath(value: string | null | undefined): string {
+  return (value ?? "").replace(/\\/g, "/").trim().toLowerCase();
+}
+
+function normalizeSynchronizationStarts(offsets: SynchronizationOffsetResult[]): void {
+  const usable = offsets.filter((offset) =>
+    (offset.status === "reference" || offset.status === "ready")
+    && typeof offset.suggestedTimelineStartSec === "number"
+    && Number.isFinite(offset.suggestedTimelineStartSec)
+  );
+  if (!usable.length) return;
+  const minimumStart = Math.min(...usable.map((offset) => offset.suggestedTimelineStartSec ?? 0));
+  const shiftSec = minimumStart < 0 ? -minimumStart : 0;
+  for (const offset of usable) {
+    const currentStart = offset.currentTimelineStartSec ?? 0;
+    const normalizedStart = roundTime((offset.suggestedTimelineStartSec ?? 0) + shiftSec);
+    offset.suggestedTimelineStartSec = normalizedStart;
+    offset.suggestedMoveSec = roundTime(normalizedStart - currentStart);
+  }
 }
 
 function normalize(values: number[]): number[] {

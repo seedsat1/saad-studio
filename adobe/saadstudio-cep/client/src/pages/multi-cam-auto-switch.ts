@@ -296,8 +296,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           : "Not selected"),
         renderSummaryTile("Offsets", plan ? `${plan.offsetsComputed}/${Math.max(0, plan.waveformOffsets.length - 1)} ready` : "Waiting"),
         renderSummaryTile("Largest move", plan ? formatLargestSyncMove(plan) : "Waiting"),
-        renderSummaryTile("Applied", state.synchronizationApplyResult
-          ? `${state.synchronizationApplyResult.clipsMoved} clips`
+        renderSummaryTile("Applied", state.synchronizationApplyResult?.ok
+          ? `${countSynchronizedClips(plan)} clips`
           : "Not applied"),
       ),
       renderSynchronizationMessages(plan),
@@ -318,7 +318,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         messages.push("Timeline was read, but waveform offsets are not ready yet.");
       }
       if (state.synchronizationApplyResult?.ok) {
-        messages.push(`Sync applied on the current sequence: ${state.synchronizationApplyResult.clipsMoved} clips moved.`);
+        messages.push(`Sync applied on the current sequence: ${countSynchronizedClips(plan)} clips synchronized.`);
       }
       if (state.synchronizationApplyResult && !state.synchronizationApplyResult.ok) {
         messages.push(`Apply Sync blocked: ${state.synchronizationApplyResult.blockers.join(", ")}`);
@@ -335,6 +335,13 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       .map((offset) => Math.abs(offset.suggestedMoveSec ?? 0));
     if (!moves.length) return "0s";
     return formatSeconds(Math.max(...moves));
+  }
+
+  function countSynchronizedClips(plan: SynchronizationPlan | null): number {
+    if (!plan) return 0;
+    return plan.waveformOffsets.filter((offset) =>
+      offset.status === "reference" || offset.status === "ready"
+    ).length;
   }
 
   function renderSilenceSummary(): HTMLElement | null {

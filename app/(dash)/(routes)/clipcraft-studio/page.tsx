@@ -37,7 +37,8 @@ import {
   Film,
   Target,
   FolderOpen,
-  Sliders
+  Sliders,
+  Volume2
 } from "lucide-react";
 import { FloatingParticles } from "@/components/FloatingParticles";
 
@@ -207,10 +208,10 @@ const TOOL_DETAILS: Record<ToolType, {
 }> = {
   "captions": {
     title: "AI Captions",
-    desc: "Add eye-catching, animated captions & subtitles to your video in 98+ languages.",
+    desc: "Automatically generate accurate captions with custom styles.",
     cost: 50,
     icon: Type,
-    color: "from-cyan-500 to-blue-500",
+    color: "from-blue-500 to-indigo-600",
     illustration: "/ai_captions.png",
     features: [
       "Auto-generated captions perfectly synced with speech",
@@ -658,7 +659,7 @@ export default function ClipCraftStudioPage() {
   const getExportButtonConfig = () => {
     switch (activeTool) {
       case "captions":
-        return { label: "Export Captions", color: "bg-cyan-500 text-slate-950 hover:bg-cyan-400" };
+        return { label: "Export Captions", color: "bg-blue-600 text-slate-100 hover:bg-blue-550" };
       case "dubbing":
         return { label: "Export", color: "bg-purple-650 text-slate-100 hover:bg-purple-550" };
       case "reframe":
@@ -791,7 +792,7 @@ export default function ClipCraftStudioPage() {
       <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
         {/* Left Column: Vertical tab bar + Style list presets */}
         <div className="w-full lg:w-[360px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden min-h-0">
-          <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
+          <div className="w-20 border-r border-slate-900 bg-[#070b16]/90 flex flex-col items-center py-4 gap-2 flex-shrink-0">
             {[
               { id: "templates", label: "Templates", icon: Sparkles },
               { id: "text", label: "Text", icon: Type },
@@ -800,18 +801,20 @@ export default function ClipCraftStudioPage() {
               { id: "settings", label: "Settings", icon: Settings },
             ].map(tab => {
               const Icon = tab.icon;
+              const active = activeSubTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveSubTab(tab.id)}
                   title={tab.label}
-                  className={`p-2.5 rounded-lg transition-all ${
-                    activeSubTab === tab.id
-                      ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                      : "text-slate-500 hover:text-slate-300"
+                  className={`w-full py-4 flex flex-col items-center justify-center gap-1 transition-all ${
+                    active
+                      ? "text-blue-400 bg-[#0c1224] border-l-2 border-blue-500"
+                      : "text-slate-500 hover:text-slate-350 border-l-2 border-transparent"
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[9px] font-bold tracking-wide mt-1">{tab.label}</span>
                 </button>
               );
             })}
@@ -821,111 +824,106 @@ export default function ClipCraftStudioPage() {
             {activeSubTab === "templates" && (
               <div className="flex flex-col h-full min-h-0 space-y-4">
                 <div className="flex justify-between items-center flex-shrink-0">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Style Library</h3>
-                  <button className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded font-bold border border-cyan-500/20 hover:bg-cyan-500/25">
-                    + New Style
-                  </button>
-                </div>
-                <div className="flex gap-1 overflow-x-auto pb-1 custom-scrollbar flex-shrink-0">
-                  {PRESET_CATEGORIES.map(cat => (
-                    <button
-                      type="button"
-                      key={cat.id}
-                      onClick={() => setSelectedPresetCategory(cat.id)}
-                      className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider border transition-all flex-shrink-0 ${
-                        selectedPresetCategory === cat.id
-                          ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-400"
-                          : "bg-slate-900/40 border-slate-850 text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
+                  <h3 className="text-sm font-bold text-slate-200">Style</h3>
                 </div>
                 
                 {/* Scrollable single-column style presets list */}
-                <div className="flex-grow overflow-y-auto space-y-3 pr-1.5 custom-scrollbar min-h-0 mb-2 pb-2">
-                  {filterPresetsByCategory(combinedCaptionPresets, selectedPresetCategory).map((preset) => {
-                    const isSelected = captionStyle === preset.id;
-                    const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
-                    const font = styleInfo.font;
-                    const textColor = styleInfo.textColor;
-                    const bgColor = styleInfo.bgColor;
-                    const animClass = getPresetAnimationClass(preset.id);
-                    return (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => {
-                          setCaptionStyle(preset.id);
-                          setBrandTemplateId("");
-                          applyPresetStyles(preset.id);
-                        }}
-                        className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 relative ${
-                          isSelected
-                            ? "bg-[#0d121f] border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                            : "bg-[#0c0f22]/50 border-slate-900 hover:border-slate-800 hover:bg-[#0c0f22]/80"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center w-full">
-                          <span className={`text-[11px] font-extrabold tracking-wide uppercase ${
-                            isSelected ? "text-cyan-400" : "text-slate-350"
-                          }`}>
-                            {preset.label.replace(" (NEW)", "")}
-                          </span>
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            className={`w-3.5 h-3.5 transition-transform ${isSelected ? "text-cyan-400 rotate-180" : "text-slate-600"}`}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
-                        </div>
-                        
-                        {/* Visualizer preview box inside preset card */}
-                        <div className="h-14 w-full rounded-lg bg-[#070a13] border border-slate-950 flex items-center justify-center p-2.5 overflow-hidden">
-                          {preset.id === 'system_highlight' ? (
-                            <div className={`text-center font-extrabold text-[8px] leading-tight select-none flex flex-col items-center gap-1 ${animClass}`} style={{ fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font }}>
-                              <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded uppercase font-black">The quick brown</span>
-                              <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded uppercase font-black">fox jumps over</span>
-                            </div>
-                          ) : preset.id === 'system_neonize' || preset.id === 'system_karaoke' ? (
-                            <span className={`text-center font-extrabold text-[10px] leading-tight select-none ${animClass}`} style={{ fontFamily: font }}>
-                              <span style={{ color: '#d946ef' }}>The quick brown</span><br />
-                              <span style={{ color: '#ffffff' }}>fox jumps over</span>
+                <div className="flex-grow overflow-y-auto space-y-3 pr-1.5 custom-scrollbar min-h-0 mb-2 pb-2 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    {combinedCaptionPresets.map((preset) => {
+                      const isSelected = captionStyle === preset.id;
+                      const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
+                      const font = styleInfo.font;
+                      const textColor = styleInfo.textColor;
+                      const bgColor = styleInfo.bgColor;
+                      const animClass = getPresetAnimationClass(preset.id);
+                      
+                      const cleanLabel = preset.label.replace(" (NEW)", "").replace(" 🎤", "").replace(" 🍭", "").replace(" 👾", "").replace(" 🌈", "").replace(" 📰", "").replace(" 🏆", "").replace(" ⌨️", "").replace(" 🌊", "").replace(" 💃", "").replace(" 🔥", "").replace(" ✨", "").replace(" 💼", "");
+                      const formattedLabel = cleanLabel === "Modern Bold" ? "Modern-Bold" : cleanLabel;
+
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setCaptionStyle(preset.id);
+                            setBrandTemplateId("");
+                            applyPresetStyles(preset.id);
+                          }}
+                          className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col gap-3 relative ${
+                            isSelected
+                              ? "bg-[#0b0f1d] border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
+                              : "bg-[#070b16]/40 border-slate-900 hover:border-slate-850 hover:bg-[#070b16]/80"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center w-full">
+                            <span className={`text-[12px] font-bold ${
+                              isSelected ? "text-blue-400" : "text-slate-400"
+                            }`}>
+                              {formattedLabel}
                             </span>
-                          ) : preset.id === 'system_modern_bold' ? (
-                            <span className={`text-center font-black text-[11px] leading-tight select-none uppercase ${animClass}`} style={{ fontFamily: font, color: '#ffffff', textShadow: '2px 2px 3px rgba(0,0,0,0.95)' }}>
-                              THE QUICK BROWN<br />FOX JUMPS OVER
-                            </span>
-                          ) : preset.id === 'system_classic' ? (
-                            <span className={`text-center font-medium italic text-[10px] leading-tight select-none ${animClass}`} style={{ fontFamily: 'Georgia, serif', color: '#ffffff' }}>
-                              The quick brown<br />fox jumps over
-                            </span>
-                          ) : (
-                            <span
-                              className={`text-center font-extrabold text-[10px] leading-tight select-none ${animClass}`}
-                              style={{
-                                fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
-                                color: textColor || '#ffffff',
-                                backgroundColor: bgColor ? `${bgColor}66` : 'transparent',
-                                border: bgColor ? `1px solid ${bgColor}99` : 'none',
-                                padding: bgColor ? "3px 6px" : undefined,
-                                borderRadius: bgColor ? "4px" : undefined,
-                                textShadow: bgColor ? 'none' : '1px 1px 1px rgba(0,0,0,0.8)'
-                              }}
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill={isSelected ? "#3b82f6" : "none"}
+                              stroke={isSelected ? "#3b82f6" : "currentColor"}
+                              className={`w-3.5 h-3.5 ${isSelected ? "text-blue-500" : "text-slate-600"}`}
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              The quick brown<br />fox jumps over
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          </div>
+                          
+                          {/* Styled text directly inside the card */}
+                          <div className="w-full py-2 flex items-center justify-center min-h-[50px]">
+                            {preset.id === 'system_highlight' ? (
+                              <div className={`text-center font-extrabold text-[12px] leading-tight select-none flex flex-col items-center gap-1 ${animClass}`} style={{ fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font }}>
+                                <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded font-black">The quick brown</span>
+                                <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded font-black">fox jumps over</span>
+                              </div>
+                            ) : preset.id === 'system_neonize' || preset.id === 'system_karaoke' ? (
+                              <span className={`text-center font-extrabold text-[13px] leading-tight select-none ${animClass}`} style={{ fontFamily: font }}>
+                                <span style={{ color: '#d946ef' }}>The quick brown</span><br />
+                                <span style={{ color: '#ffffff' }}>fox jumps over</span>
+                              </span>
+                            ) : preset.id === 'system_modern_bold' ? (
+                              <span className={`text-center font-black text-[13px] leading-tight select-none ${animClass}`} style={{ fontFamily: font, color: '#ffffff', textShadow: '1px 1px 2px rgba(0,0,0,0.85)' }}>
+                                The quick brown<br />fox jumps over
+                              </span>
+                            ) : preset.id === 'system_classic' ? (
+                              <span className={`text-center font-medium italic text-[12px] leading-tight select-none ${animClass}`} style={{ fontFamily: 'Georgia, serif', color: '#ffffff' }}>
+                                The quick brown<br />fox jumps over
+                              </span>
+                            ) : (
+                              <span
+                                className={`text-center font-extrabold text-[12px] leading-tight select-none ${animClass}`}
+                                style={{
+                                  fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
+                                  color: textColor || '#ffffff',
+                                  backgroundColor: bgColor ? `${bgColor}66` : 'transparent',
+                                  border: bgColor ? `1px solid ${bgColor}99` : 'none',
+                                  padding: bgColor ? "4px 8px" : undefined,
+                                  borderRadius: bgColor ? "4px" : undefined,
+                                  textShadow: bgColor ? 'none' : '1px 1px 1px rgba(0,0,0,0.8)'
+                                }}
+                              >
+                                The quick brown<br />fox jumps over
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* + New Style button at bottom of preset list */}
+                  <div className="pt-4 flex-shrink-0">
+                    <button className="w-full py-2.5 rounded-xl border border-blue-500/30 bg-[#070b16]/30 text-blue-400 hover:bg-[#070b16]/60 hover:border-blue-500 hover:text-blue-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                      <Plus className="w-4 h-4" />
+                      <span>New Style</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1043,7 +1041,7 @@ export default function ClipCraftStudioPage() {
                   className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
                 />
                 <div className="absolute inset-0 bg-slate-950/15 pointer-events-none" />
-                
+
                 {/* Dynamic Styled Subtitle text overlay */}
                 <div
                   style={{
@@ -1054,60 +1052,108 @@ export default function ClipCraftStudioPage() {
                     transform: 'translateY(-50%)',
                     fontFamily: canvasFont === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : canvasFont,
                     fontSize: `${canvasFontSize}px`,
-                    color: captionStyle === 'system_highlight' ? 'transparent' : canvasTextColor,
-                    backgroundColor: captionStyle === 'system_highlight' ? 'transparent' : (canvasBgColor ? `${canvasBgColor}cc` : 'transparent'),
-                    boxShadow: captionStyle === 'system_highlight' ? 'none' : '0 8px 24px rgba(0,0,0,0.65)',
+                    color: canvasTextColor,
+                    backgroundColor: canvasBgColor ? `${canvasBgColor}cc` : 'transparent',
+                    boxShadow: canvasBgColor ? '0 8px 24px rgba(0,0,0,0.65)' : 'none',
                     borderRadius: '6px',
                     padding: '6px 12px',
                     textAlign: 'center',
                     fontWeight: 'bold',
                     lineHeight: '1.25',
-                    textShadow: captionStyle === 'system_highlight' ? 'none' : (canvasBgColor ? 'none' : '1px 1px 2px rgba(0,0,0,0.85)'),
+                    textShadow: canvasBgColor ? 'none' : '2px 2px 4px rgba(0,0,0,0.95)',
                     wordBreak: 'break-word',
                     zIndex: 30,
                   }}
                 >
-                  {captionStyle === 'system_highlight' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">CREATE VIDEOS</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">THAT CAPTIVATE</span>
-                    ) : (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">YOUR AUDIENCE.</span>
-                    )
-                  ) : captionStyle === 'system_karaoke' || captionStyle === 'system_neonize' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span><span style={{color: '#d946ef'}}>Create</span> <span style={{color: '#ffffff'}}>videos</span></span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span><span style={{color: '#d946ef'}}>that</span> <span style={{color: '#ffffff'}}>captivate</span></span>
-                    ) : (
-                      <span><span style={{color: '#d946ef'}}>your</span> <span style={{color: '#ffffff'}}>audience.</span></span>
-                    )
-                  ) : captionStyle === 'system_modern_bold' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>CREATE VIDEOS</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>THAT CAPTIVATE</span>
-                    ) : (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>YOUR AUDIENCE.</span>
-                    )
-                  ) : captionStyle === 'system_classic' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>Create videos</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>that captivate</span>
-                    ) : (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>your audience.</span>
-                    )
-                  ) : (
-                    currentTimeSec < 3.0 ? (
-                      <span>Create videos</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span>that captivate</span>
-                    ) : (
-                      <span>your audience.</span>
-                    )
-                  )}
+                  {(() => {
+                    const words = [
+                      { text: "Create", start: 0.0, end: 1.2 },
+                      { text: "videos", start: 1.2, end: 2.5 },
+                      { text: "that", start: 2.5, end: 3.0 },
+                      { text: "captivate", start: 3.0, end: 7.0 },
+                      { text: "your", start: 7.0, end: 9.0 },
+                      { text: "audience.", start: 9.0, end: 12.0 }
+                    ];
+
+                    return (
+                      <div className="flex flex-wrap justify-center gap-x-2 gap-y-1">
+                        {words.map((w, idx) => {
+                          const isActive = currentTimeSec >= w.start && currentTimeSec < w.end;
+                          
+                          if (captionStyle === 'system_highlight') {
+                            return (
+                              <span
+                                key={idx}
+                                className={`transition-all duration-200 px-1.5 py-0.5 rounded font-black ${
+                                  isActive
+                                    ? "bg-[#facc15] text-[#000000] shadow-sm scale-105"
+                                    : "text-white opacity-90"
+                                }`}
+                              >
+                                {w.text}
+                              </span>
+                            );
+                          } else if (captionStyle === 'system_neonize' || captionStyle === 'system_karaoke') {
+                            return (
+                              <span
+                                key={idx}
+                                style={{
+                                  color: isActive ? '#d946ef' : '#ffffff',
+                                  textShadow: isActive ? '0 0 8px #d946ef' : 'none',
+                                }}
+                                className={`transition-all duration-200 ${isActive ? 'font-black scale-105' : 'font-extrabold'}`}
+                              >
+                                {w.text}
+                              </span>
+                            );
+                          } else if (captionStyle === 'system_modern_bold') {
+                            return (
+                              <span
+                                key={idx}
+                                style={{
+                                  color: isActive ? '#3b82f6' : '#ffffff',
+                                }}
+                                className={`font-black tracking-wide transition-all duration-200 ${
+                                  isActive ? "scale-105" : ""
+                                }`}
+                              >
+                                {w.text}
+                              </span>
+                            );
+                          } else if (captionStyle === 'system_classic') {
+                            return (
+                              <span
+                                key={idx}
+                                style={{
+                                  color: isActive ? '#3b82f6' : '#ffffff',
+                                  fontFamily: 'Georgia, serif'
+                                }}
+                                className={`italic font-medium transition-all duration-200 ${
+                                  isActive ? "underline decoration-blue-500/50" : ""
+                                }`}
+                              >
+                                {w.text}
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span
+                                key={idx}
+                                style={{
+                                  color: isActive ? '#3b82f6' : '#ffffff',
+                                }}
+                                className={`font-bold transition-all duration-200 ${
+                                  isActive ? "scale-105" : ""
+                                }`}
+                              >
+                                {w.text}
+                              </span>
+                            );
+                          }
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1117,7 +1163,7 @@ export default function ClipCraftStudioPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors bg-slate-900 p-2 rounded-lg border border-slate-800"
+                  className="text-blue-500 hover:text-blue-400 transition-colors bg-slate-900 p-2 rounded-lg border border-slate-800"
                 >
                   {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                 </button>
@@ -1138,7 +1184,7 @@ export default function ClipCraftStudioPage() {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <button className="text-cyan-400 font-extrabold px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px]">
+                <button className="text-blue-500 font-extrabold px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[10px]">
                   CC
                 </button>
                 <Maximize2 className="w-3.5 h-3.5 cursor-pointer hover:text-slate-200 transition-colors" />
@@ -1154,7 +1200,7 @@ export default function ClipCraftStudioPage() {
               {/* Left side: Mute Button */}
               <div className="w-12 flex-shrink-0 flex items-center justify-start">
                 <button className="w-9 h-11 rounded-lg bg-[#0b0f19] border border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
-                  <Music className="w-3.5 h-3.5" />
+                  <Volume2 className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -1172,8 +1218,8 @@ export default function ClipCraftStudioPage() {
 
                 {/* Clips track with SVG audio waveform backdrop */}
                 <div className="relative w-full h-12 flex items-center gap-1.5 min-w-0 mt-2">
-                  <div className="absolute inset-0 h-full w-full opacity-15 pointer-events-none z-0">
-                    <svg className="w-full h-full text-slate-400" preserveAspectRatio="none" viewBox="0 0 100 20">
+                  <div className="absolute inset-0 h-full w-full opacity-35 pointer-events-none z-0">
+                    <svg className="w-full h-full text-blue-900/40" preserveAspectRatio="none" viewBox="0 0 100 20">
                       <path d="M 0 10 Q 2 5 4 10 T 8 10 T 12 5 T 16 10 T 20 15 T 24 10 T 28 10 T 32 3 T 36 10 T 40 17 T 44 10 T 48 10 T 52 8 T 56 10 T 60 12 T 64 10 T 68 10 T 72 6 T 76 10 T 80 4 T 84 10 T 88 18 T 92 10 T 96 10 T 100 10" fill="none" stroke="currentColor" strokeWidth="0.8" />
                       <path d="M 0 10 Q 2 1 4 10 T 8 10 T 12 2 T 16 10 T 20 18 T 24 10 T 28 10 T 32 0 T 36 10 T 40 20 T 44 10 T 48 10 T 52 5 T 56 10 T 60 15 T 64 10 T 68 10 T 72 2 T 76 10 T 80 16 T 84 10 T 88 10 T 92 3 T 96 10 T 100 10" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
                     </svg>
@@ -1186,7 +1232,7 @@ export default function ClipCraftStudioPage() {
                     }}
                     className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
                       currentTimeSec < 3.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                        ? "bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
                         : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
                     }`}
                     style={{ width: "25%" }}
@@ -1202,7 +1248,7 @@ export default function ClipCraftStudioPage() {
                     }}
                     className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
                       currentTimeSec >= 3.0 && currentTimeSec < 7.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                        ? "bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
                         : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
                     }`}
                     style={{ width: "33.3%" }}
@@ -1218,7 +1264,7 @@ export default function ClipCraftStudioPage() {
                     }}
                     className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
                       currentTimeSec >= 7.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                        ? "bg-blue-500/10 border-blue-500 text-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]"
                         : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
                     }`}
                     style={{ width: "41.7%" }}
@@ -1230,13 +1276,13 @@ export default function ClipCraftStudioPage() {
 
                 {/* Playhead Pin sliding indicator on ruler */}
                 <div
-                  className="absolute top-2 w-3 h-3 bg-cyan-500 rounded-sm pointer-events-none transition-all duration-75 flex flex-col items-center justify-center transform -translate-x-1/2 rotate-45 border border-cyan-400 z-30"
+                  className="absolute top-[17px] w-2.5 h-2.5 bg-blue-500 rounded-full pointer-events-none transition-all duration-75 transform -translate-x-1/2 z-30 shadow-[0_0_8px_rgba(59,130,246,0.6)]"
                   style={{ left: `${(currentTimeSec / 12) * 100}%` }}
                 />
 
                 {/* Vertical blue playhead line */}
                 <div
-                  className="absolute top-3 bottom-0 w-0.5 bg-cyan-500 pointer-events-none transition-all duration-75 z-20"
+                  className="absolute top-5 bottom-0 w-0.5 bg-blue-500 pointer-events-none transition-all duration-75 z-20"
                   style={{ left: `${(currentTimeSec / 12) * 100}%` }}
                 />
               </div>
