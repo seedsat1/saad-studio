@@ -844,13 +844,13 @@ const TopNavbar = () => {
       }
     };
 
+    // Fetch on sign-in/navigation only. Periodic polling kept Neon awake even
+    // while the dashboard was idle.
     loadCredits();
-    const intervalId = window.setInterval(loadCredits, 15000);
     return () => {
       disposed = true;
-      window.clearInterval(intervalId);
     };
-  }, [isSignedIn]);
+  }, [isSignedIn, pathname]);
 
   return (
     <>

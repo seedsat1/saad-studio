@@ -360,18 +360,9 @@ export default function ProfilePage() {
       return;
     }
 
-    let disposed = false;
-    const safeLoadOverview = async () => {
-      if (disposed) return;
-      await loadOverview();
-    };
-
-    safeLoadOverview();
-    const timer = window.setInterval(safeLoadOverview, 20000);
-    return () => {
-      disposed = true;
-      window.clearInterval(timer);
-    };
+    // Load once when the authenticated profile opens. Mutations refresh the
+    // overview explicitly, so background polling only wastes database compute.
+    void loadOverview();
   }, [isLoaded, loadOverview, userId]);
 
   const usageStats = [

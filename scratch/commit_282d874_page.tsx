@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -13,9 +13,6 @@ import {
   FileText,
   Video,
   Play,
-  Pause,
-  SkipBack,
-  SkipForward,
   Download,
   Copy,
   Check,
@@ -78,38 +75,38 @@ const FALLBACK_LANGUAGES = [
 ];
 
 const LANGUAGES_WITH_FLAGS = [
-  { code: "en-US", label: "English (United States)", flag: "🇺🇸" },
-  { code: "en-GB", label: "English (United Kingdom)", flag: "🇬🇧" },
-  { code: "ar-SA", label: "Arabic (Saudi Arabia)", flag: "🇸🇦" },
-  { code: "ar-EG", label: "Arabic (Egypt)", flag: "🇪🇬" },
-  { code: "es-ES", label: "Spanish (Spain)", flag: "🇪🇸" },
-  { code: "es-MX", label: "Spanish (Mexico)", flag: "🇲🇽" },
-  { code: "fr-FR", label: "French (France)", flag: "🇫🇷" },
-  { code: "fr-CA", label: "French (Canada)", flag: "🇨🇦" },
-  { code: "de-DE", label: "German (Germany)", flag: "🇩🇪" },
-  { code: "it-IT", label: "Italian (Italy)", flag: "🇮🇹" },
-  { code: "pt-BR", label: "Portuguese (Brazil)", flag: "🇧🇷" },
-  { code: "pt-PT", label: "Portuguese (Portugal)", flag: "🇵🇹" },
-  { code: "ru-RU", label: "Russian (Russia)", flag: "🇷🇺" },
-  { code: "zh-CN", label: "Chinese (Simplified)", flag: "🇨🇳" },
-  { code: "zh-TW", label: "Chinese (Traditional)", flag: "🇹🇼" },
-  { code: "ja-JP", label: "Japanese (Japan)", flag: "🇯🇵" },
-  { code: "ko-KR", label: "Korean (South Korea)", flag: "🇰🇷" },
-  { code: "tr-TR", label: "Turkish (Turkey)", flag: "🇹🇷" },
-  { code: "hi-IN", label: "Hindi (India)", flag: "🇮🇳" },
-  { code: "nl-NL", label: "Dutch (Netherlands)", flag: "🇳🇱" },
-  { code: "sv-SE", label: "Swedish (Sweden)", flag: "🇸🇪" },
-  { code: "pl-PL", label: "Polish (Poland)", flag: "🇵🇱" },
-  { code: "id-ID", label: "Indonesian (Indonesia)", flag: "🇮🇩" },
-  { code: "vi-VN", label: "Vietnamese (Vietnam)", flag: "🇻🇳" },
-  { code: "th-TH", label: "Thai (Thailand)", flag: "🇹🇭" },
-  { code: "he-IL", label: "Hebrew (Israel)", flag: "🇮🇱" },
-  { code: "el-GR", label: "Greek (Greece)", flag: "🇬🇷" },
-  { code: "ro-RO", label: "Romanian (Romania)", flag: "🇷🇴" },
-  { code: "da-DK", label: "Danish (Denmark)", flag: "🇩🇰" },
-  { code: "fi-FI", label: "Finnish (Finland)", flag: "🇫🇮" },
-  { code: "no-NO", label: "Norwegian (Norway)", flag: "🇳🇴" },
-  { code: "hu-HU", label: "Hungarian (Hungary)", flag: "🇭🇺" }
+  { code: "en-US", label: "English (United States)", flag: "≡ƒç║≡ƒç╕" },
+  { code: "en-GB", label: "English (United Kingdom)", flag: "≡ƒç¼≡ƒçº" },
+  { code: "ar-SA", label: "Arabic (Saudi Arabia)", flag: "≡ƒç╕≡ƒçª" },
+  { code: "ar-EG", label: "Arabic (Egypt)", flag: "≡ƒç¬≡ƒç¼" },
+  { code: "es-ES", label: "Spanish (Spain)", flag: "≡ƒç¬≡ƒç╕" },
+  { code: "es-MX", label: "Spanish (Mexico)", flag: "≡ƒç▓≡ƒç╜" },
+  { code: "fr-FR", label: "French (France)", flag: "≡ƒç½≡ƒç╖" },
+  { code: "fr-CA", label: "French (Canada)", flag: "≡ƒç¿≡ƒçª" },
+  { code: "de-DE", label: "German (Germany)", flag: "≡ƒç⌐≡ƒç¬" },
+  { code: "it-IT", label: "Italian (Italy)", flag: "≡ƒç«≡ƒç╣" },
+  { code: "pt-BR", label: "Portuguese (Brazil)", flag: "≡ƒçº≡ƒç╖" },
+  { code: "pt-PT", label: "Portuguese (Portugal)", flag: "≡ƒç╡≡ƒç╣" },
+  { code: "ru-RU", label: "Russian (Russia)", flag: "≡ƒç╖≡ƒç║" },
+  { code: "zh-CN", label: "Chinese (Simplified)", flag: "≡ƒç¿≡ƒç│" },
+  { code: "zh-TW", label: "Chinese (Traditional)", flag: "≡ƒç╣≡ƒç╝" },
+  { code: "ja-JP", label: "Japanese (Japan)", flag: "≡ƒç»≡ƒç╡" },
+  { code: "ko-KR", label: "Korean (South Korea)", flag: "≡ƒç░≡ƒç╖" },
+  { code: "tr-TR", label: "Turkish (Turkey)", flag: "≡ƒç╣≡ƒç╖" },
+  { code: "hi-IN", label: "Hindi (India)", flag: "≡ƒç«≡ƒç│" },
+  { code: "nl-NL", label: "Dutch (Netherlands)", flag: "≡ƒç│≡ƒç▒" },
+  { code: "sv-SE", label: "Swedish (Sweden)", flag: "≡ƒç╕≡ƒç¬" },
+  { code: "pl-PL", label: "Polish (Poland)", flag: "≡ƒç╡≡ƒç▒" },
+  { code: "id-ID", label: "Indonesian (Indonesia)", flag: "≡ƒç«≡ƒç⌐" },
+  { code: "vi-VN", label: "Vietnamese (Vietnam)", flag: "≡ƒç╗≡ƒç│" },
+  { code: "th-TH", label: "Thai (Thailand)", flag: "≡ƒç╣≡ƒç¡" },
+  { code: "he-IL", label: "Hebrew (Israel)", flag: "≡ƒç«≡ƒç▒" },
+  { code: "el-GR", label: "Greek (Greece)", flag: "≡ƒç¼≡ƒç╖" },
+  { code: "ro-RO", label: "Romanian (Romania)", flag: "≡ƒç╖≡ƒç┤" },
+  { code: "da-DK", label: "Danish (Denmark)", flag: "≡ƒç⌐≡ƒç░" },
+  { code: "fi-FI", label: "Finnish (Finland)", flag: "≡ƒç½≡ƒç«" },
+  { code: "no-NO", label: "Norwegian (Norway)", flag: "≡ƒç│≡ƒç┤" },
+  { code: "hu-HU", label: "Hungarian (Hungary)", flag: "≡ƒç¡≡ƒç║" }
 ];
 
 const PRESET_STYLES: Record<string, {
@@ -120,21 +117,17 @@ const PRESET_STYLES: Record<string, {
   yPosition: number;
   text: string;
 }> = {
-  system_modern_bold: { font: "Montserrat", fontSize: 32, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "The quick brown fox jumps over" },
-  system_neonize: { font: "Montserrat", fontSize: 30, textColor: "#d946ef", bgColor: "", yPosition: 70, text: "The quick brown fox jumps over" },
-  system_classic: { font: "Georgia", fontSize: 28, textColor: "#ffffff", bgColor: "", yPosition: 75, text: "The quick brown fox jumps over" },
-  system_highlight: { font: "Impact", fontSize: 34, textColor: "#000000", bgColor: "#facc15", yPosition: 75, text: "The quick brown fox jumps over" },
-  system_candy: { font: "Montserrat", fontSize: 32, textColor: "#facc15", bgColor: "#ef4444", yPosition: 75, text: "Sweet Candy Captions! 🍭" },
-  system_glitch: { font: "monospace", fontSize: 28, textColor: "#00ffcc", bgColor: "#000000", yPosition: 65, text: "SYSTEM ERROR: GLITCH 👾" },
-  system_prism: { font: "Georgia", fontSize: 30, textColor: "#c084fc", bgColor: "#6366f1", yPosition: 50, text: "Prism Color spectrum 🌈" },
-  system_ticker: { font: "sans-serif", fontSize: 24, textColor: "#ffffff", bgColor: "#000000", yPosition: 85, text: "Breaking News: Live Ticker Update 📰" },
-  system_trophy: { font: "Montserrat", fontSize: 34, textColor: "#facc15", bgColor: "", yPosition: 40, text: "CHAMPIONS TROPHY 🏆" },
-  system_typewriter: { font: "monospace", fontSize: 26, textColor: "#ffffff", bgColor: "", yPosition: 50, text: "Typing out the script... ⌨️" },
-  system_wavy: { font: "cursive", fontSize: 30, textColor: "#06b6d4", bgColor: "#ffffff", yPosition: 70, text: "Riding the wavy motion 🌊" },
-  system_wiggle: { font: "cursive", fontSize: 32, textColor: "#ef4444", bgColor: "#facc15", yPosition: 60, text: "Wiggle it around! 💃" },
-  system_beasty: { font: "Impact", fontSize: 36, textColor: "#4ade80", bgColor: "#000000", yPosition: 75, text: "BEAST VIRAL STYLE 🔥" },
-  system_luxury: { font: "Georgia", fontSize: 28, textColor: "#facc15", bgColor: "", yPosition: 80, text: "Elegant Luxury Gold ✨" },
-  system_karaoke: { font: "Montserrat", fontSize: 30, textColor: "#d946ef", bgColor: "", yPosition: 70, text: "The quick brown fox jumps over" },
+  system_candy: { font: "Montserrat", fontSize: 32, textColor: "#facc15", bgColor: "#ef4444", yPosition: 75, text: "Sweet Candy Captions! ≡ƒì¡" },
+  system_glitch: { font: "monospace", fontSize: 28, textColor: "#00ffcc", bgColor: "#000000", yPosition: 65, text: "SYSTEM ERROR: GLITCH ≡ƒæ╛" },
+  system_prism: { font: "Georgia", fontSize: 30, textColor: "#c084fc", bgColor: "#6366f1", yPosition: 50, text: "Prism Color spectrum ≡ƒîê" },
+  system_ticker: { font: "sans-serif", fontSize: 24, textColor: "#ffffff", bgColor: "#000000", yPosition: 85, text: "Breaking News: Live Ticker Update ≡ƒô░" },
+  system_trophy: { font: "Montserrat", fontSize: 34, textColor: "#facc15", bgColor: "", yPosition: 40, text: "CHAMPIONS TROPHY ≡ƒÅå" },
+  system_typewriter: { font: "monospace", fontSize: 26, textColor: "#ffffff", bgColor: "", yPosition: 50, text: "Typing out the script... Γî¿∩╕Å" },
+  system_wavy: { font: "cursive", fontSize: 30, textColor: "#06b6d4", bgColor: "#ffffff", yPosition: 70, text: "Riding the wavy motion ≡ƒîè" },
+  system_wiggle: { font: "cursive", fontSize: 32, textColor: "#ef4444", bgColor: "#facc15", yPosition: 60, text: "Wiggle it around! ≡ƒÆâ" },
+  system_beasty: { font: "Impact", fontSize: 36, textColor: "#4ade80", bgColor: "#000000", yPosition: 75, text: "BEAST VIRAL STYLE ≡ƒöÑ" },
+  system_luxury: { font: "Georgia", fontSize: 28, textColor: "#facc15", bgColor: "", yPosition: 80, text: "Elegant Luxury Gold Γ£¿" },
+  system_karaoke: { font: "Montserrat", fontSize: 30, textColor: "#06b6d4", bgColor: "", yPosition: 70, text: "Karaoke bouncing word ≡ƒÄñ" },
   system_minimal: { font: "sans-serif", fontSize: 22, textColor: "#ffffff", bgColor: "", yPosition: 85, text: "Simple minimal caption" },
   system_solid: { font: "sans-serif", fontSize: 26, textColor: "#ffffff", bgColor: "#1e293b", yPosition: 75, text: "Solid background box" },
   system_blue: { font: "Montserrat", fontSize: 30, textColor: "#00d2ff", bgColor: "", yPosition: 75, text: "Blue Caption Style" },
@@ -343,7 +336,7 @@ export default function ClipCraftStudioPage() {
   const [language, setLanguage] = useState("auto");
   const [sourceLang, setSourceLang] = useState("en-US");
   const [targetLang, setTargetLang] = useState("ar-EG");
-  const [captionStyle, setCaptionStyle] = useState("system_modern_bold");
+  const [captionStyle, setCaptionStyle] = useState("");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [editPrompt, setEditPrompt] = useState("");
   const [brandTemplateId, setBrandTemplateId] = useState("");
@@ -399,50 +392,13 @@ export default function ClipCraftStudioPage() {
   const [clipDurations, setClipDurations] = useState<Array<[number, number]>>([]);
 
   // Interactive design canvas states
-  const [canvasText, setCanvasText] = useState("Create videos that captivate your audience.");
+  const [canvasText, setCanvasText] = useState("Double-click to edit this caption text!");
   const [canvasFont, setCanvasFont] = useState("Montserrat");
-  const [canvasFontSize, setCanvasFontSize] = useState(32);
+  const [canvasFontSize, setCanvasFontSize] = useState(28);
   const [canvasTextColor, setCanvasTextColor] = useState("#ffffff");
-  const [canvasBgColor, setCanvasBgColor] = useState("");
+  const [canvasBgColor, setCanvasBgColor] = useState("#06b6d4");
   const [canvasYPosition, setCanvasYPosition] = useState(75);
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTimeSec, setCurrentTimeSec] = useState(3.0);
-
-  useEffect(() => {
-    let interval: any;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setCurrentTimeSec((prev) => {
-          if (prev >= 12.0) {
-            return 0.0;
-          }
-          return Number((prev + 0.1).toFixed(1));
-        });
-      }, 100);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  const isWorkspaceActive = file || sourceUrl.trim() || isDemoMode;
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      if (isWorkspaceActive) {
-        document.body.style.overflow = "hidden";
-        document.documentElement.style.overflow = "hidden";
-      } else {
-        document.body.style.overflow = "";
-        document.documentElement.style.overflow = "";
-      }
-    }
-    return () => {
-      if (typeof document !== "undefined") {
-        document.body.style.overflow = "";
-        document.documentElement.style.overflow = "";
-      }
-    };
-  }, [isWorkspaceActive]);
 
   // Clips Dashboard state
   const [clipsList, setClipsList] = useState<Array<{ id: string; url: string; label: string; status: "Draft" | "Scheduled" | "Published" }>>([]);
@@ -481,28 +437,27 @@ export default function ClipCraftStudioPage() {
       const capitalized = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       
       let emoji = "";
-      if (key === "system_candy") emoji = " 🍭";
-      else if (key === "system_glitch") emoji = " 👾";
-      else if (key === "system_prism") emoji = " 🌈";
-      else if (key === "system_ticker") emoji = " 📰";
-      else if (key === "system_trophy") emoji = " 🏆";
-      else if (key === "system_typewriter") emoji = " ⌨️";
-      else if (key === "system_wavy") emoji = " 🌊";
-      else if (key === "system_wiggle") emoji = " 💃";
-      else if (key === "system_beasty") emoji = " 🔥";
-      else if (key === "system_luxury") emoji = " ✨";
-      else if (key === "system_karaoke") emoji = " 🎤";
-      else if (key === "system_minimal") emoji = " 💼";
+      if (key === "system_candy") emoji = " ≡ƒì¡";
+      else if (key === "system_glitch") emoji = " ≡ƒæ╛";
+      else if (key === "system_prism") emoji = " ≡ƒîê";
+      else if (key === "system_ticker") emoji = " ≡ƒô░";
+      else if (key === "system_trophy") emoji = " ≡ƒÅå";
+      else if (key === "system_typewriter") emoji = " Γî¿∩╕Å";
+      else if (key === "system_wavy") emoji = " ≡ƒîè";
+      else if (key === "system_wiggle") emoji = " ≡ƒÆâ";
+      else if (key === "system_beasty") emoji = " ≡ƒöÑ";
+      else if (key === "system_luxury") emoji = " Γ£¿";
+      else if (key === "system_karaoke") emoji = " ≡ƒÄñ";
+      else if (key === "system_minimal") emoji = " ≡ƒÆ╝";
 
       return {
         id: key,
         label: capitalized + emoji
       };
     });
-    const existing = catalog.captionPresets || [];
-    const validExisting = existing.filter(p => p && typeof p.id === "string");
-    const ids = new Set(validExisting.map(p => p.id));
-    const merged = [...validExisting];
+    const existing = catalog.captionPresets;
+    const ids = new Set(existing.map(p => p.id));
+    const merged = [...existing];
     for (const item of defaultNew) {
       if (!ids.has(item.id)) {
         merged.push(item);
@@ -557,21 +512,20 @@ export default function ClipCraftStudioPage() {
   };
 
   const filterPresetsByCategory = (presets: any[], categoryId: string) => {
-    const validPresets = presets.filter(p => p && typeof p.id === "string");
-    if (categoryId === "all") return validPresets;
-    return validPresets.filter(preset => {
+    if (categoryId === "all") return presets;
+    return presets.filter(preset => {
       const id = preset.id.toLowerCase();
       if (categoryId === "dynamic") {
-        return id.includes("glitch") || id.includes("wavy") || id.includes("wiggle") || id.includes("spell") || id.includes("kinetic") || id.includes("typewriter") || id.includes("candy") || id.includes("prism") || id.includes("flipper") || id.includes("wasabi") || id.includes("ember") || id.includes("karaoke") || id.includes("tech_talk") || id.includes("popping");
+        return id.includes("glitch") || id.includes("wavy") || id.includes("wiggle") || id.includes("spell") || id.includes("kinetic") || id.includes("typewriter") || id.includes("candy") || id.includes("prism") || id.includes("flipper") || id.includes("wasabi") || id.includes("ember");
       }
       if (categoryId === "glow") {
-        return id.includes("glow") || id.includes("lumina") || id.includes("neon") || id.includes("halo") || id.includes("pulse") || id.includes("blue") || id.includes("deep") || id.includes("galaxy") || id.includes("indigo") || id.includes("prism") || id.includes("karaoke") || id.includes("popping");
+        return id.includes("glow") || id.includes("lumina") || id.includes("neon") || id.includes("halo") || id.includes("pulse") || id.includes("blue") || id.includes("deep") || id.includes("galaxy") || id.includes("indigo") || id.includes("prism");
       }
       if (categoryId === "bold") {
-        return id.includes("beasty") || id.includes("impact") || id.includes("one_punch") || id.includes("headlines") || id.includes("trophy") || id.includes("drive") || id.includes("orange") || id.includes("ember") || id.includes("hype") || id.includes("phantom") || id.includes("luxury") || id.includes("popline") || id.includes("webster") || id.includes("yc");
+        return id.includes("beasty") || id.includes("impact") || id.includes("one_punch") || id.includes("headlines") || id.includes("trophy") || id.includes("drive") || id.includes("orange") || id.includes("ember") || id.includes("hype") || id.includes("phantom");
       }
       if (categoryId === "clean") {
-        return id.includes("minimal") || id.includes("solid") || id.includes("silka") || id.includes("zen") || id.includes("notes") || id.includes("vintage") || id.includes("mint") || id.includes("playdate") || id.includes("youshaei") || id.includes("noah") || id.includes("ghost") || id.includes("turban") || id.includes("classic") || id.includes("ticker") || id.includes("pro_box");
+        return id.includes("minimal") || id.includes("solid") || id.includes("silka") || id.includes("zen") || id.includes("notes") || id.includes("vintage") || id.includes("mint") || id.includes("playdate") || id.includes("youshaei") || id.includes("noah") || id.includes("ghost") || id.includes("turban");
       }
       return true;
     });
@@ -615,18 +569,18 @@ export default function ClipCraftStudioPage() {
         >
           {preset.label.replace(" (NEW)", "").replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '') || preset.label}
         </span>
-        {preset.label.includes("🍭") && <span className="text-xs">🍭</span>}
-        {preset.label.includes("👾") && <span className="text-xs">👾</span>}
-        {preset.label.includes("🌈") && <span className="text-xs">🌈</span>}
-        {preset.label.includes("📰") && <span className="text-xs">📰</span>}
-        {preset.label.includes("🏆") && <span className="text-xs">🏆</span>}
-        {preset.label.includes("⌨️") && <span className="text-xs">⌨️</span>}
-        {preset.label.includes("🌊") && <span className="text-xs">🌊</span>}
-        {preset.label.includes("💃") && <span className="text-xs">💃</span>}
-        {preset.label.includes("🔥") && <span className="text-xs">🔥</span>}
-        {preset.label.includes("✨") && <span className="text-xs">✨</span>}
-        {preset.label.includes("🎤") && <span className="text-xs">🎤</span>}
-        {preset.label.includes("💼") && <span className="text-xs">💼</span>}
+        {preset.label.includes("≡ƒì¡") && <span className="text-xs">≡ƒì¡</span>}
+        {preset.label.includes("≡ƒæ╛") && <span className="text-xs">≡ƒæ╛</span>}
+        {preset.label.includes("≡ƒîê") && <span className="text-xs">≡ƒîê</span>}
+        {preset.label.includes("≡ƒô░") && <span className="text-xs">≡ƒô░</span>}
+        {preset.label.includes("≡ƒÅå") && <span className="text-xs">≡ƒÅå</span>}
+        {preset.label.includes("Γî¿∩╕Å") && <span className="text-xs">Γî¿∩╕Å</span>}
+        {preset.label.includes("≡ƒîè") && <span className="text-xs">≡ƒîè</span>}
+        {preset.label.includes("≡ƒÆâ") && <span className="text-xs">≡ƒÆâ</span>}
+        {preset.label.includes("≡ƒöÑ") && <span className="text-xs">≡ƒöÑ</span>}
+        {preset.label.includes("Γ£¿") && <span className="text-xs">Γ£¿</span>}
+        {preset.label.includes("≡ƒÄñ") && <span className="text-xs">≡ƒÄñ</span>}
+        {preset.label.includes("≡ƒÆ╝") && <span className="text-xs">≡ƒÆ╝</span>}
       </button>
     );
   };
@@ -647,7 +601,7 @@ export default function ClipCraftStudioPage() {
             : "bg-slate-950/40 border-slate-850 hover:border-slate-800 text-slate-400 hover:text-slate-350 hover:scale-[1.02]"
         }`}
       >
-        <span className="text-xs">💼</span>
+        <span className="text-xs">≡ƒÆ╝</span>
         <span className="text-[10px] font-bold truncate max-w-full">
           {template.label}
         </span>
@@ -788,9 +742,8 @@ export default function ClipCraftStudioPage() {
 
   const renderCaptionsWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        {/* Left Column: Vertical tab bar + Style list presets */}
-        <div className="w-full lg:w-[360px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
           <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
             {[
               { id: "templates", label: "Templates", icon: Sparkles },
@@ -817,16 +770,16 @@ export default function ClipCraftStudioPage() {
             })}
           </div>
 
-          <div className="flex-grow p-5 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-grow p-5 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
             {activeSubTab === "templates" && (
-              <div className="flex flex-col h-full min-h-0 space-y-4">
-                <div className="flex justify-between items-center flex-shrink-0">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Style Library</h3>
                   <button className="text-[10px] bg-cyan-500/10 text-cyan-400 px-2 py-1 rounded font-bold border border-cyan-500/20 hover:bg-cyan-500/25">
                     + New Style
                   </button>
                 </div>
-                <div className="flex gap-1 overflow-x-auto pb-1 custom-scrollbar flex-shrink-0">
+                <div className="flex gap-1 overflow-x-auto pb-1 custom-scrollbar">
                   {PRESET_CATEGORIES.map(cat => (
                     <button
                       type="button"
@@ -842,9 +795,7 @@ export default function ClipCraftStudioPage() {
                     </button>
                   ))}
                 </div>
-                
-                {/* Scrollable single-column style presets list */}
-                <div className="flex-grow overflow-y-auto space-y-3 pr-1.5 custom-scrollbar min-h-0 mb-2 pb-2">
+                <div className="grid grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1.5 custom-scrollbar">
                   {filterPresetsByCategory(combinedCaptionPresets, selectedPresetCategory).map((preset) => {
                     const isSelected = captionStyle === preset.id;
                     const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
@@ -861,67 +812,31 @@ export default function ClipCraftStudioPage() {
                           setBrandTemplateId("");
                           applyPresetStyles(preset.id);
                         }}
-                        className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 relative ${
+                        className={`group relative rounded-xl border text-left transition-all overflow-hidden flex flex-col p-2.5 gap-1.5 ${
                           isSelected
-                            ? "bg-[#0d121f] border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                            : "bg-[#0c0f22]/50 border-slate-900 hover:border-slate-800 hover:bg-[#0c0f22]/80"
+                            ? "bg-slate-900 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+                            : "bg-slate-950/40 border-slate-900 hover:border-slate-800 hover:bg-slate-900/10"
                         }`}
                       >
-                        <div className="flex justify-between items-center w-full">
-                          <span className={`text-[11px] font-extrabold tracking-wide uppercase ${
-                            isSelected ? "text-cyan-400" : "text-slate-350"
-                          }`}>
-                            {preset.label.replace(" (NEW)", "")}
-                          </span>
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            className={`w-3.5 h-3.5 transition-transform ${isSelected ? "text-cyan-400 rotate-180" : "text-slate-600"}`}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
-                        </div>
+                        <span className={`text-[9px] font-extrabold uppercase tracking-wider transition-colors truncate max-w-full block ${
+                          isSelected ? "text-cyan-400" : "text-slate-400 group-hover:text-slate-205"
+                        }`}>
+                          {preset.label.replace(" (NEW)", "")}
+                        </span>
                         
-                        {/* Visualizer preview box inside preset card */}
-                        <div className="h-14 w-full rounded-lg bg-[#070a13] border border-slate-950 flex items-center justify-center p-2.5 overflow-hidden">
-                          {preset.id === 'system_highlight' ? (
-                            <div className={`text-center font-extrabold text-[8px] leading-tight select-none flex flex-col items-center gap-1 ${animClass}`} style={{ fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font }}>
-                              <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded uppercase font-black">The quick brown</span>
-                              <span className="bg-[#facc15] text-[#000000] px-1.5 py-0.5 rounded uppercase font-black">fox jumps over</span>
-                            </div>
-                          ) : preset.id === 'system_neonize' || preset.id === 'system_karaoke' ? (
-                            <span className={`text-center font-extrabold text-[10px] leading-tight select-none ${animClass}`} style={{ fontFamily: font }}>
-                              <span style={{ color: '#d946ef' }}>The quick brown</span><br />
-                              <span style={{ color: '#ffffff' }}>fox jumps over</span>
-                            </span>
-                          ) : preset.id === 'system_modern_bold' ? (
-                            <span className={`text-center font-black text-[11px] leading-tight select-none uppercase ${animClass}`} style={{ fontFamily: font, color: '#ffffff', textShadow: '2px 2px 3px rgba(0,0,0,0.95)' }}>
-                              THE QUICK BROWN<br />FOX JUMPS OVER
-                            </span>
-                          ) : preset.id === 'system_classic' ? (
-                            <span className={`text-center font-medium italic text-[10px] leading-tight select-none ${animClass}`} style={{ fontFamily: 'Georgia, serif', color: '#ffffff' }}>
-                              The quick brown<br />fox jumps over
-                            </span>
-                          ) : (
-                            <span
-                              className={`text-center font-extrabold text-[10px] leading-tight select-none ${animClass}`}
-                              style={{
-                                fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
-                                color: textColor || '#ffffff',
-                                backgroundColor: bgColor ? `${bgColor}66` : 'transparent',
-                                border: bgColor ? `1px solid ${bgColor}99` : 'none',
-                                padding: bgColor ? "3px 6px" : undefined,
-                                borderRadius: bgColor ? "4px" : undefined,
-                                textShadow: bgColor ? 'none' : '1px 1px 1px rgba(0,0,0,0.8)'
-                              }}
-                            >
-                              The quick brown<br />fox jumps over
-                            </span>
-                          )}
+                        <div className="h-10 w-full rounded bg-slate-950/80 border border-slate-900 flex items-center justify-center overflow-hidden relative">
+                          <span
+                            className={`text-[9px] font-extrabold px-1 py-0.5 rounded text-center truncate ${animClass}`}
+                            style={{
+                              fontFamily: font === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : font,
+                              color: textColor || '#ffffff',
+                              backgroundColor: bgColor ? `${bgColor}66` : 'transparent',
+                              border: bgColor ? `1px solid ${bgColor}99` : 'none',
+                              textShadow: bgColor ? 'none' : '1px 1px 1px rgba(0,0,0,0.8)'
+                            }}
+                          >
+                            The quick brown fox
+                          </span>
                         </div>
                       </button>
                     );
@@ -1031,215 +946,74 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        {/* Right Column: Player and Timeline */}
-        <div className="flex-grow flex flex-col justify-between gap-4 min-h-0">
-          {/* Aspect-Video Player Container */}
-          <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-4 flex flex-col justify-between relative min-h-0">
-            <div className="flex-grow flex items-center justify-center min-h-0 relative py-2">
-              <div className="relative aspect-video h-full max-h-[340px] border border-slate-900 bg-slate-900/40 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
-                <img
-                  src="/talking_head_speaker.png"
-                  alt="Speaker talking head"
-                  className="w-full h-full object-cover select-none pointer-events-none absolute inset-0"
-                />
-                <div className="absolute inset-0 bg-slate-950/15 pointer-events-none" />
-                
-                {/* Dynamic Styled Subtitle text overlay */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '10%',
-                    right: '10%',
-                    top: `${canvasYPosition}%`,
-                    transform: 'translateY(-50%)',
-                    fontFamily: canvasFont === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : canvasFont,
-                    fontSize: `${canvasFontSize}px`,
-                    color: captionStyle === 'system_highlight' ? 'transparent' : canvasTextColor,
-                    backgroundColor: captionStyle === 'system_highlight' ? 'transparent' : (canvasBgColor ? `${canvasBgColor}cc` : 'transparent'),
-                    boxShadow: captionStyle === 'system_highlight' ? 'none' : '0 8px 24px rgba(0,0,0,0.65)',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    textAlign: 'center',
-                    fontWeight: 'bold',
-                    lineHeight: '1.25',
-                    textShadow: captionStyle === 'system_highlight' ? 'none' : (canvasBgColor ? 'none' : '1px 1px 2px rgba(0,0,0,0.85)'),
-                    wordBreak: 'break-word',
-                    zIndex: 30,
-                  }}
-                >
-                  {captionStyle === 'system_highlight' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">CREATE VIDEOS</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">THAT CAPTIVATE</span>
-                    ) : (
-                      <span className="bg-[#facc15] text-black px-3 py-1 rounded-md inline-block uppercase font-black tracking-wide shadow-md">YOUR AUDIENCE.</span>
-                    )
-                  ) : captionStyle === 'system_karaoke' || captionStyle === 'system_neonize' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span><span style={{color: '#d946ef'}}>Create</span> <span style={{color: '#ffffff'}}>videos</span></span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span><span style={{color: '#d946ef'}}>that</span> <span style={{color: '#ffffff'}}>captivate</span></span>
-                    ) : (
-                      <span><span style={{color: '#d946ef'}}>your</span> <span style={{color: '#ffffff'}}>audience.</span></span>
-                    )
-                  ) : captionStyle === 'system_modern_bold' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>CREATE VIDEOS</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>THAT CAPTIVATE</span>
-                    ) : (
-                      <span className="uppercase font-black text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.95)' }}>YOUR AUDIENCE.</span>
-                    )
-                  ) : captionStyle === 'system_classic' ? (
-                    currentTimeSec < 3.0 ? (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>Create videos</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>that captivate</span>
-                    ) : (
-                      <span className="italic font-medium text-white" style={{ fontFamily: 'Georgia, serif' }}>your audience.</span>
-                    )
-                  ) : (
-                    currentTimeSec < 3.0 ? (
-                      <span>Create videos</span>
-                    ) : currentTimeSec < 7.0 ? (
-                      <span>that captivate</span>
-                    ) : (
-                      <span>your audience.</span>
-                    )
-                  )}
-                </div>
+        <div className="lg:col-span-8 flex flex-col justify-between gap-4">
+          <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-between relative min-h-[360px]">
+            <div className="flex-grow relative w-full overflow-hidden border border-slate-900 bg-slate-900/40 rounded-xl flex items-center justify-center aspect-video max-h-[340px]">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Video className="w-12 h-12 text-slate-800" />
+                <span className="text-xs">Interactive Video Preview</span>
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '10%',
+                  right: '10%',
+                  top: `${canvasYPosition}%`,
+                  transform: 'translateY(-50%)',
+                  fontFamily: canvasFont === 'Impact' ? 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif' : canvasFont,
+                  fontSize: `${canvasFontSize}px`,
+                  color: canvasTextColor,
+                  backgroundColor: canvasBgColor ? `${canvasBgColor}cc` : 'transparent',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  lineHeight: '1.25',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
+                  textShadow: canvasBgColor ? 'none' : '1px 1px 2px rgba(0,0,0,0.8)',
+                  wordBreak: 'break-word',
+                  zIndex: 30,
+                }}
+              >
+                {canvasText}
               </div>
             </div>
 
-            {/* Playback Controls Row */}
-            <div className="flex-shrink-0 flex items-center justify-between mt-3 text-slate-400 text-xs pt-3 border-t border-slate-900/40 bg-slate-950/20 px-2 rounded-lg">
+            <div className="flex items-center justify-between mt-3 text-slate-400 text-xs px-1 border-t border-slate-900 pt-3">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors bg-slate-900 p-2 rounded-lg border border-slate-800"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                <button className="text-cyan-400 hover:text-cyan-300">
+                  <Play className="w-4 h-4 fill-current" />
                 </button>
-                <button
-                  onClick={() => setCurrentTimeSec((prev) => Math.max(0, prev - 1.0))}
-                  className="hover:text-slate-200 transition-colors p-2 rounded bg-slate-900/40"
-                >
-                  <SkipBack className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setCurrentTimeSec((prev) => Math.min(12.0, prev + 1.0))}
-                  className="hover:text-slate-200 transition-colors p-2 rounded bg-slate-900/40"
-                >
-                  <SkipForward className="w-3.5 h-3.5" />
-                </button>
-                <span className="font-mono text-slate-500 text-[10px] ml-1">
-                  00:0{Math.floor(currentTimeSec)} / 00:12
-                </span>
+                <span>00:03 / 09:12</span>
               </div>
               <div className="flex items-center gap-3">
-                <button className="text-cyan-400 font-extrabold px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-[10px]">
-                  CC
-                </button>
-                <Maximize2 className="w-3.5 h-3.5 cursor-pointer hover:text-slate-200 transition-colors" />
+                <button className="text-cyan-400 font-extrabold">CC</button>
+                <Maximize2 className="w-3.5 h-3.5" />
               </div>
             </div>
           </div>
 
-          {/* High-Fidelity Timeline Track */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between relative min-h-0 h-44 flex-shrink-0">
-            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block mb-1">Subtitles Timeline Track</span>
-            
-            <div className="flex items-center h-28 relative min-h-0 bg-[#070b16]/60 border border-slate-900/60 rounded-xl p-3">
-              {/* Left side: Mute Button */}
-              <div className="w-12 flex-shrink-0 flex items-center justify-start">
-                <button className="w-9 h-11 rounded-lg bg-[#0b0f19] border border-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200">
-                  <Music className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Right side: Ticks ruler + clips track + playhead */}
-              <div className="flex-grow h-full relative flex flex-col justify-between min-w-0">
-                {/* Ruler ticks */}
-                <div className="relative w-full h-5 flex justify-between text-[8px] font-mono text-slate-500 select-none border-b border-slate-800/40 pb-1">
-                  {["00:00", "00:02", "00:04", "00:06", "00:08", "00:10", "00:12"].map((tick, index) => (
-                    <div key={index} className="relative flex flex-col items-center">
-                      <span>{tick}</span>
-                      <div className="w-px h-1.5 bg-slate-800 absolute bottom-0" />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Clips track with SVG audio waveform backdrop */}
-                <div className="relative w-full h-12 flex items-center gap-1.5 min-w-0 mt-2">
-                  <div className="absolute inset-0 h-full w-full opacity-15 pointer-events-none z-0">
-                    <svg className="w-full h-full text-slate-400" preserveAspectRatio="none" viewBox="0 0 100 20">
-                      <path d="M 0 10 Q 2 5 4 10 T 8 10 T 12 5 T 16 10 T 20 15 T 24 10 T 28 10 T 32 3 T 36 10 T 40 17 T 44 10 T 48 10 T 52 8 T 56 10 T 60 12 T 64 10 T 68 10 T 72 6 T 76 10 T 80 4 T 84 10 T 88 18 T 92 10 T 96 10 T 100 10" fill="none" stroke="currentColor" strokeWidth="0.8" />
-                      <path d="M 0 10 Q 2 1 4 10 T 8 10 T 12 2 T 16 10 T 20 18 T 24 10 T 28 10 T 32 0 T 36 10 T 40 20 T 44 10 T 48 10 T 52 5 T 56 10 T 60 15 T 64 10 T 68 10 T 72 2 T 76 10 T 80 16 T 84 10 T 88 10 T 92 3 T 96 10 T 100 10" fill="none" stroke="currentColor" strokeWidth="0.5" opacity="0.6" />
-                    </svg>
-                  </div>
-
-                  {/* Subtitle Clip 1 */}
-                  <div
-                    onClick={() => {
-                      setCurrentTimeSec(1.5);
-                    }}
-                    className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
-                      currentTimeSec < 3.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                        : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
-                    }`}
-                    style={{ width: "25%" }}
-                  >
-                    <span className="text-[10px] font-bold block truncate">Create videos</span>
-                    <span className="text-[8px] font-mono opacity-50 block mt-0.5">00:00 - 00:03</span>
-                  </div>
-
-                  {/* Subtitle Clip 2 */}
-                  <div
-                    onClick={() => {
-                      setCurrentTimeSec(5.0);
-                    }}
-                    className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
-                      currentTimeSec >= 3.0 && currentTimeSec < 7.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                        : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
-                    }`}
-                    style={{ width: "33.3%" }}
-                  >
-                    <span className="text-[10px] font-bold block truncate">that captivate</span>
-                    <span className="text-[8px] font-mono opacity-50 block mt-0.5">00:03 - 00:07</span>
-                  </div>
-
-                  {/* Subtitle Clip 3 */}
-                  <div
-                    onClick={() => {
-                      setCurrentTimeSec(9.5);
-                    }}
-                    className={`h-11 rounded-lg border text-center transition-all flex flex-col justify-center select-none cursor-pointer z-10 ${
-                      currentTimeSec >= 7.0
-                        ? "bg-cyan-500/10 border-cyan-500 text-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-                        : "bg-[#121626]/80 border-slate-800/60 text-slate-400 hover:border-slate-700"
-                    }`}
-                    style={{ width: "41.7%" }}
-                  >
-                    <span className="text-[10px] font-bold block truncate">your audience.</span>
-                    <span className="text-[8px] font-mono opacity-50 block mt-0.5">00:07 - 00:12</span>
-                  </div>
-                </div>
-
-                {/* Playhead Pin sliding indicator on ruler */}
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 space-y-3">
+            <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Subtitles Timeline Track</span>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { start: "00:00", text: "Create videos", active: false },
+                { start: "00:03", text: "that captivate", active: true },
+                { start: "00:06", text: "your audience.", active: false }
+              ].map((sub, i) => (
                 <div
-                  className="absolute top-2 w-3 h-3 bg-cyan-500 rounded-sm pointer-events-none transition-all duration-75 flex flex-col items-center justify-center transform -translate-x-1/2 rotate-45 border border-cyan-400 z-30"
-                  style={{ left: `${(currentTimeSec / 12) * 100}%` }}
-                />
-
-                {/* Vertical blue playhead line */}
-                <div
-                  className="absolute top-3 bottom-0 w-0.5 bg-cyan-500 pointer-events-none transition-all duration-75 z-20"
-                  style={{ left: `${(currentTimeSec / 12) * 100}%` }}
-                />
-              </div>
+                  key={i}
+                  className={`p-3 rounded-lg border text-center transition-all cursor-pointer ${
+                    sub.active
+                      ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+                      : "bg-slate-900/60 border-slate-900 text-slate-400 hover:border-slate-800"
+                  }`}
+                  onClick={() => setCanvasText(sub.text)}
+                >
+                  <div className="text-[9px] text-slate-500 font-mono mb-1">{sub.start}</div>
+                  <div className="text-xs font-semibold">{sub.text}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1247,20 +1021,16 @@ export default function ClipCraftStudioPage() {
     );
   };
 
-
-
   const renderDubbingWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col justify-between gap-4 min-h-0">
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow">
             <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider mb-2 block">Original Video</span>
-            <div className="flex-grow flex items-center justify-center min-h-0 relative py-2">
-              <div className="relative aspect-video h-full max-h-[200px] bg-slate-900 rounded-xl overflow-hidden border border-slate-850 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
-                  <Video className="w-8 h-8 text-slate-800" />
-                  <span className="text-[10px]">Playhead: 00:03</span>
-                </div>
+            <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden flex-grow">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Video className="w-10 h-10 text-slate-800" />
+                <span className="text-[10px]">Playhead: 00:03</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-slate-400 text-[10px] mt-2 border-t border-slate-900 pt-2">
@@ -1301,7 +1071,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4 min-h-0">
+        <div className="lg:col-span-5 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4">
           <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Waveforms Comparison</span>
 
           <div className="space-y-4 flex-grow flex flex-col justify-center">
@@ -1337,8 +1107,8 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="w-full lg:w-[280px] flex-shrink-0 flex flex-col justify-between gap-4 min-h-0">
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4 flex-grow min-h-0">
+        <div className="lg:col-span-3 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4 flex-grow">
             <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">Dubbing Settings</span>
 
             <div className="space-y-3">
@@ -1420,8 +1190,8 @@ export default function ClipCraftStudioPage() {
 
   const renderReframeWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        <div className="w-full lg:w-[280px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
           <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
             {[
               { id: "reframe", label: "Reframe", icon: Maximize2 },
@@ -1472,9 +1242,9 @@ export default function ClipCraftStudioPage() {
                   onChange={(e) => setGenre(e.target.value)}
                   className="w-full rounded-lg bg-slate-900 border border-slate-850 p-2 text-xs text-slate-200 outline-none"
                 >
-                  <option value="talking">Talking Head 🗣️</option>
-                  <option value="screenshare">Screen Share 🖥️</option>
-                  <option value="gaming">Gaming Content 🎮</option>
+                  <option value="talking">Talking Head ≡ƒùú∩╕Å</option>
+                  <option value="screenshare">Screen Share ≡ƒûÑ∩╕Å</option>
+                  <option value="gaming">Gaming Content ≡ƒÄ«</option>
                 </select>
               </div>
             )}
@@ -1493,7 +1263,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="flex-grow flex flex-col justify-between gap-6 min-h-0">
+        <div className="lg:col-span-9 flex flex-col justify-between gap-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-grow items-center">
             <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col items-center gap-3">
               <span className="text-[10px] font-bold text-slate-400">16:9 YouTube</span>
@@ -1557,16 +1327,14 @@ export default function ClipCraftStudioPage() {
 
   const renderTranscriptionWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        <div className="w-full lg:w-[320px] flex-shrink-0 flex flex-col justify-between gap-4 min-h-0">
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-4">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-4 flex flex-col justify-between flex-grow">
             <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider mb-2 block">Transcription Player</span>
-            <div className="flex-grow flex items-center justify-center min-h-0 relative py-2">
-              <div className="relative aspect-video h-full max-h-[220px] bg-slate-900 rounded-xl overflow-hidden border border-slate-850 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-655 gap-2">
-                  <Video className="w-8 h-8 text-slate-800" />
-                  <span className="text-[10px]">Playhead: 00:03</span>
-                </div>
+            <div className="aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden flex-grow">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-655 gap-2">
+                <Video className="w-10 h-10 text-slate-800" />
+                <span className="text-[10px]">Playhead: 00:03</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-slate-400 text-[10px] mt-2 border-t border-slate-900 pt-2">
@@ -1601,7 +1369,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4 min-h-0">
+        <div className="lg:col-span-8 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-2">
             <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider">Timed Transcript editor</span>
             <div className="relative max-w-xs w-48">
@@ -1646,8 +1414,8 @@ export default function ClipCraftStudioPage() {
 
   const renderVideoEditorWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        <div className="w-full lg:w-20 flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex flex-col items-center py-4 gap-4 justify-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-1 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex flex-col items-center py-4 gap-4 justify-start">
           {[
             { id: "tools", label: "AI Tools", icon: Sparkles },
             { id: "media", label: "Media", icon: FolderOpen },
@@ -1676,19 +1444,17 @@ export default function ClipCraftStudioPage() {
           })}
         </div>
 
-        <div className="flex-grow flex flex-col justify-between gap-4 min-h-0">
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-between flex-grow min-h-0">
+        <div className="lg:col-span-8 flex flex-col justify-between gap-6">
+          <div className="rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-between flex-grow min-h-[300px]">
             <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-bold text-slate-550 uppercase tracking-wider">Video Editor Viewport</span>
               <span className="text-[10px] bg-slate-900 border border-slate-805 px-2 py-0.5 rounded text-orange-400 font-bold">16:9 Landscape</span>
             </div>
 
-            <div className="flex-grow flex items-center justify-center min-h-0 relative py-2">
-              <div className="relative aspect-video h-full max-h-[300px] bg-slate-900 rounded-xl overflow-hidden border border-slate-850 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
-                  <Film className="w-10 h-10 text-slate-800" />
-                  <span className="text-xs">Project timeline viewport simulation</span>
-                </div>
+            <div className="flex-grow aspect-video bg-slate-900 rounded-xl flex items-center justify-center border border-slate-850 relative overflow-hidden max-h-[300px]">
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/20 to-slate-950 flex flex-col items-center justify-center text-slate-650 gap-2">
+                <Film className="w-12 h-12 text-slate-800" />
+                <span className="text-xs">Project timeline viewport simulation</span>
               </div>
             </div>
 
@@ -1734,7 +1500,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="w-full lg:w-[280px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4 min-h-0">
+        <div className="lg:col-span-3 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-4">
           <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">AI Tools</span>
 
           <div className="space-y-3">
@@ -1761,8 +1527,8 @@ export default function ClipCraftStudioPage() {
 
   const renderAudiogramsWorkspace = () => {
     return (
-      <div className="flex flex-col lg:flex-row gap-6 items-stretch w-full h-full min-h-0 max-w-none">
-        <div className="w-full lg:w-[240px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch w-full min-h-[550px]">
+        <div className="lg:col-span-2 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex overflow-hidden">
           <div className="w-16 border-r border-slate-900 bg-slate-950/80 flex flex-col items-center py-4 gap-4 flex-shrink-0">
             {[
               { id: "templates", label: "Templates", icon: Sparkles },
@@ -1807,7 +1573,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="flex-grow rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-center items-center gap-4 min-h-0">
+        <div className="lg:col-span-6 rounded-2xl border border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-5 flex flex-col justify-center items-center gap-4">
           <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider self-start">Audiogram Preview</span>
 
           <div
@@ -1823,7 +1589,7 @@ export default function ClipCraftStudioPage() {
             </div>
 
             <div className="w-16 h-16 rounded-full border-2 border-violet-500 bg-slate-900 flex items-center justify-center overflow-hidden z-10">
-              <span className="text-2xl">🎙️</span>
+              <span className="text-2xl">≡ƒÄÖ∩╕Å</span>
             </div>
 
             <div className="w-full z-10">
@@ -1846,7 +1612,7 @@ export default function ClipCraftStudioPage() {
           </div>
         </div>
 
-        <div className="w-full lg:w-[320px] flex-shrink-0 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-5 flex flex-col justify-between min-h-0">
+        <div className="lg:col-span-4 rounded-2xl border border-slate-800/80 bg-slate-950/60 backdrop-blur-xl p-5 space-y-5 flex flex-col justify-between">
           <div className="space-y-4">
             <span className="text-[10px] font-bold text-slate-505 uppercase tracking-wider block border-b border-slate-900 pb-2 mb-2">Waveform Styles</span>
             <div className="grid grid-cols-2 gap-2">
@@ -1995,10 +1761,10 @@ export default function ClipCraftStudioPage() {
 
   const getSuggestedHooksForClip = (clipLabel: string) => {
     return [
-      `🚨 STOP scrolling if you want to master ${activeTool === "audiogram" ? "audio podcasting" : "video content"}!`,
+      `≡ƒÜ¿ STOP scrolling if you want to master ${activeTool === "audiogram" ? "audio podcasting" : "video content"}!`,
       `Here is the 1 mistake you are making with your ${activeTool} workflow...`,
       `The secret formula to automate ${activeTool === "captions" ? "subtitles" : "post-production"} in 2026.`,
-      `I spent hours editing, but then this AI tool did it in 5 seconds 🤯`
+      `I spent hours editing, but then this AI tool did it in 5 seconds ≡ƒñ»`
     ];
   };
 
@@ -2119,17 +1885,14 @@ export default function ClipCraftStudioPage() {
         });
 
         // Set default values if available
-        const validPresets = presets.filter((p: any) => p && typeof p.id === "string");
-        if (validPresets.length) {
-          setCaptionStyle(validPresets[0].id);
+        if (presets.length) {
+          setCaptionStyle(presets[0].id);
         }
-        const validDubSrc = dubSrc.filter((p: any) => p && (p.code || p.id));
-        if (validDubSrc.length) {
-          setSourceLang(validDubSrc[0].code || validDubSrc[0].id || "en-US");
+        if (dubSrc.length) {
+          setSourceLang(dubSrc[0].code || dubSrc[0].id || "en-US");
         }
-        const validDubTgt = dubTgt.filter((p: any) => p && (p.code || p.id));
-        if (validDubTgt.length) {
-          setTargetLang(validDubTgt[0].code || validDubTgt[0].id || "es-ES");
+        if (dubTgt.length) {
+          setTargetLang(dubTgt[0].code || dubTgt[0].id || "es-ES");
         }
       } catch (err) {
         console.error("Catalog load error:", err);
@@ -2399,12 +2162,9 @@ export default function ClipCraftStudioPage() {
     }
   };
 
-
   return (
     <div
-      className={`${
-        isWorkspaceActive ? "h-[calc(100vh-4rem)] overflow-hidden" : "min-h-screen overflow-y-auto"
-      } relative text-slate-100 w-full`}
+      className="min-h-screen relative overflow-x-hidden text-slate-100"
       style={{ background: "#060c18" }}
       lang="en"
       dir="ltr"
@@ -2474,9 +2234,9 @@ export default function ClipCraftStudioPage() {
 
       <FloatingParticles />
 
-      <div className="relative z-10 w-full h-full flex flex-col p-4 md:p-6 overflow-hidden min-h-0 gap-4">
+      <div className="relative z-10 max-w-[1360px] mx-auto w-full px-4 md:px-8 py-6 pb-24 space-y-6">
         {/* Compact Workspace Header & Navigator */}
-        <div className="flex-shrink-0 flex items-center justify-between gap-4 bg-slate-950/40 backdrop-blur-xl border border-slate-900/60 p-3 rounded-2xl w-full">
+        <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 bg-slate-950/40 backdrop-blur-xl border border-slate-900/60 p-3 rounded-2xl w-full">
           <div className="flex items-center gap-2.5 pl-2">
             <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" />
             <div>
@@ -2523,114 +2283,11 @@ export default function ClipCraftStudioPage() {
         </div>
 
         {!file && !sourceUrl.trim() && !isDemoMode ? (
-          <div className="flex-1 overflow-y-auto min-h-0 flex flex-col space-y-8 pr-1.5 custom-scrollbar pb-10">
-            {renderUploadLandingView()}
-            
-            {/* Recent Projects / Generation History (moved to landing page) */}
-            {!historyLoading && historyList.length > 0 && (
-              <div className="space-y-6 pt-6 border-t border-slate-900 max-w-4xl mx-auto w-full">
-                <div className="text-center md:text-left">
-                  <h2 className="text-2xl font-bold text-slate-100 flex items-center justify-center md:justify-start gap-2">
-                    <History className="w-5 h-5 text-cyan-400" />
-                    Recent Projects
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">Reload your previous generation runs and completed clips.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {historyList.map((item) => {
-                    const toolDetails = TOOL_DETAILS[item.model as ToolType];
-                    const ToolIcon = toolDetails?.icon || FileText;
-                    const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="group relative rounded-xl border border-slate-800 bg-slate-950/40 p-4 space-y-4 hover:border-slate-700 hover:bg-slate-900/10 transition-all duration-300"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`p-2 rounded-lg bg-gradient-to-br ${toolDetails?.color || "from-slate-500 to-slate-700"} text-slate-950`}>
-                              <ToolIcon className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
-                                {toolDetails?.title || item.model}
-                              </span>
-                              <h4 className="text-xs font-semibold text-slate-200 line-clamp-1 mt-0.5" title={item.prompt}>
-                                {item.prompt}
-                              </h4>
-                            </div>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
-                            {formattedDate}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[11px]">
-                          <span className="text-slate-500 font-medium">{item.cost} Credits</span>
-                          <button
-                            onClick={() => handleLoadPastProject(item.projectId, item.id, item.prompt, item.model)}
-                            disabled={status !== "idle" && status !== "completed" && status !== "failed"}
-                            className="px-2.5 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            Reload Project
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Full-width Steps Walkthrough (moved to landing page) */}
-            <div className="space-y-6 pt-6 max-w-4xl mx-auto w-full">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-slate-100">Workflow & Process Steps</h2>
-                <p className="text-sm text-slate-500 mt-1">Simple post-production flow without layout complexity.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {STEPS.map((s, i) => {
-                  const StepIcon = s.icon;
-                  return (
-                    <div
-                      key={i}
-                      className="relative rounded-xl border border-slate-800/80 bg-slate-950/40 p-5 space-y-3 group hover:border-slate-700/60 hover:bg-slate-900/10 transition-all duration-300"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 group-hover:text-cyan-300 transition-colors">
-                          <StepIcon className="w-5 h-5" />
-                        </div>
-                        <span className="text-3xl font-extrabold text-slate-800 group-hover:text-cyan-500/20 transition-colors">
-                          {s.num}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-sm font-semibold text-slate-200">{s.title}</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
-                      </div>
-                      {i < 3 && (
-                        <div className="hidden md:block absolute right-[-20px] top-1/2 -translate-y-1/2 z-20 text-slate-805">
-                          <ArrowRight className="w-5 h-5" />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          renderUploadLandingView()
         ) : (
-          <div className="flex-1 flex flex-col min-h-0 gap-4 overflow-hidden">
+          <div className="space-y-6 w-full">
             {/* Unified Workspace Header */}
-            <div className="flex-shrink-0 flex items-center justify-between p-4 bg-slate-950/60 backdrop-blur-xl border border-slate-900 rounded-2xl">
+            <div className="flex items-center justify-between p-4 bg-slate-950/60 backdrop-blur-xl border border-slate-900 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className={`p-2.5 rounded-xl bg-gradient-to-br ${TOOL_DETAILS[activeTool].color} text-slate-950`}>
                   {(() => {
@@ -2672,11 +2329,110 @@ export default function ClipCraftStudioPage() {
             </div>
 
             {/* Render active workspace */}
-            <div className="flex-grow min-h-0">
-              {renderActiveWorkspace()}
+            {renderActiveWorkspace()}
+          </div>
+        )}
+
+        {/* Recent Projects / Generation History */}
+        {!historyLoading && historyList.length > 0 && (
+          <div className="space-y-6 pt-6 border-t border-slate-900">
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl font-bold text-slate-100 flex items-center justify-center md:justify-start gap-2">
+                <History className="w-5 h-5 text-cyan-400" />
+                Recent Projects
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">Reload your previous generation runs and completed clips.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {historyList.map((item) => {
+                const toolDetails = TOOL_DETAILS[item.model as ToolType];
+                const ToolIcon = toolDetails?.icon || FileText;
+                const formattedDate = new Date(item.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div
+                    key={item.id}
+                    className="group relative rounded-xl border border-slate-800 bg-slate-950/40 p-4 space-y-4 hover:border-slate-700 hover:bg-slate-900/10 transition-all duration-300"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-2 rounded-lg bg-gradient-to-br ${toolDetails?.color || "from-slate-500 to-slate-700"} text-slate-950`}>
+                          <ToolIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">
+                            {toolDetails?.title || item.model}
+                          </span>
+                          <h4 className="text-xs font-semibold text-slate-200 line-clamp-1 mt-0.5" title={item.prompt}>
+                            {item.prompt}
+                          </h4>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-500 font-medium whitespace-nowrap">
+                        {formattedDate}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[11px]">
+                      <span className="text-slate-500 font-medium">{item.cost} Credits</span>
+                      <button
+                        onClick={() => handleLoadPastProject(item.projectId, item.id, item.prompt, item.model)}
+                        disabled={status !== "idle" && status !== "completed" && status !== "failed"}
+                        className="px-2.5 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Reload Project
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
+
+        {/* Full-width Steps Walkthrough */}
+        <div className="space-y-6 pt-6">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-slate-100">Workflow & Process Steps</h2>
+            <p className="text-sm text-slate-500 mt-1">Simple post-production flow without layout complexity.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {STEPS.map((s, i) => {
+              const StepIcon = s.icon;
+              return (
+                <div
+                  key={i}
+                  className="relative rounded-xl border border-slate-800/80 bg-slate-950/40 p-5 space-y-3 group hover:border-slate-700/60 hover:bg-slate-900/10 transition-all duration-300"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                      <StepIcon className="w-5 h-5" />
+                    </div>
+                    <span className="text-3xl font-extrabold text-slate-800 group-hover:text-cyan-500/20 transition-colors">
+                      {s.num}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold text-slate-200">{s.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
+                  </div>
+                  {i < 3 && (
+                    <div className="hidden md:block absolute right-[-20px] top-1/2 -translate-y-1/2 z-20 text-slate-800">
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* AI Hooks Suggestion Modal */}
