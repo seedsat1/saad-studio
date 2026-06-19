@@ -588,7 +588,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       el("div.podcast-section-head", null,
         el("div", null,
           el("h3", null, "Auto Zoom"),
-          el("p", null, "Detect timeline cuts and place editable adjustment-layer zooms above the source video."),
+          el("p", null, "Detect timeline cuts and add editable Motion Scale zooms to the selected video track."),
         ),
       ),
       el("div.podcast-settings.podcast-settings--compact", null,
@@ -602,7 +602,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               render();
             },
           )),
-        renderField(inspection?.executionMode === "direct-transform" ? "Direct Transform" : "Adjustment Track",
+        renderField(inspection?.executionMode === "direct-transform" ? "Direct Motion" : "Adjustment Track",
           renderTrackSelect(
             state.autoZoomTargetTrackIndex,
             (event: Event) => {
@@ -675,7 +675,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         renderSummaryTile("Cuts", inspection ? String(inspection.cutEventsSec.length) : "Waiting"),
         renderSummaryTile("Rhythm", `${Math.round(state.autoZoomRhythmPercentage * 100)}%`),
         renderSummaryTile("Zoom", `${Math.round(state.autoZoomMaxPercentage * 100)}%`),
-        renderSummaryTile("Inserted", applyResult ? String(applyResult.adjustmentLayersInserted) : "0"),
+        renderSummaryTile(
+          inspection?.executionMode === "direct-transform" ? "Mode" : "Inserted",
+          inspection?.executionMode === "direct-transform"
+            ? "Motion"
+            : (applyResult ? String(applyResult.adjustmentLayersInserted) : "0"),
+        ),
         renderSummaryTile("Effects", applyResult ? String(applyResult.effectsApplied) : "0"),
       ),
       el("div.podcast-human-messages", null,
@@ -700,8 +705,13 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     if (state.autoZoomInspection.warnings.length) messages.push(`Warnings: ${state.autoZoomInspection.warnings.join(", ")}`);
     if (state.autoZoomInspection.ok) messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
       ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
-      : "Direct Transform fallback is ready. Editable zoom effects will be added to the analyzed cut clips.");
-    if (state.autoZoomApplyResult?.ok) messages.push(`${state.autoZoomApplyResult.adjustmentLayersInserted} editable zoom layers were added.`);
+      : "Direct Motion is ready. Editable Scale zooms will be added to the analyzed track clips.");
+    if (state.autoZoomApplyResult?.ok) {
+      const trackLabel = `V${(state.autoZoomInspection.analyzedVideoTrackIndexes[0] ?? 0) + 1}`;
+      messages.push(state.autoZoomApplyResult.executionMode === "direct-transform"
+        ? `${state.autoZoomApplyResult.effectsApplied} editable Motion Scale zoom effect(s) were applied to ${trackLabel}. Direct Motion does not create layers.`
+        : `${state.autoZoomApplyResult.adjustmentLayersInserted} editable zoom layers were added.`);
+    }
     if (state.autoZoomApplyResult && !state.autoZoomApplyResult.ok) messages.push(`Apply failed: ${state.autoZoomApplyResult.blockers.join(", ")}`);
     const firstEventError = state.autoZoomApplyResult?.eventResults.find((event) => event.error)?.error;
     if (firstEventError) messages.push(`First event error: ${firstEventError}`);

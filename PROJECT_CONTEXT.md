@@ -1,20 +1,18 @@
 # Saad Studio — Project Context
 
-## آخر مهمة: إضافة صفحة لوحة تحكم الأدمن لإدارة شرائح الهيرو ديناميكياً (2026-06-19)
+## آخر مهمة: ربط شرائح الهيرو بأدوات الإضافة تلقائياً عبر لوحة التحكم (2026-06-19)
 
-- السبب: طلب المستخدم إمكانية إدارة وتعديل شرائح الهيرو (سلايدر العرض) مباشرة من لوحة تحكم الأدمن لـ Saad Studio (الموقع) بدلاً من تعديلها يدوياً في الكود، وذلك لتفادي كسر أي شيء وتسهيل التعديل.
+- السبب: رغبة المستخدم في توجيه العميل مباشرة إلى الأداة المحددة داخل إضافة Premiere (مثل Multi-Cam Auto Switch) عند النقر على شريحة الهيرو، مع إتاحة خيار ربط سهل ومضمون في لوحة الأدمن بدلاً من كتابة الروابط يدوياً.
 - القرار:
-  1. إنشاء صفحة لوحة تحكم أدمن جديدة بالكامل في [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) تتيح للأدمن استعراض الشرائح، إضافتها، تعديل نصوصها (العربية والانجليزية)، وتغيير صور الخلفيات (برفعها ديناميكياً إلى R2 عبر نظام الرفع المدمج) وحذفها وترتيبها بسهولة.
-  2. ربط الصفحة بجدول `pageLayout` في قاعدة البيانات تحت اسم الصفحة `cep-slides` وحفظها كـ `layoutBlocks` لعدم الحاجة لتبديل سكيمة قاعدة البيانات.
-  3. إضافة رابط الصفحة الجديدة "CEP Extension Banners" في القائمة الجانبية للأدمن [cms-sidebar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/admin/cms-sidebar.tsx).
-  4. تحديث صفحة الإضافة الرئيسية [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts) لتجلب الشرائح ديناميكياً من المسار العام `/api/layouts?page=cep-slides` عند التشغيل، مع تفعيل حارس أمان (Offline Fallback) يعود تلقائياً للشرائح المحلية المدمجة في حال عدم توفر اتصال بالإنترنت أو عدم تهيئة البيانات بالخادم لضمان عدم توقف الإضافة أبداً.
+  1. تعديل صفحة إدارة الشرائح بالأدمن [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) لاستبدال حقل كتابة الرابط بـ **قائمة خيارات منسدلة (Dropdown Selector)** تحتوي على جميع الأدوات المتوفرة داخل الإضافة مع مساراتها الداخلية (مثل `/multi-cam-auto-switch` و `/avatar-pro` وغيرها)، مع إبقاء خيار "رابط خارجي" في حال الرغبة بالتحويل لموقع ويب.
+  2. تحديث كود المعالجة في الصفحة الرئيسية للإضافة [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)؛ حيث تم إنشاء دالة `handleSlideAction` والتي تفحص الرابط؛ فإذا كان يبدأ بـ `/` تقوم الإضافة بالانتقال الفوري للأداة داخلياً باستخدام دالة `navigate` دون فتح متصفح خارجي، وإذا كان رابط ويب عادي تقوم بفتحه بالمتصفح كالمعتاد.
 - الملفات المتأثرة:
-  - [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) (جديد)
-  - [cms-sidebar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/admin/cms-sidebar.tsx)
+  - [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx)
   - [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)
   - [PROJECT_CONTEXT.md](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
-- نتائج التحقق: نجاح بناء وتجميع Vite العميل (`npm run build`) وتوليد حزمة جديدة بنجاح بدون أي أخطاء.
-- الخطوة المتبقية: التحقق النهائي من عمل واجهة لوحة تحكم الأدمن والتحميل الديناميكي للشرائح داخل الإضافة.
+- نتائج التحقق: نجاح بناء وتجميع Vite العميل (`npm run build`) وتحديث كافة الملفات بنجاح ورفعها لـ Git.
+- الخطوة المتبقية: التحقق النهائي من عمل التوجيه للأدوات بنجاح عند إعادة تحميل اللوحة.
+
 
 
 
@@ -318,3 +316,46 @@
 - الملف المتأثر: `adobe/saadstudio-cep/jsx/index.jsx`. نجح فحص JSX وTypeScript/Vite build و`git diff --check`.
 - ثُبت JSX داخل CEP النشط وتطابقت بصمة المصدر والنسخة المثبتة: `832D42F42E89FF1D353C00B6E4F961C645794AEFF8F6B64D91C7DF5EB2B1457B`.
 - المتبقي: إعادة تشغيل Premiere، ثم Runtime Proof على V5؛ معيار النجاح Effects>0 وظهور Scale/keyframes في Effect Controls.
+
+## Auto Zoom: إثبات Motion وتصحيح عرض النتيجة (2026-06-19)
+
+- Runtime Proof بالصورة: V5 بقي مختارًا، اكتُشفت 3 cuts، وظهر `Effects: 1` مع `AUTO_ZOOM_USED_INTRINSIC_MOTION_SCALE`. هذا يثبت نجاح كتابة Motion Scale؛ `Inserted: 0` طبيعي لأن Direct Motion لا ينشئ Adjustment Layer.
+- الخطأ المكتشف: رسالة النجاح كانت تعرض عدد الطبقات (`0 editable zoom layers`) حتى في direct mode، فبدت العملية فاشلة رغم Effects=1. كذلك خوارزمية accumulator كانت تختار حدثًا واحدًا فقط من 3 عند Rhythm=60%.
+- صُححت الواجهة لتعرض `Mode: Motion` ورسالة بعدد Effects والمسار Vn، وحُذف warning النجاح المربك. صار 60% يختار `round(cuts × 0.6)` أحداث موزعة بالتساوي؛ 3 cuts تعطي تأثيرين.
+- الملفات المتأثرة: `client/src/pages/multi-cam-auto-switch.ts` و`jsx/index.jsx`. نجح البناء وفحص JSX و`git diff --check`، والحزمة `index-DF-yjRVt.js`.
+- ثُبتت الحزمة `index-DF-yjRVt.js` وJSX داخل CEP النشط وتطابقت البصمة.
+- المتبقي: Runtime Proof؛ مع V5 و3 cuts و60% يجب ظهور Effects=2، ويمكن رؤية الزوم عند أزمنة القصّات لا عند موضع 00:00:42 بالضرورة.
+## فرز مراجع Podcast Automation المقترحة (2026-06-19)
+
+- راجع المستخدم قائمة مراجع لـSynchronize وMulti-Cam وSilence Removal وAuto Zoom وOne Click Podcast Edit. القرار: تُستخدم كمراجع خوارزمية/معمارية فقط، ولا يُنقل منها mutation code إلى Premiere 26.2 بلا Runtime Proof.
+- الأولوية العملية: Auto-Editor لمنطق اكتشاف الصمت وبناء keep/cut ranges؛ Adobe CEP Samples لبنية panel↔ExtendScript؛ AutoSplice/Multitrack Switcher لمنطق RMS والمتحدث والكاميرا العامة بعد التحقق من المستودع والإصدار.
+- وثائق Adobe Multi-Camera Source Sequence مفيدة لفهم workflow والنتيجة المتوقعة، لكنها لا تثبت وجود API برمجية موثقة للمزامنة. مشاريع Premiere MCP قد تفيد في Motion/Scale/Position فقط بعد التحقق من رابطها ومعمارية الاتصال؛ الاسم وحده غير كافٍ.
+- One Click Podcast Edit يجب أن يكون orchestrator متسلسلًا فوق الأدوات المثبتة مع نتيجة/بوابة لكل مرحلة، لا دالة ضخمة تجمع التحليل والتعديل والتصدير بلا rollback أو duplicate آمن.
+- خطأ التحقق: البحث/فتح الإنترنت أعاد HTTP 403 في هذه الجلسة، لذلك لم تُعتمد المشاريع ذات الأسماء العامة (`Multitrack Switcher`, `Premiere Pro MCP Server`, `Video & Audio MCP Server`) دون روابطها الأصلية.
+- الملفات المتأثرة: `PROJECT_CONTEXT.md` و`docs/saad-studio-premiere-reference-ar.md` فقط. لا تغييرات كود.
+- المتبقي: استلام الروابط الدقيقة للمشاريع الغامضة، ثم مراجعة الترخيص، آخر إصدار، API المستخدمة، واستخراج أجزاء قابلة للاختبار لكل أداة.
+## تدقيق صريح لحالة أدوات Podcast (2026-06-19)
+
+- لا يوجد ادعاء بأن الإضافة خالية من الأخطاء. نجاح build وفحص JSX يثبتان سلامة التركيب فقط، ولا يستبدلان Runtime Proof داخل Premiere 26.2.
+- Auto Zoom: ثبت بقاء V5 واكتشاف 3 cuts ونجاح كتابة Motion Scale مرة واحدة (`Effects=1`). لم يثبت بعد بصريًا ظهور Scale/keyframes أو نتيجة النسخة الأحدث التي تجعل 60% من 3 = تأثيرين.
+- Multi-Cam وSilence Removal موصوفان كفعالين وفق الذاكرة، لكن يلزم regression test بعد التعديلات المتراكمة قبل إدخالهما في One Click. Synchronize غير جاهز إنتاجيًا صراحةً. One Click Podcast Edit لم يُثبت كمسار كامل بعد.
+- المراجع الإضافية ليست العائق الأساسي الآن؛ العائق هو مصفوفة اختبار مستقلة لكل أداة على duplicate مع تحقق قبل/بعد. نحتاج الروابط الدقيقة فقط للمشاريع العامة ذات الأسماء المتكررة لمراجعة مصدرها وترخيصها، لا لاستبدال الاختبار بالتخمين.
+- القرار: تجميد التغييرات العشوائية؛ لا تعديل جديد لأداة قبل تسجيل مدخل معروف، نتيجة متوقعة، نتيجة Runtime فعلية، وأي blocker. الترتيب المقترح: Auto Zoom visual proof → Silence regression → Multi-Cam regression → Synchronize fixtures → One Click orchestration.
+- الملفات المتأثرة: `PROJECT_CONTEXT.md` فقط. لا تغيير في التنفيذ.
+## مرجع تصميم Auto Zoom القائم على Emphasis (2026-06-19)
+
+- اقترح المستخدم OpenJumpCuts وSoundBuddy Studio وAI Reel Editor وDarkroom كمراجع، مع سلوك: تحليل الصوت → Emphasis Peaks → Motion Scale keyframes، Zoom 108–115%، انتقال 8–15 frame، hold 1–3s، وcooldown 4–6s.
+- التقييم: هذا يصف Auto Zoom للبودكاست بصورة أفضل من التنفيذ الحالي القائم فقط على cuts. لكنه تغيير منتج/خوارزمية، لا إصلاحًا صغيرًا؛ يحتاج تحليل RMS/peak fixture مستقل ثم تحويل الزمن إلى timeline واختبار keyframes.
+- القرار: لا تُعتمد الأرقام كحقائق تجارية بلا مصدر أو اختبار. يمكن استخدامها كنطاقات أولية لمصفوفة قبول، مع default تجريبي لاحق 112%/12 frames/2s hold/5s cooldown بعد موافقة المستخدم وRuntime Proof.
+- Face tracking وPosition reframing من AI Reel Editor مرحلة منفصلة؛ لا تُخلط مع Scale-only v1 لأن Position arrays في ExtendScript أكثر هشاشة وتحتاج إثباتًا خاصًا.
+- المشاريع المذكورة لم تُراجع مصدرًا بعد لعدم وجود روابط دقيقة؛ لا يُنسخ كود أو API منها بالاسم وحده.
+- الملفات المتأثرة: `PROJECT_CONTEXT.md` و`docs/saad-studio-premiere-reference-ar.md` فقط. لا تغيير في التنفيذ.
+- المتبقي: رابط المستودع الدقيق لكل مرجع مرغوب، ثم اختيار صريح بين إبقاء Auto Zoom cut-based الحالي أو بناء v2 قائم على Emphasis Peaks.
+## مراجعة مرجع AutoCut AutoZoom بالفيديو (2026-06-19)
+
+- روجع الفيديو المحلي `D:\Add smart zooms automatically with AutoCut in Premiere Pro & DaVinci Resolve (2026).mp4` كاملًا عبر metadata وcontact sheet ولقطات منفردة من مراحل الإعداد والمعاينة والتطبيق. مدته 112.338 ثانية، ومصدره منخفض الدقة 256×144؛ لذلك سُجل فقط ما أمكن إثباته بصريًا.
+- المثبت بصريًا: AutoCut يفصل إعداد **كثافة/تواتر الزوم** عن **مقدار الزوم**، ويعرض أنماط `Cut` و`Smooth` و`Snap-In`. بعد الإعداد ينشئ Preview مخصصًا للتسلسل وخيارات الزوم، ثم يعرض مرحلة معالجة قبل النتيجة.
+- يظهر في Timeline مسار علوي مولّد بلون أرجواني فوق المادة الأصلية بعد المعالجة؛ هذا يدعم مبدأ التنفيذ غير الهدّام، لكنه لا يثبت من الفيديو وحده هل العنصر Adjustment Layer أم نوعًا آخر، ولا يثبت API المستخدم أو خوارزمية اختيار أزمنة الزوم.
+- لم تُثبت من الفيديو فرضية أن AutoCut يعتمد Emphasis Peaks أو RMS؛ لذلك تبقى خوارزمية Saad الحالية cut-based كما هي إلى أن يتوفر دليل تقني أو اختبار قبول واضح. لا يُنسخ رقم أو توقيت افتراضي من الفيديو منخفض الدقة.
+- رابط المقال الرسمي لم يكتمل فتحه في جلسة التصفح، لذلك لا يُسجل كمصدر تمت مراجعته. المرجع الذي تمت مراجعته فعليًا هو ملف الفيديو المحلي فقط.
+- لم يتغير كود الإضافة في هذه المهمة. الملفات المتأثرة: `PROJECT_CONTEXT.md` و`docs/saad-studio-premiere-reference-ar.md`. المتبقي: Runtime Proof بصري لـMotion Scale في V5، ثم تحديد مواصفات Auto Zoom v2 من اختبار قبول لا من تقليد واجهة AutoCut.

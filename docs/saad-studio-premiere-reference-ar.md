@@ -190,3 +190,26 @@
 - البحث يعتمد `matchName` (`ADBE Motion` و`ADBE Scale`) و`displayName` مع fallback موضعي `components[1].properties[1]` للمضيف المتوافق. يستخدم Transform عبر QE كاحتياط فقط.
 - أزمنة مفاتيح Scale هي أزمنة timeline، وتُقيد بحدي بداية ونهاية clip. لا يجوز وضع مفتاح بعد نهاية TrackItem.
 - معيار Runtime Proof هو `effectsApplied > 0` مع ظهور تغير Scale/المفاتيح داخل Effect Controls؛ اكتشاف cuts وحده لا يثبت نجاح Auto Zoom.
+- في Direct Motion يبقى `adjustmentLayersInserted=0` لأن التعديل يقع على TrackItem نفسه؛ الواجهة يجب أن تعرض `effectsApplied` بوصفه نتيجة النجاح ولا تصف الصفر كفشل.
+- Rhythm يحدد عدد أحداث الزوم بالتقريب: `round(cutCount × rhythm)` بحد أدنى حدث واحد عند وجود cuts، وتوزع الأحداث المختارة على امتداد القائمة. مثال: 3 cuts عند 60% تعطي تأثيرين.
+## سياسة اعتماد مراجع Podcast Automation
+
+- `Auto-Editor` مرجع خوارزمي لـSilence Removal: تحليل loudness، تكوين ranges، margin/padding، ودمج المقاطع القصيرة. لا يُنسخ منه إخراج timeline؛ يبقى تنفيذ Premiere عبر duplicate وإعادة بناء المقاطع والتحقق العددي.
+- `Adobe CEP Samples` مرجع لبنية CEP والاتصال بين الواجهة وExtendScript وإدارة lifecycle، وليس مرجعًا لخوارزمية مزامنة أو قص.
+- وثائق `Create a multi-camera source sequence` تصف workflow والخيارات المتوقعة للمزامنة؛ لا تُعامل كإثبات لواجهة scripting غير مذكورة في مرجع Premiere API.
+- مراجع active-speaker/multitrack مفيدة لقواعد RMS، crosstalk margin، hysteresis، minimum shot، وإدراج wide camera. يجب التحقق من الترخيص والتوافق مع Premiere 26.2 قبل تكييف التنفيذ.
+- مشاريع MCP قد تعمل عبر واجهة خارجية أو UXP أو QE غير موثق؛ لا تُستخدم في CEP إلا بعد تحديد طبقة المضيف ومطابقة عمليات Motion Scale/Position مع Runtime Proof.
+- `One Click Podcast Edit` طبقة orchestration: Sync (إن كان مثبتًا) → Multi-Cam → Silence Removal → Auto Zoom → تحقق → تصدير اختياري. كل مرحلة تُرجع نتيجة قابلة للتوقف والاستئناف، وتعمل على duplicate آمن؛ فشل مرحلة لا يبرر متابعة المراحل التالية تلقائيًا.
+## Auto Zoom للبودكاست: Cut-Based مقابل Emphasis-Based
+
+- التنفيذ الحالي cut-based: يستخرج حدود TrackItems من مسار الفيديو المختار، ينتقي نسبة منها عبر Rhythm، ويكتب Motion Scale. هذا مناسب للزوم عند تغيّر اللقطة، لكنه لا يكتشف التشديد الصوتي داخل لقطة طويلة.
+- التصميم المقترح v2 emphasis-based: استخراج envelope/RMS للصوت، اكتشاف peaks البارزة نسبةً إلى baseline محلي، دمج peaks المتقاربة، تطبيق cooldown، ثم تحويل زمن الصوت إلى timeline قبل إنشاء مفاتيح Motion Scale.
+- نطاقات اختبار أولية وليست حقائق مثبتة: Scale 108–115%، دخول 8–15 frame، hold 1–3s، خروج تدريجي، وفاصل 4–6s قبل zoom جديد. يجب تثبيت default عبر fixtures ومشاهدة فعلية على 25fps ومعدلات أخرى.
+- لا يُستخدم face tracking أو Position في Scale-only v1. إعادة التأطير بالوجه ميزة مستقلة تتطلب إحداثيات موثقة، smoothing، crop safety، واختبار كتابة Position في Premiere 26.2.
+- لا يُقبل نجاح setter وحده كدليل بصري؛ التحقق يشمل عدد keyframes، قيمها وأزمنتها، واختبار playback عند event times.
+## ما ثبت من مرجع AutoCut AutoZoom المرئي
+
+- واجهة AutoCut تفصل بين تواتر/كثافة الزومات، مقدار الزوم، ونمط الحركة، وتعرض ثلاثة أنماط مرئية: `Cut` و`Smooth` و`Snap-In`.
+- المنتج يعرض Preview/Processing قبل النتيجة، ويترك المادة الأصلية مع مخرجات مرئية على مسار أعلى في اللقطات المعروضة. يُعتمد من ذلك مبدآن فقط: فصل الإعدادات، ومسار تطبيق غير هدّام قدر الإمكان.
+- الفيديو التسويقي لا يكشف خوارزمية اختيار أزمنة الزوم ولا يثبت استخدام RMS أو peaks أو Adjustment Layer بعينه. لا تُحوّل هذه الأمور إلى حقائق معمارية بلا توثيق أو Runtime Proof.
+- في Premiere 26.2 يبقى Motion > Scale هو المسار المثبت حاليًا في Saad Studio. الانتقال إلى مسار علوي مولّد يحتاج إثبات أن إنشاء العنصر وكتابة تأثيراته متاحان وموثوقان في CEP/QE على الإصدار المستهدف.

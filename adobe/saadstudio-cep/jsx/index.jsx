@@ -921,7 +921,7 @@
             }
             result.timelineMutation = executionMode === "adjustment-layer"
                 ? "adjustment layers added on V" + (targetTrackIndex + 1)
-                : "editable Transform effects added to analyzed source clips";
+                : "editable Motion Scale effects added to analyzed source clips";
             result.ok = result.blockers.length === 0
                 && result.effectsApplied > 0
                 && result.failedEvents === 0;
@@ -2239,15 +2239,15 @@
     function selectAutoZoomEvents(events, rhythmPercentage) {
         if (rhythmPercentage >= 0.999) return events.slice(0);
         var selected = [];
-        var accumulator = 0;
-        for (var i = 0; i < events.length; i++) {
-            accumulator += rhythmPercentage;
-            if (accumulator >= 1) {
-                selected.push(events[i]);
-                accumulator -= 1;
-            }
+        var targetCount = Math.max(1, Math.min(events.length, Math.round(events.length * rhythmPercentage)));
+        if (targetCount === 1) {
+            selected.push(events[Math.floor(events.length / 2)]);
+            return selected;
         }
-        if (!selected.length && events.length) selected.push(events[0]);
+        for (var i = 0; i < targetCount; i++) {
+            var eventIndex = Math.round(i * (events.length - 1) / (targetCount - 1));
+            selected.push(events[eventIndex]);
+        }
         return selected;
     }
 
@@ -2470,7 +2470,6 @@
         if (motionScale) {
             var motionApplied = applyAutoZoomScaleProperty(motionScale, clip, startSec, endSec, style, zoomRatio);
             if (motionApplied) {
-                appendAll(result.warnings, ["AUTO_ZOOM_USED_INTRINSIC_MOTION_SCALE"]);
                 return true;
             }
             appendAll(result.warnings, ["INTRINSIC_MOTION_SCALE_WRITE_FAILED"]);
