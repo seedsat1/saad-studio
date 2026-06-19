@@ -921,6 +921,7 @@
                                     var scaleProperty = findAutoZoomMotionScaleProperty(trackClips[tc]);
                                     if (scaleProperty && typeof scaleProperty.setTimeVarying === "function") {
                                         scaleProperty.setTimeVarying(false);
+                                        scaleProperty.setValue(100, true);
                                     }
                                 }
                             }
@@ -2802,8 +2803,13 @@
 
     function setComponentPropertyKeys(property, keys) {
         try {
+            var baseScale = 100;
+            if (keys && keys.length > 0) {
+                baseScale = keys[keys.length - 1].value;
+            }
             if (typeof property.setTimeVarying === "function") {
                 property.setTimeVarying(false);
+                property.setValue(baseScale, true);
                 property.setTimeVarying(true);
             } else {
                 property.setTimeVarying(true);

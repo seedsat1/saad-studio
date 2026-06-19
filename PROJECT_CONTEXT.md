@@ -542,6 +542,7 @@
 
 ## Podcast Auto Captions activation (2026-06-20)
 
+- Clarification: the current implementation deliberately links the Podcast `Auto Captions` card to the extension's existing `Add Captions` page; it is not a new independent in-Premiere caption engine.
 - Auto Zoom was explicitly left outside this task. No Auto Zoom behavior was intentionally changed for the Captions work.
 - The disabled Podcast Automation card was connected to the existing production `AddCaptionsPage` instead of creating a second transcription implementation. The card now reports `Ready` and opens `/add-captions?source=podcast&language=ar`.
 - `AddCaptionsPage` now accepts router parameters and preserves a supported requested language. The podcast entry requests `ar`; the Reap catalog remains authoritative, and the local fallback catalog also contains `ar` as `Arabic - العربية`.
