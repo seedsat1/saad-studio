@@ -1,0 +1,280 @@
+diff --git a/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts b/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts
+index be4ce0f..2556a1f 100644
+--- a/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts
++++ b/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts
+@@ -34,6 +34,13 @@ import {
+   type AutoZoomStyle,
+   type AutoZoomTimelineResult,
+ } from "../lib/podcast/services/auto-zoom-service";
++
++const AUTOMATIC_AUTO_ZOOM = {
++  rhythmPercentage: 0.6,
++  maxZoomPercentage: 1.12,
++  zoomDurationSec: 1.5,
++  styles: ["smooth"] as AutoZoomStyle[],
++};
+ import {
+   applyCameraDecisionsVisualOnly,
+   testDisableEnableOnDuplicate,
+@@ -157,10 +164,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
+     synchronizationApplyResult: null as SynchronizationApplyResult | null,
+     autoZoomInspection: null as AutoZoomTimelineResult | null,
+     autoZoomApplyResult: null as AutoZoomApplyResult | null,
+-    autoZoomRhythmPercentage: 0.6,
+-    autoZoomMaxPercentage: 1.3,
+-    autoZoomDurationSec: 1.5,
+-    autoZoomStyles: ["smooth"] as AutoZoomStyle[],
++    autoZoomRhythmPercentage: AUTOMATIC_AUTO_ZOOM.rhythmPercentage,
++    autoZoomMaxPercentage: AUTOMATIC_AUTO_ZOOM.maxZoomPercentage,
++    autoZoomDurationSec: AUTOMATIC_AUTO_ZOOM.zoomDurationSec,
++    autoZoomStyles: [...AUTOMATIC_AUTO_ZOOM.styles] as AutoZoomStyle[],
+     autoZoomAnalyzedTrackIndex: 0,
+     autoZoomTargetTrackIndex: 1,
+     executionResearchResult: null as PodcastExecutionResearchResult | null,
+@@ -559,166 +566,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
+     );
+   }
+ 
+-  function renderAutoZoomTool(): HTMLElement {
+-    const inspection = state.autoZoomInspection;
+-    const applyResult = state.autoZoomApplyResult;
+-    const busy = isProductionBusy();
+-    const videoTrackCount = Math.max(
+-      inspection?.videoTrackCount ?? 0,
+-      state.timelineLayout?.videoTracks.length ?? 0,
+-      state.diagnostics.videoTrackCount ?? 0,
+-      2,
+-    );
+-    const trackOptions = Array.from({ length: videoTrackCount }, (_, index) => index);
+-    const renderTrackSelect = (
+-      value: number,
+-      onChange: (event: Event) => void,
+-      disabled = false,
+-    ): HTMLElement => {
+-      const select = el("select.podcast-input", {
+-        disabled,
+-        onChange,
+-      }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)));
+-      // Setting a select's `value` as an HTML attribute does not select the option.
+-      // Assign the DOM property after its options exist so rerenders preserve V2..V5.
+-      (select as HTMLSelectElement).value = String(value);
+-      return select;
+-    };
+-    return el("div.podcast-production-card", { id: "podcast-auto-zoom-tool" },
+-      el("div.podcast-section-head", null,
+-        el("div", null,
+-          el("h3", null, "Auto Zoom"),
+-          el("p", null, "Detect timeline cuts and add editable Motion Scale zooms to the selected video track."),
+-        ),
+-      ),
+-      el("div.podcast-settings.podcast-settings--compact", null,
+-        renderField("Analyze Track",
+-          renderTrackSelect(
+-            state.autoZoomAnalyzedTrackIndex,
+-            (event: Event) => {
+-              state.autoZoomAnalyzedTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
+-              state.autoZoomInspection = null;
+-              state.autoZoomApplyResult = null;
+-              render();
+-            },
+-          )),
+-        renderField(inspection?.executionMode === "direct-transform" ? "Direct Motion" : "Adjustment Track",
+-          renderTrackSelect(
+-            state.autoZoomTargetTrackIndex,
+-            (event: Event) => {
+-              state.autoZoomTargetTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
+-              render();
+-            },
+-            inspection?.executionMode === "direct-transform",
+-          )),
+-        renderField("Zoom Rhythm",
+-          el("input.podcast-input", {
+-            type: "range",
+-            min: "10",
+-            max: "100",
+-            step: "10",
+-            value: String(Math.round(state.autoZoomRhythmPercentage * 100)),
+-            onInput: (event: Event) => {
+-              state.autoZoomRhythmPercentage = Number((event.currentTarget as HTMLInputElement).value) / 100;
+-              render();
+-            },
+-          })),
+-        renderField("Maximum Zoom",
+-          el("input.podcast-input", {
+-            type: "number",
+-            min: "1.01",
+-            max: "2",
+-            step: "0.05",
+-            value: String(state.autoZoomMaxPercentage),
+-            onInput: (event: Event) => {
+-              state.autoZoomMaxPercentage = Number((event.currentTarget as HTMLInputElement).value) || 1.3;
+-              render();
+-            },
+-          })),
+-        renderField("Zoom Duration",
+-          el("input.podcast-input", {
+-            type: "number",
+-            min: "0.25",
+-            max: "10",
+-            step: "0.25",
+-            value: String(state.autoZoomDurationSec),
+-            onInput: (event: Event) => {
+-              state.autoZoomDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 1.5;
+-              render();
+-            },
+-          })),
+-        renderField("Zoom Styles",
+-          el("div.podcast-action-row", null,
+-            ...(["jump", "smooth", "snap"] as AutoZoomStyle[]).map((style) =>
+-              el("button." + (state.autoZoomStyles.includes(style) ? "btn-primary" : "btn-secondary"), {
+-                type: "button",
+-                onClick: () => toggleAutoZoomStyle(style),
+-              }, style === "jump" ? "Jump Cut" : style === "smooth" ? "Smooth" : "Snap-in"),
+-            ),
+-          ), true),
+-      ),
+-      el("div.podcast-action-row", null,
+-        el("button.btn-secondary", {
+-          disabled: busy,
+-          onClick: analyzeAutoZoom,
+-        }, state.autoZoomInspectionLoading ? "Analyzing..." : "Analyze Auto Zoom"),
+-        el("button.btn-primary", {
+-          disabled: busy || !inspection?.ok,
+-          onClick: runAutoZoom,
+-        }, state.autoZoomApplyLoading ? "Applying zooms..." : "Apply Auto Zoom"),
+-      ),
+-      state.autoZoomInspectionLoading || state.autoZoomApplyLoading
+-        ? renderProcessingLoader(state.autoZoomApplyLoading ? "Applying Auto Zoom" : "Analyzing Auto Zoom")
+-        : null,
+-      el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
+-        renderSummaryTile("Runtime", inspection ? (inspection.executionMode ? "Ready" : "Blocked") : "Not analyzed"),
+-        renderSummaryTile("Cuts", inspection ? String(inspection.cutEventsSec.length) : "Waiting"),
+-        renderSummaryTile("Rhythm", `${Math.round(state.autoZoomRhythmPercentage * 100)}%`),
+-        renderSummaryTile("Zoom", `${Math.round(state.autoZoomMaxPercentage * 100)}%`),
+-        renderSummaryTile(
+-          inspection?.executionMode === "direct-transform" ? "Mode" : "Inserted",
+-          inspection?.executionMode === "direct-transform"
+-            ? "Motion"
+-            : (applyResult ? String(applyResult.adjustmentLayersInserted) : "0"),
+-        ),
+-        renderSummaryTile("Effects", applyResult ? String(applyResult.effectsApplied) : "0"),
+-      ),
+-      el("div.podcast-human-messages", null,
+-        ...autoZoomMessages().map((message) => el("div.podcast-human-message", null, message)),
+-      ),
+-    );
+-  }
+-
+-  function toggleAutoZoomStyle(style: AutoZoomStyle) {
+-    if (state.autoZoomStyles.includes(style)) {
+-      if (state.autoZoomStyles.length > 1) state.autoZoomStyles = state.autoZoomStyles.filter((item) => item !== style);
+-    } else {
+-      state.autoZoomStyles = [...state.autoZoomStyles, style];
+-    }
+-    render();
+-  }
+-
+-  function autoZoomMessages(): string[] {
+-    if (!state.autoZoomInspection) return ["Analyze first. The timeline will not be changed during analysis."];
+-    const messages: string[] = [];
+-    if (state.autoZoomInspection.blockers.length) messages.push(`Auto Zoom blocked: ${state.autoZoomInspection.blockers.join(", ")}`);
+-    if (state.autoZoomInspection.warnings.length) messages.push(`Warnings: ${state.autoZoomInspection.warnings.join(", ")}`);
+-    if (state.autoZoomInspection.ok) messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
+-      ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
+-      : "Direct Motion is ready. Editable Scale zooms will be added to the analyzed track clips.");
+-    if (state.autoZoomApplyResult?.ok) {
+-      const trackLabel = `V${(state.autoZoomInspection.analyzedVideoTrackIndexes[0] ?? 0) + 1}`;
+-      messages.push(state.autoZoomApplyResult.executionMode === "direct-transform"
+-        ? `${state.autoZoomApplyResult.effectsApplied} editable Motion Scale zoom effect(s) were applied to ${trackLabel}. Direct Motion does not create layers.`
+-        : `${state.autoZoomApplyResult.adjustmentLayersInserted} editable zoom layers were added.`);
+-    }
+-    if (state.autoZoomApplyResult && !state.autoZoomApplyResult.ok) messages.push(`Apply failed: ${state.autoZoomApplyResult.blockers.join(", ")}`);
+-    const firstEventError = state.autoZoomApplyResult?.eventResults.find((event) => event.error)?.error;
+-    if (firstEventError) messages.push(`First event error: ${firstEventError}`);
+-    if (state.autoZoomApplyResult?.warnings.length) messages.push(`Runtime warnings: ${state.autoZoomApplyResult.warnings.join(", ")}`);
+-    return messages;
+-  }
+-
+   function isProductionBusy(): boolean {
+     return state.timelineLoading
+       || state.previewAutoSwitchLoading
+@@ -1981,79 +1828,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
+     }
+   }
+ 
+-  async function analyzeAutoZoom() {
+-    if (isProductionBusy()) return;
+-    const analyzedTrackIndex = state.autoZoomAnalyzedTrackIndex;
+-    state.autoZoomInspectionLoading = true;
+-    state.autoZoomApplyResult = null;
+-    render();
+-    try {
+-      state.autoZoomInspection = await inspectAutoZoomTimeline({
+-        analyzedVideoTrackIndexes: [analyzedTrackIndex],
+-      });
+-      const count = state.autoZoomInspection.videoTrackCount;
+-      if (count > 0 && analyzedTrackIndex < count) {
+-        state.autoZoomAnalyzedTrackIndex = analyzedTrackIndex;
+-        state.autoZoomTargetTrackIndex = Math.min(Math.max(state.autoZoomTargetTrackIndex, 1), count - 1);
+-      }
+-    } catch (err) {
+-      state.autoZoomInspection = {
+-        ok: false,
+-        sequenceName: null,
+-        sequenceId: null,
+-        durationSec: 0,
+-        videoTrackCount: 0,
+-        analyzedVideoTrackIndexes: [analyzedTrackIndex],
+-        cutEventsSec: [],
+-        adjustmentLayerCount: 0,
+-        qeAvailable: false,
+-        newAdjustmentLayerAvailable: false,
+-        directTransformAvailable: false,
+-        executionMode: null,
+-        blockers: ["AUTO_ZOOM_INSPECTION_FAILED", (err as Error).message],
+-        warnings: [],
+-      };
+-    } finally {
+-      state.autoZoomInspectionLoading = false;
+-      render();
+-    }
+-  }
+-
+-  async function runAutoZoom() {
+-    if (isProductionBusy() || !state.autoZoomInspection?.ok) return;
+-    state.autoZoomApplyLoading = true;
+-    render();
+-    try {
+-      state.autoZoomApplyResult = await applyAutoZoom({
+-        targetVideoTrackIndex: state.autoZoomTargetTrackIndex,
+-        analyzedVideoTrackIndexes: state.autoZoomInspection.analyzedVideoTrackIndexes,
+-        rhythmPercentage: state.autoZoomRhythmPercentage,
+-        maxZoomPercentage: state.autoZoomMaxPercentage,
+-        zoomDurationSec: state.autoZoomDurationSec,
+-        styles: state.autoZoomStyles,
+-      });
+-    } catch (err) {
+-      state.autoZoomApplyResult = {
+-        ok: false,
+-        sequenceName: state.autoZoomInspection.sequenceName,
+-        eventsDetected: 0,
+-        eventsSelected: 0,
+-        adjustmentLayersInserted: 0,
+-        effectsApplied: 0,
+-        failedEvents: 0,
+-        createdProjectItemName: null,
+-        executionMode: null,
+-        eventResults: [],
+-        blockers: ["AUTO_ZOOM_APPLY_FAILED", (err as Error).message],
+-        warnings: [],
+-        timelineMutation: "none",
+-      };
+-    } finally {
+-      state.autoZoomApplyLoading = false;
+-      render();
+-    }
+-  }
+-
+   async function previewAutoSwitch() {
+     if (isProductionBusy()) return;
+     syncCameraMappingsFromDom();

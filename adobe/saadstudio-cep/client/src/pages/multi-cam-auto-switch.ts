@@ -3,6 +3,7 @@ import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
 import { loadExtendScript } from "../lib/cep";
+import { navigate } from "../lib/router";
 import { getPodcastDiagnostics } from "../lib/podcast/services/diagnostics-service";
 import {
   generateCameraDecisionPlan,
@@ -161,7 +162,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     autoZoomMaxPercentage: 1.3,
     autoZoomDurationSec: 1.5,
     autoZoomStyles: ["smooth"] as AutoZoomStyle[],
-    autoZoomAnalyzedTrackIndex: 0,
+    autoZoomAnalyzedTrackIndex: -1,
     autoZoomTargetTrackIndex: 1,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
     streamProof: null as AudioStreamSelectionProof | null,
@@ -239,7 +240,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
       renderPodcastToolCard("Silence Removal", "Ready", "Detect pauses and prepare tighter podcast cuts.", true),
       renderPodcastToolCard("Auto Zoom", "Ready", "Add non-destructive zoom moments with adjustment layers.", true),
-      renderPodcastToolCard("Auto Captions", "Coming soon", "Generate captions for podcast clips.", false),
+      renderPodcastToolCard("Auto Captions", "Ready", "Generate editable captions with Arabic support.", true),
       renderPodcastToolCard("One Click Podcast Edit", "Coming soon", "Combine switching, silence cleanup, captions, and zoom.", false),
     );
   }
@@ -253,12 +254,18 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ? "podcast-silence-tool"
       : title === "Auto Zoom"
         ? "podcast-auto-zoom-tool"
+      : title === "Auto Captions"
+        ? "route:add-captions"
         : null;
     return el("button.podcast-tool-card" + (active ? ".is-active" : ""), {
       type: "button",
       disabled: !targetId,
       onClick: () => {
         if (!targetId) return;
+        if (targetId === "route:add-captions") {
+          navigate("/add-captions?source=podcast&language=ar");
+          return;
+        }
         document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
       },
     },
@@ -563,6 +570,22 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const inspection = state.autoZoomInspection;
     const applyResult = state.autoZoomApplyResult;
     const busy = isProductionBusy();
+    const getSelectedEventsCount = (): number => {
+      if (!inspection) return 0;
+      const spacedEvents = [];
+      const minimumSpacingSec = Math.max(0.05, state.autoZoomDurationSec || 0);
+      const events = inspection.cutEventsSec;
+      for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+        const eventTime = Number(events[eventIndex]);
+        if (!spacedEvents.length || eventTime - spacedEvents[spacedEvents.length - 1] >= minimumSpacingSec - 0.001) {
+          spacedEvents.push(eventTime);
+        }
+      }
+      if (state.autoZoomRhythmPercentage >= 0.999) return spacedEvents.length;
+      const targetCount = Math.max(1, Math.min(spacedEvents.length, Math.round(spacedEvents.length * state.autoZoomRhythmPercentage)));
+      return spacedEvents.length ? targetCount : 0;
+    };
+    const selectedCount = getSelectedEventsCount();
     const videoTrackCount = Math.max(
       inspection?.videoTrackCount ?? 0,
       state.timelineLayout?.videoTracks.length ?? 0,
@@ -574,11 +597,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       value: number,
       onChange: (event: Event) => void,
       disabled = false,
+      allowAutoDetect = false,
     ): HTMLElement => {
+      const options = [];
+      if (allowAutoDetect) {
+        options.push(el("option", { value: "-1" }, "Auto Detect (Recommended)"));
+      }
+      options.push(...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)));
       const select = el("select.podcast-input", {
         disabled,
         onChange,
-      }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)));
+      }, ...options);
       // Setting a select's `value` as an HTML attribute does not select the option.
       // Assign the DOM property after its options exist so rerenders preserve V2..V5.
       (select as HTMLSelectElement).value = String(value);
@@ -601,6 +630,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               state.autoZoomApplyResult = null;
               render();
             },
+            false,
+            true,
           )),
         renderField(inspection?.executionMode === "direct-transform" ? "Direct Motion" : "Adjustment Track",
           renderTrackSelect(
@@ -610,6 +641,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               render();
             },
             inspection?.executionMode === "direct-transform",
+            false,
           )),
         renderField("Zoom Rhythm",
           el("input.podcast-input", {
@@ -672,7 +704,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         : null,
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
         renderSummaryTile("Runtime", inspection ? (inspection.executionMode ? "Ready" : "Blocked") : "Not analyzed"),
-        renderSummaryTile("Cuts", inspection ? String(inspection.cutEventsSec.length) : "Waiting"),
+        renderSummaryTile("Cuts", inspection ? `${inspection.cutEventsSec.length} (${selectedCount} selected)` : "Waiting"),
         renderSummaryTile("Rhythm", `${Math.round(state.autoZoomRhythmPercentage * 100)}%`),
         renderSummaryTile("Zoom", `${Math.round(state.autoZoomMaxPercentage * 100)}%`),
         renderSummaryTile(
@@ -703,9 +735,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const messages: string[] = [];
     if (state.autoZoomInspection.blockers.length) messages.push(`Auto Zoom blocked: ${state.autoZoomInspection.blockers.join(", ")}`);
     if (state.autoZoomInspection.warnings.length) messages.push(`Warnings: ${state.autoZoomInspection.warnings.join(", ")}`);
-    if (state.autoZoomInspection.ok) messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
-      ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
-      : "Direct Motion is ready. Editable Scale zooms will be added to the analyzed track clips.");
+    if (state.autoZoomInspection.ok) {
+      const detectedTrack = state.autoZoomInspection.analyzedVideoTrackIndexes[0];
+      const trackLabel = detectedTrack !== undefined ? `V${detectedTrack + 1}` : "None";
+      messages.push(`Analyzed Track: ${trackLabel}`);
+      messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
+        ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
+        : "Direct Motion is ready. Editable Scale zooms will be added to the analyzed track clips.");
+    }
     if (state.autoZoomApplyResult?.ok) {
       const trackLabel = `V${(state.autoZoomInspection.analyzedVideoTrackIndexes[0] ?? 0) + 1}`;
       messages.push(state.autoZoomApplyResult.executionMode === "direct-transform"
@@ -1983,17 +2020,22 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   async function analyzeAutoZoom() {
     if (isProductionBusy()) return;
+    syncCameraMappingsFromDom();
     const analyzedTrackIndex = state.autoZoomAnalyzedTrackIndex;
     state.autoZoomInspectionLoading = true;
     state.autoZoomApplyResult = null;
     render();
     try {
       state.autoZoomInspection = await inspectAutoZoomTimeline({
-        analyzedVideoTrackIndexes: [analyzedTrackIndex],
+        analyzedVideoTrackIndexes: analyzedTrackIndex === -1 ? [] : [analyzedTrackIndex],
+        autoDetectAnalyzedTrack: analyzedTrackIndex === -1,
+        excludedSourceVideoTrackIndex: state.mappings.wide !== undefined ? state.mappings.wide : null,
       });
       const count = state.autoZoomInspection.videoTrackCount;
-      if (count > 0 && analyzedTrackIndex < count) {
-        state.autoZoomAnalyzedTrackIndex = analyzedTrackIndex;
+      if (count > 0) {
+        if (analyzedTrackIndex >= 0 && analyzedTrackIndex < count) {
+          state.autoZoomAnalyzedTrackIndex = analyzedTrackIndex;
+        }
         state.autoZoomTargetTrackIndex = Math.min(Math.max(state.autoZoomTargetTrackIndex, 1), count - 1);
       }
     } catch (err) {
@@ -2003,7 +2045,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         sequenceId: null,
         durationSec: 0,
         videoTrackCount: 0,
-        analyzedVideoTrackIndexes: [analyzedTrackIndex],
+        analyzedVideoTrackIndexes: analyzedTrackIndex === -1 ? [] : [analyzedTrackIndex],
         cutEventsSec: [],
         adjustmentLayerCount: 0,
         qeAvailable: false,
@@ -2021,6 +2063,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   async function runAutoZoom() {
     if (isProductionBusy() || !state.autoZoomInspection?.ok) return;
+    syncCameraMappingsFromDom();
     state.autoZoomApplyLoading = true;
     render();
     try {
@@ -2031,6 +2074,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         maxZoomPercentage: state.autoZoomMaxPercentage,
         zoomDurationSec: state.autoZoomDurationSec,
         styles: state.autoZoomStyles,
+        excludedSourceVideoTrackIndex: state.mappings.wide !== undefined ? state.mappings.wide : null,
       });
     } catch (err) {
       state.autoZoomApplyResult = {

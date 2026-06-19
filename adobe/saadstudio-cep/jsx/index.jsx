@@ -768,7 +768,12 @@
             result.sequenceId = readSequenceID(seq);
             result.durationSec = readSequenceDurationSec(seq);
             result.videoTrackCount = seq.videoTracks ? seq.videoTracks.numTracks : 0;
-            var analyzedTracks = input.analyzedVideoTrackIndexes || [0];
+            var analyzedTracks = input.analyzedVideoTrackIndexes || [];
+            var forceAutoDetect = input.autoDetectAnalyzedTrack === true || !analyzedTracks.length || analyzedTracks[0] === -1;
+            if (forceAutoDetect) {
+                var automaticallyDetectedTrack = findBestAutoZoomTrackIndex(seq);
+                analyzedTracks = automaticallyDetectedTrack >= 0 ? [automaticallyDetectedTrack] : [];
+            }
             for (var trackIndex = 0; trackIndex < analyzedTracks.length; trackIndex++) {
                 var normalizedTrackIndex = Number(analyzedTracks[trackIndex]);
                 if (normalizedTrackIndex < 0 || normalizedTrackIndex >= result.videoTrackCount) {
@@ -777,7 +782,12 @@
                 }
                 result.analyzedVideoTrackIndexes.push(normalizedTrackIndex);
             }
-            result.cutEventsSec = collectAutoZoomCutEvents(seq, result.analyzedVideoTrackIndexes);
+            result.cutEventsSec = collectAutoZoomCutEvents(
+                seq,
+                result.analyzedVideoTrackIndexes,
+                normalizeOptionalTrackIndex(input.excludedSourceVideoTrackIndex)
+            );
+            if (!result.analyzedVideoTrackIndexes.length) result.blockers.push("AUTO_ZOOM_TRACK_WITH_CUTS_NOT_FOUND");
             result.adjustmentLayerCount = countAdjustmentLayersInProject(app.project.rootItem);
             var appProjectAdjustmentLayerAvailable = false;
             try {
@@ -800,8 +810,13 @@
             result.executionMode = result.newAdjustmentLayerAvailable
                 ? "adjustment-layer"
                 : (result.directTransformAvailable ? "direct-transform" : null);
-            if (result.executionMode === "adjustment-layer" && result.videoTrackCount < 2) {
-                result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
+            if (result.executionMode === "adjustment-layer") {
+                var highestAnalyzedTrackIndex = result.analyzedVideoTrackIndexes.length
+                    ? result.analyzedVideoTrackIndexes[result.analyzedVideoTrackIndexes.length - 1]
+                    : -1;
+                if (highestAnalyzedTrackIndex >= result.videoTrackCount - 1) {
+                    result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
+                }
             }
             if (!result.cutEventsSec.length) result.blockers.push("NO_TIMELINE_CUTS_DETECTED");
             if (!result.executionMode) result.blockers.push("AUTO_ZOOM_EFFECT_RUNTIME_UNAVAILABLE");
@@ -840,9 +855,11 @@
             var maxZoomPercentage = clampNumber(Number(input.maxZoomPercentage || 1.3), 1.01, 2);
             var zoomDurationSec = clampNumber(Number(input.zoomDurationSec || 1.5), 0.25, 10);
             var rhythmPercentage = clampNumber(Number(input.rhythmPercentage || 0.6), 0.1, 1);
-            var events = collectAutoZoomCutEvents(seq, analyzedTracks);
+            var frameDurationSec = readSequenceFrameDurationSec(seq);
+            var excludedSourceVideoTrackIndex = normalizeOptionalTrackIndex(input.excludedSourceVideoTrackIndex);
+            var events = collectAutoZoomCutEvents(seq, analyzedTracks, excludedSourceVideoTrackIndex);
             result.eventsDetected = events.length;
-            var selectedEvents = selectAutoZoomEvents(events, rhythmPercentage);
+            var selectedEvents = selectAutoZoomEvents(events, rhythmPercentage, zoomDurationSec);
             if (selectedEvents.length > 300) {
                 result.blockers.push("TOO_MANY_AUTO_ZOOM_EVENTS_MAX_300");
                 return result;
@@ -871,6 +888,20 @@
                     result.blockers.push("AUTO_ZOOM_TARGET_TRACK_MUST_BE_ABOVE_ANALYZED_TRACKS");
                     return result;
                 }
+                targetTrack = seq.videoTracks[targetTrackIndex];
+                try {
+                    var targetClips = targetTrack.clips;
+                    if (targetClips) {
+                        for (var tc = targetClips.numItems - 1; tc >= 0; tc--) {
+                            var tClip = targetClips[tc];
+                            if (tClip && tClip.remove) {
+                                tClip.remove(false, false);
+                            }
+                        }
+                    }
+                } catch (eCleanupTarget) {
+                    result.warnings.push("TARGET_TRACK_CLEANUP_FAILED:" + String(eCleanupTarget.message || eCleanupTarget));
+                }
                 adjustmentItem = getOrCreateAutoZoomAdjustmentLayer(seq, zoomDurationSec, result);
                 if (!adjustmentItem) {
                     if (!result.blockers.length) result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
@@ -878,13 +909,31 @@
                 }
                 result.createdProjectItemName = adjustmentItem.name || null;
                 moveGeneratedProjectItemToBin(adjustmentItem, "Auto Zoom", result);
-                targetTrack = seq.videoTracks[targetTrackIndex];
                 try { targetTrack.name = "Saad Auto Zoom"; } catch (eTrackName) {}
+            } else if (executionMode === "direct-transform") {
+                try {
+                    for (var a = 0; a < analyzedTracks.length; a++) {
+                        var trackIndex = Number(analyzedTracks[a]);
+                        if (trackIndex >= 0 && trackIndex < seq.videoTracks.numTracks) {
+                            var trackClips = seq.videoTracks[trackIndex].clips;
+                            if (trackClips) {
+                                for (var tc = 0; tc < trackClips.numItems; tc++) {
+                                    var scaleProperty = findAutoZoomMotionScaleProperty(trackClips[tc]);
+                                    if (scaleProperty && typeof scaleProperty.setTimeVarying === "function") {
+                                        scaleProperty.setTimeVarying(false);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (eCleanupDirect) {
+                    result.warnings.push("DIRECT_ZOOM_CLEANUP_FAILED:" + String(eCleanupDirect.message || eCleanupDirect));
+                }
             }
             for (var i = 0; i < selectedEvents.length; i++) {
                 var startSec = selectedEvents[i];
                 var endSec = Math.min(readSequenceDurationSec(seq), startSec + zoomDurationSec);
-                var style = styles[i % styles.length];
+                var style = styles[0];
                 var eventResult = {
                     timeSec: startSec,
                     endSec: endSec,
@@ -900,14 +949,16 @@
                         if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
                         eventResult.inserted = true;
                         result.adjustmentLayersInserted += 1;
-                        if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, result)) {
+                        if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, frameDurationSec, result)) {
                             throw new Error("Transform effect or Scale keyframes could not be applied.");
                         }
                     } else {
                         var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, startSec);
                         if (!directTarget) throw new Error("No source clip covers the Auto Zoom event.");
+                        eventResult.targetTrackIndex = directTarget.trackIndex;
+                        eventResult.targetClipIndex = directTarget.clipIndex;
                         var directEndSec = Math.min(endSec, readTimeSeconds(directTarget.clip && directTarget.clip.end));
-                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, directEndSec, style, maxZoomPercentage, result)) {
+                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, directEndSec, style, maxZoomPercentage, frameDurationSec, result)) {
                             throw new Error("Transform effect or Scale keyframes could not be applied to the source clip.");
                         }
                     }
@@ -925,6 +976,25 @@
             result.ok = result.blockers.length === 0
                 && result.effectsApplied > 0
                 && result.failedEvents === 0;
+            if (result.ok) {
+                for (var previewIndex = 0; previewIndex < result.eventResults.length; previewIndex++) {
+                    var previewEvent = result.eventResults[previewIndex];
+                    if (!previewEvent.effectApplied) continue;
+                    result.previewTimeSec = calculateAutoZoomPeakTime(
+                        previewEvent.timeSec,
+                        previewEvent.endSec,
+                        previewEvent.style,
+                        frameDurationSec
+                    );
+                    try { seq.setPlayerPosition(timelineSecondsToPlayerTicks(seq, result.previewTimeSec)); } catch (ePreviewPosition) {
+                        result.warnings.push("AUTO_ZOOM_PREVIEW_SEEK_FAILED");
+                    }
+                    if (!selectAutoZoomPreviewClip(seq, previewEvent)) {
+                        result.warnings.push("AUTO_ZOOM_PREVIEW_CLIP_SELECTION_FAILED");
+                    }
+                    break;
+                }
+            }
             if (!result.ok && !result.blockers.length) result.blockers.push("AUTO_ZOOM_PARTIAL_OR_FAILED");
             return result;
         });
@@ -2121,9 +2191,12 @@
         }
 
         var subclip = null;
+        var generatedCameraIdentity = String(decision.speakerId || "") === "wide"
+            ? "WIDE " + publicResult.cameraLabel
+            : publicResult.cameraLabel;
         try {
             subclip = projectItem.createSubClip(
-                "Saad Auto Switch " + publicResult.cameraLabel + " " + (index + 1) + " " + ts(),
+                "Saad Auto Switch " + generatedCameraIdentity + " " + (index + 1) + " " + ts(),
                 secondsToTicksString(sourceInSec),
                 secondsToTicksString(sourceOutSec),
                 1,
@@ -2174,6 +2247,7 @@
             adjustmentLayersInserted: 0,
             effectsApplied: 0,
             failedEvents: 0,
+            previewTimeSec: null,
             createdProjectItemName: null,
             executionMode: null,
             eventResults: [],
@@ -2200,7 +2274,20 @@
         return maxEnd;
     }
 
-    function collectAutoZoomCutEvents(seq, trackIndexes) {
+    function readSequenceFrameDurationSec(seq) {
+        try {
+            var timebaseTicks = Number(seq && seq.timebase);
+            if (timebaseTicks > 0) return timebaseTicks / PREMIERE_TICKS_PER_SECOND;
+        } catch (eTimebase) {}
+        try {
+            var settings = seq && seq.getSettings ? seq.getSettings() : null;
+            var frameRateTicks = Number(settings && settings.videoFrameRate && settings.videoFrameRate.ticks);
+            if (frameRateTicks > 0) return frameRateTicks / PREMIERE_TICKS_PER_SECOND;
+        } catch (eSettings) {}
+        return 1 / 25;
+    }
+
+    function collectAutoZoomCutEvents(seq, trackIndexes, excludedSourceVideoTrackIndex) {
         var events = [];
         var seen = {};
         var duration = readSequenceDurationSec(seq);
@@ -2217,14 +2304,64 @@
             var clips = tracks[trackIndex] && tracks[trackIndex].clips;
             if (!clips) continue;
             for (var c = 0; c < clips.numItems; c++) {
+                if (isAutoSwitchWideClip(clips[c])) continue;
+                if (excludedSourceVideoTrackIndex !== null
+                    && readAutoSwitchSourceVideoTrackIndex(clips[c]) === excludedSourceVideoTrackIndex) continue;
                 var start = readTimeSeconds(clips[c] && clips[c].start);
                 var end = readTimeSeconds(clips[c] && clips[c].end);
+                var clipDur = end - start;
+                if (clipDur < 1.0) continue;
                 addAutoZoomCutEvent(events, seen, start, duration);
-                addAutoZoomCutEvent(events, seen, end, duration);
             }
         }
         events.sort(function (a, b) { return a - b; });
         return events;
+    }
+
+    function findBestAutoZoomTrackIndex(seq) {
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return -1;
+        var bestTrackIndex = -1;
+        var bestEventCount = 0;
+        for (var trackIndex = 0; trackIndex < tracks.numTracks; trackIndex++) {
+            var eventCount = collectAutoZoomCutEvents(seq, [trackIndex], null).length;
+            if (eventCount > bestEventCount || (eventCount === bestEventCount && eventCount > 0 && trackIndex > bestTrackIndex)) {
+                bestTrackIndex = trackIndex;
+                bestEventCount = eventCount;
+            }
+        }
+        return bestEventCount > 0 ? bestTrackIndex : -1;
+    }
+
+    function normalizeOptionalTrackIndex(value) {
+        if (value === null || typeof value === "undefined" || value === "") return null;
+        var normalized = Number(value);
+        return isFinite(normalized) && normalized >= 0 ? Math.floor(normalized) : null;
+    }
+
+    function readAutoSwitchSourceVideoTrackIndex(clip) {
+        var names = [];
+        try { if (clip && clip.name) names.push(String(clip.name)); } catch (eClipName) {}
+        try {
+            if (clip && clip.projectItem && clip.projectItem.name) names.push(String(clip.projectItem.name));
+        } catch (eProjectItemName) {}
+        for (var i = 0; i < names.length; i++) {
+            var match = /Saad Auto Switch(?: WIDE)? V(\d+)/i.exec(names[i]);
+            if (match && Number(match[1]) > 0) return Number(match[1]) - 1;
+        }
+        return null;
+    }
+
+    function isAutoSwitchWideClip(clip) {
+        var names = [];
+        try { if (clip && clip.name) names.push(String(clip.name)); } catch (eClipName) {}
+        try {
+            if (clip && clip.projectItem && clip.projectItem.name) names.push(String(clip.projectItem.name));
+        } catch (eProjectItemName) {}
+        for (var i = 0; i < names.length; i++) {
+            if (/Saad Auto Switch WIDE V\d+/i.test(names[i])) return true;
+        }
+        return false;
     }
 
     function addAutoZoomCutEvent(events, seen, timeSec, durationSec) {
@@ -2236,17 +2373,26 @@
         events.push(frameAligned);
     }
 
-    function selectAutoZoomEvents(events, rhythmPercentage) {
-        if (rhythmPercentage >= 0.999) return events.slice(0);
+    function selectAutoZoomEvents(events, rhythmPercentage, zoomDurationSec) {
+        var spacedEvents = [];
+        var minimumSpacingSec = Math.max(0.05, Number(zoomDurationSec) || 0);
+        for (var eventIndex = 0; eventIndex < events.length; eventIndex++) {
+            var eventTime = Number(events[eventIndex]);
+            if (!spacedEvents.length || eventTime - spacedEvents[spacedEvents.length - 1] >= minimumSpacingSec - 0.001) {
+                spacedEvents.push(eventTime);
+            }
+        }
+        if (rhythmPercentage >= 0.999) return spacedEvents;
         var selected = [];
-        var targetCount = Math.max(1, Math.min(events.length, Math.round(events.length * rhythmPercentage)));
+        var targetCount = Math.max(1, Math.min(spacedEvents.length, Math.round(spacedEvents.length * rhythmPercentage)));
+        if (!spacedEvents.length) return selected;
         if (targetCount === 1) {
-            selected.push(events[Math.floor(events.length / 2)]);
+            selected.push(spacedEvents[Math.floor(spacedEvents.length / 2)]);
             return selected;
         }
         for (var i = 0; i < targetCount; i++) {
-            var eventIndex = Math.round(i * (events.length - 1) / (targetCount - 1));
-            selected.push(events[eventIndex]);
+            var spacedIndex = Math.round(i * (spacedEvents.length - 1) / (targetCount - 1));
+            selected.push(spacedEvents[spacedIndex]);
         }
         return selected;
     }
@@ -2465,10 +2611,10 @@
         return best;
     }
 
-    function applyAutoZoomTransform(seq, trackIndex, clipIndex, clip, startSec, endSec, style, zoomRatio, result) {
+    function applyAutoZoomTransform(seq, trackIndex, clipIndex, clip, startSec, endSec, style, zoomRatio, frameDurationSec, result) {
         var motionScale = findAutoZoomMotionScaleProperty(clip);
         if (motionScale) {
-            var motionApplied = applyAutoZoomScaleProperty(motionScale, clip, startSec, endSec, style, zoomRatio);
+            var motionApplied = applyAutoZoomScaleProperty(motionScale, clip, startSec, endSec, style, zoomRatio, null, frameDurationSec);
             if (motionApplied) {
                 return true;
             }
@@ -2510,7 +2656,7 @@
             result.warnings.push("TRANSFORM_SCALE_PROPERTY_NOT_FOUND");
             return false;
         }
-        return applyAutoZoomScaleProperty(scaleWidth, refreshedClip, startSec, endSec, style, zoomRatio, scaleHeight);
+        return applyAutoZoomScaleProperty(scaleWidth, refreshedClip, startSec, endSec, style, zoomRatio, scaleHeight, frameDurationSec);
     }
 
     function findAutoZoomMotionScaleProperty(clip) {
@@ -2533,32 +2679,67 @@
         return scale || null;
     }
 
-    function applyAutoZoomScaleProperty(scaleWidth, clip, startSec, endSec, style, zoomRatio, scaleHeight) {
-        var maxScale = zoomRatio * 100;
-        if (style === "jump") {
-            var staticWidthOk = setComponentPropertyStatic(scaleWidth, maxScale);
-            var staticHeightOk = true;
-            if (scaleHeight && scaleHeight !== scaleWidth) staticHeightOk = setComponentPropertyStatic(scaleHeight, maxScale);
-            return staticWidthOk && staticHeightOk;
-        }
+    function applyAutoZoomScaleProperty(scaleWidth, clip, startSec, endSec, style, zoomRatio, scaleHeight, frameDurationSec) {
         var clipStartSec = readTimeSeconds(clip && clip.start);
         var clipEndSec = readTimeSeconds(clip && clip.end);
         var safeStartSec = Math.max(clipStartSec, startSec);
         var safeEndSec = Math.min(clipEndSec, endSec);
         if (!(safeEndSec > safeStartSec)) return false;
-        var entryDuration = style === "snap" ? 0.16 : Math.min(0.3, (endSec - startSec) / 3);
-        var keys = style === "snap"
-            ? [{ time: safeStartSec, value: 100 }, { time: Math.min(safeEndSec, safeStartSec + entryDuration), value: maxScale }]
-            : [
-                { time: safeStartSec, value: 100 },
-                { time: Math.min(safeEndSec, safeStartSec + entryDuration), value: maxScale },
-                { time: Math.max(safeStartSec, safeEndSec - entryDuration), value: maxScale },
-                { time: safeEndSec, value: 100 }
-            ];
-        var widthOk = setComponentPropertyKeys(scaleWidth, keys);
+        var baseWidth = readAutoZoomScaleValue(scaleWidth, 100);
+        var baseHeight = scaleHeight && scaleHeight !== scaleWidth
+            ? readAutoZoomScaleValue(scaleHeight, baseWidth)
+            : baseWidth;
+        var duration = safeEndSec - safeStartSec;
+        var entryDuration = autoZoomEntryDuration(style, duration, frameDurationSec);
+        var widthKeys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseWidth, baseWidth * zoomRatio, entryDuration, clipStartSec);
+        var heightKeys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseHeight, baseHeight * zoomRatio, entryDuration, clipStartSec);
+        var widthOk = setComponentPropertyKeys(scaleWidth, widthKeys);
         var heightOk = true;
-        if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, keys);
+        if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, heightKeys);
         return widthOk && heightOk;
+    }
+
+    function autoZoomEntryDuration(style, durationSec, frameDurationSec) {
+        if (style === "jump") return Math.min(frameDurationSec || 1 / 25, durationSec / 4);
+        if (style === "snap") return Math.min(0.16, durationSec / 3);
+        return Math.min(0.3, durationSec / 3);
+    }
+
+    function calculateAutoZoomPeakTime(startSec, endSec, style, frameDurationSec) {
+        var duration = Math.max(0, Number(endSec) - Number(startSec));
+        return Number(startSec) + autoZoomEntryDuration(style, duration, frameDurationSec);
+    }
+
+    function buildAutoZoomScaleKeys(startSec, endSec, style, baseScale, zoomScale, transitionSec, clipStartSec) {
+        var transition = Math.max(0.001, Math.min(transitionSec, (endSec - startSec) / 3));
+        if (style === "jump") {
+            var keys = [];
+            var preTime = startSec - 0.01;
+            if (typeof clipStartSec === "number" && preTime > clipStartSec) {
+                keys.push({ time: preTime, value: baseScale });
+            }
+            keys.push({ time: startSec, value: zoomScale });
+            keys.push({ time: Math.max(startSec, endSec - transition), value: zoomScale });
+            keys.push({ time: endSec, value: baseScale });
+            return keys;
+        }
+        return [
+            { time: startSec, value: baseScale },
+            { time: Math.min(endSec, startSec + transition), value: zoomScale },
+            { time: Math.max(startSec, endSec - transition), value: zoomScale },
+            { time: endSec, value: baseScale }
+        ];
+    }
+
+    function readAutoZoomScaleValue(property, fallback) {
+        try {
+            var value = property && property.getValue ? property.getValue() : null;
+            if (typeof value === "number" && isFinite(value) && value > 0) return value;
+            if (value && typeof value.length !== "undefined" && typeof value[0] === "number" && isFinite(value[0]) && value[0] > 0) {
+                return value[0];
+            }
+        } catch (eValue) {}
+        return fallback;
     }
 
     function findQeVideoItemAtTime(qeTrack, startSec, preferredIndex) {
@@ -2621,7 +2802,12 @@
 
     function setComponentPropertyKeys(property, keys) {
         try {
-            property.setTimeVarying(true);
+            if (typeof property.setTimeVarying === "function") {
+                property.setTimeVarying(false);
+                property.setTimeVarying(true);
+            } else {
+                property.setTimeVarying(true);
+            }
             for (var i = 0; i < keys.length; i++) {
                 var time = new Time();
                 time.seconds = keys[i].time;
@@ -2629,8 +2815,50 @@
                 property.setValueAtKey(time, keys[i].value, true);
                 try { property.setInterpolationTypeAtKey(time, 1, true); } catch (eInterpolation) {}
             }
-            return true;
+            return verifyComponentPropertyKeys(property, keys);
         } catch (eKeys) { return false; }
+    }
+
+    function verifyComponentPropertyKeys(property, expectedKeys) {
+        if (!property || typeof property.getKeys !== "function") return true;
+        try {
+            var actualKeys = property.getKeys();
+            if (!actualKeys || actualKeys.length < expectedKeys.length) return false;
+            for (var expectedIndex = 0; expectedIndex < expectedKeys.length; expectedIndex++) {
+                var expectedTime = Number(expectedKeys[expectedIndex].time);
+                var matched = false;
+                for (var actualIndex = 0; actualIndex < actualKeys.length; actualIndex++) {
+                    var actualTime = readTimeSeconds(actualKeys[actualIndex]);
+                    if (Math.abs(actualTime - expectedTime) <= 0.002) {
+                        if (!autoZoomKeyValueMatches(property, actualKeys[actualIndex], expectedKeys[expectedIndex].value)) {
+                            return false;
+                        }
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return false;
+            }
+            return true;
+        } catch (eVerify) { return false; }
+    }
+
+    function autoZoomKeyValueMatches(property, keyTime, expectedValue) {
+        var actualValue;
+        var valueReadable = false;
+        try {
+            if (typeof property.getValueAtKey === "function") {
+                actualValue = property.getValueAtKey(keyTime);
+                valueReadable = true;
+            } else if (typeof property.getValueAtTime === "function") {
+                actualValue = property.getValueAtTime(keyTime);
+                valueReadable = true;
+            }
+        } catch (eReadValue) { return false; }
+        if (!valueReadable) return true;
+        if (actualValue && typeof actualValue.length !== "undefined") actualValue = actualValue[0];
+        actualValue = Number(actualValue);
+        return isFinite(actualValue) && Math.abs(actualValue - Number(expectedValue)) <= 0.01;
     }
 
     function organizeExistingGeneratedProjectItems(result) {
@@ -3249,6 +3477,47 @@
 
     function secondsToTicksString(seconds) {
         return String(Math.round(Number(seconds || 0) * PREMIERE_TICKS_PER_SECOND));
+    }
+
+    function timelineSecondsToPlayerTicks(sequence, seconds) {
+        var timelineTicks = Math.round(Number(seconds || 0) * PREMIERE_TICKS_PER_SECOND);
+        var zeroPointTicks = 0;
+        try {
+            var zeroPoint = sequence ? sequence.zeroPoint : 0;
+            if (zeroPoint && typeof zeroPoint.ticks !== "undefined") zeroPoint = zeroPoint.ticks;
+            zeroPointTicks = Number(zeroPoint || 0);
+            if (!isFinite(zeroPointTicks)) zeroPointTicks = 0;
+        } catch (eZeroPoint) {
+            zeroPointTicks = 0;
+        }
+        return String(Math.max(0, Math.round(timelineTicks - zeroPointTicks)));
+    }
+
+    function selectAutoZoomPreviewClip(sequence, eventResult) {
+        var trackIndex = Number(eventResult && eventResult.targetTrackIndex);
+        var clipIndex = Number(eventResult && eventResult.targetClipIndex);
+        var tracks = sequence && sequence.videoTracks;
+        if (!tracks || !isFinite(trackIndex) || !isFinite(clipIndex)
+            || trackIndex < 0 || trackIndex >= tracks.numTracks) return false;
+        var targetTrack = tracks[trackIndex];
+        var targetClips = targetTrack && targetTrack.clips;
+        if (!targetClips || clipIndex < 0 || clipIndex >= targetClips.numItems) return false;
+        try {
+            for (var videoTrackIndex = 0; videoTrackIndex < tracks.numTracks; videoTrackIndex++) {
+                var clips = tracks[videoTrackIndex] && tracks[videoTrackIndex].clips;
+                if (!clips) continue;
+                for (var itemIndex = 0; itemIndex < clips.numItems; itemIndex++) {
+                    var item = clips[itemIndex];
+                    if (item && typeof item.setSelected === "function") item.setSelected(false, false);
+                }
+            }
+            var targetClip = targetClips[clipIndex];
+            if (!targetClip || typeof targetClip.setSelected !== "function") return false;
+            targetClip.setSelected(true, true);
+            return true;
+        } catch (eSelectPreviewClip) {
+            return false;
+        }
     }
 
     function stripRuntimeSequence(result) {

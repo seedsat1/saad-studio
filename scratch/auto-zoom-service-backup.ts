@@ -21,8 +21,6 @@ export interface AutoZoomTimelineResult {
 
 export interface AutoZoomInspectionSettings {
   analyzedVideoTrackIndexes: number[];
-  autoDetectAnalyzedTrack?: boolean;
-  excludedSourceVideoTrackIndex?: number | null;
 }
 
 export interface AutoZoomApplySettings {
@@ -32,7 +30,6 @@ export interface AutoZoomApplySettings {
   maxZoomPercentage: number;
   zoomDurationSec: number;
   styles: AutoZoomStyle[];
-  excludedSourceVideoTrackIndex?: number | null;
 }
 
 export interface AutoZoomApplyResult {

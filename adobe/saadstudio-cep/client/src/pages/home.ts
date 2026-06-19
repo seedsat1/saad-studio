@@ -258,7 +258,7 @@ export function HomePage(): HTMLElement {
         style: {
           backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.3) 100%), url(${getSlideImage(currentSlide)})`
         },
-        onClick: () => handleSlideAction(currentSlide)
+        onClick: () => handleSlideAction(slides[activeSlideIndex])
       },
       el("div.hero-slider__arrow.hero-slider__arrow--left", {
         onClick: (ev: Event) => {
@@ -283,7 +283,7 @@ export function HomePage(): HTMLElement {
         el("button.hero-slider__btn", {
           onClick: (ev: Event) => {
             ev.stopPropagation();
-            handleSlideAction(currentSlide);
+            handleSlideAction(slides[activeSlideIndex]);
           }
         },
           getSlideBtnText(currentSlide),

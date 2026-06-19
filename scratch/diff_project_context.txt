@@ -1,0 +1,188 @@
+diff --git a/PROJECT_CONTEXT.md b/PROJECT_CONTEXT.md
+index e60d09a..766c0ca 100644
+--- a/PROJECT_CONTEXT.md
++++ b/PROJECT_CONTEXT.md
+@@ -1,17 +1,62 @@
+ # Saad Studio — Project Context
+ 
++## آخر مهمة: استبعاد الكاميرا العامة من Auto Zoom (2026-06-19)
++
++- Runtime كشف أن أول معاينة Auto Zoom استهدفت مقطعًا مولدًا من V1/Wide. وجود مفاتيح Scale مع قيمة 100 عند نهاية النافذة يعني أن الكتابة تمت وعادت للقيمة الأصلية، لكن اختيار Wide كحدث Zoom غير مرغوب.
++- الإصلاح: تمرير `excludedSourceVideoTrackIndex` من تعيين `wide` في UI إلى Inspect وApply، وتصفية cut events في JSX عندما يحمل اسم TrackItem أو ProjectItem النمط `Saad Auto Switch Vn` المطابق لمسار Wide. بذلك تبقى أحداث المضيف والضيوف فقط، وينتقل preview لأول حدث غير Wide.
++- الملفات المتأثرة: `auto-zoom-service.ts`، `multi-cam-auto-switch.ts`، `jsx/index.jsx`، الذاكرة والمرجع.
++- التحقق: نجح TypeScript/Vite build وأنتج `index-xVbL0-m-.js`، ونجح فحص JavaScript syntax لـJSX عبر stdin. لم يُنشر بعد لأن Premiere مفتوح، ولا يوجد Runtime Proof بعد.
++- الخطوة المتبقية: إغلاق Premiere، نشر `client/dist` و`jsx/index.jsx`، ثم إنشاء Auto Switch Draft نظيف لأن المسودة الحالية تحتوي مفاتيح التجربة القديمة، وتشغيل Auto Zoom مرة واحدة والتحقق بصريًا على لقطة متحدث.
++- تم النشر بعد إغلاق Premiere: حزمة `index-xVbL0-m-.js` و`jsx/index.jsx` نُسختا إلى إضافة AppData، وتطابقت SHA-256 للـindex والحزمة وJSX. تحقق محتوى JSX المثبت من وجود `excludedSourceVideoTrackIndex`. المتبقي: Runtime Proof على Auto Switch Draft جديد ونظيف فقط.
++- Runtime بتاريخ 2026-06-20 بقي يعرض الأزمنة نفسها (45s و94s)، فأثبت أن الاعتماد على `state.mappings.wide` وحده غير كافٍ بعد تبديل/إعادة فتح الـSequence؛ حالة الواجهة قد لا تحمل Wide عند تشغيل Auto Zoom.
++- الإصلاح الأقوى: مقاطع Wide الجديدة تُسمى `Saad Auto Switch WIDE Vn ...` من لحظة إنشاء Auto Switch Draft. Auto Zoom يستبعد هذا الوسم مباشرة دون الاعتماد على حالة UI، مع إبقاء مزامنة DOM كمسار إضافي. نجح build (`index-C0oglLAA.js`) وفحص JSX syntax؛ لم يُنشر بعد.
++- المتبقي: إغلاق Premiere، نشر client/dist وJSX، ثم إنشاء Draft جديد بعد النشر (المسودات القديمة لا تحتوي وسم WIDE) وتشغيل Auto Zoom.
++
++
++## آخر مهمة: Auto Zoom بتشغيل تلقائي كامل (2026-06-19)
++
++- طلب المستخدم عدم ضبط Auto Zoom يدويًا. أصبحت واجهة الأداة تعرض الإعدادات كمعلومات Read-only، وزر `Run Auto Zoom` يعيد فرض الإعداد التلقائي عند كل تشغيل: اكتشاف Track تلقائي، Rhythm=60%، Maximum Zoom=1.12، Duration=1.5s، Style=Smooth.
++- الملف المتأثر: `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`، إضافة إلى الذاكرة والمرجع.
++- التحقق: نجح `npm.cmd run build` (TypeScript + Vite)، والحزمة الجديدة `index-sXycKYZs.js`. لم تُنشر بعد لأن Premiere مفتوح؛ يلزم إغلاق المضيف ثم نسخ `client/dist` والتحقق من hashes.
++- لقطة Runtime اللاحقة ما زالت تعرض واجهة النسخة القديمة (Maximum Zoom=1.3 وحقول/أزرار يدوية)، ما يؤكد أن build التلقائي لم يُنشر بعد. الإجراء المطلوب فقط: إغلاق Premiere كليًا دون الضغط على Run، ثم نشر النسخة الجديدة.
++- بعد إغلاق Premiere نُشرت النسخة الجديدة إلى `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`. تحقق SHA-256 من `index.html` والحزمة `index-sXycKYZs.js` نجح، كما ثبت أن index المثبت يشير إلى الحزمة الجديدة. المتبقي Runtime Proof: فتح Premiere والتأكد من ظهور إعدادات Auto Zoom كـAutomatic read-only، ثم الضغط على Run Auto Zoom مرة واحدة على الـAuto Switch Draft.
++- Runtime Proof أولي ناجح: الواجهة عرضت V5 تلقائيًا، Direct Motion، Automatic 60%/112%/1.5s/Smooth، واكتشفت 11 cut events وطبقت 7 Motion Scale effects. الرسالة عرضت أزمنة 45s، 94s، 98s، 164.6s، 171.2s، 197.8s، 246.8s. بقي التحقق البصري من playback قرب 45s للتأكد من نعومة الدخول/الخروج وعودة Scale للأصل؛ لا يُعتبر عداد Effects وحده إثباتًا بصريًا نهائيًا.
++
++
++## آخر مهمة: تنويع Multi-Cam باللقطة العامة أثناء المونولوج الطويل (2026-06-19)
++
++- المشكلة المثبتة: `camera-decision-plan-service.ts` كان يختار Wide فقط عند تداخل متحدثين؛ لذلك بقي حديث ضيف بطول يقارب `00:01:59:15` على كاميرته من دون لقطة عامة. `Minimum Shot Length` يمنع اللقطات القصيرة ولا ينشئ تنويعًا.
++- التعديل: إضافة Wide cutaway حتمي ومحافظ داخل أي تشغيل متصل لكاميرا متحدث يتجاوز 45 ثانية: لقطة عامة مدتها 4 ثوانٍ (أو Minimum Shot Length إن كان أكبر)، مع إبقاء ما لا يقل عن Minimum Shot Length بعد القطع. كما صُحح حساب `wideCameraTimeSec` ليعتمد `speakerId === "wide"` بدل افتراض V3.
++- الملف المتأثر: `adobe/saadstudio-cep/client/src/lib/podcast/services/camera-decision-plan-service.ts`، إضافة إلى الذاكرة والمرجع.
++- التحقق: نجح `npm.cmd run build` (TypeScript + Vite). لا يوجد Runtime Proof داخل Premiere بعد. محاولة نشر `client/dist` إلى إضافة AppData أثناء تشغيل Premiere علقت بسبب ملفات المضيف المفتوحة وأوقفت دون حذف ملفات.
++- الخطوة المتبقية: إغلاق Premiere، نشر build إلى الإضافة المثبتة، إعادة فتحه، ثم Analyze → Preview على duplicate والتأكد من ظهور Wide قرابة كل 45 ثانية في المونولوج الطويل قبل Apply.
++- تم إغلاق Premiere ونشر `client/dist` بنجاح إلى `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`. تحقق SHA-256 من `index.html` و`draw.html` وحزمة `index-CuVDNJM4.js` نجح. المتبقي Runtime Proof بعد فتح Premiere: Analyze Timeline ثم Preview Auto Switch على الـSequence الأصلي/duplicate النظيف، دون Apply قبل فحص ظهور اللقطة العامة داخل المونولوج الطويل.
++- Runtime Preview بعد النشر: Premiere عرض `4 cameras / 4 mics` و`12 decisions` مع تعيين A2→V2 وA3→V3 وA4→V4 وWide→V1. Preview لا يغيّر التايملاين؛ التحقق البصري من مواضع Wide يحتاج Apply، وهو ينشئ duplicate ويضيف مسارًا بصريًا فقط مع `originalTouched=false`. الخطوة التالية: Apply ثم فحص القطع حول 00:00:45 و00:01:34 تقريبًا داخل المونولوج الأول.
++- تحقق المستخدم من نتيجة Auto Switch ووصفها بأنها جيدة جدًا. المرحلة الحالية Auto Zoom على الـactive sequence `Saad Auto Switch Draft` (نسخة وليست الأصل). إرشاد التشغيل: Smooth، Rhythm 60%، Maximum Zoom محافظ 1.12 بدل 1.3، Duration 1.5s، ثم زر Run Auto Zoom الواحد؛ الأداة تكتشف مسار القص العلوي تلقائيًا وتطبق Motion مباشرة على الـDraft.
++
++## آخر فحص بصري لمسارات Silence Removal (2026-06-19)
++
++- تظهر في الصورة فترات هدوء/غياب موجة على مسارات ميكروفون منفردة، خصوصًا A2 وA3 وA4، لكن A1 يحمل موجة مستمرة تقريبًا؛ لذلك لا يمكن اعتبارها فترات صمت عام للبودكاست من الصورة وحدها.
++- القرار: Silence Removal يجب أن يزيل المدة فقط عندما تكون جميع المسارات الصوتية المعتمدة تحت عتبة RMS معًا، لا عندما يصمت متحدث واحد بينما يتحدث آخر. الحكم النهائي يعتمد تحليل RMS وليس شكل الـwaveform المصغّر.
++- لم يتغير الكود. الخطوة المتبقية: اختبار التحليل على نسخة مكررة ومقارنة الفترات المكتشفة مع التشغيل الفعلي.
++- تصحيح بعد فحص التنفيذ: `removeSilence()` يمرر حاليًا `audioTrackIndex: 0`، أي أن التحليل الفعلي يعتمد A1 وحده، وليس تقاطع الصمت بين A1–A4. عند الضغط تُحلل A1 ثم تُنشأ/تعاد بناء مسودة تشمل الفيديو والصوت وفق Keep Segments الناتجة. مع موجة A1 المستمرة في الصورة، المتوقع عدم حذف صمت المسارات الأخرى وحدها وربما اكتشاف صفر فترات قابلة للحذف. هذا قيد/خطأ معروف يحتاج تصميم تحليل متعدد المسارات قبل اعتباره سلوكًا إنتاجيًا صحيحًا.
++- بنية العينة المصورة: V1 كاميرا عامة، وV2–V4 زوايا المضيف/الضيوف. لا يجوز اعتبار الصوت المرتبط بالكاميرا العامة مصدر الصمت الرئيسي تلقائيًا؛ إذا كان A1 صوت كاميرا/غرفة مستمرًا فيجب استبعاده من قرار الصمت وتحليل مسارات الكلام النظيفة أو الـdialogue mix المعتمد. لا تغيير في الكود بعد.
++- قرار الاختبار الحالي: تجاوز Silence Removal لهذه العينة دون تشغيله، والانتقال مباشرة إلى Multi-Cam Auto Switch على الـSequence المتزامن. إعداد الاختبار المقصود: A1 يُتجاهل إذا كان صوت الكاميرا العامة، A2→V2 للمضيف، A3→V3 للضيف، A4→V4 للضيف الآخر، وWide Camera=V1؛ يجب تنفيذ Analyze ثم Preview والتحقق قبل Apply.
++
+ ## آخر مهمة: ربط شرائح الهيرو بأدوات الإضافة تلقائياً عبر لوحة التحكم (2026-06-19)
+ 
+ - السبب: رغبة المستخدم في توجيه العميل مباشرة إلى الأداة المحددة داخل إضافة Premiere (مثل Multi-Cam Auto Switch) عند النقر على شريحة الهيرو، مع إتاحة خيار ربط سهل ومضمون في لوحة الأدمن بدلاً من كتابة الروابط يدوياً.
+ - القرار:
+   1. تعديل صفحة إدارة الشرائح بالأدمن [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) لاستبدال حقل كتابة الرابط بـ **قائمة خيارات منسدلة (Dropdown Selector)** تحتوي على جميع الأدوات المتوفرة داخل الإضافة مع مساراتها الداخلية (مثل `/multi-cam-auto-switch` و `/avatar-pro` وغيرها)، مع إبقاء خيار "رابط خارجي" في حال الرغبة بالتحويل لموقع ويب.
+   2. تحديث كود المعالجة في الصفحة الرئيسية للإضافة [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)؛ حيث تم إنشاء دالة `handleSlideAction` والتي تفحص الرابط؛ فإذا كان يبدأ بـ `/` تقوم الإضافة بالانتقال الفوري للأداة داخلياً باستخدام دالة `navigate` دون فتح متصفح خارجي، وإذا كان رابط ويب عادي تقوم بفتحه بالمتصفح كالمعتاد.
++  3. إصلاح مشكلة عدم الاستجابة عند الضغط على الهيرو بعد تغيير الشريحة: حيث تبين أن حدث الضغط `onClick` كان يحتفظ بإشارة مغلقة (closure) للشريحة الأولى فقط `currentSlide` المحددة عند بداية بناء الصفحة، فتم تحديثه ليقرأ الشريحة الفعالة حالياً بشكل ديناميكي `slides[activeSlideIndex]`.
+ - الملفات المتأثرة:
+   - [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx)
+   - [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)
+   - [PROJECT_CONTEXT.md](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
+-- نتائج التحقق: نجاح بناء وتجميع Vite العميل (`npm run build`) وتحديث كافة الملفات بنجاح ورفعها لـ Git.
+-- الخطوة المتبقية: التحقق النهائي من عمل التوجيه للأدوات بنجاح عند إعادة تحميل اللوحة.
++- نتائج التحقق: نجاح بناء وتجميع Vite العميل (`npm run build`) وتحديث كافة الملفات بنجاح.
++- الخطوة المتبقية: التحقق من عمل التوجيه للأدوات بنجاح عند الضغط على شريحة الهيرو بعد عمل Reload للإضافة.
++
+ 
+ 
+ 
+@@ -359,3 +404,118 @@
+ - لم تُثبت من الفيديو فرضية أن AutoCut يعتمد Emphasis Peaks أو RMS؛ لذلك تبقى خوارزمية Saad الحالية cut-based كما هي إلى أن يتوفر دليل تقني أو اختبار قبول واضح. لا يُنسخ رقم أو توقيت افتراضي من الفيديو منخفض الدقة.
+ - رابط المقال الرسمي لم يكتمل فتحه في جلسة التصفح، لذلك لا يُسجل كمصدر تمت مراجعته. المرجع الذي تمت مراجعته فعليًا هو ملف الفيديو المحلي فقط.
+ - لم يتغير كود الإضافة في هذه المهمة. الملفات المتأثرة: `PROJECT_CONTEXT.md` و`docs/saad-studio-premiere-reference-ar.md`. المتبقي: Runtime Proof بصري لـMotion Scale في V5، ثم تحديد مواصفات Auto Zoom v2 من اختبار قبول لا من تقليد واجهة AutoCut.
++## تدقيق تنفيذ Auto Zoom مقابل مرجع AutoCut (2026-06-19)
++
++- تمت مقارنة الكود الفعلي، لا الواجهة فقط، مع السلوك المثبت بصريًا في فيديو AutoCut. التطابق الحالي جزئي: توجد إعدادات مستقلة لـRhythm وMaximum Zoom وDuration، والأنماط الثلاثة، وحالة Analyze/Apply/Processing.
++- الاختلاف المؤكد: Saad Studio يختار الأحداث حصريًا من بدايات ونهايات TrackItems في المسار المختار ثم يوزع النسبة بالتساوي؛ لا توجد Preview مرئية لخطة الزومات ولا تحليل محتوى/صوت مثبت. فيديو AutoCut لا يكشف خوارزميته، لذلك لا يجوز وصف خوارزمية Saad بأنها مماثلة له.
++- خطأ مكتشف غير محلول: نمط `jump` يستعمل `setComponentPropertyStatic`، فيغيّر Scale للمقطع المصدر كاملًا بدل حصر الزوم بين `startSec` و`endSec`. هذا يخالف معنى حدث Zoom محدد المدة، وقد يجعل عدة أحداث داخل المقطع نفسه تتداخل أو تلغي بعضها.
++- قيد آخر: أنماط متعددة تُطبّق بالتناوب على الأحداث، بينما واجهة المرجع تبدو كاختيار نمط واحد للمعالجة. كذلك يمكن لمفاتيح أحداث متعددة على Motion Scale نفسه أن تتصادم، ولا يوجد تحقق بعد الكتابة من عدد المفاتيح وقيمها وأزمنتها.
++- القرار: Auto Zoom الحالي ليس جاهزًا لاعتماده بعد. لا يُنفذ إصلاح جديد ضمن مهمة المراجعة؛ الخطوة التالية يجب أن تبدأ بمواصفة قبول واختبارات لوظائف توليد keyframes، ثم إصلاح Jump/Smooth/Snap والتحقق الرقمي والبصري على duplicate في Premiere 26.2.
++- الملفات المتأثرة في هذه المهمة: `PROJECT_CONTEXT.md` فقط. نجح `git diff --check` قبل إغلاق المهمة؛ لا تغيير معماري أو سلوكي يستدعي تعديل المرجع الدائم.
++## قرار الاختبار التالي لـAuto Zoom (2026-06-19)
++
++- لا يُطلب من المستخدم إعادة تجربة النسخة الحالية؛ الخلل معروف في توليد الأحداث والمفاتيح، وتكرار Apply قد يغيّر Motion على المقاطع نفسها ويشوّش نتيجة الاختبار.
++- الخطوة المتبقية: إصلاح مولد خطة الزوم أولًا، ثم تسليم بناء جديد واختباره على duplicate sequence بمسار واحد ونمط واحد في كل مرة. لا ملفات تنفيذ متأثرة في هذه المهمة الإرشادية.
++## إصلاح مولد Auto Zoom وتثبيت البناء (2026-06-19)
++
++- أُصلح اختيار الأحداث ليعتمد بدايات TrackItems فقط، لا نهاياتها المنفصلة، ثم يمنع اختيار حدثين تفصل بينهما مدة أقل من `Zoom Duration`. تُطبق نسبة Rhythm بعد إزالة التداخل.
++- أصبحت أنماط الزوم اختيارًا واحدًا صريحًا بدل تدوير عدة أنماط بين الأحداث. `Jump Cut` لم يعد يغيّر Scale للمقطع كله؛ جميع الأنماط الآن تنشئ مفاتيح محصورة بين بداية الحدث ونهايته وتعيد Scale إلى قيمته الأصلية. `Smooth` يستخدم دخول/خروج تدريجيين، و`Snap-in` دخول/خروج أسرع، و`Jump` دخول فوري تقريبًا مع رجوع عند نهاية المدة.
++- لم يعد التنفيذ يفترض أن Scale الأصلي هو 100؛ يقرأ قيمة Motion Scale الحالية ويضربها في نسبة الزوم، ما يحافظ على التأطير أو التحجيم الموجود مسبقًا.
++- أضيف fixture مباشر يقرأ الدوال الفعلية من JSX ويتحقق من: منع التداخل، تطبيق Rhythm بعد المنع، استعادة Scale في الأنماط الثلاثة، والحفاظ على Scale الأصلي. نجح الاختبار، ونجح فحص syntax لـJSX، ونجح TypeScript/Vite build وأنتج `index-Dym34m7t.js`.
++- ثُبت `dist` و`jsx/index.jsx` في نسخة CEP الفعلية داخل Adobe، وتطابقت بصمة JSX (`JSX_MATCH=True`) وأصبح `index.html` يشير إلى `index-Dym34m7t.js`.
++- أخطاء تحقق مسجلة: `npm.ps1` مُنع بسياسة PowerShell؛ نجح البناء عبر `npm.cmd`. محاولة `pnpm` حاولت تنزيل metadata وفشلت بسبب تقييد الشبكة وأنشأت `.pnpm-store` مؤقتًا؛ أزيل المجلد المولد ثم استُخدم `node_modules` المحلي. `node --check` لا يقبل امتداد `.jsx` مباشرة؛ نجح parsing عبر `new Function`.
++- الملفات المتأثرة: `adobe/saadstudio-cep/jsx/index.jsx`، `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`، `adobe/saadstudio-cep/tests/auto-zoom-logic.test.cjs`، والذاكرة. لم يُمس التعديل غير المرتبط في `client/src/pages/home.ts`.
++- المتبقي: إعادة تشغيل Premiere ثم Runtime Proof على duplicate نظيف: اختيار V5، نمط Smooth وحده، Analyze ثم Apply مرة واحدة، والتأكد بصريًا من Scale/keyframes والرجوع للقيمة الأصلية بعد مدة الزوم.
++## مراجعة PremiereGPTBeta كمرجع Auto Zoom (2026-06-19)
++
++- روجعت الإضافة المثبتة في `C:\Program Files\Common Files\Adobe\CEP\extensions\PremiereGPTBeta` قراءةً فقط. هي CEP باسم `com.premiere.GPT`، و`library.jsx` المحلي لا يحتوي منطق المونتاج؛ يحتوي دالة تنبيه فقط.
++- `index.html` Loader يجلب عند كل تشغيل JSON من `https://api.premierecopilot.com/api/snake3` ثم يحقن `css/html/js` البعيدة مباشرة. روجعت الحزمة البعيدة المؤقتة: AutoZoom يصدّر صوت الـSequence، يجلب `getSequenceStructure` من `/jsx`، ثم يرسل الصوت وبنية التسلسل إلى `/auto-zoom` ويتابع `/auto-zoom/status`.
++- مدخلات التحليل المثبتة في الحزمة: `motion_camera`، `zoom_rythm`، `zoom_fastness`، `zoom`، إحداثيات X/Y، وأنواع trigger مستقلة: cuts وemotion وspeech وrandom وcontext. الأنماط: jump cut وease in/out وsnap in/out، مع خيارات صوت دخول/خروج.
++- بعد عودة التحليل، تجلب الإضافة دالة `$._MYFUNCTIONS.AUTOZOOM_main` نفسها من endpoint `/jsx` ثم تنفذها عبر `evalScript`. لذلك خوارزمية backend وطريقة كتابة Premiere الفعلية ليستا موجودتين محليًا ولا يمكن إثبات تفاصيل Scale/keyframes من مجلد التثبيت وحده.
++- الاستنتاج: المرجع يؤكد أن Auto Zoom التجاري يعتمد طبقة قرار منفصلة تجمع الصوت وبنية الـTimeline، لا حدود القصّات فقط. يفيد لتصميم v2 محلي: cuts + speech/emphasis، rhythm، speed، amount، style، target position، ثم خطة قابلة للمعاينة قبل mutation. لا يُنسخ التنفيذ البعيد ولا تُفترض تفاصيله.
++- مخاطرة معمارية في المرجع: الحزمة الموقعة محليًا تحمّل وتنفذ كودًا بعيدًا متغيرًا داخل CEP مع Node وmixed-context؛ سلامة التوقيع المحلي لا تثبت محتوى الكود المنفذ لاحقًا. قرار Saad Studio: إبقاء منطق Premiere الحساس محليًا ومراجعًا قدر الإمكان.
++- لم يتغير كود Saad Studio في هذه المهمة. الملفات المتأثرة: الذاكرة والمرجع فقط. المتبقي: عدم توسيع v1 قبل Runtime Proof، ثم تصميم v2 emphasis-based كمهمة مستقلة بfixtures صوتية.
++## Runtime Proof أولي لبناء Auto Zoom المصحح (2026-06-19)
++
++- بعد إعادة تشغيل Premiere، أثبتت صورة Runtime بقاء Analyze Track على V5، واختيار Smooth وحده، واكتشاف 3 cuts عند Rhythm=60%، ثم نجاح Apply بنتيجة `Effects=2` ورسالة أن تأثيري Motion Scale قابلين للتحرير طُبقا على V5.
++- عدم ظهور Adjustment Layers متوقع وصحيح لأن Runtime اختار `Mode=Motion`؛ التعديل يقع على Motion > Scale داخل مقاطع V5 نفسها.
++- هذا يثبت اختيار المسار، حساب Rhythm، ووصول الكتابة إلى Motion، لكنه لا يكمل الإثبات البصري لقيم وأزمنة keyframes أو عودة Scale الأصلي بعد 1.5 ثانية.
++- لا كود متأثر في هذه المهمة. المتبقي: تحديد أحد مقطعي V5 المتأثرين وفتح Effect Controls > Motion > Scale، ثم تصوير keyframes أو تشغيل الحدث للتأكد من الدخول والرجوع بصريًا.
++## فحص Effect Controls لـAuto Zoom (2026-06-19)
++
++- فتح المستخدم Effect Controls > Motion > Scale بصورة صحيحة، لكنه حدد أول TrackItem على V5 الذي يبدأ عند زمن الصفر؛ هذا الحدث مستبعد من `collectAutoZoomCutEvents` ولذلك ظهر Scale=100 بلا مفاتيح.
++- عند 3 cuts وRhythm=60% يختار المخطط الحدث الأول والأخير من بدايات المقاطع الداخلية؛ الفحص التالي يكون على المقطع الثاني أو الأخير في V5، لا المقطع الأول. لا كود متأثر.
++## شرط UX لـAuto Zoom الآلي (2026-06-19)
++
++- المستخدم لا يُطلب منه تحديد مقاطع Timeline أو فتح Effect Controls أو تعديل Scale/keyframes. هذه كانت خطوة Runtime QA مؤقتة للمطور فقط وليست workflow إنتاجيًا.
++- السلوك المطلوب: بعد اختيار الإعدادات وتشغيل Auto Zoom، يكتشف الأحداث ويختار المقاطع ويكتب المفاتيح ويعيد Scale تلقائيًا، ثم يعرض نتيجة قابلة للتحقق داخل الواجهة. لا كود متأثر في هذه المهمة.
++## Auto Zoom تلقائي بالكامل: اكتشاف المسار وتشغيل بزر واحد (2026-06-19)
++
++- Runtime Proof كشف أن تبديل/إعادة فتح Sequence يعيد حالة الواجهة إلى V1، بينما القصّات الفعلية في Draft موجودة على V5؛ نتج `NO_TIMELINE_CUTS_DETECTED` رغم وجود 3 cuts. السبب كان اعتماد Auto Zoom على اختيار مسار محفوظ في الواجهة.
++- أزيل اختيار Analyze Track اليدوي من workflow. `inspectAutoZoomTimeline` يفحص الآن جميع video tracks ويختار تلقائيًا المسار صاحب أكبر عدد من بدايات TrackItems الداخلية، مع تفضيل المسار الأعلى عند التعادل. إذا لم يوجد أي مسار ذي cut حقيقي يعيد `AUTO_ZOOM_TRACK_WITH_CUTS_NOT_FOUND`.
++- تحولت الواجهة إلى زر واحد `Run Auto Zoom`: ينفذ auto-detect ثم inspect ثم Apply في عملية واحدة، ويعرض `Detected Track` وApply Mode. لا يُطلب من المستخدم Analyze منفصل أو اختيار V1/V5 أو تحديد clips.
++- أضيف fixture مطابق للحالة الفعلية: V1–V4 بلا cuts وV5 فيه ثلاثة؛ نجح الاختبار في اختيار index 4 (V5)، ونجح blocker عند عدم وجود cuts. نجحت جميع fixtures، وفحص JSX، وTypeScript/Vite build.
++- ثُبت البناء النهائي `index-Cy6Ol7IE.js` وJSX في نسخة Adobe CEP، وتطابقت بصمة JSX (`JSX_MATCH=True`).
++- الملفات المتأثرة: `client/src/lib/podcast/services/auto-zoom-service.ts`، `client/src/pages/multi-cam-auto-switch.ts`، `jsx/index.jsx`، `tests/auto-zoom-logic.test.cjs`، والذاكرة/المرجع. بقي تعديل `home.ts` غير المرتبط محفوظًا ولم يُمس.
++- المتبقي: إعادة تشغيل Premiere، فتح الـDraft المطلوب، والضغط على `Run Auto Zoom` مرة واحدة. معيار القبول: Detected Track=V5، Cuts=3، Effects=2 عند Rhythm 60%، من دون تدخل في Timeline.
++## مراجعة JumpCut وSoundBuddy وتدقيق Auto Zoom (2026-06-19)
++
++- روجع المصدر المحلي الكامل في `E:\Multi-Cam Auto Switch\jumpcut-main\jumpcut-main` و`E:\Multi-Cam Auto Switch\SoundBuddy-Studio-master\SoundBuddy-Studio-master`. JumpCut مرخّص GPL-3.0 وSoundBuddy مرخّص AGPL-3.0؛ القرار: لا يُنسخ منهما كود داخل الإضافة، وتُعتمد فقط المبادئ العامة القابلة لإعادة التنفيذ والاختبار.
++- المفيد المؤكد: JumpCut يربط أزمنة التحليل بزمن الـTimeline ويتعامل مع معدل الإطارات؛ SoundBuddy يتحقق من الزمن عبر `Time` ويقرأ المفاتيح عبر `getKeys()`. Beat detection في SoundBuddy مبني على `librosa` وموجّه للإيقاع الموسيقي، لذلك لم يُستخدم كتخمين لاكتشاف تشديد كلام البودكاست.
++- طُبق في `adobe/saadstudio-cep/jsx/index.jsx`: انتقال Jump Cut صار يستخدم مدة فريم السكونس الفعلية من `seq.timebase`/`videoFrameRate` بدلاً من 30fps ثابتة، وبعد كتابة Motion Scale تُقرأ المفاتيح فعلياً عبر `getKeys()`؛ لا يُحتسب Effects نجاحاً إن كانت الكتابة جزئية أو لم تظهر المفاتيح المطلوبة.
++- أضيفت fixtures في `adobe/saadstudio-cep/tests/auto-zoom-logic.test.cjs` لمعدلات 25/50fps ولنجاح/فشل readback. نجح الاختبار (`Auto Zoom JSX logic fixtures passed`)، و`git diff --check`، وTypeScript/Vite build. خطأ تحقق مسجل: أول أمر اختبار استُدعي من مجلد `client` بمسار نسبي خاطئ فلم يجد الملف؛ أُعيد من جذر المستودع ونجح.
++- المتبقي: تثبيت الحزمة في CEP النشط ثم Runtime Proof داخل Premiere 26.2؛ معيار النجاح هو Effects>0 مع مفاتيح Scale مقروءة، وليس نجاح setter وحده.
++- تم التثبيت في `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep`: بصمة JSX المصدر والمثبت متطابقة `352E27F1C437303D55BA743F3FFFFB3B5B5DD934F481D600879D2968684D34E0`، وبصمات `index-Cy6Ol7IE.js` وملفات preload/CSS الأربعة متطابقة. علقت محاولة النسخ المجمعة بسبب مجلد CEP النشط؛ أوقفت بأمان ثم نُسخت الملفات منفردة وتحقق منها.
++- الخطوة المتبقية الآن فقط: إعادة تشغيل Premiere ثم الضغط على `Run Auto Zoom` على نسخة سكونس نظيفة، ومراجعة النتيجة التي لن تعرض Effects>0 إلا بعد readback للمفاتيح.
++## خطوة Runtime Proof المطلوبة من المستخدم (2026-06-19)
++
++- لا تغيير في الكود. المطلوب: إغلاق Premiere بالكامل وإعادة فتحه لتحميل CEP/JSX المثبت، فتح duplicate نظيف للسكونس الذي يحتوي القصّات، ثم الضغط على `Run Auto Zoom` مرة واحدة من دون تحديد Track أو Clip يدوياً.
++- يُرسل المستخدم لقطة كاملة لقسم Auto Zoom والـTimeline بعد انتهاء التشغيل. القبول: `Runtime: Ready` و`Effects > 0` بلا blocker؛ الفشل يُوثق من الرسالة الظاهرة كما هي قبل أي تعديل جديد.
++## Auto Zoom: رفض النجاح الشكلي والمعاينة التلقائية (2026-06-19)
++
++- Runtime Proof من المستخدم: الأداة عرضت V5 وCuts=3 وEffects=2، لكن لم يظهر أي تغير بصري أثناء التشغيل. القرار: وجود keyframe times وحده لا يثبت الزوم، واعتُبرت النتيجة فشلاً بصرياً رغم عداد الواجهة.
++- صُحح `verifyComponentPropertyKeys` لقراءة قيمة كل مفتاح عبر `getValueAtKey` أو `getValueAtTime` عند توفرها ومقارنتها بالقيمة المطلوبة ضمن 0.01؛ مفاتيح موجودة بقيمة Scale ثابتة لا تزيد `effectsApplied`.
++- بعد نجاح Apply تنقل الأداة رأس تشغيل السكونس تلقائياً إلى ذروة أول Zoom (`start + entryDuration`) لعرض النتيجة فوراً، وتعرض الواجهة أزمنة أحداث الزوم المطبقة. لا يحتاج المستخدم لتحديد Clip أو فتح Effect Controls.
++- الملفات المتأثرة: `adobe/saadstudio-cep/jsx/index.jsx`، `client/src/lib/podcast/services/auto-zoom-service.ts`، `client/src/pages/multi-cam-auto-switch.ts`، و`tests/auto-zoom-logic.test.cjs`.
++- التحقق: fixtures نجحت، TypeScript/Vite build نجح، `git diff --check` نجح. ثُبتت الحزمة `index-BR4SesUV.js` وJSX في CEP النشط وتطابقت بصمات المصدر والمثبت.
++- المتبقي: إعادة تشغيل Premiere وتشغيل Auto Zoom مرة واحدة. إذا ظهرت Effects>0 يجب أن يقف رأس التشغيل تلقائياً داخل أول زوم وتظهر الصورة مكبرة؛ إذا بقيت القيمة غير قابلة للقراءة فستظهر العملية Failed بدلاً من نجاح زائف.
++## تصحيح معاينة Auto Zoom مع Sequence Zero Point (2026-06-19)
++
++- أثبتت صورة Runtime أن الكتابة نجحت (`Effects=2`) وأن الحدث الأول مسجل عند `119.6s`، لكن رأس التشغيل ظهر قرابة `142.6s` وقرأ Scale=100؛ فرق نحو 23 ثانية سببه `Sequence.zeroPoint` في تحويل زمن المعاينة، لا فشل مفاتيح الزوم.
++- أضيف `timelineSecondsToPlayerTicks(sequence, seconds)` ليحوّل زمن الـTimeline إلى موضع Player بطرح `sequence.zeroPoint`، مع دعم قيمة ticks المباشرة أو كائن Time، وfallback آمن للصفر.
++- استُبدل تحويل المعاينة فقط؛ لم يتغير اختيار V5 أو أحداث الزوم أو كتابة Motion Scale. أضيف fixture يثبت أن هدف 120s مع zero point مقداره 23s يرسل 97s إلى `setPlayerPosition`، وأن التسلسل الصفري يبقى بلا تغيير.
++- الملفات المتأثرة: `adobe/saadstudio-cep/jsx/index.jsx`، `adobe/saadstudio-cep/tests/auto-zoom-logic.test.cjs`، والذاكرة. نجح اختبار Auto Zoom ونحو JavaScript و`git diff --check`. المتبقي: تثبيت JSX وإثبات Runtime أن رأس التشغيل يقف داخل أول Zoom وأن Scale المعروض يساوي قيمة الزوم.
++- ثُبّت JSX المصحح في `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep\jsx\index.jsx` وتطابقت بصمة SHA-256 للمصدر والنسخة المثبتة (`3D3B722B...F609C`). المتبقي فقط Runtime Proof بعد إعادة تشغيل Premiere.
++
++## تصحيح تحديد مقطع معاينة Auto Zoom (2026-06-19)
++
++- أثبتت صورة Runtime التالية نجاح تصحيح `zeroPoint`: رأس التشغيل وصل إلى `01:59:22`، المطابق لذروة الحدث الأول عند `119.6s`. لكن الإطار الأبيض بقي على TrackItem السابق المنتهي عند القطع، لذلك عرض Effect Controls خصائص المقطع الخطأ.
++- يسجل كل حدث Direct Motion الآن `targetTrackIndex` و`targetClipIndex`. وبعد نقل رأس التشغيل، تلغي الإضافة تحديد المقاطع المرئية وتحدد تلقائيًا TrackItem الذي يملك أول Zoom وتطلب تحديث الواجهة.
++- لم تتغير أزمنة أو قيم Scale. أضيف fixture يثبت أن مقطع المعاينة المستهدف هو آخر عنصر يحصل على `setSelected(true)`. نجح اختبار Auto Zoom وفحص syntax و`git diff --check`. المتبقي: تثبيت JSX ثم Runtime Proof بأن Effect Controls يعرض Scale للمقطع المستهدف عند الذروة.
++- ثُبت JSX في نسخة CEP الفعلية وتطابقت البصمة (`42BA6D73...A35A4`). المتبقي Runtime Proof بعد إعادة تشغيل Premiere.
++## توضيح ترابط أدوات Podcast Automation (2026-06-19)
++
++- الترتيب المقصود للمونتاج الكامل هو: `Synchronize → Multi-Cam Auto Switch → Silence Removal → Auto Zoom`، بحيث تكون نتيجة المرحلة السابقة هي الـSequence النشط الذي تقرؤه المرحلة التالية.
++- التنفيذ الحالي ليس Pipeline تلقائيًا: كل بطاقة أداة لها زرها وحالتها، وتقرأ `app.project.activeSequence` وقت التشغيل. زر `One Click Podcast Edit` ما زال `Coming soon`، لذلك لا يوجد حاليًا تمرير مضمون أو تشغيل تلقائي بين المراحل الأربع.
++- Multi-Cam وSilence Removal يعملان بنسخ آمنة/مسودات، بينما Auto Zoom يكتب Motion Scale على الـSequence النشط. لذلك يلزم التأكد من فتح ناتج كل مرحلة قبل تشغيل التالية. الأدوات قابلة للاستخدام منفردة حسب الحاجة، لكنها عند المونتاج الكامل مراحل مكملة وليست أربع نسخ مستقلة من العمل نفسه.
++- لا كود متأثر في هذه المهمة. الخطوة المعمارية المتبقية: تنفيذ Orchestrator لـOne Click يثبت هوية ناتج كل مرحلة ويفعّله قبل المرحلة التالية، ويتوقف عند أي blocker بدل الاعتماد على الاختيار اليدوي للـSequence.
++- تدقيق المراجع: لا يوجد مرجع واحد من المراجع المراجعة يفرض السلسلة الرباعية حرفيًا. وثائق Adobe تثبت أن المزامنة تسبق تحرير Multi-Cam، ومراجع active-speaker تفترض مصادر متزامنة، ومراجع إزالة الصمت تعيد بناء الزمن/القصات، ومرجع AutoCut المرئي يضع Auto Zoom كمعالجة على Timeline معد مسبقًا. لذلك ترتيب `Sync → Multi-Cam → Silence → Auto Zoom` قرار دمج مدعوم بتبعيات المراحل، وليس اقتباسًا حرفيًا من منتج واحد. Auto Zoom يبقى أخيرًا لأن أي قص لاحق قد يغيّر أزمنة مفاتيحه.
++
++## اعتماد ترتيب Workflow الاحترافي العام (2026-06-19)
++
++- عند طلب «المعمول به عالميًا» يجب التفريق بين إنشاء/مزامنة مصدر Multi-Cam وبين اختيار زوايا الكاميرا. التسلسل التحريري المحافظ هو: `Sync / Multicam setup → Content cleanup & Silence Removal → Camera switching / fine cut → Auto Zoom & effects`.
++- وبأسماء أدوات Saad الحالية يكون ترتيب One Click الموصى به: `Synchronize → Silence Removal → Multi-Cam Auto Switch → Auto Zoom`. السبب: Silence Removal تعديل بنيوي/Ripple يغيّر مدة وأزمنة الـTimeline؛ تنفيذه قبل قرارات الكاميرا والزوم يمنع تقادم timestamps وإعادة قص مخرجات لاحقة. Auto Zoom يبقى بعد picture/content structure.
++- لا يوجد معيار عالمي يلزم أن يكون Silence قبل تبديل الزوايا في كل مونتاج يدوي؛ المحرر قد ينفذهما معًا أثناء rough/fine cut. لكن للأتمتة المتسلسلة هذا الترتيب أكثر حتمية وأمانًا. التصريح السابق `Sync → Multi-Cam → Silence → Zoom` يُعامل كتوصيف للبنية الحالية لا كمعيار عالمي، ويجب ألا يُستخدم لتصميم One Click النهائي.
++- تعذر جلب صفحات الويب في جلسة التحقق الحالية بسبب استجابة 403 من أداة التصفح؛ الاستنتاج مبني على المراجع التي سبق توثيق مراجعتها محليًا ووثائق Adobe/AutoCut المسجلة في مرجع المشروع. لا كود متأثر؛ المتبقي اختبار Regression يثبت أن Silence output يحتفظ بمصادر الصوت/الفيديو اللازمة لتحليل Multi-Cam قبل تغيير Orchestrator.
++- إرشاد التشغيل الحالي: لا يُجرّب التسلسل على الأصل. يبدأ المستخدم من duplicate للـSynced Sequence، يشغل Synchronize، ثم Silence Removal، ثم يتوقف للتحقق من أن ناتج Silence ما زال يحتوي كل مسارات الفيديو والميكروفونات. لا يُشغل Multi-Cam إلا بعد هذا الفحص، ثم Auto Zoom أخيرًا. هذا أول Regression عملي للترتيب الجديد وليس إعلانًا بأن One Click مطبق.
++## Auto Zoom: final pre-runtime verification for Wide exclusion (2026-06-20)
++
++- Verified the complete decision transport: `PodcastCameraDecisionProofItem.speakerId` is preserved by the client adapter and reaches JSX; planned wide cutaways use `speakerId: "wide"`.
++- New Auto Switch drafts stamp wide cutaways as `Saad Auto Switch WIDE Vn ...`. `collectAutoZoomCutEvents` rejects this durable marker before selecting zoom moments, so UI state or sequence reload cannot re-enable Wide events.
++- Added a direct JSX fixture proving that a generated WIDE cutaway is excluded while a normal speaker-camera cut remains eligible. It also asserts that draft creation contains the `speakerId === "wide"` marker contract.
++- Verification passed: `node --test adobe/saadstudio-cep/tests/auto-zoom-logic.test.cjs`, JSX syntax check, and TypeScript/Vite build (`index-C0oglLAA.js`).
++- Files affected in this task: `adobe/saadstudio-cep/tests/auto-zoom-logic.test.cjs` and this memory file. The implementation files were already changed in the immediately preceding task and are not yet deployed to the active CEP installation.
++- Remaining step: close Premiere, deploy the matching dist + JSX, verify hashes, then create a completely new Auto Switch Draft because old drafts do not contain the WIDE marker. One final runtime test is authorized; if it still fails, remove Auto Zoom instead of adding another speculative patch.
++- Premiere was confirmed closed and the tested build was deployed to the active AppData CEP extension. Installed SHA-256 values match the source for `index.html` (`1BB04112...9DD0`), `index-C0oglLAA.js` (`3D70945C...4FD2`), and `jsx/index.jsx` (`02315BCF...15BD`). The matching source index references `index-C0oglLAA.js`; the Auto Zoom fixture and `git diff --check` passed after deployment.
++- A direct PowerShell `Get-FileHash` verification against AppData hung under the managed read boundary and was terminated without modifying files; `certutil -hashfile` completed successfully and supplied the matching installed hashes.
++- Final remaining step: open Premiere, generate a brand-new Auto Switch Draft (required for the durable WIDE labels), then press `Run Auto Zoom` once. Do not use an older Draft. If this single runtime test fails, remove Auto Zoom rather than continuing speculative fixes.

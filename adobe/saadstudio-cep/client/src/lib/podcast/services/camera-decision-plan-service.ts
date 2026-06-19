@@ -9,6 +9,8 @@ import type {
 
 const MINIMUM_SHOT_LENGTH_SEC = 2;
 const MERGE_GAP_SEC = 0.3;
+const MAX_SINGLE_CAMERA_RUN_SEC = 45;
+const WIDE_CUTAWAY_DURATION_SEC = 4;
 
 export interface CameraDecisionPlanProofInput {
   dominantTrackAtTime: DominantTrackWindow[];
@@ -71,7 +73,16 @@ export function generateCameraDecisionPlanProof(
   const merged = mergeAdjacentDecisions(rawDecisions);
   const gapFilled = fillDecisionGapsWithPreviousCamera(merged, input.timelineDurationSec);
   const compacted = mergeShortDecisions(gapFilled, minimumShotLengthSec);
-  const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
+  const diversified = insertWideCutaways(
+    compacted.decisions,
+    cameraMap,
+    videoTrackCount,
+    minimumShotLengthSec,
+  );
+  if (diversified.insertedCount > 0) {
+    warnings.push(`WIDE_CUTAWAYS_INSERTED:${diversified.insertedCount}`);
+  }
+  const finalDecisions = mergeAdjacentDecisions(diversified.decisions);
   const invalidDecisions = findInvalidDecisions(finalDecisions);
   if (invalidDecisions.length > 0) blockers.push("INVALID_CAMERA_DECISION_TIMING");
   const remainingShortDecisions = finalDecisions.length > 1
@@ -406,6 +417,78 @@ function normalizeMinimumShotLength(value: number | undefined): number {
   return Math.max(0.5, Math.min(10, value));
 }
 
+function insertWideCutaways(
+  decisions: PodcastCameraDecisionProofItem[],
+  cameraMap: Map<string, number>,
+  videoTrackCount: number,
+  minimumShotLengthSec: number,
+): { decisions: PodcastCameraDecisionProofItem[]; insertedCount: number } {
+  const mappedWideTrackIndex = cameraMap.get("wide");
+  if (typeof mappedWideTrackIndex !== "number") {
+    return { decisions: decisions.map((decision) => ({ ...decision })), insertedCount: 0 };
+  }
+
+  const wideTrackIndex = Math.min(mappedWideTrackIndex, videoTrackCount - 1);
+  if (wideTrackIndex < 0) {
+    return { decisions: decisions.map((decision) => ({ ...decision })), insertedCount: 0 };
+  }
+
+  const cutawayDurationSec = Math.max(minimumShotLengthSec, WIDE_CUTAWAY_DURATION_SEC);
+  const output: PodcastCameraDecisionProofItem[] = [];
+  let insertedCount = 0;
+
+  for (const decision of decisions) {
+    if (decision.videoTrackIndex === wideTrackIndex || decision.speakerId === "wide") {
+      output.push({ ...decision });
+      continue;
+    }
+
+    let cursor = decision.startSec;
+    while (
+      decision.endSec - cursor
+      >= MAX_SINGLE_CAMERA_RUN_SEC + cutawayDurationSec + minimumShotLengthSec
+    ) {
+      const cutawayStartSec = cursor + MAX_SINGLE_CAMERA_RUN_SEC;
+      const cutawayEndSec = cutawayStartSec + cutawayDurationSec;
+      output.push(makeDecision(
+        cursor,
+        cutawayStartSec,
+        decision.speakerId,
+        decision.audioTrackIndex,
+        decision.videoTrackIndex,
+        decision.cameraLabel,
+        decision.reason,
+      ));
+      output.push(makeDecision(
+        cutawayStartSec,
+        cutawayEndSec,
+        "wide",
+        null,
+        wideTrackIndex,
+        `V${wideTrackIndex + 1}`,
+        "long single-speaker shot; inserted wide camera cutaway",
+      ));
+      cursor = cutawayEndSec;
+      insertedCount += 1;
+    }
+
+    output.push(makeDecision(
+      cursor,
+      decision.endSec,
+      decision.speakerId,
+      decision.audioTrackIndex,
+      decision.videoTrackIndex,
+      decision.cameraLabel,
+      decision.reason,
+    ));
+  }
+
+  return {
+    decisions: output.filter(isValidDecisionTiming),
+    insertedCount,
+  };
+}
+
 function sortDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {
   return decisions
     .map((decision) => ({ ...decision }))
@@ -516,7 +599,7 @@ function summarizeDecisions(
   for (const decision of decisions) {
     if (decision.videoTrackIndex === 0) speaker1CameraTimeSec += decision.durationSec;
     if (decision.videoTrackIndex === 1) speaker2CameraTimeSec += decision.durationSec;
-    if (decision.videoTrackIndex === 2) wideCameraTimeSec += decision.durationSec;
+    if (decision.speakerId === "wide") wideCameraTimeSec += decision.durationSec;
     if (decision.reason.includes("keep previous")) keptPreviousCameraEvents += 1;
   }
   return {

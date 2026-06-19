@@ -216,8 +216,9 @@ interface ActiveCaptionJob {
 const ACTIVE_CAPTION_JOB_KEY = "saadstudio.addCaptions.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
 
-export function AddCaptionsPage(): HTMLElement {
+export function AddCaptionsPage(params = new URLSearchParams()): HTMLElement {
   const hostAdapter = getHostAdapter();
+  const requestedLanguage = params.get("language")?.trim().toLowerCase() || AUTO_DETECT_LANGUAGE;
   const state: PageState = {
     clip: null,
     presets: [NO_STYLE],
@@ -226,7 +227,7 @@ export function AddCaptionsPage(): HTMLElement {
     selectedPreset: NO_STYLE.id,
     activePresetTab: "all",
     sourceInput: "",
-    language: AUTO_DETECT_LANGUAGE,
+    language: requestedLanguage,
     translate: NO_TRANSLATION,
     script: "native",
     resolution: "1080",
@@ -300,8 +301,9 @@ export function AddCaptionsPage(): HTMLElement {
       state.translationLanguages = targetLanguages.length ? targetLanguages : FALLBACK_TARGET_LANGUAGES;
       state.languagesError = null;
       if (sourceLanguages.length) {
+        const requestedIsSupported = sourceLanguages.some((lang) => lang.code === requestedLanguage);
         const hasArabic = sourceLanguages.some((lang) => lang.code === "ar");
-        const preferred = hasArabic ? "ar" : sourceLanguages[0].code;
+        const preferred = requestedIsSupported ? requestedLanguage : hasArabic ? "ar" : sourceLanguages[0].code;
         if (
           !state.language ||
           state.language === AUTO_DETECT_LANGUAGE ||
@@ -317,6 +319,9 @@ export function AddCaptionsPage(): HTMLElement {
       state.sourceLanguages = FALLBACK_SOURCE_LANGUAGES;
       state.translationLanguages = FALLBACK_TARGET_LANGUAGES;
       state.languagesError = null;
+      if (FALLBACK_SOURCE_LANGUAGES.some((lang) => lang.code === requestedLanguage)) {
+        state.language = requestedLanguage;
+      }
     } finally {
       state.languagesLoading = false;
     }
