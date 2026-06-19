@@ -74,6 +74,27 @@ const DEFAULT_SLIDES: SlideBlock[] = [
   },
 ];
 
+const AVAILABLE_ROUTES = [
+  { value: "/", label: "Home Page" },
+  { value: "/image-gen", label: "Image Generation" },
+  { value: "/video-gen", label: "Video Generation" },
+  { value: "/transitions", label: "Transitions" },
+  { value: "/edit-video", label: "Edit Video" },
+  { value: "/avatar-pro", label: "Lip Sync (Avatar Pro)" },
+  { value: "/expand", label: "Expand" },
+  { value: "/remove-bg", label: "Remove BG" },
+  { value: "/upscale", label: "Upscale" },
+  { value: "/add-captions", label: "Add Captions" },
+  { value: "/edit-clips", label: "AI Clip Maker" },
+  { value: "/ai-dubbing", label: "AI Dubbing" },
+  { value: "/auto-reframe", label: "Auto Reframe" },
+  { value: "/transcription", label: "Transcription" },
+  { value: "/audiogram", label: "Audiogram" },
+  { value: "/multi-cam-auto-switch", label: "Multi-Cam Auto Switch" },
+  { value: "/noise-removal", label: "Noise Removal" },
+  { value: "/eye-correction", label: "Eye Correction" },
+];
+
 export default function CepCmsPage() {
   const [slides, setSlides] = useState<SlideBlock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -461,17 +482,46 @@ export default function CepCmsPage() {
                 </div>
 
                 {/* Redirect Link field */}
-                <div className="space-y-1 bg-zinc-900/10 p-3 rounded-xl border border-zinc-900/60">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Redirect URL (opens on slide or button click)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="https://..."
-                    value={slide.url}
-                    onChange={(e) => updateSlideField(slide.id, "url", e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 text-xs px-3 py-2.5 rounded-xl focus:border-violet-500 focus:outline-none"
-                  />
+                <div className="space-y-3 bg-zinc-900/10 p-4 rounded-xl border border-zinc-900/60">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Link Action (CEP Tool or URL)
+                    </label>
+                    <select
+                      value={AVAILABLE_ROUTES.some(r => r.value === slide.url) ? slide.url : "custom"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                          updateSlideField(slide.id, "url", "https://");
+                        } else {
+                          updateSlideField(slide.id, "url", val);
+                        }
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-800 text-xs px-3 py-2.5 rounded-xl focus:border-violet-500 focus:outline-none text-zinc-300"
+                    >
+                      {AVAILABLE_ROUTES.map((route) => (
+                        <option key={route.value} value={route.value} className="bg-zinc-950">
+                          {route.label} ({route.value})
+                        </option>
+                      ))}
+                      <option value="custom" className="bg-zinc-950">External Link / Custom URL...</option>
+                    </select>
+                  </div>
+
+                  {(!AVAILABLE_ROUTES.some(r => r.value === slide.url)) && (
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-wider">
+                        Custom External URL
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={slide.url}
+                        onChange={(e) => updateSlideField(slide.id, "url", e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 text-xs px-3 py-2.5 rounded-xl focus:border-violet-500 focus:outline-none placeholder-zinc-700"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

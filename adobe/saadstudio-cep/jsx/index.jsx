@@ -853,7 +853,7 @@
                 return result;
             }
             var adjustmentRuntimeAvailable = hasAutoZoomAdjustmentLayerRuntime();
-            var directTransformAvailable = hasAutoZoomDirectTransformRuntime();
+            var directTransformAvailable = hasAutoZoomDirectTransformRuntime(seq, analyzedTracks);
             var executionMode = adjustmentRuntimeAvailable ? "adjustment-layer" : (directTransformAvailable ? "direct-transform" : null);
             result.executionMode = executionMode;
             if (!executionMode) {
@@ -906,7 +906,8 @@
                     } else {
                         var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, startSec);
                         if (!directTarget) throw new Error("No source clip covers the Auto Zoom event.");
-                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, endSec, style, maxZoomPercentage, result)) {
+                        var directEndSec = Math.min(endSec, readTimeSeconds(directTarget.clip && directTarget.clip.end));
+                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, directEndSec, style, maxZoomPercentage, result)) {
                             throw new Error("Transform effect or Scale keyframes could not be applied to the source clip.");
                         }
                     }
@@ -2326,7 +2327,21 @@
         return false;
     }
 
-    function hasAutoZoomDirectTransformRuntime() {
+    function hasAutoZoomDirectTransformRuntime(seq, trackIndexes) {
+        var tracks = seq && seq.videoTracks;
+        var indexes = trackIndexes || [];
+        if (tracks) {
+            for (var i = 0; i < indexes.length; i++) {
+                var trackIndex = Number(indexes[i]);
+                var clips = trackIndex >= 0 && trackIndex < tracks.numTracks && tracks[trackIndex]
+                    ? tracks[trackIndex].clips
+                    : null;
+                if (!clips) continue;
+                for (var c = 0; c < clips.numItems; c++) {
+                    if (findAutoZoomMotionScaleProperty(clips[c])) return true;
+                }
+            }
+        }
         try {
             app.enableQE();
             return typeof qe !== "undefined"
@@ -2451,6 +2466,18 @@
     }
 
     function applyAutoZoomTransform(seq, trackIndex, clipIndex, clip, startSec, endSec, style, zoomRatio, result) {
+        var motionScale = findAutoZoomMotionScaleProperty(clip);
+        if (motionScale) {
+            var motionApplied = applyAutoZoomScaleProperty(motionScale, clip, startSec, endSec, style, zoomRatio);
+            if (motionApplied) {
+                appendAll(result.warnings, ["AUTO_ZOOM_USED_INTRINSIC_MOTION_SCALE"]);
+                return true;
+            }
+            appendAll(result.warnings, ["INTRINSIC_MOTION_SCALE_WRITE_FAILED"]);
+        } else {
+            appendAll(result.warnings, ["INTRINSIC_MOTION_SCALE_NOT_FOUND"]);
+        }
+
         try { app.enableQE(); } catch (eQE) { return false; }
         var qeSeq = qe.project.getActiveSequence();
         if (!qeSeq) return false;
@@ -2484,20 +2511,50 @@
             result.warnings.push("TRANSFORM_SCALE_PROPERTY_NOT_FOUND");
             return false;
         }
+        return applyAutoZoomScaleProperty(scaleWidth, refreshedClip, startSec, endSec, style, zoomRatio, scaleHeight);
+    }
+
+    function findAutoZoomMotionScaleProperty(clip) {
+        var components = clip && clip.components;
+        if (!components) return null;
+        var motion = null;
+        for (var i = 0; i < components.numItems; i++) {
+            var component = components[i];
+            var name = "";
+            try { name = (String(component.matchName || "") + "|" + String(component.displayName || "")).toLowerCase(); } catch (eName) {}
+            if (name === "adbe motion" || name.indexOf("motion") >= 0) {
+                motion = component;
+                break;
+            }
+        }
+        if (!motion && components.numItems > 1) motion = components[1];
+        if (!motion) return null;
+        var scale = findComponentPropertyByNames(motion, ["Scale", "ADBE Scale"]);
+        if (!scale && motion.properties && motion.properties.numItems > 1) scale = motion.properties[1];
+        return scale || null;
+    }
+
+    function applyAutoZoomScaleProperty(scaleWidth, clip, startSec, endSec, style, zoomRatio, scaleHeight) {
         var maxScale = zoomRatio * 100;
         if (style === "jump") {
-            setComponentPropertyStatic(scaleWidth, maxScale);
-            if (scaleHeight && scaleHeight !== scaleWidth) setComponentPropertyStatic(scaleHeight, maxScale);
-            return true;
+            var staticWidthOk = setComponentPropertyStatic(scaleWidth, maxScale);
+            var staticHeightOk = true;
+            if (scaleHeight && scaleHeight !== scaleWidth) staticHeightOk = setComponentPropertyStatic(scaleHeight, maxScale);
+            return staticWidthOk && staticHeightOk;
         }
+        var clipStartSec = readTimeSeconds(clip && clip.start);
+        var clipEndSec = readTimeSeconds(clip && clip.end);
+        var safeStartSec = Math.max(clipStartSec, startSec);
+        var safeEndSec = Math.min(clipEndSec, endSec);
+        if (!(safeEndSec > safeStartSec)) return false;
         var entryDuration = style === "snap" ? 0.16 : Math.min(0.3, (endSec - startSec) / 3);
         var keys = style === "snap"
-            ? [{ time: startSec, value: 100 }, { time: Math.min(endSec, startSec + entryDuration), value: maxScale }]
+            ? [{ time: safeStartSec, value: 100 }, { time: Math.min(safeEndSec, safeStartSec + entryDuration), value: maxScale }]
             : [
-                { time: startSec, value: 100 },
-                { time: Math.min(endSec, startSec + entryDuration), value: maxScale },
-                { time: Math.max(startSec, endSec - entryDuration), value: maxScale },
-                { time: endSec, value: 100 }
+                { time: safeStartSec, value: 100 },
+                { time: Math.min(safeEndSec, safeStartSec + entryDuration), value: maxScale },
+                { time: Math.max(safeStartSec, safeEndSec - entryDuration), value: maxScale },
+                { time: safeEndSec, value: 100 }
             ];
         var widthOk = setComponentPropertyKeys(scaleWidth, keys);
         var heightOk = true;
@@ -2544,9 +2601,12 @@
         for (var i = 0; i < properties.numItems; i++) {
             var property = properties[i];
             var label = "";
-            try { label = String(property.displayName || property.matchName || "").toLowerCase(); } catch (eLabel) {}
+            try { label = String(property.displayName || "").toLowerCase(); } catch (eLabel) {}
+            var matchName = "";
+            try { matchName = String(property.matchName || "").toLowerCase(); } catch (eMatchName) {}
             for (var n = 0; n < names.length; n++) {
-                if (label === String(names[n]).toLowerCase()) return property;
+                var expected = String(names[n]).toLowerCase();
+                if (label === expected || matchName === expected) return property;
             }
         }
         return null;

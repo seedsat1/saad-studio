@@ -183,3 +183,10 @@
 - قيمة Analyze Track حالة صريحة في الواجهة، ويجب إسنادها إلى خاصية DOM `HTMLSelectElement.value` بعد إنشاء الخيارات؛ صفة HTML `value` وحدها لا تختار option عند إعادة الرسم.
 - التحليل يستقبل `analyzedVideoTrackIndexes` ويحصر اكتشاف cuts في المسار المختار. تحفظ النتيجة الفهارس التي حُللت، ويستخدم Apply الفهارس نفسها لضمان عدم اختلاف مسار التحليل عن مسار التنفيذ.
 - تغيير Analyze Track يلغي تحليل Auto Zoom السابق ويستلزم Analyze جديدًا قبل Apply؛ لا يجوز تطبيق نتيجة تحليل لمسار على مسار آخر.
+
+## تنفيذ Auto Zoom عبر Motion Scale
+
+- في Premiere 26.2 المسار الأساسي هو خاصية `Scale` داخل المكوّن المدمج `Motion` على TrackItem؛ لا يحتاج هذا المسار إلى إضافة تأثير جديد عبر QE.
+- البحث يعتمد `matchName` (`ADBE Motion` و`ADBE Scale`) و`displayName` مع fallback موضعي `components[1].properties[1]` للمضيف المتوافق. يستخدم Transform عبر QE كاحتياط فقط.
+- أزمنة مفاتيح Scale هي أزمنة timeline، وتُقيد بحدي بداية ونهاية clip. لا يجوز وضع مفتاح بعد نهاية TrackItem.
+- معيار Runtime Proof هو `effectsApplied > 0` مع ظهور تغير Scale/المفاتيح داخل Effect Controls؛ اكتشاف cuts وحده لا يثبت نجاح Auto Zoom.

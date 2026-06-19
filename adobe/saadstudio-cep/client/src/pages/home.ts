@@ -106,6 +106,15 @@ export function HomePage(): HTMLElement {
     return slide.image; // fallback to relative local image (e.g. "slide1.png")
   }
 
+  function handleSlideAction(slide: Slide) {
+    if (!slide.url) return;
+    if (slide.url.startsWith("/")) {
+      navigate(slide.url);
+    } else {
+      openExternal(slide.url);
+    }
+  }
+
   // Fetch dynamic slides from DB layout blocks
   function fetchSlides() {
     fetch(`${API_BASE}/api/layouts?page=cep-slides`)
@@ -249,7 +258,7 @@ export function HomePage(): HTMLElement {
         style: {
           backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.3) 100%), url(${getSlideImage(currentSlide)})`
         },
-        onClick: () => openExternal(slides[activeSlideIndex].url)
+        onClick: () => handleSlideAction(currentSlide)
       },
       el("div.hero-slider__arrow.hero-slider__arrow--left", {
         onClick: (ev: Event) => {
@@ -271,7 +280,12 @@ export function HomePage(): HTMLElement {
         el("div.hero-slider__sub", null, getSlideSubtitle(currentSlide)),
         el("div.hero-slider__title", null, getSlideTitle(currentSlide)),
         el("div.hero-slider__desc", null, getSlideDesc(currentSlide)),
-        el("button.hero-slider__btn", null,
+        el("button.hero-slider__btn", {
+          onClick: (ev: Event) => {
+            ev.stopPropagation();
+            handleSlideAction(currentSlide);
+          }
+        },
           getSlideBtnText(currentSlide),
           icon("arrow-up-right", 12)
         ),

@@ -308,3 +308,13 @@
 - ثُبتت الحزمة `index-W31P0V8I.js` وملف JSX داخل CEP النشط، وتطابقت بصمة JSX، وأكدت القراءة المرتفعة أن `index.html` يشير إلى الحزمة وأنها تحتوي payload المسار.
 - خطأ تحقق عابر مسجل: قراءة `%APPDATA%` دون صلاحية مرتفعة رُفضت؛ أُعيد فحص القراءة بالصلاحية المناسبة ونجح. لا يؤثر ذلك في ملفات الإضافة.
 - المتبقي: Runtime Proof باختيار V5، Analyze، ثم Apply؛ يجب بقاء V5 ظاهرًا وحساب cuts من V5 وحده.
+
+## Auto Zoom: التحويل إلى Motion Scale (2026-06-19)
+
+- Runtime Proof: بقي Analyze Track على V5 واكتشف 3 cuts، لكن Apply أعاد `AUTO_ZOOM_PARTIAL_OR_FAILED` و`Transform effect or Scale keyframes could not be applied` مع Effects=0. إذًا ثبات المسار نجح، والفشل في كتابة التأثير.
+- السبب: مسار التنفيذ كان يعتمد أولًا على إضافة تأثير `Transform` عبر QE ثم انتظار ظهوره في DOM؛ هذا لم يعمل في Premiere 26.2 على clips الناتجة من Multi-Cam.
+- القرار: يستخدم Auto Zoom الآن المكوّن المدمج `Motion` وخاصية `Scale` مباشرةً كمسار أساسي، بالبحث عبر `matchName` و`displayName` ثم fallback المتوافق مع `components[1].properties[1]`. يبقى Transform/QE احتياطًا فقط.
+- مفاتيح الحركة تُحصر بين بداية ونهاية TrackItem حتى لا يُكتب keyframe خارج clip. أُضيف warning نجاح `AUTO_ZOOM_USED_INTRINSIC_MOTION_SCALE` وأخطاء دقيقة عند غياب/فشل Scale.
+- الملف المتأثر: `adobe/saadstudio-cep/jsx/index.jsx`. نجح فحص JSX وTypeScript/Vite build و`git diff --check`.
+- ثُبت JSX داخل CEP النشط وتطابقت بصمة المصدر والنسخة المثبتة: `832D42F42E89FF1D353C00B6E4F961C645794AEFF8F6B64D91C7DF5EB2B1457B`.
+- المتبقي: إعادة تشغيل Premiere، ثم Runtime Proof على V5؛ معيار النجاح Effects>0 وظهور Scale/keyframes في Effect Controls.
