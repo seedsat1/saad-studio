@@ -58,6 +58,14 @@
 - التنفيذ الحالي يستخدم `createSubClip` و`overwriteClip` لإعادة بناء أجزاء مطلوبة بدل Razor غير الموجود.
 - السلوك الحالي في worktree ينظّم العناصر المولّدة في Project Panel تحت bin رئيسي باسم `Saad Studio - <Premiere Project Name>` ثم bin فرعي لكل أداة، ومنها `Multi-Cam Auto Switch` و`Silence Removal`.
 - عند تشغيل الأداة، تُنقل العناصر القديمة المعروفة من جذر المشروع إلى bin الأداة المناسب.
+- Auto Zoom لا يفترض أن إنشاء Adjustment Layer موجود حصرًا على QE؛ يفحص Runtime لكل من `app.project.newAdjustmentLayer` و`qe.project.newAdjustmentLayer` ويستخدم المسار المتاح فقط بعد التحقق من ProjectItem الناتج.
+- Auto Zoom الحالي يستخرج أحداثه من cuts الموجودة في مسار الفيديو المختار. غياب cuts يبقى تحذيرًا ولا يؤدي إلى توليد zooms دورية عشوائية.
+- أثبت Runtime في Premiere 26.2 غياب دالتي إنشاء Adjustment Layer على `app.project` و`qe.project`. لذلك Auto Zoom يستخدم `direct-transform` كـfallback: يضيف تأثير Transform ومفاتيح Scale قابلة للتعديل مباشرة إلى clips التي تغطي cuts المختارة. يبقى مسار Adjustment Layer اختياريًا إذا ظهر في Runtime آخر.
+- غياب cuts يمنع Apply؛ لا تُولد zooms دورية أو عشوائية على sequence خام.
+- Multi-Cam يمنع إعادة Apply على sequence يحمل marker ` - Saad Auto Switch Draft`. لا يُضاف هذا marker إلى الحارس العام لأن Silence Removal يجب أن يبقى قادرًا على معالجة Draft الـMulti-Cam.
+- إخراج Multi-Cam على duplicate يفضّل video track فارغًا؛ عند عدم وجوده يستخدم أعلى track قابل للكتابة داخل النسخة فقط، مع warning، بدل إنشاء clone ثم الفشل وترك Draft فارغ.
+- منع التكرار دفاعي في طبقتين: Host JSX يرفض Draft، والواجهة ترفض الاسم نفسه وتقفل Apply بعد أول نتيجة حتى Analyze جديد. قبل Apply تعيد الواجهة تحميل ملف JSX لضمان استخدام النسخة المثبتة.
+- Runtime Proof بتاريخ 2026-06-18 أثبت أن fallback `direct-transform` يظهر `Runtime: Ready` في Premiere 26.2؛ لم يُختبر تطبيق التأثير بعد لأن sequence الخام لم يحتوِ cuts.
 - عناصر Runtime Proof تُفصل في bin مستقل ولا تُخلط بمخرجات الأدوات الإنتاجية.
 
 ### مرجع مقتطف Synchronization المرفق
@@ -133,3 +141,18 @@
 - Reap documentation index: https://docs.reap.video/llms.txt
 - Premiere Sequence reference: https://raw.githubusercontent.com/docsforadobe/premiere-scripting-guide/master/docs/sequence/sequence.md
 - المرجع المحلي الكامل v3.1: `C:\Users\PC\Downloads\المرجع.md`
+## حارس تحليل Multi-Cam Draft (2026-06-19)
+
+- أي active sequence يحتوي اسمه `Saad Auto Switch Draft` لا يجوز إرساله إلى FFmpeg/RMS ولا إعادة Preview أو Apply عليه.
+- `Analyze Timeline` مسموح له بقراءة layout الخفيف فقط لاكتشاف الاسم، ثم يعيد blocker `ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT_SELECT_SOURCE_SEQUENCE`.
+- واجهة الإنتاج تعطل Analyze/Preview/Apply بعد اكتشاف الـDraft وتطلب اختيار source sequence مثل `Synced Sequence`. هذا يمنع التحليل الطويل والنسخ المتسلسلة، من دون حذف أي sequence قديم تلقائيًا.
+## مزامنة Active Sequence مع واجهة Podcast (2026-06-19)
+
+- تبقي صفحة Podcast مراقبًا خفيفًا كل 1000ms لهوية الـActive Sequence عبر diagnostics، من دون تحليل وسائط أو FFmpeg.
+- عند تغير `sequenceId` أو الاسم تُلغى كل النتائج المخزنة الخاصة بالـSequence السابق قبل السماح بـAnalyze/Preview/Apply على الجديد؛ ويشمل ذلك Sync وMulti-Cam وSilence Removal وAuto Zoom وإثباتات الصوت.
+- يتوقف المراقب تلقائيًا عند إزالة الصفحة من DOM، ولا يستعلم أثناء تنفيذ أداة إنتاجية لتجنب تداخل طلبات Host.
+## توزيع أربع كاميرات وAuto Zoom QE (2026-06-19)
+
+- عند وجود V1 عامة وV2 مقدم وV3 ضيف وV4 ضيف ثانٍ: لا يُعامل صوت الكاميرا العامة كمتحدث؛ يُترك Ignore، وتُربط ميكروفونات الأشخاص بـV2/V3/V4، وتُربط `Wide` بـV1. الكاميرا العامة تُستخدم عند تداخل الكلام وفق الخطة الحالية؛ إذا بقيت Unmapped فلن تظهر.
+- لا يجوز افتراض تطابق فهرس DOM `track.clips` مع فهرس QE `getItemAt`. Auto Zoom يطابق QE item بزمن بداية TrackItem، ثم يعيد قراءة DOM TrackItem بعد `addVideoEffect` قبل البحث عن Transform/Scale.
+- نتيجة build وحدها ليست Runtime Proof؛ يلزم إثبات `effectsApplied > 0` على duplicate sequence.

@@ -2,6 +2,7 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
+import { loadExtendScript } from "../lib/cep";
 import { getPodcastDiagnostics } from "../lib/podcast/services/diagnostics-service";
 import {
   generateCameraDecisionPlan,
@@ -197,9 +198,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     PageHeader("Podcast Automation"),
     page,
   );
+  let sequencePollInFlight = false;
+  let sequenceWatcherSawPageMounted = false;
 
   render();
   void refreshDiagnostics();
+  startActiveSequenceWatcher();
   return root;
 
   function render() {
@@ -411,14 +415,18 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const hasPlan = (currentPlan?.cameraDecisions.length ?? 0) > 0
       && (currentPlan?.blockers.length ?? 0) === 0;
     const busy = isProductionBusy();
+    const draftSelected = isAutoSwitchDraftName(state.timelineLayout?.sequenceName);
     return el("div.podcast-production-block.podcast-production-block--actions", null,
       el("div.podcast-action-row", null,
-        el("button.btn-secondary", { disabled: busy, onClick: analyzeLayout },
+        el("button.btn-secondary", { disabled: busy || draftSelected, onClick: analyzeLayout },
           state.timelineLoading ? "Analyzing..." : "Analyze Timeline"),
-        el("button.btn-secondary", { disabled: busy, onClick: previewAutoSwitch },
+        el("button.btn-secondary", { disabled: busy || draftSelected, onClick: previewAutoSwitch },
           state.previewAutoSwitchLoading ? "Previewing..." : "Preview Auto Switch"),
         el("button.btn-primary", {
-          disabled: !hasPlan || busy,
+          disabled: !hasPlan
+            || busy
+            || state.applyCameraDecisionsResult !== null
+            || draftSelected,
           onClick: runApplyCameraDecisionsPrototype,
         }, state.applyCameraDecisionsLoading ? "Applying..." : "Apply Auto Switch"),
       ),
@@ -563,8 +571,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               render();
             },
           }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)))),
-        renderField("Adjustment Track",
+        renderField(inspection?.executionMode === "direct-transform" ? "Direct Transform" : "Adjustment Track",
           el("select.podcast-input", {
+            disabled: inspection?.executionMode === "direct-transform",
             value: String(state.autoZoomTargetTrackIndex),
             onChange: (event: Event) => {
               state.autoZoomTargetTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
@@ -628,7 +637,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         }, state.autoZoomApplyLoading ? "Applying zooms..." : "Apply Auto Zoom"),
       ),
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-        renderSummaryTile("Runtime", inspection ? (inspection.newAdjustmentLayerAvailable ? "Ready" : "Blocked") : "Not analyzed"),
+        renderSummaryTile("Runtime", inspection ? (inspection.executionMode ? "Ready" : "Blocked") : "Not analyzed"),
         renderSummaryTile("Cuts", inspection ? String(inspection.cutEventsSec.length) : "Waiting"),
         renderSummaryTile("Rhythm", `${Math.round(state.autoZoomRhythmPercentage * 100)}%`),
         renderSummaryTile("Zoom", `${Math.round(state.autoZoomMaxPercentage * 100)}%`),
@@ -655,9 +664,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const messages: string[] = [];
     if (state.autoZoomInspection.blockers.length) messages.push(`Auto Zoom blocked: ${state.autoZoomInspection.blockers.join(", ")}`);
     if (state.autoZoomInspection.warnings.length) messages.push(`Warnings: ${state.autoZoomInspection.warnings.join(", ")}`);
-    if (state.autoZoomInspection.ok) messages.push("Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying.");
+    if (state.autoZoomInspection.ok) messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
+      ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
+      : "Direct Transform fallback is ready. Editable zoom effects will be added to the analyzed cut clips.");
     if (state.autoZoomApplyResult?.ok) messages.push(`${state.autoZoomApplyResult.adjustmentLayersInserted} editable zoom layers were added.`);
     if (state.autoZoomApplyResult && !state.autoZoomApplyResult.ok) messages.push(`Apply failed: ${state.autoZoomApplyResult.blockers.join(", ")}`);
+    const firstEventError = state.autoZoomApplyResult?.eventResults.find((event) => event.error)?.error;
+    if (firstEventError) messages.push(`First event error: ${firstEventError}`);
+    if (state.autoZoomApplyResult?.warnings.length) messages.push(`Runtime warnings: ${state.autoZoomApplyResult.warnings.join(", ")}`);
     return messages;
   }
 
@@ -700,7 +714,11 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const messages: string[] = [];
     const plan = getCurrentCameraDecisionPlan();
     const apply = getCurrentApplyCameraDecisionsResult();
-    if (plan?.blockers.length) messages.push(`Preview blocked: ${plan.blockers.join(", ")}`);
+    if (isAutoSwitchDraftName(state.timelineLayout?.sequenceName)) {
+      messages.push("An Auto Switch Draft is selected. Open the source sequence (for example, Synced Sequence) before Analyze Timeline.");
+    } else if (plan?.blockers.length) {
+      messages.push(`Preview blocked: ${plan.blockers.join(", ")}`);
+    }
     if (apply?.blockers.length) messages.push(`Apply blocked: ${apply.blockers.join(", ")}`);
     if (apply?.warnings.length) messages.push(`Warnings: ${apply.warnings.length} partial source ranges were handled.`);
     if (apply?.ok) messages.push("A visual-only draft was created on a duplicate sequence. The original sequence was not changed.");
@@ -1723,6 +1741,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function readableTimelineStatus(): string {
     if (!state.timelineLayout) return "Not analyzed";
+    if (isAutoSwitchDraftName(state.timelineLayout.sequenceName)) return "Draft selected";
     if (state.timelineLayout.status === "ready") {
       return `${getActiveVideoTracks().length} cameras / ${getActiveAudioTracks().length} mics`;
     }
@@ -1746,9 +1765,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       const nextDiagnostics = await getPodcastDiagnostics();
       const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
       if (sequenceIdentityChanged(previousIdentity, nextIdentity)) {
-        state.timelineLayout = null;
-        clearSynchronizationRuntimeState();
-        clearAutoSwitchRuntimeState();
+        clearSequenceRuntimeState();
       }
       state.diagnostics = nextDiagnostics;
     } catch (err) {
@@ -1762,6 +1779,35 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.loading = false;
       render();
     }
+  }
+
+  function startActiveSequenceWatcher() {
+    const intervalId = window.setInterval(async () => {
+      if (root.isConnected) {
+        sequenceWatcherSawPageMounted = true;
+      } else if (sequenceWatcherSawPageMounted) {
+        window.clearInterval(intervalId);
+        return;
+      }
+      if (!root.isConnected || sequencePollInFlight || state.loading || isProductionBusy()) return;
+
+      sequencePollInFlight = true;
+      try {
+        const nextDiagnostics = await getPodcastDiagnostics();
+        const previousIdentity = sequenceIdentityFromDiagnostics(state.diagnostics);
+        const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
+        if (!sequenceIdentityChanged(previousIdentity, nextIdentity)) return;
+
+        clearSequenceRuntimeState();
+        state.diagnostics = nextDiagnostics;
+        render();
+      } catch {
+        // Premiere can be briefly unavailable while changing sequence tabs.
+        // Keep the current state and retry on the next lightweight poll.
+      } finally {
+        sequencePollInFlight = false;
+      }
+    }, 1000);
   }
 
   async function analyzeSynchronization() {
@@ -1836,6 +1882,15 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     render();
     try {
       state.timelineLayout = await analyzeTimelineLayout();
+      if (isAutoSwitchDraftName(state.timelineLayout.sequenceName)) {
+        state.sourceAttributionProof = null;
+        state.cameraDecisionPlanProof = blockedCameraDecisionPlan(
+          ["ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT_SELECT_SOURCE_SEQUENCE"],
+          state.timelineLayout,
+        );
+        state.applyCameraDecisionsResult = null;
+        return;
+      }
       const videoCount = state.timelineLayout.videoTracks.length;
       ensureAudioMappingsForTimeline();
       if (videoCount > 0) {
@@ -1873,6 +1928,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         adjustmentLayerCount: 0,
         qeAvailable: false,
         newAdjustmentLayerAvailable: false,
+        directTransformAvailable: false,
+        executionMode: null,
         blockers: ["AUTO_ZOOM_INSPECTION_FAILED", (err as Error).message],
         warnings: [],
       };
@@ -1905,6 +1962,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         effectsApplied: 0,
         failedEvents: 0,
         createdProjectItemName: null,
+        executionMode: null,
         eventResults: [],
         blockers: ["AUTO_ZOOM_APPLY_FAILED", (err as Error).message],
         warnings: [],
@@ -1923,6 +1981,16 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     if (!layout || layout.status !== "ready") {
       state.sourceAttributionProof = null;
       state.cameraDecisionPlanProof = blockedCameraDecisionPlan(["TIMELINE_LAYOUT_REQUIRED_BEFORE_PREVIEW"], layout);
+      state.applyCameraDecisionsResult = null;
+      render();
+      return;
+    }
+    if (isAutoSwitchDraftName(layout.sequenceName)) {
+      state.sourceAttributionProof = null;
+      state.cameraDecisionPlanProof = blockedCameraDecisionPlan(
+        ["ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT_SELECT_SOURCE_SEQUENCE"],
+        layout,
+      );
       state.applyCameraDecisionsResult = null;
       render();
       return;
@@ -2317,6 +2385,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     pushApplyCheckpoint(state.applyTrace, "DUPLICATE_SEQUENCE_START");
     render();
     try {
+      await loadExtendScript();
       state.applyTrace.applyCameraDecisionsCalled = true;
       pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_START");
       state.applyCameraDecisionsResult = bindApplyResultToTimeline(
@@ -2378,6 +2447,20 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   function clearSynchronizationRuntimeState() {
     state.synchronizationPlan = null;
     state.synchronizationApplyResult = null;
+  }
+
+  function clearSequenceRuntimeState() {
+    state.timelineLayout = null;
+    clearSynchronizationRuntimeState();
+    clearAutoSwitchRuntimeState();
+    state.silenceRemovalResult = null;
+    state.autoZoomInspection = null;
+    state.autoZoomApplyResult = null;
+    state.audioProof = null;
+    state.rmsProof = null;
+    state.fullActivityProof = null;
+    state.streamProof = null;
+    state.speakerActivityProof = null;
   }
 
   function getCurrentCameraDecisionPlan(): PodcastCameraDecisionPlanProof | null {
@@ -2469,6 +2552,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const layout = state.timelineLayout;
     const plan = state.cameraDecisionPlanProof;
     if (!layout || layout.status !== "ready") blockers.push("TIMELINE_LAYOUT_REQUIRED_BEFORE_APPLY");
+    if (isAutoSwitchDraftName(layout?.sequenceName)) blockers.push("ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT");
+    if (state.applyCameraDecisionsResult) blockers.push("AUTO_SWITCH_ALREADY_APPLIED_REANALYZE_REQUIRED");
     if (!plan) blockers.push("CAMERA_DECISION_PLAN_REQUIRED");
     if (plan && plan.decisionSource !== "ffmpeg-rms") blockers.push("CAMERA_DECISION_PLAN_SOURCE_NOT_FFMPEG_RMS");
     if (plan && layout && !planMatchesTimeline(plan, layout)) blockers.push("STALE_CAMERA_DECISION_PLAN");
@@ -2480,6 +2565,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       blockers.push(...getMappedTrackSourceBlockers(state.sourceAttributionProof));
     }
     return uniqueStrings(blockers);
+  }
+
+  function isAutoSwitchDraftName(name: string | null | undefined): boolean {
+    return String(name ?? "").includes("Saad Auto Switch Draft");
   }
 
   function getMappedTrackSourceBlockers(proof: SpeakerSourceAttributionProof): string[] {

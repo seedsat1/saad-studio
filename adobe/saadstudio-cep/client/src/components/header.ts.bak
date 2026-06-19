@@ -6,7 +6,6 @@ import { store } from "../lib/store";
 import { clearToken } from "../lib/auth";
 import { openCreditsTopup } from "../lib/api";
 import { navigate } from "../lib/router";
-import { getLanguage, setLanguage, t } from "../lib/i18n";
 
 export function Header(): HTMLElement {
   const logo = el("img", {
@@ -17,28 +16,6 @@ export function Header(): HTMLElement {
     icon("coin", 14),
     el("span.credits-chip__amount", { id: "hdr-credits" }, "—"),
   );
-
-  const langBtn = el("button.lang-toggle-btn", {
-    onClick: () => {
-      const nextLang = getLanguage() === "en" ? "ar" : "en";
-      setLanguage(nextLang);
-    },
-    style: {
-      background: "rgba(255, 255, 255, 0.08)",
-      border: "1px solid var(--line-soft)",
-      color: "var(--text-primary)",
-      padding: "4px 8px",
-      borderRadius: "4px",
-      fontSize: "11px",
-      fontWeight: "bold",
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      gap: "4px",
-      height: "26px",
-      marginRight: "6px"
-    }
-  }, getLanguage() === "en" ? "🌐 EN" : "🌐 AR");
 
   const avatarBtn = el("button.avatar-button", { "aria-label": "Profile" },
     el("span", { style: { fontSize: "13px", fontWeight: "600" } }, "S")
@@ -63,18 +40,18 @@ export function Header(): HTMLElement {
     menuEl = el("div.profile-menu",
       { onClick: (ev: Event) => ev.stopPropagation() },
       el("div.profile-menu__item.profile-menu__item--credits", null,
-        el("span", null, t("credits")),
+        el("span", null, "Credits"),
         el("span.profile-menu__credit-value", null, balance.toLocaleString()),
       ),
       el("div.profile-menu__divider"),
       el("button.profile-menu__item",
         { onClick: () => { closeMenu(); openCreditsTopup(); } },
-        el("span", { class: "row gap-2" }, icon("coin", 14), t("buyCredits")),
+        el("span", { class: "row gap-2" }, icon("coin", 14), "Buy credits"),
       ),
       el("div.profile-menu__divider"),
       el("button.profile-menu__item",
         { onClick: () => { closeMenu(); clearToken(); store.clearUser(); navigate("/connect"); } },
-        el("span", { class: "row gap-2" }, icon("logout", 14), t("logout")),
+        el("span", { class: "row gap-2" }, icon("logout", 14), "Logout"),
       ),
     );
     document.body.appendChild(menuEl);
@@ -98,13 +75,8 @@ export function Header(): HTMLElement {
       ),
       el("span.app-header__version", null, "v1.0"),
     ),
-    el("div.app-header__right", null, langBtn, credits, avatarBtn),
+    el("div.app-header__right", null, credits, avatarBtn),
   );
-
-  // Listen to language changes
-  window.addEventListener("saad-language-changed", () => {
-    langBtn.textContent = getLanguage() === "en" ? "🌐 EN" : "🌐 AR";
-  });
 
   // Sync credits from store
   const updateCredits = () => {

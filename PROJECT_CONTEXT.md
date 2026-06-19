@@ -1,6 +1,24 @@
 # Saad Studio — Project Context
 
-## آخر مهمة: اعتماد بوابات إثبات قبل استكمال أدوات Premiere (2026-06-18)
+## آخر مهمة: إضافة صفحة لوحة تحكم الأدمن لإدارة شرائح الهيرو ديناميكياً (2026-06-19)
+
+- السبب: طلب المستخدم إمكانية إدارة وتعديل شرائح الهيرو (سلايدر العرض) مباشرة من لوحة تحكم الأدمن لـ Saad Studio (الموقع) بدلاً من تعديلها يدوياً في الكود، وذلك لتفادي كسر أي شيء وتسهيل التعديل.
+- القرار:
+  1. إنشاء صفحة لوحة تحكم أدمن جديدة بالكامل في [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) تتيح للأدمن استعراض الشرائح، إضافتها، تعديل نصوصها (العربية والانجليزية)، وتغيير صور الخلفيات (برفعها ديناميكياً إلى R2 عبر نظام الرفع المدمج) وحذفها وترتيبها بسهولة.
+  2. ربط الصفحة بجدول `pageLayout` في قاعدة البيانات تحت اسم الصفحة `cep-slides` وحفظها كـ `layoutBlocks` لعدم الحاجة لتبديل سكيمة قاعدة البيانات.
+  3. إضافة رابط الصفحة الجديدة "CEP Extension Banners" في القائمة الجانبية للأدمن [cms-sidebar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/admin/cms-sidebar.tsx).
+  4. تحديث صفحة الإضافة الرئيسية [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts) لتجلب الشرائح ديناميكياً من المسار العام `/api/layouts?page=cep-slides` عند التشغيل، مع تفعيل حارس أمان (Offline Fallback) يعود تلقائياً للشرائح المحلية المدمجة في حال عدم توفر اتصال بالإنترنت أو عدم تهيئة البيانات بالخادم لضمان عدم توقف الإضافة أبداً.
+- الملفات المتأثرة:
+  - [page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/cep/page.tsx) (جديد)
+  - [cms-sidebar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/admin/cms-sidebar.tsx)
+  - [home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)
+  - [PROJECT_CONTEXT.md](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
+- نتائج التحقق: نجاح بناء وتجميع Vite العميل (`npm run build`) وتوليد حزمة جديدة بنجاح بدون أي أخطاء.
+- الخطوة المتبقية: التحقق النهائي من عمل واجهة لوحة تحكم الأدمن والتحميل الديناميكي للشرائح داخل الإضافة.
+
+
+
+## آخر مهمة سابقة: اعتماد بوابات إثبات قبل استكمال أدوات Premiere (2026-06-18)
 
 - السبب: Synchronize وصل إلى حالات واجهة متناقضة (`Offsets ready` مع نتائج lag متقلبة، ثم `SYNC_OFFSETS_REQUIRED_BEFORE_APPLY`) لأن التطوير سبق وجود fixtures واختبارات خوارزمية وRuntime Proof مكتمل.
 - القرار: تجميد توسيع أدوات Premiere مؤقتًا. لا تُوصف أي ميزة بأنها `Ready` اعتمادًا على build أو الواجهة فقط.
@@ -182,3 +200,52 @@
 - الملف المعدل: `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`. نجح `npm.cmd run build` وثُبت bundle `index-qvn1Ctvh.js` داخل CEP.
 - خطأ تحقق عابر: فشل `npm run build` أولًا بسبب PowerShell execution policy، ثم كُشف null type في helper الجديد؛ استُخدم `npm.cmd` وصُحح النوع، وبعدها نجح البناء.
 - Runtime Proof: أكد المستخدم داخل Premiere نجاح التصحيح وظهور العدد الصحيح `4 clips` بعد إعادة تحميل الإضافة.
+
+## Auto Zoom: إصلاح اكتشاف Adjustment Layer Runtime (2026-06-18)
+
+- Runtime في Premiere 26.2 أعاد `NEW_ADJUSTMENT_LAYER_RUNTIME_UNAVAILABLE` لأن الفحص كان محصورًا في `qe.project.newAdjustmentLayer`.
+- عُدّل `adobe/saadstudio-cep/jsx/index.jsx` لاكتشاف `app.project.newAdjustmentLayer` و`qe.project.newAdjustmentLayer` واستخدام أول مسار متاح، مع التحقق من أن الناتج Adjustment Layer فعليًا.
+- نجح `npm.cmd run build` وفحص JSX عبر `node --check -`. ثُبت ملف JSX داخل CEP وتطابقت بصمة المصدر والنسخة المثبتة.
+- `NO_TIMELINE_CUTS_DETECTED` ما زال تحذيرًا صحيحًا على `Synced Sequence` الخام؛ لا تُولد أحداث زمنية عشوائية. يلزم اختبار Auto Zoom على track يحتوي cuts بعد Multi-Cam، أو قرار منتج صريح لإضافة نمط zoom دوري.
+- خطأ تحقق عابر: `node --check index.jsx` لا يقبل امتداد `.jsx` في Node الحالي؛ نجح الفحص بتمرير المحتوى إلى stdin.
+- الخطوة المتبقية: إعادة تحميل لوحة Premiere وتشغيل `Analyze Auto Zoom` لإثبات أي مسار إنشاء كشفه Runtime.
+- Runtime Proof اللاحق أثبت أن مساري `app.project.newAdjustmentLayer` و`qe.project.newAdjustmentLayer` غير متاحين في Premiere 26.2؛ أُلغي الاعتماد الإلزامي عليهما.
+- أضيف fallback آلي `direct-transform`: يكتشف تأثير Transform عبر QE، ثم يضيف تأثيرًا قابلًا للتعديل ومفاتيح Scale إلى clip الذي يغطي كل cut مختار في مسار التحليل. يستخدم Adjustment Layer فقط إذا كان Runtime يدعمه.
+- غياب cuts أصبح blocker صريحًا `NO_TIMELINE_CUTS_DETECTED` بدل إتاحة Apply لينتهي لاحقًا دون أحداث. يجب تشغيل Multi-Cam واختيار مسار القص الناتج أولًا.
+- الملفات المعدلة: `jsx/index.jsx`، `auto-zoom-service.ts`، `multi-cam-auto-switch.ts`. نجح فحص JSX والبناء، وثُبت bundle `index-DTdv3h1d.js` وملف JSX داخل CEP.
+- الخطوة المتبقية: Runtime Proof على مسار Multi-Cam ذي cuts للتحقق من إضافة Transform وعدد Effects ومفاتيح Scale.
+- Runtime Proof جديد: بعد تثبيت fallback ظهر `Runtime: Ready` و`Direct Transform` في Premiere 26.2، ما يثبت اكتشاف تأثير Transform. بقي `Cuts: 0` لأن active sequence هو `Synced Sequence` الخام وMulti-Cam ما زال `Not analyzed/Not previewed/Not applied` وجميع mappings على Ignore.
+- القرار: لا تغيير خوارزمي بسبب هذه النتيجة؛ يجب أولًا إنشاء مسار قص عبر Multi-Cam ثم اختيار ذلك المسار في Analyze Track. بعد ذلك يُختبر Apply Auto Zoom.
+
+## إصلاح تكرار Multi-Cam Draft (2026-06-19)
+
+- Runtime Proof بالصور أثبت أن كل ضغط على Apply كان ينشئ sequence جديدًا باسم متسلسل `... - Saad Auto Switch Draft` ثم يتركه دون إخراج؛ السبب أن حارس الـDraft لا يتعرف على هذا الاسم، وأن البحث عن مسار إخراج فارغ يحدث بعد clone ويفشل عند امتلاء جميع video tracks.
+- أضيف حارس خاص يمنع Apply Multi-Cam إذا كان active sequence اسمه يحتوي ` - Saad Auto Switch Draft`، من دون إضافته إلى الحارس العام حتى يبقى Silence Removal مسموحًا على ناتج Multi-Cam.
+- `findSafeAutoSwitchTargetTrack` يفضّل مسارًا فارغًا، وإن لم يوجد يستخدم أعلى مسار قابل للكتابة داخل duplicate الآمن ويضيف warning تشخيصيًا؛ الأصل لا يُمس.
+- لم تُحذف الـDrafts القديمة تلقائيًا حفاظًا على مشروع المستخدم. الملف المعدل `adobe/saadstudio-cep/jsx/index.jsx`، ونجح فحص JSX والبناء و`git diff --check`، وتطابقت بصمة النسخة المثبتة داخل CEP.
+- الخطوة المتبقية: اختبار واحد من `Synced Sequence` الأصلية والتحقق من `segmentsInserted > 0` وظهور cuts، ثم منع Apply عند محاولة تشغيله على الـDraft الناتج.
+- بعد استمرار ظهور tabs القديمة، أضيف قفل ثانٍ في واجهة TypeScript: يمنع الزر إذا كان اسم sequence يحتوي `Saad Auto Switch Draft`، ويمنع أي ضغط ثانٍ بعد وجود Apply result إلى أن يعاد Analyze. كما يستدعي `loadExtendScript()` مباشرة قبل Apply لضمان تحميل Host JSX المثبت.
+- نجح build وفحص JSX و`git diff --check`، وثُبت bundle `index-CpLH3RYc.js` مع JSX. يلزم إعادة تشغيل Premiere مرة واحدة لمسح المحرك والـtabs القديمة قبل الاختبار التالي.
+## منع تحليل Auto Switch Draft البطيء (2026-06-19)
+
+- أثبت Runtime Proof أن المحاولة الأخيرة كانت على sequence قديم باسم `Camera 1 - Saad Auto Switch Draft`، وأن الحارس السابق منع إنشاء duplicate جديد (`duplicateSequenceCalled: No` و`applyCameraDecisionsCalled: No`). المشكلة الظاهرة كانت إعادة تحليل الـDraft القديم، لا إنشاء Draft جديد.
+- صار `Analyze Timeline` يكتشف الـDraft بعد قراءة التايملاين الخفيفة ويتوقف، و`Preview Auto Switch` يتوقف قبل FFmpeg/RMS. تُعطّل أزرار Analyze/Preview/Apply وتظهر رسالة تطلب فتح source sequence مثل `Synced Sequence`.
+- الملف المتأثر: `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`. نجح `npm.cmd run build` و`git diff --check`، وثُبت bundle `index-B09MjlCP.js` وتأكد أن `client/dist/index.html` المثبت يشير إليه.
+- الخطوة المتبقية: إعادة تشغيل Premiere مرة واحدة، فتح `Synced Sequence` الأصلية، ثم Analyze/Preview/Apply مرة واحدة. الـDrafts القديمة لم تُحذف تلقائيًا حفاظًا على مشروع المستخدم.
+## تحديث Active Sequence دون إغلاق الإضافة (2026-06-19)
+
+- الخطأ المكتشف: صفحة Podcast كانت تستدعي diagnostics عند الفتح أو بالزر فقط، لذلك بقي `timelineLayout` ونتائج الأدوات مرتبطة بالـSequence السابق بعد تبديل tab داخل Premiere.
+- أضيف مراقب خفيف كل ثانية لهوية الـActive Sequence. عند تغير `sequenceId/name` يمسح الحالات المرتبطة بالـSequence السابق (Sync، Multi-Cam، Silence، Auto Zoom وإثباتات الصوت) ويحدث الواجهة دون إغلاق الإضافة. المراقب لا يشغل FFmpeg ويتوقف عند مغادرة الصفحة، ويتجنب العمل أثناء تنفيذ أداة.
+- الملف المتأثر: `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`. نجح TypeScript/Vite build و`git diff --check`، وثُبت bundle `index-DMbQgheV.js` وتأكد مرجع `index.html` المثبت.
+- المتبقي: Runtime Proof بتبديل Sequence tab داخل Premiere والتأكد أن Timeline يعود إلى `Not analyzed` خلال نحو ثانية ثم يقبل Analyze للـSequence الجديد.
+## تشخيص توزيع 4 كاميرات وإصلاح Auto Zoom (2026-06-19)
+
+- Runtime Proof بالصورة: sequence `003 - Saad Auto Switch Draft` يحتوي 4 فيديو/4 صوت؛ خطة Multi-Cam لم تُعاين على هذا الـDraft و`Wide Camera: Unmapped`، لذلك V1 العامة لم تدخل الخطة. التوزيع المطلوب لهذه الحالة: صوت الكاميرا العامة Ignore، ميكروفونات المقدم/الضيفين إلى V2/V3/V4، وWide إلى V1.
+- Auto Zoom اكتشف 6 cuts وكان Runtime Ready لكنه أعاد `Inserted 0 / Effects 0 / AUTO_ZOOM_PARTIAL_OR_FAILED`. السبب المرجح المدعوم بالكود: استخدام DOM `clipIndex` مباشرة للوصول إلى QE item رغم أن QE track قد يحتوي عناصر مختلفة الفهرسة، ثم استخدام مرجع DOM قديم بعد `addVideoEffect`.
+- عُدّل `jsx/index.jsx` لمطابقة QE item بزمن بداية clip، وإعادة جلب DOM TrackItem بعد إضافة Transform، وقبول قيم نجاح `setValue` المختلفة، وإضافة warnings دقيقة. عُدلت الواجهة لإظهار أول event error وRuntime warnings.
+- نجح فحص JSX وTypeScript/Vite build و`git diff --check`؛ bundle الناتج `index-Su3zrUHg.js`. تعذر تثبيت الملفات في `%APPDATA%` بسبب رفض نظام الموافقات بعد بلوغ حد الاستخدام، لذا النسخة المبنية لم تُثبت بعد. المتبقي: تثبيت `client/dist` و`jsx/index.jsx` ثم Runtime Proof على Duplicate.
+## تثبيت إصلاح Auto Zoom (2026-06-19)
+
+- أُعيد بناء عميل CEP بعد دمج جميع تغييرات worktree الحالية، ونجح TypeScript/Vite. الحزمة النهائية `index-uDuuYtsG.js`.
+- ثُبت `client/dist` و`jsx/index.jsx` داخل `%APPDATA%/Adobe/CEP/extensions/app.saadstudio.cep`، وتأكد أن `index.html` المثبت يشير إلى `index-uDuuYtsG.js`.
+- المتبقي Runtime Proof: إعادة تشغيل Premiere، فتح Multi-Cam Draft ذي cuts، ثم Analyze Auto Zoom وApply؛ معيار النجاح `effectsApplied > 0`. إعداد الكاميرات: Wide=V1، ومصادر كلام المقدم/الضيفين=V2/V3/V4، وصوت الكاميرا العامة Ignore.

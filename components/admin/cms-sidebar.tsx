@@ -36,6 +36,7 @@ const CMS_PAGES = [
   { id: "variations", label: "Variations", icon: Layers },
   { id: "pricing", label: "Pricing Page", icon: DollarSign },
   { id: "discover", label: "Global Footer", icon: PanelBottom },
+  { id: "cep", label: "CEP Extension Banners", icon: LayoutTemplate },
 ];
 
 export function CmsSidebar() {

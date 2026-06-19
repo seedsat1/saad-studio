@@ -12,6 +12,8 @@ export interface AutoZoomTimelineResult {
   adjustmentLayerCount: number;
   qeAvailable: boolean;
   newAdjustmentLayerAvailable: boolean;
+  directTransformAvailable: boolean;
+  executionMode: "adjustment-layer" | "direct-transform" | null;
   blockers: string[];
   warnings: string[];
 }
@@ -34,6 +36,7 @@ export interface AutoZoomApplyResult {
   effectsApplied: number;
   failedEvents: number;
   createdProjectItemName: string | null;
+  executionMode: "adjustment-layer" | "direct-transform" | null;
   eventResults: Array<{
     timeSec: number;
     endSec: number;

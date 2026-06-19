@@ -769,17 +769,32 @@
             result.videoTrackCount = seq.videoTracks ? seq.videoTracks.numTracks : 0;
             result.cutEventsSec = collectAutoZoomCutEvents(seq, null);
             result.adjustmentLayerCount = countAdjustmentLayersInProject(app.project.rootItem);
+            var appProjectAdjustmentLayerAvailable = false;
+            try {
+                appProjectAdjustmentLayerAvailable = !!app.project
+                    && typeof app.project.newAdjustmentLayer === "function";
+            } catch (eAppProjectAdjustment) {}
             try {
                 app.enableQE();
                 result.qeAvailable = typeof qe !== "undefined" && !!qe.project;
-                result.newAdjustmentLayerAvailable = result.qeAvailable
-                    && typeof qe.project.newAdjustmentLayer === "function";
+                result.newAdjustmentLayerAvailable = appProjectAdjustmentLayerAvailable
+                    || (result.qeAvailable && typeof qe.project.newAdjustmentLayer === "function");
+                try {
+                    result.directTransformAvailable = result.qeAvailable
+                        && !!qe.project.getVideoEffectByName("Transform");
+                } catch (eTransformProbe) {}
             } catch (eQE) {
                 result.warnings.push("QE_RUNTIME_UNAVAILABLE:" + String(eQE.message || eQE));
+                result.newAdjustmentLayerAvailable = appProjectAdjustmentLayerAvailable;
             }
-            if (result.videoTrackCount < 2) result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
-            if (!result.cutEventsSec.length) result.warnings.push("NO_TIMELINE_CUTS_DETECTED");
-            if (!result.newAdjustmentLayerAvailable) result.blockers.push("NEW_ADJUSTMENT_LAYER_RUNTIME_UNAVAILABLE");
+            result.executionMode = result.newAdjustmentLayerAvailable
+                ? "adjustment-layer"
+                : (result.directTransformAvailable ? "direct-transform" : null);
+            if (result.executionMode === "adjustment-layer" && result.videoTrackCount < 2) {
+                result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
+            }
+            if (!result.cutEventsSec.length) result.blockers.push("NO_TIMELINE_CUTS_DETECTED");
+            if (!result.executionMode) result.blockers.push("AUTO_ZOOM_EFFECT_RUNTIME_UNAVAILABLE");
             result.ok = result.blockers.length === 0;
             return result;
         });
@@ -806,12 +821,8 @@
                 var analyzedIndex = Number(analyzedTracks[a]);
                 if (analyzedIndex > maxAnalyzedTrackIndex) maxAnalyzedTrackIndex = analyzedIndex;
             }
-            if (!seq.videoTracks || targetTrackIndex < 0 || targetTrackIndex >= seq.videoTracks.numTracks) {
-                result.blockers.push("AUTO_ZOOM_TARGET_TRACK_NOT_FOUND");
-                return result;
-            }
-            if (targetTrackIndex <= maxAnalyzedTrackIndex) {
-                result.blockers.push("AUTO_ZOOM_TARGET_TRACK_MUST_BE_ABOVE_ANALYZED_TRACKS");
+            if (!seq.videoTracks) {
+                result.blockers.push("AUTO_ZOOM_VIDEO_TRACKS_NOT_FOUND");
                 return result;
             }
             var styles = normalizeAutoZoomStyles(input.styles);
@@ -831,15 +842,35 @@
                 result.blockers.push("NO_AUTO_ZOOM_EVENTS");
                 return result;
             }
-            var adjustmentItem = getOrCreateAutoZoomAdjustmentLayer(seq, zoomDurationSec, result);
-            if (!adjustmentItem) {
-                if (!result.blockers.length) result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
+            var adjustmentRuntimeAvailable = hasAutoZoomAdjustmentLayerRuntime();
+            var directTransformAvailable = hasAutoZoomDirectTransformRuntime();
+            var executionMode = adjustmentRuntimeAvailable ? "adjustment-layer" : (directTransformAvailable ? "direct-transform" : null);
+            result.executionMode = executionMode;
+            if (!executionMode) {
+                result.blockers.push("AUTO_ZOOM_EFFECT_RUNTIME_UNAVAILABLE");
                 return result;
             }
-            result.createdProjectItemName = adjustmentItem.name || null;
-            moveGeneratedProjectItemToBin(adjustmentItem, "Auto Zoom", result);
-            var targetTrack = seq.videoTracks[targetTrackIndex];
-            try { targetTrack.name = "Saad Auto Zoom"; } catch (eTrackName) {}
+            var adjustmentItem = null;
+            var targetTrack = null;
+            if (executionMode === "adjustment-layer") {
+                if (targetTrackIndex < 0 || targetTrackIndex >= seq.videoTracks.numTracks) {
+                    result.blockers.push("AUTO_ZOOM_TARGET_TRACK_NOT_FOUND");
+                    return result;
+                }
+                if (targetTrackIndex <= maxAnalyzedTrackIndex) {
+                    result.blockers.push("AUTO_ZOOM_TARGET_TRACK_MUST_BE_ABOVE_ANALYZED_TRACKS");
+                    return result;
+                }
+                adjustmentItem = getOrCreateAutoZoomAdjustmentLayer(seq, zoomDurationSec, result);
+                if (!adjustmentItem) {
+                    if (!result.blockers.length) result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
+                    return result;
+                }
+                result.createdProjectItemName = adjustmentItem.name || null;
+                moveGeneratedProjectItemToBin(adjustmentItem, "Auto Zoom", result);
+                targetTrack = seq.videoTracks[targetTrackIndex];
+                try { targetTrack.name = "Saad Auto Zoom"; } catch (eTrackName) {}
+            }
             for (var i = 0; i < selectedEvents.length; i++) {
                 var startSec = selectedEvents[i];
                 var endSec = Math.min(readSequenceDurationSec(seq), startSec + zoomDurationSec);
@@ -853,13 +884,21 @@
                     error: null
                 };
                 try {
-                    targetTrack.overwriteClip(adjustmentItem, secondsToTicksString(startSec));
-                    var inserted = findTrackItemAtTime(targetTrack, startSec, adjustmentItem.name || "");
-                    if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
-                    eventResult.inserted = true;
-                    result.adjustmentLayersInserted += 1;
-                    if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, result)) {
-                        throw new Error("Transform effect or Scale keyframes could not be applied.");
+                    if (executionMode === "adjustment-layer") {
+                        targetTrack.overwriteClip(adjustmentItem, secondsToTicksString(startSec));
+                        var inserted = findTrackItemAtTime(targetTrack, startSec, adjustmentItem.name || "");
+                        if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
+                        eventResult.inserted = true;
+                        result.adjustmentLayersInserted += 1;
+                        if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, result)) {
+                            throw new Error("Transform effect or Scale keyframes could not be applied.");
+                        }
+                    } else {
+                        var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, startSec);
+                        if (!directTarget) throw new Error("No source clip covers the Auto Zoom event.");
+                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, endSec, style, maxZoomPercentage, result)) {
+                            throw new Error("Transform effect or Scale keyframes could not be applied to the source clip.");
+                        }
                     }
                     eventResult.effectApplied = true;
                     result.effectsApplied += 1;
@@ -869,10 +908,12 @@
                 }
                 result.eventResults.push(eventResult);
             }
-            result.timelineMutation = "adjustment layers added on V" + (targetTrackIndex + 1);
+            result.timelineMutation = executionMode === "adjustment-layer"
+                ? "adjustment layers added on V" + (targetTrackIndex + 1)
+                : "editable Transform effects added to analyzed source clips";
             result.ok = result.blockers.length === 0
-                && result.adjustmentLayersInserted > 0
-                && result.effectsApplied === result.adjustmentLayersInserted;
+                && result.effectsApplied > 0
+                && result.failedEvents === 0;
             if (!result.ok && !result.blockers.length) result.blockers.push("AUTO_ZOOM_PARTIAL_OR_FAILED");
             return result;
         });
@@ -883,7 +924,7 @@
             var decisions = cameraDecisions || [];
             var activeSeq = app.project && app.project.activeSequence;
             var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
-            if (isGeneratedPodcastTestSequenceName(activeSeqName)) {
+            if (isGeneratedPodcastTestSequenceName(activeSeqName) || isAutoSwitchDraftSequenceName(activeSeqName)) {
                 return {
                     ok: false,
                     strategy: "apply-camera-decisions-overlap-aware-visual-only",
@@ -895,7 +936,9 @@
                     segmentsSkipped: 0,
                     generatedTargetTrackName: "Saad Auto Switch",
                     segmentResults: [],
-                    blockers: ["ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
+                    blockers: [isAutoSwitchDraftSequenceName(activeSeqName)
+                        ? "ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT"
+                        : "ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
                     warnings: [],
                     errors: [],
                     originalTouched: false,
@@ -938,6 +981,9 @@
                 result.blockers.push(targetTrackInfo.blocker || "TARGET_OVERWRITECLIP_NOT_AVAILABLE");
                 result.ok = false;
                 return stripRuntimeSequence(result);
+            }
+            if (targetTrackInfo.usesOccupiedTrack) {
+                result.warnings.push("USING_OCCUPIED_TOP_VIDEO_TRACK_ON_SAFE_DUPLICATE");
             }
             try { targetTrack.name = result.generatedTargetTrackName; } catch (eTargetName) {
                 result.warnings.push("TARGET_TRACK_RENAME_UNSUPPORTED");
@@ -990,16 +1036,23 @@
         var result = {
             track: null,
             index: null,
-            blocker: null
+            blocker: null,
+            usesOccupiedTrack: false
         };
         if (!seq || !seq.videoTracks || seq.videoTracks.numTracks <= 0) {
             result.blocker = "TARGET_VIDEO_TRACK_NOT_AVAILABLE";
             return result;
         }
 
+        var highestWritableTrack = null;
+        var highestWritableIndex = null;
         for (var t = seq.videoTracks.numTracks - 1; t >= 0; t--) {
             var track = seq.videoTracks[t];
             if (!track || !track.overwriteClip) continue;
+            if (!highestWritableTrack) {
+                highestWritableTrack = track;
+                highestWritableIndex = t;
+            }
             var clips = track.clips;
             if (!clips || clips.numItems === 0) {
                 result.track = track;
@@ -1008,7 +1061,14 @@
             }
         }
 
-        result.blocker = "NO_EMPTY_TOP_VIDEO_TRACK_FOR_SAFE_OUTPUT";
+        if (highestWritableTrack) {
+            result.track = highestWritableTrack;
+            result.index = highestWritableIndex;
+            result.usesOccupiedTrack = true;
+            return result;
+        }
+
+        result.blocker = "NO_WRITABLE_VIDEO_TRACK_FOR_SAFE_OUTPUT";
         return result;
     }
 
@@ -1338,6 +1398,10 @@
 
     function isGeneratedPodcastTestSequenceName(name) {
         return detectGeneratedPodcastSequenceName(name).matched;
+    }
+
+    function isAutoSwitchDraftSequenceName(name) {
+        return String(name || "").indexOf(" - Saad Auto Switch Draft") !== -1;
     }
 
     function detectGeneratedPodcastSequenceName(name) {
@@ -2066,6 +2130,8 @@
             adjustmentLayerCount: 0,
             qeAvailable: false,
             newAdjustmentLayerAvailable: false,
+            directTransformAvailable: false,
+            executionMode: null,
             blockers: [],
             warnings: []
         };
@@ -2081,6 +2147,7 @@
             effectsApplied: 0,
             failedEvents: 0,
             createdProjectItemName: null,
+            executionMode: null,
             eventResults: [],
             blockers: [],
             warnings: [],
@@ -2219,6 +2286,58 @@
         return null;
     }
 
+    function hasAutoZoomAdjustmentLayerRuntime() {
+        try {
+            if (app.project && typeof app.project.newAdjustmentLayer === "function") return true;
+        } catch (eAppProjectAdjustment) {}
+        try {
+            app.enableQE();
+            return typeof qe !== "undefined"
+                && !!qe.project
+                && typeof qe.project.newAdjustmentLayer === "function";
+        } catch (eQEAdjustment) {}
+        return false;
+    }
+
+    function hasAutoZoomDirectTransformRuntime() {
+        try {
+            app.enableQE();
+            return typeof qe !== "undefined"
+                && !!qe.project
+                && !!qe.project.getVideoEffectByName("Transform");
+        } catch (eTransformRuntime) {}
+        return false;
+    }
+
+    function findAutoZoomSourceClipAtTime(seq, trackIndexes, timeSec) {
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return null;
+        var best = null;
+        var indexes = trackIndexes || [];
+        for (var i = indexes.length - 1; i >= 0; i--) {
+            var trackIndex = Number(indexes[i]);
+            if (trackIndex < 0 || trackIndex >= tracks.numTracks) continue;
+            var clips = tracks[trackIndex] && tracks[trackIndex].clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var clip = clips[c];
+                var start = readTimeSeconds(clip && clip.start);
+                var end = readTimeSeconds(clip && clip.end);
+                if (timeSec + 0.001 < start || timeSec >= end - 0.001) continue;
+                if (!best || Math.abs(start - timeSec) < best.distance) {
+                    best = {
+                        trackIndex: trackIndex,
+                        clipIndex: c,
+                        clip: clip,
+                        distance: Math.abs(start - timeSec)
+                    };
+                }
+            }
+            if (best && best.distance < 0.05) return best;
+        }
+        return best;
+    }
+
     function getOrCreateAutoZoomAdjustmentLayer(seq, durationSec, result) {
         var bin = getOrCreateSaadGeneratedToolBin("Auto Zoom");
         var children = bin && bin.children;
@@ -2233,12 +2352,26 @@
         }
         var beforeIds = {};
         collectAdjustmentLayerNodeIds(app.project.rootItem, beforeIds);
+        var appProjectCreatorAvailable = false;
+        var qeCreatorAvailable = false;
+        try {
+            appProjectCreatorAvailable = !!app.project
+                && typeof app.project.newAdjustmentLayer === "function";
+        } catch (eAppProjectCreator) {}
         try { app.enableQE(); } catch (eEnableQE) {
-            result.blockers.push("QE_RUNTIME_UNAVAILABLE");
-            result.errors.push(String(eEnableQE.message || eEnableQE));
-            return null;
+            if (!appProjectCreatorAvailable) {
+                result.blockers.push("QE_RUNTIME_UNAVAILABLE");
+                result.errors.push(String(eEnableQE.message || eEnableQE));
+                return null;
+            }
+            result.warnings.push("QE_RUNTIME_UNAVAILABLE");
         }
-        if (typeof qe === "undefined" || !qe.project || typeof qe.project.newAdjustmentLayer !== "function") {
+        try {
+            qeCreatorAvailable = typeof qe !== "undefined"
+                && !!qe.project
+                && typeof qe.project.newAdjustmentLayer === "function";
+        } catch (eQECreator) {}
+        if (!appProjectCreatorAvailable && !qeCreatorAvailable) {
             result.blockers.push("NEW_ADJUSTMENT_LAYER_RUNTIME_UNAVAILABLE");
             return null;
         }
@@ -2247,15 +2380,22 @@
         var fps = 25;
         try { fps = PREMIERE_TICKS_PER_SECOND / Number(seq.timebase || PREMIERE_TICKS_PER_SECOND / 25); } catch (eFps) {}
         var created = null;
-        for (var a = 0; a < 3 && !created; a++) {
+        for (var a = 0; a < 6 && !created; a++) {
             try {
-                if (a === 0) qe.project.newAdjustmentLayer(width, height, 1, 1, fps, durationSec);
-                if (a === 1) qe.project.newAdjustmentLayer(width, height, 1, 1, Math.round(fps), durationSec);
-                if (a === 2) qe.project.newAdjustmentLayer(width, height, 1, fps, durationSec);
+                var returned = null;
+                if (a === 0 && appProjectCreatorAvailable) returned = app.project.newAdjustmentLayer(width, height, 1, 1, fps, durationSec);
+                if (a === 1 && appProjectCreatorAvailable) returned = app.project.newAdjustmentLayer(width, height, 1, 1, Math.round(fps), durationSec);
+                if (a === 2 && appProjectCreatorAvailable) returned = app.project.newAdjustmentLayer(width, height, 1, fps, durationSec);
+                if (a === 3 && qeCreatorAvailable) returned = qe.project.newAdjustmentLayer(width, height, 1, 1, fps, durationSec);
+                if (a === 4 && qeCreatorAvailable) returned = qe.project.newAdjustmentLayer(width, height, 1, 1, Math.round(fps), durationSec);
+                if (a === 5 && qeCreatorAvailable) returned = qe.project.newAdjustmentLayer(width, height, 1, fps, durationSec);
+                try {
+                    if (returned && returned.isAdjustmentLayer && returned.isAdjustmentLayer()) created = returned;
+                } catch (eReturnedAdjustment) {}
             } catch (eCreate) {
                 result.warnings.push("ADJUSTMENT_LAYER_SIGNATURE_" + (a + 1) + "_FAILED");
             }
-            created = findNewAdjustmentLayer(app.project.rootItem, beforeIds);
+            if (!created) created = findNewAdjustmentLayer(app.project.rootItem, beforeIds);
         }
         if (!created) {
             result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
@@ -2288,8 +2428,9 @@
         var qeSeq = qe.project.getActiveSequence();
         if (!qeSeq) return false;
         var qeTrack = qeSeq.getVideoTrackAt(trackIndex);
-        if (!qeTrack || clipIndex < 0 || clipIndex >= qeTrack.numItems) return false;
-        var qeClip = qeTrack.getItemAt(clipIndex);
+        if (!qeTrack) return false;
+        var clipStartSec = readTimeSeconds(clip && clip.start);
+        var qeClip = findQeVideoItemAtTime(qeTrack, clipStartSec, clipIndex);
         if (!qeClip || !qeClip.addVideoEffect) return false;
         var transform = null;
         try { transform = qe.project.getVideoEffectByName("Transform"); } catch (eEffect) {}
@@ -2301,13 +2442,21 @@
             result.warnings.push("TRANSFORM_VIDEO_EFFECT_ADD_FAILED");
             return false;
         }
-        var component = findAutoZoomTransformComponent(clip);
-        if (!component) return false;
+        var refreshed = findTrackItemAtTime(seq.videoTracks[trackIndex], clipStartSec, "");
+        var refreshedClip = refreshed && refreshed.clip ? refreshed.clip : clip;
+        var component = findAutoZoomTransformComponent(refreshedClip);
+        if (!component) {
+            result.warnings.push("TRANSFORM_COMPONENT_NOT_VISIBLE_AFTER_ADD");
+            return false;
+        }
         var scaleWidth = findComponentPropertyByNames(component, ["Scale Width", "Scale"]);
         var scaleHeight = findComponentPropertyByNames(component, ["Scale Height"]);
         if (!scaleWidth && component.properties && component.properties.numItems > 3) scaleWidth = component.properties[3];
         if (!scaleHeight && component.properties && component.properties.numItems > 2) scaleHeight = component.properties[2];
-        if (!scaleWidth) return false;
+        if (!scaleWidth) {
+            result.warnings.push("TRANSFORM_SCALE_PROPERTY_NOT_FOUND");
+            return false;
+        }
         var maxScale = zoomRatio * 100;
         if (style === "jump") {
             setComponentPropertyStatic(scaleWidth, maxScale);
@@ -2327,6 +2476,24 @@
         var heightOk = true;
         if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, keys);
         return widthOk && heightOk;
+    }
+
+    function findQeVideoItemAtTime(qeTrack, startSec, preferredIndex) {
+        if (!qeTrack) return null;
+        if (preferredIndex >= 0 && preferredIndex < qeTrack.numItems) {
+            try {
+                var preferred = qeTrack.getItemAt(preferredIndex);
+                if (preferred && Math.abs(readTimeSeconds(preferred.start) - startSec) < 0.05) return preferred;
+            } catch (ePreferred) {}
+        }
+        for (var i = 0; i < qeTrack.numItems; i++) {
+            try {
+                var item = qeTrack.getItemAt(i);
+                if (!item || !item.addVideoEffect) continue;
+                if (Math.abs(readTimeSeconds(item.start) - startSec) < 0.05) return item;
+            } catch (eItem) {}
+        }
+        return null;
     }
 
     function findAutoZoomTransformComponent(clip) {
@@ -2361,7 +2528,8 @@
     function setComponentPropertyStatic(property, value) {
         try {
             if (property.setTimeVarying) property.setTimeVarying(false);
-            return property.setValue(value, true) === 0;
+            var result = property.setValue(value, true);
+            return result === 0 || result === true || typeof result === "undefined";
         } catch (eSet) { return false; }
     }
 
