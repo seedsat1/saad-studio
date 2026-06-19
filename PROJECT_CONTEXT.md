@@ -249,3 +249,62 @@
 - أُعيد بناء عميل CEP بعد دمج جميع تغييرات worktree الحالية، ونجح TypeScript/Vite. الحزمة النهائية `index-uDuuYtsG.js`.
 - ثُبت `client/dist` و`jsx/index.jsx` داخل `%APPDATA%/Adobe/CEP/extensions/app.saadstudio.cep`، وتأكد أن `index.html` المثبت يشير إلى `index-uDuuYtsG.js`.
 - المتبقي Runtime Proof: إعادة تشغيل Premiere، فتح Multi-Cam Draft ذي cuts، ثم Analyze Auto Zoom وApply؛ معيار النجاح `effectsApplied > 0`. إعداد الكاميرات: Wide=V1، ومصادر كلام المقدم/الضيفين=V2/V3/V4، وصوت الكاميرا العامة Ignore.
+## إصلاح Camera Mapping التلقائي عند تبديل Sequence (2026-06-19)
+
+- Runtime Proof بالصورة أثبت أن المستخدم لم يغيّر التوزيع، لكن الواجهة حملت mapping سابقًا: A1→V1 مع بقاء Wide غير معيّن. السبب أن `clearSequenceRuntimeState` لم يمسح `state.mappings` عند تغير Active Sequence.
+- صار تبديل Sequence يمسح mappings القديمة و`cameraMappingTouched`. بعد Analyze، إذا لم يتدخل المستخدم، يُكتشف مسار Wide من اسم الكاميرا ويُربط تلقائيًا، ويُتجاهل صوت المسار الواسع، وتُربط بقية مسارات الصوت بمسارات الفيديو المناظرة التي تحتوي clips فقط.
+- نجح TypeScript/Vite build و`git diff --check`، وثُبت bundle `index-iSyUQVvd.js` وتأكد مرجع `index.html`. المتبقي Runtime Proof: بعد إعادة تشغيل Premiere وAnalyze يجب أن يظهر A1 Ignore وA2→V2 وA3→V3 وA4→V4 وWide→V1 في fixture الحالي.
+## تراجع عن مسح Camera Mapping (2026-06-19)
+
+- Runtime Proof أثبت أن مسح mappings عند الانتقال التلقائي إلى Multi-Cam Draft جعل جميع الحقول Ignore وسبب تراجعًا في UX. أزيل مسح `state.mappings` و`cameraMappingTouched` وأزيل التعيين الافتراضي المفترض؛ تبقى اختيارات المستخدم محفوظة أثناء تبديل tabs داخل جلسة الصفحة.
+- لم تتغير حواجز منع Analyze/Preview/Apply على الـDraft، ولم يُمس إصلاح Auto Zoom.
+- نجح TypeScript/Vite build و`git diff --check`، وثُبت bundle `index-C-MgUi_k.js`. المتبقي: إعادة تشغيل Premiere والتحقق أن mapping لا يختفي عند فتح الـDraft.
+
+## مراجعة AutoSplice كمرجع خارجي (2026-06-19)
+
+- روجع المشروع المحلي `E:\Multi-Cam Auto Switch\autosplice-main\autosplice-main` قراءةً فقط. هو CEP/React/TypeScript مفتوح المصدر بترخيص MIT، ويستخدم FFmpeg وRMS وQE DOM.
+- المفيد القابل للتكييف: اختيار أعلى متحدث مع فرق dB لمنع crosstalk، hysteresis للفترات المبهمة، دمج المقاطع الأقصر من الحد الأدنى، وإدراج الكاميرا العامة دوريًا وفق `wideShotFrequencySeconds`.
+- لا يحتوي المصدر تنفيذ Auto Zoom فعليًا؛ توجد types/defaults ووثيقة تصميم تقترح تعديل Motion > Scale، لذلك لا يُعد حلًا مثبتًا لمشكلة Auto Zoom الحالية.
+- مسار Apply فيه يقطع كل مسارات الفيديو عبر QE ثم يرفع الكاميرات غير النشطة من الـactive sequence مباشرة. القرار: لا يُنسخ كما هو؛ إن استُخدم فسيُكيّف داخل safe duplicate مع Runtime Proof على Premiere 26.2.0، لأن README يعلن دعم Premiere 22–25 فقط.
+- خطأ/قيد مكتشف: تحليل Multi-Cam في المرجع يأخذ أول audio clip من كل مسار، ما قد لا يغطي timelines متعددة المقاطع. لم تُشغّل اختباراته لأن المراجعة كانت read-only خارج workspace.
+- الملفات المتأثرة في هذه المهمة: `PROJECT_CONTEXT.md` و`docs/saad-studio-premiere-reference-ar.md` فقط. المتبقي: تنفيذ مقتطفات الخوارزمية تدريجيًا بعد موافقة المستخدم، بدءًا بالكاميرا العامة/منطق المتحدث، ثم اختبار Auto Zoom مستقلًا.
+
+## إيقاف التعديلات التجريبية على Multi-Cam (2026-06-19)
+
+- Runtime Proof بالصورة كشف حالة متناقضة: `A1 -> CAM WIDE (V1)` بينما حقل `Wide` بقي `No wide camera`. بذلك يُعامل صوت الكاميرا العامة كمتحدث وتُحرم الخطة من قرار Wide مستقل.
+- القرار: تجميد أي تعديل إضافي أو تعيين تلقائي حتى تثبيت fixture قبول واحد: A1 العامة Ignore، A2→V2، A3→V3، A4→V4، وWide→V1، ثم Analyze/Preview على المصدر وApply مرة واحدة على duplicate.
+- لم يُعدّل كود الإضافة في هذه المهمة. الملف المتأثر هو `PROJECT_CONTEXT.md` فقط. الخطوة المتبقية: إصلاح دورة mapping كمسألة مستقلة باختبار حالة، وعدم لمس Auto Zoom في التغيير نفسه.
+
+## إصلاح فرض Minimum Shot Length (2026-06-19)
+
+- Runtime Proof بالصورة أظهر مقطع إخراج أقصر من قيمة `Minimum Shot Length = 2`؛ كانت الخوارزمية تدمج القصير باتجاه واحد ولا تتحقق من invariant بعد الدمج النهائي، كما أن تغيير الحقل لا يبطل Preview القديم.
+- أعيدت خوارزمية الدمج لتزيل تكراريًا كل قرار أقصر من الحد عبر الجار الأنسب، مع دمج الكاميرتين المتطابقتين حوله. أضيف blocker نهائي `MINIMUM_SHOT_LENGTH_NOT_ENFORCED` إذا بقي قرار قصير، وحارس Runtime يرفض Apply إذا قصّر source overlap المقطع عن الحد.
+- تغيير القيمة يمسح خطة Preview ونتيجة Apply، ويجب تشغيل Preview جديد. تمرر القيمة الآن إلى JSX ولا يعتمد Host على افتراض 2 ثانية ثابتًا.
+- الملفات المتأثرة: `camera-decision-plan-service.ts`، `multi-cam-auto-switch.ts`، `premiere.ts`، `premiere-podcast-adapter.ts`، `jsx/index.jsx`، والذاكرة.
+- التحقق: نجحت 3 fixtures (قصير في الوسط/البداية/النهاية)، ونجح TypeScript/Vite build، وفحص JSX، و`git diff --check`. ثُبتت الحزمة `index-BJnvElj9.js` وJSX في CEP.
+- خطأ تثبيت عابر: استخدام `Copy-Item -LiteralPath` مع wildcard لم ينسخ dist وبقيت الحزمة القديمة؛ أُعيد النسخ بـ`-Path` وتأكد تطابق `index.html`. المتبقي Runtime Proof داخل Premiere بعد إعادة تشغيله: Preview جديد ثم Apply على duplicate والتأكد أن كل مقاطع V5 لا تقل عن ثانيتين.
+
+## مؤثر انتظار موحّد في بطاقات Podcast (2026-06-19)
+
+- أضيف مؤثر petals صغير باللون `#5c3d99` بجانب النص `Waiting` عبر دالتي `renderStatusPill` و`renderSummaryTile`؛ بذلك يغطي كل حالات Waiting الحالية في شاشة Podcast دون تغيير منطق الأدوات.
+- استُخدمت classes خاصة `podcast-wait-loader*` بدل `.loader` العامة لتجنب تعارض CSS، وأضيف دعم `prefers-reduced-motion`. حجم المؤثر 22×18px ويحافظ على أبعاد البطاقات.
+- الملفات المتأثرة: `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts` و`adobe/saadstudio-cep/client/src/styles/components.css` و`PROJECT_CONTEXT.md`.
+- نجح TypeScript/Vite build و`git diff --check`، وثُبتت الحزمة `index-BNcxKAR0.js` وتأكد مرجع `index.html`. لا أخطاء جديدة. المتبقي: تحقق بصري داخل Premiere بعد إعادة تشغيله.
+
+## استبدال مؤثر Waiting بمؤثر Processing شرطي (2026-06-19)
+
+- Runtime Proof البصري أثبت أن مؤثر petals السابق ظهر دائمًا بجانب `Waiting` وكان صغيرًا/مشوهًا. حُذف من دالتي بطاقات الحالة والملخص ومن CSS بالكامل.
+- أضيف مؤثر SVG عريض على هيئة chip ومسارات كهربائية متحركة بألوان Uiverse المرجعية. لا يظهر عند حالة Waiting الساكنة؛ يظهر فقط بين ضغط زر الإنتاج وانتهاء العملية، داخل القسم النشط نفسه: Synchronize أو Multi-Cam أو Silence Removal أو Auto Zoom.
+- المؤثر يستخدم مساحة بعرض البطاقة وارتفاع 112px، يعرض اسم العملية الحالية، يدعم `prefers-reduced-motion`، ولا يغيّر حالات الأدوات أو Runtime.
+- الملفات المتأثرة: `multi-cam-auto-switch.ts` و`components.css` و`PROJECT_CONTEXT.md`. نجح TypeScript/Vite build و`git diff --check`.
+- ثُبتت الحزمة `index-Btvots0n.js`. تحقق التثبيت آليًا من غياب `podcast-wait-loader` ووجود `podcast-process-loader` في الحزمة النشطة. المتبقي تحقق بصري داخل Premiere عند الضغط على زر يستغرق وقتًا.
+## تثبيت اختيار مسار Auto Zoom (2026-06-19)
+
+- الخطأ المكتشف: مكوّن `select` في Auto Zoom كان يضع `value` كصفة HTML قبل إنشاء الخيارات؛ عند كل `render()` كان المتصفح يعرض أول خيار V1 حتى لو اختار المستخدم V2–V5.
+- أُصلح بناء قائمتي المسارات بإسناد خاصية DOM `select.value` بعد إضافة الخيارات. تغيير Analyze Track يبطل نتيجة التحليل القديمة، ويحافظ على الاختيار المرئي حتى التحليل والتطبيق.
+- صار `inspectAutoZoomTimeline` يستقبل `analyzedVideoTrackIndexes` ويحسب cuts للمسار المختار فقط، ويحفظ المسار داخل نتيجة التحليل. Apply يستخدم المسار المثبت في نتيجة التحليل بدل قراءة حالة واجهة قابلة للتغير.
+- الملفات المتأثرة: `client/src/pages/multi-cam-auto-switch.ts`، `client/src/lib/podcast/services/auto-zoom-service.ts`، `jsx/index.jsx`.
+- التحقق: نجح TypeScript/Vite build وأنتج `index-W31P0V8I.js`، ونجح فحص JSX و`git diff --check`.
+- ثُبتت الحزمة `index-W31P0V8I.js` وملف JSX داخل CEP النشط، وتطابقت بصمة JSX، وأكدت القراءة المرتفعة أن `index.html` يشير إلى الحزمة وأنها تحتوي payload المسار.
+- خطأ تحقق عابر مسجل: قراءة `%APPDATA%` دون صلاحية مرتفعة رُفضت؛ أُعيد فحص القراءة بالصلاحية المناسبة ونجح. لا يؤثر ذلك في ملفات الإضافة.
+- المتبقي: Runtime Proof باختيار V5، Analyze، ثم Apply؛ يجب بقاء V5 ظاهرًا وحساب cuts من V5 وحده.

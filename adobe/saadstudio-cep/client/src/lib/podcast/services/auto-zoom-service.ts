@@ -8,6 +8,7 @@ export interface AutoZoomTimelineResult {
   sequenceId: string | null;
   durationSec: number;
   videoTrackCount: number;
+  analyzedVideoTrackIndexes: number[];
   cutEventsSec: number[];
   adjustmentLayerCount: number;
   qeAvailable: boolean;
@@ -16,6 +17,10 @@ export interface AutoZoomTimelineResult {
   executionMode: "adjustment-layer" | "direct-transform" | null;
   blockers: string[];
   warnings: string[];
+}
+
+export interface AutoZoomInspectionSettings {
+  analyzedVideoTrackIndexes: number[];
 }
 
 export interface AutoZoomApplySettings {
@@ -50,8 +55,8 @@ export interface AutoZoomApplyResult {
   timelineMutation: string;
 }
 
-export async function inspectAutoZoomTimeline(): Promise<AutoZoomTimelineResult> {
-  return evalES<AutoZoomTimelineResult>("inspectAutoZoomTimeline");
+export async function inspectAutoZoomTimeline(settings: AutoZoomInspectionSettings): Promise<AutoZoomTimelineResult> {
+  return evalES<AutoZoomTimelineResult>("inspectAutoZoomTimeline", settings);
 }
 
 export async function applyAutoZoom(settings: AutoZoomApplySettings): Promise<AutoZoomApplyResult> {

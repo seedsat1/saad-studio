@@ -76,7 +76,11 @@ export class PremierePodcastAdapter implements PremierePodcastAdapterContract {
   }
 
   applyCameraDecisionsVisualOnly(input: ApplyCameraDecisionsVisualOnlyInput): Promise<ApplyCameraDecisionsVisualOnlyResult> {
-    return evalES<ApplyCameraDecisionsVisualOnlyResult>("applyPodcastCameraDecisionsOverlapAwareVisualOnly", input.cameraDecisions);
+    return evalES<ApplyCameraDecisionsVisualOnlyResult>(
+      "applyPodcastCameraDecisionsOverlapAwareVisualOnly",
+      input.cameraDecisions,
+      input.minimumShotLengthSec,
+    );
   }
 
   applySilenceRemovalVisualOnly(input: ApplySilenceRemovalVisualOnlyInput): Promise<SilenceRemovalApplyResult> {

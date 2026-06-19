@@ -74,6 +74,14 @@ export function generateCameraDecisionPlanProof(
   const finalDecisions = mergeAdjacentDecisions(compacted.decisions);
   const invalidDecisions = findInvalidDecisions(finalDecisions);
   if (invalidDecisions.length > 0) blockers.push("INVALID_CAMERA_DECISION_TIMING");
+  const remainingShortDecisions = finalDecisions.length > 1
+    ? finalDecisions.filter((decision) => decision.durationSec + 0.001 < minimumShotLengthSec)
+    : [];
+  if (remainingShortDecisions.length > 0) {
+    blockers.push("MINIMUM_SHOT_LENGTH_NOT_ENFORCED");
+    warnings.push(...remainingShortDecisions.map((decision, index) =>
+      `MINIMUM_SHOT_LENGTH_NOT_ENFORCED:${index}:${decision.durationSec}<${minimumShotLengthSec}`));
+  }
   const finalCameraIndexes = new Set(
     finalDecisions
       .map((decision) => decision.videoTrackIndex)
@@ -344,56 +352,53 @@ function mergeShortDecisions(decisions: PodcastCameraDecisionProofItem[], minimu
   decisions: PodcastCameraDecisionProofItem[];
   droppedShortDecisions: number;
 } {
-  const output: PodcastCameraDecisionProofItem[] = [];
+  let output = mergeAdjacentDecisions(sortDecisions(decisions).filter(isValidDecisionTiming));
   let droppedShortDecisions = 0;
-  const ordered = sortDecisions(decisions).filter(isValidDecisionTiming);
-  for (const decision of ordered) {
-    const previous = output[output.length - 1];
-    if (!previous) {
-      output.push({ ...decision });
-      if (decision.durationSec < minimumShotLengthSec) {
-        droppedShortDecisions += 1;
-        output[0].reason = "absorbed leading short decision below minimum shot length";
-      }
-      continue;
-    }
+  while (output.length > 1) {
+    const shortIndex = output.findIndex((decision) => decision.durationSec + 0.001 < minimumShotLengthSec);
+    if (shortIndex < 0) break;
 
-    if (decision.durationSec < minimumShotLengthSec) {
-      droppedShortDecisions += 1;
-      if (decision.startSec >= previous.endSec && decision.endSec > previous.endSec) {
-        previous.endSec = decision.endSec;
-        previous.durationSec = roundTime(previous.endSec - previous.startSec);
-        previous.reason = "absorbed short decision below minimum shot length";
-      }
-      continue;
-    }
+    const short = output[shortIndex];
+    const previous = shortIndex > 0 ? output[shortIndex - 1] : null;
+    const next = shortIndex + 1 < output.length ? output[shortIndex + 1] : null;
+    droppedShortDecisions += 1;
 
-    if (previous.durationSec < minimumShotLengthSec && decision.startSec >= previous.endSec) {
-      previous.endSec = decision.endSec;
+    if (previous && next && sameCamera(previous, next)) {
+      previous.endSec = next.endSec;
       previous.durationSec = roundTime(previous.endSec - previous.startSec);
-      previous.speakerId = decision.speakerId;
-      previous.audioTrackIndex = decision.audioTrackIndex;
-      previous.videoTrackIndex = decision.videoTrackIndex;
-      previous.cameraLabel = decision.cameraLabel;
-      previous.reason = "absorbed leading short decision below minimum shot length";
-      continue;
+      previous.reason = "absorbed short decision between matching cameras";
+      output.splice(shortIndex, 2);
+    } else if (!previous && next) {
+      next.startSec = short.startSec;
+      next.durationSec = roundTime(next.endSec - next.startSec);
+      next.reason = "absorbed leading short decision below minimum shot length";
+      output.splice(shortIndex, 1);
+    } else if (previous && !next) {
+      previous.endSec = short.endSec;
+      previous.durationSec = roundTime(previous.endSec - previous.startSec);
+      previous.reason = "absorbed trailing short decision below minimum shot length";
+      output.splice(shortIndex, 1);
+    } else if (previous && next && previous.durationSec >= next.durationSec) {
+      previous.endSec = short.endSec;
+      previous.durationSec = roundTime(previous.endSec - previous.startSec);
+      previous.reason = "absorbed short decision into previous camera";
+      output.splice(shortIndex, 1);
+    } else if (next) {
+      next.startSec = short.startSec;
+      next.durationSec = roundTime(next.endSec - next.startSec);
+      next.reason = "absorbed short decision into next camera";
+      output.splice(shortIndex, 1);
     }
 
-    if (decision.startSec >= previous.endSec) {
-      output.push({ ...decision });
-      continue;
-    }
-
-    if (decision.endSec > previous.endSec) {
-      const trimmed = {
-        ...decision,
-        startSec: previous.endSec,
-        durationSec: roundTime(decision.endSec - previous.endSec),
-      };
-      if (isValidDecisionTiming(trimmed)) output.push(trimmed);
-    }
+    output = mergeAdjacentDecisions(output);
   }
-  return { decisions: output.filter(isValidDecisionTiming), droppedShortDecisions };
+  return {
+    decisions: output.map((decision) => ({
+      ...decision,
+      durationSec: roundTime(decision.endSec - decision.startSec),
+    })).filter(isValidDecisionTiming),
+    droppedShortDecisions,
+  };
 }
 
 function normalizeMinimumShotLength(value: number | undefined): number {

@@ -166,6 +166,7 @@ export interface PodcastExecutionResearchResult {
 
 export interface ApplyCameraDecisionsVisualOnlyInput {
   cameraDecisions: PodcastCameraDecisionProofItem[];
+  minimumShotLengthSec: number;
 }
 
 export interface ApplySilenceRemovalVisualOnlyInput {

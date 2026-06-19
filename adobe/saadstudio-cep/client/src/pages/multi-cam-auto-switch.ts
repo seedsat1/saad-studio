@@ -290,6 +290,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           onClick: applySynchronization,
         }, state.synchronizationApplyLoading ? "Applying sync..." : "Apply Sync"),
       ),
+      state.synchronizationLoading || state.synchronizationApplyLoading
+        ? renderProcessingLoader(state.synchronizationApplyLoading ? "Applying synchronization" : "Analyzing synchronization")
+        : null,
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
         renderSummaryTile("Status", !plan ? "Not analyzed" : plan.offsetsReady ? "Offsets ready" : plan.ok ? "Analyzed" : "Blocked"),
         renderSummaryTile("Sequence", plan?.sequenceName || state.diagnostics.sequenceName || "No active sequence"),
@@ -403,6 +406,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
             value: String(state.minimumShotLengthSec),
             onInput: (event: Event) => {
               state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
               render();
             },
           })),
@@ -430,6 +435,15 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           onClick: runApplyCameraDecisionsPrototype,
         }, state.applyCameraDecisionsLoading ? "Applying..." : "Apply Auto Switch"),
       ),
+      state.timelineLoading || state.previewAutoSwitchLoading || state.applyCameraDecisionsLoading
+        ? renderProcessingLoader(
+          state.applyCameraDecisionsLoading
+            ? "Creating Auto Switch draft"
+            : state.previewAutoSwitchLoading
+              ? "Building camera preview"
+              : "Analyzing timeline",
+        )
+        : null,
       el("div.podcast-status-strip", null,
         renderStatusPill("Timeline", state.timelineLayout ? readableTimelineStatus() : "Not analyzed"),
         renderStatusPill("Preview", readablePreviewStatus()),
@@ -521,6 +535,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           onClick: removeSilence,
         }, state.silenceRemovalLoading ? "Removing..." : "Remove Silence"),
       ),
+      state.silenceRemovalLoading ? renderProcessingLoader("Removing silence") : null,
       renderSilenceSummary(),
     );
   }
@@ -555,6 +570,20 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       2,
     );
     const trackOptions = Array.from({ length: videoTrackCount }, (_, index) => index);
+    const renderTrackSelect = (
+      value: number,
+      onChange: (event: Event) => void,
+      disabled = false,
+    ): HTMLElement => {
+      const select = el("select.podcast-input", {
+        disabled,
+        onChange,
+      }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)));
+      // Setting a select's `value` as an HTML attribute does not select the option.
+      // Assign the DOM property after its options exist so rerenders preserve V2..V5.
+      (select as HTMLSelectElement).value = String(value);
+      return select;
+    };
     return el("div.podcast-production-card", { id: "podcast-auto-zoom-tool" },
       el("div.podcast-section-head", null,
         el("div", null,
@@ -564,22 +593,24 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       ),
       el("div.podcast-settings.podcast-settings--compact", null,
         renderField("Analyze Track",
-          el("select.podcast-input", {
-            value: String(state.autoZoomAnalyzedTrackIndex),
-            onChange: (event: Event) => {
+          renderTrackSelect(
+            state.autoZoomAnalyzedTrackIndex,
+            (event: Event) => {
               state.autoZoomAnalyzedTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
+              state.autoZoomInspection = null;
+              state.autoZoomApplyResult = null;
               render();
             },
-          }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)))),
+          )),
         renderField(inspection?.executionMode === "direct-transform" ? "Direct Transform" : "Adjustment Track",
-          el("select.podcast-input", {
-            disabled: inspection?.executionMode === "direct-transform",
-            value: String(state.autoZoomTargetTrackIndex),
-            onChange: (event: Event) => {
+          renderTrackSelect(
+            state.autoZoomTargetTrackIndex,
+            (event: Event) => {
               state.autoZoomTargetTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
               render();
             },
-          }, ...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)))),
+            inspection?.executionMode === "direct-transform",
+          )),
         renderField("Zoom Rhythm",
           el("input.podcast-input", {
             type: "range",
@@ -636,6 +667,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           onClick: runAutoZoom,
         }, state.autoZoomApplyLoading ? "Applying zooms..." : "Apply Auto Zoom"),
       ),
+      state.autoZoomInspectionLoading || state.autoZoomApplyLoading
+        ? renderProcessingLoader(state.autoZoomApplyLoading ? "Applying Auto Zoom" : "Analyzing Auto Zoom")
+        : null,
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
         renderSummaryTile("Runtime", inspection ? (inspection.executionMode ? "Ready" : "Blocked") : "Not analyzed"),
         renderSummaryTile("Cuts", inspection ? String(inspection.cutEventsSec.length) : "Waiting"),
@@ -1418,6 +1452,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           value: String(state.minimumShotLengthSec),
           onInput: (event: Event) => {
             state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+            state.cameraDecisionPlanProof = null;
+            state.applyCameraDecisionsResult = null;
             render();
           },
         })),
@@ -1739,6 +1775,36 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
+  function renderProcessingLoader(label: string): HTMLElement {
+    const traces = [
+      ["M18 24H170Q205 24 205 54H280", "yellow"],
+      ["M18 54H145Q180 54 180 76H280", "blue"],
+      ["M18 106H145Q180 106 180 84H280", "green"],
+      ["M18 136H170Q205 136 205 106H280", "purple"],
+      ["M782 24H630Q595 24 595 54H520", "red"],
+      ["M782 54H655Q620 54 620 76H520", "purple"],
+      ["M782 106H655Q620 106 620 84H520", "blue"],
+      ["M782 136H630Q595 136 595 106H520", "green"],
+    ];
+    const traceMarkup = traces.map(([path, color], index) =>
+      `<path class="podcast-process-trace-bg" d="${path}"/><path class="podcast-process-trace-flow podcast-process-${color}" style="animation-delay:-${index * 0.18}s" d="${path}"/>`,
+    ).join("");
+    const pins = Array.from({ length: 6 }, (_, index) => {
+      const y = 49 + index * 13;
+      return `<rect class="podcast-process-chip-pin" x="270" y="${y}" width="10" height="5" rx="1"/><rect class="podcast-process-chip-pin" x="520" y="${y}" width="10" height="5" rx="1"/>`;
+    }).join("");
+    return el("div.podcast-process-loader", { role: "status", "aria-live": "polite" },
+      el("div.podcast-process-loader__label", null,
+        el("span.podcast-process-loader__pulse", { "aria-hidden": "true" }),
+        label,
+      ),
+      el("div.podcast-process-loader__graphic", {
+        "aria-hidden": "true",
+        html: `<svg viewBox="0 0 800 160" preserveAspectRatio="xMidYMid meet" focusable="false">${traceMarkup}${pins}<rect class="podcast-process-chip-body" x="280" y="34" width="240" height="92" rx="20"/><rect class="podcast-process-chip-core" x="300" y="52" width="200" height="56" rx="12"/><text class="podcast-process-chip-text" x="400" y="76" text-anchor="middle">SAAD STUDIO</text><text class="podcast-process-chip-subtext" x="400" y="96" text-anchor="middle">PROCESSING</text></svg>`,
+      }),
+    );
+  }
+
   function readableTimelineStatus(): string {
     if (!state.timelineLayout) return "Not analyzed";
     if (isAutoSwitchDraftName(state.timelineLayout.sequenceName)) return "Draft selected";
@@ -1907,14 +1973,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   async function analyzeAutoZoom() {
     if (isProductionBusy()) return;
+    const analyzedTrackIndex = state.autoZoomAnalyzedTrackIndex;
     state.autoZoomInspectionLoading = true;
     state.autoZoomApplyResult = null;
     render();
     try {
-      state.autoZoomInspection = await inspectAutoZoomTimeline();
+      state.autoZoomInspection = await inspectAutoZoomTimeline({
+        analyzedVideoTrackIndexes: [analyzedTrackIndex],
+      });
       const count = state.autoZoomInspection.videoTrackCount;
-      if (count > 0) {
-        state.autoZoomAnalyzedTrackIndex = Math.min(state.autoZoomAnalyzedTrackIndex, count - 1);
+      if (count > 0 && analyzedTrackIndex < count) {
+        state.autoZoomAnalyzedTrackIndex = analyzedTrackIndex;
         state.autoZoomTargetTrackIndex = Math.min(Math.max(state.autoZoomTargetTrackIndex, 1), count - 1);
       }
     } catch (err) {
@@ -1924,6 +1993,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         sequenceId: null,
         durationSec: 0,
         videoTrackCount: 0,
+        analyzedVideoTrackIndexes: [analyzedTrackIndex],
         cutEventsSec: [],
         adjustmentLayerCount: 0,
         qeAvailable: false,
@@ -1946,7 +2016,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     try {
       state.autoZoomApplyResult = await applyAutoZoom({
         targetVideoTrackIndex: state.autoZoomTargetTrackIndex,
-        analyzedVideoTrackIndexes: [state.autoZoomAnalyzedTrackIndex],
+        analyzedVideoTrackIndexes: state.autoZoomInspection.analyzedVideoTrackIndexes,
         rhythmPercentage: state.autoZoomRhythmPercentage,
         maxZoomPercentage: state.autoZoomMaxPercentage,
         zoomDurationSec: state.autoZoomDurationSec,
@@ -2389,7 +2459,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.applyTrace.applyCameraDecisionsCalled = true;
       pushApplyCheckpoint(state.applyTrace, "APPLY_DECISIONS_START");
       state.applyCameraDecisionsResult = bindApplyResultToTimeline(
-        await applyCameraDecisionsVisualOnly({ cameraDecisions }),
+        await applyCameraDecisionsVisualOnly({
+          cameraDecisions,
+          minimumShotLengthSec: state.minimumShotLengthSec,
+        }),
         state.timelineLayout,
       );
       if (state.applyCameraDecisionsResult.duplicateSequenceID) {

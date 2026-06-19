@@ -751,8 +751,9 @@
         });
     };
 
-    host.saadstudio.inspectAutoZoomTimeline = function () {
+    host.saadstudio.inspectAutoZoomTimeline = function (settings) {
         return safe(function () {
+            var input = settings || {};
             var result = emptyAutoZoomInspectionResult();
             if (!IS_PPRO) {
                 result.blockers.push("PREMIERE_REQUIRED");
@@ -767,7 +768,16 @@
             result.sequenceId = readSequenceID(seq);
             result.durationSec = readSequenceDurationSec(seq);
             result.videoTrackCount = seq.videoTracks ? seq.videoTracks.numTracks : 0;
-            result.cutEventsSec = collectAutoZoomCutEvents(seq, null);
+            var analyzedTracks = input.analyzedVideoTrackIndexes || [0];
+            for (var trackIndex = 0; trackIndex < analyzedTracks.length; trackIndex++) {
+                var normalizedTrackIndex = Number(analyzedTracks[trackIndex]);
+                if (normalizedTrackIndex < 0 || normalizedTrackIndex >= result.videoTrackCount) {
+                    result.blockers.push("AUTO_ZOOM_ANALYZED_TRACK_NOT_FOUND");
+                    continue;
+                }
+                result.analyzedVideoTrackIndexes.push(normalizedTrackIndex);
+            }
+            result.cutEventsSec = collectAutoZoomCutEvents(seq, result.analyzedVideoTrackIndexes);
             result.adjustmentLayerCount = countAdjustmentLayersInProject(app.project.rootItem);
             var appProjectAdjustmentLayerAvailable = false;
             try {
@@ -919,9 +929,12 @@
         });
     };
 
-    host.saadstudio.applyPodcastCameraDecisionsOverlapAwareVisualOnly = function (cameraDecisions) {
+    host.saadstudio.applyPodcastCameraDecisionsOverlapAwareVisualOnly = function (cameraDecisions, minimumShotLengthSec) {
         return safe(function () {
             var decisions = cameraDecisions || [];
+            var minimumShotLength = Number(minimumShotLengthSec);
+            if (!isFinite(minimumShotLength)) minimumShotLength = 2;
+            minimumShotLength = Math.max(0.5, Math.min(10, minimumShotLength));
             var activeSeq = app.project && app.project.activeSequence;
             var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
             if (isGeneratedPodcastTestSequenceName(activeSeqName) || isAutoSwitchDraftSequenceName(activeSeqName)) {
@@ -990,6 +1003,7 @@
             }
 
             var prepared = [];
+            var belowMinimumCount = 0;
             for (var i = 0; i < decisions.length; i++) {
                 var preparedSegment = prepareVisualOnlyCameraDecisionSegment(seq, decisions[i], i);
                 result.segmentResults.push(preparedSegment.publicResult);
@@ -1001,6 +1015,18 @@
                 if (preparedSegment.publicResult.matchType === "PARTIAL_MATCH") {
                     result.warnings.push("PARTIAL_MATCH_GAP decision " + (i + 1) + " uses overlap only.");
                 }
+                if (preparedSegment.subclip
+                    && preparedSegment.publicResult.overlapDurationSec + 0.001 < minimumShotLength
+                    && decisions.length > 1) {
+                    belowMinimumCount += 1;
+                    preparedSegment.publicResult.blockers.push("OUTPUT_SEGMENT_BELOW_MINIMUM_SHOT_LENGTH");
+                }
+            }
+
+            if (belowMinimumCount > 0) {
+                result.blockers.push("MINIMUM_SHOT_LENGTH_NOT_ENFORCED_AT_RUNTIME");
+                result.ok = false;
+                return stripRuntimeSequence(result);
             }
 
             if (prepared.length > 0 && prepared.length === result.segmentsSkipped) {
@@ -2126,6 +2152,7 @@
             sequenceId: null,
             durationSec: 0,
             videoTrackCount: 0,
+            analyzedVideoTrackIndexes: [],
             cutEventsSec: [],
             adjustmentLayerCount: 0,
             qeAvailable: false,
