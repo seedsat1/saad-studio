@@ -2676,7 +2676,7 @@
         }
         if (!motion && components.numItems > 1) motion = components[1];
         if (!motion) return null;
-        var scale = findComponentPropertyByNames(motion, ["Scale", "ADBE Scale"]);
+        var scale = findComponentPropertyByNames(motion, ["Scale", "ADBE Scale", "ADBE Motion Scale"]);
         if (!scale && motion.properties && motion.properties.numItems > 1) scale = motion.properties[1];
         return scale || null;
     }
@@ -2695,9 +2695,9 @@
         var entryDuration = autoZoomEntryDuration(style, duration, frameDurationSec);
         var widthKeys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseWidth, baseWidth * zoomRatio, entryDuration, clipStartSec);
         var heightKeys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseHeight, baseHeight * zoomRatio, entryDuration, clipStartSec);
-        var widthOk = setComponentPropertyKeys(scaleWidth, widthKeys);
+        var widthOk = setComponentPropertyKeys(scaleWidth, widthKeys, clipStartSec, clipEndSec);
         var heightOk = true;
-        if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, heightKeys);
+        if (scaleHeight && scaleHeight !== scaleWidth) heightOk = setComponentPropertyKeys(scaleHeight, heightKeys, clipStartSec, clipEndSec);
         return widthOk && heightOk;
     }
 
@@ -2768,7 +2768,7 @@
         for (var i = components.numItems - 1; i >= 0; i--) {
             var component = components[i];
             var name = "";
-            try { name = String(component.displayName || component.matchName || "").toLowerCase(); } catch (eName) {}
+            try { name = (String(component.matchName || "") + "|" + String(component.displayName || "")).toLowerCase(); } catch (eName) {}
             if (name.indexOf("transform") >= 0 || name.indexOf("geometry2") >= 0) return component;
             if (findComponentPropertyByNames(component, ["Scale Width"]) && findComponentPropertyByNames(component, ["Scale Height"])) {
                 return component;
@@ -2802,7 +2802,7 @@
         } catch (eSet) { return false; }
     }
 
-    function setComponentPropertyKeys(property, keys) {
+    function setComponentPropertyKeys(property, keys, clipStartSec, clipEndSec) {
         try {
             var baseScale = 100;
             if (keys && keys.length > 0) {
@@ -2812,6 +2812,14 @@
                 property.setTimeVarying(false);
                 property.setValue(baseScale, true);
                 property.setTimeVarying(true);
+                // Clear any auto-generated keyframe at the playhead inside the clip range
+                if (typeof property.removeKeyRange === "function" && typeof clipStartSec === "number" && typeof clipEndSec === "number") {
+                    var tStart = new Time();
+                    tStart.seconds = clipStartSec;
+                    var tEnd = new Time();
+                    tEnd.seconds = clipEndSec;
+                    property.removeKeyRange(tStart, tEnd);
+                }
             } else {
                 property.setTimeVarying(true);
             }

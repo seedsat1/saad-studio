@@ -578,3 +578,20 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
   - [PROJECT_CONTEXT.md](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
   - [saad-studio-premiere-reference-ar.md](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md)
 - الخطوة المتبقية: اختبار تشغيل عملي أخير داخل Premiere Pro للتحقق من ثبات المخرجات.
+
+## إصلاح مطابقة الخصائص وتأثيرات التحويل وإزالة الكي فريمز العشوائية في Auto Zoom (2026-06-20)
+
+- المشكلة:
+  1. في Premiere Pro باللغة العربية أو لغات غير الإنجليزية، يفشل البحث عن تأثير Transform لأن displayName له يكون باللغة المحلية (مثال: "تحويل" في العربية) بينما دالة `findAutoZoomTransformComponent` تفحص displayName فقط كـ fallback أول إذا وجد متجاهلة matchName.
+  2. يفشل البحث المطابق عن خاصية Scale المدمجة في Motion إذا كان matchName لها هو `"ADBE Motion Scale"` وهو غير موجود في مصفوفة الأسماء المستخدمة للمطابقة.
+  3. عند تفعيل الكي فريمز عبر `setTimeVarying(true)`، ينشئ Premiere تلقائياً كي فريم عند موضع playhead الحالي، مما قد يسبب تذبذباً عشوائياً وانخفاضاً في قيمة الـ Scale إلى 100 في منتصف نافذة الزوم إذا كان الـ playhead يقف داخلها.
+- الحل والقرارات:
+  1. تعديل دالة `findAutoZoomTransformComponent` لدمج `displayName` و`matchName` معاً بسلسلة واحدة قبل البحث، مما يضمن العثور على تأثير Transform/geometry2 بغض النظر عن لغة واجهة Premiere.
+  2. إضافة `"ADBE Motion Scale"` إلى مصفوفة أسماء البحث في دالة `findAutoZoomMotionScaleProperty` لضمان مطابقة خاصية المقياس مباشرة بالاسم البرمجي الثابت.
+  3. تمرير حدود الـ Clip الزمنية (`clipStartSec`, `clipEndSec`) إلى دالة `setComponentPropertyKeys` واستدعاء `property.removeKeyRange` لتنظيف أي كي فريمز تم إنشاؤها تلقائياً عند موضع الـ playhead داخل نطاق المقطع قبل كتابة الكي فريمز الصحيحة للزوم.
+- الملفات المتأثرة:
+  - [index.jsx](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
+  - [saad-studio-premiere-reference-ar.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md)
+- نتائج التحقق: تم البناء بنجاح (`npm run build:cep`) وتم نقل وتحديث المخرجات و`index.jsx` إلى مسار الـ AppData CEP بنجاح.
+- الخطوة المتبقية: توجيه المستخدم لفتح التبويب الخاص بالـ Sequence في لوحة Effect Controls (وليس تبويب Source للـ Clip) لمراجعة قيم الكي فريمز المضافة بشكل صحيح والتأكد من نجاح الزوم عند تشغيل الـ Timeline.

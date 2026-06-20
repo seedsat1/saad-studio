@@ -286,3 +286,10 @@
 - الـ sequence watcher لا يقوم بمسح state.mappings عند الانتقال من الـ source sequence إلى الـ Draft sequence الناتج منها (e.g. Synced Sequence - Saad Auto Switch Draft).
 - في حال كان اختيار الكاميرا العامة (Wide) غير محدد (
 ull) في الـ mappings، يقوم الـ Auto Zoom تلقائيًا باستبعاد المسار 0 (V1) كـ fallback افتراضي لحماية اللقطات العامة من الزومات العشوائية.
+
+
+## دعم اللغات وإزالة الكي فريمز العشوائية للـ Playhead في Auto Zoom (2026-06-20)
+
+- دالة `findAutoZoomTransformComponent` تجمع الآن `matchName` و`displayName` معاً لضمان اكتشاف تأثير Transform تحت أي لغة واجهة (مثل العربية "تحويل").
+- دالة `findAutoZoomMotionScaleProperty` تطابق خاصية المقياس بالاسم الثابت `"ADBE Motion Scale"` بجانب الأسماء الافتراضية.
+- لتفادي الكي فريمز العشوائية التي يضعها Premiere تلقائياً عند موضع الـ playhead الحالي عند تشغيل الساعة `setTimeVarying(true)`، يتم استدعاء `removeKeyRange` على نطاق المقطع كاملاً لتنظيف الخصائص قبل كتابة مفاتيح الزوم الفعالة.
