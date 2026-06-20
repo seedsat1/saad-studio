@@ -140,6 +140,7 @@
 - Reap API Introduction: https://docs.reap.video/api-reference/1_introduction
 - Reap documentation index: https://docs.reap.video/llms.txt
 - Premiere Sequence reference: https://raw.githubusercontent.com/docsforadobe/premiere-scripting-guide/master/docs/sequence/sequence.md
+- Premiere Pro Scripting Guide: https://ppro-scripting.docsforadobe.dev/ (المسار المحلي: [premiere-pro-scripting-guide.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/premiere-pro-scripting-guide.md))
 - المرجع المحلي الكامل v3.1: `C:\Users\PC\Downloads\المرجع.md`
 ## حارس تحليل Multi-Cam Draft (2026-06-19)
 

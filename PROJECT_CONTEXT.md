@@ -1,5 +1,19 @@
 # Saad Studio — Project Context
 
+## آخر مهمة: تسجيل وتوثيق مرجع Premiere Pro Scripting Guide (2026-06-20)
+
+- المشكلة: طلب المستخدم تثبيت مرجع دليل البرمجة النصية Premiere Pro Scripting Guide مع المراجع الحالية للمشروع لتسهيل الاستدعاء والمحافظة على دقة الأكواد.
+- الإصلاح والتعديل:
+  1. إنشاء ملف المرجع المحلي الجديد [premiere-pro-scripting-guide.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/premiere-pro-scripting-guide.md) يحتوي على تفاصيل Guide (معلومات UXP، كائنات app وproject، التعامل مع الـ Marker، وتوثيق ticks الزمنية لبريمير).
+  2. تحديث قسم المراجع والمصادر (## المصادر) في المرجع العربي للمشروع [saad-studio-premiere-reference-ar.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md) لربطه بالمرجع المحلي الجديد والموقع الرسمي.
+  3. استخدام سكربت بايثون [update_sources.py](file:///C:/Users/PC/.gemini/antigravity/brain/c3cc79f4-f3fb-4a2f-99fa-e7fc5c194a34/scratch/update_sources.py) لتفادي أي مشاكل ترميز (Encoding) في نظام ويندوز عند تعديل ملف المرجع العربي.
+- الملفات المتأثرة:
+  - [premiere-pro-scripting-guide.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/premiere-pro-scripting-guide.md) [NEW]
+  - [saad-studio-premiere-reference-ar.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+- نتائج التحقق: تم التعديل وتدقيق الفروقات بنجاح عبر `git diff` والتأكد من مطابقة الروابط والترميز الصحيح.
+- الخطوة المتبقية: لا توجد خطوات متبقية لهذه المهمة، تم الحفظ والتثبيت بالكامل.
+
 ## آخر مهمة: استعادة وتصحيح ميزة Auto Zoom (2026-06-20)
 
 - المشكلة: رغبة المستخدم في إيقاف أي سلوك عشوائي أو تخمين في ميزة Auto Zoom وضمان استقرارها البرمجي.
@@ -21,7 +35,7 @@
 - الملفات المتأثرة: [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%8/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts)، [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%8/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)، والذاكرة.
 - التحقق: نجح بناء Vite وتجميع TypeScript للمشروع بنجاح (الحزمة `index-DsHX33BU.js`)، وتم نشر الحزمة وJSX بنجاح إلى مجلد CEP المثبت في AppData وتطابقت بصمات الملفات.
 - الخطوة المتبقية: تشغيل Premiere Pro وتأكيد عمل الميزة بصرياً وخلوها من أية مفاتيح متبقية عند التكرار.
-�لزومات التي سيتم تطبيقها فعلياً داخل خانة الـ Cuts (مثال: `15 (9 selected)`).
+لزومات التي سيتم تطبيقها فعلياً داخل خانة الـ Cuts (مثال: `15 (9 selected)`).
      - توضيح المسار المكتشف أو المحدد حالياً (مثال: `Analyzed Track: V5`) في رسائل النجاح.
 - الملفات المتأثرة: [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts)، [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)، والذاكرة.
 - التحقق: نجح بناء Vite وتجميع TypeScript للمشروع بنجاح (الحزمة `index-DsHX33BU.js`)، وتم نشر الحزمة وJSX بنجاح إلى مجلد CEP المثبت في AppData وتطابقت بصمات الملفات.
@@ -567,7 +581,8 @@
 
 - الحالة الحالية: تم حل مشكلة فقدان Camera Mapping عند الانتقال التلقائي للـ Draft sequence وحل مشكلة الزوم على الكاميرا العامة (V1) بنجاح.
 - التغييرات:
-  1. تعديل sequence watcher ودالة efreshDiagnostics في [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts) لمنع مسح state.mappings والـ cameraMappingTouched إذا كانت الـ sequence الجديدة هي الـ Draft للـ sequence السابقة (الاسم ينتهي بـ  - Saad Auto Switch Draft).
+  1. تعديل sequence watcher ودالة 
+efreshDiagnostics في [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts) لمنع مسح state.mappings والـ cameraMappingTouched إذا كانت الـ sequence الجديدة هي الـ Draft للـ sequence السابقة (الاسم ينتهي بـ  - Saad Auto Switch Draft).
   2. تعديل دالة collectAutoZoomCutEvents في [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) لإدخال fallback افتراضي يستبعد مسار الفيديو 0 (V1) من حسابات الزوم التلقائي في حال كانت excludedSourceVideoTrackIndex تساوي 
 ull.
 - نتائج التحقق: تم بناء الكود بنجاح (
