@@ -931,10 +931,95 @@
                     result.warnings.push("DIRECT_ZOOM_CLEANUP_FAILED:" + String(eCleanupDirect.message || eCleanupDirect));
                 }
             }
-            for (var i = 0; i < selectedEvents.length; i++) {
-                var startSec = selectedEvents[i];
+
+            var candidates = [];
+            var cutIndex = 0;
+            var tracks = seq.videoTracks;
+            for (var a = 0; a < analyzedTracks.length; a++) {
+                var trackIndex = Number(analyzedTracks[a]);
+                if (trackIndex < 0 || trackIndex >= tracks.numTracks) continue;
+                var track = tracks[trackIndex];
+                var clips = track && track.clips;
+                if (!clips) continue;
+                for (var c = 0; c < clips.numItems; c++) {
+                    var clip = clips[c];
+                    var startSec = readTimeSeconds(clip.start);
+                    var endSec = readTimeSeconds(clip.end);
+                    var clipDur = endSec - startSec;
+                    
+                    var candidate = {
+                        clipName: clip.name || "",
+                        clipStart: startSec,
+                        clipEnd: endSec,
+                        cutIndex: cutIndex,
+                        selectedForZoom: false,
+                        rejectionReason: "none",
+                        scaleResolved: false,
+                        keyframesCreated: 0,
+                        readBackKeyframes: 0,
+                        readBackScaleValues: [],
+                        verificationMethod: "none",
+                        finalStatus: "SKIPPED"
+                    };
+                    
+                    cutIndex++;
+                    
+                    if (isAutoSwitchWideClip(clip)) {
+                        candidate.rejectionReason = "EXCLUDED_WIDE_CLIP";
+                        candidate.finalStatus = "SKIPPED";
+                        candidates.push(candidate);
+                        continue;
+                    }
+                    
+                    var srcTrackIndex = readAutoSwitchSourceVideoTrackIndex(clip);
+                    var excludeTrack = (excludedSourceVideoTrackIndex !== null) ? excludedSourceVideoTrackIndex : 0;
+                    if (srcTrackIndex === excludeTrack) {
+                        candidate.rejectionReason = "EXCLUDED_WIDE_CLIP_BY_INDEX";
+                        candidate.finalStatus = "SKIPPED";
+                        candidates.push(candidate);
+                        continue;
+                    }
+                    
+                    if (clipDur < 1.0) {
+                        candidate.rejectionReason = "DURATION_TOO_SHORT";
+                        candidate.finalStatus = "SKIPPED";
+                        candidates.push(candidate);
+                        continue;
+                    }
+                    
+                    var isSelected = false;
+                    for (var s = 0; s < selectedEvents.length; s++) {
+                        if (Math.abs(selectedEvents[s] - startSec) < 0.05) {
+                            isSelected = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!isSelected) {
+                        candidate.rejectionReason = "NOT_SELECTED_BY_RHYTHM";
+                        candidate.finalStatus = "SKIPPED";
+                        candidates.push(candidate);
+                        continue;
+                    }
+                    
+                    candidate.selectedForZoom = true;
+                    candidate.finalStatus = "PENDING";
+                    candidates.push(candidate);
+                }
+            }
+            result.candidates = candidates;
+
+            result.effectsApplied = 0;
+            result.failedEvents = 0;
+            
+            for (var i = 0; i < candidates.length; i++) {
+                var cand = candidates[i];
+                if (!cand.selectedForZoom) continue;
+                
+                var startSec = cand.clipStart;
                 var endSec = Math.min(readSequenceDurationSec(seq), startSec + zoomDurationSec);
                 var style = styles[0];
+                
                 var eventResult = {
                     timeSec: startSec,
                     endSec: endSec,
@@ -943,31 +1028,149 @@
                     effectApplied: false,
                     error: null
                 };
+                
                 try {
+                    var clipToModify = null;
+                    var actualEndSec = endSec;
+                    var targetTrackIdx = -1;
+                    var targetClipIdx = -1;
+                    
                     if (executionMode === "adjustment-layer") {
                         targetTrack.overwriteClip(adjustmentItem, secondsToTicksString(startSec));
                         var inserted = findTrackItemAtTime(targetTrack, startSec, adjustmentItem.name || "");
                         if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
                         eventResult.inserted = true;
+                        clipToModify = inserted.clip;
+                        actualEndSec = endSec;
+                        targetTrackIdx = targetTrackIndex;
+                        targetClipIdx = inserted.index;
                         result.adjustmentLayersInserted += 1;
-                        if (!applyAutoZoomTransform(seq, targetTrackIndex, inserted.index, inserted.clip, startSec, endSec, style, maxZoomPercentage, frameDurationSec, result)) {
-                            throw new Error("Transform effect or Scale keyframes could not be applied.");
-                        }
                     } else {
                         var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, startSec);
                         if (!directTarget) throw new Error("No source clip covers the Auto Zoom event.");
                         eventResult.targetTrackIndex = directTarget.trackIndex;
                         eventResult.targetClipIndex = directTarget.clipIndex;
-                        var directEndSec = Math.min(endSec, readTimeSeconds(directTarget.clip && directTarget.clip.end));
-                        if (!applyAutoZoomTransform(seq, directTarget.trackIndex, directTarget.clipIndex, directTarget.clip, startSec, directEndSec, style, maxZoomPercentage, frameDurationSec, result)) {
-                            throw new Error("Transform effect or Scale keyframes could not be applied to the source clip.");
+                        clipToModify = directTarget.clip;
+                        actualEndSec = Math.min(endSec, readTimeSeconds(directTarget.clip && directTarget.clip.end));
+                        targetTrackIdx = directTarget.trackIndex;
+                        targetClipIdx = directTarget.clipIndex;
+                    }
+                    
+                    var property = null;
+                    if (executionMode === "adjustment-layer") {
+                        var component = findAutoZoomTransformComponent(clipToModify);
+                        if (component) {
+                            var scaleWidth = findComponentPropertyByNames(component, ["Scale Width", "Scale"]);
+                            if (!scaleWidth && component.properties && component.properties.numItems > 3) scaleWidth = component.properties[3];
+                            property = scaleWidth;
+                        }
+                    } else {
+                        property = findAutoZoomMotionScaleProperty(clipToModify);
+                    }
+                    
+                    if (property) {
+                        cand.scaleResolved = true;
+                        // Add runtime capability diagnostics for Scale keyframe APIs
+                        cand.diagnostics = {
+                            setTimeVarying: typeof property.setTimeVarying === "function",
+                            addKey: typeof property.addKey === "function",
+                            setValueAtKey: typeof property.setValueAtKey === "function",
+                            removeKeyRange: typeof property.removeKeyRange === "function",
+                            getKeys: typeof property.getKeys === "function",
+                            getValueAtKey: typeof property.getValueAtKey === "function",
+                            getValueAtTime: typeof property.getValueAtTime === "function"
+                        };
+                    } else {
+                        cand.scaleResolved = false;
+                        throw new Error("Scale property could not be resolved.");
+                    }
+                    
+                    var clipStartSec = readTimeSeconds(clipToModify.start);
+                    var clipEndSec = readTimeSeconds(clipToModify.end);
+                    var safeStartSec = Math.max(clipStartSec, startSec);
+                    var safeEndSec = Math.min(clipEndSec, actualEndSec);
+                    
+                    if (!(safeEndSec > safeStartSec)) {
+                        throw new Error("Invalid zoom duration boundaries.");
+                    }
+                    
+                    var baseWidth = readAutoZoomScaleValue(property, 100);
+                    var duration = safeEndSec - safeStartSec;
+                    var entryDuration = autoZoomEntryDuration(style, duration, frameDurationSec);
+                    
+                    var keys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseWidth, baseWidth * maxZoomPercentage, entryDuration, clipStartSec);
+                    cand.keyframesCreated = keys.length;
+                    
+                    var writeOk = setComponentPropertyKeys(property, keys, clipStartSec, clipEndSec);
+                    
+                    // Determine verification method and read back values
+                    var verificationMethod = "none";
+                    if (typeof property.getValueAtKey === "function") {
+                        verificationMethod = "getValueAtKey";
+                    } else if (typeof property.getValueAtTime === "function") {
+                        verificationMethod = "getValueAtTime";
+                    }
+                    cand.verificationMethod = verificationMethod;
+
+                    if (typeof property.getKeys === "function") {
+                        var actualKeys = property.getKeys();
+                        if (actualKeys) {
+                            cand.readBackKeyframes = actualKeys.length;
+                            var readBackValues = [];
+                            for (var k = 0; k < actualKeys.length; k++) {
+                                var actualTime = actualKeys[k];
+                                var val = null;
+                                try {
+                                    if (verificationMethod === "getValueAtKey") {
+                                        val = property.getValueAtKey(actualTime);
+                                    } else if (verificationMethod === "getValueAtTime") {
+                                        val = property.getValueAtTime(actualTime);
+                                    }
+                                } catch (eRead) {}
+                                if (val && typeof val.length !== "undefined") val = val[0];
+                                if (val !== null && val !== undefined) {
+                                    readBackValues.push(Number(val));
+                                }
+                            }
+                            cand.readBackScaleValues = readBackValues;
                         }
                     }
-                    eventResult.effectApplied = true;
-                    result.effectsApplied += 1;
+                    
+                    var hasZoomValue = false;
+                    for (var v = 0; v < cand.readBackScaleValues.length; v++) {
+                        if (Math.abs(cand.readBackScaleValues[v] - baseWidth) > 0.05) {
+                            hasZoomValue = true;
+                            break;
+                        }
+                    }
+                    
+                    if (writeOk && cand.readBackKeyframes > 0 && hasZoomValue) {
+                        cand.finalStatus = "APPLIED_AND_VERIFIED";
+                        eventResult.effectApplied = true;
+                        result.effectsApplied += 1;
+                    } else {
+                        eventResult.effectApplied = false;
+                        if (!writeOk) {
+                            cand.finalStatus = "FAILED";
+                            cand.rejectionReason = "Keyframe write operation failed.";
+                        } else if (cand.readBackKeyframes === 0) {
+                            cand.finalStatus = "APPLIED_BUT_UNVERIFIED";
+                            cand.rejectionReason = "Verified 0 keyframes on readback.";
+                        } else {
+                            cand.finalStatus = "APPLIED_BUT_UNVERIFIED";
+                            cand.rejectionReason = "Readback scale values matched baseline (no zoom applied).";
+                        }
+                        result.failedEvents += 1;
+                        throw new Error(cand.rejectionReason);
+                    }
+                    
                 } catch (eEvent) {
                     eventResult.error = String(eEvent.message || eEvent);
-                    result.failedEvents += 1;
+                    if (cand.finalStatus === "PENDING") {
+                        cand.finalStatus = "FAILED";
+                        cand.rejectionReason = eventResult.error;
+                        result.failedEvents += 1;
+                    }
                 }
                 result.eventResults.push(eventResult);
             }
@@ -2252,6 +2455,7 @@
             createdProjectItemName: null,
             executionMode: null,
             eventResults: [],
+            candidates: [],
             blockers: [],
             warnings: [],
             errors: [],

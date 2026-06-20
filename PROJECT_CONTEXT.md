@@ -1,5 +1,21 @@
 # Saad Studio — Project Context
 
+## آخر مهمة: تنفيذ التحقق القطعي للزوم التلقائي في بيئة ExtendScript فقط (2026-06-20)
+
+- المشكلة: طلب المستخدم إيقاف أي تخمين أو افتراض للنجاح في تطبيق الزوم التلقائي (Auto Zoom) وتطبيق نظام تحقق قطعي صارم (Deterministic Proof-Based) في بيئة المضيف (Host-side) فقط دون تعديل الواجهة أو التصاميم مؤقتاً.
+- الإصلاح والتعديل:
+  1. تعديل ملف المضيف [index.jsx](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) لإجراء مسح شامل لكافة الكليبات المرشحة (candidates) وتصنيف حالتها بدقة إلى (APPLIED_AND_VERIFIED, APPLIED_BUT_UNVERIFIED, SKIPPED, FAILED).
+  2. تضمين تشخيصات برمجية لقدرات الـ API الخاصة بالكي فريمز (runtime capability diagnostics) وقراءة قيم المقياس بعد التطبيق الفعلي والتأكد من اختلافها عن الحجم الافتراضي للتحقق.
+  3. قصر زيادة عداد `effectsApplied` على الحالات التي تم التحقق من نجاح الكي فريمز وقراءتها بنجاح فقط.
+  4. تحديث تعريفات الأنواع في [auto-zoom-service.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/podcast/services/auto-zoom-service.ts) لتشمل الهيكل الجديد للمرشحين والتحقق.
+  5. إعادة بناء المشروع CEP للتطبيق.
+- الملفات المتأثرة:
+  - [index.jsx](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) [MODIFY]
+  - [auto-zoom-service.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/podcast/services/auto-zoom-service.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+- نتائج التحقق: تم البناء بنجاح (`npm run build:cep`) دون أية أخطاء.
+- الخطوة المتبقية: توجيه المستخدم لتجربة تشغيل الزوم والتحقق من النتيجة في المضيف قبل نقلها وتطبيقها بالواجهة.
+
 ## آخر مهمة: تسجيل وتوثيق مرجع Premiere Pro Scripting Guide (2026-06-20)
 
 - المشكلة: طلب المستخدم تثبيت مرجع دليل البرمجة النصية Premiere Pro Scripting Guide مع المراجع الحالية للمشروع لتسهيل الاستدعاء والمحافظة على دقة الأكواد.

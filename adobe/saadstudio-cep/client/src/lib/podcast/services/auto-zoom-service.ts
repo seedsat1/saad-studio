@@ -53,6 +53,29 @@ export interface AutoZoomApplyResult {
     effectApplied: boolean;
     error?: string | null;
   }>;
+  candidates?: Array<{
+    clipName: string;
+    clipStart: number;
+    clipEnd: number;
+    cutIndex: number;
+    selectedForZoom: boolean;
+    rejectionReason: string;
+    scaleResolved: boolean;
+    keyframesCreated: number;
+    readBackKeyframes: number;
+    readBackScaleValues: number[];
+    verificationMethod: string;
+    diagnostics?: {
+      setTimeVarying: boolean;
+      addKey: boolean;
+      setValueAtKey: boolean;
+      removeKeyRange: boolean;
+      getKeys: boolean;
+      getValueAtKey: boolean;
+      getValueAtTime: boolean;
+    };
+    finalStatus: "APPLIED_AND_VERIFIED" | "APPLIED_BUT_UNVERIFIED" | "SKIPPED" | "FAILED";
+  }>;
   blockers: string[];
   warnings: string[];
   timelineMutation: string;
