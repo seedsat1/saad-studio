@@ -2306,8 +2306,9 @@
             if (!clips) continue;
             for (var c = 0; c < clips.numItems; c++) {
                 if (isAutoSwitchWideClip(clips[c])) continue;
-                if (excludedSourceVideoTrackIndex !== null
-                    && readAutoSwitchSourceVideoTrackIndex(clips[c]) === excludedSourceVideoTrackIndex) continue;
+                var srcTrackIndex = readAutoSwitchSourceVideoTrackIndex(clips[c]);
+                var excludeTrack = (excludedSourceVideoTrackIndex !== null) ? excludedSourceVideoTrackIndex : 0;
+                if (srcTrackIndex === excludeTrack) continue;
                 var start = readTimeSeconds(clips[c] && clips[c].start);
                 var end = readTimeSeconds(clips[c] && clips[c].end);
                 var clipDur = end - start;

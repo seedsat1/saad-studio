@@ -3,7 +3,6 @@ import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
 import { loadExtendScript } from "../lib/cep";
-import { navigate } from "../lib/router";
 import { getPodcastDiagnostics } from "../lib/podcast/services/diagnostics-service";
 import {
   generateCameraDecisionPlan,
@@ -240,7 +239,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
       renderPodcastToolCard("Silence Removal", "Ready", "Detect pauses and prepare tighter podcast cuts.", true),
       renderPodcastToolCard("Auto Zoom", "Ready", "Add non-destructive zoom moments with adjustment layers.", true),
-      renderPodcastToolCard("Auto Captions", "Ready", "Generate editable captions with Arabic support.", true),
+      renderPodcastToolCard("Auto Captions", "Coming soon", "Generate captions for podcast clips.", false),
       renderPodcastToolCard("One Click Podcast Edit", "Coming soon", "Combine switching, silence cleanup, captions, and zoom.", false),
     );
   }
@@ -254,18 +253,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ? "podcast-silence-tool"
       : title === "Auto Zoom"
         ? "podcast-auto-zoom-tool"
-      : title === "Auto Captions"
-        ? "route:add-captions"
         : null;
     return el("button.podcast-tool-card" + (active ? ".is-active" : ""), {
       type: "button",
       disabled: !targetId,
       onClick: () => {
         if (!targetId) return;
-        if (targetId === "route:add-captions") {
-          navigate("/add-captions?source=podcast&language=ar");
-          return;
-        }
         document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
       },
     },
@@ -1878,6 +1871,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       const nextDiagnostics = await getPodcastDiagnostics();
       const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
       if (sequenceIdentityChanged(previousIdentity, nextIdentity)) {
+        const isDraftOfPrevious = !!(nextIdentity.sequenceName && previousIdentity.sequenceName &&
+          nextIdentity.sequenceName === (previousIdentity.sequenceName + " - Saad Auto Switch Draft"));
+        if (!isDraftOfPrevious) {
+          state.mappings = {};
+          state.cameraMappingTouched = false;
+        }
         clearSequenceRuntimeState();
       }
       state.diagnostics = nextDiagnostics;
@@ -1909,11 +1908,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         const nextDiagnostics = await getPodcastDiagnostics();
         const previousIdentity = sequenceIdentityFromDiagnostics(state.diagnostics);
         const nextIdentity = sequenceIdentityFromDiagnostics(nextDiagnostics);
-        if (!sequenceIdentityChanged(previousIdentity, nextIdentity)) return;
-
-        clearSequenceRuntimeState();
-        state.diagnostics = nextDiagnostics;
-        render();
+        if (sequenceIdentityChanged(previousIdentity, nextIdentity)) {
+          const isDraftOfPrevious = !!(nextIdentity.sequenceName && previousIdentity.sequenceName &&
+            nextIdentity.sequenceName === (previousIdentity.sequenceName + " - Saad Auto Switch Draft"));
+          if (!isDraftOfPrevious) {
+            state.mappings = {};
+            state.cameraMappingTouched = false;
+          }
+          clearSequenceRuntimeState();
+          state.diagnostics = nextDiagnostics;
+          render();
+        }
       } catch {
         // Premiere can be briefly unavailable while changing sequence tabs.
         // Keep the current state and retry on the next lightweight poll.

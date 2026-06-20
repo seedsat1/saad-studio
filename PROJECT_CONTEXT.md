@@ -15,6 +15,14 @@
      - استدعاء `syncCameraMappingsFromDom()` قبل تحليل وتطبيق Auto Zoom لضمان تحديث قيم الكاميرات فورياً من الواجهة.
      - عرض عدد الزومات التي سيتم تطبيقها فعلياً داخل خانة الـ Cuts (مثال: `15 (9 selected)`).
      - توضيح المسار المكتشف أو المحدد حالياً (مثال: `Analyzed Track: V5`) في رسائل النجاح.
+  9. **إصلاح التمدد الدائم والزوم المستمر (Static Scale Reset)**:
+     - عند استدعاء `setTimeVarying(false)` لتنظيف الكليبات في وضع Direct Motion، قمنا بتصفير الحجم الاستاتيكي وإعادته إلى `100` (`setValue(100, true)`) لتجنب بقاء الكليبات غير المحددة في التشغيل الجديد مكبرة بشكل دائم.
+     - عند استدعاء `setTimeVarying(true)` لتفعيل الكي فريمز، تقوم بريمير تلقائياً بإنشاء مفتاح افتراضي بالقيمة الاستاتيكية الحالية؛ لذا قمنا بتعيين القيمة الاستاتيكية إلى `baseScale` (الـ Scale الأصلي، عادةً 100) *قبل* تفعيل الساعة، مما يضمن أن المفتاح التلقائي لا يبدأ بقيمة الزوم (130%) ويقضي تماماً على تمدد الزوم لبداية الكليب.
+- الملفات المتأثرة: [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%8/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts)، [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%8/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)، والذاكرة.
+- التحقق: نجح بناء Vite وتجميع TypeScript للمشروع بنجاح (الحزمة `index-DsHX33BU.js`)، وتم نشر الحزمة وJSX بنجاح إلى مجلد CEP المثبت في AppData وتطابقت بصمات الملفات.
+- الخطوة المتبقية: تشغيل Premiere Pro وتأكيد عمل الميزة بصرياً وخلوها من أية مفاتيح متبقية عند التكرار.
+�لزومات التي سيتم تطبيقها فعلياً داخل خانة الـ Cuts (مثال: `15 (9 selected)`).
+     - توضيح المسار المكتشف أو المحدد حالياً (مثال: `Analyzed Track: V5`) في رسائل النجاح.
 - الملفات المتأثرة: [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts)، [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)، والذاكرة.
 - التحقق: نجح بناء Vite وتجميع TypeScript للمشروع بنجاح (الحزمة `index-DsHX33BU.js`)، وتم نشر الحزمة وJSX بنجاح إلى مجلد CEP المثبت في AppData وتطابقت بصمات الملفات.
 - الخطوة المتبقية: تشغيل Premiere Pro وتأكيد عمل الميزة بصرياً وخلوها من أية مفاتيح متبقية عند التكرار.
@@ -540,13 +548,33 @@
 - A direct PowerShell `Get-FileHash` verification against AppData hung under the managed read boundary and was terminated without modifying files; `certutil -hashfile` completed successfully and supplied the matching installed hashes.
 - Final remaining step: open Premiere, generate a brand-new Auto Switch Draft (required for the durable WIDE labels), then press `Run Auto Zoom` once. Do not use an older Draft. If this single runtime test fails, remove Auto Zoom rather than continuing speculative fixes.
 
-## Podcast Auto Captions activation (2026-06-20)
+## Podcast Auto Captions correction (2026-06-20)
 
-- Clarification: the current implementation deliberately links the Podcast `Auto Captions` card to the extension's existing `Add Captions` page; it is not a new independent in-Premiere caption engine.
-- Auto Zoom was explicitly left outside this task. No Auto Zoom behavior was intentionally changed for the Captions work.
-- The disabled Podcast Automation card was connected to the existing production `AddCaptionsPage` instead of creating a second transcription implementation. The card now reports `Ready` and opens `/add-captions?source=podcast&language=ar`.
-- `AddCaptionsPage` now accepts router parameters and preserves a supported requested language. The podcast entry requests `ar`; the Reap catalog remains authoritative, and the local fallback catalog also contains `ar` as `Arabic - العربية`.
-- Existing caption architecture remains SRT-first: native script, UTF-8 text returned by the provider, download to a local `.srt`, then Premiere placement through `placeCaptionFromSrt` / `Sequence.createCaptionTrack`, with project-bin fallback when timeline placement cannot be proven safe.
-- Verification passed: TypeScript/Vite build, JSX JavaScript syntax check, Arabic/route source assertions, and `git diff --check`. Build output is `client/dist/assets/index-CWLKUEkR.js`.
-- Research error recorded: the web gateway returned HTTP 403 for direct Adobe documentation lookup, and the in-app documentation tab did not finish loading. No behavior was inferred from the failed request; implementation was based on the already-present tested caption path and host adapter in this repository.
-- Remaining step: deploy `client/dist` to the active AppData CEP extension, restart Premiere, click Auto Captions, and verify the Arabic language field plus one Arabic SRT caption-track import at runtime.
+- Error: the Podcast `Auto Captions` card was linked to the extension's existing Reap-based `Add Captions` page without user authorization. The user rejected this assumption.
+- The link, Ready status, router language parameter, and related `AddCaptionsPage` parameter handling were fully reverted before deployment. The existing Captions tool and Auto Zoom were not changed by this correction.
+- Current state: Podcast Auto Captions remains `Coming soon` and disabled. Required next step is to design and implement it as an independent Premiere podcast stage with explicit Arabic acceptance criteria, after evidence-based research; do not reuse the existing Captions tool unless the user explicitly requests that architecture.
+
+## مراجعة مرجع AutoCut AutoCaptions (2026-06-20)
+
+- روجعت صفحة AutoCaptions الرسمية والمقالات المرتبطة بها: سير الاستخدام، إعدادات النص، الأنماط، اللغات، وأنماط المتحدثين في البودكاست.
+- الحقائق المثبتة: اختيار لغة الصوت أو استيراد SRT، توليد Transcript قابل للمراجعة، تصحيح الكلمات وتقسيم/دمج المقاطع، ثم تطبيق النمط والموقع وإضافة captions إلى Premiere. يدعم المرجع العربية صراحة، ومنها العربية العراقية.
+- للبودكاست متعدد المتحدثين، يطلب المرجع فصل مسارات الصوت واختيار مسار كل متحدث على حدة؛ لا يثبت وجود diarization تلقائي كامل.
+- فحص المستودع أثبت أن add-captions.ts وtranscription.ts يعتمدان Reap، ولا يوجد مزود تفريغ مستقل ضمن Podcast. لذلك بقيت البطاقة معطلة ولم تُربط بـ Reap ولم يُنفذ كود تخميني.
+- القرار: المسار المستقل هو Timeline audio tracks -> Arabic transcription provider -> transcript review/chunk editing -> style/position -> Premiere caption insertion. اختيار مزود التفريغ المستقل شرط قبل التنفيذ.
+- خطأ فحص مسجل: بحث rg الواسع شمل ملفات غير نصية وأنتج خرجًا ضخمًا؛ أُعيد بمسارات وامتدادات محددة. لم تتغير ملفات المنتج ولم تُشغّل اختبارات بناء لأن المهمة مراجعة مرجعية فقط.
+- الملفات المتأثرة: PROJECT_CONTEXT.md وdocs/saad-studio-premiere-reference-ar.md. المتبقي: اعتماد مزود تفريغ عربي مستقل ثم البناء.
+## إصلاح حفظ Camera Mapping والـ Wide Camera Fallback في Auto Zoom (2026-06-20)
+
+- الحالة الحالية: تم حل مشكلة فقدان Camera Mapping عند الانتقال التلقائي للـ Draft sequence وحل مشكلة الزوم على الكاميرا العامة (V1) بنجاح.
+- التغييرات:
+  1. تعديل sequence watcher ودالة efreshDiagnostics في [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts) لمنع مسح state.mappings والـ cameraMappingTouched إذا كانت الـ sequence الجديدة هي الـ Draft للـ sequence السابقة (الاسم ينتهي بـ  - Saad Auto Switch Draft).
+  2. تعديل دالة collectAutoZoomCutEvents في [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) لإدخال fallback افتراضي يستبعد مسار الفيديو 0 (V1) من حسابات الزوم التلقائي في حال كانت excludedSourceVideoTrackIndex تساوي 
+ull.
+- نتائج التحقق: تم بناء الكود بنجاح (
+pm run build:cep) ونقل المخرجات وجميع الملفات التابعة إلى مسار الـ AppData CEP بنجاح وتطابقت بصمة الـ SHA-256 للملفات المنقولة.
+- الملفات المتأثرة:
+  - [multi-cam-auto-switch.ts](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts)
+  - [index.jsx](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)
+  - [PROJECT_CONTEXT.md](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md)
+  - [saad-studio-premiere-reference-ar.md](file:///E:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md)
+- الخطوة المتبقية: اختبار تشغيل عملي أخير داخل Premiere Pro للتحقق من ثبات المخرجات.
