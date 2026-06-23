@@ -27,13 +27,25 @@ import {
   type SynchronizationApplyResult,
   type SynchronizationPlan,
 } from "../lib/podcast/services/synchronization-service";
+// Auto Zoom imports removed
 import {
-  applyAutoZoom,
-  inspectAutoZoomTimeline,
-  type AutoZoomApplyResult,
-  type AutoZoomStyle,
-  type AutoZoomTimelineResult,
-} from "../lib/podcast/services/auto-zoom-service";
+  discoverCaptionRuntime,
+  installCaptionRuntime,
+  repairCaptionRuntime,
+  type RuntimeDiscoveryResult,
+  type RuntimeProgress,
+} from "../lib/podcast/services/runtime-manager-service";
+import {
+  runPodcastAutoCaptions,
+  modelTiers,
+  type AutoCaptionsResult,
+  type CaptionLanguage,
+  type CaptionModel,
+} from "../lib/podcast/services/auto-captions-service";
+import {
+  runOneClickPodcastEditService,
+} from "../lib/podcast/services/one-click-podcast-edit-service";
+
 import {
   applyCameraDecisionsVisualOnly,
   testDisableEnableOnDuplicate,
@@ -138,8 +150,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     silenceRemovalLoading: false,
     synchronizationLoading: false,
     synchronizationApplyLoading: false,
-    autoZoomInspectionLoading: false,
-    autoZoomApplyLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
     streamProofLoading: false,
     safeCopyConfirmed: false,
@@ -155,14 +165,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     silenceRemovalResult: null as SilenceRemovalRunResult | null,
     synchronizationPlan: null as SynchronizationPlan | null,
     synchronizationApplyResult: null as SynchronizationApplyResult | null,
-    autoZoomInspection: null as AutoZoomTimelineResult | null,
-    autoZoomApplyResult: null as AutoZoomApplyResult | null,
-    autoZoomRhythmPercentage: 0.6,
-    autoZoomMaxPercentage: 1.3,
-    autoZoomDurationSec: 1.5,
-    autoZoomStyles: ["smooth"] as AutoZoomStyle[],
-    autoZoomAnalyzedTrackIndex: -1,
-    autoZoomTargetTrackIndex: 1,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
     streamProof: null as AudioStreamSelectionProof | null,
     selectedAudioStreamIndex: null as number | null,
@@ -173,6 +175,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     timelineLayout: null as PodcastTimelineLayout | null,
     segmentsJson: EXAMPLE_SEGMENTS_JSON,
     minimumShotLengthSec: 2,
+    maxSingleCameraRunSec: 20,
+    wideCutawayDurationSec: 4,
+    enableTransitionalWide: true,
+    transitionalWideDurationSec: 2.0,
     silenceThresholdDb: -35,
     minimumSilenceDurationSec: 0.4,
     minimumCutGapSec: 0.7,
@@ -190,6 +196,18 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       speaker_3: 2,
     } as Record<string, number>,
     developerDiagnosticsOpen: false,
+    captionRuntime: null as RuntimeDiscoveryResult | null,
+    captionRuntimeLoading: false,
+    captionRuntimeProgress: null as (RuntimeProgress | { stage: string; message: string; percent?: number | null }) | null,
+    autoCaptionsResult: null as AutoCaptionsResult | null,
+    autoCaptionsLoading: false,
+    autoCaptionsLanguage: "ar" as CaptionLanguage,
+    autoCaptionsModel: "medium" as CaptionModel,
+    oneClickSkipCaptions: false,
+    oneClickFastMode: false,
+    oneClickLoading: false,
+    oneClickProgress: null as { stage: string, message: string, percent: number | null } | null,
+    oneClickResult: null as any | null,
   };
 
   const page = el("div.app-main");
@@ -203,6 +221,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   render();
   void refreshDiagnostics();
+  void refreshCaptionRuntime();
   startActiveSequenceWatcher();
   return root;
 
@@ -228,19 +247,20 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       renderSynchronizeTool(),
       renderMultiCamProductionTool(),
       renderSilenceRemovalTool(),
-      renderAutoZoomTool(),
+      renderAutoCaptionsTool(),
+      renderOneClickTool(),
       renderProductionSummary(),
     );
   }
 
   function renderProductionToolCards(): HTMLElement {
+    const captionStatus = state.captionRuntime?.status === "ready" ? "Ready" : "Setup";
     return el("div.podcast-tool-grid", null,
       renderPodcastToolCard("Synchronize", "Ready", "Check timeline sync before camera switching.", true),
       renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
       renderPodcastToolCard("Silence Removal", "Ready", "Detect pauses and prepare tighter podcast cuts.", true),
-      renderPodcastToolCard("Auto Zoom", "Ready", "Add non-destructive zoom moments with adjustment layers.", true),
-      renderPodcastToolCard("Auto Captions", "Coming soon", "Generate captions for podcast clips.", false),
-      renderPodcastToolCard("One Click Podcast Edit", "Coming soon", "Combine switching, silence cleanup, captions, and zoom.", false),
+      renderPodcastToolCard("Auto Captions", captionStatus, "Generate captions for podcast clips.", true),
+      renderPodcastToolCard("One Click Podcast Edit", "Ready", "Combine switching, silence cleanup, and captions.", true),
     );
   }
 
@@ -251,8 +271,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ? "podcast-synchronize-tool"
       : title === "Silence Removal"
         ? "podcast-silence-tool"
-      : title === "Auto Zoom"
-        ? "podcast-auto-zoom-tool"
+      : title === "Auto Captions"
+        ? "podcast-auto-captions-tool"
+      : title === "One Click Podcast Edit"
+        ? "podcast-one-click-tool"
         : null;
     return el("button.podcast-tool-card" + (active ? ".is-active" : ""), {
       type: "button",
@@ -308,6 +330,74 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           : "Not applied"),
       ),
       renderSynchronizationMessages(plan),
+      plan ? renderSynchronizePreviewTable(plan) : null,
+    );
+  }
+
+  function renderSynchronizePreviewTable(plan: SynchronizationPlan): HTMLElement {
+    if (!plan.waveformOffsets || !plan.waveformOffsets.length) {
+      return el("div.podcast-empty-plan", null, "No waveform offsets calculated.");
+    }
+    
+    return el("div.podcast-table-wrap", { style: { marginTop: "15px" } },
+      el("table.podcast-plan-table", null,
+        el("thead", null,
+          el("tr", null,
+            el("th", null, "track"),
+            el("th", null, "suggestedMoveSec"),
+            el("th", null, "confidence"),
+            el("th", null, "overlap duration used"),
+            el("th", null, "referenceTrack"),
+            el("th", null, "candidate peaks"),
+            el("th", null, "reason"),
+          ),
+        ),
+        el("tbody", null, ...plan.waveformOffsets.map((offset) => {
+          const trackLabel = `A${offset.audioTrackIndex + 1}` + (offset.pairedVideoTrackIndex !== null ? ` (V${offset.pairedVideoTrackIndex + 1})` : "");
+          const isRef = offset.audioTrackIndex === plan.referenceAudioTrackIndex;
+          
+          const moveLabel = isRef 
+            ? "0.0s (Reference)" 
+            : typeof offset.suggestedMoveSec === "number"
+              ? `${offset.suggestedMoveSec > 0 ? "+" : ""}${offset.suggestedMoveSec}s`
+              : "N/A";
+              
+          const confLabel = isRef
+            ? "1.0 (100%)"
+            : typeof offset.confidence === "number"
+              ? `${offset.confidence} (${Math.round(offset.confidence * 100)}%)`
+              : "0.0 (0%)";
+              
+          const refLabel = plan.referenceAudioTrackIndex !== null ? `A${plan.referenceAudioTrackIndex + 1}` : "None";
+          
+          const overlapLabel = typeof offset.overlapDurationSec === "number"
+            ? `${offset.overlapDurationSec}s`
+            : "N/A";
+            
+          const candidatesLabel = offset.candidatePeaks && offset.candidatePeaks.length > 0
+            ? `[${offset.candidatePeaks.length}] ` + offset.candidatePeaks.map(p => `${p.lagSec > 0 ? "+" : ""}${p.lagSec}s (${p.score})`).join(", ")
+            : "None [0]";
+            
+          const reasonLabel = offset.selectionReason || "Ready";
+          
+          let rowStyle: any = null;
+          if (isRef) {
+            rowStyle = { opacity: "0.8" };
+          } else if (offset.status === "blocked") {
+            rowStyle = { color: "#ff6b6b", fontWeight: "bold" };
+          }
+          
+          return el("tr", rowStyle ? { style: rowStyle } : null,
+            el("td", null, trackLabel),
+            el("td", null, moveLabel),
+            el("td", null, confLabel),
+            el("td", null, overlapLabel),
+            el("td", null, refLabel),
+            el("td", null, candidatesLabel),
+            el("td", null, reasonLabel),
+          );
+        })),
+      ),
     );
   }
 
@@ -316,6 +406,13 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     if (!plan) {
       messages.push("Run Analyze Sync first. No clips will be moved.");
     } else {
+      if (plan.knownLagTest) {
+        if (plan.knownLagTest.ok) {
+          messages.push(`✔ Known Lag Self-Test: PASSED (all simulated offsets +2s, +5s, -10s successfully recovered)`);
+        } else {
+          messages.push(`❌ Known Lag Self-Test: FAILED (${plan.knownLagTest.errors.join("; ")})`);
+        }
+      }
       if (plan.blockers.length) messages.push(`Sync blocked: ${plan.blockers.join(", ")}`);
       if (plan.warnings.length) messages.push(`Warnings: ${plan.warnings.join(", ")}`);
       if (!plan.blockers.length && plan.offsetsReady) {
@@ -325,7 +422,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         messages.push("Timeline was read, but waveform offsets are not ready yet.");
       }
       if (state.synchronizationApplyResult?.ok) {
-        messages.push(`Sync applied on the current sequence: ${countSynchronizedClips(plan)} clips synchronized.`);
+        const res = state.synchronizationApplyResult;
+        messages.push(`✔ Sync applied successfully: ${countSynchronizedClips(plan)} tracks synchronized.`);
+        messages.push(`  • Clips moved: ${res.clipsMoved}`);
+        messages.push(`  • Largest offset before: ${res.largestOffsetBefore != null ? res.largestOffsetBefore.toFixed(3) + "s" : "N/A"}`);
+        messages.push(`  • Largest offset after: ${res.largestOffsetAfter != null ? res.largestOffsetAfter.toFixed(3) + "s" : "N/A"} (Proof of alignment)`);
+        
+        console.log(`[Saad Sync Apply Proof] Synchronization completed:`);
+        console.log(`  largestOffsetBefore: ${res.largestOffsetBefore}s`);
+        console.log(`  largestOffsetAfter: ${res.largestOffsetAfter}s`);
+        console.log(`  clipsMoved: ${res.clipsMoved}`);
+        console.log(`  Moved items:`, res.movedItems);
       }
       if (state.synchronizationApplyResult && !state.synchronizationApplyResult.ok) {
         messages.push(`Apply Sync blocked: ${state.synchronizationApplyResult.blockers.join(", ")}`);
@@ -398,19 +505,72 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           renderCameraNameFields(), true),
         renderField("Wide Camera Settings",
           el("div.podcast-camera-map", null, renderMappingRow("wide")), true),
-        renderField("Minimum Shot Length",
+        renderField("Minimum Shot Length (s)",
           el("input.podcast-input", {
             type: "number",
-            min: "0",
+            min: "0.5",
             step: "0.5",
             value: String(state.minimumShotLengthSec),
             onInput: (event: Event) => {
-              state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+              state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 2;
               state.cameraDecisionPlanProof = null;
               state.applyCameraDecisionsResult = null;
               render();
             },
           })),
+        renderField("Max Camera Run (s)",
+          el("input.podcast-input", {
+            type: "number",
+            min: "5",
+            step: "1",
+            value: String(state.maxSingleCameraRunSec),
+            onInput: (event: Event) => {
+              state.maxSingleCameraRunSec = Number((event.currentTarget as HTMLInputElement).value) || 20;
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
+              render();
+            },
+          })),
+        renderField("Wide Cutaway Duration (s)",
+          el("input.podcast-input", {
+            type: "number",
+            min: "1",
+            step: "0.5",
+            value: String(state.wideCutawayDurationSec),
+            onInput: (event: Event) => {
+              state.wideCutawayDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 4;
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
+              render();
+            },
+          })),
+        renderField("Transitional Wide",
+          el("label.podcast-toggle", null,
+            el("input", {
+              type: "checkbox",
+              checked: state.enableTransitionalWide,
+              onChange: (event: Event) => {
+                state.enableTransitionalWide = (event.currentTarget as HTMLInputElement).checked;
+                state.cameraDecisionPlanProof = null;
+                state.applyCameraDecisionsResult = null;
+                render();
+              },
+            }),
+            el("span", null, "Enable transitional wide shots"),
+          )),
+        state.enableTransitionalWide ? renderField("Transitional Duration (s)",
+          el("input.podcast-input", {
+            type: "number",
+            min: "0.5",
+            step: "0.5",
+            value: String(state.transitionalWideDurationSec),
+            onInput: (event: Event) => {
+              state.transitionalWideDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 2.0;
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
+              render();
+            },
+          })) : null,
       ),
     );
   }
@@ -559,195 +719,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
-  function renderAutoZoomTool(): HTMLElement {
-    const inspection = state.autoZoomInspection;
-    const applyResult = state.autoZoomApplyResult;
-    const busy = isProductionBusy();
-    const getSelectedEventsCount = (): number => {
-      if (!inspection) return 0;
-      const spacedEvents = [];
-      const minimumSpacingSec = Math.max(0.05, state.autoZoomDurationSec || 0);
-      const events = inspection.cutEventsSec;
-      for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
-        const eventTime = Number(events[eventIndex]);
-        if (!spacedEvents.length || eventTime - spacedEvents[spacedEvents.length - 1] >= minimumSpacingSec - 0.001) {
-          spacedEvents.push(eventTime);
-        }
-      }
-      if (state.autoZoomRhythmPercentage >= 0.999) return spacedEvents.length;
-      const targetCount = Math.max(1, Math.min(spacedEvents.length, Math.round(spacedEvents.length * state.autoZoomRhythmPercentage)));
-      return spacedEvents.length ? targetCount : 0;
-    };
-    const selectedCount = getSelectedEventsCount();
-    const videoTrackCount = Math.max(
-      inspection?.videoTrackCount ?? 0,
-      state.timelineLayout?.videoTracks.length ?? 0,
-      state.diagnostics.videoTrackCount ?? 0,
-      2,
-    );
-    const trackOptions = Array.from({ length: videoTrackCount }, (_, index) => index);
-    const renderTrackSelect = (
-      value: number,
-      onChange: (event: Event) => void,
-      disabled = false,
-      allowAutoDetect = false,
-    ): HTMLElement => {
-      const options = [];
-      if (allowAutoDetect) {
-        options.push(el("option", { value: "-1" }, "Auto Detect (Recommended)"));
-      }
-      options.push(...trackOptions.map((index) => el("option", { value: String(index) }, `V${index + 1}`)));
-      const select = el("select.podcast-input", {
-        disabled,
-        onChange,
-      }, ...options);
-      // Setting a select's `value` as an HTML attribute does not select the option.
-      // Assign the DOM property after its options exist so rerenders preserve V2..V5.
-      (select as HTMLSelectElement).value = String(value);
-      return select;
-    };
-    return el("div.podcast-production-card", { id: "podcast-auto-zoom-tool" },
-      el("div.podcast-section-head", null,
-        el("div", null,
-          el("h3", null, "Auto Zoom"),
-          el("p", null, "Detect timeline cuts and add editable Motion Scale zooms to the selected video track."),
-        ),
-      ),
-      el("div.podcast-settings.podcast-settings--compact", null,
-        renderField("Analyze Track",
-          renderTrackSelect(
-            state.autoZoomAnalyzedTrackIndex,
-            (event: Event) => {
-              state.autoZoomAnalyzedTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
-              state.autoZoomInspection = null;
-              state.autoZoomApplyResult = null;
-              render();
-            },
-            false,
-            true,
-          )),
-        renderField(inspection?.executionMode === "direct-transform" ? "Direct Motion" : "Adjustment Track",
-          renderTrackSelect(
-            state.autoZoomTargetTrackIndex,
-            (event: Event) => {
-              state.autoZoomTargetTrackIndex = Number((event.currentTarget as HTMLSelectElement).value);
-              render();
-            },
-            inspection?.executionMode === "direct-transform",
-            false,
-          )),
-        renderField("Zoom Rhythm",
-          el("input.podcast-input", {
-            type: "range",
-            min: "10",
-            max: "100",
-            step: "10",
-            value: String(Math.round(state.autoZoomRhythmPercentage * 100)),
-            onInput: (event: Event) => {
-              state.autoZoomRhythmPercentage = Number((event.currentTarget as HTMLInputElement).value) / 100;
-              render();
-            },
-          })),
-        renderField("Maximum Zoom",
-          el("input.podcast-input", {
-            type: "number",
-            min: "1.01",
-            max: "2",
-            step: "0.05",
-            value: String(state.autoZoomMaxPercentage),
-            onInput: (event: Event) => {
-              state.autoZoomMaxPercentage = Number((event.currentTarget as HTMLInputElement).value) || 1.3;
-              render();
-            },
-          })),
-        renderField("Zoom Duration",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0.25",
-            max: "10",
-            step: "0.25",
-            value: String(state.autoZoomDurationSec),
-            onInput: (event: Event) => {
-              state.autoZoomDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 1.5;
-              render();
-            },
-          })),
-        renderField("Zoom Styles",
-          el("div.podcast-action-row", null,
-            ...(["jump", "smooth", "snap"] as AutoZoomStyle[]).map((style) =>
-              el("button." + (state.autoZoomStyles.includes(style) ? "btn-primary" : "btn-secondary"), {
-                type: "button",
-                onClick: () => toggleAutoZoomStyle(style),
-              }, style === "jump" ? "Jump Cut" : style === "smooth" ? "Smooth" : "Snap-in"),
-            ),
-          ), true),
-      ),
-      el("div.podcast-action-row", null,
-        el("button.btn-secondary", {
-          disabled: busy,
-          onClick: analyzeAutoZoom,
-        }, state.autoZoomInspectionLoading ? "Analyzing..." : "Analyze Auto Zoom"),
-        el("button.btn-primary", {
-          disabled: busy || !inspection?.ok,
-          onClick: runAutoZoom,
-        }, state.autoZoomApplyLoading ? "Applying zooms..." : "Apply Auto Zoom"),
-      ),
-      state.autoZoomInspectionLoading || state.autoZoomApplyLoading
-        ? renderProcessingLoader(state.autoZoomApplyLoading ? "Applying Auto Zoom" : "Analyzing Auto Zoom")
-        : null,
-      el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-        renderSummaryTile("Runtime", inspection ? (inspection.executionMode ? "Ready" : "Blocked") : "Not analyzed"),
-        renderSummaryTile("Cuts", inspection ? `${inspection.cutEventsSec.length} (${selectedCount} selected)` : "Waiting"),
-        renderSummaryTile("Rhythm", `${Math.round(state.autoZoomRhythmPercentage * 100)}%`),
-        renderSummaryTile("Zoom", `${Math.round(state.autoZoomMaxPercentage * 100)}%`),
-        renderSummaryTile(
-          inspection?.executionMode === "direct-transform" ? "Mode" : "Inserted",
-          inspection?.executionMode === "direct-transform"
-            ? "Motion"
-            : (applyResult ? String(applyResult.adjustmentLayersInserted) : "0"),
-        ),
-        renderSummaryTile("Effects", applyResult ? String(applyResult.effectsApplied) : "0"),
-      ),
-      el("div.podcast-human-messages", null,
-        ...autoZoomMessages().map((message) => el("div.podcast-human-message", null, message)),
-      ),
-    );
-  }
-
-  function toggleAutoZoomStyle(style: AutoZoomStyle) {
-    if (state.autoZoomStyles.includes(style)) {
-      if (state.autoZoomStyles.length > 1) state.autoZoomStyles = state.autoZoomStyles.filter((item) => item !== style);
-    } else {
-      state.autoZoomStyles = [...state.autoZoomStyles, style];
-    }
-    render();
-  }
-
-  function autoZoomMessages(): string[] {
-    if (!state.autoZoomInspection) return ["Analyze first. The timeline will not be changed during analysis."];
-    const messages: string[] = [];
-    if (state.autoZoomInspection.blockers.length) messages.push(`Auto Zoom blocked: ${state.autoZoomInspection.blockers.join(", ")}`);
-    if (state.autoZoomInspection.warnings.length) messages.push(`Warnings: ${state.autoZoomInspection.warnings.join(", ")}`);
-    if (state.autoZoomInspection.ok) {
-      const detectedTrack = state.autoZoomInspection.analyzedVideoTrackIndexes[0];
-      const trackLabel = detectedTrack !== undefined ? `V${detectedTrack + 1}` : "None";
-      messages.push(`Analyzed Track: ${trackLabel}`);
-      messages.push(state.autoZoomInspection.executionMode === "adjustment-layer"
-        ? "Adjustment Layer runtime is ready. Review the tracks, styles and zoom strength before applying."
-        : "Direct Motion is ready. Editable Scale zooms will be added to the analyzed track clips.");
-    }
-    if (state.autoZoomApplyResult?.ok) {
-      const trackLabel = `V${(state.autoZoomInspection.analyzedVideoTrackIndexes[0] ?? 0) + 1}`;
-      messages.push(state.autoZoomApplyResult.executionMode === "direct-transform"
-        ? `${state.autoZoomApplyResult.effectsApplied} editable Motion Scale zoom effect(s) were applied to ${trackLabel}. Direct Motion does not create layers.`
-        : `${state.autoZoomApplyResult.adjustmentLayersInserted} editable zoom layers were added.`);
-    }
-    if (state.autoZoomApplyResult && !state.autoZoomApplyResult.ok) messages.push(`Apply failed: ${state.autoZoomApplyResult.blockers.join(", ")}`);
-    const firstEventError = state.autoZoomApplyResult?.eventResults.find((event) => event.error)?.error;
-    if (firstEventError) messages.push(`First event error: ${firstEventError}`);
-    if (state.autoZoomApplyResult?.warnings.length) messages.push(`Runtime warnings: ${state.autoZoomApplyResult.warnings.join(", ")}`);
-    return messages;
-  }
+// Auto Zoom render functions removed
 
   function isProductionBusy(): boolean {
     return state.timelineLoading
@@ -756,8 +728,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       || state.silenceRemovalLoading
       || state.synchronizationLoading
       || state.synchronizationApplyLoading
-      || state.autoZoomInspectionLoading
-      || state.autoZoomApplyLoading;
+      || state.captionRuntimeLoading
+      || state.autoCaptionsLoading
+      || state.oneClickLoading;
   }
 
   function renderProductionSummary(): HTMLElement {
@@ -1484,19 +1457,72 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
           ...getCameraMappingSpeakerIds().map((speakerId) => renderMappingRow(speakerId)),
           renderMappingRow("wide"),
         ), true),
-      renderField("Minimum Shot Length",
+      renderField("Minimum Shot Length (s)",
         el("input.podcast-input", {
           type: "number",
-          min: "0",
+          min: "0.5",
           step: "0.5",
           value: String(state.minimumShotLengthSec),
           onInput: (event: Event) => {
-            state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
+            state.minimumShotLengthSec = Number((event.currentTarget as HTMLInputElement).value) || 2;
             state.cameraDecisionPlanProof = null;
             state.applyCameraDecisionsResult = null;
             render();
           },
         })),
+      renderField("Max Camera Run (s)",
+        el("input.podcast-input", {
+          type: "number",
+          min: "5",
+          step: "1",
+          value: String(state.maxSingleCameraRunSec),
+          onInput: (event: Event) => {
+            state.maxSingleCameraRunSec = Number((event.currentTarget as HTMLInputElement).value) || 20;
+            state.cameraDecisionPlanProof = null;
+            state.applyCameraDecisionsResult = null;
+            render();
+          },
+        })),
+      renderField("Wide Cutaway Duration (s)",
+        el("input.podcast-input", {
+          type: "number",
+          min: "1",
+          step: "0.5",
+          value: String(state.wideCutawayDurationSec),
+          onInput: (event: Event) => {
+            state.wideCutawayDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 4;
+            state.cameraDecisionPlanProof = null;
+            state.applyCameraDecisionsResult = null;
+            render();
+          },
+        })),
+      renderField("Transitional Wide",
+        el("label.podcast-toggle", null,
+          el("input", {
+            type: "checkbox",
+            checked: state.enableTransitionalWide,
+            onChange: (event: Event) => {
+              state.enableTransitionalWide = (event.currentTarget as HTMLInputElement).checked;
+              state.cameraDecisionPlanProof = null;
+              state.applyCameraDecisionsResult = null;
+              render();
+            },
+          }),
+          el("span", null, "Enable transitional wide shots"),
+        )),
+      state.enableTransitionalWide ? renderField("Transitional Duration (s)",
+        el("input.podcast-input", {
+          type: "number",
+          min: "0.5",
+          step: "0.5",
+          value: String(state.transitionalWideDurationSec),
+          onInput: (event: Event) => {
+            state.transitionalWideDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 2.0;
+            state.cameraDecisionPlanProof = null;
+            state.applyCameraDecisionsResult = null;
+            render();
+          },
+        })) : null,
       renderField("Wide Camera Option",
         el("label.podcast-toggle", null,
           el("input", { type: "checkbox", checked: true, disabled: true }),
@@ -2011,6 +2037,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
       const videoCount = state.timelineLayout.videoTracks.length;
       ensureAudioMappingsForTimeline();
+      ensureDefaultCameraMappings();
       if (videoCount > 0) {
         ensureCameraMappingsForAudioTracks();
         for (const key of Object.keys(state.mappings)) {
@@ -2023,85 +2050,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     }
   }
 
-  async function analyzeAutoZoom() {
-    if (isProductionBusy()) return;
-    syncCameraMappingsFromDom();
-    const analyzedTrackIndex = state.autoZoomAnalyzedTrackIndex;
-    state.autoZoomInspectionLoading = true;
-    state.autoZoomApplyResult = null;
-    render();
-    try {
-      state.autoZoomInspection = await inspectAutoZoomTimeline({
-        analyzedVideoTrackIndexes: analyzedTrackIndex === -1 ? [] : [analyzedTrackIndex],
-        autoDetectAnalyzedTrack: analyzedTrackIndex === -1,
-        excludedSourceVideoTrackIndex: state.mappings.wide !== undefined ? state.mappings.wide : null,
-      });
-      const count = state.autoZoomInspection.videoTrackCount;
-      if (count > 0) {
-        if (analyzedTrackIndex >= 0 && analyzedTrackIndex < count) {
-          state.autoZoomAnalyzedTrackIndex = analyzedTrackIndex;
-        }
-        state.autoZoomTargetTrackIndex = Math.min(Math.max(state.autoZoomTargetTrackIndex, 1), count - 1);
-      }
-    } catch (err) {
-      state.autoZoomInspection = {
-        ok: false,
-        sequenceName: null,
-        sequenceId: null,
-        durationSec: 0,
-        videoTrackCount: 0,
-        analyzedVideoTrackIndexes: analyzedTrackIndex === -1 ? [] : [analyzedTrackIndex],
-        cutEventsSec: [],
-        adjustmentLayerCount: 0,
-        qeAvailable: false,
-        newAdjustmentLayerAvailable: false,
-        directTransformAvailable: false,
-        executionMode: null,
-        blockers: ["AUTO_ZOOM_INSPECTION_FAILED", (err as Error).message],
-        warnings: [],
-      };
-    } finally {
-      state.autoZoomInspectionLoading = false;
-      render();
-    }
-  }
-
-  async function runAutoZoom() {
-    if (isProductionBusy() || !state.autoZoomInspection?.ok) return;
-    syncCameraMappingsFromDom();
-    state.autoZoomApplyLoading = true;
-    render();
-    try {
-      state.autoZoomApplyResult = await applyAutoZoom({
-        targetVideoTrackIndex: state.autoZoomTargetTrackIndex,
-        analyzedVideoTrackIndexes: state.autoZoomInspection.analyzedVideoTrackIndexes,
-        rhythmPercentage: state.autoZoomRhythmPercentage,
-        maxZoomPercentage: state.autoZoomMaxPercentage,
-        zoomDurationSec: state.autoZoomDurationSec,
-        styles: state.autoZoomStyles,
-        excludedSourceVideoTrackIndex: state.mappings.wide !== undefined ? state.mappings.wide : null,
-      });
-    } catch (err) {
-      state.autoZoomApplyResult = {
-        ok: false,
-        sequenceName: state.autoZoomInspection.sequenceName,
-        eventsDetected: 0,
-        eventsSelected: 0,
-        adjustmentLayersInserted: 0,
-        effectsApplied: 0,
-        failedEvents: 0,
-        createdProjectItemName: null,
-        executionMode: null,
-        eventResults: [],
-        blockers: ["AUTO_ZOOM_APPLY_FAILED", (err as Error).message],
-        warnings: [],
-        timelineMutation: "none",
-      };
-    } finally {
-      state.autoZoomApplyLoading = false;
-      render();
-    }
-  }
+// Auto Zoom action handlers removed
 
   async function previewAutoSwitch() {
     if (isProductionBusy()) return;
@@ -2153,6 +2102,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
         videoTrackCount: layout.videoTracks.length,
         minimumShotLengthSec: state.minimumShotLengthSec,
+        maxSingleCameraRunSec: state.maxSingleCameraRunSec,
+        wideCutawayDurationSec: state.wideCutawayDurationSec,
+        enableTransitionalWide: state.enableTransitionalWide,
+        transitionalWideDurationSec: state.transitionalWideDurationSec,
         }),
         sequenceId: layout.sequenceId ?? null,
         sequenceName: layout.sequenceName ?? null,
@@ -2477,6 +2430,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       timelineDurationSec: layout.sequenceDurationSec ?? state.sourceAttributionProof.analyzedDurationSec,
       videoTrackCount: layout.videoTracks.length,
       minimumShotLengthSec: state.minimumShotLengthSec,
+      maxSingleCameraRunSec: state.maxSingleCameraRunSec,
+      wideCutawayDurationSec: state.wideCutawayDurationSec,
+      enableTransitionalWide: state.enableTransitionalWide,
+      transitionalWideDurationSec: state.transitionalWideDurationSec,
       }),
       sequenceId: layout.sequenceId ?? null,
       sequenceName: layout.sequenceName ?? null,
@@ -2586,8 +2543,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     clearSynchronizationRuntimeState();
     clearAutoSwitchRuntimeState();
     state.silenceRemovalResult = null;
-    state.autoZoomInspection = null;
-    state.autoZoomApplyResult = null;
     state.audioProof = null;
     state.rmsProof = null;
     state.fullActivityProof = null;
@@ -2914,6 +2869,52 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     }
   }
 
+  function ensureDefaultCameraMappings() {
+    if (state.cameraMappingTouched) return;
+    const layout = state.timelineLayout;
+    if (!layout) return;
+
+    state.mappings = {};
+
+    const videoTracks = layout.videoTracks ?? [];
+    const audioTracks = layout.audioTracks ?? [];
+
+    let wideTrackIndex: number | null = null;
+    for (const track of videoTracks) {
+      if (track.name && track.name.toLowerCase().includes("wide")) {
+        wideTrackIndex = track.index;
+        break;
+      }
+    }
+
+    const activeVideoTracks = videoTracks.filter(trackHasClips);
+
+    if (wideTrackIndex === null && videoTracks.length > 0) {
+      if (activeVideoTracks.length > 0) {
+        wideTrackIndex = activeVideoTracks[0].index;
+      } else {
+        wideTrackIndex = videoTracks[0].index;
+      }
+    }
+
+    if (wideTrackIndex !== null) {
+      state.mappings.wide = wideTrackIndex;
+    }
+
+    const activeAudioTracks = audioTracks.filter(trackHasClips);
+
+    for (const aTrack of activeAudioTracks) {
+      if (wideTrackIndex !== null && aTrack.index === wideTrackIndex) {
+        continue;
+      }
+      const speakerId = `speaker_${aTrack.index + 1}`;
+      const hasCorrespondingVideoWithClips = activeVideoTracks.some(vTrack => vTrack.index === aTrack.index);
+      if (hasCorrespondingVideoWithClips) {
+        state.mappings[speakerId] = aTrack.index;
+      }
+    }
+  }
+
   function syncCameraMappingsFromDom() {
     const selects = page.querySelectorAll<HTMLSelectElement>("select[data-camera-speaker-id]");
     for (const select of selects) {
@@ -2999,6 +3000,624 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       name: `Video ${index + 1}`,
       clipCount: 0,
     }));
+  }
+
+  async function refreshCaptionRuntime() {
+    if (isProductionBusy()) return;
+    state.captionRuntimeLoading = true;
+    state.captionRuntimeProgress = { stage: "manifest", message: "Discovering the local runtime", percent: null };
+    render();
+    try {
+      state.captionRuntime = await discoverCaptionRuntime();
+    } catch (err) {
+      state.captionRuntime = {
+        status: "unsupported",
+        manifest: null,
+        manifestDigest: null,
+        layout: null,
+        selfTest: null,
+        blockers: ["RUNTIME_DISCOVERY_FAILED", (err as Error).message],
+        warnings: [],
+      };
+    } finally {
+      state.captionRuntimeLoading = false;
+      state.captionRuntimeProgress = null;
+      render();
+    }
+  }
+
+  async function provisionCaptionRuntime() {
+    if (isProductionBusy()) return;
+    state.captionRuntimeLoading = true;
+    state.captionRuntimeProgress = { stage: "manifest", message: "Loading the runtime lock manifest", percent: null };
+    render();
+    try {
+      const progress = (value: RuntimeProgress) => {
+        state.captionRuntimeProgress = value;
+        render();
+      };
+      
+      const runtime = state.captionRuntime;
+      if (runtime?.status === "repair-required") {
+        state.captionRuntime = await repairCaptionRuntime(progress);
+      } else {
+        state.captionRuntime = await installCaptionRuntime(progress);
+      }
+    } catch (err) {
+      state.captionRuntime = {
+        status: "unsupported",
+        manifest: null,
+        manifestDigest: null,
+        layout: null,
+        selfTest: null,
+        blockers: ["RUNTIME_PROVISION_FAILED", (err as Error).message],
+        warnings: [],
+      };
+    } finally {
+      state.captionRuntimeLoading = false;
+      state.captionRuntimeProgress = null;
+      render();
+    }
+  }
+
+  async function runAutoCaptions() {
+    if (isProductionBusy()) return;
+    state.autoCaptionsLoading = true;
+    state.autoCaptionsResult = null;
+    render();
+    try {
+      state.autoCaptionsResult = await runPodcastAutoCaptions(
+        state.autoCaptionsLanguage,
+        state.autoCaptionsModel,
+        (progress) => {
+          state.captionRuntimeProgress = {
+            stage: progress.stage,
+            message: progress.message,
+            percent: null,
+          };
+          render();
+        }
+      );
+    } catch (err) {
+      state.autoCaptionsResult = {
+        ok: false,
+        language: state.autoCaptionsLanguage,
+        captionCount: 0,
+        device: null,
+        model: state.autoCaptionsModel,
+        srtPath: null,
+        captionTracksBefore: null,
+        captionTracksAfter: null,
+        blockers: [(err as Error).message],
+      };
+    } finally {
+      state.autoCaptionsLoading = false;
+      state.captionRuntimeProgress = null;
+      render();
+    }
+  }
+
+  function renderRuntimeDiagnosticsBox(runtime: RuntimeDiscoveryResult | null): HTMLElement | null {
+    if (!runtime || !runtime.selfTest) return null;
+    const st = runtime.selfTest;
+    const loadFailed = st.whisperCudaLoadOk === false;
+    const cudaWarnStyle = loadFailed || !st.cudaAvailable;
+    
+    return el("div.podcast-runtime-diagnostics", {
+      style: {
+        marginTop: "12px",
+        padding: "10px",
+        border: `1px solid ${cudaWarnStyle ? "#ffe0b2" : "#c8e6c9"}`,
+        borderRadius: "6px",
+        backgroundColor: cudaWarnStyle ? "#fff8e1" : "#e8f5e9",
+        fontSize: "13px",
+        color: "#333",
+        width: "100%"
+      }
+    },
+      el("strong", { style: { color: cudaWarnStyle ? "#e65100" : "#2e7d32", display: "block", marginBottom: "6px" } }, 
+        cudaWarnStyle ? "⚠ Runtime Diagnostics (Limited CUDA / CPU Mode)" : "✓ Runtime Diagnostics (CUDA Acceleration Ready)"
+      ),
+      el("ul", { style: { margin: "0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
+        el("li", null, `GPU Name: ${st.gpuName || "Not Detected"}`),
+        el("li", null, `GPU Vendor: ${st.gpuVendor || "Not Detected"}`),
+        el("li", null, `CUDA Available: ${st.cudaAvailable ? "Yes" : "No"}`),
+        el("li", null, `CUDA Version: ${st.cudaVersion || "Not Detected"}`),
+        el("li", null, `cuDNN Version: ${st.cuDNNVersion || "Not Detected"}`),
+        el("li", null, `CTranslate2 Device Detection: ${st.ctranslate2DeviceDetection || "N/A"}`),
+        el("li", null, `Faster Whisper Device Detection: ${st.fasterWhisperDeviceDetection || "N/A"}`),
+        el("li", null, `ctranslate2 CUDA DLL Load: ${st.whisperCudaLoadOk === true ? "Success" : (st.whisperCudaLoadOk === false ? "Failed (Fallback active)" : "N/A")}`),
+        st.exactCudaError ? el("li", { style: { color: "#e65100", wordBreak: "break-all" } }, `CUDA Load Error: ${st.exactCudaError}`) : null,
+        el("li", null, `Supported CUDA Precision: ${st.cudaComputeTypes?.join(", ") || "None"}`),
+        el("li", null, `Supported CPU Precision: ${st.cpuComputeTypes?.join(", ") || "None"}`),
+        el("li", null, `Python Engine: ${runtime.layout?.pythonPath || "N/A"}`),
+        el("li", null, `Library Versions: faster-whisper v${st.fasterWhisperVersion || "N/A"} / ctranslate2 v${st.ctranslate2Version || "N/A"}`)
+      )
+    );
+  }
+
+  function renderAutoCaptionsTool(): HTMLElement {
+    const runtime = state.captionRuntime;
+    const progress = state.captionRuntimeProgress;
+    const result = state.autoCaptionsResult;
+    
+    const statusLabel = runtime?.status === "ready"
+      ? "Ready"
+      : runtime?.status === "repair-required"
+        ? "Repair required"
+        : runtime?.status === "not-installed"
+          ? "Not installed"
+          : "Unavailable";
+          
+    const actionLabel = runtime?.status === "ready"
+      ? "Runtime Installed ✓"
+      : runtime?.status === "repair-required"
+        ? "Repair Runtime"
+        : "Install Runtime";
+        
+    const languageSelect = el("select.podcast-input", {
+      disabled: isProductionBusy(),
+      onChange: (event: Event) => {
+        state.autoCaptionsLanguage = (event.currentTarget as HTMLSelectElement).value as CaptionLanguage;
+        render();
+      },
+    },
+      el("option", { value: "auto" }, "Auto Detect"),
+      el("option", { value: "ar" }, "العربية"),
+      el("option", { value: "en" }, "English"),
+    );
+    (languageSelect as HTMLSelectElement).value = state.autoCaptionsLanguage;
+    
+    const modelSelect = el("select.podcast-input", {
+      disabled: isProductionBusy(),
+      onChange: (event: Event) => {
+        state.autoCaptionsModel = (event.currentTarget as HTMLSelectElement).value as CaptionModel;
+        render();
+      },
+    },
+      el("option", { value: "medium" }, "Standard (متوازن)"),
+      el("option", { value: "large-v3-turbo" }, "Fast (سريع)"),
+      el("option", { value: "large-v3" }, "Professional (احترافي)"),
+    );
+    (modelSelect as HTMLSelectElement).value = state.autoCaptionsModel;
+    
+    const busy = isProductionBusy();
+    const runtimeReady = runtime?.status === "ready";
+    
+    const st = runtime?.selfTest;
+    let preflightWarning: HTMLElement | null = null;
+    if (st) {
+      const isCudaMissing = !st.cudaAvailable || st.whisperCudaLoadOk === false;
+      const gpuNameUpper = (st.gpuName || "").toUpperCase();
+      const lowEndKeywords = [
+        "GTX 1050", "GTX 1060", "GTX 1650", "GTX 1660", 
+        "RTX 2050", "RTX 2060", "RTX 3050", 
+        "MX150", "MX250", "MX350", "MX450", "MX550",
+        "INTEL", "AMD", "RADEON", "UHD GRAPHICS", "IRIS"
+      ];
+      const isWeak = lowEndKeywords.some(keyword => gpuNameUpper.includes(keyword));
+      
+      if (state.autoCaptionsModel === "large-v3") {
+        if (isCudaMissing) {
+          preflightWarning = el("div.podcast-warning-box", {
+            style: {
+              marginTop: "8px",
+              padding: "10px",
+              border: "1px solid #ffccd5",
+              borderRadius: "6px",
+              backgroundColor: "#fff5f6",
+              color: "#c62828",
+              fontSize: "13px",
+              lineHeight: "1.5",
+              width: "100%"
+            }
+          }, 
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: CPU Fallback Speed Alert"),
+            "Running the Professional level (large-v3) model on CPU will be extremely slow. CUDA acceleration is not functional."
+          );
+        } else if (isWeak) {
+          preflightWarning = el("div.podcast-warning-box", {
+            style: {
+              marginTop: "8px",
+              padding: "10px",
+              border: "1px solid #ffe0b2",
+              borderRadius: "6px",
+              backgroundColor: "#fff8e1",
+              color: "#e65100",
+              fontSize: "13px",
+              lineHeight: "1.5",
+              width: "100%"
+            }
+          },
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: Low-Spec GPU Alert"),
+            "Running the Professional level model on a lower-spec GPU may freeze or crash Premiere Pro due to high VRAM usage. Standard or Fast is recommended."
+          );
+        }
+      } else if (state.autoCaptionsModel === "medium") {
+        if (isCudaMissing) {
+          preflightWarning = el("div.podcast-warning-box", {
+            style: {
+              marginTop: "8px",
+              padding: "10px",
+              border: "1px solid #ffccd5",
+              borderRadius: "6px",
+              backgroundColor: "#fff5f6",
+              color: "#c62828",
+              fontSize: "13px",
+              lineHeight: "1.5",
+              width: "100%"
+            }
+          },
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: CPU Fallback Speed Alert"),
+            "Running the Standard level (medium) model on CPU will be slow. CUDA acceleration is not functional."
+          );
+        }
+      }
+    }
+    
+    return el("div.podcast-production-card", { id: "podcast-auto-captions-tool" },
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "Auto Captions"),
+          el("p", null, "Create editable Arabic subtitles locally with faster-whisper. Reap is not used."),
+        ),
+      ),
+      el("div.podcast-settings-grid", null,
+        el("label.podcast-field", null, el("span", null, "Language"), languageSelect),
+        el("label.podcast-field", null, el("span", null, "Subtitles Level"), modelSelect),
+      ),
+      preflightWarning,
+      el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
+        renderSummaryTile("Language", state.autoCaptionsLanguage === "ar" ? "Arabic" : state.autoCaptionsLanguage === "en" ? "English" : "Auto Detect"),
+        renderSummaryTile("Engine", "faster-whisper"),
+        renderSummaryTile("Level", modelTiers[state.autoCaptionsModel] || state.autoCaptionsModel),
+        renderSummaryTile("Audio", "Automatic (A1)"),
+        renderSummaryTile("Captions", result ? String(result.captionCount) : "Waiting"),
+        renderSummaryTile("Runtime Status", statusLabel),
+      ),
+      el("div.podcast-action-row", null,
+        el("button.btn-secondary", {
+          disabled: busy || runtimeReady,
+          onClick: provisionCaptionRuntime,
+        }, (state.captionRuntimeLoading && progress && progress.stage !== "self-test") ? `${progress.message} (${progress.percent || 0}%)` : actionLabel),
+        el("button.btn-primary", {
+          disabled: busy || !runtimeReady,
+          onClick: runAutoCaptions,
+        }, state.autoCaptionsLoading ? "Generating Arabic Captions..." : "Generate Arabic Captions"),
+      ),
+      renderRuntimeDiagnosticsBox(runtime),
+      state.autoCaptionsLoading && progress
+        ? el("div", { style: { width: "100%" } },
+            progress.percent !== null
+              ? el("div.podcast-progress-container", { style: { marginTop: "12px", width: "100%" } },
+                  el("div.podcast-progress-bar", { style: { height: "6px", backgroundColor: "#ddd", borderRadius: "3px", overflow: "hidden", width: "100%" } },
+                    el("div.podcast-progress-fill", { style: { height: "100%", width: `${progress.percent}%`, backgroundColor: "#0070f3", transition: "width 0.3s ease" } })
+                  ),
+                  el("div.podcast-message", { style: { marginTop: "8px", fontSize: "14px", fontWeight: "bold" } }, `${progress.message} (${progress.percent}%)`)
+                )
+              : el("div.podcast-progress-container", { style: { marginTop: "12px", width: "100%" } },
+                  el("div.podcast-message", { style: { marginTop: "8px", fontSize: "14px", fontWeight: "bold" } }, progress.message)
+                ),
+            renderProcessingLoader(progress.message)
+          )
+        : null,
+      state.captionRuntimeLoading && progress && progress.stage !== "self-test"
+        ? el("div", { style: { width: "100%" } },
+            el("div.podcast-progress-container", { style: { marginTop: "12px", width: "100%" } },
+              el("div.podcast-progress-bar", { style: { height: "6px", backgroundColor: "#ddd", borderRadius: "3px", overflow: "hidden", width: "100%" } },
+                el("div.podcast-progress-fill", { style: { height: "100%", width: `${progress.percent || 0}%`, backgroundColor: "#0070f3", transition: "width 0.3s ease" } })
+              ),
+              el("div.podcast-message", { style: { marginTop: "8px", fontSize: "14px", fontWeight: "bold" } }, `${progress.message} (${progress.percent || 0}%)`)
+            ),
+            renderProcessingLoader(progress.message)
+          )
+        : null,
+      result ? el("div", null,
+        el("div.podcast-message", {
+          style: {
+            marginTop: "8px",
+            color: !result.ok
+              ? "#c62828"
+              : (result.diagnostics?.fallbackOccurred ? "#d65d00" : "#2e7d32")
+          }
+        },
+          !result.ok
+            ? `Failed to create captions: ${result.blockers.join(" | ")}`
+            : (result.diagnostics?.fallbackOccurred
+                ? `Captions created with CPU Fallback! Count: ${result.captionCount} (CUDA failed)`
+                : `Captions created successfully! Count: ${result.captionCount}`)
+        ),
+        result.diagnostics?.fallbackOccurred
+          ? el("div.podcast-warning-box", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", color: "#d65d00", fontSize: "13px", lineHeight: "1.5" } },
+              el("strong", { style: { color: "#e65100" } }, "⚠ Warning: Running on CPU Fallback!"),
+              el("div", { style: { marginTop: "4px" } }, `Whisper CUDA execution failed. Fallback to CPU occurred.`),
+              el("div", { style: { fontSize: "12px", color: "#666", marginTop: "2px" } }, `Reason: ${result.diagnostics.fallbackReason}`)
+            )
+          : null,
+        result.diagnostics
+          ? el("div.podcast-one-click-diagnostics", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", fontSize: "13px", color: "#333" } },
+              el("strong", null, "Caption Diagnostics Timing:"),
+              el("ul", { style: { margin: "4px 0 0 0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
+                el("li", null, `Selected Tier: ${result.diagnostics.selectedTier || "N/A"}`),
+                el("li", null, `Selected Model: ${result.diagnostics.selectedModel || "N/A"}`),
+                el("li", null, `Selected Model Path: ${result.diagnostics.selectedModelPath || "N/A"}`),
+                el("li", null, `Device: ${result.diagnostics.device || "N/A"}`),
+                el("li", null, `Compute Type: ${result.diagnostics.computeType || "N/A"}`),
+                el("li", null, `Audio Duration: ${result.diagnostics.audioDurationSec !== undefined ? result.diagnostics.audioDurationSec.toFixed(2) + "s" : "N/A"}`),
+                el("li", null, `Transcription Duration: ${result.diagnostics.transcriptionDurationSec !== undefined ? result.diagnostics.transcriptionDurationSec.toFixed(2) + "s" : "N/A"}`),
+                el("li", null, `Realtime Factor: ${result.diagnostics.realtimeFactor !== undefined ? result.diagnostics.realtimeFactor.toFixed(3) : "N/A"}`),
+                el("li", null, `CPU/GPU Fallback: ${result.diagnostics.fallbackOccurred ? "Yes (" + (result.diagnostics.fallbackReason || "unknown") + ")" : "No"}`),
+                el("li", null, `GPU Name: ${result.diagnostics.gpuName || "Unknown"}`),
+                el("li", null, `CUDA Available: ${result.diagnostics.cudaAvailable ? "Yes" : "No"}`),
+                el("li", null, `CUDA Version: ${result.diagnostics.cudaVersion || "N/A"}`),
+                el("li", null, `CTranslate2 Version: ${result.diagnostics.ctranslate2Version || "N/A"}`),
+                el("li", null, `Faster Whisper Version: ${result.diagnostics.fasterWhisperVersion || "N/A"}`),
+                result.diagnostics.exactCudaError ? el("li", { style: { color: "#c62828", wordBreak: "break-all" } }, `Exact CUDA Error: ${result.diagnostics.exactCudaError}`) : null,
+                el("li", null, `Audio Extraction Time: ${result.diagnostics.audioExtractionTimeMs}ms`),
+                el("li", null, `WAV Duration: ${result.diagnostics.wavDurationSec?.toFixed(2)}s`),
+                el("li", null, `WAV Size: ${(result.diagnostics.wavSizeBytes / 1024).toFixed(2)} KB`),
+                el("li", null, `Whisper Start: ${result.diagnostics.whisperStartTime}`),
+                el("li", null, `Whisper End: ${result.diagnostics.whisperEndTime}`),
+                el("li", null, `Whisper Duration: ${(result.diagnostics.whisperDurationMs / 1000).toFixed(2)}s`),
+                el("li", null, `SRT Write Time: ${result.diagnostics.srtWriteTimeMs}ms`),
+                el("li", null, `JSON Write Time: ${result.diagnostics.jsonWriteTimeMs}ms`),
+                el("li", null, `Caption Import Start: ${result.diagnostics.captionImportStartTime}`),
+                el("li", null, `Caption Import End: ${result.diagnostics.captionImportEndTime}`),
+                el("li", null, `Caption Import Duration: ${result.diagnostics.captionImportDurationMs}ms`),
+                el("li", null, `Verification Start: ${result.diagnostics.verificationStartTime}`),
+                el("li", null, `Verification End: ${result.diagnostics.verificationEndTime}`),
+                el("li", null, `Verification Duration: ${result.diagnostics.verificationDurationMs}ms`)
+              )
+            )
+          : null
+      ) : null
+    );
+  }
+
+  function renderOneClickTool(): HTMLElement {
+    const busy = isProductionBusy();
+    const progress = state.oneClickProgress;
+    const result = state.oneClickResult;
+    
+    return el("div.podcast-production-card", { id: "podcast-one-click-tool" },
+      el("div.podcast-section-head", null,
+        el("div", null,
+          el("h3", null, "One Click Podcast Edit"),
+          el("p", null, "Run the entire podcast editing pipeline (Silence Removal → Multi-Cam Switch → Auto Captions) in a single click."),
+        ),
+      ),
+      el("div.podcast-settings-grid", { style: { marginBottom: "12px" } },
+        renderField("Auto Captions",
+          el("label.podcast-toggle", null,
+            el("input", {
+              type: "checkbox",
+              checked: !state.oneClickSkipCaptions,
+              disabled: state.oneClickFastMode || busy,
+              onChange: (event: Event) => {
+                state.oneClickSkipCaptions = !(event.currentTarget as HTMLInputElement).checked;
+                render();
+              },
+            }),
+            el("span", null, "Generate Auto Captions (توليد الكابشنز)"),
+          )
+        ),
+        renderField("Fast Mode",
+          el("label.podcast-toggle", null,
+            el("input", {
+              type: "checkbox",
+              checked: state.oneClickFastMode,
+              disabled: busy,
+              onChange: (event: Event) => {
+                state.oneClickFastMode = (event.currentTarget as HTMLInputElement).checked;
+                render();
+              },
+            }),
+            el("span", null, "Fast Mode (الوضع السريع)"),
+          )
+        )
+      ),
+      renderRuntimeDiagnosticsBox(state.captionRuntime),
+      el("div.podcast-action-row", null,
+        el("button.btn-primary", {
+          disabled: busy,
+          onClick: runOneClickPodcastEdit,
+        }, state.oneClickLoading ? "Processing Pipeline..." : "Run One Click Edit"),
+      ),
+      state.oneClickLoading && progress
+        ? el("div", { style: { width: "100%" } },
+            progress.percent !== null
+              ? el("div.podcast-progress-container", { style: { marginTop: "12px", width: "100%" } },
+                  el("div.podcast-progress-bar", { style: { height: "6px", backgroundColor: "#ddd", borderRadius: "3px", overflow: "hidden", width: "100%" } },
+                    el("div.podcast-progress-fill", { style: { height: "100%", width: `${progress.percent}%`, backgroundColor: "#0070f3", transition: "width 0.3s ease" } })
+                  ),
+                  el("div.podcast-message", { style: { marginTop: "8px", fontSize: "14px", fontWeight: "bold" } }, `${progress.message} (${progress.percent}%)`)
+                )
+              : el("div.podcast-progress-container", { style: { marginTop: "12px", width: "100%" } },
+                  el("div.podcast-message", { style: { marginTop: "8px", fontSize: "14px", fontWeight: "bold" } }, progress.message)
+                ),
+            renderProcessingLoader(progress.message)
+          )
+        : null,
+      result
+        ? el("div.podcast-one-click-results", { style: { marginTop: "16px", padding: "12px", border: "1px solid #eaeaea", borderRadius: "8px", backgroundColor: "#fafafa", width: "100%" } },
+            el("h4", {
+              style: {
+                margin: "0 0 8px 0",
+                color: !result.success
+                  ? "#c62828"
+                  : (result.captionDiagnostics?.fallbackOccurred ? "#d65d00" : "#2e7d32")
+              }
+            },
+              !result.success
+                ? "One Click Edit Failed ✗"
+                : (result.captionDiagnostics?.fallbackOccurred ? "One Click Edit Complete (with CPU Fallback) ⚠" : "One Click Edit Complete ✓")
+            ),
+            el("ul", { style: { margin: "0", paddingLeft: "20px", fontSize: "14px", lineHeight: "1.6" } },
+              el("li", null, `Target Sequence: ${result.sequenceName}`),
+              el("li", null, `Total Time: ${Math.round(result.totalRuntime / 1000)}s`),
+              el("li", null, `Steps Completed: ${result.completedSteps.join(", ") || "none"}`),
+              result.skippedSteps && result.skippedSteps.length ? el("li", { style: { color: "#e65100" } }, `Steps Skipped: ${result.skippedSteps.join(", ")} (${result.skipReason || ""})`) : null,
+              result.failedSteps.length ? el("li", { style: { color: "#c62828" } }, `Steps Failed: ${result.failedSteps.join(", ")}`) : null,
+              el("li", null, `Silence segments removed: ${result.skippedSteps?.includes("silence-removal") ? "SKIPPED" : result.silencesRemoved}`),
+              el("li", null, `Camera switch cuts made: ${result.switchesApplied}`),
+              el("li", null, `Captions created: ${result.captionsCreated}`)
+            ),
+            result.captionDiagnostics?.fallbackOccurred
+              ? el("div.podcast-warning-box", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", color: "#d65d00", fontSize: "13px", lineHeight: "1.5" } },
+                  el("strong", { style: { color: "#e65100" } }, "⚠ Warning: Running on CPU Fallback!"),
+                  el("div", { style: { marginTop: "4px" } }, `Whisper CUDA execution failed. Fallback to CPU occurred.`),
+                  el("div", { style: { fontSize: "12px", color: "#666", marginTop: "2px" } }, `Reason: ${result.captionDiagnostics.fallbackReason}`)
+                )
+              : null,
+            Object.keys(result.errorMessages).length
+              ? el("div.podcast-one-click-errors", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffccd5", borderRadius: "4px", backgroundColor: "#fff5f6", color: "#d9383a", fontSize: "13px" } },
+                  el("strong", null, "Errors/Warnings:"),
+                  el("ul", { style: { margin: "4px 0 0 0", paddingLeft: "16px" } },
+                    ...Object.entries(result.errorMessages).map(([step, msg]) => el("li", null, `[${step}] ${msg}`))
+                  )
+                )
+              : null,
+            result.captionDiagnostics
+              ? el("div.podcast-one-click-diagnostics", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", fontSize: "13px", color: "#333", width: "100%" } },
+                  el("strong", null, "Caption Diagnostics Timing:"),
+                  el("ul", { style: { margin: "4px 0 0 0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
+                    el("li", null, `Selected Tier: ${result.captionDiagnostics.selectedTier || "N/A"}`),
+                    el("li", null, `Selected Model: ${result.captionDiagnostics.selectedModel || "N/A"}`),
+                    el("li", null, `Selected Model Path: ${result.captionDiagnostics.selectedModelPath || "N/A"}`),
+                    el("li", null, `Device: ${result.captionDiagnostics.device || "N/A"}`),
+                    el("li", null, `Compute Type: ${result.captionDiagnostics.computeType || "N/A"}`),
+                    el("li", null, `Audio Duration: ${result.captionDiagnostics.audioDurationSec !== undefined ? result.captionDiagnostics.audioDurationSec.toFixed(2) + "s" : "N/A"}`),
+                    el("li", null, `Audio Extraction Time: ${result.captionDiagnostics.audioExtractionTimeMs}ms`),
+                    el("li", null, `WAV Duration: ${result.captionDiagnostics.wavDurationSec?.toFixed(2)}s`),
+                    el("li", null, `WAV Size: ${(result.captionDiagnostics.wavSizeBytes / 1024).toFixed(2)} KB`),
+                    el("li", null, `Whisper Start: ${result.captionDiagnostics.whisperStartTime}`),
+                    el("li", null, `Whisper End: ${result.captionDiagnostics.whisperEndTime}`),
+                    el("li", null, `Whisper Duration: ${(result.captionDiagnostics.whisperDurationMs / 1000).toFixed(2)}s`),
+                    el("li", null, `Transcription Duration: ${result.captionDiagnostics.transcriptionDurationSec !== undefined ? result.captionDiagnostics.transcriptionDurationSec.toFixed(2) + "s" : "N/A"}`),
+                    el("li", null, `Realtime Factor: ${result.captionDiagnostics.realtimeFactor !== undefined ? result.captionDiagnostics.realtimeFactor.toFixed(3) : "N/A"}`),
+                    el("li", null, `CPU/GPU Fallback: ${result.captionDiagnostics.fallbackOccurred ? "Yes (" + (result.captionDiagnostics.fallbackReason || "unknown") + ")" : "No"}`),
+                    el("li", null, `GPU Name: ${result.captionDiagnostics.gpuName || "Unknown"}`),
+                    el("li", null, `CUDA Available: ${result.captionDiagnostics.cudaAvailable ? "Yes" : "No"}`),
+                    el("li", null, `CUDA Version: ${result.captionDiagnostics.cudaVersion || "N/A"}`),
+                    el("li", null, `CTranslate2 Version: ${result.captionDiagnostics.ctranslate2Version || "N/A"}`),
+                    el("li", null, `Faster Whisper Version: ${result.captionDiagnostics.fasterWhisperVersion || "N/A"}`),
+                    result.captionDiagnostics.exactCudaError ? el("li", { style: { color: "#c62828", wordBreak: "break-all" } }, `Exact CUDA Error: ${result.captionDiagnostics.exactCudaError}`) : null,
+                    el("li", null, `SRT Write Time: ${result.captionDiagnostics.srtWriteTimeMs}ms`),
+                    el("li", null, `JSON Write Time: ${result.captionDiagnostics.jsonWriteTimeMs}ms`),
+                    el("li", null, `Caption Import Start: ${result.captionDiagnostics.captionImportStartTime}`),
+                    el("li", null, `Caption Import End: ${result.captionDiagnostics.captionImportEndTime}`),
+                    el("li", null, `Caption Import Duration: ${result.captionDiagnostics.captionImportDurationMs}ms`),
+                    el("li", null, `Verification Start: ${result.captionDiagnostics.verificationStartTime}`),
+                    el("li", null, `Verification End: ${result.captionDiagnostics.verificationEndTime}`),
+                    el("li", null, `Verification Duration: ${result.captionDiagnostics.verificationDurationMs}ms`)
+                  )
+                )
+              : null
+          )
+        : null
+    );
+  }
+
+  async function runOneClickPodcastEdit() {
+    if (isProductionBusy()) return;
+    
+    state.oneClickLoading = true;
+    state.oneClickProgress = { stage: "setup", message: "Preparing pipeline settings...", percent: 0 };
+    state.oneClickResult = null;
+    render();
+    
+    try {
+      const nextDiagnostics = await getPodcastDiagnostics();
+      state.diagnostics = nextDiagnostics;
+      if (!state.diagnostics.activeSequence) {
+        throw new Error("No active sequence found in Premiere Pro.");
+      }
+      
+      const layout = await analyzeTimelineLayout();
+      state.timelineLayout = layout;
+      
+      const activeSeqName = layout.sequenceName || "";
+      if (isAutoSwitchDraftName(activeSeqName) || activeSeqName.includes("Saad Studio Draft")) {
+        throw new Error("Cannot run One Click Edit on an existing draft sequence. Please select your original source sequence.");
+      }
+      
+      ensureAudioMappingsForTimeline();
+      ensureDefaultCameraMappings();
+      
+      const audioMappings = getAudioMappings();
+      if (audioMappings.length === 0) {
+        throw new Error("Audio track speaker mappings are required for camera switching.");
+      }
+      
+      state.oneClickProgress = { stage: "attribution", message: "Analyzing speaker activity...", percent: 2 };
+      render();
+      const sourceProof = await runSpeakerSourceAttributionProof(audioMappings, state.selectedAudioStreamIndex);
+      const boundProof = bindSourceAttributionToTimeline(sourceProof, layout);
+      ensureCameraMappingsForAudioTracks();
+      const sourceBlockers = getMappedTrackSourceBlockers(boundProof);
+      if (sourceBlockers.length > 0) {
+        throw new Error(`Speaker source attribution failed: ${sourceBlockers.join(" | ")}`);
+      }
+      
+      const result = await runOneClickPodcastEditService({
+        dominantTrackAtTime: boundProof.dominantTrackAtTime,
+        overlaps: boundProof.overlaps,
+        trackSpeakingSegments: boundProof.trackSpeakingSegments,
+        cameraMappings: getCameraMappings(),
+        minimumShotLengthSec: state.minimumShotLengthSec,
+        selectedAudioStreamIndex: state.selectedAudioStreamIndex,
+        timelineDurationSec: layout.sequenceDurationSec ?? boundProof.analyzedDurationSec,
+        videoTrackCount: layout.videoTracks.length,
+        
+        silenceAudioTrackIndex: 0,
+        silenceThresholdDb: state.silenceThresholdDb,
+        minimumSilenceDurationSec: state.minimumSilenceDurationSec,
+        minimumCutGapSec: state.minimumCutGapSec,
+        minimumKeepSegmentDurationSec: state.minimumKeepSegmentDurationSec,
+        mergeAdjacentKeepGapSec: state.mergeAdjacentKeepGapSec,
+        silencePaddingBeforeSec: state.silencePaddingBeforeSec,
+        silencePaddingAfterSec: state.silencePaddingAfterSec,
+        
+        autoCaptionsLanguage: state.autoCaptionsLanguage,
+        autoCaptionsModel: state.autoCaptionsModel,
+        skipCaptions: state.oneClickSkipCaptions || state.oneClickFastMode,
+        fastMode: state.oneClickFastMode,
+        
+        excludedSourceVideoTrackIndex: state.mappings.wide !== undefined ? state.mappings.wide : null,
+        enableTransitionalWide: state.enableTransitionalWide,
+        transitionalWideDurationSec: state.transitionalWideDurationSec,
+        maxSingleCameraRunSec: state.maxSingleCameraRunSec,
+        wideCutawayDurationSec: state.wideCutawayDurationSec,
+      }, (progress) => {
+        state.oneClickProgress = progress;
+        render();
+      });
+      
+      state.oneClickResult = result;
+    } catch (err) {
+      state.oneClickProgress = null;
+      state.oneClickResult = {
+        success: false,
+        sequenceName: "Failed Pipeline",
+        completedSteps: [],
+        failedSteps: ["multi-cam-switch", "silence-removal", "auto-captions"],
+        skippedSteps: [],
+        skipReason: "",
+        switchesApplied: 0,
+        silencesRemoved: 0,
+        captionsCreated: 0,
+        totalRuntime: 0,
+        errorMessages: {
+          pipeline: (err as Error).message,
+        },
+      };
+    } finally {
+      state.oneClickLoading = false;
+      try {
+        state.timelineLayout = await analyzeTimelineLayout();
+      } catch (eLayout) {}
+      render();
+    }
   }
 }
 

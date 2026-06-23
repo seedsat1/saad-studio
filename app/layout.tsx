@@ -135,30 +135,45 @@ export default function RootLayout({
           </Script>
           <Script id="saad-perf-metrics" strategy="afterInteractive">
             {`
-              window.addEventListener('load', () => {
-                const nav = performance.getEntriesByType('navigation')[0];
-                if (!nav) return;
-                console.log('SAAD STUDIO Performance');
-                console.log('DNS Lookup:', Math.round(nav.domainLookupEnd - nav.domainLookupStart), 'ms');
-                console.log('TCP Connect:', Math.round(nav.connectEnd - nav.connectStart), 'ms');
-                console.log('TTFB:', Math.round(nav.responseStart - nav.requestStart), 'ms');
-                console.log('DOM Load:', Math.round(nav.domContentLoadedEventEnd - nav.startTime), 'ms');
-                console.log('Full Load:', Math.round(nav.loadEventEnd - nav.startTime), 'ms');
-              });
-              try {
-                new PerformanceObserver((list) => {
-                  list.getEntries().forEach((entry) => {
-                    console.log('LCP:', Math.round(entry.startTime), 'ms');
-                  });
-                }).observe({ type: 'largest-contentful-paint', buffered: true });
-                new PerformanceObserver((list) => {
-                  let cls = 0;
-                  list.getEntries().forEach((entry) => {
-                    if (!entry.hadRecentInput) cls += entry.value || 0;
-                  });
-                  console.log('CLS:', cls.toFixed(3));
-                }).observe({ type: 'layout-shift', buffered: true });
-              } catch (_) {}
+              const DEBUG_PERFORMANCE = ${process.env.NODE_ENV === "development"};
+              if (DEBUG_PERFORMANCE) {
+                window.addEventListener('load', () => {
+                  const nav = performance.getEntriesByType('navigation')[0];
+                  if (!nav) return;
+
+                  console.log('SAAD STUDIO Performance');
+                  console.log('DNS Lookup:', Math.round(nav.domainLookupEnd - nav.domainLookupStart), 'ms');
+                  console.log('TCP Connect:', Math.round(nav.connectEnd - nav.connectStart), 'ms');
+                  console.log('TTFB:', Math.round(nav.responseStart - nav.requestStart), 'ms');
+                  console.log('DOM Load:', Math.round(nav.domContentLoadedEventEnd - nav.startTime), 'ms');
+                  console.log('Full Load:', Math.round(nav.loadEventEnd - nav.startTime), 'ms');
+                });
+
+                try {
+                  new PerformanceObserver((list) => {
+                    const entries = list.getEntries();
+                    const lastEntry = entries[entries.length - 1];
+                    if (lastEntry) {
+                      console.log('LCP:', Math.round(lastEntry.startTime), 'ms');
+                    }
+                  }).observe({ type: 'largest-contentful-paint', buffered: true });
+
+                  let clsSum = 0;
+                  let clsTimeout = null;
+
+                  new PerformanceObserver((list) => {
+                    list.getEntries().forEach((entry) => {
+                      if (!entry.hadRecentInput) clsSum += entry.value || 0;
+                    });
+
+                    if (clsTimeout) clearTimeout(clsTimeout);
+
+                    clsTimeout = setTimeout(() => {
+                      console.log('CLS:', clsSum.toFixed(3));
+                    }, 1000);
+                  }).observe({ type: 'layout-shift', buffered: true });
+                } catch (_) {}
+              }
             `}
           </Script>
           <Script id="saad-error-tracker" strategy="afterInteractive">

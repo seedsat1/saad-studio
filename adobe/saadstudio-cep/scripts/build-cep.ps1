@@ -15,7 +15,8 @@ if (Test-Path $distDir) {
 }
 Push-Location $clientDir
 try {
-    npm run build
+    $npmCommand = if ($env:OS -eq "Windows_NT") { "npm.cmd" } else { "npm" }
+    & $npmCommand run build
 }
 finally {
     Pop-Location
@@ -33,6 +34,8 @@ New-Item -ItemType Directory -Path $extensionDir -Force | Out-Null
 Copy-Item (Join-Path $root "CSXS") $extensionDir -Recurse
 Copy-Item (Join-Path $root "jsx") $extensionDir -Recurse
 Copy-Item (Join-Path $root "icons") $extensionDir -Recurse
+Copy-Item (Join-Path $root "runtime-manifests") $extensionDir -Recurse
+Copy-Item (Join-Path $root "runtime-assets") $extensionDir -Recurse
 $ffmpegExe = Join-Path (Split-Path $root -Parent | Split-Path -Parent) "node_modules\ffmpeg-static\ffmpeg.exe"
 if (Test-Path $ffmpegExe) {
     $ffmpegDir = Join-Path $extensionDir "tools\ffmpeg"

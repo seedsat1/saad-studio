@@ -56,9 +56,9 @@ const METHODS = [
   },
   {
     id: "zaincash",
-    name: "Secure Online Payment",
-    account: "Instant wallet/card checkout",
-    logoText: "PAY",
+    name: "Zain Cash",
+    account: "07902585579",
+    logoText: "ZC",
     gradient: "from-red-600 to-rose-700",
     bg: "bg-red-500/10",
     border: "border-red-500/30",
@@ -399,9 +399,9 @@ export default function PaymentPage() {
     const defaultStyle = { gradient: "from-blue-600 to-indigo-600", bg: "bg-blue-500/10", border: "border-blue-500/30", glow: "shadow-[0_0_20px_rgba(59,130,246,0.2)]", activeBorder: "border-blue-400" };
     return cms.paymentMethods.map((pm) => ({
       id: pm.name.toLowerCase().replace(/\s+/g, ""),
-      name: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "Secure Online Payment" : pm.name,
-      account: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "Instant wallet/card checkout" : pm.account,
-      logoText: pm.name.toLowerCase().replace(/\s+/g, "") === "zaincash" ? "PAY" : pm.logoText,
+      name: pm.name,
+      account: pm.account,
+      logoText: pm.logoText,
       ...(STYLE_MAP[pm.name.toLowerCase().replace(/\s+/g, "")] ?? defaultStyle),
     }));
   }, [cms?.paymentMethods]);
@@ -533,7 +533,7 @@ export default function PaymentPage() {
   };
 
   const method      = liveMethods.find((m) => m.id === selectedMethod) ?? liveMethods[0];
-  const isZainCashOnline = method?.id === "zaincash";
+  const isZainCashOnline = false;
   const lockedType: OrderType | null = incomingType === "topup" ? "topup" : incomingType === "plan" ? "plan" : null;
   const effectiveOrderType: OrderType = lockedType ?? orderType;
   const effectivePlanId =

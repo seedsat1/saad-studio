@@ -453,80 +453,161 @@ export async function runSpeakerSourceAttributionProof(
   const trackSpeakingSegments: TrackSpeakingSegment[] = [];
   let analyzedDurationSec = 0;
 
-  for (const mapping of mappings) {
-    const sources = inspection.sources.filter((item) =>
-      item.audioTrackIndex === mapping.audioTrackIndex && isValidRmsProofSource(item)
-    ).sort((a, b) => (a.timelineStartSec ?? 0) - (b.timelineStartSec ?? 0));
-    if (sources.length === 0) {
-      trackActivity.push(emptyTrackActivity(mapping, ["NO_VALID_RMS_SOURCE_PATH"], []));
+  const normalizedTrackWindowsMap = new Map<number, TrackActivityWindow[]>();
+  const trackBlockersMap = new Map<number, string[]>();
+  const trackWarningsMap = new Map<number, string[]>();
+  const trackFirstSourcePathMap = new Map<number, string | null>();
+  const trackFirstStreamIndexMap = new Map<number, number | null>();
+
+  const results = await Promise.all(
+    mappings.map(async (mapping) => {
+      const sources = inspection.sources.filter((item) =>
+        item.audioTrackIndex === mapping.audioTrackIndex && isValidRmsProofSource(item)
+      ).sort((a, b) => (a.timelineStartSec ?? 0) - (b.timelineStartSec ?? 0));
+
+      if (sources.length === 0) {
+        return {
+          mapping,
+          empty: true,
+          trackActivity: emptyTrackActivity(mapping, ["NO_VALID_RMS_SOURCE_PATH"], []),
+        };
+      }
+
+      const trackBlockers: string[] = [];
+      const trackWarnings: string[] = [];
+      const rawWindows: TrackActivityWindow[] = [];
+      let firstSourcePath: string | null = null;
+      let firstStreamIndex: number | null = null;
+      let localAnalyzedDurationSec = 0;
+
+      for (const source of sources) {
+        if (!source.sourcePath) continue;
+        firstSourcePath ??= source.sourcePath;
+        const sourceDurationSec = Math.max(0, source.durationSec ?? 0);
+        if (sourceDurationSec <= 0) {
+          trackBlockers.push(`INVALID_CLIP_TIMING:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`);
+          continue;
+        }
+        if ((source.timelineEndSec ?? sourceDurationSec) > MAX_SUPPORTED_TIMELINE_DURATION_SEC) {
+          trackBlockers.push("SYSTEM_LIMIT_REACHED");
+          continue;
+        }
+
+        const streamProof = await inspectAudioStreamsForSingleSource(runtime, source);
+        trackWarnings.push(...streamProof.warnings);
+        const sourceBlockers = streamProof.blockers.filter((blocker) => blocker !== "AUDIO_STREAM_SELECTION_REQUIRED");
+        const effectiveStreamIndex = streamProof.ffprobeAudioStreams.length === 1
+          ? 0
+          : typeof selectedAudioStreamIndex === "number"
+            ? selectedAudioStreamIndex
+            : null;
+        firstStreamIndex ??= effectiveStreamIndex;
+
+        if (streamProof.ffprobeAudioStreams.length > 1 && effectiveStreamIndex == null) {
+          sourceBlockers.push("AUDIO_STREAM_SELECTION_REQUIRED");
+        }
+        if (effectiveStreamIndex != null && !streamProof.ffprobeAudioStreams.some((stream) => stream.audioStreamIndex === effectiveStreamIndex)) {
+          sourceBlockers.push("SELECTED_AUDIO_STREAM_NOT_FOUND");
+        }
+        if (sourceBlockers.length > 0 || effectiveStreamIndex == null) {
+          trackBlockers.push(...sourceBlockers.map((blocker) =>
+            `${blocker}:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`
+          ));
+          continue;
+        }
+
+        localAnalyzedDurationSec = Math.max(localAnalyzedDurationSec, source.timelineEndSec ?? sourceDurationSec);
+        const rmsWindows = await runRmsPreview(
+          runtime.cp,
+          diagnostics.selectedPath!,
+          source,
+          sourceDurationSec,
+          Number.POSITIVE_INFINITY,
+          effectiveStreamIndex,
+        );
+        rawWindows.push(...rmsWindows.map((window): TrackActivityWindow => ({
+          audioTrackIndex: mapping.audioTrackIndex,
+          speakerId: mapping.speakerId,
+          sourcePath: source.sourcePath ?? "",
+          selectedAudioStreamIndex: effectiveStreamIndex,
+          sourceTimeSec: window.sourceTimeSec,
+          timelineStartSec: window.timelineStartSec,
+          timelineEndSec: window.timelineEndSec,
+          rmsDb: window.rmsDb,
+          active: Number.isFinite(window.rmsDb) && window.rmsDb >= FULL_ACTIVITY_THRESHOLD_DB,
+        })));
+      }
+
+      const windows = normalizeTrackWindows(rawWindows);
+      return {
+        mapping,
+        empty: false,
+        windows,
+        trackBlockers,
+        trackWarnings,
+        firstSourcePath,
+        firstStreamIndex,
+        localAnalyzedDurationSec,
+      };
+    })
+  );
+
+  for (const res of results) {
+    if (res.empty) {
+      if (res.trackActivity) {
+        trackActivity.push(res.trackActivity);
+      }
       continue;
     }
+    normalizedTrackWindowsMap.set(res.mapping.audioTrackIndex, res.windows ?? []);
+    trackBlockersMap.set(res.mapping.audioTrackIndex, res.trackBlockers ?? []);
+    trackWarningsMap.set(res.mapping.audioTrackIndex, res.trackWarnings ?? []);
+    trackFirstSourcePathMap.set(res.mapping.audioTrackIndex, res.firstSourcePath ?? null);
+    trackFirstStreamIndexMap.set(res.mapping.audioTrackIndex, res.firstStreamIndex ?? null);
+    analyzedDurationSec = Math.max(analyzedDurationSec, res.localAnalyzedDurationSec ?? 0);
+  }
 
-    const trackBlockers: string[] = [];
-    const trackWarnings: string[] = [];
-    const rawWindows: TrackActivityWindow[] = [];
-    let firstSourcePath: string | null = null;
-    let firstStreamIndex: number | null = null;
+  // --- CROSSTALK MITIGATION ---
+  const crosstalkMarginDb = 6.0;
+  const absoluteFloorDb = -45.0;
 
-    for (const source of sources) {
-      if (!source.sourcePath) continue;
-      firstSourcePath ??= source.sourcePath;
-      const sourceDurationSec = Math.max(0, source.durationSec ?? 0);
-      if (sourceDurationSec <= 0) {
-        trackBlockers.push(`INVALID_CLIP_TIMING:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`);
-        continue;
-      }
-      if ((source.timelineEndSec ?? sourceDurationSec) > MAX_SUPPORTED_TIMELINE_DURATION_SEC) {
-        trackBlockers.push("SYSTEM_LIMIT_REACHED");
-        continue;
-      }
+  const windowsByBucket = new Map<number, Map<number, TrackActivityWindow>>();
+  for (const [trackIndex, windows] of normalizedTrackWindowsMap.entries()) {
+    for (const window of windows) {
+      const bucket = timelineBucketIndex(window);
+      const bucketMap = windowsByBucket.get(bucket) ?? new Map<number, TrackActivityWindow>();
+      bucketMap.set(trackIndex, window);
+      windowsByBucket.set(bucket, bucketMap);
+    }
+  }
 
-      const streamProof = await inspectAudioStreamsForSingleSource(runtime, source);
-      trackWarnings.push(...streamProof.warnings);
-      const sourceBlockers = streamProof.blockers.filter((blocker) => blocker !== "AUDIO_STREAM_SELECTION_REQUIRED");
-      const effectiveStreamIndex = streamProof.ffprobeAudioStreams.length === 1
-        ? 0
-        : typeof selectedAudioStreamIndex === "number"
-          ? selectedAudioStreamIndex
-          : null;
-      firstStreamIndex ??= effectiveStreamIndex;
-
-      if (streamProof.ffprobeAudioStreams.length > 1 && effectiveStreamIndex == null) {
-        sourceBlockers.push("AUDIO_STREAM_SELECTION_REQUIRED");
+  for (const bucketMap of windowsByBucket.values()) {
+    let maxRmsDb = -999;
+    for (const window of bucketMap.values()) {
+      if (Number.isFinite(window.rmsDb) && window.rmsDb > maxRmsDb) {
+        maxRmsDb = window.rmsDb;
       }
-      if (effectiveStreamIndex != null && !streamProof.ffprobeAudioStreams.some((stream) => stream.audioStreamIndex === effectiveStreamIndex)) {
-        sourceBlockers.push("SELECTED_AUDIO_STREAM_NOT_FOUND");
-      }
-      if (sourceBlockers.length > 0 || effectiveStreamIndex == null) {
-        trackBlockers.push(...sourceBlockers.map((blocker) =>
-          `${blocker}:A${mapping.audioTrackIndex + 1}:clip_${source.trackItemIndex ?? 0}`
-        ));
-        continue;
-      }
-
-      analyzedDurationSec = Math.max(analyzedDurationSec, source.timelineEndSec ?? sourceDurationSec);
-      const rmsWindows = await runRmsPreview(
-        runtime.cp,
-        diagnostics.selectedPath,
-        source,
-        sourceDurationSec,
-        Number.POSITIVE_INFINITY,
-        effectiveStreamIndex,
-      );
-      rawWindows.push(...rmsWindows.map((window): TrackActivityWindow => ({
-        audioTrackIndex: mapping.audioTrackIndex,
-        speakerId: mapping.speakerId,
-        sourcePath: source.sourcePath ?? "",
-        selectedAudioStreamIndex: effectiveStreamIndex,
-        sourceTimeSec: window.sourceTimeSec,
-        timelineStartSec: window.timelineStartSec,
-        timelineEndSec: window.timelineEndSec,
-        rmsDb: window.rmsDb,
-        active: Number.isFinite(window.rmsDb) && window.rmsDb >= FULL_ACTIVITY_THRESHOLD_DB,
-      })));
     }
 
-    const windows = normalizeTrackWindows(rawWindows);
+    for (const window of bucketMap.values()) {
+      if (!Number.isFinite(window.rmsDb)) {
+        window.active = false;
+        continue;
+      }
+      const meetsRelativeMargin = window.rmsDb >= maxRmsDb - crosstalkMarginDb;
+      const meetsAbsoluteFloor = window.rmsDb >= absoluteFloorDb;
+      window.active = meetsRelativeMargin && meetsAbsoluteFloor;
+    }
+  }
+
+  // --- SECOND PASS: BUILD SEGMENTS AND ACTIVITY ---
+  for (const mapping of mappings) {
+    const windows = normalizedTrackWindowsMap.get(mapping.audioTrackIndex) ?? [];
+    const trackBlockers = trackBlockersMap.get(mapping.audioTrackIndex) ?? [];
+    const trackWarnings = trackWarningsMap.get(mapping.audioTrackIndex) ?? [];
+    const firstSourcePath = trackFirstSourcePathMap.get(mapping.audioTrackIndex) ?? null;
+    const firstStreamIndex = trackFirstStreamIndexMap.get(mapping.audioTrackIndex) ?? null;
+
     if (windows.length === 0) {
       trackActivity.push(emptyTrackActivity(
         mapping,
@@ -537,6 +618,7 @@ export async function runSpeakerSourceAttributionProof(
       ));
       continue;
     }
+
     const segmentResult = buildTrackSpeakingSegments(windows, mapping);
     warnings.push(...segmentResult.warnings);
     trackSpeakingSegments.push(...segmentResult.speakingSegments);

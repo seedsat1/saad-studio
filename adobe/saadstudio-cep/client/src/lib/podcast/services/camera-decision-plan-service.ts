@@ -9,8 +9,8 @@ import type {
 
 const MINIMUM_SHOT_LENGTH_SEC = 2;
 const MERGE_GAP_SEC = 0.3;
-const MAX_SINGLE_CAMERA_RUN_SEC = 45;
-const WIDE_CUTAWAY_DURATION_SEC = 4;
+const DEFAULT_MAX_SINGLE_CAMERA_RUN_SEC = 20;
+const DEFAULT_WIDE_CUTAWAY_DURATION_SEC = 4;
 
 export interface CameraDecisionPlanProofInput {
   dominantTrackAtTime: DominantTrackWindow[];
@@ -20,6 +20,10 @@ export interface CameraDecisionPlanProofInput {
   timelineDurationSec?: number;
   videoTrackCount?: number;
   minimumShotLengthSec?: number;
+  enableTransitionalWide?: boolean;
+  transitionalWideDurationSec?: number;
+  maxSingleCameraRunSec?: number;
+  wideCutawayDurationSec?: number;
 }
 
 export function generateCameraDecisionPlanProof(
@@ -32,6 +36,20 @@ export function generateCameraDecisionPlanProof(
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
   const minimumShotLengthSec = normalizeMinimumShotLength(input.minimumShotLengthSec);
   const cameraMap = buildCameraMap(input.cameraMappings ?? []);
+  if (!cameraMap.has("wide")) {
+    const mappedSpeakerTracks = new Set(Array.from(cameraMap.values()));
+    let fallbackWideIndex = -1;
+    for (let i = 0; i < videoTrackCount; i++) {
+      if (!mappedSpeakerTracks.has(i)) {
+        fallbackWideIndex = i;
+        break;
+      }
+    }
+    if (fallbackWideIndex === -1) {
+      fallbackWideIndex = 0;
+    }
+    cameraMap.set("wide", fallbackWideIndex);
+  }
   const usedSpeakerIds = usedSpeakerIdsFromInput(input);
   const missingCameraMappings = usedSpeakerIds.filter((speakerId) => !cameraMap.has(speakerId));
   if (missingCameraMappings.length > 0) {
@@ -69,6 +87,10 @@ export function generateCameraDecisionPlanProof(
     ? decisionsFromSpeakingSegments(input.trackSpeakingSegments ?? [], videoTrackCount, cameraMap)
     : input.dominantTrackAtTime.map((window) =>
       windowToCameraDecision(window, overlapKeys, videoTrackCount, cameraMap));
+  const maxSingleCameraRunSec = input.maxSingleCameraRunSec ?? DEFAULT_MAX_SINGLE_CAMERA_RUN_SEC;
+  const wideCutawayDurationSec = input.wideCutawayDurationSec ?? DEFAULT_WIDE_CUTAWAY_DURATION_SEC;
+  const enableTransitionalWide = input.enableTransitionalWide ?? true;
+
   const rawDecisions = sortDecisions(sourceDecisions);
   const merged = mergeAdjacentDecisions(rawDecisions);
   const gapFilled = fillDecisionGapsWithPreviousCamera(merged, input.timelineDurationSec);
@@ -78,11 +100,25 @@ export function generateCameraDecisionPlanProof(
     cameraMap,
     videoTrackCount,
     minimumShotLengthSec,
+    maxSingleCameraRunSec,
+    wideCutawayDurationSec,
   );
   if (diversified.insertedCount > 0) {
     warnings.push(`WIDE_CUTAWAYS_INSERTED:${diversified.insertedCount}`);
   }
-  const finalDecisions = mergeAdjacentDecisions(diversified.decisions);
+
+  let transitionalDecisions = diversified.decisions;
+  if (enableTransitionalWide) {
+    transitionalDecisions = applyTransitionalWideShots(
+      diversified.decisions,
+      cameraMap,
+      videoTrackCount,
+      input.transitionalWideDurationSec ?? 2.0,
+      minimumShotLengthSec,
+    );
+  }
+
+  const finalDecisions = mergeAdjacentDecisions(transitionalDecisions);
   const invalidDecisions = findInvalidDecisions(finalDecisions);
   if (invalidDecisions.length > 0) blockers.push("INVALID_CAMERA_DECISION_TIMING");
   const remainingShortDecisions = finalDecisions.length > 1
@@ -422,6 +458,8 @@ function insertWideCutaways(
   cameraMap: Map<string, number>,
   videoTrackCount: number,
   minimumShotLengthSec: number,
+  maxSingleCameraRunSec: number,
+  wideCutawayDurationSec: number,
 ): { decisions: PodcastCameraDecisionProofItem[]; insertedCount: number } {
   const mappedWideTrackIndex = cameraMap.get("wide");
   if (typeof mappedWideTrackIndex !== "number") {
@@ -433,7 +471,7 @@ function insertWideCutaways(
     return { decisions: decisions.map((decision) => ({ ...decision })), insertedCount: 0 };
   }
 
-  const cutawayDurationSec = Math.max(minimumShotLengthSec, WIDE_CUTAWAY_DURATION_SEC);
+  const cutawayDurationSec = Math.max(minimumShotLengthSec, wideCutawayDurationSec);
   const output: PodcastCameraDecisionProofItem[] = [];
   let insertedCount = 0;
 
@@ -446,9 +484,9 @@ function insertWideCutaways(
     let cursor = decision.startSec;
     while (
       decision.endSec - cursor
-      >= MAX_SINGLE_CAMERA_RUN_SEC + cutawayDurationSec + minimumShotLengthSec
+      >= maxSingleCameraRunSec + cutawayDurationSec + minimumShotLengthSec
     ) {
-      const cutawayStartSec = cursor + MAX_SINGLE_CAMERA_RUN_SEC;
+      const cutawayStartSec = cursor + maxSingleCameraRunSec;
       const cutawayEndSec = cutawayStartSec + cutawayDurationSec;
       output.push(makeDecision(
         cursor,
@@ -487,6 +525,69 @@ function insertWideCutaways(
     decisions: output.filter(isValidDecisionTiming),
     insertedCount,
   };
+}
+
+function applyTransitionalWideShots(
+  decisions: PodcastCameraDecisionProofItem[],
+  cameraMap: Map<string, number>,
+  videoTrackCount: number,
+  transitionalDurationSec: number,
+  minimumShotLengthSec: number,
+): PodcastCameraDecisionProofItem[] {
+  const mappedWideTrackIndex = cameraMap.get("wide");
+  if (typeof mappedWideTrackIndex !== "number" || mappedWideTrackIndex < 0) {
+    return decisions.map((d) => ({ ...d }));
+  }
+  const wideTrackIndex = Math.min(mappedWideTrackIndex, videoTrackCount - 1);
+  if (wideTrackIndex < 0) {
+    return decisions.map((d) => ({ ...d }));
+  }
+
+  const output: PodcastCameraDecisionProofItem[] = [];
+
+  for (let i = 0; i < decisions.length; i++) {
+    const current = { ...decisions[i] };
+    if (i === 0) {
+      output.push(current);
+      continue;
+    }
+
+    const previous = output[output.length - 1];
+
+    // Check if there is a speaker change (different video tracks)
+    // and neither the previous nor the current is already a wide shot
+    const isSpeakerChange = previous.videoTrackIndex !== current.videoTrackIndex;
+    const isNeitherWide = previous.videoTrackIndex !== wideTrackIndex && current.videoTrackIndex !== wideTrackIndex;
+
+    if (isSpeakerChange && isNeitherWide) {
+      // Check if current decision is long enough to be split
+      if (current.durationSec >= transitionalDurationSec + minimumShotLengthSec) {
+        const transitionEndSec = current.startSec + transitionalDurationSec;
+
+        // Create transitional wide shot
+        const transitionalWide = makeDecision(
+          current.startSec,
+          transitionEndSec,
+          "wide",
+          null,
+          wideTrackIndex,
+          `V${wideTrackIndex + 1}`,
+          "speaker change transition; inserted wide shot buffer"
+        );
+
+        // Update current shot start time
+        current.startSec = transitionEndSec;
+        current.durationSec = roundTime(current.endSec - current.startSec);
+        current.reason = "speaker change transition; cut to close-up after wide shot buffer";
+
+        output.push(transitionalWide);
+      }
+    }
+
+    output.push(current);
+  }
+
+  return output.filter(isValidDecisionTiming);
 }
 
 function sortDecisions(decisions: PodcastCameraDecisionProofItem[]): PodcastCameraDecisionProofItem[] {

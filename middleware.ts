@@ -52,6 +52,7 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback(.*)',
   '/panel(.*)',
   '/api/panel(.*)',
+  '/api/promo(.*)',
   '/connect-claude(.*)',
   '/smart-cli(.*)',
 ])

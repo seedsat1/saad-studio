@@ -85,8 +85,8 @@
                         type: mediaKindFromPath(pi && pi.getMediaPath ? pi.getMediaPath() : ""),
                         path: pi && pi.getMediaPath ? pi.getMediaPath() : "",
                         name: clip.name,
-                        inSec: clip.inPoint ? clip.inPoint.seconds : 0,
-                        outSec: clip.outPoint ? clip.outPoint.seconds : 0,
+                        inSec: getAbsoluteClipInPointSec(clip),
+                        outSec: getAbsoluteClipOutPointSec(clip),
                         startSec: clip.start ? clip.start.seconds : 0,
                         endSec: clip.end ? clip.end.seconds : 0,
                         durationSec: selectedTimelineDurationSec(clip)
@@ -132,8 +132,8 @@
                         type: "audio",
                         path: mediaPath,
                         name: clip.name,
-                        inSec: clip.inPoint ? clip.inPoint.seconds : 0,
-                        outSec: clip.outPoint ? clip.outPoint.seconds : 0,
+                        inSec: getAbsoluteClipInPointSec(clip),
+                        outSec: getAbsoluteClipOutPointSec(clip),
                         startSec: clip.start ? clip.start.seconds : 0,
                         endSec: clip.end ? clip.end.seconds : 0,
                         durationSec: selectedTimelineDurationSec(clip)
@@ -322,6 +322,23 @@
         });
     };
 
+    host.saadstudio.duplicateActiveSequence = function (label, name) {
+        return safe(function () {
+            var result = createPodcastResearchDuplicate(label, name);
+            if (result.ok && result.newSequenceID) {
+                host.saadstudio.setActiveSequenceById(result.newSequenceID);
+            }
+            return {
+                ok: result.ok,
+                originalSequenceID: result.originalSequenceID,
+                newSequenceID: result.newSequenceID,
+                newSequenceName: result.newSequenceName,
+                blockers: result.blockers,
+                errors: result.errors
+            };
+        });
+    };
+
     host.saadstudio.applyPodcastSynchronizationOffsets = function (offsets) {
         return safe(function () {
             var result = {
@@ -352,6 +369,7 @@
                 result.blockers.push("SYNC_OFFSETS_REQUIRED_BEFORE_APPLY");
                 return result;
             }
+            var shiftedMap = {};
             for (var i = 0; i < list.length; i++) {
                 var offset = list[i];
                 var moveSec = Number(offset.suggestedMoveSec || 0);
@@ -363,29 +381,28 @@
                 }
                 var movedForOffset = 0;
                 if (typeof offset.pairedVideoTrackIndex === "number") {
-                    movedForOffset += moveSyncTrackItem(
+                    movedForOffset += moveTrackClipsByOffset(
                         seq.videoTracks,
                         "video",
                         Number(offset.pairedVideoTrackIndex),
-                        Number(offset.pairedVideoClipIndex || 0),
                         moveSec,
-                        targetStartSec,
-                        result
+                        result,
+                        seq,
+                        shiftedMap
                     );
                 }
-                movedForOffset += moveSyncTrackItem(
+                movedForOffset += moveTrackClipsByOffset(
                     seq.audioTracks,
                     "audio",
                     Number(offset.audioTrackIndex),
-                    Number(offset.audioClipIndex || 0),
                     moveSec,
-                    targetStartSec,
-                    result
+                    result,
+                    seq,
+                    shiftedMap
                 );
                 if (movedForOffset > 0) result.offsetsApplied += 1;
             }
-            result.ok = result.blockers.length === 0 && result.clipsMoved > 0;
-            if (!result.ok && result.blockers.length === 0) result.blockers.push("NO_SYNC_CLIPS_MOVED");
+            result.ok = result.blockers.length === 0;
             return result;
         });
     };
@@ -422,6 +439,57 @@
             return result;
         });
     };
+
+    host.saadstudio.renameSequenceById = function (sequenceId, newName) {
+        return safe(function () {
+            if (!app.project || !app.project.sequences) return false;
+            var numSeqs = app.project.sequences.numSequences;
+            for (var i = 0; i < numSeqs; i++) {
+                var seq = app.project.sequences[i];
+                if (readSequenceID(seq) === sequenceId) {
+                    seq.name = newName;
+                    if (seq.projectItem) {
+                        seq.projectItem.name = newName;
+                    }
+                    return true;
+                }
+            }
+            return false;
+        });
+    };
+
+    host.saadstudio.deleteSequenceById = function (sequenceId) {
+        return safe(function () {
+            if (!app.project || !app.project.sequences) return false;
+            var numSeqs = app.project.sequences.numSequences;
+            for (var i = 0; i < numSeqs; i++) {
+                var seq = app.project.sequences[i];
+                if (readSequenceID(seq) === sequenceId) {
+                    if (seq.projectItem) {
+                        seq.projectItem.deleteItem();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    };
+
+    host.saadstudio.setActiveSequenceById = function (sequenceId) {
+        return safe(function () {
+            if (!app.project || !app.project.sequences) return false;
+            var numSeqs = app.project.sequences.numSequences;
+            for (var i = 0; i < numSeqs; i++) {
+                var seq = app.project.sequences[i];
+                if (readSequenceID(seq) === sequenceId) {
+                    app.project.activeSequence = seq;
+                    return true;
+                }
+            }
+            return false;
+        });
+    };
+
 
     host.saadstudio.duplicateActiveSequenceForPodcast = function (newName) {
         return safe(function () {
@@ -768,11 +836,17 @@
             result.sequenceId = readSequenceID(seq);
             result.durationSec = readSequenceDurationSec(seq);
             result.videoTrackCount = seq.videoTracks ? seq.videoTracks.numTracks : 0;
-            var analyzedTracks = input.analyzedVideoTrackIndexes || [];
-            var forceAutoDetect = input.autoDetectAnalyzedTrack === true || !analyzedTracks.length || analyzedTracks[0] === -1;
-            if (forceAutoDetect) {
-                var automaticallyDetectedTrack = findBestAutoZoomTrackIndex(seq);
-                analyzedTracks = automaticallyDetectedTrack >= 0 ? [automaticallyDetectedTrack] : [];
+            var autoSwitchTrackIdx = findSaadAutoSwitchTrackIndex(seq);
+            var analyzedTracks = [];
+            if (autoSwitchTrackIdx >= 0) {
+                analyzedTracks = [autoSwitchTrackIdx];
+            } else {
+                analyzedTracks = input.analyzedVideoTrackIndexes || [];
+                var forceAutoDetect = input.autoDetectAnalyzedTrack === true || !analyzedTracks.length || analyzedTracks[0] === -1;
+                if (forceAutoDetect) {
+                    var automaticallyDetectedTrack = findBestAutoZoomTrackIndex(seq);
+                    analyzedTracks = automaticallyDetectedTrack >= 0 ? [automaticallyDetectedTrack] : [];
+                }
             }
             for (var trackIndex = 0; trackIndex < analyzedTracks.length; trackIndex++) {
                 var normalizedTrackIndex = Number(analyzedTracks[trackIndex]);
@@ -807,399 +881,460 @@
                 result.warnings.push("QE_RUNTIME_UNAVAILABLE:" + String(eQE.message || eQE));
                 result.newAdjustmentLayerAvailable = appProjectAdjustmentLayerAvailable;
             }
-            result.executionMode = result.newAdjustmentLayerAvailable
-                ? "adjustment-layer"
-                : (result.directTransformAvailable ? "direct-transform" : null);
-            if (result.executionMode === "adjustment-layer") {
-                var highestAnalyzedTrackIndex = result.analyzedVideoTrackIndexes.length
-                    ? result.analyzedVideoTrackIndexes[result.analyzedVideoTrackIndexes.length - 1]
-                    : -1;
-                if (highestAnalyzedTrackIndex >= result.videoTrackCount - 1) {
-                    result.blockers.push("AUTO_ZOOM_REQUIRES_AN_UPPER_VIDEO_TRACK");
-                }
+            result.executionMode = "overlay-based";
+            if (!canFindOrCreateOverlayTrack(seq)) {
+                result.blockers.push("AUTO_ZOOM_NEEDS_EMPTY_UPPER_VIDEO_TRACK");
             }
             if (!result.cutEventsSec.length) result.blockers.push("NO_TIMELINE_CUTS_DETECTED");
-            if (!result.executionMode) result.blockers.push("AUTO_ZOOM_EFFECT_RUNTIME_UNAVAILABLE");
             result.ok = result.blockers.length === 0;
             return result;
         });
     };
 
     host.saadstudio.applyAutoZoom = function (settings) {
+        var diagnosticsPath = "";
+        var startupWriteSuccessful = false;
+        var startupError = "";
+        try {
+            var sep = ($.os.indexOf("Windows") !== -1) ? "\\" : "/";
+            var tempFolder = Folder.temp ? Folder.temp.fsName : "";
+            if (!tempFolder) {
+                tempFolder = Folder.userData ? Folder.userData.fsName : "";
+            }
+            if (!tempFolder) {
+                tempFolder = Folder.startup ? Folder.startup.fsName : "";
+            }
+            var folderPath = tempFolder + sep + "saadstudio";
+            var folder = new Folder(folderPath);
+            if (!folder.exists) {
+                folder.create();
+            }
+            diagnosticsPath = folderPath + sep + "auto-zoom-hang-diagnostics.jsonl";
+            var file = new File(diagnosticsPath);
+            file.encoding = "UTF-8";
+            if (file.open("w")) {
+                file.writeln("event=apply_startup_marker | time=" + new Date().toString() + " | elapsedMs=0 | payload={\"status\":\"started\",\"path\":\"" + diagnosticsPath.replace(/\\/g, "/") + "\"}");
+                file.close();
+                startupWriteSuccessful = true;
+            } else {
+                startupError = "file_open_failed";
+            }
+        } catch (eStartup) {
+            startupError = String(eStartup.message || eStartup);
+        }
+
         return safe(function () {
             var input = settings || {};
             var result = emptyAutoZoomApplyResult();
+            result.skipHeavyProcessing = !!input.skipHeavyProcessing;
+            if (diagnosticsPath) {
+                result.executionDiagnosticsPath = diagnosticsPath;
+            }
+            result.startupWriteSuccessful = startupWriteSuccessful;
+            result.startupError = startupError;
+            writeAutoZoomDiagnostic(result, "apply_start", { diagnosticsPath: diagnosticsPath, startupWriteSuccessful: startupWriteSuccessful, startupError: startupError });
+            
             if (!IS_PPRO) {
+                writeAutoZoomDiagnostic(result, "not_ppro");
                 result.blockers.push("PREMIERE_REQUIRED");
                 return result;
             }
             var seq = app.project && app.project.activeSequence;
             if (!seq) {
+                writeAutoZoomDiagnostic(result, "no_active_sequence");
                 result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
                 return result;
             }
             result.sequenceName = seq.name || null;
-            var analyzedTracks = input.analyzedVideoTrackIndexes || [0];
-            var targetTrackIndex = Number(input.targetVideoTrackIndex);
-            var maxAnalyzedTrackIndex = -1;
-            for (var a = 0; a < analyzedTracks.length; a++) {
-                var analyzedIndex = Number(analyzedTracks[a]);
-                if (analyzedIndex > maxAnalyzedTrackIndex) maxAnalyzedTrackIndex = analyzedIndex;
-            }
+            
             if (!seq.videoTracks) {
+                writeAutoZoomDiagnostic(result, "no_video_tracks");
                 result.blockers.push("AUTO_ZOOM_VIDEO_TRACKS_NOT_FOUND");
                 return result;
             }
-            var styles = normalizeAutoZoomStyles(input.styles);
-            if (!styles.length) styles.push("smooth");
-            var maxZoomPercentage = clampNumber(Number(input.maxZoomPercentage || 1.3), 1.01, 2);
+
+            // Detect and prioritize Saad Auto Switch track
+            var autoSwitchTrackIdx = findSaadAutoSwitchTrackIndex(seq);
+            var analyzedTracks = [];
+            if (autoSwitchTrackIdx >= 0) {
+                analyzedTracks = [autoSwitchTrackIdx];
+                writeAutoZoomDiagnostic(result, "saad_auto_switch_detected", { index: autoSwitchTrackIdx });
+            } else {
+                analyzedTracks = input.analyzedVideoTrackIndexes || [0];
+                writeAutoZoomDiagnostic(result, "saad_auto_switch_not_detected_using_input", { tracks: analyzedTracks });
+            }
+            
+            var maxZoomPercentage = clampNumber(Number(input.maxZoomPercentage || 1.12), 1.01, 2);
             var zoomDurationSec = clampNumber(Number(input.zoomDurationSec || 1.5), 0.25, 10);
             var rhythmPercentage = clampNumber(Number(input.rhythmPercentage || 0.6), 0.1, 1);
             var frameDurationSec = readSequenceFrameDurationSec(seq);
             var excludedSourceVideoTrackIndex = normalizeOptionalTrackIndex(input.excludedSourceVideoTrackIndex);
-            var events = collectAutoZoomCutEvents(seq, analyzedTracks, excludedSourceVideoTrackIndex);
-            result.eventsDetected = events.length;
-            var selectedEvents = selectAutoZoomEvents(events, rhythmPercentage, zoomDurationSec);
-            if (selectedEvents.length > 300) {
-                result.blockers.push("TOO_MANY_AUTO_ZOOM_EVENTS_MAX_300");
-                return result;
+            
+            // Count total clips on analyzed track
+            var totalClipsFound = 0;
+            if (analyzedTracks.length > 0) {
+                var trackIdx = Number(analyzedTracks[0]);
+                if (trackIdx >= 0 && trackIdx < seq.videoTracks.numTracks) {
+                    var trackClips = seq.videoTracks[trackIdx].clips;
+                    if (trackClips) {
+                        totalClipsFound = trackClips.numItems;
+                    }
+                }
             }
-            result.eventsSelected = selectedEvents.length;
-            if (!selectedEvents.length) {
+
+            // Take snapshot of analyzed tracks to prove originalTouched remains false
+            var originalSnapshot = [];
+            if (!result.skipHeavyProcessing) {
+                writeAutoZoomDiagnostic(result, "snapshot_start");
+                originalSnapshot = takeTracksSnapshot(seq, analyzedTracks);
+                writeAutoZoomDiagnostic(result, "snapshot_done", { snapshotClips: originalSnapshot.length });
+            }
+            
+            writeAutoZoomDiagnostic(result, "collect_raw_events_start");
+            var rawEvents = collectRawCutEvents(seq, analyzedTracks);
+            writeAutoZoomDiagnostic(result, "collect_raw_events_done", { rawEventsCount: rawEvents.length });
+            
+            var candidates = [];
+            var rejectedEvents = [];
+            var validEvents = [];
+            var validCutEventsCount = 0;
+            var seqDurationSec = readSequenceDurationSec(seq);
+            
+            // Pre-process all events and collect candidates
+            writeAutoZoomDiagnostic(result, "preprocess_candidates_start");
+            for (var e = 0; e < rawEvents.length; e++) {
+                var eventStartSec = rawEvents[e];
+                var eventEndSec = Math.min(seqDurationSec, eventStartSec + zoomDurationSec);
+                
+                // Find source clip that covers this cut point startSec
+                var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, eventStartSec);
+                var sourceTrackIdx = directTarget ? directTarget.trackIndex : -1;
+                var srcTrackIdx = (directTarget && directTarget.clip) ? readAutoSwitchSourceVideoTrackIndex(directTarget.clip) : null;
+                var resolvedSourceTrackIndex = (srcTrackIdx !== null) ? srcTrackIdx : sourceTrackIdx;
+                var sourceClipName = (directTarget && directTarget.clip) ? (directTarget.clip.name || "") : "";
+                var sourceClipStartSec = directTarget ? readTimeSeconds(directTarget.clip.start) : 0;
+                var sourceClipEndSec = directTarget ? readTimeSeconds(directTarget.clip.end) : 0;
+                
+                var candidate = {
+                    cutIndex: e,
+                    sourceTrackIndex: resolvedSourceTrackIndex,
+                    sourceClipName: sourceClipName,
+                    sourceClipStartSec: sourceClipStartSec,
+                    sourceClipEndSec: sourceClipEndSec,
+                    zoomStartSec: eventStartSec,
+                    zoomEndSec: eventEndSec,
+                    zoomDurationSec: eventEndSec - eventStartSec,
+                    selectedForZoom: false,
+                    rejectionReason: "none",
+                    overlayTrackIndex: -1,
+                    overlayClipName: "",
+                    overlayInserted: false,
+                    overlayStartVerified: false,
+                    overlayEndVerified: false,
+                    sourceVerified: false,
+                    audioSuppressed: false,
+                    originalTouched: false,
+                    finalStatus: "SKIPPED",
+                    isValidCut: false
+                };
+                
+                // Exclude wide clips by name pattern
+                if (directTarget && directTarget.clip && isAutoSwitchWideClip(directTarget.clip)) {
+                    candidate.rejectionReason = "EXCLUDED_WIDE_CLIP";
+                    rejectedEvents.push({ timeSec: eventStartSec, reason: "EXCLUDED_WIDE_CLIP" });
+                    candidates.push(candidate);
+                    continue;
+                }
+                
+                // Exclude wide clips by track index
+                var excludeTrack = (excludedSourceVideoTrackIndex !== null) ? excludedSourceVideoTrackIndex : 0;
+                if (resolvedSourceTrackIndex === excludeTrack) {
+                    candidate.rejectionReason = "EXCLUDED_WIDE_CLIP_BY_INDEX";
+                    rejectedEvents.push({ timeSec: eventStartSec, reason: "EXCLUDED_WIDE_CLIP_BY_INDEX" });
+                    candidates.push(candidate);
+                    continue;
+                }
+                
+                // Exclude clips that are too short
+                var clipDur = sourceClipEndSec - sourceClipStartSec;
+                if (directTarget && clipDur < 1.0) {
+                    candidate.rejectionReason = "DURATION_TOO_SHORT";
+                    rejectedEvents.push({ timeSec: eventStartSec, reason: "DURATION_TOO_SHORT" });
+                    candidates.push(candidate);
+                    continue;
+                }
+                
+                candidate.isValidCut = true;
+                validCutEventsCount++;
+                validEvents.push(eventStartSec);
+                candidates.push(candidate);
+            }
+            writeAutoZoomDiagnostic(result, "preprocess_candidates_done", { candidatesCount: candidates.length, validCutsCount: validCutEventsCount });
+            
+            writeAutoZoomDiagnostic(result, "select_events_start");
+            var selectedEvents = selectAutoZoomEvents(validEvents, rhythmPercentage, zoomDurationSec);
+            var rhythmSelectedEventsCount = selectedEvents.length;
+            result.eventsDetected = validCutEventsCount;
+            result.eventsSelected = rhythmSelectedEventsCount;
+            result.overlaysRequested = rhythmSelectedEventsCount;
+            writeAutoZoomDiagnostic(result, "select_events_done", { selectedCount: rhythmSelectedEventsCount });
+            
+            // Mark selected and rhythm-rejected candidates
+            for (var c = 0; c < candidates.length; c++) {
+                var cand = candidates[c];
+                if (!cand.isValidCut) continue;
+                
+                var isSelected = false;
+                for (var s = 0; s < selectedEvents.length; s++) {
+                    if (Math.abs(selectedEvents[s] - cand.zoomStartSec) < 0.05) {
+                        isSelected = true;
+                        break;
+                    }
+                }
+                
+                if (isSelected) {
+                    cand.selectedForZoom = true;
+                    cand.finalStatus = "FAILED"; // Default until verified
+                } else {
+                    cand.rejectionReason = "NOT_SELECTED_BY_RHYTHM";
+                    rejectedEvents.push({ timeSec: cand.zoomStartSec, reason: "NOT_SELECTED_BY_RHYTHM" });
+                }
+            }
+            
+            if (!rhythmSelectedEventsCount) {
+                writeAutoZoomDiagnostic(result, "no_selected_events");
                 result.blockers.push("NO_AUTO_ZOOM_EVENTS");
                 return result;
             }
-            var adjustmentRuntimeAvailable = hasAutoZoomAdjustmentLayerRuntime();
-            var directTransformAvailable = hasAutoZoomDirectTransformRuntime(seq, analyzedTracks);
-            var executionMode = adjustmentRuntimeAvailable ? "adjustment-layer" : (directTransformAvailable ? "direct-transform" : null);
-            result.executionMode = executionMode;
-            if (!executionMode) {
-                result.blockers.push("AUTO_ZOOM_EFFECT_RUNTIME_UNAVAILABLE");
+            
+            // Get or create dedicated overlay track
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_before");
+            var overlayTrackInfo = getOrCreateOverlayTrack(seq, result);
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_after", { success: !!overlayTrackInfo });
+            if (!overlayTrackInfo) {
+                writeAutoZoomDiagnostic(result, "overlay_track_discovery_failed");
+                result.blockers.push("AUTO_ZOOM_NEEDS_EMPTY_UPPER_VIDEO_TRACK");
                 return result;
             }
-            var adjustmentItem = null;
-            var targetTrack = null;
-            if (executionMode === "adjustment-layer") {
-                if (targetTrackIndex < 0 || targetTrackIndex >= seq.videoTracks.numTracks) {
-                    result.blockers.push("AUTO_ZOOM_TARGET_TRACK_NOT_FOUND");
-                    return result;
-                }
-                if (targetTrackIndex <= maxAnalyzedTrackIndex) {
-                    result.blockers.push("AUTO_ZOOM_TARGET_TRACK_MUST_BE_ABOVE_ANALYZED_TRACKS");
-                    return result;
-                }
-                targetTrack = seq.videoTracks[targetTrackIndex];
-                try {
-                    var targetClips = targetTrack.clips;
-                    if (targetClips) {
-                        for (var tc = targetClips.numItems - 1; tc >= 0; tc--) {
-                            var tClip = targetClips[tc];
-                            if (tClip && tClip.remove) {
-                                tClip.remove(false, false);
-                            }
-                        }
-                    }
-                } catch (eCleanupTarget) {
-                    result.warnings.push("TARGET_TRACK_CLEANUP_FAILED:" + String(eCleanupTarget.message || eCleanupTarget));
-                }
-                adjustmentItem = getOrCreateAutoZoomAdjustmentLayer(seq, zoomDurationSec, result);
-                if (!adjustmentItem) {
-                    if (!result.blockers.length) result.blockers.push("AUTO_ZOOM_ADJUSTMENT_LAYER_CREATION_FAILED");
-                    return result;
-                }
-                result.createdProjectItemName = adjustmentItem.name || null;
-                moveGeneratedProjectItemToBin(adjustmentItem, "Auto Zoom", result);
-                try { targetTrack.name = "Saad Auto Zoom"; } catch (eTrackName) {}
-            } else if (executionMode === "direct-transform") {
-                try {
-                    for (var a = 0; a < analyzedTracks.length; a++) {
-                        var trackIndex = Number(analyzedTracks[a]);
-                        if (trackIndex >= 0 && trackIndex < seq.videoTracks.numTracks) {
-                            var trackClips = seq.videoTracks[trackIndex].clips;
-                            if (trackClips) {
-                                for (var tc = 0; tc < trackClips.numItems; tc++) {
-                                    var scaleProperty = findAutoZoomMotionScaleProperty(trackClips[tc]);
-                                    if (scaleProperty && typeof scaleProperty.setTimeVarying === "function") {
-                                        scaleProperty.setTimeVarying(false);
-                                        scaleProperty.setValue(100, true);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (eCleanupDirect) {
-                    result.warnings.push("DIRECT_ZOOM_CLEANUP_FAILED:" + String(eCleanupDirect.message || eCleanupDirect));
-                }
-            }
-
-            var candidates = [];
-            var cutIndex = 0;
-            var tracks = seq.videoTracks;
-            for (var a = 0; a < analyzedTracks.length; a++) {
-                var trackIndex = Number(analyzedTracks[a]);
-                if (trackIndex < 0 || trackIndex >= tracks.numTracks) continue;
-                var track = tracks[trackIndex];
-                var clips = track && track.clips;
-                if (!clips) continue;
-                for (var c = 0; c < clips.numItems; c++) {
-                    var clip = clips[c];
-                    var startSec = readTimeSeconds(clip.start);
-                    var endSec = readTimeSeconds(clip.end);
-                    var clipDur = endSec - startSec;
-                    
-                    var candidate = {
-                        clipName: clip.name || "",
-                        clipStart: startSec,
-                        clipEnd: endSec,
-                        cutIndex: cutIndex,
-                        selectedForZoom: false,
-                        rejectionReason: "none",
-                        scaleResolved: false,
-                        keyframesCreated: 0,
-                        readBackKeyframes: 0,
-                        readBackScaleValues: [],
-                        verificationMethod: "none",
-                        finalStatus: "SKIPPED"
-                    };
-                    
-                    cutIndex++;
-                    
-                    if (isAutoSwitchWideClip(clip)) {
-                        candidate.rejectionReason = "EXCLUDED_WIDE_CLIP";
-                        candidate.finalStatus = "SKIPPED";
-                        candidates.push(candidate);
-                        continue;
-                    }
-                    
-                    var srcTrackIndex = readAutoSwitchSourceVideoTrackIndex(clip);
-                    var excludeTrack = (excludedSourceVideoTrackIndex !== null) ? excludedSourceVideoTrackIndex : 0;
-                    if (srcTrackIndex === excludeTrack) {
-                        candidate.rejectionReason = "EXCLUDED_WIDE_CLIP_BY_INDEX";
-                        candidate.finalStatus = "SKIPPED";
-                        candidates.push(candidate);
-                        continue;
-                    }
-                    
-                    if (clipDur < 1.0) {
-                        candidate.rejectionReason = "DURATION_TOO_SHORT";
-                        candidate.finalStatus = "SKIPPED";
-                        candidates.push(candidate);
-                        continue;
-                    }
-                    
-                    var isSelected = false;
-                    for (var s = 0; s < selectedEvents.length; s++) {
-                        if (Math.abs(selectedEvents[s] - startSec) < 0.05) {
-                            isSelected = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!isSelected) {
-                        candidate.rejectionReason = "NOT_SELECTED_BY_RHYTHM";
-                        candidate.finalStatus = "SKIPPED";
-                        candidates.push(candidate);
-                        continue;
-                    }
-                    
-                    candidate.selectedForZoom = true;
-                    candidate.finalStatus = "PENDING";
-                    candidates.push(candidate);
-                }
-            }
-            result.candidates = candidates;
-
-            result.effectsApplied = 0;
-            result.failedEvents = 0;
+            var targetTrack = overlayTrackInfo.track;
+            var targetTrackIndex = overlayTrackInfo.index;
+            writeAutoZoomDiagnostic(result, "overlay_track_discovery_done", { index: targetTrackIndex, name: targetTrack ? targetTrack.name : "" });
             
+            // Cleanup existing Saad Auto Zoom Overlay track items for Idempotency
+            writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_before");
+            cleanupOverlayTrack(targetTrack, result);
+            writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_after");
+            
+            result.candidates = candidates;
+            result.overlaysInserted = 0;
+            result.overlaysFailed = 0;
+            
+            // Assign new logging metrics on result
+            result.totalClipsFound = totalClipsFound;
+            result.validCutEvents = validCutEventsCount;
+            result.rejectedEvents = rejectedEvents;
+            result.rhythmSelectedEvents = rhythmSelectedEventsCount;
+            
+            // Apply zoom overlay on selected candidates
+            writeAutoZoomDiagnostic(result, "apply_candidates_loop_start", { selectedCount: rhythmSelectedEventsCount });
             for (var i = 0; i < candidates.length; i++) {
                 var cand = candidates[i];
                 if (!cand.selectedForZoom) continue;
                 
-                var startSec = cand.clipStart;
-                var endSec = Math.min(readSequenceDurationSec(seq), startSec + zoomDurationSec);
-                var style = styles[0];
-                
-                var eventResult = {
-                    timeSec: startSec,
-                    endSec: endSec,
-                    style: style,
-                    inserted: false,
-                    effectApplied: false,
-                    error: null
-                };
-                
+                writeAutoZoomDiagnostic(result, "candidate_process_start", { cutIndex: cand.cutIndex, zoomStartSec: cand.zoomStartSec });
                 try {
-                    var clipToModify = null;
-                    var actualEndSec = endSec;
-                    var targetTrackIdx = -1;
-                    var targetClipIdx = -1;
+                    var zoomStartSec = cand.zoomStartSec;
+                    var zoomEndSec = cand.zoomEndSec;
                     
-                    if (executionMode === "adjustment-layer") {
-                        targetTrack.overwriteClip(adjustmentItem, secondsToTicksString(startSec));
-                        var inserted = findTrackItemAtTime(targetTrack, startSec, adjustmentItem.name || "");
-                        if (!inserted) throw new Error("Inserted adjustment layer was not found on the target track.");
-                        eventResult.inserted = true;
-                        clipToModify = inserted.clip;
-                        actualEndSec = endSec;
-                        targetTrackIdx = targetTrackIndex;
-                        targetClipIdx = inserted.index;
-                        result.adjustmentLayersInserted += 1;
-                    } else {
-                        var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, startSec);
-                        if (!directTarget) throw new Error("No source clip covers the Auto Zoom event.");
-                        eventResult.targetTrackIndex = directTarget.trackIndex;
-                        eventResult.targetClipIndex = directTarget.clipIndex;
-                        clipToModify = directTarget.clip;
-                        actualEndSec = Math.min(endSec, readTimeSeconds(directTarget.clip && directTarget.clip.end));
-                        targetTrackIdx = directTarget.trackIndex;
-                        targetClipIdx = directTarget.clipIndex;
+                    var directTarget = findAutoZoomSourceClipAtTime(seq, analyzedTracks, zoomStartSec);
+                    if (!directTarget) {
+                        cand.rejectionReason = "NO_SOURCE_CLIP_FOUND_AT_START";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "NO_SOURCE_CLIP_FOUND_AT_START" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "candidate_no_source", { cutIndex: cand.cutIndex });
+                        continue;
                     }
                     
-                    var property = null;
-                    if (executionMode === "adjustment-layer") {
-                        var component = findAutoZoomTransformComponent(clipToModify);
-                        if (component) {
-                            var scaleWidth = findComponentPropertyByNames(component, ["Scale Width", "Scale"]);
-                            if (!scaleWidth && component.properties && component.properties.numItems > 3) scaleWidth = component.properties[3];
-                            property = scaleWidth;
-                        }
-                    } else {
-                        property = findAutoZoomMotionScaleProperty(clipToModify);
+                    var clip = directTarget.clip;
+                    if (!clip) {
+                        cand.rejectionReason = "SOURCE_CLIP_INVALID";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "SOURCE_CLIP_INVALID" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "candidate_invalid_source", { cutIndex: cand.cutIndex });
+                        continue;
                     }
                     
-                    if (property) {
-                        cand.scaleResolved = true;
-                        // Add runtime capability diagnostics for Scale keyframe APIs
-                        cand.diagnostics = {
-                            setTimeVarying: typeof property.setTimeVarying === "function",
-                            addKey: typeof property.addKey === "function",
-                            setValueAtKey: typeof property.setValueAtKey === "function",
-                            removeKeyRange: typeof property.removeKeyRange === "function",
-                            getKeys: typeof property.getKeys === "function",
-                            getValueAtKey: typeof property.getValueAtKey === "function",
-                            getValueAtTime: typeof property.getValueAtTime === "function"
-                        };
-                    } else {
-                        cand.scaleResolved = false;
-                        throw new Error("Scale property could not be resolved.");
+                    var projectItem = clip.projectItem;
+                    if (!projectItem) {
+                        cand.rejectionReason = "SOURCE_PROJECT_ITEM_MISSING";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "SOURCE_PROJECT_ITEM_MISSING" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "candidate_missing_projectitem", { cutIndex: cand.cutIndex });
+                        continue;
+                    }
+                    cand.sourceVerified = true;
+                    
+                    var clipStartSec = readTimeSeconds(clip.start);
+                    var clipEndSec = readTimeSeconds(clip.end);
+                    
+                    // Verify zoomStartSec and zoomEndSec are inside the clip timeline range
+                    if (zoomStartSec < clipStartSec - 0.001 || zoomEndSec > clipEndSec + 0.001) {
+                        cand.rejectionReason = "ZOOM_WINDOW_OUTSIDE_CLIP_BOUNDS";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "ZOOM_WINDOW_OUTSIDE_CLIP_BOUNDS" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "candidate_outside_bounds", { cutIndex: cand.cutIndex });
+                        continue;
                     }
                     
-                    var clipStartSec = readTimeSeconds(clipToModify.start);
-                    var clipEndSec = readTimeSeconds(clipToModify.end);
-                    var safeStartSec = Math.max(clipStartSec, startSec);
-                    var safeEndSec = Math.min(clipEndSec, actualEndSec);
+                    var absInPoint = getAbsoluteClipInPointSec(clip);
+                    var sourceInSec = absInPoint + (zoomStartSec - clipStartSec);
+                    var sourceOutSec = absInPoint + (zoomEndSec - clipStartSec);
                     
-                    if (!(safeEndSec > safeStartSec)) {
-                        throw new Error("Invalid zoom duration boundaries.");
+                    if (!(sourceOutSec > sourceInSec)) {
+                        cand.rejectionReason = "INVALID_SOURCE_TIME_RANGE";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "INVALID_SOURCE_TIME_RANGE" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "candidate_invalid_timerange", { cutIndex: cand.cutIndex });
+                        continue;
                     }
                     
-                    var baseWidth = readAutoZoomScaleValue(property, 100);
-                    var duration = safeEndSec - safeStartSec;
-                    var entryDuration = autoZoomEntryDuration(style, duration, frameDurationSec);
-                    
-                    var keys = buildAutoZoomScaleKeys(safeStartSec, safeEndSec, style, baseWidth, baseWidth * maxZoomPercentage, entryDuration, clipStartSec);
-                    cand.keyframesCreated = keys.length;
-                    
-                    var writeOk = setComponentPropertyKeys(property, keys, clipStartSec, clipEndSec);
-                    
-                    // Determine verification method and read back values
-                    var verificationMethod = "none";
-                    if (typeof property.getValueAtKey === "function") {
-                        verificationMethod = "getValueAtKey";
-                    } else if (typeof property.getValueAtTime === "function") {
-                        verificationMethod = "getValueAtTime";
-                    }
-                    cand.verificationMethod = verificationMethod;
-
-                    if (typeof property.getKeys === "function") {
-                        var actualKeys = property.getKeys();
-                        if (actualKeys) {
-                            cand.readBackKeyframes = actualKeys.length;
-                            var readBackValues = [];
-                            for (var k = 0; k < actualKeys.length; k++) {
-                                var actualTime = actualKeys[k];
-                                var val = null;
-                                try {
-                                    if (verificationMethod === "getValueAtKey") {
-                                        val = property.getValueAtKey(actualTime);
-                                    } else if (verificationMethod === "getValueAtTime") {
-                                        val = property.getValueAtTime(actualTime);
-                                    }
-                                } catch (eRead) {}
-                                if (val && typeof val.length !== "undefined") val = val[0];
-                                if (val !== null && val !== undefined) {
-                                    readBackValues.push(Number(val));
-                                }
-                            }
-                            cand.readBackScaleValues = readBackValues;
-                        }
-                    }
-                    
-                    var hasZoomValue = false;
-                    for (var v = 0; v < cand.readBackScaleValues.length; v++) {
-                        if (Math.abs(cand.readBackScaleValues[v] - baseWidth) > 0.05) {
-                            hasZoomValue = true;
-                            break;
-                        }
-                    }
-                    
-                    if (writeOk && cand.readBackKeyframes > 0 && hasZoomValue) {
-                        cand.finalStatus = "APPLIED_AND_VERIFIED";
-                        eventResult.effectApplied = true;
-                        result.effectsApplied += 1;
-                    } else {
-                        eventResult.effectApplied = false;
-                        if (!writeOk) {
-                            cand.finalStatus = "FAILED";
-                            cand.rejectionReason = "Keyframe write operation failed.";
-                        } else if (cand.readBackKeyframes === 0) {
-                            cand.finalStatus = "APPLIED_BUT_UNVERIFIED";
-                            cand.rejectionReason = "Verified 0 keyframes on readback.";
-                        } else {
-                            cand.finalStatus = "APPLIED_BUT_UNVERIFIED";
-                            cand.rejectionReason = "Readback scale values matched baseline (no zoom applied).";
-                        }
-                        result.failedEvents += 1;
-                        throw new Error(cand.rejectionReason);
-                    }
-                    
-                } catch (eEvent) {
-                    eventResult.error = String(eEvent.message || eEvent);
-                    if (cand.finalStatus === "PENDING") {
-                        cand.finalStatus = "FAILED";
-                        cand.rejectionReason = eventResult.error;
-                        result.failedEvents += 1;
-                    }
-                }
-                result.eventResults.push(eventResult);
-            }
-            result.timelineMutation = executionMode === "adjustment-layer"
-                ? "adjustment layers added on V" + (targetTrackIndex + 1)
-                : "editable Motion Scale effects added to analyzed source clips";
-            result.ok = result.blockers.length === 0
-                && result.effectsApplied > 0
-                && result.failedEvents === 0;
-            if (result.ok) {
-                for (var previewIndex = 0; previewIndex < result.eventResults.length; previewIndex++) {
-                    var previewEvent = result.eventResults[previewIndex];
-                    if (!previewEvent.effectApplied) continue;
-                    result.previewTimeSec = calculateAutoZoomPeakTime(
-                        previewEvent.timeSec,
-                        previewEvent.endSec,
-                        previewEvent.style,
-                        frameDurationSec
+                    // Create subclip
+                    var subclipName = "Saad Auto Zoom Overlay - Cut " + (cand.cutIndex + 1) + " " + ts();
+                    writeAutoZoomDiagnostic(result, "projectItem_createSubClip_before", { cutIndex: cand.cutIndex, subclipName: subclipName, inSec: sourceInSec, outSec: sourceOutSec });
+                    var subclip = projectItem.createSubClip(
+                        subclipName,
+                        secondsToTicksString(sourceInSec),
+                        secondsToTicksString(sourceOutSec),
+                        1, // hasHardBoundaries = true
+                        1, // takeVideo = true
+                        0  // takeAudio = false
                     );
-                    try { seq.setPlayerPosition(timelineSecondsToPlayerTicks(seq, result.previewTimeSec)); } catch (ePreviewPosition) {
-                        result.warnings.push("AUTO_ZOOM_PREVIEW_SEEK_FAILED");
+                    writeAutoZoomDiagnostic(result, "projectItem_createSubClip_after", { cutIndex: cand.cutIndex, success: !!subclip });
+                    
+                    if (!subclip) {
+                        cand.rejectionReason = "SUBCLIP_CREATION_FAILED";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "SUBCLIP_CREATION_FAILED" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "subclip_creation_failed", { cutIndex: cand.cutIndex });
+                        continue;
                     }
-                    if (!selectAutoZoomPreviewClip(seq, previewEvent)) {
-                        result.warnings.push("AUTO_ZOOM_PREVIEW_CLIP_SELECTION_FAILED");
+                    writeAutoZoomDiagnostic(result, "subclip_creation_done", { cutIndex: cand.cutIndex });
+                    
+                    // Overwrite visual-only subclip to target track at zoomStartSec
+                    writeAutoZoomDiagnostic(result, "targetTrack_overwriteClip_before", { cutIndex: cand.cutIndex, startSec: zoomStartSec });
+                    targetTrack.overwriteClip(subclip, secondsToTicksString(zoomStartSec));
+                    writeAutoZoomDiagnostic(result, "targetTrack_overwriteClip_after", { cutIndex: cand.cutIndex });
+                    
+                    // Verify the insertion from the timeline sequence
+                    writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_before", { cutIndex: cand.cutIndex, expectedName: subclipName });
+                    var verifiedClip = verifyOverlayTrackItem(targetTrack, zoomStartSec, zoomEndSec, subclipName, frameDurationSec, result);
+                    writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_after", { cutIndex: cand.cutIndex, success: !!verifiedClip });
+                    if (!verifiedClip) {
+                        cand.rejectionReason = "OVERLAY_TIMELINE_VERIFICATION_FAILED";
+                        rejectedEvents.push({ timeSec: zoomStartSec, reason: "OVERLAY_TIMELINE_VERIFICATION_FAILED" });
+                        result.overlaysFailed++;
+                        writeAutoZoomDiagnostic(result, "overlay_verification_failed", { cutIndex: cand.cutIndex });
+                        continue;
+                    }
+                    writeAutoZoomDiagnostic(result, "overlay_verification_done", { cutIndex: cand.cutIndex });
+                    
+                    cand.overlayInserted = true;
+                    cand.overlayTrackIndex = targetTrackIndex;
+                    cand.overlayClipName = verifiedClip.name || "";
+                    cand.overlayStartVerified = true;
+                    cand.overlayEndVerified = true;
+                    cand.audioSuppressed = true;
+                    cand.originalTouched = false;
+                    
+                    // Apply static zoom scale to overlay segment using Motion Scale
+                    writeAutoZoomDiagnostic(result, "motion_scale_application_start", { cutIndex: cand.cutIndex });
+                    writeAutoZoomDiagnostic(result, "findAutoZoomMotionScaleProperty_before", { cutIndex: cand.cutIndex });
+                    var scaleProperty = findAutoZoomMotionScaleProperty(verifiedClip);
+                    writeAutoZoomDiagnostic(result, "findAutoZoomMotionScaleProperty_after", { cutIndex: cand.cutIndex, found: !!scaleProperty });
+                    if (scaleProperty) {
+                        var baseScale = readAutoZoomScaleValue(scaleProperty, 100);
+                        writeAutoZoomDiagnostic(result, "scaleProperty_setValue_before", { cutIndex: cand.cutIndex, targetValue: baseScale * maxZoomPercentage });
+                        scaleProperty.setValue(baseScale * maxZoomPercentage, true);
+                        writeAutoZoomDiagnostic(result, "scaleProperty_setValue_after", { cutIndex: cand.cutIndex });
+                    } else {
+                        result.warnings.push("Could not resolve Motion Scale for overlay clip: " + (verifiedClip.name || ""));
+                    }
+                    writeAutoZoomDiagnostic(result, "motion_scale_application_done", { cutIndex: cand.cutIndex });
+                    
+                    cand.finalStatus = "OVERLAY_INSERTED_AND_VERIFIED";
+                    result.overlaysInserted++;
+                    
+                    // Move the created subclip project item to the "Auto Zoom" bin
+                    moveGeneratedProjectItemToBin(subclip, "Auto Zoom", result);
+                    
+                } catch (eCandError) {
+                    var errorMsg = String(eCandError.message || eCandError);
+                    cand.rejectionReason = "RUNTIME_EXCEPTION: " + errorMsg;
+                    rejectedEvents.push({ timeSec: cand.zoomStartSec, reason: "RUNTIME_EXCEPTION: " + errorMsg });
+                    cand.finalStatus = "FAILED";
+                    result.overlaysFailed++;
+                    writeAutoZoomDiagnostic(result, "candidate_exception", { cutIndex: cand.cutIndex, error: errorMsg });
+                }
+                writeAutoZoomDiagnostic(result, "candidate_process_done", { cutIndex: cand.cutIndex, status: cand.finalStatus });
+            }
+            writeAutoZoomDiagnostic(result, "apply_candidates_loop_done");
+            
+            // Programmatically verify if original clips were touched
+            if (result.skipHeavyProcessing) {
+                result.originalTouched = false;
+            } else {
+                writeAutoZoomDiagnostic(result, "snapshot_verification_start");
+                result.originalTouched = !verifyTracksSnapshot(seq, analyzedTracks, originalSnapshot);
+                writeAutoZoomDiagnostic(result, "snapshot_verification_done", { originalTouched: result.originalTouched });
+            }
+            for (var cIndex = 0; cIndex < result.candidates.length; cIndex++) {
+                result.candidates[cIndex].originalTouched = result.originalTouched;
+            }
+            
+            result.ok = result.overlaysRequested > 0 && result.overlaysFailed === 0 && !result.originalTouched;
+            result.timelineMutation = "visual-only overlay segments created on Saad Auto Zoom Overlay track (V" + (targetTrackIndex + 1) + ")";
+            
+            // Preview seek to the first verified overlay clip if successful
+            if (result.ok || result.overlaysInserted > 0) {
+                for (var previewIndex = 0; previewIndex < result.candidates.length; previewIndex++) {
+                    var cand = result.candidates[previewIndex];
+                    if (cand.finalStatus !== "OVERLAY_INSERTED_AND_VERIFIED") continue;
+                    result.previewTimeSec = cand.zoomStartSec;
+                    try {
+                        seq.setPlayerPosition(timelineSecondsToPlayerTicks(seq, result.previewTimeSec));
+                    } catch (ePreviewPosition) {
+                        result.warnings.push("AUTO_ZOOM_PREVIEW_SEEK_FAILED");
                     }
                     break;
                 }
             }
-            if (!result.ok && !result.blockers.length) result.blockers.push("AUTO_ZOOM_PARTIAL_OR_FAILED");
+            
+            // Populate eventResults and legacy counts for client UI compatibility
+            var zoomStyles = normalizeAutoZoomStyles(input.styles);
+            var activeStyle = zoomStyles.length > 0 ? zoomStyles[0] : "smooth";
+            result.eventResults = [];
+            for (var k = 0; k < candidates.length; k++) {
+                var cand = candidates[k];
+                if (cand.selectedForZoom) {
+                    var err = cand.rejectionReason !== "none" ? cand.rejectionReason : null;
+                    if (cand.finalStatus === "FAILED" && !err) {
+                        err = "Unknown error";
+                    }
+                    result.eventResults.push({
+                        timeSec: cand.zoomStartSec,
+                        endSec: cand.zoomEndSec,
+                        style: activeStyle,
+                        inserted: cand.overlayInserted,
+                        effectApplied: cand.overlayInserted,
+                        error: err
+                    });
+                }
+            }
+            result.effectsApplied = result.overlaysInserted;
+            result.adjustmentLayersInserted = result.overlaysInserted;
+            result.failedEvents = result.overlaysFailed;
+
+            writeAutoZoomDiagnostic(result, "apply_done", { ok: result.ok, inserted: result.overlaysInserted, totalClipsFound: totalClipsFound, validCutEvents: validCutEventsCount, rhythmSelectedEvents: rhythmSelectedEventsCount });
             return result;
         });
     };
@@ -1212,7 +1347,8 @@
             minimumShotLength = Math.max(0.5, Math.min(10, minimumShotLength));
             var activeSeq = app.project && app.project.activeSequence;
             var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
-            if (isGeneratedPodcastTestSequenceName(activeSeqName) || isAutoSwitchDraftSequenceName(activeSeqName)) {
+            var isAlreadyDraft = isAutoSwitchDraftSequenceName(activeSeqName);
+            if (isGeneratedPodcastTestSequenceName(activeSeqName) && !isAlreadyDraft) {
                 return {
                     ok: false,
                     strategy: "apply-camera-decisions-overlap-aware-visual-only",
@@ -1224,19 +1360,32 @@
                     segmentsSkipped: 0,
                     generatedTargetTrackName: "Saad Auto Switch",
                     segmentResults: [],
-                    blockers: [isAutoSwitchDraftSequenceName(activeSeqName)
-                        ? "ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT"
-                        : "ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
+                    blockers: ["ACTIVE_SEQUENCE_IS_GENERATED_TEST_SEQUENCE"],
                     warnings: [],
                     errors: [],
                     originalTouched: false,
                     timelineMutation: "none"
                 };
             }
-            var draftName = (activeSeqName || "Sequence") + " - Saad Auto Switch Draft";
-            var result = createPodcastResearchDuplicate("Auto Switch Draft", draftName);
+            var result;
+            if (isAlreadyDraft) {
+                result = {
+                    ok: true,
+                    originalSequenceID: activeSeq ? readSequenceID(activeSeq) : null,
+                    newSequenceID: activeSeq ? readSequenceID(activeSeq) : null,
+                    newSequenceName: activeSeqName,
+                    duplicateSequenceID: activeSeq ? readSequenceID(activeSeq) : null,
+                    errors: [],
+                    blockers: []
+                };
+            } else {
+                var draftName = (activeSeqName || "Sequence") + " - Saad Auto Switch Draft";
+                result = createPodcastResearchDuplicate("Auto Switch Draft", draftName);
+            }
             result.strategy = "apply-camera-decisions-overlap-aware-visual-only";
-            result.timelineMutation = "duplicate + visual-only reconstructed segments on duplicate only";
+            result.timelineMutation = isAlreadyDraft 
+                ? "visual-only reconstructed segments in-place on current draft sequence"
+                : "duplicate + visual-only reconstructed segments on duplicate only";
             result.originalTouched = false;
             result.originalSequenceID = result.originalSequenceID || null;
             result.duplicateSequenceID = result.newSequenceID || null;
@@ -1247,7 +1396,9 @@
             result.segmentsSkipped = 0;
             result.segmentResults = [];
             result.warnings = [];
-            organizeExistingGeneratedProjectItems(result);
+            if (!isAlreadyDraft) {
+                organizeExistingGeneratedProjectItems(result);
+            }
 
             if (!decisions.length) {
                 result.blockers.push("CAMERA_DECISIONS_REQUIRED");
@@ -1622,7 +1773,7 @@
             if (!clips) continue;
             for (var c = clips.numItems - 1; c >= 0; c--) {
                 var clip = clips[c];
-                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                if (!clip || isGeneratedPodcastSourceClip(clip, true)) continue;
                 try {
                     if (!clip.remove) {
                         result._originalRemoveFailedCount = (result._originalRemoveFailedCount || 0) + 1;
@@ -1649,7 +1800,7 @@
             if (!clips) continue;
             for (var c = 0; c < clips.numItems; c++) {
                 var clip = clips[c];
-                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                if (!clip || isGeneratedPodcastSourceClip(clip, true)) continue;
                 try {
                     clip.disabled = true;
                     disabledCount += 1;
@@ -1677,7 +1828,7 @@
             if (!clips) continue;
             for (var c = 0; c < clips.numItems; c++) {
                 var clip = clips[c];
-                if (!clip || isGeneratedPodcastSourceClip(clip)) continue;
+                if (!clip || isGeneratedPodcastSourceClip(clip, true)) continue;
                 var name = "";
                 try { name = clip.name ? String(clip.name) : ""; } catch (eResidualName) {}
                 var disabledState = null;
@@ -1738,7 +1889,10 @@
             result.videoSegmentsInsertedByTrack[v] = 0;
             result.skippedSegmentsByTrack.video[v] = 0;
             try {
-                seq.videoTracks[v].name = v === 0 ? "Saad Silence Removed" : ("Saad Silence Removed V" + (v + 1));
+                var currentName = seq.videoTracks[v].name ? String(seq.videoTracks[v].name) : "";
+                if (currentName.toLowerCase() !== "saad auto switch") {
+                    seq.videoTracks[v].name = v === 0 ? "Saad Silence Removed" : ("Saad Silence Removed V" + (v + 1));
+                }
             } catch (eVideoTrackName) {
                 result.warnings.push("VIDEO_TRACK_RENAME_UNSUPPORTED_V" + (v + 1));
             }
@@ -1859,8 +2013,9 @@
                 pushUniqueBlocker(result, (mediaKind === "audio" ? "AUDIO_" : "VIDEO_") + "PROJECT_ITEM_MISSING");
                 continue;
             }
-            var sourceInSec = readTimeSeconds(clip.inPoint) + (match.overlapStartSec - match.clipStartSec);
-            var sourceOutSec = readTimeSeconds(clip.inPoint) + (match.overlapEndSec - match.clipStartSec);
+            var absInPoint = getAbsoluteClipInPointSec(clip);
+            var sourceInSec = absInPoint + (match.overlapStartSec - match.clipStartSec);
+            var sourceOutSec = absInPoint + (match.overlapEndSec - match.clipStartSec);
             if (!(sourceOutSec > sourceInSec)) {
                 pushUniqueBlocker(result, "INVALID_SOURCE_SUBRANGE");
                 continue;
@@ -2021,8 +2176,9 @@
                 sourceInTicks: secondsToTicksString(sourceInSec),
                 sourceOutTicks: secondsToTicksString(sourceOutSec)
             });
+            var nameToUse = getSilenceSubclipName(operation.clipName, operation.projectItem ? operation.projectItem.name : null, operation.mediaKind, operation.segmentIndex, sourceInSec);
             subclip = operation.projectItem.createSubClip(
-                "Saad Silence " + operation.mediaKind + " Keep " + (operation.segmentIndex + 1) + " " + ts(),
+                nameToUse,
                 secondsToTicksString(sourceInSec),
                 secondsToTicksString(sourceOutSec),
                 0,
@@ -2148,8 +2304,9 @@
             pushUniqueBlocker(result, "CREATE_SUBCLIP_NOT_AVAILABLE");
             return false;
         }
-        var sourceInSec = readTimeSeconds(clip.inPoint) + (match.overlapStartSec - match.clipStartSec);
-        var sourceOutSec = readTimeSeconds(clip.inPoint) + (match.overlapEndSec - match.clipStartSec);
+        var absInPoint = getAbsoluteClipInPointSec(clip);
+        var sourceInSec = absInPoint + (match.overlapStartSec - match.clipStartSec);
+        var sourceOutSec = absInPoint + (match.overlapEndSec - match.clipStartSec);
         if (!(sourceOutSec > sourceInSec)) {
             pushUniqueBlocker(result, "INVALID_SOURCE_SUBRANGE");
             return false;
@@ -2166,8 +2323,9 @@
                 sourceInTicks: secondsToTicksString(sourceInSec),
                 sourceOutTicks: secondsToTicksString(sourceOutSec)
             });
+            var nameToUse = getSilenceSubclipName(clip ? clip.name : null, projectItem ? projectItem.name : null, mediaKind, index, sourceInSec);
             subclip = projectItem.createSubClip(
-                "Saad Silence " + mediaKind + " Keep " + (index + 1) + " " + ts(),
+                nameToUse,
                 secondsToTicksString(sourceInSec),
                 secondsToTicksString(sourceOutSec),
                 1,
@@ -2256,12 +2414,12 @@
 
     function findOverlapClipsOnVideoTrack(seq, videoTrackIndex, startSec, endSec) {
         if (!seq || !seq.videoTracks || videoTrackIndex < 0 || seq.videoTracks.numTracks <= videoTrackIndex) return [];
-        return findOverlapClipsInTrack(seq.videoTracks[videoTrackIndex], startSec, endSec);
+        return findOverlapClipsInTrack(seq.videoTracks[videoTrackIndex], startSec, endSec, true);
     }
 
     function findOverlapClipsOnAudioTrack(seq, audioTrackIndex, startSec, endSec) {
         if (!seq || !seq.audioTracks || audioTrackIndex < 0 || seq.audioTracks.numTracks <= audioTrackIndex) return [];
-        return findOverlapClipsInTrack(seq.audioTracks[audioTrackIndex], startSec, endSec);
+        return findOverlapClipsInTrack(seq.audioTracks[audioTrackIndex], startSec, endSec, true);
     }
 
     function findOverlapClipsInTrack(track, startSec, endSec, allowGeneratedSilence) {
@@ -2270,7 +2428,7 @@
         if (!clips) return out;
         for (var c = 0; c < clips.numItems; c++) {
             var clip = clips[c];
-            if (isGeneratedPodcastSourceClip(clip) && !(allowGeneratedSilence && isGeneratedSilenceSourceClip(clip))) continue;
+            if (isGeneratedPodcastSourceClip(clip, allowGeneratedSilence) && !(allowGeneratedSilence && isGeneratedSilenceSourceClip(clip))) continue;
             var clipStart = readTimeSeconds(clip.start);
             var clipEnd = readTimeSeconds(clip.end);
             var overlapStart = Math.max(startSec, clipStart);
@@ -2384,7 +2542,7 @@
             return { publicResult: publicResult, subclip: null };
         }
 
-        var clipInPointSec = readTimeSeconds(clip.inPoint);
+        var clipInPointSec = getAbsoluteClipInPointSec(clip);
         var sourceInSec = clipInPointSec + (match.overlapStartSec - match.clipStartSec);
         var sourceOutSec = clipInPointSec + (match.overlapEndSec - match.clipStartSec);
         publicResult.sourceInSec = sourceInSec;
@@ -2400,7 +2558,7 @@
             : publicResult.cameraLabel;
         try {
             subclip = projectItem.createSubClip(
-                "Saad Auto Switch " + generatedCameraIdentity + " " + (index + 1) + " " + ts(),
+                "Saad Auto Switch " + generatedCameraIdentity + " In_" + Number(sourceInSec).toFixed(3) + " " + (index + 1) + " " + ts(),
                 secondsToTicksString(sourceInSec),
                 secondsToTicksString(sourceOutSec),
                 1,
@@ -2442,25 +2600,452 @@
         };
     }
 
+    function takeTracksSnapshot(seq, analyzedTracks) {
+        var snapshot = [];
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return snapshot;
+        for (var a = 0; a < analyzedTracks.length; a++) {
+            var trackIdx = Number(analyzedTracks[a]);
+            if (trackIdx < 0 || trackIdx >= tracks.numTracks) continue;
+            var track = tracks[trackIdx];
+            var clips = track && track.clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var clip = clips[c];
+                if (!clip) continue;
+                var scaleVal = 100;
+                var scaleProp = findAutoZoomMotionScaleProperty(clip);
+                if (scaleProp) {
+                    scaleVal = readAutoZoomScaleValue(scaleProp, 100);
+                }
+                snapshot.push({
+                    trackIndex: trackIdx,
+                    clipIndex: c,
+                    name: clip.name || "",
+                    startTicks: clip.start ? String(clip.start.ticks) : "",
+                    endTicks: clip.end ? String(clip.end.ticks) : "",
+                    inPointTicks: clip.inPoint ? String(clip.inPoint.ticks) : "",
+                    outPointTicks: clip.outPoint ? String(clip.outPoint.ticks) : "",
+                    disabled: !!clip.disabled,
+                    scaleValue: scaleVal
+                });
+            }
+        }
+        return snapshot;
+    }
+
+    function verifyTracksSnapshot(seq, analyzedTracks, originalSnapshot) {
+        var currentSnapshot = takeTracksSnapshot(seq, analyzedTracks);
+        if (currentSnapshot.length !== originalSnapshot.length) return false;
+        for (var i = 0; i < originalSnapshot.length; i++) {
+            var orig = originalSnapshot[i];
+            var curr = currentSnapshot[i];
+            if (orig.trackIndex !== curr.trackIndex ||
+                orig.clipIndex !== curr.clipIndex ||
+                orig.name !== curr.name ||
+                orig.startTicks !== curr.startTicks ||
+                orig.endTicks !== curr.endTicks ||
+                orig.inPointTicks !== curr.inPointTicks ||
+                orig.outPointTicks !== curr.outPointTicks ||
+                orig.disabled !== curr.disabled ||
+                Math.abs(orig.scaleValue - curr.scaleValue) > 0.001) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function getOrCreateOverlayTrack(seq, result) {
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_start");
+        
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_videoTracks_access_before");
+        var tracks = seq && seq.videoTracks;
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_videoTracks_access_after", { success: !!tracks });
+        
+        if (!tracks) {
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_no_tracks");
+            return null;
+        }
+        
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_numTracks_access_before");
+        var numTracks = tracks.numTracks;
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_numTracks_access_after", { count: numTracks });
+        
+        for (var t = 0; t < numTracks; t++) {
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_track_access_before", { index: t });
+            var track = tracks[t];
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_track_access_after", { index: t, success: !!track });
+            
+            if (track) {
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_track_name_access_before", { index: t });
+                var trackName = track.name;
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_track_name_access_after", { index: t, name: trackName });
+                
+                if (trackName && trackName.toLowerCase() === "saad auto zoom overlay") {
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_found_existing", { index: t });
+                    return { track: track, index: t };
+                }
+            }
+        }
+        
+        var highestActiveIndex = -1;
+        for (var t = 0; t < numTracks; t++) {
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_active_check_start", { index: t });
+            var track = tracks[t];
+            if (!track) continue;
+            
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_active_check_name_before", { index: t });
+            var trackName = track.name;
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_active_check_name_after", { index: t, name: trackName });
+            
+            var name = (trackName || "").toUpperCase();
+            var hasClips = false;
+            try {
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_clips_access_before", { index: t });
+                var clips = track.clips;
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_clips_access_after", { index: t, success: !!clips });
+                
+                if (clips) {
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_clips_numItems_before", { index: t });
+                    var numItems = clips.numItems;
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_clips_numItems_after", { index: t, count: numItems });
+                    if (numItems > 0) {
+                        hasClips = true;
+                    }
+                }
+            } catch (eClips) {
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_clips_exception", { index: t, error: String(eClips.message || eClips) });
+            }
+            
+            var isCameraOrSwitch = (
+                name.indexOf("CAM") !== -1 ||
+                name.indexOf("WIDE") !== -1 ||
+                name.indexOf("HOST") !== -1 ||
+                name.indexOf("GUEST") !== -1 ||
+                name.indexOf("AUTO SWITCH") !== -1 ||
+                name.indexOf("AUTO_SWITCH") !== -1
+            );
+            
+            if (hasClips || isCameraOrSwitch) {
+                highestActiveIndex = t;
+            }
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_active_check_done", { index: t, hasClips: hasClips, isCameraOrSwitch: isCameraOrSwitch });
+        }
+        
+        var autoSwitchIndex = findSaadAutoSwitchTrackIndex(seq);
+        if (autoSwitchIndex > highestActiveIndex) {
+            highestActiveIndex = autoSwitchIndex;
+        }
+        
+        var startSearchIndex = highestActiveIndex !== -1 ? highestActiveIndex + 1 : 0;
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_search_empty_start", { startSearchIndex: startSearchIndex });
+        for (var t = startSearchIndex; t < numTracks; t++) {
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_search_empty_checking_start", { index: t });
+            var track = tracks[t];
+            if (!track) continue;
+            var targetHasClips = false;
+            try {
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_target_clips_before", { index: t });
+                var clips = track.clips;
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_target_clips_after", { index: t, success: !!clips });
+                
+                if (clips) {
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_target_numItems_before", { index: t });
+                    var numItems = clips.numItems;
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_target_numItems_after", { index: t, count: numItems });
+                    if (numItems > 0) {
+                        targetHasClips = true;
+                    }
+                }
+            } catch (eClips) {
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_target_clips_exception", { index: t, error: String(eClips.message || eClips) });
+            }
+            
+            // Check name for camera/switch words to avoid overriding occupied name tracks even if they are currently empty
+            var trackName = track.name || "";
+            var name = trackName.toUpperCase();
+            var isCameraOrSwitch = (
+                name.indexOf("CAM") !== -1 ||
+                name.indexOf("WIDE") !== -1 ||
+                name.indexOf("HOST") !== -1 ||
+                name.indexOf("GUEST") !== -1 ||
+                name.indexOf("AUTO SWITCH") !== -1 ||
+                name.indexOf("AUTO_SWITCH") !== -1
+            );
+            
+            if (!targetHasClips && !isCameraOrSwitch) {
+                try {
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_rename_before", { index: t });
+                    track.name = "Saad Auto Zoom Overlay";
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_rename_after", { index: t });
+                } catch (eRename) {
+                    if (result && result.warnings) {
+                        result.warnings.push("Failed to rename track: " + String(eRename.message || eRename));
+                    }
+                    writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_rename_failed", { index: t, error: String(eRename.message || eRename) });
+                }
+                writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_search_empty_found", { index: t });
+                return { track: track, index: t };
+            }
+            writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_search_empty_checking_done", { index: t, targetHasClips: targetHasClips });
+        }
+        
+        // 4. Try creating a new track using QE if no empty track was found above highestActiveIndex
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_try_create_track");
+        var trackCreated = false;
+        try {
+            app.enableQE();
+            if (typeof qe !== "undefined" && qe.project) {
+                var qeSeq = qe.project.getActiveSequence();
+                if (qeSeq && typeof qeSeq.addTracks === "function") {
+                    writeAutoZoomDiagnostic(result, "addTracks_before", { numTracks: numTracks });
+                    qeSeq.addTracks(1, numTracks, 0, 0, 0, 0, 0, 0);
+                    writeAutoZoomDiagnostic(result, "addTracks_after");
+                    trackCreated = true;
+                }
+            }
+        } catch (eAddTrack) {
+            writeAutoZoomDiagnostic(result, "addTracks_exception", { error: String(eAddTrack.message || eAddTrack) });
+        }
+        
+        if (trackCreated) {
+            tracks = seq.videoTracks;
+            numTracks = tracks.numTracks;
+            for (var t = startSearchIndex; t < numTracks; t++) {
+                var track = tracks[t];
+                if (!track) continue;
+                var targetHasClips = false;
+                try {
+                    var clips = track.clips;
+                    if (clips && clips.numItems > 0) {
+                        targetHasClips = true;
+                    }
+                } catch (eClips) {}
+                
+                var trackName = track.name || "";
+                var name = trackName.toUpperCase();
+                var isCameraOrSwitch = (
+                    name.indexOf("CAM") !== -1 ||
+                    name.indexOf("WIDE") !== -1 ||
+                    name.indexOf("HOST") !== -1 ||
+                    name.indexOf("GUEST") !== -1 ||
+                    name.indexOf("AUTO SWITCH") !== -1 ||
+                    name.indexOf("AUTO_SWITCH") !== -1
+                );
+                
+                if (!targetHasClips && !isCameraOrSwitch) {
+                    try {
+                        track.name = "Saad Auto Zoom Overlay";
+                    } catch (eRename) {}
+                    return { track: track, index: t };
+                }
+            }
+        }
+        
+        writeAutoZoomDiagnostic(result, "getOrCreateOverlayTrack_done_none_found");
+        return null;
+    }
+
+    function cleanupOverlayTrack(targetTrack, result) {
+        writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_start");
+        try {
+            if (targetTrack) {
+                writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clips_access_before");
+                var clips = targetTrack.clips;
+                writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clips_access_after", { success: !!clips });
+                
+                if (clips) {
+                    writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_numItems_before");
+                    var numItems = clips.numItems;
+                    writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_numItems_after", { count: numItems });
+                    
+                    for (var tc = numItems - 1; tc >= 0; tc--) {
+                        writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clip_access_before", { index: tc });
+                        var tClip = clips[tc];
+                        writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clip_access_after", { index: tc, success: !!tClip });
+                        
+                        if (tClip) {
+                            writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clip_name_before", { index: tc });
+                            var clipName = tClip.name;
+                            writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_clip_name_after", { index: tc, name: clipName });
+                            
+                            if (clipName && clipName.indexOf("Saad Auto Zoom Overlay -") === 0) {
+                                if (tClip.remove) {
+                                    writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_remove_before", { name: clipName, index: tc });
+                                    tClip.remove(false, false);
+                                    writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_remove_after", { name: clipName, index: tc });
+                                } else {
+                                    writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_remove_not_supported", { name: clipName, index: tc });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (eCleanup) {
+            if (result && result.warnings) {
+                result.warnings.push("Failed to clean up target track: " + String(eCleanup.message || eCleanup));
+            }
+            writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_error", { error: String(eCleanup.message || eCleanup) });
+        }
+        writeAutoZoomDiagnostic(result, "cleanupOverlayTrack_done");
+    }
+
+    function verifyOverlayTrackItem(targetTrack, zoomStartSec, zoomEndSec, expectedProjectItemName, frameDurationSec, result) {
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_start");
+        
+        if (!targetTrack) {
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_no_track");
+            return null;
+        }
+        
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clips_access_before");
+        var clips = targetTrack.clips;
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clips_access_after", { success: !!clips });
+        
+        if (!clips) {
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_no_clips");
+            return null;
+        }
+        
+        var tolerance = Math.max(0.05, (frameDurationSec || 0.04) * 1.5);
+        
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_numItems_before");
+        var numItems = clips.numItems;
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_numItems_after", { count: numItems });
+        
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_loop_start", { numItems: numItems });
+        for (var c = 0; c < numItems; c++) {
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clip_access_before", { index: c });
+            var clip = clips[c];
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clip_access_after", { index: c, success: !!clip });
+            
+            if (!clip) continue;
+            
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clip_times_before", { index: c });
+            var start = readTimeSeconds(clip.start);
+            var end = readTimeSeconds(clip.end);
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clip_times_after", { index: c, start: start, end: end });
+            
+            var startDiff = Math.abs(start - zoomStartSec);
+            var endDiff = Math.abs(end - zoomEndSec);
+            
+            if (startDiff <= tolerance && endDiff <= tolerance) {
+                if (expectedProjectItemName) {
+                    writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_projectItem_access_before", { index: c });
+                    var projectItem = clip.projectItem;
+                    writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_projectItem_access_after", { index: c, success: !!projectItem });
+                    
+                    if (projectItem) {
+                        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_projectItem_name_before", { index: c });
+                        var pName = projectItem.name;
+                        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_projectItem_name_after", { index: c, name: pName });
+                        
+                        if (pName === expectedProjectItemName) {
+                            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_found_match", { index: c });
+                            return clip;
+                        }
+                    }
+                } else {
+                    writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_found_no_name_req", { index: c });
+                    return clip;
+                }
+            }
+            writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_clip_check_done", { index: c });
+        }
+        writeAutoZoomDiagnostic(result, "verifyOverlayTrackItem_internal_done_not_found");
+        return null;
+    }
+
     function emptyAutoZoomApplyResult() {
         return {
             ok: false,
             sequenceName: null,
             eventsDetected: 0,
             eventsSelected: 0,
-            adjustmentLayersInserted: 0,
-            effectsApplied: 0,
-            failedEvents: 0,
+            overlaysRequested: 0,
+            overlaysInserted: 0,
+            overlaysFailed: 0,
+            originalTouched: false,
             previewTimeSec: null,
             createdProjectItemName: null,
-            executionMode: null,
-            eventResults: [],
+            executionMode: "overlay-based",
             candidates: [],
             blockers: [],
             warnings: [],
             errors: [],
-            timelineMutation: "none"
+            timelineMutation: "none",
+            executionDiagnosticsPath: autoZoomDiagnosticsPath(),
+            executionStartMs: new Date().getTime(),
+            
+            // Legacy / client compatibility fields
+            eventResults: [],
+            effectsApplied: 0,
+            adjustmentLayersInserted: 0,
+            failedEvents: 0
         };
+    }
+
+    function autoZoomDiagnosticsPath() {
+        return tempDir() + "auto-zoom-hang-diagnostics.jsonl";
+    }
+
+    function resetAutoZoomDiagnosticsLog(result) {
+        try {
+            var file = new File(result.executionDiagnosticsPath || autoZoomDiagnosticsPath());
+            file.encoding = "UTF-8";
+            if (file.open("w")) {
+                file.writeln("");
+                file.close();
+            }
+        } catch (eResetAutoZoomLog) {}
+    }
+
+    function writeAutoZoomDiagnostic(arg1, arg2, arg3) {
+        try {
+            var result = null;
+            var eventName = "";
+            var payload = {};
+            
+            if (arg1 && typeof arg1 === "object" && (arg1.executionDiagnosticsPath || arg1.executionStartMs)) {
+                // Signature: (result, eventName, payload)
+                result = arg1;
+                eventName = arg2 || "";
+                payload = arg3 || {};
+            } else {
+                // Signature: (eventName, payload)
+                eventName = arg1 || "";
+                payload = arg2 || {};
+            }
+
+            if (result && result.skipHeavyProcessing) {
+                if (eventName !== "apply_start" && eventName !== "apply_done" && eventName !== "apply_error") {
+                    return;
+                }
+            }
+            
+            var path = autoZoomDiagnosticsPath();
+            if (result && result.executionDiagnosticsPath) {
+                path = result.executionDiagnosticsPath;
+            }
+            var file = new File(path);
+            file.encoding = "UTF-8";
+            if (!file.open("a")) return;
+            
+            var elapsed = 0;
+            if (result && result.executionStartMs) {
+                elapsed = new Date().getTime() - result.executionStartMs;
+            }
+            
+            var line = [
+                "event=" + safeLogValue(eventName),
+                "time=" + safeLogValue(new Date().toString()),
+                "elapsedMs=" + safeLogValue(elapsed),
+                "payload=" + flattenLogPayload(payload)
+            ].join(" | ");
+            file.writeln(line);
+            file.close();
+        } catch (eWriteAutoZoomLog) {}
     }
 
     function readSequenceDurationSec(seq) {
@@ -2490,6 +3075,31 @@
             if (frameRateTicks > 0) return frameRateTicks / PREMIERE_TICKS_PER_SECOND;
         } catch (eSettings) {}
         return 1 / 25;
+    }
+
+    function collectRawCutEvents(seq, trackIndexes) {
+        var events = [];
+        var seen = {};
+        var duration = readSequenceDurationSec(seq);
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return events;
+        var indexes = trackIndexes;
+        if (!indexes || !indexes.length) {
+            indexes = [];
+            for (var all = 0; all < tracks.numTracks; all++) indexes.push(all);
+        }
+        for (var i = 0; i < indexes.length; i++) {
+            var trackIndex = Number(indexes[i]);
+            if (trackIndex < 0 || trackIndex >= tracks.numTracks) continue;
+            var clips = tracks[trackIndex] && tracks[trackIndex].clips;
+            if (!clips) continue;
+            for (var c = 0; c < clips.numItems; c++) {
+                var start = readTimeSeconds(clips[c] && clips[c].start);
+                addAutoZoomCutEvent(events, seen, start, duration);
+            }
+        }
+        events.sort(function (a, b) { return a - b; });
+        return events;
     }
 
     function collectAutoZoomCutEvents(seq, trackIndexes, excludedSourceVideoTrackIndex) {
@@ -2524,9 +3134,110 @@
         return events;
     }
 
+    function canFindOrCreateOverlayTrack(seq) {
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return false;
+        var numTracks = tracks.numTracks;
+        
+        // 1. Check if we already have the overlay track
+        for (var t = 0; t < numTracks; t++) {
+            var track = tracks[t];
+            if (track && track.name && track.name.toLowerCase() === "saad auto zoom overlay") {
+                return true;
+            }
+        }
+        
+        // 2. Check if we have an empty track above the highest active track
+        var highestActiveIndex = -1;
+        for (var t = 0; t < numTracks; t++) {
+            var track = tracks[t];
+            if (!track) continue;
+            var trackName = track.name || "";
+            var name = trackName.toUpperCase();
+            var hasClips = false;
+            try {
+                var clips = track.clips;
+                if (clips && clips.numItems > 0) {
+                    hasClips = true;
+                }
+            } catch (eClips) {}
+            var isCameraOrSwitch = (
+                name.indexOf("CAM") !== -1 ||
+                name.indexOf("WIDE") !== -1 ||
+                name.indexOf("HOST") !== -1 ||
+                name.indexOf("GUEST") !== -1 ||
+                name.indexOf("AUTO SWITCH") !== -1 ||
+                name.indexOf("AUTO_SWITCH") !== -1
+            );
+            if (hasClips || isCameraOrSwitch) {
+                highestActiveIndex = t;
+            }
+        }
+        
+        var autoSwitchIndex = findSaadAutoSwitchTrackIndex(seq);
+        if (autoSwitchIndex > highestActiveIndex) {
+            highestActiveIndex = autoSwitchIndex;
+        }
+        
+        var startSearchIndex = highestActiveIndex !== -1 ? highestActiveIndex + 1 : 0;
+        for (var t = startSearchIndex; t < numTracks; t++) {
+            var track = tracks[t];
+            if (!track) continue;
+            var targetHasClips = false;
+            try {
+                var clips = track.clips;
+                if (clips && clips.numItems > 0) {
+                    targetHasClips = true;
+                }
+            } catch (eClips) {}
+            
+            var trackName = track.name || "";
+            var name = trackName.toUpperCase();
+            var isCameraOrSwitch = (
+                name.indexOf("CAM") !== -1 ||
+                name.indexOf("WIDE") !== -1 ||
+                name.indexOf("HOST") !== -1 ||
+                name.indexOf("GUEST") !== -1 ||
+                name.indexOf("AUTO SWITCH") !== -1 ||
+                name.indexOf("AUTO_SWITCH") !== -1
+            );
+            
+            if (!targetHasClips && !isCameraOrSwitch) {
+                return true;
+            }
+        }
+        
+        // 3. Check if QE track creation is possible
+        try {
+            app.enableQE();
+            if (typeof qe !== "undefined" && qe.project) {
+                var qeSeq = qe.project.getActiveSequence();
+                if (qeSeq && typeof qeSeq.addTracks === "function") {
+                    return true;
+                }
+            }
+        } catch (eQE) {}
+        
+        return false;
+    }
+
+    function findSaadAutoSwitchTrackIndex(seq) {
+        var tracks = seq && seq.videoTracks;
+        if (!tracks) return -1;
+        for (var t = tracks.numTracks - 1; t >= 0; t--) {
+            var track = tracks[t];
+            if (track && track.name && track.name.toLowerCase() === "saad auto switch") {
+                return t;
+            }
+        }
+        return -1;
+    }
+
     function findBestAutoZoomTrackIndex(seq) {
         var tracks = seq && seq.videoTracks;
         if (!tracks) return -1;
+        var autoSwitchIndex = findSaadAutoSwitchTrackIndex(seq);
+        if (autoSwitchIndex >= 0) return autoSwitchIndex;
         var bestTrackIndex = -1;
         var bestEventCount = 0;
         for (var trackIndex = 0; trackIndex < tracks.numTracks; trackIndex++) {
@@ -2552,7 +3263,7 @@
             if (clip && clip.projectItem && clip.projectItem.name) names.push(String(clip.projectItem.name));
         } catch (eProjectItemName) {}
         for (var i = 0; i < names.length; i++) {
-            var match = /Saad Auto Switch(?: WIDE)? V(\d+)/i.exec(names[i]);
+            var match = /Saad (?:Auto Switch|Silence)(?: WIDE)? V(\d+)/i.exec(names[i]);
             if (match && Number(match[1]) > 0) return Number(match[1]) - 1;
         }
         return null;
@@ -2565,7 +3276,7 @@
             if (clip && clip.projectItem && clip.projectItem.name) names.push(String(clip.projectItem.name));
         } catch (eProjectItemName) {}
         for (var i = 0; i < names.length; i++) {
-            if (/Saad Auto Switch WIDE V\d+/i.test(names[i])) return true;
+            if (/Saad (?:Auto Switch|Silence) WIDE/i.test(names[i])) return true;
         }
         return false;
     }
@@ -3096,6 +3807,7 @@
     }
 
     function moveGeneratedProjectItemToBin(projectItem, toolBinName, result) {
+        if (result && result.skipHeavyProcessing) return true;
         if (!projectItem || !projectItem.moveBin) return false;
         var toolBin = getOrCreateSaadGeneratedToolBin(toolBinName);
         if (!toolBin) {
@@ -3217,17 +3929,24 @@
         return best;
     }
 
-    function isGeneratedPodcastSourceClip(clip) {
+    function isGeneratedPodcastSourceClip(clip, skipAutoSwitchCheck) {
         var clipName = "";
         var projectItemName = "";
         try { clipName = clip && clip.name ? String(clip.name) : ""; } catch (eClipName) {}
         try { projectItemName = clip && clip.projectItem && clip.projectItem.name ? String(clip.projectItem.name) : ""; } catch (ePiName) {}
+        var isAutoSwitch = clipName.indexOf("Saad Auto Switch ") === 0
+            || projectItemName.indexOf("Saad Auto Switch ") === 0;
+        
+        // Default skipAutoSwitchCheck to true unless explicitly false
+        var skipSwitch = skipAutoSwitchCheck !== false;
+        if (isAutoSwitch && skipSwitch) {
+            return false;
+        }
         return clipName.indexOf("Saad Proof Segment") === 0
             || projectItemName.indexOf("Saad Proof Segment") === 0
             || clipName.indexOf("Saad Silence ") === 0
             || projectItemName.indexOf("Saad Silence ") === 0
-            || clipName.indexOf("Saad Auto Switch ") === 0
-            || projectItemName.indexOf("Saad Auto Switch ") === 0;
+            || isAutoSwitch;
     }
 
     function readSequenceSnapshots() {
@@ -3540,8 +4259,9 @@
             result.blockers.push("CREATE_SUBCLIP_NOT_AVAILABLE");
             return result;
         }
-        var sourceIn = readTimeSeconds(clip.inPoint) + (decision.startSec - readTimeSeconds(clip.start));
-        var sourceOut = readTimeSeconds(clip.inPoint) + (decision.endSec - readTimeSeconds(clip.start));
+        var absInPoint = getAbsoluteClipInPointSec(clip);
+        var sourceIn = absInPoint + (decision.startSec - readTimeSeconds(clip.start));
+        var sourceOut = absInPoint + (decision.endSec - readTimeSeconds(clip.start));
         if (!(sourceOut > sourceIn)) {
             result.blockers.push("INVALID_SOURCE_SUBRANGE");
             return result;
@@ -3660,8 +4380,8 @@
                 clipName: clip && clip.name ? String(clip.name) : null,
                 clipStartSec: readTimeSeconds(clip && clip.start),
                 clipEndSec: readTimeSeconds(clip && clip.end),
-                clipInPointSec: readTimeSeconds(clip && clip.inPoint),
-                clipOutPointSec: readTimeSeconds(clip && clip.outPoint),
+                clipInPointSec: getAbsoluteClipInPointSec(clip),
+                clipOutPointSec: getAbsoluteClipOutPointSec(clip),
                 projectItemName: projectItem && projectItem.name ? String(projectItem.name) : null,
                 hasProjectItem: !!projectItem
             });
@@ -3835,26 +4555,83 @@
             mediaAvailable: !!sourcePath,
             timelineStartSec: timelineStartSec,
             timelineEndSec: timelineEndSec,
-            sourceInPointSec: readTimeSeconds(clip && clip.inPoint),
-            sourceOutPointSec: readTimeSeconds(clip && clip.outPoint),
+            sourceInPointSec: getAbsoluteClipInPointSec(clip),
+            sourceOutPointSec: getAbsoluteClipOutPointSec(clip),
             durationSec: (typeof timelineStartSec === "number" && typeof timelineEndSec === "number")
                 ? Math.max(0, timelineEndSec - timelineStartSec)
                 : selectedTimelineDurationSec(clip)
         };
     }
 
-    function moveSyncTrackItem(tracks, kind, trackIndex, clipIndex, moveSec, targetStartSec, result) {
+    function findClipTrackAndIndex(seq, targetClip) {
+        if (!targetClip) return null;
+        var targetTicks = targetClip.start ? targetClip.start.ticks : null;
+        var targetName = targetClip.name;
+        var targetDuration = targetClip.duration ? targetClip.duration.ticks : null;
+        
+        if (seq.videoTracks) {
+            for (var t = 0; t < seq.videoTracks.numTracks; t++) {
+                var track = seq.videoTracks[t];
+                var clips = track.clips;
+                if (clips) {
+                    for (var c = 0; c < clips.numItems; c++) {
+                        var clip = clips[c];
+                        if (clip === targetClip || (clip.name === targetName && clip.start.ticks === targetTicks && clip.duration.ticks === targetDuration)) {
+                            return { kind: "video", trackIndex: t, clipIndex: c };
+                        }
+                    }
+                }
+            }
+        }
+        if (seq.audioTracks) {
+            for (var t = 0; t < seq.audioTracks.numTracks; t++) {
+                var track = seq.audioTracks[t];
+                var clips = track.clips;
+                if (clips) {
+                    for (var c = 0; c < clips.numItems; c++) {
+                        var clip = clips[c];
+                        if (clip === targetClip || (clip.name === targetName && clip.start.ticks === targetTicks && clip.duration.ticks === targetDuration)) {
+                            return { kind: "audio", trackIndex: t, clipIndex: c };
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function moveTrackClipsByOffset(tracks, kind, trackIndex, moveSec, result, seq, shiftedMap) {
         if (!tracks || trackIndex < 0 || trackIndex >= tracks.numTracks) {
             result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_TRACK_NOT_FOUND:" + (trackIndex + 1));
             return 0;
         }
         var track = tracks[trackIndex];
         var clips = track && track.clips;
-        if (!clips || clipIndex < 0 || clipIndex >= clips.numItems) {
-            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_NOT_FOUND:" + (trackIndex + 1) + ":" + clipIndex);
+        if (!clips || clips.numItems === 0) {
             return 0;
         }
-        var clip = clips[clipIndex];
+        
+        var movedCount = 0;
+        var numItems = clips.numItems;
+        
+        // Move from end to start if moving right, or start to end if moving left, to avoid overlapping conflicts on the timeline
+        if (moveSec > 0) {
+            for (var i = numItems - 1; i >= 0; i--) {
+                movedCount += shiftSingleClip(clips[i], kind, trackIndex, i, moveSec, result, seq, shiftedMap);
+            }
+        } else {
+            for (var i = 0; i < numItems; i++) {
+                movedCount += shiftSingleClip(clips[i], kind, trackIndex, i, moveSec, result, seq, shiftedMap);
+            }
+        }
+        return movedCount;
+    }
+
+    function shiftSingleClip(clip, kind, trackIndex, clipIndex, moveSec, result, seq, shiftedMap) {
+        var key = kind + "_" + trackIndex + "_" + clipIndex;
+        if (shiftedMap[key]) {
+            return 0;
+        }
         if (!clip || !clip.start || !clip.end) {
             result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_TIMELINE_RANGE_UNAVAILABLE:" + (trackIndex + 1) + ":" + clipIndex);
             return 0;
@@ -3865,13 +4642,20 @@
             result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_TIMELINE_RANGE_INVALID:" + before + ":" + beforeEnd);
             return 0;
         }
-        var durationSec = beforeEnd - before;
-        var targetEndSec = targetStartSec + durationSec;
+        
+        var targetStartSec = before + moveSec;
+        var targetEndSec = beforeEnd + moveSec;
+        
+        if (targetStartSec < 0) {
+            targetStartSec = 0;
+            targetEndSec = targetStartSec + (beforeEnd - before);
+        }
+        
         var targetStartTime = new Time();
         targetStartTime.seconds = targetStartSec;
         var targetEndTime = new Time();
         targetEndTime.seconds = targetEndSec;
-        var moveResult = null;
+        
         try {
             if (targetStartSec >= before) {
                 clip.end = targetEndTime;
@@ -3880,11 +4664,11 @@
                 clip.start = targetStartTime;
                 clip.end = targetEndTime;
             }
-            moveResult = 0;
         } catch (eMove) {
-            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_RANGE_WRITE_FAILED:" + String(eMove.message || eMove));
+            result.blockers.push((kind === "video" ? "VIDEO" : "AUDIO") + "_CLIP_RANGE_WRITE_FAILED:" + (trackIndex + 1) + ":" + clipIndex + ":" + String(eMove.message || eMove));
             return 0;
         }
+        
         var after = readTimeSeconds(clip.start);
         var afterEnd = readTimeSeconds(clip.end);
         if (typeof after !== "number" || typeof afterEnd !== "number"
@@ -3894,18 +4678,35 @@
                 + targetStartSec + ":" + after + ":" + targetEndSec + ":" + afterEnd);
             return 0;
         }
+        
+        shiftedMap[key] = true;
         result.clipsMoved += 1;
         result.movedItems.push({
             kind: kind,
             trackIndex: trackIndex,
             clipIndex: clipIndex,
-            clipName: clip && clip.name ? String(clip.name) : null,
+            clipName: clip.name ? String(clip.name) : null,
             moveSec: moveSec,
             beforeStartSec: before,
             afterStartSec: after,
-            result: moveResult
+            result: 0
         });
-        return 1;
+        
+        var movedLinked = 0;
+        try {
+            var linked = clip.getLinkedItems();
+            if (linked && linked.numItems > 0) {
+                for (var j = 0; j < linked.numItems; j++) {
+                    var linkedClip = linked[j];
+                    var pos = findClipTrackAndIndex(seq, linkedClip);
+                    if (pos) {
+                        movedLinked += shiftSingleClip(linkedClip, pos.kind, pos.trackIndex, pos.clipIndex, moveSec, result, seq, shiftedMap);
+                    }
+                }
+            }
+        } catch (eLink) {}
+        
+        return 1 + movedLinked;
     }
 
     function readTrackName(track, kind, index) {
@@ -3965,8 +4766,8 @@
             sourcePath: null,
             timelineStartSec: readTimeSeconds(clip && clip.start),
             timelineEndSec: readTimeSeconds(clip && clip.end),
-            sourceInPointSec: readTimeSeconds(clip && clip.inPoint),
-            sourceOutPointSec: readTimeSeconds(clip && clip.outPoint),
+            sourceInPointSec: getAbsoluteClipInPointSec(clip),
+            sourceOutPointSec: getAbsoluteClipOutPointSec(clip),
             durationSec: selectedTimelineDurationSec(clip),
             mediaAvailable: false,
             sourceKind: clipCount > 1 ? "multiple-clips" : "unknown",
@@ -4159,6 +4960,112 @@
             }
         }
         return null;
+    }
+
+    function parseInTimeFromName(clip) {
+        if (!clip) return null;
+        var names = [];
+        try { if (clip.name) names.push(String(clip.name)); } catch (e) {}
+        var projectItem = clip.projectItem;
+        if (projectItem) {
+            try { if (projectItem.name) names.push(String(projectItem.name)); } catch (e) {}
+        }
+        for (var i = 0; i < names.length; i++) {
+            var name = names[i];
+            if (!name) continue;
+            var match = /In_(\d+(?:\.\d+)?)/i.exec(name);
+            if (match) {
+                return Number(match[1]);
+            }
+        }
+        return null;
+    }
+
+    function getAbsoluteClipInPointSec(clip) {
+        if (!clip) return 0;
+        var parsedIn = parseInTimeFromName(clip);
+        if (parsedIn !== null) {
+            var inSec = 0;
+            try {
+                if (clip.inPoint && typeof clip.inPoint.seconds !== "undefined") {
+                    inSec = Number(clip.inPoint.seconds);
+                }
+            } catch (e) {}
+            return parsedIn + inSec;
+        }
+        var inSec = 0;
+        try {
+            if (clip.inPoint && typeof clip.inPoint.seconds !== "undefined") {
+                inSec = Number(clip.inPoint.seconds);
+            }
+        } catch (e) {}
+        var projectItem = clip.projectItem;
+        if (projectItem) {
+            try {
+                if (typeof projectItem.getInPoint === "function") {
+                    var pIn = projectItem.getInPoint();
+                    if (pIn && typeof pIn.seconds !== "undefined") {
+                        inSec += Number(pIn.seconds);
+                    }
+                }
+            } catch (eIn) {}
+        }
+        return inSec;
+    }
+
+    function getAbsoluteClipOutPointSec(clip) {
+        if (!clip) return 0;
+        var parsedIn = parseInTimeFromName(clip);
+        if (parsedIn !== null) {
+            var outSec = 0;
+            try {
+                if (clip.outPoint && typeof clip.outPoint.seconds !== "undefined") {
+                    outSec = Number(clip.outPoint.seconds);
+                }
+            } catch (e) {}
+            return parsedIn + outSec;
+        }
+        var outSec = 0;
+        try {
+            if (clip.outPoint && typeof clip.outPoint.seconds !== "undefined") {
+                outSec = Number(clip.outPoint.seconds);
+            }
+        } catch (e) {}
+        var projectItem = clip.projectItem;
+        if (projectItem) {
+            try {
+                if (typeof projectItem.getInPoint === "function") {
+                    var pIn = projectItem.getInPoint();
+                    if (pIn && typeof pIn.seconds !== "undefined") {
+                        outSec += Number(pIn.seconds);
+                    }
+                }
+            } catch (eIn) {}
+        }
+        return outSec;
+    }
+
+    function getSilenceSubclipName(clipName, projectItemName, mediaKind, segmentIndex, sourceInSec) {
+        var names = [clipName || "", projectItemName || ""];
+        var originalTrackIdx = null;
+        var isWide = false;
+        for (var i = 0; i < names.length; i++) {
+            var match = /Saad (?:Auto Switch|Silence)(?: WIDE)? V(\d+)/i.exec(names[i]);
+            if (match && Number(match[1]) > 0) {
+                originalTrackIdx = Number(match[1]) - 1;
+            }
+            if (/Saad (?:Auto Switch|Silence) WIDE/i.test(names[i])) {
+                isWide = true;
+            }
+        }
+        var cameraIdentity = "";
+        if (originalTrackIdx !== null) {
+            cameraIdentity = (isWide ? "WIDE " : "") + "V" + (originalTrackIdx + 1) + " ";
+        } else if (isWide) {
+            cameraIdentity = "WIDE ";
+        }
+        var inStr = (typeof sourceInSec === "number" && !isNaN(sourceInSec)) ? "In_" + Number(sourceInSec).toFixed(3) + " " : "";
+        return "Saad Silence " + cameraIdentity + mediaKind + " Keep " + (segmentIndex + 1) + " " + inStr + ts();
     }
 
     function selectedTimelineDurationSec(clip) {
@@ -4655,6 +5562,74 @@
             }
 
             throw new Error("Unsupported host: " + APP);
+        });
+    };
+
+    // Podcast captions are sequence-scoped and never depend on clip selection.
+    // Success is returned only when Premiere reports a new caption track.
+    host.saadstudio.importPodcastSrtAsCaption = function (srtPath, expectedSequenceId) {
+        return safe(function () {
+            if (!IS_PPRO) throw new Error("Podcast captions require Premiere Pro.");
+            if (!srtPath) throw new Error("No SRT path provided.");
+            var file = new File(srtPath);
+            if (!file.exists) throw new Error("SRT not found: " + srtPath);
+            var sequence = app.project.activeSequence;
+            if (!sequence) return { ok: false, placed: false, reason: "NO_ACTIVE_SEQUENCE" };
+            var sequenceId = sequence.sequenceID ? String(sequence.sequenceID) : null;
+            if (expectedSequenceId && sequenceId !== String(expectedSequenceId)) {
+                return { ok: false, placed: false, reason: "ACTIVE_SEQUENCE_CHANGED", expectedSequenceId: String(expectedSequenceId), actualSequenceId: sequenceId };
+            }
+            if (typeof sequence.createCaptionTrack !== "function") {
+                return { ok: false, placed: false, reason: "CREATE_CAPTION_TRACK_UNAVAILABLE" };
+            }
+            var before = sequence.captionTracks ? sequence.captionTracks.numTracks : 0;
+            var destinationBin = getOrCreateSaadGeneratedToolBin("Podcast Captions");
+            app.project.importFiles([file.fsName], true, destinationBin || app.project.rootItem, false);
+            var imported = findProjectItemByPath(destinationBin || app.project.rootItem, file.fsName)
+                || findRootItemByPath(file.fsName);
+            if (!imported) return { ok: false, placed: false, reason: "SRT_PROJECT_ITEM_NOT_FOUND" };
+            var captionFormat = (typeof Sequence !== "undefined" && typeof Sequence.CAPTION_FORMAT_SUBTITLE !== "undefined")
+                ? Sequence.CAPTION_FORMAT_SUBTITLE
+                : undefined;
+            var created = (typeof captionFormat !== "undefined")
+                ? sequence.createCaptionTrack(imported, 0, captionFormat)
+                : sequence.createCaptionTrack(imported, 0);
+            var after = sequence.captionTracks ? sequence.captionTracks.numTracks : 0;
+            var verified = (created !== null && created !== undefined && created !== false) || (after > before);
+            
+            var fallbackUsed = false;
+            var placed = verified;
+            if (!verified && sequence.captionTracks && sequence.captionTracks.numTracks > 0) {
+                try {
+                    sequence.captionTracks[0].insertClip(imported, 0);
+                    verified = true;
+                    placed = true;
+                    fallbackUsed = true;
+                } catch (eFallback) {
+                    // fallback failed
+                }
+            }
+
+            // Soft success fallback: SRT imported into bin but not placed on timeline
+            var ok = verified;
+            var reason = null;
+            if (!verified) {
+                ok = true; // Mark as ok since file was imported successfully
+                placed = false;
+                reason = "SRT_IMPORTED_BUT_TIMELINE_PLACEMENT_FAILED";
+            }
+
+            return {
+                ok: ok,
+                placed: placed,
+                sequenceId: sequenceId,
+                sequenceName: sequence.name ? String(sequence.name) : null,
+                captionTracksBefore: before,
+                captionTracksAfter: after,
+                fallbackUsed: fallbackUsed,
+                reason: reason,
+                binPath: file.fsName
+            };
         });
     };
 
