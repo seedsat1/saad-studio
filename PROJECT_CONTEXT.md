@@ -1,6 +1,32 @@
 # Saad Studio — Project Context
 
-## آخر مهمة: جعل البريد الإلكتروني للمشتركين قابلاً للنقر لفتح درج التفاصيل والتحليلات (2026-06-23)
+## آخر مهمة: إضافة تتبع وعرض ميزة سلفة الكريديت (Credit Advance) للمشتركين (2026-06-23)
+
+- **المشكلة**:
+  وجود ميزة استلاف الكريديت (Early monthly credits / سلفة) في الباقات السنوية، ولكن لا تظهر قيم الكريديت المستلفة وحالة السلفة لكل عميل داخل لوحة تحليلات المشتركين للإدارة.
+
+- **الإصلاح والتعديل**:
+  1. تعديل [route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/route.ts) و [route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/[userId]/route.ts) لجلب وتمرير حقول السلف المالي من نموذج المستخدم (`creditAdvanceBalance`, `creditAdvanceRequestedAt`, `creditAdvanceCycleEnd`) في كائن المشترك.
+  2. تعديل [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/subscriber-analytics/page.tsx) لتحديث واجهة لوحة التحكم:
+     - إضافة بطاقة رابعة مخصصة للسلفة (Advance Card) داخل درج تفاصيل المشترك تستعرض قيمة الكريديت المستلف وتاريخ طلبها.
+     - عرض شارة تنبيه برتقالية صغيرة `سلفة: X` تحت اسم الباقة في جدول مصفوفة الأرباح الرئيسي ليسهل للمالك تحديد من قام بالاستلاف بنظرة سريعة.
+
+- **الملفات المتأثرة**:
+  - [route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/route.ts) [MODIFY]
+  - [route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/[userId]/route.ts) [MODIFY]
+  - [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/subscriber-analytics/page.tsx) [MODIFY]
+
+- **نتائج التحقق**:
+  - تشغيل `npm run build` والتحقق من سلامة البناء البرمجي والروابط بنجاح تام.
+  - دفع التحديثات للمستودع عبر `git push` وتأكيد سلامة النشر.
+
+- **القرارات المتخذة**:
+  - جعل تصميم عرض السلفة متناسقاً تماماً مع الطابع البصري الداكن للوحة التحكم وتوفيرها بنظرة عامة سريعة في الجدول مع تفاصيل كاملة في الدرج.
+
+- **الخطوة المتبقية**:
+  - مراجعة المالك وتأكيد رؤية تفاصيل السلف لكل عميل.
+
+## المهمة السابقة: جعل البريد الإلكتروني للمشتركين قابلاً للنقر لفتح درج التفاصيل والتحليلات (2026-06-23)
 
 - **المشكلة**:
   عدم تمكن المالك من فتح درج التفاصيل الخاص بـ sfa770441@gmail.com أو ofemuh@gmail.com بسبب اختفائهما من جدول المشتركين نتيجة تصفية الجدول على باقة "MAX"، بالإضافة إلى رغبته في النقر مباشرة على البريد الإلكتروني بدلاً من استخدام زر "Inspect".
