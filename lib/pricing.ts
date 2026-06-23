@@ -403,10 +403,10 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-v2/text-to-video-fast":   { "480p": 0.5, "720p": 1.0 },
   "seedance2f":                                 { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-2":                       { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
-  "bytedance/seedance-v2/text-to-video":        { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
-  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
-  "seedance2":                                  { "480p": 0.8, "720p": 1.0, "1080p": 3.0 },
+  "bytedance/seedance-2":                       { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
+  "seedance2":                                  { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {
@@ -506,4 +506,58 @@ export function getGenerationCostSync(
   const perUnit = calcUserCredits(model, durationSec);
   const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
+}
+
+/**
+ * Estimates the provider cost in USD for a given model, duration, and resolution/quality.
+ * Uses cached models.
+ */
+export function estimateProviderCostSync(
+  modelRef: string,
+  durationSec = 5,
+  quality?: string | null,
+): { usd: number | null; source: "actual" | "estimated" | "unknown" } {
+  const isSeedance2Route =
+    modelRef === "bytedance/dreamina-v3.0/text-to-video-720p" ||
+    modelRef === "bytedance/seedance-v2/text-to-video" ||
+    modelRef === "bytedance/seedance-v2/text-to-video-fast" ||
+    modelRef.includes("dreamina-seedance") ||
+    modelRef.includes("seedance2");
+
+  if (isSeedance2Route) {
+    const bpResolution = String(quality || "720p").toLowerCase();
+    let bpTokensPerSec = 12000;
+    if (bpResolution.includes("480")) bpTokensPerSec = 6000;
+    else if (bpResolution.includes("1080")) bpTokensPerSec = 30000;
+    else if (bpResolution.includes("4k")) bpTokensPerSec = 70000;
+    const bpTokens = durationSec * bpTokensPerSec;
+    const bpEstimatedCost = bpTokens * 0.0000043;
+    return { usd: bpEstimatedCost, source: "estimated" };
+  }
+
+  const models = _cachedModels ?? DEFAULT_MODELS;
+  const constitutionId = resolveConstitutionId(modelRef, models);
+  const model = models.find((m) => m.id === constitutionId && m.isActive);
+
+  if (!model) {
+    if (modelRef.includes("image") || modelRef.includes("banana") || modelRef.includes("rmbg") || modelRef.includes("upscale") || modelRef.includes("face-swap")) {
+      return { usd: durationSec * 0.01, source: "estimated" };
+    }
+    if (modelRef.includes("elevenlabs") || modelRef.includes("audio") || modelRef.includes("voice") || modelRef.includes("tts")) {
+      return { usd: durationSec * 0.01, source: "estimated" };
+    }
+    return { usd: null, source: "unknown" };
+  }
+
+  if (model.provider === "wavespeed") {
+    const usd = model.billing === "per_sec" ? durationSec * model.waveUsd : model.waveUsd;
+    return { usd, source: "estimated" };
+  }
+
+  // KIE provider
+  const multiplier = qualityMultiplierForModel(modelRef, quality);
+  const baseCredits = model.billing === "per_sec" ? durationSec * model.kieCredits : model.kieCredits;
+  const kieCredits = baseCredits * multiplier;
+  const usd = kieCredits * 0.005;
+  return { usd, source: "estimated" };
 }

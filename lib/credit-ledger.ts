@@ -352,6 +352,17 @@ type SpendCreditsInput = {
   assetType: string;
   modelUsed: string;
   mediaUrl?: string | null;
+  resolution?: string | null;
+  duration?: number | null;
+  aspectRatio?: string | null;
+  quality?: string | null;
+  providerName?: string | null;
+  providerModel?: string | null;
+  providerRequestId?: string | null;
+  providerCostUsd?: number | null;
+  providerTokens?: number | null;
+  providerCredits?: number | null;
+  providerCostSource?: string | null;
 };
 
 type CreditLedgerReason =
@@ -433,6 +444,17 @@ export async function spendCredits(input: SpendCreditsInput) {
         type: inferGenerationType(input.assetType),
         status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
         cost: credits,
+        resolution: input.resolution ?? null,
+        duration: input.duration ?? null,
+        aspectRatio: input.aspectRatio ?? null,
+        quality: input.quality ?? null,
+        providerName: input.providerName ?? null,
+        providerModel: input.providerModel ?? null,
+        providerRequestId: input.providerRequestId ?? null,
+        providerCostUsd: input.providerCostUsd ?? null,
+        providerTokens: input.providerTokens ?? null,
+        providerCredits: input.providerCredits ?? null,
+        providerCostSource: input.providerCostSource ?? null,
       },
       select: { id: true },
     });
@@ -468,6 +490,17 @@ export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credi
       type: inferGenerationType(input.assetType),
       status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
       cost: 0,
+      resolution: input.resolution ?? null,
+      duration: input.duration ?? null,
+      aspectRatio: input.aspectRatio ?? null,
+      quality: input.quality ?? null,
+      providerName: input.providerName ?? null,
+      providerModel: input.providerModel ?? null,
+      providerRequestId: input.providerRequestId ?? null,
+      providerCostUsd: input.providerCostUsd ?? null,
+      providerTokens: input.providerTokens ?? null,
+      providerCredits: input.providerCredits ?? null,
+      providerCostSource: input.providerCostSource ?? null,
     },
     select: { id: true },
   });

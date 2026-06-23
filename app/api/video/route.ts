@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
-import { getGenerationCost } from "@/lib/pricing";
+import { getGenerationCost, estimateProviderCostSync } from "@/lib/pricing";
 import { InsufficientCreditsError, precheckGenerationPolicy, refundGenerationCharge, setGenerationMediaUrl, setGenerationTaskMarker, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
@@ -1213,12 +1213,29 @@ export async function POST(req: Request) {
       }
 
       const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Seedance 2.0 video generation";
+      const bpResolution = String(qualityForCost || "720p").toLowerCase();
+      let bpTokensPerSec = 12000;
+      if (bpResolution.includes("480")) bpTokensPerSec = 6000;
+      else if (bpResolution.includes("1080")) bpTokensPerSec = 30000;
+      else if (bpResolution.includes("4k")) bpTokensPerSec = 70000;
+      const bpTokens = durationForCost * bpTokensPerSec;
+      const bpEstimatedCost = bpTokens * 0.0000043;
+
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
         prompt,
         assetType: "VIDEO",
         modelUsed: modelRoute,
+        resolution: qualityForCost,
+        duration: durationForCost,
+        aspectRatio: String(payload.aspect_ratio || payload.aspectRatio || "16:9"),
+        quality: qualityForCost,
+        providerName: "BytePlus",
+        providerModel: getOfficialSeedanceModel(modelRoute),
+        providerCostUsd: bpEstimatedCost,
+        providerTokens: bpTokens,
+        providerCostSource: "estimated",
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1253,7 +1270,7 @@ export async function POST(req: Request) {
         const responseJson = {
           generationId,
           error: `BytePlus ModelArk returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
-          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          publicError: "Generation unavailable. Please retry later.",
           code: "ark_submit_failed",
           providerStatus: createRes.status,
           providerModel: arkModel,
@@ -1283,7 +1300,7 @@ export async function POST(req: Request) {
         const responseJson = {
           generationId,
           error: providerFailureMessage(createJson, createRes.status),
-          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          publicError: "Generation unavailable. Please retry later.",
           code: "ark_submit_failed",
           providerStatus: createRes.status,
           providerModel: arkModel,
@@ -1346,12 +1363,22 @@ export async function POST(req: Request) {
           ? sanitizePrompt(payload.negative_prompt, 1000)
           : undefined;
 
+      const googleCostEst = estimateProviderCostSync(modelRoute, durationSeconds, resolution);
+
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
         prompt,
         assetType: "VIDEO",
         modelUsed: modelRoute,
+        resolution: resolution,
+        duration: durationSeconds,
+        aspectRatio: aspectRatio,
+        quality: String(payload.quality || payload.mode || ""),
+        providerName: "Google",
+        providerModel: isDirectGoogleVeo31ProRoute ? "veo-3.1-generate-preview" : modelRoute,
+        providerCostUsd: googleCostEst.usd,
+        providerCostSource: googleCostEst.source,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1446,12 +1473,22 @@ export async function POST(req: Request) {
         }
       }
 
+      const wsCostEst = estimateProviderCostSync(modelRoute, durationForCost, qualityForCost);
+
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
         prompt: typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Video generation",
         assetType: "VIDEO",
         modelUsed: modelRoute,
+        resolution: qualityForCost,
+        duration: durationForCost,
+        aspectRatio: String(payload.aspect_ratio || payload.aspectRatio || "16:9"),
+        quality: qualityForCost,
+        providerName: "WaveSpeed",
+        providerModel: wavespeedRoute,
+        providerCostUsd: wsCostEst.usd,
+        providerCostSource: wsCostEst.source,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1567,12 +1604,23 @@ export async function POST(req: Request) {
       }
     }
 
+    const kieCostEst = estimateProviderCostSync(modelRoute, durationForCost, qualityForCost);
+
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,
       prompt: typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "Video generation",
       assetType: "VIDEO",
       modelUsed: modelRoute,
+      resolution: qualityForCost,
+      duration: durationForCost,
+      aspectRatio: String(payload.aspect_ratio || payload.aspectRatio || "16:9"),
+      quality: qualityForCost,
+      providerName: "KIE.ai",
+      providerModel: kieModel,
+      providerCostUsd: kieCostEst.usd,
+      providerCredits: kieCostEst.usd ? kieCostEst.usd / 0.005 : null,
+      providerCostSource: kieCostEst.source,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

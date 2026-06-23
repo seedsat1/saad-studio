@@ -296,8 +296,9 @@ export async function GET(req: Request, { params }: { params: { userId: string }
       const config = pricingModels.find(m => m.id === normalizedId || m.name === normalizedId);
       const provider = config?.provider || "kie";
       const costEst = estimateProviderCost(gen.modelUsed, gen.cost, pricingModels);
+      const providerCost = gen.providerCostUsd !== null ? gen.providerCostUsd : costEst.usd;
 
-      totalEstProviderCost += costEst.usd;
+      totalEstProviderCost += providerCost;
 
       if (!modelUsageMap[model]) {
         modelUsageMap[model] = {
@@ -314,7 +315,7 @@ export async function GET(req: Request, { params }: { params: { userId: string }
 
       modelUsageMap[model].generationCount++;
       modelUsageMap[model].creditsConsumed += gen.cost;
-      modelUsageMap[model].estProviderCost += costEst.usd;
+      modelUsageMap[model].estProviderCost += providerCost;
       if (gen.createdAt > modelUsageMap[model].lastUsedAt) {
         modelUsageMap[model].lastUsedAt = gen.createdAt;
       }
@@ -404,7 +405,7 @@ export async function GET(req: Request, { params }: { params: { userId: string }
         duration,
         resolution,
         creditsCharged: g.cost,
-        providerCostEstimate: parseFloat(costEst.usd.toFixed(4)),
+        providerCostEstimate: g.providerCostUsd !== null ? g.providerCostUsd : parseFloat(costEst.usd.toFixed(4)),
         status: g.status || "COMPLETED",
         outputUrl: g.outputUrl || g.mediaUrl || null,
       };

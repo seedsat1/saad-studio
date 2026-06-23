@@ -14,6 +14,10 @@ export interface BytePlusTaskResult {
   outputs: string[];
   error: string | null;
   missing: boolean;
+  tokensUsed?: number;
+  providerRequestId?: string;
+  duration?: number;
+  resolution?: string;
 }
 
 export interface BytePlusReconcileSummary {
@@ -139,7 +143,30 @@ export async function fetchBytePlusTask(taskId: string): Promise<BytePlusTaskRes
     };
   }
 
-  return { status, outputs, error, missing: false };
+  const usage = (data.usage ?? payload.usage) as Record<string, unknown> | undefined;
+  const tokensUsed = typeof usage?.completion_tokens === "number" ? usage.completion_tokens
+    : typeof usage?.total_tokens === "number" ? usage.total_tokens
+    : undefined;
+
+  const providerRequestId = typeof payload.request_id === "string" ? payload.request_id
+    : typeof data.request_id === "string" ? data.request_id
+    : typeof payload.requestId === "string" ? payload.requestId
+    : undefined;
+
+  const content = (data.content ?? payload.content) as Record<string, unknown> | undefined;
+  const duration = typeof content?.video_duration === "number" ? content.video_duration : undefined;
+  const resolution = typeof content?.video_resolution === "string" ? content.video_resolution : undefined;
+
+  return {
+    status,
+    outputs,
+    error,
+    missing: false,
+    tokensUsed,
+    providerRequestId,
+    duration,
+    resolution,
+  };
 }
 
 export async function reconcileBytePlusGeneration(generation: {
@@ -162,6 +189,21 @@ export async function reconcileBytePlusGeneration(generation: {
   }
 
   if (result.status === "completed") {
+    const tokensUsed = result.tokensUsed || 0;
+    const actualCost = tokensUsed * 0.0000043; // $4.30 / 1M tokens
+
+    await prismadb.generation.update({
+      where: { id: generation.id },
+      data: {
+        providerTokens: tokensUsed,
+        providerCostUsd: actualCost,
+        providerCostSource: "actual",
+        providerRequestId: result.providerRequestId || null,
+        ...(result.duration ? { duration: result.duration } : {}),
+        ...(result.resolution ? { resolution: result.resolution } : {}),
+      }
+    });
+
     await setGenerationMediaUrl(generation.id, result.outputs[0]);
     return "completed";
   }

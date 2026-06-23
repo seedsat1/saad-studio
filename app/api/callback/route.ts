@@ -105,6 +105,31 @@ export async function POST(req: NextRequest) {
     }
 
     if (status === "completed" && outputs.length > 0) {
+      const providerCredits = typeof data?.credits === "number" ? data.credits
+        : typeof body?.credits === "number" ? body.credits
+        : typeof data?.amount === "number" ? data.amount
+        : null;
+
+      const providerRequestId = String(data?.requestId ?? data?.request_id ?? body?.requestId ?? body?.request_id ?? taskId ?? "");
+
+      const updateData: Record<string, any> = {};
+      if (providerRequestId) {
+        updateData.providerRequestId = providerRequestId;
+      }
+
+      if (providerCredits !== null) {
+        updateData.providerCredits = providerCredits;
+        updateData.providerCostUsd = providerCredits * 0.005;
+        updateData.providerCostSource = "actual";
+      } else {
+        updateData.providerCostSource = "actual";
+      }
+
+      await prismadb.generation.update({
+        where: { id: generation.id },
+        data: updateData,
+      }).catch((e) => console.error("[api/callback] Failed to update tracking fields:", e));
+
       await setGenerationMediaUrl(generation.id, outputs[0]);
       console.log(`[api/callback] Task ${taskId} completed → ${outputs[0]}`);
     } else if (status === "failed") {

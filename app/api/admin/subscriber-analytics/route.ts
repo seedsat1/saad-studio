@@ -284,11 +284,15 @@ export async function GET(req: Request) {
       let costHasNull = false;
 
       for (const gen of userGens) {
-        const est = estimateProviderCost(gen.modelUsed, gen.cost, pricingModels);
-        if (est.usd === null) {
-          costHasNull = true;
+        if (gen.providerCostUsd !== null) {
+          estProviderCost += gen.providerCostUsd;
         } else {
-          estProviderCost += est.usd;
+          const est = estimateProviderCost(gen.modelUsed, gen.cost, pricingModels);
+          if (est.usd === null) {
+            costHasNull = true;
+          } else {
+            estProviderCost += est.usd;
+          }
         }
       }
       for (const tr of userTrans) {
@@ -505,17 +509,21 @@ export async function GET(req: Request) {
         };
       }
 
-      const costEst = estimateProviderCost(gen.modelUsed, gen.cost, pricingModels);
       const userVal = userCreditValues[gen.userId] || 0;
 
       modelUsageMap[model].count++;
       modelUsageMap[model].userCredits += gen.cost;
       modelUsageMap[model].actualRevenue += (gen.cost * userVal);
 
-      if (costEst.usd === null) {
-        modelUsageMap[model].hasNull = true;
+      if (gen.providerCostUsd !== null) {
+        modelUsageMap[model].providerCost += gen.providerCostUsd;
       } else {
-        modelUsageMap[model].providerCost += costEst.usd;
+        const costEst = estimateProviderCost(gen.modelUsed, gen.cost, pricingModels);
+        if (costEst.usd === null) {
+          modelUsageMap[model].hasNull = true;
+        } else {
+          modelUsageMap[model].providerCost += costEst.usd;
+        }
       }
     }
 
@@ -665,8 +673,12 @@ export async function GET(req: Request) {
 
     let providerCost30Days = 0;
     for (const g of gens30Days) {
-      const est = estimateProviderCost(g.modelUsed, g.cost, pricingModels);
-      if (est.usd !== null) providerCost30Days += est.usd;
+      if (g.providerCostUsd !== null) {
+        providerCost30Days += g.providerCostUsd;
+      } else {
+        const est = estimateProviderCost(g.modelUsed, g.cost, pricingModels);
+        if (est.usd !== null) providerCost30Days += est.usd;
+      }
     }
     for (const tr of trans30Days) {
       providerCost30Days += (tr.creditsCost * 0.005);

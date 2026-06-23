@@ -63,19 +63,32 @@ model User {
 
 /// Records every AI generation for security monitoring and cost tracking.
 model Generation {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  prompt     String
-  mediaUrl   String?
-  outputUrl  String?
-  type       String?
-  status     String?
-  assetType  String
-  modelUsed  String
-  cost       Float    @default(0)
-  isFlagged  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt           String
+  mediaUrl         String?
+  outputUrl        String?
+  type             String?
+  status           String?
+  assetType        String
+  modelUsed        String
+  cost             Float    @default(0)
+  isFlagged        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  // Provider tracking fields
+  providerCostUsd  Float?
+  providerTokens   Int?
+  providerCredits  Float?
+  providerName     String?
+  providerModel    String?
+  providerRequestId String?
+  resolution       String?
+  duration         Float?
+  aspectRatio      String?
+  quality          String?
+  providerCostSource String? // 'actual' | 'estimated' | 'unknown'
 
   @@index([userId])
   @@index([createdAt])

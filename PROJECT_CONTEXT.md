@@ -1,6 +1,74 @@
 # Saad Studio — Project Context
 
-## آخر مهمة: إضافة تتبع وعرض ميزة سلفة الكريديت (Credit Advance) للمشتركين (2026-06-23)
+## آخر مهمة: تنفيذ تتبع تكلفة المزود، إضافة دعم 4K لـ Seedance 2.0، وتحديث لوحة تحليلات استهلاك المشتركين (2026-06-23)
+
+- **المشكلة**:
+  تنفيذ هجرات قاعدة البيانات الخاصة بتتبع تكاليف المزود الحقيقية وحفظها (providerCostUsd, providerTokens, providerCredits, providerCostSource)، ومنع التراجع التلقائي من BytePlus إلى KIE مع إرجاع خطأ صريح عند الفشل، وتفعيل دعم دقة 4K في واجهة توليد الفيديو والموديلات، وتحديث واجهات ولوحات تحليلات استهلاك المشتركين لاستعراض التكاليف الفعلية بدلاً من الافتراضية.
+
+- **الإصلاح والتعديل**:
+  1. تنفيذ تتبع تكلفة المزود الحقيقية والافتراضية عبر تحديث Schema.prisma وتعديل SpendCreditsInput وspendCredits وrecordFreeGeneration في `lib/credit-ledger.ts`.
+  2. تحديث API توليد الفيديو `app/api/video/route.ts` لإرسال حقول التتبع وتخزين التكاليف الحقيقية، ومنع التراجع لـ KIE وتعديل رسائل الخطأ عند فشل BytePlus Ark إلى "Generation unavailable. Please retry later.".
+  3. تحديث مسار Reconcile الخاص بـ BytePlus `lib/providers/byteplus-reconcile.ts` ومسار الكولباك `app/api/callback/route.ts` لتحديث التكاليف الفعلية والتوكنز/الكريديتس بعد اكتمال التوليد وتعيين الحالة إلى `"actual"`.
+  4. تحديث API تحليلات المشتركين `app/api/admin/subscriber-analytics/route.ts` و`app/api/admin/subscriber-analytics/[userId]/route.ts` للاعتماد على `providerCostUsd` الفعلي عند وجوده بدلاً من حسابات التقدير.
+  5. تفعيل اختيار دقة 4K لنموذج Seedance 2.0 (HQ) في سجل النماذج `lib/video-model-registry.ts` وربطها بالضرب الفعلي 3.0x وحسابات تقدير التكاليف.
+  6. إنشاء صفحة تحليلات تتبع تكلفة المزود `app/admin/provider-costs/page.tsx` وواجهتها الخلفية `/api/admin/provider-costs` لاستعراض الإحصائيات والأرباح الفردية وهوامش الربح بدقة متناهية.
+
+- **الملفات المتأثرة**:
+  - [prisma/schema.prisma](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) [MODIFY]
+  - [lib/credit-ledger.ts](file:///e:/موقع%2520ثاني/next14%2520ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) [MODIFY]
+  - [lib/pricing.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing.ts) [MODIFY]
+  - [lib/video-model-registry.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) [MODIFY]
+  - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [lib/providers/byteplus-reconcile.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-reconcile.ts) [MODIFY]
+  - [app/api/callback/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/callback/route.ts) [MODIFY]
+  - [app/api/admin/subscriber-analytics/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/route.ts) [MODIFY]
+  - [app/api/admin/subscriber-analytics/[userId]/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/[userId]/route.ts) [MODIFY]
+  - [app/admin/provider-costs/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/provider-costs/page.tsx) [NEW]
+  - [app/api/admin/provider-costs/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-costs/route.ts) [NEW]
+  - [app/admin/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - تم عمل هجرة وتحديث قاعدة بيانات Neon بنجاح.
+  - تم إجراء بناء تجريبي كامل للموقع بنجاح تام (`npm run build`) مع خلوه من أي مشاكل أو أخطاء TypeScript أو compilation.
+
+- **القرارات المتخذة**:
+  - استبعاد التحول التلقائي (auto-fallback) لنموذج Seedance 2.0 لضمان دقة التحصيل وتفادي كلفة Higgsfield/KIE الباهظة.
+  - إبقاء تسعير الكريديت ثابتاً لحين جمع البيانات الكافية لتقييم الأرباح ديناميكياً.
+
+- **الخطوة المتبقية**:
+  - تسليم التحديثات ومتابعة أداء تتبع التكلفة للمزودين في خوادم الإنتاج المباشرة.
+
+## المهمة السابقة: دراسة هندسية ومالية شاملة لتسعير Seedance 2.0 ولوحات تحليلات الربحية (2026-06-23)
+
+- **المشكلة**:
+  طلب دراسة هندسية ومالية مبنية على أرقام حقيقية لمقارنة تسعير Seedance 2.0 مع Higgsfield وتحديد تكلفة المزود الحقيقية (BytePlus و KIE)، وبحث تفعيل 4K، وتصميم نظام لمراقبة وتخزين تكاليف المزود ديناميكياً، وتخطيط لوحتي التحكم لربحية المشتركين والموديلات دون تعديل أي ملف تسعير حالياً.
+
+- **الإصلاح والتعديل**:
+  1. استخلاص وفحص صيغ ومقادير الكريديت المحسوبة حالياً لـ Seedance Fast/HQ في الشيفرة وقيمها في قاعدة البيانات للتأكيد على تخطي DB.
+  2. مقارنة مباشرة ومحسوبة بدقة لأسعار 15 ثانية HQ مع Higgsfield ونسب الفروقات.
+  3. استبيان تكاليف المزود الحقيقية بالتوكنز والدولار لـ BytePlus و KIE وإثبات عدم تخزينها مسبقاً بقاعدة البيانات.
+  4. التحقق من دعم دقة 4K رسمياً وتكاليف توليدها الفعلية لكل مزود.
+  5. تصميم تعديل هيكل قاعدة البيانات (Generation model) وآلية تتبع وحفظ التكاليف الحقيقية برمجياً.
+  6. تصميم وتخطيط لوحة تحكم ربحية المشتركين (Subscriber Profitability Analytics) ولوحة ربحية الموديلات (Model Profitability Analytics) بالمتغيرات المحددة.
+  7. صياغة تقرير الدراسة الشامل باللغة العربية وتوثيقه كأصل أرشيفي في [final_seedance_pricing_study_ar.md](file:///C:/Users/PC/.gemini/antigravity/brain/4a8277ad-f3c1-4aee-a82f-0ce2412cc7ea/final_seedance_pricing_study_ar.md).
+
+- **الملفات المتأثرة**:
+  - [final_seedance_pricing_study_ar.md](file:///C:/Users/PC/.gemini/antigravity/brain/4a8277ad-f3c1-4aee-a82f-0ce2412cc7ea/final_seedance_pricing_study_ar.md) [NEW/ARTIFACT]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - مطابقة أرقام الكريديت الحالية وفروقاتها مع Higgsfield.
+  - إثبات أن تكلفة 1080p مضخمة بنسبة +133.33% وأن تخفيض الأسعار آمن بشرط الاحتفاظ بمسار BytePlus المباشر وتفادي عجز KIE الاحتياطي.
+
+- **القرارات المتخذة**:
+  - الامتناع التام عن تعديل أي ملف تسعير (pricing-models.ts أو credit-pricing.ts أو قيم DB لـ PricingConstitution) التزاماً بطلب المالك الصارم لحين المراجعة واتخاذ القرار.
+
+- **الخطوة المتبقية**:
+  - عرض تقرير الدراسة النهائي على المالك والحصول على موافقته لبدء تنفيذ هجرات قاعدة البيانات، وتحديث واجهات التتبع، وتحديث تسعير الطرازات المقفلة.
+
+## المهمة السابقة: إضافة تتبع وعرض ميزة سلفة الكريديت (Credit Advance) للمشتركين (2026-06-23)
+
 
 - **المشكلة**:
   وجود ميزة استلاف الكريديت (Early monthly credits / سلفة) في الباقات السنوية، ولكن لا تظهر قيم الكريديت المستلفة وحالة السلفة لكل عميل داخل لوحة تحليلات المشتركين للإدارة.
