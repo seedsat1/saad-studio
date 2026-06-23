@@ -146,6 +146,8 @@ export async function POST(req: NextRequest) {
       prompt: `Transition: ${preset.name}`,
       assetType: "TRANSITION",
       modelUsed: `transition/${presetId}`,
+      duration: duration,
+      resolution: controls.resolution,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

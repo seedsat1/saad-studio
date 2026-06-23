@@ -30,7 +30,7 @@ export async function GET(req: Request) {
       userCreditValues[user.id] = creditsGranted > 0 ? (totalPayments / creditsGranted) : 0;
     });
 
-    // 2. Fetch last 1000 generations including user info
+    // 2. Fetch last 1000 generations including user info and provider usage record
     const generations = await prismadb.generation.findMany({
       orderBy: { createdAt: "desc" },
       take: 1000,
@@ -39,6 +39,9 @@ export async function GET(req: Request) {
           select: {
             email: true,
           }
+        },
+        providerUsageRecords: {
+          take: 1
         }
       }
     });
@@ -48,35 +51,64 @@ export async function GET(req: Request) {
       const actualCreditValue = userCreditValues[gen.userId] || 0;
       const revenue = gen.cost * actualCreditValue;
 
-      const costEst = estimateProviderCostSync(gen.modelUsed, gen.duration || 5, gen.resolution);
+      const usage = gen.providerUsageRecords[0] || null;
 
-      const providerCostUsd = gen.providerCostUsd !== null && gen.providerCostUsd !== undefined
-        ? gen.providerCostUsd
-        : costEst.usd;
+      let duration = usage ? usage.duration : gen.duration;
+      let resolution = usage ? usage.resolution : gen.resolution;
+      let quality = usage ? usage.quality : gen.quality;
+      let providerCostUsd = usage ? usage.providerCostUsd : gen.providerCostUsd;
+      let providerCostSource = usage ? usage.providerCostSource : gen.providerCostSource;
+      let providerCredits = usage ? usage.providerCredits : gen.providerCredits;
+      let providerTokens = usage ? usage.providerTokens : gen.providerTokens;
+      let providerRequestId = usage ? usage.providerRequestId : gen.providerRequestId;
+      let providerName = usage ? usage.providerName : gen.providerName;
+      let providerModel = usage ? usage.providerModel : gen.providerModel;
 
-      const providerCostSource = gen.providerCostSource || costEst.source;
-
-      const profit = providerCostUsd !== null ? revenue - providerCostUsd : null;
-      let marginPercent: number | null = null;
-      if (providerCostUsd !== null) {
-        if (revenue > 0) {
-          marginPercent = (profit! / revenue) * 100;
+      // Estimate only if we have sufficient details
+      if (providerCostUsd === null || providerCostUsd === undefined) {
+        const modelLower = gen.modelUsed.toLowerCase();
+        const isPerSec = modelLower.includes("video") || modelLower.includes("cinema") || modelLower.includes("seedance") || modelLower.includes("veo") || modelLower.includes("sora") || modelLower.includes("hailuo") || modelLower.includes("kling") || modelLower.includes("grok");
+        
+        if (isPerSec && (duration === null || duration === undefined)) {
+          providerCostUsd = null;
+          providerCostSource = "unknown";
         } else {
-          // Zero revenue (e.g. trial/admin/free) but positive cost is a -100% margin or negative
+          const costEst = estimateProviderCostSync(gen.modelUsed, duration || 0, resolution || quality);
+          providerCostUsd = costEst.usd;
+          providerCostSource = costEst.source;
+        }
+      }
+
+      if (!providerCostSource) {
+        providerCostSource = "unknown";
+      }
+
+      // Re-calculate profit/margin strictly if cost source is not unknown
+      let profit: number | null = null;
+      let marginPercent: number | null = null;
+      if (providerCostSource !== "unknown" && providerCostUsd !== null && providerCostUsd !== undefined) {
+        profit = revenue - providerCostUsd;
+        if (revenue > 0) {
+          marginPercent = (profit / revenue) * 100;
+        } else {
           marginPercent = providerCostUsd > 0 ? -100 : 0;
         }
       }
 
       // Determine provider name
-      let provider = gen.providerName;
+      let provider = providerName;
       if (!provider) {
-        const modelLower = gen.modelUsed.toLowerCase();
-        if (modelLower.includes("dreamina") || modelLower.includes("seedance") || modelLower.includes("byteplus")) {
+        const modelLower = (providerModel || gen.modelUsed || "").toLowerCase();
+        if (modelLower.includes("dreamina") || modelLower.includes("seedance") || modelLower.includes("byteplus") || modelLower.includes("bytedance")) {
           provider = "BytePlus";
-        } else if (modelLower.includes("veo") || modelLower.includes("gemini") || modelLower.includes("google")) {
+        } else if (modelLower.includes("veo") || modelLower.includes("gemini") || modelLower.includes("google") || modelLower.includes("banana") || modelLower.includes("imagen")) {
           provider = "Google";
-        } else if (modelLower.includes("wavespeed")) {
+        } else if (modelLower.includes("wavespeed") || modelLower.includes("heartmula") || modelLower.includes("music") || modelLower.includes("transition")) {
           provider = "WaveSpeed";
+        } else if (modelLower.includes("openai") || modelLower.includes("gpt") || modelLower.includes("sora") || modelLower.includes("dall-e")) {
+          provider = "OpenAI";
+        } else if (modelLower.includes("reap") || modelLower.includes("clipcraft")) {
+          provider = "Reap";
         } else {
           provider = "KIE.ai";
         }
@@ -87,12 +119,14 @@ export async function GET(req: Request) {
         userEmail: gen.user?.email || "Unknown",
         model: gen.modelUsed,
         provider,
-        duration: gen.duration || 5,
-        resolution: gen.resolution || "720p",
+        taskId: providerRequestId || null,
+        duration: duration || null,
+        resolution: resolution || null,
+        quality: quality || null,
         creditsCharged: gen.cost,
         providerCostUsd: providerCostUsd !== null ? parseFloat(providerCostUsd.toFixed(4)) : null,
-        providerTokens: gen.providerTokens || null,
-        providerCredits: gen.providerCredits || null,
+        providerTokens: providerTokens || null,
+        providerCredits: providerCredits || null,
         profit: profit !== null ? parseFloat(profit.toFixed(4)) : null,
         margin: marginPercent !== null ? parseFloat(marginPercent.toFixed(2)) : null,
         costSource: providerCostSource,

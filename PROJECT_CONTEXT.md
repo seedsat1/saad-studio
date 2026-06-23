@@ -1,36 +1,41 @@
 # Saad Studio — Project Context
-
-## آخر مهمة: تنفيذ تتبع تكلفة المزود، إضافة دعم 4K لـ Seedance 2.0، وتحديث لوحة تحليلات استهلاك المشتركين (2026-06-23)
+## آخر مهمة: توسيع تتبع تكلفة المزود ليشمل جميع المزودين ولوحة التحكم (2026-06-24)
 
 - **المشكلة**:
-  تنفيذ هجرات قاعدة البيانات الخاصة بتتبع تكاليف المزود الحقيقية وحفظها (providerCostUsd, providerTokens, providerCredits, providerCostSource)، ومنع التراجع التلقائي من BytePlus إلى KIE مع إرجاع خطأ صريح عند الفشل، وتفعيل دعم دقة 4K في واجهة توليد الفيديو والموديلات، وتحديث واجهات ولوحات تحليلات استهلاك المشتركين لاستعراض التكاليف الفعلية بدلاً من الافتراضية.
+  توسيع تتبع تكلفة المزود ليشمل خدمات Reap بالكامل (AI Clipping, Reframe, Dubbing, etc.)، وتمرير خصائص التتبع (المدة، الدقة، ونسبة العرض) لمسارات Google (Veo, Nano Banana, Gemini Image, Gemini TTS) ومسارات WaveSpeed (Music, Transitions, SFX)، وتحديث لوحة تحكم تتبع تكاليف المزودين.
 
 - **الإصلاح والتعديل**:
-  1. تنفيذ تتبع تكلفة المزود الحقيقية والافتراضية عبر تحديث Schema.prisma وتعديل SpendCreditsInput وspendCredits وrecordFreeGeneration في `lib/credit-ledger.ts`.
-  2. تحديث API توليد الفيديو `app/api/video/route.ts` لإرسال حقول التتبع وتخزين التكاليف الحقيقية، ومنع التراجع لـ KIE وتعديل رسائل الخطأ عند فشل BytePlus Ark إلى "Generation unavailable. Please retry later.".
-  3. تحديث مسار Reconcile الخاص بـ BytePlus `lib/providers/byteplus-reconcile.ts` ومسار الكولباك `app/api/callback/route.ts` لتحديث التكاليف الفعلية والتوكنز/الكريديتس بعد اكتمال التوليد وتعيين الحالة إلى `"actual"`.
-  4. تحديث API تحليلات المشتركين `app/api/admin/subscriber-analytics/route.ts` و`app/api/admin/subscriber-analytics/[userId]/route.ts` للاعتماد على `providerCostUsd` الفعلي عند وجوده بدلاً من حسابات التقدير.
-  5. تفعيل اختيار دقة 4K لنموذج Seedance 2.0 (HQ) في سجل النماذج `lib/video-model-registry.ts` وربطها بالضرب الفعلي 3.0x وحسابات تقدير التكاليف.
-  6. إنشاء صفحة تحليلات تتبع تكلفة المزود `app/admin/provider-costs/page.tsx` وواجهتها الخلفية `/api/admin/provider-costs` لاستعراض الإحصائيات والأرباح الفردية وهوامش الربح بدقة متناهية.
+  1. تعديل مسارات Reap وبدئها (`clipcraft/start`, `panel/reap/start`, `studio-edit/start`) ومسارات التحقق (`panel/reap/status`, `studio-edit/status`, `webhook/reap`) لاستخلاص المدة الفعلية واستدعاء `finalizeReapGeneration` لتحديث الكلفة كـ `actual`.
+  2. تحديث مسارات Google و WaveSpeed لتمرير المدة والدقة والتحكم بالنسب لـ `spendCredits` و `recordFreeGeneration`.
+  3. تحديث لوحة التحكم `app/admin/provider-costs/page.tsx` و `app/api/admin/provider-costs/route.ts` لدعم فلاتر `Reap` و `OpenAI` والربط السليم لمزودي التكاليف.
 
 - **الملفات المتأثرة**:
-  - [prisma/schema.prisma](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) [MODIFY]
-  - [lib/credit-ledger.ts](file:///e:/موقع%2520ثاني/next14%2520ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) [MODIFY]
-  - [lib/pricing.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing.ts) [MODIFY]
-  - [lib/video-model-registry.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) [MODIFY]
-  - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
-  - [lib/providers/byteplus-reconcile.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-reconcile.ts) [MODIFY]
-  - [app/api/callback/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/callback/route.ts) [MODIFY]
+  - [app/api/panel/reap/status/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/reap/status/route.ts) [MODIFY]
+  - [app/api/studio-edit/status/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/studio-edit/status/route.ts) [MODIFY]
+  - [app/api/admin/provider-costs/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-costs/route.ts) [MODIFY]
+  - [app/admin/provider-costs/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/provider-costs/page.tsx) [MODIFY]
+  - [app/api/image/generate/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/image/generate/route.ts) [MODIFY]
+  - [app/api/generate/image/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/image/route.ts) [MODIFY]
+  - [app/api/generate/audio/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/audio/route.ts) [MODIFY]
+  - [app/api/music/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/music/route.ts) [MODIFY]
+  - [app/api/transitions/generate/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/transitions/generate/route.ts) [MODIFY]
+  - [app/api/panel/transitions/generate/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/transitions/generate/route.ts) [MODIFY]
+  - [app/api/transitions/stitch/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/transitions/stitch/route.ts) [MODIFY]
+  - [app/api/studio-edit/start/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/studio-edit/start/route.ts) [MODIFY]
+  - [app/api/clipcraft/start/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/clipcraft/start/route.ts) [MODIFY]
+  - [app/api/panel/reap/start/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/reap/start/route.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
   - [app/api/admin/subscriber-analytics/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/route.ts) [MODIFY]
   - [app/api/admin/subscriber-analytics/[userId]/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/subscriber-analytics/[userId]/route.ts) [MODIFY]
   - [app/admin/provider-costs/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/provider-costs/page.tsx) [NEW]
   - [app/api/admin/provider-costs/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-costs/route.ts) [NEW]
   - [app/admin/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx) [MODIFY]
-  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
 
 - **نتائج التحقق**:
   - تم عمل هجرة وتحديث قاعدة بيانات Neon بنجاح.
-  - تم إجراء بناء تجريبي كامل للموقع بنجاح تام (`npm run build`) مع خلوه من أي مشاكل أو أخطاء TypeScript أو compilation.
+  - إزالة التكرار والأكواد غير المكتملة في `lib/credit-ledger.ts` التي سببت مشاكل البناء.
+  - نجاح البناء التجريبي والنهائي بالكامل (`npm run build`) مع خلوه تماماً من أي مشاكل أو أخطاء TypeScript أو compilation.
+  - التحقق من سلامة الواجهة البرمجية وقاعدة البيانات وتصفير القيم الافتراضية الخاطئة وعرض `UNKNOWN` للقيم المفقودة.
 
 - **القرارات المتخذة**:
   - استبعاد التحول التلقائي (auto-fallback) لنموذج Seedance 2.0 لضمان دقة التحصيل وتفادي كلفة Higgsfield/KIE الباهظة.

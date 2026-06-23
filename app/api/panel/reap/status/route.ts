@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
-import { setGenerationMediaUrl, saveAdditionalGenerationUrls, ensureUserRow } from "@/lib/credit-ledger";
+import { setGenerationMediaUrl, saveAdditionalGenerationUrls, ensureUserRow, finalizeReapGeneration } from "@/lib/credit-ledger";
 import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-rate-limit";
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
@@ -101,6 +101,10 @@ export async function GET(req: NextRequest) {
         ).catch(() => {});
       }
     }
+
+    const rawDur = result.metadata?.duration ?? result.metadata?.inputDuration ?? result.metadata?.outputDuration;
+    const actualDuration = typeof rawDur === "number" ? rawDur : (typeof rawDur === "string" ? parseFloat(rawDur) : null);
+    await finalizeReapGeneration(projectId, actualDuration).catch(() => {});
 
     return NextResponse.json({
       status: "completed",

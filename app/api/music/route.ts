@@ -93,6 +93,7 @@ export async function POST(req: Request) {
       prompt: sanitizePrompt(prompt, 3000),
       assetType: "AUDIO",
       modelUsed: model,
+      duration: duration ?? 30,
     });
     chargedCredits = creditsToCharge;
     generationId = charge.generationId;

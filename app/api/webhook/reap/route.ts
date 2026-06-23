@@ -5,6 +5,8 @@ import {
   setGenerationMediaUrl,
   saveAdditionalGenerationUrls,
   rollbackGenerationCharge,
+  finalizeReapGeneration,
+  updateProviderUsageRecord,
 } from "@/lib/credit-ledger";
 
 export const dynamic = "force-dynamic";
@@ -119,6 +121,21 @@ export async function POST(req: NextRequest) {
           ).catch(() => {});
         }
       }
+
+      const rawDur = body.duration ?? body.inputDuration ?? body.outputDuration ?? body.metadata?.duration;
+      const actualDuration = typeof rawDur === "number" ? rawDur : (typeof rawDur === "string" ? parseFloat(rawDur) : null);
+      await finalizeReapGeneration(projectId, actualDuration).catch(() => {});
+
+      const rawPayloadSafe = body ? JSON.stringify(body).slice(0, 5000) : null;
+      await updateProviderUsageRecord(job.id, {
+        status: "completed",
+        rawPayloadSafe,
+        duration: actualDuration,
+        resolution: body.resolution ?? body.metadata?.resolution ?? undefined,
+        quality: body.quality ?? undefined,
+        providerRequestId: projectId,
+      }).catch(() => {});
+
       console.log(`[api/webhook/reap] Job ${job.id} completed. Persisted ${persistedUrls.length} files.`);
 
     } else if (status === "failed") {
@@ -135,6 +152,13 @@ export async function POST(req: NextRequest) {
       if (job.creditsCost > 0) {
         await rollbackGenerationCharge(job.id, job.userId, job.creditsCost).catch(() => {});
       }
+
+      const rawPayloadSafe = body ? JSON.stringify(body).slice(0, 5000) : null;
+      await updateProviderUsageRecord(job.id, {
+        status: "failed",
+        rawPayloadSafe,
+        providerRequestId: projectId,
+      }).catch(() => {});
 
       // Mark Generation row as failed
       await prismadb.generation.updateMany({

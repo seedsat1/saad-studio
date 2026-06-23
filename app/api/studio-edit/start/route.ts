@@ -82,6 +82,14 @@ export async function POST(req: NextRequest) {
   const prompt = sanitizePrompt(body.prompt ?? `Reap ${tool}`, 500);
   const options = normalizeReapOptions(tool, body.options ?? {});
 
+  const inputDuration = typeof body.options?.duration === "number"
+    ? body.options.duration
+    : typeof body.options?.inputDuration === "number"
+    ? body.options.inputDuration
+    : typeof body.options?.videoDuration === "number"
+    ? body.options.videoDuration
+    : undefined;
+
   let generationId: string;
   try {
     const spent = await spendCredits({
@@ -90,6 +98,7 @@ export async function POST(req: NextRequest) {
       assetType: TOOL_TO_ASSET_TYPE[tool],
       modelUsed: `reap:${tool}`,
       credits: cost,
+      duration: inputDuration,
     });
     generationId = spent.generationId;
   } catch (err) {

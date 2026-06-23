@@ -517,6 +517,25 @@ export function estimateProviderCostSync(
   durationSec = 5,
   quality?: string | null,
 ): { usd: number | null; source: "actual" | "estimated" | "unknown" } {
+  const modelLower = (modelRef || "").toLowerCase();
+
+  // 1. Reap/ClipCraft costing
+  if (modelLower.includes("reap") || modelLower.includes("clipcraft")) {
+    let ratePerMin = 0.05; // Default for captions/audiogram
+    if (modelLower.includes("dubbing") || modelLower.includes("translation")) {
+      ratePerMin = 0.12;
+    } else if (modelLower.includes("reframe")) {
+      ratePerMin = 0.08;
+    } else if (modelLower.includes("transcription")) {
+      ratePerMin = 0.03;
+    } else if (modelLower.includes("edit-videos")) {
+      ratePerMin = 0.15;
+    }
+    const durationMin = durationSec / 60;
+    return { usd: parseFloat((durationMin * ratePerMin).toFixed(4)), source: "estimated" };
+  }
+
+  // 2. BytePlus/Dreamina/Seedance costing
   const isSeedance2Route =
     modelRef === "bytedance/dreamina-v3.0/text-to-video-720p" ||
     modelRef === "bytedance/seedance-v2/text-to-video" ||
@@ -540,6 +559,12 @@ export function estimateProviderCostSync(
   const model = models.find((m) => m.id === constitutionId && m.isActive);
 
   if (!model) {
+    if (modelRef.includes("assist") || modelRef.includes("chat") || modelRef.includes("gemini-3-pro") || modelRef.includes("gpt")) {
+      return { usd: 0.002, source: "estimated" };
+    }
+    if (modelRef.includes("transition")) {
+      return { usd: 0.02, source: "estimated" };
+    }
     if (modelRef.includes("image") || modelRef.includes("banana") || modelRef.includes("rmbg") || modelRef.includes("upscale") || modelRef.includes("face-swap")) {
       return { usd: durationSec * 0.01, source: "estimated" };
     }

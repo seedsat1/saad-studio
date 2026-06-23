@@ -348,6 +348,10 @@ export async function POST(req: NextRequest) {
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "VIDEO",
       modelUsed: modelId,
+      duration: duration !== undefined ? Number(duration) : null,
+      resolution: resolution || null,
+      aspectRatio: aspectRatio || null,
+      quality: mode || null,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;

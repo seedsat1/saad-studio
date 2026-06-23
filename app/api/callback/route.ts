@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { rollbackGenerationCharge, setGenerationMediaUrl } from "@/lib/credit-ledger";
+import { rollbackGenerationCharge, setGenerationMediaUrl, updateProviderUsageRecord } from "@/lib/credit-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -130,12 +130,31 @@ export async function POST(req: NextRequest) {
         data: updateData,
       }).catch((e) => console.error("[api/callback] Failed to update tracking fields:", e));
 
+      const rawPayloadSafe = body ? JSON.stringify(body).slice(0, 5000) : null;
+      await updateProviderUsageRecord(generation.id, {
+        providerRequestId: providerRequestId ?? null,
+        providerCredits: providerCredits ?? null,
+        providerCostUsd: providerCredits !== null ? providerCredits * 0.005 : null,
+        providerCostSource: "actual",
+        status: "completed",
+        rawPayloadSafe,
+        duration: typeof data?.duration === "number" ? data.duration : typeof data?.duration === "string" ? parseFloat(data.duration) : undefined,
+        resolution: typeof data?.resolution === "string" ? data.resolution : undefined,
+        quality: typeof data?.quality === "string" ? data.quality : undefined,
+      }).catch((e) => console.error("[api/callback] Failed to update ProviderUsageRecord:", e));
+
       await setGenerationMediaUrl(generation.id, outputs[0]);
       console.log(`[api/callback] Task ${taskId} completed → ${outputs[0]}`);
     } else if (status === "failed") {
       if (generation.cost > 0) {
         await rollbackGenerationCharge(generation.id, generation.userId, generation.cost);
       }
+      const rawPayloadSafe = body ? JSON.stringify(body).slice(0, 5000) : null;
+      await updateProviderUsageRecord(generation.id, {
+        status: "failed",
+        rawPayloadSafe,
+      }).catch((e) => console.error("[api/callback] Failed to update failed status in ProviderUsageRecord:", e));
+
       // Mark as failed in DB so polling returns failed
       await prismadb.generation.updateMany({
         where: { id: generation.id },

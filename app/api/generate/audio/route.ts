@@ -1016,7 +1016,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { chargeModelRef, quote } = await buildAudioChargeQuote(actionType, body);
+    const { chargeModelRef, durationSec, quote } = await buildAudioChargeQuote(actionType, body);
     if (!quote || quote.finalCredits <= 0) {
       return NextResponse.json(
         { error: `No credit configuration for actionType='${actionType}' and model='${chargeModelRef}'.` },
@@ -1084,6 +1084,7 @@ export async function POST(req: NextRequest) {
       prompt: body.prompt ?? body.text ?? "Audio generation",
       assetType: "AUDIO",
       modelUsed: modelUsedForLedger,
+      duration: durationSec,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

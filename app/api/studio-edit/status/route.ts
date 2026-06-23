@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
-import { setGenerationMediaUrl, saveAdditionalGenerationUrls } from "@/lib/credit-ledger";
+import { setGenerationMediaUrl, saveAdditionalGenerationUrls, finalizeReapGeneration } from "@/lib/credit-ledger";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +95,10 @@ export async function GET(req: NextRequest) {
         ).catch(() => {});
       }
     }
+
+    const rawDur = result.metadata?.duration ?? result.metadata?.inputDuration ?? result.metadata?.outputDuration;
+    const actualDuration = typeof rawDur === "number" ? rawDur : (typeof rawDur === "string" ? parseFloat(rawDur) : null);
+    await finalizeReapGeneration(projectId, actualDuration).catch(() => {});
 
     return NextResponse.json({
       status: "completed",

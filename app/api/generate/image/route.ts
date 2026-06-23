@@ -607,6 +607,8 @@ export async function POST(req: NextRequest) {
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "IMAGE",
       modelUsed: modelId,
+      resolution: chargeQuality,
+      aspectRatio,
     };
     const spent = unlimited.eligible
       ? await recordFreeGeneration(chargeInput)

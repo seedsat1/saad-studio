@@ -59,6 +59,7 @@ model User {
   generations   Generation[]
   transactions  AdminTransaction[]
   characters    UserCharacter[]
+  providerUsageRecords ProviderUsageRecord[]
 }
 
 /// Records every AI generation for security monitoring and cost tracking.
@@ -91,6 +92,35 @@ model Generation {
   providerCostSource String? // 'actual' | 'estimated' | 'unknown'
 
   @@index([userId])
+  @@index([createdAt])
+  providerUsageRecords ProviderUsageRecord[]
+}
+
+model ProviderUsageRecord {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationId      String?
+  generation        Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  providerName      String?
+  providerModel     String?
+  providerRequestId String?
+  providerCostUsd   Float?
+  providerTokens    Int?
+  providerCredits   Float?
+  providerCostSource String? // 'actual' | 'estimated' | 'unknown'
+  duration          Float?
+  resolution        String?
+  quality           String?
+  aspectRatio       String?
+  status            String?
+  rawPayloadSafe    String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([generationId])
+  @@index([providerRequestId])
   @@index([createdAt])
 }
 

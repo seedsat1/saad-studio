@@ -181,6 +181,8 @@ export async function POST(req: NextRequest) {
       prompt: `Transition stitch: ${preset.name}`,
       assetType: "TRANSITION_VIDEO_STITCH",
       modelUsed: `transition/stitch/${presetId}`,
+      duration: transitionSeconds,
+      resolution: resolution,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

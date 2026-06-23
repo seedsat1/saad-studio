@@ -229,6 +229,10 @@ export async function POST(req: NextRequest) {
       prompt: sanitizePrompt(prompt, 5000),
       assetType: "VIDEO",
       modelUsed: modelId,
+      duration,
+      resolution,
+      aspectRatio,
+      quality,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

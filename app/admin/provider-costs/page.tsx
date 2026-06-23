@@ -24,8 +24,10 @@ interface ProviderCostRow {
   userEmail: string;
   model: string;
   provider: string;
-  duration: number;
-  resolution: string;
+  taskId: string | null;
+  duration: number | null;
+  resolution: string | null;
+  quality: string | null;
   creditsCharged: number;
   providerCostUsd: number | null;
   providerTokens: number | null;
@@ -131,9 +133,11 @@ export default function ProviderCostTrackingPage() {
       "User",
       "Model",
       "Provider",
+      "Task ID",
       "Duration (s)",
       "Resolution",
-      "Credits Charged",
+      "Quality",
+      "Credits Billed",
       "Provider Cost USD",
       "Provider Tokens",
       "Provider Credits",
@@ -148,14 +152,16 @@ export default function ProviderCostTrackingPage() {
       r.userEmail,
       r.model,
       r.provider,
-      r.duration,
-      r.resolution,
+      r.taskId ?? "UNKNOWN",
+      r.duration ?? "UNKNOWN",
+      r.resolution ?? "UNKNOWN",
+      r.quality ?? "UNKNOWN",
       r.creditsCharged,
-      r.providerCostUsd ?? "",
-      r.providerTokens ?? "",
-      r.providerCredits ?? "",
-      r.profit ?? "",
-      r.margin ?? "",
+      r.providerCostUsd ?? "UNKNOWN",
+      r.providerTokens ?? "UNKNOWN",
+      r.providerCredits ?? "UNKNOWN",
+      r.profit ?? "UNKNOWN",
+      r.margin ?? "UNKNOWN",
       r.costSource,
       new Date(r.createdAt).toISOString()
     ]);
@@ -289,6 +295,8 @@ export default function ProviderCostTrackingPage() {
               <option value="GOOGLE">Google</option>
               <option value="KIE.AI">KIE.ai</option>
               <option value="WAVESPEED">WaveSpeed</option>
+              <option value="REAP">Reap</option>
+              <option value="OPENAI">OpenAI</option>
             </select>
           </div>
 
@@ -314,32 +322,35 @@ export default function ProviderCostTrackingPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-850 bg-slate-950/80 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Model</th>
-                <th className="px-6 py-4">Provider</th>
-                <th className="px-6 py-4 text-center">Duration</th>
-                <th className="px-6 py-4 text-center">Res</th>
-                <th className="px-6 py-4 text-center">Credits Billed</th>
-                <th className="px-6 py-4 text-right">Provider Cost (USD)</th>
-                <th className="px-6 py-4 text-right">Tokens / KIE Cr</th>
-                <th className="px-6 py-4 text-right">Profit (USD)</th>
-                <th className="px-6 py-4 text-center">Margin</th>
-                <th className="px-6 py-4 text-center">Source</th>
-                <th className="px-6 py-4 text-right">Date</th>
+                <th className="px-4 py-4">User</th>
+                <th className="px-4 py-4">Model</th>
+                <th className="px-4 py-4">Provider</th>
+                <th className="px-4 py-4">Task ID</th>
+                <th className="px-4 py-4 text-center">Duration</th>
+                <th className="px-4 py-4 text-center">Resolution</th>
+                <th className="px-4 py-4 text-center">Quality</th>
+                <th className="px-4 py-4 text-center">User Credits Charged</th>
+                <th className="px-4 py-4 text-right">Provider Credits</th>
+                <th className="px-4 py-4 text-right">Provider Tokens</th>
+                <th className="px-4 py-4 text-right">Provider Cost USD</th>
+                <th className="px-4 py-4 text-center">Cost Source</th>
+                <th className="px-4 py-4 text-right">Profit</th>
+                <th className="px-4 py-4 text-center">Margin</th>
+                <th className="px-4 py-4 text-right">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-850/60 text-xs text-slate-300">
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={12} className="px-6 py-4 text-center text-slate-500">
+                    <td colSpan={15} className="px-4 py-4 text-center text-slate-500">
                       Loading data row...
                     </td>
                   </tr>
                 ))
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={15} className="px-4 py-12 text-center text-slate-500">
                     No cost tracking records found matching active filters.
                   </td>
                 </tr>
@@ -363,45 +374,44 @@ export default function ProviderCostTrackingPage() {
 
                   return (
                     <tr key={row.id} className="hover:bg-slate-900/30 transition-colors">
-                      <td className="px-6 py-4 font-mono max-w-[200px] truncate" title={row.userEmail}>
+                      <td className="px-4 py-4 font-mono max-w-[150px] truncate" title={row.userEmail}>
                         {row.userEmail}
                       </td>
-                      <td className="px-6 py-4 font-mono max-w-[180px] truncate text-slate-400" title={row.model}>
+                      <td className="px-4 py-4 font-mono max-w-[150px] truncate text-slate-400" title={row.model}>
                         {row.model}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-200">
+                      <td className="px-4 py-4 font-semibold text-slate-200">
                         {row.provider}
                       </td>
-                      <td className="px-6 py-4 text-center text-slate-400">
-                        {row.duration}s
+                      <td className="px-4 py-4 font-mono text-slate-400 max-w-[120px] truncate" title={row.taskId ?? ""}>
+                        {row.taskId ?? "UNKNOWN"}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 uppercase">
-                          {row.resolution}
+                      <td className="px-4 py-4 text-center text-slate-400">
+                        {row.duration !== null ? `${row.duration}s` : "UNKNOWN"}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${row.resolution ? "bg-slate-800 text-slate-300 uppercase" : "text-slate-500"}`}>
+                          {row.resolution ?? "UNKNOWN"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-teal-400">
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${row.quality ? "bg-slate-800/60 text-slate-400 capitalize" : "text-slate-500"}`}>
+                          {row.quality ?? "UNKNOWN"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center font-bold text-teal-400">
                         {row.creditsCharged}
                       </td>
-                      <td className="px-6 py-4 text-right font-semibold text-rose-300">
-                        {row.providerCostUsd !== null ? `$${row.providerCostUsd.toFixed(4)}` : "—"}
+                      <td className="px-4 py-4 text-right text-slate-400 font-mono">
+                        {row.providerCredits !== null ? `${row.providerCredits.toLocaleString()} cr` : "UNKNOWN"}
                       </td>
-                      <td className="px-6 py-4 text-right text-slate-400 font-mono">
-                        {row.providerTokens
-                          ? `${row.providerTokens.toLocaleString()} tk`
-                          : row.providerCredits
-                            ? `${row.providerCredits.toLocaleString()} cr`
-                            : "—"}
+                      <td className="px-4 py-4 text-right text-slate-400 font-mono">
+                        {row.providerTokens !== null ? `${row.providerTokens.toLocaleString()} tk` : "UNKNOWN"}
                       </td>
-                      <td className={`px-6 py-4 text-right font-bold ${row.profit !== null && row.profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                        {row.profit !== null ? `$${row.profit.toFixed(4)}` : "—"}
+                      <td className="px-4 py-4 text-right font-semibold text-rose-300">
+                        {row.providerCostUsd !== null ? `$${row.providerCostUsd.toFixed(4)}` : "UNKNOWN"}
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${marginColor} ${marginBg}`}>
-                          {row.margin !== null ? `${row.margin.toFixed(1)}%` : "—"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-4 text-center">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                           row.costSource === "actual"
                             ? "bg-emerald-950 text-emerald-400 border border-emerald-500/20"
@@ -413,7 +423,15 @@ export default function ProviderCostTrackingPage() {
                           {row.costSource}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right text-[10px] text-slate-500 whitespace-nowrap">
+                      <td className={`px-4 py-4 text-right font-bold ${row.profit !== null && row.profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {row.profit !== null ? `$${row.profit.toFixed(4)}` : "UNKNOWN"}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${row.margin !== null ? `${marginColor} ${marginBg}` : "text-slate-500 border-slate-800 bg-slate-900"}`}>
+                          {row.margin !== null ? `${row.margin.toFixed(1)}%` : "UNKNOWN"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-right text-[10px] text-slate-500 whitespace-nowrap">
                         {new Date(row.createdAt).toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",

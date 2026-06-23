@@ -399,6 +399,85 @@ function isPublicHttpUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
 
+async function resolveProviderTrackingFallback(input: {
+  modelUsed: string;
+  duration?: number | null;
+  resolution?: string | null;
+  quality?: string | null;
+  providerName?: string | null;
+  providerModel?: string | null;
+  providerCostUsd?: number | null;
+  providerCostSource?: string | null;
+  providerCredits?: number | null;
+  providerTokens?: number | null;
+}) {
+  let providerName = input.providerName;
+  let providerModel = input.providerModel;
+  let providerCostUsd = input.providerCostUsd;
+  let providerCostSource = input.providerCostSource;
+  let providerCredits = input.providerCredits;
+  let providerTokens = input.providerTokens;
+
+  const modelLower = (input.modelUsed || "").toLowerCase();
+
+  if (!providerName) {
+    if (modelLower.includes("dreamina") || modelLower.includes("seedance") || modelLower.includes("byteplus") || modelLower.includes("bytedance")) {
+      providerName = "BytePlus";
+    } else if (modelLower.includes("veo") || modelLower.includes("gemini") || modelLower.includes("google") || modelLower.includes("banana") || modelLower.includes("imagen")) {
+      providerName = "Google";
+    } else if (modelLower.includes("openai") || modelLower.includes("sora") || modelLower.includes("gpt") || modelLower.includes("dall-e")) {
+      providerName = "OpenAI";
+    } else if (modelLower.includes("wavespeed") || modelLower.includes("heartmula") || modelLower.includes("music_gen") || modelLower.includes("music") || modelLower.includes("transition")) {
+      providerName = "WaveSpeed";
+    } else if (modelLower.includes("reap") || modelLower.includes("clipcraft")) {
+      providerName = "Reap";
+    } else {
+      providerName = "KIE.ai";
+    }
+  }
+
+  if (!providerModel) {
+    providerModel = input.modelUsed;
+  }
+
+  if (providerCostUsd === undefined || providerCostUsd === null) {
+    try {
+      const { estimateProviderCostSync, loadModels, resolveConstitutionId } = await import("./pricing");
+      const models = await loadModels().catch(() => []);
+      const constId = resolveConstitutionId(input.modelUsed, models);
+      const model = models.find(m => m.id === constId);
+      
+      const isPerSec = model ? model.billing === "per_sec" : (modelLower.includes("video") || modelLower.includes("cinema") || modelLower.includes("seedance") || modelLower.includes("veo") || modelLower.includes("sora") || modelLower.includes("hailuo") || modelLower.includes("kling") || modelLower.includes("grok"));
+      
+      if (isPerSec && (input.duration === undefined || input.duration === null)) {
+        providerCostUsd = null;
+        providerCostSource = "unknown";
+      } else {
+        const durationSec = input.duration || 0;
+        const est = estimateProviderCostSync(input.modelUsed, durationSec, input.resolution || input.quality);
+        providerCostUsd = est.usd;
+        providerCostSource = est.source;
+        if (providerName === "KIE.ai" && est.usd !== null && providerCredits === null) {
+          providerCredits = est.usd / 0.005;
+        }
+      }
+    } catch (e) {
+      console.error("[resolveProviderTrackingFallback] Failed to estimate provider cost:", e);
+      providerCostUsd = null;
+      providerCostSource = "unknown";
+    }
+  }
+
+  return {
+    providerName,
+    providerModel,
+    providerCostUsd,
+    providerCostSource: providerCostSource || "unknown",
+    providerCredits,
+    providerTokens,
+  };
+}
+
 export async function spendCredits(input: SpendCreditsInput) {
   const credits = Math.max(0, Math.ceil(input.credits));
   if (credits <= 0) {
@@ -433,6 +512,19 @@ export async function spendCredits(input: SpendCreditsInput) {
       select: { creditBalance: true },
     });
 
+    const resolved = await resolveProviderTrackingFallback({
+      modelUsed: input.modelUsed,
+      duration: input.duration,
+      resolution: input.resolution,
+      quality: input.quality,
+      providerName: input.providerName,
+      providerModel: input.providerModel,
+      providerCostUsd: input.providerCostUsd,
+      providerCostSource: input.providerCostSource,
+      providerCredits: input.providerCredits,
+      providerTokens: input.providerTokens,
+    });
+
     const generation = await tx.generation.create({
       data: {
         userId: input.userId,
@@ -448,15 +540,34 @@ export async function spendCredits(input: SpendCreditsInput) {
         duration: input.duration ?? null,
         aspectRatio: input.aspectRatio ?? null,
         quality: input.quality ?? null,
-        providerName: input.providerName ?? null,
-        providerModel: input.providerModel ?? null,
+        providerName: resolved.providerName ?? null,
+        providerModel: resolved.providerModel ?? null,
         providerRequestId: input.providerRequestId ?? null,
-        providerCostUsd: input.providerCostUsd ?? null,
-        providerTokens: input.providerTokens ?? null,
-        providerCredits: input.providerCredits ?? null,
-        providerCostSource: input.providerCostSource ?? null,
+        providerCostUsd: resolved.providerCostUsd ?? null,
+        providerTokens: resolved.providerTokens ?? null,
+        providerCredits: resolved.providerCredits ?? null,
+        providerCostSource: resolved.providerCostSource ?? null,
       },
       select: { id: true },
+    });
+
+    await tx.providerUsageRecord.create({
+      data: {
+        userId: input.userId,
+        generationId: generation.id,
+        providerName: resolved.providerName ?? null,
+        providerModel: resolved.providerModel ?? null,
+        providerRequestId: input.providerRequestId ?? null,
+        providerCostUsd: resolved.providerCostUsd ?? null,
+        providerTokens: resolved.providerTokens ?? null,
+        providerCredits: resolved.providerCredits ?? null,
+        providerCostSource: resolved.providerCostSource ?? null,
+        duration: input.duration ?? null,
+        resolution: input.resolution ?? null,
+        quality: input.quality ?? null,
+        aspectRatio: input.aspectRatio ?? null,
+        status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
+      },
     });
 
     await tryCreateCreditLedgerEntry(tx as any, {
@@ -479,6 +590,19 @@ export async function spendCredits(input: SpendCreditsInput) {
 export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credits">) {
   await ensureUserRow(input.userId);
 
+  const resolved = await resolveProviderTrackingFallback({
+    modelUsed: input.modelUsed,
+    duration: input.duration,
+    resolution: input.resolution,
+    quality: input.quality,
+    providerName: input.providerName,
+    providerModel: input.providerModel,
+    providerCostUsd: input.providerCostUsd,
+    providerCostSource: input.providerCostSource,
+    providerCredits: input.providerCredits,
+    providerTokens: input.providerTokens,
+  });
+
   const generation = await prismadb.generation.create({
     data: {
       userId: input.userId,
@@ -494,15 +618,34 @@ export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credi
       duration: input.duration ?? null,
       aspectRatio: input.aspectRatio ?? null,
       quality: input.quality ?? null,
-      providerName: input.providerName ?? null,
-      providerModel: input.providerModel ?? null,
+      providerName: resolved.providerName ?? null,
+      providerModel: resolved.providerModel ?? null,
       providerRequestId: input.providerRequestId ?? null,
-      providerCostUsd: input.providerCostUsd ?? null,
-      providerTokens: input.providerTokens ?? null,
-      providerCredits: input.providerCredits ?? null,
-      providerCostSource: input.providerCostSource ?? null,
+      providerCostUsd: resolved.providerCostUsd ?? null,
+      providerTokens: resolved.providerTokens ?? null,
+      providerCredits: resolved.providerCredits ?? null,
+      providerCostSource: resolved.providerCostSource ?? null,
     },
     select: { id: true },
+  });
+
+  await prismadb.providerUsageRecord.create({
+    data: {
+      userId: input.userId,
+      generationId: generation.id,
+      providerName: resolved.providerName ?? null,
+      providerModel: resolved.providerModel ?? null,
+      providerRequestId: input.providerRequestId ?? null,
+      providerCostUsd: resolved.providerCostUsd ?? null,
+      providerTokens: resolved.providerTokens ?? null,
+      providerCredits: resolved.providerCredits ?? null,
+      providerCostSource: resolved.providerCostSource ?? null,
+      duration: input.duration ?? null,
+      resolution: input.resolution ?? null,
+      quality: input.quality ?? null,
+      aspectRatio: input.aspectRatio ?? null,
+      status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
+    },
   });
 
   return { remainingCredits: null, generationId: generation.id };
@@ -540,6 +683,7 @@ export async function refundCreditsWithReason(
     });
   });
 }
+
 
 type RefundGenerationChargeOptions = {
   reason: CreditLedgerReason;
@@ -618,6 +762,14 @@ export async function setGenerationMediaUrl(generationId: string, mediaUrl: stri
       ...(gen ? { type: inferGenerationType(gen.assetType) } : {}),
     },
   });
+
+  await prismadb.providerUsageRecord.updateMany({
+    where: { generationId },
+    data: {
+      status: finalUrl && finalUrl.startsWith("task:") ? "processing" : "completed",
+    },
+  }).catch((e) => console.error("[setGenerationMediaUrl] Failed to update ProviderUsageRecord status:", e));
+
   void maybeScanAndFlagGeneration(generationId).catch(() => {});
 }
 
@@ -671,6 +823,10 @@ export async function setGenerationTaskMarker(generationId: string, taskId: stri
     where: { id: generationId },
     data: { mediaUrl: `task:${taskId}`, outputUrl: null, status: "processing" },
   });
+  await prismadb.providerUsageRecord.updateMany({
+    where: { generationId },
+    data: { providerRequestId: taskId, status: "processing" },
+  }).catch((e) => console.error("[setGenerationTaskMarker] Failed to sync ProviderUsageRecord:", e));
 }
 
 export async function rollbackGenerationCharge(generationId: string, userId: string, credits: number) {
@@ -907,4 +1063,158 @@ async function maybeScanAndFlagRecentGenerationsByMediaUrls(userId: string, medi
   });
 
   await Promise.all(gens.map((g) => maybeScanAndFlagGeneration(g.id).catch(() => {})));
+}
+
+export async function finalizeReapGeneration(projectId: string, duration: number | null): Promise<void> {
+  if (!projectId) return;
+
+  const generations = await prismadb.generation.findMany({
+    where: {
+      OR: [
+        { mediaUrl: `task:reap:${projectId}` },
+        { mediaUrl: `task:clipcraft:${projectId}` }
+      ]
+    }
+  });
+
+  for (const gen of generations) {
+    let actualDuration = duration;
+    let actualCostUsd = gen.providerCostUsd;
+    let actualCostSource = gen.providerCostSource || "estimated";
+
+    if (actualDuration && actualDuration > 0) {
+      try {
+        const { estimateProviderCostSync } = await import("./pricing");
+        const est = estimateProviderCostSync(gen.modelUsed, actualDuration, gen.resolution || gen.quality);
+        actualCostUsd = est.usd;
+        actualCostSource = "actual";
+      } catch (e) {
+        console.error("[finalizeReapGeneration] Failed to estimate provider cost:", e);
+      }
+    }
+
+    await prismadb.generation.update({
+      where: { id: gen.id },
+      data: {
+        duration: actualDuration ?? gen.duration,
+        providerCostUsd: actualCostUsd,
+        providerCostSource: actualCostSource,
+      }
+    });
+
+    await prismadb.providerUsageRecord.updateMany({
+      where: { generationId: gen.id },
+      data: {
+        duration: actualDuration ?? gen.duration,
+        providerCostUsd: actualCostUsd,
+        providerCostSource: actualCostSource,
+        status: "completed",
+      }
+    });
+  }
+}
+
+export async function updateProviderUsageRecord(
+  generationId: string,
+  data: {
+    providerRequestId?: string | null;
+    providerCostUsd?: number | null;
+    providerTokens?: number | null;
+    providerCredits?: number | null;
+    providerCostSource?: string | null;
+    duration?: number | null;
+    resolution?: string | null;
+    quality?: string | null;
+    status?: string | null;
+    rawPayloadSafe?: string | null;
+  }
+) {
+  try {
+    const existing = await prismadb.providerUsageRecord.findFirst({
+      where: { generationId }
+    });
+
+    if (existing) {
+      await prismadb.providerUsageRecord.update({
+        where: { id: existing.id },
+        data: {
+          providerRequestId: data.providerRequestId !== undefined ? data.providerRequestId : existing.providerRequestId,
+          providerCostUsd: data.providerCostUsd !== undefined ? data.providerCostUsd : existing.providerCostUsd,
+          providerTokens: data.providerTokens !== undefined ? data.providerTokens : existing.providerTokens,
+          providerCredits: data.providerCredits !== undefined ? data.providerCredits : existing.providerCredits,
+          providerCostSource: data.providerCostSource !== undefined ? data.providerCostSource : existing.providerCostSource,
+          duration: data.duration !== undefined ? data.duration : existing.duration,
+          resolution: data.resolution !== undefined ? data.resolution : existing.resolution,
+          quality: data.quality !== undefined ? data.quality : existing.quality,
+          status: data.status !== undefined ? data.status : existing.status,
+          rawPayloadSafe: data.rawPayloadSafe !== undefined ? data.rawPayloadSafe : existing.rawPayloadSafe,
+        }
+      });
+    } else {
+      const gen = await prismadb.generation.findUnique({
+        where: { id: generationId },
+        select: { userId: true }
+      });
+      if (gen) {
+        await prismadb.providerUsageRecord.create({
+          data: {
+            userId: gen.userId,
+            generationId,
+            providerRequestId: data.providerRequestId ?? null,
+            providerCostUsd: data.providerCostUsd ?? null,
+            providerTokens: data.providerTokens ?? null,
+            providerCredits: data.providerCredits ?? null,
+            providerCostSource: data.providerCostSource ?? null,
+            duration: data.duration ?? null,
+            resolution: data.resolution ?? null,
+            quality: data.quality ?? null,
+            status: data.status ?? null,
+            rawPayloadSafe: data.rawPayloadSafe ?? null,
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.error("[updateProviderUsageRecord] Failed:", e);
+  }
+}
+
+export async function updateProviderUsageRecordByRequestId(
+  requestId: string,
+  data: {
+    providerCostUsd?: number | null;
+    providerTokens?: number | null;
+    providerCredits?: number | null;
+    providerCostSource?: string | null;
+    duration?: number | null;
+    resolution?: string | null;
+    quality?: string | null;
+    status?: string | null;
+    rawPayloadSafe?: string | null;
+  }
+) {
+  try {
+    const existing = await prismadb.providerUsageRecord.findFirst({
+      where: { providerRequestId: requestId }
+    });
+
+    if (existing) {
+      await prismadb.providerUsageRecord.update({
+        where: { id: existing.id },
+        data: {
+          providerCostUsd: data.providerCostUsd !== undefined ? data.providerCostUsd : existing.providerCostUsd,
+          providerTokens: data.providerTokens !== undefined ? data.providerTokens : existing.providerTokens,
+          providerCredits: data.providerCredits !== undefined ? data.providerCredits : existing.providerCredits,
+          providerCostSource: data.providerCostSource !== undefined ? data.providerCostSource : existing.providerCostSource,
+          duration: data.duration !== undefined ? data.duration : existing.duration,
+          resolution: data.resolution !== undefined ? data.resolution : existing.resolution,
+          quality: data.quality !== undefined ? data.quality : existing.quality,
+          status: data.status !== undefined ? data.status : existing.status,
+          rawPayloadSafe: data.rawPayloadSafe !== undefined ? data.rawPayloadSafe : existing.rawPayloadSafe,
+        }
+      });
+    }
+  } catch (e) {
+    console.error("[updateProviderUsageRecordByRequestId] Failed:", e);
+  }
 }
