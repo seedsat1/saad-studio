@@ -1028,6 +1028,7 @@ export default function AdminDashboard() {
             Advanced Tools
           </p>
           {[
+            { label: "Subscriber Usage Analytics", href: "/admin/subscriber-analytics", icon: TrendingUp },
             { label: "Pricing Constitution", href: "/admin/pricing", icon: CreditCard },
             { label: "CMS & Ad Manager", href: "/admin/cms", icon: Layers },
             { label: "Prompt Page CMS", href: "/admin/cms/studio-img", icon: ScrollText },
