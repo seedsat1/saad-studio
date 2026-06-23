@@ -10,9 +10,9 @@ type AssetType = "image" | "video" | "audio" | "3d" | "text";
 
 function toAssetType(raw: string): AssetType {
   const normalized = String(raw || "").toLowerCase();
-  if (normalized === "image" || normalized === "storyboard" || normalized === "makeup" || normalized === "relight") return "image";
-  if (normalized === "video") return "video";
-  if (normalized === "audio") return "audio";
+  if (normalized.includes("image") || normalized === "storyboard" || normalized === "makeup" || normalized === "relight" || normalized === "thumbnail") return "image";
+  if (normalized.includes("video") || normalized.includes("transition")) return "video";
+  if (normalized.includes("audio")) return "audio";
   if (normalized === "3d") return "3d";
 
   // Text-like generation records (assist / conversation / code)

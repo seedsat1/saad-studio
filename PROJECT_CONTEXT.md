@@ -1,4 +1,28 @@
 # Saad Studio — Project Context
+## آخر مهمة: إصلاح عرض الصور والفيديوهات في صفحات /image و /video (2026-06-24)
+
+- **المشكلة**:
+  الصور والفيديوهات المنتجة لا تظهر في صفحات `https://www.saadstudio.app/image` و `https://www.saadstudio.app/video` بسبب أن دالة `toAssetType` في `/api/assets/route.ts` لم تكن تعالج جميع أنواع `assetType` المستخدمة في قاعدة البيانات (مثل "image-ref", "TRANSITION", "TRANSITION_VIDEO_STITCH", "thumbnail").
+
+- **الإصلاح والتعديل**:
+  1. تعديل دالة `toAssetType` في `app/api/assets/route.ts` ليعالج جميع أنواع `assetType`:
+     - أي `assetType` يحتوي على "image" أو هو "storyboard", "makeup", "relight", "thumbnail" → image
+     - أي `assetType` يحتوي على "video" أو "transition" → video
+     - أي `assetType` يحتوي على "audio" → audio
+
+- **الملفات المتأثرة**:
+  - [app/api/assets/route.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/app/api/assets/route.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - أصبح `toAssetType` يتعامل مع جميع أنواع `assetType` الموجودة في الشيفرة، مما يسمح بإظهار الصور والفيديوهات بنجاح.
+
+- **القرارات المتخذة**:
+  - استخدام `includes()` بدلاً من `===` لجعل المطابقة أكثر مرونة مع جميع الاصدارات من `assetType`.
+
+- **الخطوة المتبقية**:
+  - إعادة نشر الموقع لتفعيل الإصلاح على الخوادم الإنتاجية.
+
 ## آخر مهمة: إثبات وتتبع التكلفة الفعلية لـ KIE و BytePlus (2026-06-24)
 
 - **المشكلة**:
