@@ -220,6 +220,14 @@ export default function SubscriberUsageAnalyticsPage() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailTab, setDetailTab] = useState<"usage" | "history">("usage");
 
+  // Helper to open drawer by email search
+  const openUserByEmail = useCallback((email: string) => {
+    const sObj = subscribers.find(s => s.email.toLowerCase() === email.toLowerCase());
+    if (sObj) {
+      setSelectedUserId(sObj.userId);
+    }
+  }, [subscribers]);
+
   // Fetch metrics from API
   const fetchData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -441,7 +449,12 @@ export default function SubscriberUsageAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-amber-200/80">
             {warnings.map((w, idx) => (
               <div key={idx} className="flex items-start gap-2 bg-amber-950/20 p-2 rounded-lg border border-amber-500/10">
-                <span className="font-bold underline text-amber-300">{w.email}</span>: {w.message}
+                <button
+                  onClick={() => openUserByEmail(w.email)}
+                  className="font-bold underline text-amber-300 hover:text-amber-100 transition cursor-pointer text-left focus:outline-none"
+                >
+                  {w.email}
+                </button>: {w.message}
               </div>
             ))}
           </div>
@@ -737,7 +750,14 @@ export default function SubscriberUsageAnalyticsPage() {
                   ) : (
                     filteredMatrix.map((row) => (
                       <tr key={row.email} className="hover:bg-slate-900/30 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-semibold text-slate-200 select-all">{row.email}</td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            onClick={() => openUserByEmail(row.email)}
+                            className="font-mono font-semibold text-slate-200 hover:text-violet-400 hover:underline text-left cursor-pointer transition focus:outline-none"
+                          >
+                            {row.email}
+                          </button>
+                        </td>
                         <td className="py-3.5 px-4 text-[10px] text-slate-400 font-semibold">{row.plan}</td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-300">{formatUSD(row.totalPayments)}</td>
                         <td className="py-3.5 px-4 text-center font-mono text-slate-450">{row.creditsGranted.toLocaleString()}</td>
@@ -816,7 +836,14 @@ export default function SubscriberUsageAnalyticsPage() {
                   ) : (
                     financialRiskCustomers.map((rc) => (
                       <tr key={rc.email} className="hover:bg-slate-900/30 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-semibold text-slate-200">{rc.email}</td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            onClick={() => openUserByEmail(rc.email)}
+                            className="font-mono font-semibold text-slate-200 hover:text-violet-400 hover:underline text-left cursor-pointer transition focus:outline-none"
+                          >
+                            {rc.email}
+                          </button>
+                        </td>
                         <td className="py-3.5 px-4 text-[10px] text-slate-400">{rc.plan}</td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-350">{formatUSD(rc.totalPayments)}</td>
                         <td className="py-3.5 px-4 text-center font-mono text-slate-450">
@@ -1142,7 +1169,12 @@ export default function SubscriberUsageAnalyticsPage() {
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
                     {dataIntegrityAudit.consumptionWithoutSubscription.map(u => (
                       <div key={u.userId} className="flex justify-between items-center text-xs p-2 bg-slate-900/40 border border-slate-900 rounded-lg">
-                        <span className="font-mono text-slate-350">{u.email}</span>
+                        <button
+                          onClick={() => openUserByEmail(u.email)}
+                          className="font-mono text-slate-350 hover:text-violet-400 hover:underline text-left cursor-pointer transition focus:outline-none"
+                        >
+                          {u.email}
+                        </button>
                         <span className="font-mono text-orange-400 font-bold">{u.creditsConsumed} cr consumed</span>
                       </div>
                     ))}
@@ -1161,7 +1193,12 @@ export default function SubscriberUsageAnalyticsPage() {
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
                     {dataIntegrityAudit.subscriptionWithoutPayments.map(u => (
                       <div key={u.userId} className="flex justify-between items-center text-xs p-2 bg-slate-900/40 border border-slate-900 rounded-lg">
-                        <span className="font-mono text-slate-350">{u.email}</span>
+                        <button
+                          onClick={() => openUserByEmail(u.email)}
+                          className="font-mono text-slate-350 hover:text-violet-400 hover:underline text-left cursor-pointer transition focus:outline-none"
+                        >
+                          {u.email}
+                        </button>
                         <span className="px-2 py-0.5 rounded bg-violet-500/10 text-violet-400 font-bold text-[10px]">{u.planName}</span>
                       </div>
                     ))}
@@ -1180,7 +1217,12 @@ export default function SubscriberUsageAnalyticsPage() {
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
                     {dataIntegrityAudit.negativeCredits.map(u => (
                       <div key={u.userId} className="flex justify-between items-center text-xs p-2 bg-slate-900/40 border border-slate-900 rounded-lg">
-                        <span className="font-mono text-slate-350">{u.email}</span>
+                        <button
+                          onClick={() => openUserByEmail(u.email)}
+                          className="font-mono text-slate-350 hover:text-violet-400 hover:underline text-left cursor-pointer transition focus:outline-none"
+                        >
+                          {u.email}
+                        </button>
                         <span className="font-mono text-rose-400 font-bold">{u.balance} credits</span>
                       </div>
                     ))}
