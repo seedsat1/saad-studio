@@ -351,6 +351,9 @@ export async function GET(req: Request) {
         lastGenDate,
         generationsCount: userGens.length,
         topModelUsed,
+        creditAdvanceBalance: user.creditAdvanceBalance,
+        creditAdvanceRequestedAt: user.creditAdvanceRequestedAt,
+        creditAdvanceCycleEnd: user.creditAdvanceCycleEnd,
       };
     });
 
@@ -368,6 +371,9 @@ export async function GET(req: Request) {
       marginPercent: s.grossMarginPercent,
       topModelUsed: s.topModelUsed,
       lastActivity: s.lastGenDate,
+      creditAdvanceBalance: s.creditAdvanceBalance,
+      creditAdvanceRequestedAt: s.creditAdvanceRequestedAt,
+      creditAdvanceCycleEnd: s.creditAdvanceCycleEnd,
     })).sort((a, b) => b.profit - a.profit);
 
     // 4. TOP FINANCIAL RISK CUSTOMERS (PROJECTIONS)

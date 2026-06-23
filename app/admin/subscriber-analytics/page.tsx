@@ -49,6 +49,9 @@ interface Subscriber {
   lastGenDate: string | null;
   generationsCount: number;
   topModelUsed: string;
+  creditAdvanceBalance: number;
+  creditAdvanceRequestedAt: string | null;
+  creditAdvanceCycleEnd: string | null;
 }
 
 interface ProfitabilityMatrixRow {
@@ -64,6 +67,9 @@ interface ProfitabilityMatrixRow {
   marginPercent: number;
   topModelUsed: string;
   lastActivity: string | null;
+  creditAdvanceBalance: number;
+  creditAdvanceRequestedAt: string | null;
+  creditAdvanceCycleEnd: string | null;
 }
 
 interface RiskCustomer {
@@ -758,7 +764,14 @@ export default function SubscriberUsageAnalyticsPage() {
                             {row.email}
                           </button>
                         </td>
-                        <td className="py-3.5 px-4 text-[10px] text-slate-400 font-semibold">{row.plan}</td>
+                        <td className="py-3.5 px-4 text-[10px] text-slate-400 font-semibold">
+                          {row.plan}
+                          {row.creditAdvanceBalance > 0 && (
+                            <span className="block mt-1 text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded border border-amber-500/20 w-fit">
+                              سلفة: {row.creditAdvanceBalance.toLocaleString()}
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 text-center font-mono font-semibold text-slate-300">{formatUSD(row.totalPayments)}</td>
                         <td className="py-3.5 px-4 text-center font-mono text-slate-450">{row.creditsGranted.toLocaleString()}</td>
                         <td className="py-3.5 px-4 text-center font-mono text-orange-400/90">{row.creditsConsumed.toLocaleString()}</td>
@@ -1359,7 +1372,7 @@ export default function SubscriberUsageAnalyticsPage() {
                     ) : userDetail ? (
                       <div>
                         {/* Summary metrics in drawer */}
-                        <div className="grid grid-cols-3 gap-2.5 mb-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-6">
                           <div className="bg-slate-900/30 p-3.5 rounded-xl border border-slate-900">
                             <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Credits Wallet</div>
                             <div className="text-base font-bold text-slate-205 mt-1 font-mono">
@@ -1385,6 +1398,17 @@ export default function SubscriberUsageAnalyticsPage() {
                             </div>
                             <div className="text-[9px] text-slate-500 mt-1">
                               Revenue (Eq): {formatUSD(userDetail.subscriber.revenueEquivalent)}
+                            </div>
+                          </div>
+                          <div className="bg-slate-900/30 p-3.5 rounded-xl border border-slate-900">
+                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Advance (سلفة)</div>
+                            <div className={`text-base font-bold mt-1 font-mono ${userDetail.subscriber.creditAdvanceBalance > 0 ? "text-amber-400" : "text-slate-400"}`}>
+                              {userDetail.subscriber.creditAdvanceBalance ? userDetail.subscriber.creditAdvanceBalance.toLocaleString() : 0}
+                            </div>
+                            <div className="text-[9px] text-slate-500 mt-1">
+                              {userDetail.subscriber.creditAdvanceBalance > 0 
+                                ? `Requested: ${new Date(userDetail.subscriber.creditAdvanceRequestedAt!).toLocaleDateString()}`
+                                : "No active advance"}
                             </div>
                           </div>
                         </div>

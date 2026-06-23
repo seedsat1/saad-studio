@@ -382,6 +382,9 @@ export async function GET(req: Request, { params }: { params: { userId: string }
       revenueEquivalent: parseFloat(revenueEquivalent.toFixed(2)),
       grossMarginPercent: parseFloat(grossMarginPercent.toFixed(1)),
       generationsCount: userGens.length,
+      creditAdvanceBalance: user.creditAdvanceBalance,
+      creditAdvanceRequestedAt: user.creditAdvanceRequestedAt,
+      creditAdvanceCycleEnd: user.creditAdvanceCycleEnd,
     };
 
     // Construct generations history (last 50)
