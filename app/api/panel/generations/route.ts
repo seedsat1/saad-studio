@@ -3,6 +3,7 @@ import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import { ensureUserRow } from "@/lib/credit-ledger";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ function resolvePublicUrl(mediaUrl: string | null | undefined, outputUrl: string
   if (!candidate) return null;
   if (candidate.startsWith("task:")) return null;
   if (!/^https?:\/\//i.test(candidate)) return null;
-  return candidate;
+  return normalizeMediaUrl(candidate);
 }
 
 function parseLimit(req: NextRequest): number {
