@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { deleteFromStorage } from "@/lib/supabase-storage";
 import { reconcilePendingBytePlusGenerations } from "@/lib/providers/byteplus-reconcile";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,13 @@ function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): str
 
   // Preserve text markers used by text/code generations.
   if (media.startsWith("text:")) return media;
-  if (media && !media.startsWith("task:")) return media;
-  if (output) return output;
+  
+  // Normalize media and output URLs
+  const normalizedMedia = normalizeMediaUrl(media) || "";
+  const normalizedOutput = normalizeMediaUrl(output) || "";
+  
+  if (normalizedMedia && !normalizedMedia.startsWith("task:")) return normalizedMedia;
+  if (normalizedOutput) return normalizedOutput;
   return "";
 }
 

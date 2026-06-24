@@ -162,6 +162,12 @@ export function getPublicObjectUrl(bucket: string, path: string): string {
   return `${getPublicBaseUrl()}/${urlPathFromKey(objectKey(bucket, path))}`;
 }
 
+export function normalizeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  // Replace any blocked pub-*.r2.dev URL with our proxy
+  return url.replace(/https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev/gi, "https://saadstudio.app/api/media");
+}
+
 export function isStoredAssetUrl(url: string): boolean {
   const base = getOptionalEnv(
     "R2_PUBLIC_BASE_URL",
@@ -169,7 +175,7 @@ export function isStoredAssetUrl(url: string): boolean {
     "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
     "NEXT_PUBLIC_R2_PUBLIC_URL"
   ).replace(/\/+$/, "");
-  return Boolean(base && url.startsWith(base));
+  return Boolean(base && (url.startsWith(base) || url.includes("pub-") && url.includes(".r2.dev")));
 }
 
 export async function createSignedUploadUrl(params: {
