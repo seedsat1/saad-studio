@@ -12,6 +12,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 const KIE_BASE_URL = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
@@ -285,9 +286,10 @@ export async function POST(req: NextRequest) {
 
       const videoUrl = result.outputs?.[0];
       if (!videoUrl) throw new Error("No output URL in KIE result.");
-      if (generationId) await setGenerationMediaUrl(generationId, videoUrl);
+      const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
+      if (generationId) await setGenerationMediaUrl(generationId, normalizedVideoUrl);
 
-      return NextResponse.json({ generationId, videoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
+      return NextResponse.json({ generationId, videoUrl: normalizedVideoUrl, taskId: String(taskId), provider: "kie" }, { status: 200 });
     } else {
       // FALLBACK: WaveSpeed for all other video models
       const wavespeedModel = resolveWaveSpeedModelRoute(modelId);
@@ -345,11 +347,12 @@ export async function POST(req: NextRequest) {
       if (!videoUrl) {
         throw new Error("No output URL in WaveSpeed result.");
       }
+      const normalizedVideoUrl = normalizeMediaUrl(videoUrl) || videoUrl;
       if (generationId) {
-        await setGenerationMediaUrl(generationId, videoUrl);
+        await setGenerationMediaUrl(generationId, normalizedVideoUrl);
       }
 
-      return NextResponse.json({ generationId, videoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
+      return NextResponse.json({ generationId, videoUrl: normalizedVideoUrl, predictionId, provider: "wavespeed" }, { status: 200 });
     }
   } catch (error: unknown) {
     if (error instanceof InsufficientCreditsError) {
