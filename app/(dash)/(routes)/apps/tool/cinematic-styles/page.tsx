@@ -1200,7 +1200,11 @@ export default function CinematicStylesPage() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => previewVideoRef.current?.play()}
+                onClick={() => {
+                  previewVideoRef.current?.play().catch((err) => {
+                    console.warn("Preview playback failed:", err);
+                  });
+                }}
                 disabled={!sourceUrl}
                 className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Play preview"

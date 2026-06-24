@@ -1,5 +1,31 @@
 # Saad Studio — Project Context
-## آخر مهمة: إتمام التدقيق المحاسبي والهندسي النهائي والمطابقة الصارمة للمزودين الستة (2026-06-24)
+## آخر مهمة: معالجة استثناءات تشغيل الوسائط لتجنب Unhandled Promise Rejection (2026-06-25)
+
+- **المشكلة**:
+  ظهور أخطاء `Unhandled Promise Rejection: NotSupportedError: The element has no supported sources` في كونسول المتصفح عند محاولة تشغيل ملفات وسائط غير موجودة أو منتهية الصلاحية (404) في صفحة الفيديو `/video` والصفحات الأخرى، بسبب عدم إرفاق معالج `.catch()` عند استدعاء `.play()` على عنصر الفيديو أو الصوت.
+
+- **الإصلاح والتعديل**:
+  1. تعديل دالة `togglePlay` في المكون `VideoCanvas` والمكون `AudioCanvas` داخل [AssetInspector.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/AssetInspector.tsx) لإضافة `.catch()` وطباعة تحذير للكونسول وإعادة تعيين حالة الواجهة.
+  2. تعديل دالة `togglePlay` في صفحة الموسيقى [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/music/page.tsx) لمعالجة استثناءات `.play()`.
+  3. إضافة معالجة خطأ `.play()` في زر معاينة الأنماط السينمائية بصفحة [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx).
+
+- **الملفات المتأثرة**:
+  - [components/AssetInspector.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/AssetInspector.tsx) [MODIFY]
+  - [app/(dash)/(routes)/music/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/music/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - تشغيل `npm run build` بنجاح وتأكيد خلو الأكواد من أخطاء TypeScript أو Compilation.
+  - إرفاق معالجات الأخطاء بكافة الاستدعاءات المكشوفة لـ `.play()`.
+
+- **القرارات المتخذة**:
+  - معالجة أي رفض للـ Promise الناتج عن `.play()` برمجياً لضمان استقرار التطبيق وتحديث حالة التشغيل بصرياً بشكل صحيح في حال فشل تحميل ملف الوسائط.
+
+- **الخطوة المتبقية**:
+  - مراجعة استجابة السيرفر للملفات التالفة/منتهية الصلاحية للتأكد من حذف السجلات غير القابلة للتشغيل تلقائياً.
+
+## المهمة السابقة: إتمام التدقيق المحاسبي والهندسي النهائي والمطابقة الصارمة للمزودين الستة (2026-06-24)
 
 - **المشكلة**:
   طلب المالك إجراء تدقيق حسابي وهندسي نهائي مبني بالكامل على الأدلة الخام والرموز البرمجية وقيم قاعدة البيانات للمزودين الستة (BytePlus, KIE.ai, Google, WaveSpeed, Reap, OpenAI)، للتحقق مما إذا كانت الأسعار مسترجعة من الـ API أو محتسبة محلياً، وتثبيت التصنيف المحاسبي الصارم للمفهومين ACTUAL و ESTIMATED، مع تصحيح تصنيف Google وتدقيق سعر BytePlus ($4.30 لكل مليون توكن).

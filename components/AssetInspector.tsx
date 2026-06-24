@@ -283,8 +283,16 @@ function VideoCanvas({ asset }: { asset: Asset }) {
   function togglePlay() {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) { v.play(); setPlaying(true); }
-    else          { v.pause(); setPlaying(false); }
+    if (v.paused) {
+      v.play().catch((err) => {
+        console.warn("Video playback failed:", err);
+        setPlaying(false);
+      });
+      setPlaying(true);
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
   }
 
   function handleTimeUpdate() {
@@ -404,8 +412,16 @@ function AudioCanvas({ asset }: { asset: Asset }) {
   function togglePlay() {
     const a = audioRef.current;
     if (!a) return;
-    if (a.paused) { a.play(); setPlaying(true); }
-    else          { a.pause(); setPlaying(false); }
+    if (a.paused) {
+      a.play().catch((err) => {
+        console.warn("Audio playback failed:", err);
+        setPlaying(false);
+      });
+      setPlaying(true);
+    } else {
+      a.pause();
+      setPlaying(false);
+    }
   }
 
   function handleTimeUpdate() {
