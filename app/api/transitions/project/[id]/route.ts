@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 async function requireOwnership(projectId: string, userId: string) {
   const project = await prismadb.transitionProject.findUnique({
@@ -28,7 +29,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ project });
+  // Normalize all media URLs in project and its relations
+  const normalizedProject = {
+    ...project,
+    inputAUrl: normalizeMediaUrl(project.inputAUrl) || project.inputAUrl,
+    inputBUrl: normalizeMediaUrl(project.inputBUrl) || project.inputBUrl,
+    jobs: project.jobs.map(job => ({
+      ...job,
+      resultUrl: normalizeMediaUrl(job.resultUrl) || job.resultUrl,
+    })),
+    outputs: project.outputs.map(output => ({
+      ...output,
+      url: normalizeMediaUrl(output.url) || output.url,
+      inputAUrl: normalizeMediaUrl(output.inputAUrl) || output.inputAUrl,
+      inputBUrl: normalizeMediaUrl(output.inputBUrl) || output.inputBUrl,
+    })),
+  };
+
+  return NextResponse.json({ project: normalizedProject });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

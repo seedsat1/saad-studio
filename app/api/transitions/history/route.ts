@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
@@ -20,6 +21,13 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const nextCursor = outputs.length === take ? outputs[outputs.length - 1]?.id : null;
-  return NextResponse.json({ outputs, nextCursor });
+  const normalizedOutputs = outputs.map(output => ({
+    ...output,
+    url: normalizeMediaUrl(output.url) || output.url,
+    inputAUrl: normalizeMediaUrl(output.inputAUrl) || output.inputAUrl,
+    inputBUrl: normalizeMediaUrl(output.inputBUrl) || output.inputBUrl,
+  }));
+
+  const nextCursor = normalizedOutputs.length === take ? normalizedOutputs[normalizedOutputs.length - 1]?.id : null;
+  return NextResponse.json({ outputs: normalizedOutputs, nextCursor });
 }

@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getPresetById } from "@/lib/transition-presets";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
@@ -74,6 +75,21 @@ function extractVideoUrl(data: Record<string, unknown>): string {
   return "";
 }
 
+function normalizeJobMedia(job: any) {
+  return {
+    ...job,
+    resultUrl: normalizeMediaUrl(job.resultUrl) || job.resultUrl,
+    output: job.output
+      ? {
+          ...job.output,
+          url: normalizeMediaUrl(job.output.url) || job.output.url,
+          inputAUrl: normalizeMediaUrl(job.output.inputAUrl) || job.output.inputAUrl,
+          inputBUrl: normalizeMediaUrl(job.output.inputBUrl) || job.output.inputBUrl,
+        }
+      : job.output,
+  };
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -94,13 +110,13 @@ export async function GET(
 
   // If already terminal, return immediately
   if (job.status === "completed" || job.status === "failed") {
-    return NextResponse.json({ job });
+    return NextResponse.json({ job: normalizeJobMedia(job) });
   }
 
   // Poll KIE for status
   if (job.taskId) {
     const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
-    if (!apiKey) return NextResponse.json({ job });
+    if (!apiKey) return NextResponse.json({ job: normalizeJobMedia(job) });
 
     const pollRes = await fetch(
       `${KIE_BASE}/jobs/recordInfo?taskId=${encodeURIComponent(job.taskId)}`,
@@ -161,7 +177,7 @@ export async function GET(
             where: { id: job.id },
             include: { output: true },
           });
-          return NextResponse.json({ job: finalJob ?? updatedJob });
+          return NextResponse.json({ job: normalizeJobMedia(finalJob ?? updatedJob) });
 
         } else if (taskStatus === "completed" && !resultUrl) {
           // KIE returned completed but URL extraction failed — fail the job gracefully
@@ -170,7 +186,7 @@ export async function GET(
             data: { status: "failed", error: "Generation succeeded on server but video URL could not be extracted." },
             include: { output: true },
           });
-          return NextResponse.json({ job: updatedJob });
+          return NextResponse.json({ job: normalizeJobMedia(updatedJob) });
 
         } else if (taskStatus === "failed") {
           const errorMsg =
@@ -180,7 +196,7 @@ export async function GET(
             data: { status: "failed", error: errorMsg },
             include: { output: true },
           });
-          return NextResponse.json({ job: updatedJob });
+          return NextResponse.json({ job: normalizeJobMedia(updatedJob) });
 
         } else {
           // Still processing — update DB status if changed
@@ -200,5 +216,5 @@ export async function GET(
     where: { id },
     include: { output: true },
   });
-  return NextResponse.json({ job: refreshed ?? job });
+  return NextResponse.json({ job: normalizeJobMedia(refreshed ?? job) });
 }
