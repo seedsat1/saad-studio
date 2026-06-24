@@ -9,6 +9,7 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -716,12 +717,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
       return NextResponse.json({
         generationId,
-        imageUrls,
-        resultUrls: imageUrls,
-        imageUrl: imageUrls[0] ?? null,
-        mediaUrl: imageUrls[0] ?? null,
+        imageUrls: normalizedImageUrls,
+        resultUrls: normalizedImageUrls,
+        imageUrl: normalizedImageUrls[0] ?? null,
+        mediaUrl: normalizedImageUrls[0] ?? null,
         taskId,
       }, { status: 200 });
     }
@@ -780,12 +782,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
       return NextResponse.json({
         generationId,
-        imageUrls,
-        resultUrls: imageUrls,
-        imageUrl: imageUrls[0] ?? null,
-        mediaUrl: imageUrls[0] ?? null,
+        imageUrls: normalizedImageUrls,
+        resultUrls: normalizedImageUrls,
+        imageUrl: normalizedImageUrls[0] ?? null,
+        mediaUrl: normalizedImageUrls[0] ?? null,
         provider: "openai",
         model: openAIImageModel,
       }, { status: 200 });
@@ -843,12 +846,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
       return NextResponse.json({
         generationId,
-        imageUrls,
-        resultUrls: imageUrls,
-        imageUrl: imageUrls[0] ?? null,
-        mediaUrl: imageUrls[0] ?? null,
+        imageUrls: normalizedImageUrls,
+        resultUrls: normalizedImageUrls,
+        imageUrl: normalizedImageUrls[0] ?? null,
+        mediaUrl: normalizedImageUrls[0] ?? null,
         provider: "google",
         model: googleImageModel,
       }, { status: 200 });
@@ -905,13 +909,14 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
       return NextResponse.json({
         generationId,
         taskId,
-        imageUrls,
-        resultUrls: imageUrls,
-        imageUrl: imageUrls[0] ?? null,
-        mediaUrl: imageUrls[0] ?? null,
+        imageUrls: normalizedImageUrls,
+        resultUrls: normalizedImageUrls,
+        imageUrl: normalizedImageUrls[0] ?? null,
+        mediaUrl: normalizedImageUrls[0] ?? null,
         credits: creditsToCharge,
       });
     }
@@ -1082,12 +1087,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const normalizedImageUrls = imageUrls.map(url => normalizeMediaUrl(url) || url);
     const responseJson = {
       generationId,
-      imageUrls,
-      resultUrls: imageUrls,
-      imageUrl: imageUrls[0] ?? null,
-      mediaUrl: imageUrls[0] ?? null,
+      imageUrls: normalizedImageUrls,
+      resultUrls: normalizedImageUrls,
+      imageUrl: normalizedImageUrls[0] ?? null,
+      mediaUrl: normalizedImageUrls[0] ?? null,
       taskId,
     };
     return NextResponse.json(responseJson, { status: 200 });
