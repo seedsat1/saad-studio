@@ -7,6 +7,7 @@ import { configureRouter, navigate } from "./lib/router";
 import { loadExtendScript, isInsideAdobe } from "./lib/cep";
 import { getToken } from "./lib/auth";
 import { store } from "./lib/store";
+import { getFallbackUrls } from "./lib/api";
 
 import { HomePage } from "./pages/home";
 import { ConnectPage } from "./pages/connect";
@@ -38,6 +39,44 @@ async function bootstrap() {
 
   const host = document.getElementById("app");
   if (!host) throw new Error("#app root missing");
+
+  // Global capture listener to catch image/video/audio load errors and swap to backup domains
+  window.addEventListener(
+    "error",
+    (event) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+      
+      const isMedia = target.tagName === "IMG" || target.tagName === "VIDEO" || target.tagName === "AUDIO";
+      if (!isMedia) return;
+
+      const mediaEl = target as HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
+      const currentSrc = mediaEl.src;
+      if (!currentSrc) return;
+
+      // Avoid infinite loops by tagging elements we've already tried to swap
+      const triedUrls = (mediaEl as any).__saad_tried_urls || [];
+      if (triedUrls.includes(currentSrc)) return;
+      triedUrls.push(currentSrc);
+      (mediaEl as any).__saad_tried_urls = triedUrls;
+
+      const fallbacks = getFallbackUrls(currentSrc);
+      const currentIndex = fallbacks.indexOf(currentSrc);
+      
+      if (currentIndex !== -1 && currentIndex + 1 < fallbacks.length) {
+        const nextSrc = fallbacks[currentIndex + 1];
+        // eslint-disable-next-line no-console
+        console.warn(`[saadstudio-cep] Media element failed to load from ${currentSrc}. Trying fallback: ${nextSrc}`);
+        mediaEl.src = nextSrc;
+        if (target.tagName === "VIDEO" || target.tagName === "AUDIO") {
+          try {
+            (mediaEl as HTMLVideoElement | HTMLAudioElement).load();
+          } catch { /* noop */ }
+        }
+      }
+    },
+    true // Capture phase to intercept non-bubbling resource error events
+  );
 
   const requireAuth = (page: () => HTMLElement) => () => {
     if (!getToken()) return ConnectPage();

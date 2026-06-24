@@ -33,7 +33,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 
@@ -223,9 +223,9 @@ function extractVideoFrame(videoSrc: string, position: "first" | "last"): Promis
     video.crossOrigin = "anonymous";
     video.muted = true;
     video.preload = "metadata";
-    video.src = videoSrc.startsWith("http")
-      ? `/api/proxy-image?url=${encodeURIComponent(videoSrc)}`
-      : videoSrc;
+    // R2 URLs have CORS enabled, so resolve direct URL if possible instead of proxying through Vercel
+    const resolvedUrls = getFallbackUrls(videoSrc);
+    video.src = resolvedUrls[0] || videoSrc;
     video.onloadedmetadata = () => {
       video.currentTime = position === "last" ? Math.max(0, video.duration - 0.1) : 0;
     };
@@ -1394,25 +1394,15 @@ export default function TransitionsStudioPage() {
 
   const handleDownload = async (output: TransitionOutput) => {
     try {
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(output.url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error("Proxy download failed");
-      const blob = await response.blob();
-      const localUrl = URL.createObjectURL(blob);
+      const downloadUrl = `/api/download?url=${encodeURIComponent(output.url)}&filename=${encodeURIComponent(`saad-transition-${output.presetId}.mp4`)}`;
       const a = document.createElement("a");
-      a.href = localUrl;
-      a.download = `saad-transition-${output.presetId}.mp4`;
+      a.href = downloadUrl;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(localUrl);
     } catch (error) {
       console.error("Direct download failed, falling back to new tab", error);
-      const a = document.createElement("a");
-      a.href = output.url;
-      a.download = `saad-transition-${output.presetId}.mp4`;
-      a.target = "_blank";
-      a.click();
+      window.open(output.url, "_blank");
     }
   };
 

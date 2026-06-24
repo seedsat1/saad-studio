@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getFallbackUrls } from "@/lib/utils";
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
 
@@ -72,24 +73,54 @@ export async function GET(req: NextRequest) {
     return new NextResponse("URL host not allowed", { status: 400 });
   }
 
-  try {
-    const upstream = await fetch(rawUrl, {
-      signal: AbortSignal.timeout(30_000),
-      headers: {
-        // Some CDNs require a browser-like user-agent
-        "User-Agent": "Mozilla/5.0 (compatible; NextJS-ImageProxy/1.0)",
-      },
-    });
+  // Block proxying of video files. They must be loaded directly from direct R2/custom domain instead.
+  const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(parsed.pathname.toLowerCase());
+  if (isVideo) {
+    return new NextResponse("Videos cannot be proxied through this route. Load directly from direct R2/custom domain instead.", { status: 400 });
+  }
 
-    if (!upstream.ok) {
-      return new NextResponse("Failed to fetch upstream image", { status: upstream.status });
+  try {
+    const urls = getFallbackUrls(rawUrl);
+    let upstream: Response | null = null;
+    let lastError: any = null;
+
+    for (const url of urls) {
+      try {
+        console.log("[api/proxy-image] Attempting fetch from:", url);
+        const fetchUrl = url.startsWith("/")
+          ? `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${url}`
+          : url;
+
+        upstream = await fetch(fetchUrl, {
+          signal: AbortSignal.timeout(30_000),
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; NextJS-ImageProxy/1.0)",
+          },
+        });
+
+        if (upstream.ok) {
+          break;
+        } else {
+          console.warn(`[api/proxy-image] Failed to fetch from ${url}: Status ${upstream.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`[api/proxy-image] Error fetching from ${url}:`, err);
+      }
+    }
+
+    if (!upstream || !upstream.ok) {
+      return new NextResponse(
+        `Failed to fetch upstream resource after trying all fallbacks. Last error: ${lastError?.message || "status " + upstream?.status}`,
+        { status: upstream?.status || 502 }
+      );
     }
 
     const contentType = upstream.headers.get("content-type") || "";
 
-    // Only proxy image or video content types
-    if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
-      return new NextResponse("Upstream resource is not an image or video", { status: 415 });
+    // Only proxy image content types
+    if (!contentType.startsWith("image/")) {
+      return new NextResponse("Upstream resource is not an image", { status: 415 });
     }
 
     const buffer = Buffer.from(await upstream.arrayBuffer());

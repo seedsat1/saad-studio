@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Heart, Trash2, Play, X, Zap, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 
 function hexA(hex: string, a: number) {
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
@@ -69,6 +69,8 @@ function ratioCss(ratio: string): string {
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 
+
+
 function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -78,6 +80,22 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
 
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
+
+  const srcList = getFallbackUrls(item.src);
+  const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
+
+  useEffect(() => {
+    const list = getFallbackUrls(item.src);
+    setCurrentSrc(list[0] || "");
+  }, [item.src]);
+
+  const handleError = () => {
+    const list = getFallbackUrls(item.src);
+    const nextIndex = list.indexOf(currentSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      setCurrentSrc(list[nextIndex]);
+    }
+  };
 
   return (
     <motion.div
@@ -115,12 +133,12 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
             />
           ) : item.type === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.src} alt={item.prompt ?? ""} style={{
+            <img src={currentSrc} alt={item.prompt ?? ""} onError={handleError} style={{
               display: "block", maxWidth: "88vw", maxHeight: "82vh",
               width: "auto", height: "auto", objectFit: "contain",
             }} />
           ) : (
-            <video src={item.src} poster={item.poster} controls autoPlay loop muted={false} style={{
+            <video src={currentSrc} poster={item.poster} controls autoPlay loop muted={false} onError={handleError} style={{
               display: "block", maxWidth: "88vw", maxHeight: "82vh",
               width: "auto", height: "auto", objectFit: "contain",
             }} />
@@ -149,6 +167,8 @@ function Lightbox({ item, onClose }: { item: MediaItem; onClose: () => void }) {
 
 // ─── Media Card ───────────────────────────────────────────────────────────────
 
+
+
 function MediaCard({ item, onOpen, onDelete }: {
   item: MediaItem; onOpen: () => void; onDelete?: (id: string) => void;
 }) {
@@ -157,6 +177,32 @@ function MediaCard({ item, onOpen, onDelete }: {
   const [hov, setHov] = useState(false);
   const isPlaceholder = !item.src || item.src.startsWith("gradient:");
   const color = item.modelColor ?? "#06b6d4";
+
+  const srcList = getFallbackUrls(item.src);
+  const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
+
+  useEffect(() => {
+    const list = getFallbackUrls(item.src);
+    setCurrentSrc(list[0] || "");
+  }, [item.src]);
+
+  const handleError = () => {
+    const list = getFallbackUrls(item.src);
+    const nextIndex = list.indexOf(currentSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      const nextSrc = list[nextIndex];
+      setCurrentSrc(nextSrc);
+      setTimeout(() => {
+        const v = videoRef.current;
+        if (v) {
+          v.load();
+          if (hov) {
+            v.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
 
   const handleEnter = useCallback(() => {
     setHov(true);
@@ -216,12 +262,12 @@ function MediaCard({ item, onOpen, onDelete }: {
           </div>
         ) : item.type === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.src} alt={item.prompt ?? ""} loading="lazy" style={{
+          <img src={currentSrc} alt={item.prompt ?? ""} loading="lazy" onError={handleError} style={{
             display: "block", width: "100%", height: "100%", objectFit: "cover",
             transform: hov ? "scale(1.04)" : "scale(1)", transition: "transform 0.45s ease",
           }} />
         ) : (
-          <video ref={videoRef} src={item.src} poster={item.poster} muted loop playsInline preload="metadata"
+          <video ref={videoRef} src={currentSrc} poster={item.poster} muted loop playsInline preload="metadata" onError={handleError}
             style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
         )}
 

@@ -164,10 +164,29 @@ export function getPublicObjectUrl(bucket: string, path: string): string {
 
 export function normalizeMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  // Replace any blocked pub-*.r2.dev URL or non-www proxy URL with www proxy
-  return url
-    .replace(/https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev/gi, "https://www.saadstudio.app/api/media")
-    .replace(/https:\/\/saadstudio.app\/api\/media/gi, "https://www.saadstudio.app/api/media");
+
+  const customDomain = "https://media.saadstudio.app";
+  
+  let mediaPath = "";
+  const patterns = [
+    /https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev\/(.+)/i,
+    /https:\/\/media\.saadstudio\.app\/(.+)/i,
+    /https?:\/\/(?:www\.)?saadstudio\.app\/api\/media\/(.+)/i
+  ];
+
+  for (const regex of patterns) {
+    const match = url.match(regex);
+    if (match?.[1]) {
+      mediaPath = match[1];
+      break;
+    }
+  }
+
+  if (mediaPath) {
+    return `${customDomain}/${mediaPath}`;
+  }
+
+  return url;
 }
 
 export function isStoredAssetUrl(url: string): boolean {

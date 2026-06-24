@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { getFallbackUrls } from "@/lib/utils";
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
 
@@ -68,15 +69,40 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(rawUrl, {
-      signal: AbortSignal.timeout(60_000),
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; SaadStudioDownload/1.0)",
-      },
-    });
+    const urls = getFallbackUrls(rawUrl, true);
+    let upstream: Response | null = null;
+    let lastError: any = null;
 
-    if (!upstream.ok) {
-      return new NextResponse("Failed to fetch upstream file", { status: upstream.status });
+    for (const url of urls) {
+      try {
+        console.log("[api/download] Attempting fetch from:", url);
+        const fetchUrl = url.startsWith("/")
+          ? `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${url}`
+          : url;
+
+        upstream = await fetch(fetchUrl, {
+          signal: AbortSignal.timeout(30_000),
+          headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; SaadStudioDownload/1.0)",
+          },
+        });
+
+        if (upstream.ok) {
+          break;
+        } else {
+          console.warn(`[api/download] Failed to fetch from ${url}: Status ${upstream.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`[api/download] Error fetching from ${url}:`, err);
+      }
+    }
+
+    if (!upstream || !upstream.ok) {
+      return new NextResponse(
+        `Failed to fetch upstream file after trying all fallbacks. Last error: ${lastError?.message || "status " + upstream?.status}`,
+        { status: upstream?.status || 502 }
+      );
     }
 
     const contentType = upstream.headers.get("content-type") || "application/octet-stream";

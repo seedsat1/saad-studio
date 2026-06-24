@@ -13,7 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
 import Heading from "@/components/heading";
@@ -154,6 +154,30 @@ const MusicPage = () => {
   const [duration, setDuration] = useState<number>(selectedModel.defaultDuration);
   const [isGenerating, setIsGenerating] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [currentAudioSrc, setCurrentAudioSrc] = useState<string>("");
+
+  useEffect(() => {
+    const list = getFallbackUrls(audioUrl);
+    setCurrentAudioSrc(list[0] || "");
+  }, [audioUrl]);
+
+  const handleAudioError = () => {
+    const list = getFallbackUrls(audioUrl);
+    const nextIndex = list.indexOf(currentAudioSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      const nextSrc = list[nextIndex];
+      setCurrentAudioSrc(nextSrc);
+      setTimeout(() => {
+        const a = audioRef.current;
+        if (a) {
+          a.load();
+          if (isPlaying) {
+            a.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
   const [isPlaying, setIsPlaying] = useState(false);
   const [showModelList, setShowModelList] = useState(false);
   const [inspectedAsset, setInspectedAsset] = useState<Asset | null>(null);
@@ -504,9 +528,10 @@ const MusicPage = () => {
 
             <audio
               ref={audioRef}
-              src={audioUrl}
+              src={currentAudioSrc}
               onClick={(e) => e.stopPropagation()}
               onEnded={() => setIsPlaying(false)}
+              onError={handleAudioError}
               controls
               className="w-full h-10 rounded-lg [&::-webkit-media-controls-panel]:bg-zinc-900 [&::-webkit-media-controls-current-time-display]:text-zinc-300 [&::-webkit-media-controls-time-remaining-display]:text-zinc-500"
             />

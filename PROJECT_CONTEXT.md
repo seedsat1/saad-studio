@@ -1,4 +1,37 @@
 # Saad Studio — Project Context
+## آخر مهمة: تنظيف مسارات الوسائط ومنع تمرير معاينة/بث الفيديوهات عبر بروكسي Vercel (2026-06-25)
+
+- **المشكلة**:
+  وجود بقايا كود قديم وتكرار لتعريف upstreams في مسارات التنزيل وبروكسي الصور، بالإضافة إلى الحاجة لمنع استهلاك سيرفرات Vercel عن طريق تحميل وتخزين الفيديوهات الكبيرة في الذاكرة (Buffer) أثناء البث أو المعاينة، وقصر التمرير عبر البروكسي على عمليات التنزيل فقط عند الحاجة.
+
+- **الإصلاح والتعديل**:
+  1. تنظيف `app/api/download/route.ts` و `app/api/proxy-image/route.ts` تماماً من أي أكواد قديمة أو تكرار upstreams أو return مبكر قبل استنفاد المحاولات.
+  2. تحديث `lib/utils.ts` و `adobe/saadstudio-cep/client/src/lib/api.ts` لمنع إرجاع بروكسي Vercel `/api/media` في قائمة التراجع (fallback list) عند بث أو معاينة ملفات الفيديو (بقيت فقط لعمليات التنزيل `isDownload = true`).
+  3. تعديل `app/api/proxy-image/route.ts` لرفض ملفات الفيديو تماماً (400 Bad Request) وقصر عملها على الصور (image/*) لحماية السيرفر من معالجة الفيديوهات الكبيرة كـ buffers.
+  4. تعديل `transitions/page.tsx` و `video/page.tsx` لتحميل روابط R2/custom domain المباشرة لملفات الفيديو وتنزيلها بالاعتماد على `/api/download` بدلاً من `/api/proxy-image`.
+  5. إنشاء ملف اختبارات شامل `test/media-routes.test.ts` والتحقق من عمل المسارات برمجياً بنجاح تام.
+
+- **الملفات المتأثرة**:
+  - [lib/utils.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts) [MODIFY]
+  - [app/api/download/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/download/route.ts) [MODIFY]
+  - [app/api/proxy-image/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/proxy-image/route.ts) [MODIFY]
+  - [adobe/saadstudio-cep/client/src/lib/api.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/api.ts) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/transitions/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/transitions/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/video/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/video/page.tsx) [MODIFY]
+  - [test/media-routes.test.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/test/media-routes.test.ts) [NEW]
+
+- **نتائج التحقق**:
+  - تم بناء تطبيق Next.js بنجاح تام عبر `npm run build`.
+  - تم بناء CEP client بنجاح تام.
+  - نجاح جميع اختبارات Vitest الأربعة في `test/media-routes.test.ts`.
+
+- **القرارات المتخذة**:
+  - منع تمرير بث ومعاينة الفيديوهات تماماً عبر أي بروكسي، والاعتماد حصرياً على الروابط المباشرة لـ R2 و custom domain والتي تدعم CORS natively.
+  - حصر بروكسي الفيديوهات فقط كخيار أخير في سيناريوهات التنزيل (Download) للعميل والإضافة.
+
+- **الخطوة المتبقية**:
+  - المراقبة الميدانية بعد الرفع للتأكد من انخفاض استهلاك الذاكرة وسرعة استجابة البث.
+
 ## آخر مهمة: إضافة جدول تتبع تفاصيل الطلب الأصلي والـ Snapshot لقاعدة البيانات ولوحة التحكم (2026-06-25)
 
 - **المشكلة**:

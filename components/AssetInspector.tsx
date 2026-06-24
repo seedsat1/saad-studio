@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
@@ -33,7 +33,7 @@ import {
   ScanFace,
   Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -231,6 +231,22 @@ const WAVEFORM = [
 // ── Canvas components ──────────────────────────────────────────────────────────
 
 function ImageCanvas({ asset }: { asset: Asset }) {
+  const srcList = getFallbackUrls(asset.url);
+  const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
+
+  useEffect(() => {
+    const list = getFallbackUrls(asset.url);
+    setCurrentSrc(list[0] || "");
+  }, [asset.url]);
+
+  const handleError = () => {
+    const list = getFallbackUrls(asset.url);
+    const nextIndex = list.indexOf(currentSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      setCurrentSrc(list[nextIndex]);
+    }
+  };
+
   return (
     <div className="relative h-full w-full bg-[#080810] flex items-center justify-center overflow-hidden">
       {/* Checkerboard bg */}
@@ -248,11 +264,12 @@ function ImageCanvas({ asset }: { asset: Asset }) {
         }}
       />
 
-      {asset.url ? (
+      {currentSrc ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
-          src={asset.url}
+          src={currentSrc}
           alt={asset.title ?? "Generated Image"}
+          onError={handleError}
           className="relative z-10 max-h-full max-w-full object-contain rounded shadow-2xl"
         />
       ) : (
@@ -267,6 +284,7 @@ function ImageCanvas({ asset }: { asset: Asset }) {
   );
 }
 
+
 function VideoCanvas({ asset }: { asset: Asset }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -274,12 +292,39 @@ function VideoCanvas({ asset }: { asset: Asset }) {
   const [totalTime, setTotalTime] = useState(asset.duration ?? "0:00");
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const srcList = getFallbackUrls(asset.url);
+  const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
+
+  useEffect(() => {
+    const list = getFallbackUrls(asset.url);
+    setCurrentSrc(list[0] || "");
+  }, [asset.url]);
+
+  const handleError = () => {
+    const list = getFallbackUrls(asset.url);
+    const nextIndex = list.indexOf(currentSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      const nextSrc = list[nextIndex];
+      setCurrentSrc(nextSrc);
+      setTimeout(() => {
+        const v = videoRef.current;
+        if (v) {
+          v.load();
+          if (playing) {
+            v.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
+
   function formatTime(sec: number) {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, "0")}`;
   }
 
+  // rest of the helpers
   function togglePlay() {
     const v = videoRef.current;
     if (!v) return;
@@ -321,15 +366,16 @@ function VideoCanvas({ asset }: { asset: Asset }) {
 
   return (
     <div className="relative h-full w-full bg-black flex items-center justify-center">
-      {asset.url ? (
+      {currentSrc ? (
         <video
           ref={videoRef}
-          src={asset.url}
+          src={currentSrc}
           className="h-full w-full object-contain"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleEnded}
           onClick={togglePlay}
+          onError={handleError}
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -403,6 +449,32 @@ function AudioCanvas({ asset }: { asset: Asset }) {
   const [totalTime, setTotalTime] = useState(asset.duration ?? "3:42");
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  const srcList = getFallbackUrls(asset.url);
+  const [currentSrc, setCurrentSrc] = useState(srcList[0] || "");
+
+  useEffect(() => {
+    const list = getFallbackUrls(asset.url);
+    setCurrentSrc(list[0] || "");
+  }, [asset.url]);
+
+  const handleError = () => {
+    const list = getFallbackUrls(asset.url);
+    const nextIndex = list.indexOf(currentSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      const nextSrc = list[nextIndex];
+      setCurrentSrc(nextSrc);
+      setTimeout(() => {
+        const a = audioRef.current;
+        if (a) {
+          a.load();
+          if (playing) {
+            a.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
+
   function formatTime(sec: number) {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
@@ -450,13 +522,14 @@ function AudioCanvas({ asset }: { asset: Asset }) {
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full px-10 gap-8 bg-gradient-to-b from-slate-950 via-slate-950 to-emerald-950/20">
-      {asset.url && (
+      {currentSrc && (
         <audio
           ref={audioRef}
-          src={asset.url}
+          src={currentSrc}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleEnded}
+          onError={handleError}
         />
       )}
       {/* Rotating disc */}

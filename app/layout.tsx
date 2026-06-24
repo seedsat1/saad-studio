@@ -213,6 +213,76 @@ export default function RootLayout({
               } catch (_) {}
             `}
           </Script>
+          <Script id="saad-media-fallback-tracker" strategy="afterInteractive">
+            {`
+              try {
+                window.addEventListener('error', (event) => {
+                  const target = event.target;
+                  if (!target) return;
+                  const isMedia = target instanceof HTMLImageElement || 
+                                  target instanceof HTMLVideoElement || 
+                                  target instanceof HTMLAudioElement;
+                  if (!isMedia) return;
+
+                  const srcAttr = target.getAttribute('src');
+                  if (!srcAttr) return;
+
+                  let mediaPath = '';
+                  const patterns = [
+                    /https:\\/\\/pub-[a-zA-Z0-9]+\\.r2\\.dev\\/(.+)/i,
+                    /https:\\/\\/media\\.saadstudio\\.app\\/(.+)/i,
+                    /https?:\\/\\/(?:www\\.)?saadstudio\\.app\\/api\\/media\\/(.+)/i,
+                    /^\\/api\\/media\\/(.+)/i
+                  ];
+                  for (const regex of patterns) {
+                    const match = srcAttr.match(regex) || (target.src && target.src.match(regex));
+                    if (match && match[1]) {
+                      mediaPath = match[1];
+                      break;
+                    }
+                  }
+
+                  if (!mediaPath) return;
+
+                  const candidates = [
+                    'https://media.saadstudio.app/' + mediaPath,
+                    'https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/' + mediaPath,
+                    '/api/media/' + mediaPath
+                  ];
+
+                  const currentUrl = target.src || srcAttr;
+                  let activeIndex = -1;
+                  for (let i = 0; i < candidates.length; i++) {
+                    if (currentUrl.indexOf(candidates[i]) !== -1 || candidates[i].indexOf(currentUrl) !== -1) {
+                      activeIndex = i;
+                      break;
+                    }
+                  }
+
+                  if (activeIndex === -1) {
+                    if (currentUrl.indexOf('media.saadstudio.app') !== -1) {
+                      activeIndex = 0;
+                    } else if (currentUrl.indexOf('.r2.dev') !== -1) {
+                      activeIndex = 1;
+                    }
+                  }
+
+                  if (activeIndex !== -1 && activeIndex < candidates.length - 1) {
+                    const nextUrl = candidates[activeIndex + 1];
+                    console.log('[Media Fallback] Swapping from', currentUrl, 'to', nextUrl);
+                    target.setAttribute('src', nextUrl);
+                    if (target instanceof HTMLVideoElement || target instanceof HTMLAudioElement) {
+                      target.load();
+                      if (target.autoplay || target.paused === false) {
+                        target.play().catch(function() {});
+                      }
+                    }
+                  }
+                }, true);
+              } catch (_) {}
+            `}
+          </Script>
+
 
           <Toaster />
           <ModalProvider />

@@ -21,6 +21,7 @@ import {
 } from "@/lib/video-model-registry";
 import { getGenerationCostSync } from "@/lib/pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 
 // -- Utilities -----------------------------------------------------------------
@@ -1158,11 +1159,20 @@ function VideoPageInner() {
   const pickGalleryAsset = useCallback(async (url: string, target: PickerTarget) => {
     setMediaPicker(null);
     try {
-      // Route the fetch through the server-side proxy to avoid CORS issues with
-      // external CDN URLs (KIE, WaveSpeed, etc.) that don't send CORS headers.
-      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-      const res  = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+      const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(url.toLowerCase());
+      
+      let fetchUrl = url;
+      if (isVideo) {
+        // Resolve fallbacks for video to get the direct R2 URL (which supports CORS)
+        const fallbacks = getFallbackUrls(url);
+        fetchUrl = fallbacks[0] || url;
+      } else {
+        // For images, route through proxy-image to avoid CORS
+        fetchUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      }
+
+      const res = await fetch(fetchUrl);
+      if (!res.ok) throw new Error(`Fetch returned ${res.status}`);
       const blob = await res.blob();
       const ext  = (url.split(".").pop()?.split("?")[0] ?? "jpg").toLowerCase();
       const mime = blob.type || (ext === "mp4" ? "video/mp4" : "image/jpeg");

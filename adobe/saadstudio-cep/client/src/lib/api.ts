@@ -571,6 +571,63 @@ function normalizeImageJob(
   };
 }
 
+export function getFallbackUrls(url: string | null | undefined, isDownload = false): string[] {
+  if (!url) return [];
+  
+  if (
+    url.startsWith("data:") ||
+    url.startsWith("blob:") ||
+    url.startsWith("gradient:")
+  ) {
+    return [url];
+  }
+  
+  let mediaPath = "";
+  const patterns = [
+    /https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev\/(.+)/i,
+    /https:\/\/media\.saadstudio\.app\/(.+)/i,
+    /https?:\/\/(?:www\.)?saadstudio\.app\/api\/media\/(.+)/i,
+    /^\/api\/media\/(.+)/i,
+  ];
+
+  for (const regex of patterns) {
+    const match = url.match(regex);
+    if (match?.[1]) {
+      mediaPath = match[1];
+      break;
+    }
+  }
+
+  // Also handle cases where the apiBase is custom (like local development)
+  const apiBase = getApiBase();
+  try {
+    const apiBaseUrl = new URL(apiBase);
+    const escapedHost = apiBaseUrl.host.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const customApiPattern = new RegExp(`https?:\\/\\/(?:www\\.)?${escapedHost}\\/api\\/media\\/(.+)`, 'i');
+    const match = url.match(customApiPattern);
+    if (match?.[1]) {
+      mediaPath = match[1];
+    }
+  } catch { /* noop */ }
+
+  if (!mediaPath) {
+    return [url];
+  }
+
+  const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(mediaPath.toLowerCase());
+
+  const fallbacks = [
+    `https://media.saadstudio.app/${mediaPath}`,
+    `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${mediaPath}`
+  ];
+
+  if (!isVideo || isDownload) {
+    fallbacks.push(`${apiBase}/api/media/${mediaPath}`);
+  }
+
+  return fallbacks;
+}
+
 export const api = {
   /** Current user + credits + subscription. */
   me: () => request<PanelMe>("/api/panel/me"),
@@ -745,6 +802,7 @@ export const api = {
     captions: (body: Record<string, unknown>) =>
       request<JobStatus>("/api/panel/generate/captions", {
         method: "POST",
+
         body: JSON.stringify(body),
       }),
     tts: (body: Record<string, unknown>) =>
@@ -789,10 +847,36 @@ export const api = {
     const os = window.cep_node.require("os") as typeof import("os");
     const dir = path.join(os.tmpdir(), "saadstudio");
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const response = await fetch(assetUrl);
-    if (!response.ok) {
-      throw new ApiError(`Download failed (${response.status})`, response.status);
+
+    const urls = getFallbackUrls(assetUrl, true);
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    for (const url of urls) {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`[saadstudio-cep] Attempting to download from: ${url}`);
+        response = await fetch(url);
+        if (response.ok) {
+          break;
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(`[saadstudio-cep] Failed to fetch from ${url}: Status ${response.status}`);
+        }
+      } catch (err) {
+        lastError = err as Error;
+        // eslint-disable-next-line no-console
+        console.warn(`[saadstudio-cep] Network error fetching from ${url}:`, err);
+      }
     }
+
+    if (!response || !response.ok) {
+      throw new ApiError(
+        `Download failed after trying all fallbacks. Last error: ${lastError?.message || "status " + response?.status}`,
+        response?.status || 500
+      );
+    }
+
     const originalBlob = await response.blob();
     const contentType = response.headers.get("content-type") || originalBlob.type || "";
     const isImage = contentType.toLowerCase().startsWith("image/");
@@ -809,7 +893,6 @@ export const api = {
 };
 
 export type SaadApi = typeof api;
-
 // ─── Reap.video tools (captions / reframe / dubbing / transcription / edit) ─
 
 export type ReapTool =
