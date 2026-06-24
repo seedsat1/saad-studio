@@ -17,6 +17,7 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         done: true,
         status: "completed",
-        mediaUrl: generation.mediaUrl,
+        mediaUrl: normalizeMediaUrl(generation.mediaUrl) || generation.mediaUrl,
       });
     }
 
@@ -186,7 +187,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       done: true,
       status: "completed",
-      mediaUrl: publicUrl,
+      mediaUrl: normalizeMediaUrl(publicUrl) || publicUrl,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";

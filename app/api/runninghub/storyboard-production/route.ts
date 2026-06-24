@@ -15,6 +15,7 @@ import {
   verifyStoryboardReferenceSafetyToken,
 } from "@/lib/storyboard-reference-safety";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
@@ -489,9 +490,10 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       if (r.status === "success" && r.urls.length > 0) {
-        outputs.push(r.urls[0]);
+        const normalizedUrl = normalizeMediaUrl(r.urls[0]) || r.urls[0];
+        outputs.push(normalizedUrl);
         // Persist each panel URL to its Generation row.
-        await setGenerationMediaUrl(panelGenerationIds[i], r.urls[0]).catch(() => null);
+        await setGenerationMediaUrl(panelGenerationIds[i], normalizedUrl).catch(() => null);
       } else {
         failures.push(r.error ?? "Panel generation failed");
         // Refund this panel's credits

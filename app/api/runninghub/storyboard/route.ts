@@ -9,6 +9,7 @@ import {
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { uploadBase64ToKie } from "@/lib/shots-adapters";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 /** Allow up to 5 minutes — frames generated in parallel server-side */
 export const maxDuration = 300;
@@ -150,7 +151,8 @@ export async function POST(req: NextRequest) {
 
     const outputs = results
       .map((r) => (r.status === "fulfilled" ? r.value : null))
-      .filter((url): url is string => !!url);
+      .filter((url): url is string => !!url)
+      .map(url => normalizeMediaUrl(url) || url);
 
     if (outputs.length === 0) {
       await refundGenerationCharge(generationId, userId, CREDIT_COST, {
