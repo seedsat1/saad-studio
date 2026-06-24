@@ -1,4 +1,29 @@
 # Saad Studio — Project Context
+## آخر مهمة: إتمام التدقيق المحاسبي والهندسي الصارم للمزودين بناءً على البيانات الخام (2026-06-24)
+
+- **المشكلة**:
+  طلب المالك تدقيقاً نهائياً صارماً مبنياً على البيانات الخام فقط للمزودين الـ 5 لتحديد ما هو ACTUAL وما هو ESTIMATED مع استبعاد أي معادلات داخلية أو قيم افتراضية محلية.
+
+- **الإصلاح والتعديل**:
+  1. مطابقة الاستجابة الخام الفعالة لـ BytePlus (completion_tokens) و KIE (credits) وتتبع حفظها في جداول `Generation` و `ProviderUsageRecord`.
+  2. إثبات عدم وجود تكلفة حقيقية لـ Google و WaveSpeed برمجياً واعتمادهما على `pricing.ts` و `estimateProviderCostSync`.
+  3. تحليل webhook مزود Reap وإثبات اعتماده على المدة فقط، وحساب الكلفة مالياً بشكل محلي وتصنيفه كتقديري.
+  4. إنشاء جدول نهائي للمطابقة والموثوقية وتصنيف المزودين الـ 6 بالكامل.
+
+- **الملفات المتأثرة**:
+  - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+  - [strict_accounting_audit_ar.md](file:///C:/Users/PC/.gemini/antigravity/brain/4a8277ad-f3c1-4aee-a82f-0ce2412cc7ea/strict_accounting_audit_ar.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - مطابقة 100% بين استجابات APIs وقاعدة البيانات وحقول لوحة التحكم.
+  - إثبات أن BytePlus و KIE يمثلان التكلفة الفعلية الحقيقية (ACTUAL)، بينما البقية (Google, WaveSpeed, Reap, OpenAI Direct) تقديرية (ESTIMATED).
+
+- **القرارات المتخذة**:
+  - تصنيف أي مزود يعتمد على `estimateProviderCostSync` أو `pricing.ts` كـ ESTIMATED وليس ACTUAL بناءً على طلب المالك.
+
+- **الخطوة المتبقية**:
+  - تأكيد القبول النهائي من المالك لبيانات التدقيق والبدء في توفير خطط تسعير حقيقية للبقية.
+
 ## آخر مهمة: إصلاح عرض الصور والفيديوهات في صفحات /image و /video (2026-06-24)
 
 - **المشكلة**:
