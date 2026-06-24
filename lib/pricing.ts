@@ -47,7 +47,7 @@ function sanitizePricingModel(input: Partial<PricingModel>): PricingModel {
   };
 }
 
-function resolveConstitutionId(modelRef: string, models: PricingModel[]): string {
+export function resolveConstitutionId(modelRef: string, models: PricingModel[]): string {
   const direct = MODEL_ALIAS_MAP[modelRef];
   if (direct) return direct;
 
@@ -80,7 +80,7 @@ function resolveConstitutionId(modelRef: string, models: PricingModel[]): string
 /**
  * Load constitution models from DB (falls back to DEFAULT_MODELS if DB unavailable).
  */
-async function loadModels(): Promise<PricingModel[]> {
+export async function loadModels(): Promise<PricingModel[]> {
   const now = Date.now();
   if (_cachedModels && now - _cacheTime < CACHE_TTL_MS) return _cachedModels;
 
@@ -403,10 +403,16 @@ const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "480p": 0.5, "720p": 1.0 },
   "bytedance/seedance-v2/text-to-video-fast":   { "480p": 0.5, "720p": 1.0 },
   "seedance2f":                                 { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-2":                       { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
-  "bytedance/seedance-v2/text-to-video":        { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
-  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
-  "seedance2":                                  { "480p": 0.8, "720p": 1.0, "1080p": 3.0, "4k": 3.0 },
+  "bytedance/seedance-2":                       { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
+  "seedance2":                                  { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
+  "kwaivgi/kling-v3.0-pro/text-to-video":        { "pro": 1.6, "std": 1.0 },
+  "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.6, "std": 1.0 },
+  "kling-3.0/video":                            { "pro": 1.6, "std": 1.0 },
+  "kling-3.0/motion-control":                   { "pro": 1.6, "std": 1.0 },
+  "kling30":                                    { "pro": 1.6, "std": 1.0 },
+  "kling30_mc":                                 { "pro": 1.6, "std": 1.0 },
 };
 
 function qualityMultiplierForModel(modelRef: string, quality: string | null | undefined): number {

@@ -105,14 +105,14 @@ function getKling3Credits(payload?: VideoPayload): number {
   const isPro = quality === "pro" || quality.includes("1080");
 
   if (is4k) {
-    return parseFloat((duration * 40.0).toFixed(2));
+    return parseFloat((duration * 2.5 * 3.0).toFixed(2));
   }
 
   if (isPro) {
-    return parseFloat((duration * 22.0).toFixed(2));
+    return parseFloat((duration * 2.5 * 1.6).toFixed(2));
   }
 
-  return parseFloat((duration * 15.0).toFixed(2));
+  return parseFloat((duration * 2.5 * 1.0).toFixed(2));
 }
 
 function getKlingMotionCredits(payload?: VideoPayload): number {
@@ -124,21 +124,28 @@ function getKlingMotionCredits(payload?: VideoPayload): number {
 // Kling Omni Edit credit helper removed — endpoint not provided by KIE.
 
 function getSeedance2Credits(payload?: VideoPayload, variant: "hq" | "fast" = "hq"): number {
-  // Base rates reduced to widen the price gap closer to Higgsfield while
-  // keeping >=25% margin on Pro and >=20% on Max.
-  //   HQ:   8.0 -> 7.0 per second
-  //   Fast: 6.7 -> 6.0 per second
   const duration = readDuration(payload, 4);
   const quality = readQuality(payload);
-  let cost = duration * (variant === "fast" ? 6.0 : 7.0);
 
-  if (variant === "hq" && quality.includes("1080")) {
-    cost *= 3;
-  } else if (variant === "fast" && quality.includes("480")) {
-    cost *= 0.5;
-  } else if (quality.includes("480")) {
-    cost *= 0.8;
+  if (variant === "fast") {
+    let cost = duration * 6.0;
+    if (quality.includes("480")) {
+      cost *= 0.5;
+    }
+    return parseFloat(Math.max(1, cost).toFixed(2));
   }
+
+  // HQ variant
+  let cost = duration * 4.5333;
+  let qMul = 1.0;
+  if (quality.includes("480")) {
+    qMul = 0.661765;
+  } else if (quality.includes("1080")) {
+    qMul = 1.985294;
+  } else if (quality.includes("4k")) {
+    qMul = 4.852941;
+  }
+  cost *= qMul;
 
   return parseFloat(Math.max(1, cost).toFixed(2));
 }
