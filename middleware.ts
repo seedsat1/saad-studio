@@ -52,6 +52,9 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback(.*)',
   '/panel(.*)',
   '/api/panel(.*)',
+  '/api/assets(.*)',
+  '/api/download(.*)',
+  '/api/proxy-image(.*)',
   '/api/promo(.*)',
   '/connect-claude(.*)',
   '/smart-cli(.*)',
@@ -268,7 +271,17 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   if (!isLocalDev && !isPublicRoute(req)) {
-    auth().protect()
+    if (pathname.startsWith("/api/")) {
+      const { userId } = auth();
+      if (!userId) {
+        return applySecurityHeaders(
+          NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+          req
+        );
+      }
+    } else {
+      auth().protect();
+    }
   }
   return applySecurityHeaders(NextResponse.next(), req);
 })
