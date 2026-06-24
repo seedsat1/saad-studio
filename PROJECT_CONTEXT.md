@@ -23,30 +23,29 @@
 - **الخطوة المتبقية**:
   - إعادة نشر الموقع لتفعيل الإصلاح على الخوادم الإنتاجية.
 
-## آخر مهمة: إثبات وتتبع التكلفة الفعلية لـ KIE و BytePlus (2026-06-24)
+## آخر مهمة: تدقيق وتتبع التكلفة الفعلية لـ WaveSpeed و Reap و OpenAI (2026-06-24)
 
 - **المشكلة**:
-  إثبات عملية تتبع التكلفة الحقيقية لـ BytePlus و KIE عبر تنفيذ عمليات توليد وتتبع وحفظ التكاليف حيةً والتأكد من مطابقة dashboard لـ `ACTUAL` و `actual` ومعرفة الحقول المسترجعة من APIs.
+  إجراء تدقيق كامل ومطابقة فنية لحساب وحفظ تكاليف WaveSpeed و Reap و OpenAI (ابن أي أي) في قاعدة البيانات وجداول التتبع ومقارنتها مع البيانات الخام للمزودين.
 
 - **الإصلاح والتعديل**:
-  1. إنشاء سكربت `scratch/run-kie-kling-test.js` لتشغيل توليد حقيقي عبر Kling/KIE والتحقق من الاستجابة والـ polling والـ callback، وتخزين النتائج الفعالة بـ `actual` وحساب كلفة USD ($0.005 لكل كريديت).
-  2. إنشاء سكربت `scratch/run-byteplus-simulation.js` لمحاكاة دورة حياة Seedance/BytePlus بالكامل ومقارنتها باستجابة Volcengine v3 API للتأكيد على جلب `completion_tokens` وتحديث حالة قاعدة البيانات بـ `actual` وحساب التكلفة ($4.30 لكل 1M tokens).
+  1. إجراء فحص معماري شامل لآلية تسجيل وتتبع التكاليف للمزودين الثلاثة ومقارنة مساراتهم البرمجية في `lib/pricing.ts` و `lib/credit-ledger.ts` ومسارات الحالة والـ webhooks.
+  2. توثيق وحفظ التدقيق المالي والهندسي الكامل باللغة العربية في الملف [wavespeed_reap_openai_audit_ar.md](file:///C:/Users/PC/.gemini/antigravity/brain/4a8277ad-f3c1-4aee-a82f-0ce2412cc7ea/wavespeed_reap_openai_audit_ar.md).
 
 - **الملفات المتأثرة**:
   - [PROJECT_CONTEXT.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
-  - [scratch/run-kie-kling-test.js](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/scratch/run-kie-kling-test.js) [NEW]
-  - [scratch/run-byteplus-simulation.js](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/scratch/run-byteplus-simulation.js) [NEW]
+  - [wavespeed_reap_openai_audit_ar.md](file:///C:/Users/PC/.gemini/antigravity/brain/4a8277ad-f3c1-4aee-a82f-0ce2412cc7ea/wavespeed_reap_openai_audit_ar.md) [NEW/ARTIFACT]
 
 - **نتائج التحقق**:
-  - نجاح تشغيل Kling Live Task بـ ID: `3286ea1b360fd7fef5d637caf6bd0676` وحالة `SUCCESS` بعد 30 polling.
-  - إثبات تحديث `providerCostSource` إلى `actual` و `providerCostUsd` إلى `0.7` بناءً على رصيد الكريديت `140` المستهلك.
-  - إثبات طريقة معالجة BytePlus لـ `usage.completion_tokens` لتسجيل الكلفة الحقيقية بالدولار ديناميكياً بدلاً من ESTIMATED بمجرد اكتمال المعالجة.
+  - **WaveSpeed**: الكلفة تظل تقديرية `estimated` لعدم وجود توكنز أو كريديت في استجابة المزود. تُضرب المدة بالثواني في التسعيرة الافتراضية للنموذج.
+  - **Reap**: ينتقل بنجاح من `estimated` إلى `actual` فور استلام webhook النهاية واحتساب الكلفة بناءً على المدة الحقيقية للفيديو المعالج.
+  - **OpenAI**: نموذج GPT-4 يظل تقديرياً (`$0.002` flat). أما Sora 2 و DALL-E 3 (الممررة عبر KIE.ai) فتتحول تكلفتها إلى `actual` بناءً على الكريديت المستهلك من KIE (`credits * 0.005`).
 
 - **القرارات المتخذة**:
-  - تأكيد أن تتبع التكلفة الفعلية يعمل بنسبة 100% ويستبدل القيم التقديرية فور انتهاء المعالجة.
+  - تمييز وتصنيف فئات المزودين بدقة لضمان الشفافية المالية وتطوير أدوات القياس والربحية.
 
 - **الخطوة المتبقية**:
-  - مراجعة المالك واتخاذ القرار النهائي حول التسعير.
+  - مراجعة المالك لتقارير التدقيق واتخاذ القرار بشأن النشر النهائي وتعديل دستور التسعير.
 
 ## المهمة السابقة: توسيع تتبع تكلفة المزود ليشمل جميع المزودين ولوحة التحكم (2026-06-24)
 
