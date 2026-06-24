@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getClientSafePresets } from "@/lib/transition-presets";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ async function loadMediaMap(): Promise<Record<string, string>> {
         return Object.fromEntries(
           Object.entries(map as Record<string, unknown>).filter(
             ([, v]) => typeof v === "string",
-          ) as Array<[string, string]>,
+          ).map(([k, v]) => [k, normalizeMediaUrl(v) || ""]) as Array<[string, string]>,
         );
       }
     }
@@ -32,7 +33,7 @@ export async function GET() {
 
   const merged = presets.map((p: { id: string; previewVideoUrl?: string; [k: string]: unknown }) => ({
     ...p,
-    previewVideoUrl: mediaMap[p.id] || p.previewVideoUrl || "",
+    previewVideoUrl: normalizeMediaUrl(mediaMap[p.id] || p.previewVideoUrl || "") || "",
   }));
 
   return NextResponse.json(
