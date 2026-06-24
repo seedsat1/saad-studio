@@ -1,0 +1,1 @@
+const { PrismaClient } = require(\ @prisma/client\\); const prisma = new PrismaClient(); async function main() { const rows = await prisma.pricingConstitution.findMany(); console.log(\\Found \\ + rows.length + \ rows\\); rows.forEach(r => console.log(\\- ID: \\ + r.id + \ Rate: \\ + r.userCreditsRate)); } main().catch(console.error).finally(() => prisma.\$disconnect());
