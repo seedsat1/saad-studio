@@ -9,6 +9,13 @@ function getR2Client(): S3Client {
   if (r2Client) return r2Client;
 
   const accountId = process.env.R2_ACCOUNT_ID || "";
+  console.log("[getR2Client] Initializing R2 client with:", {
+    accountId: accountId ? `${accountId.slice(-6)}…` : "not set",
+    endpoint: process.env.R2_ENDPOINT || `https://${accountId}.r2.cloudflarestorage.com`,
+    hasAccessKey: Boolean(process.env.R2_ACCESS_KEY_ID),
+    hasSecretKey: Boolean(process.env.R2_SECRET_ACCESS_KEY),
+  });
+
   r2Client = new S3Client({
     region: process.env.R2_REGION || "auto",
     endpoint: process.env.R2_ENDPOINT || `https://${accountId}.r2.cloudflarestorage.com`,
@@ -38,14 +45,17 @@ export async function GET(
 ) {
   try {
     const bucketName = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || "saadstudio-media";
-    
+    console.log("[api/media GET] Request for path:", params.path);
+
     // Reconstruct the key from path parameters
     const pathParts = params.path || [];
     if (pathParts.length === 0) {
+      console.log("[api/media GET] No path parts, 404");
       return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
     }
     
     const key = pathParts.join("/");
+    console.log("[api/media GET] Looking for key:", key, "in bucket:", bucketName);
     
     const client = getR2Client();
     const command = new GetObjectCommand({
@@ -53,15 +63,22 @@ export async function GET(
       Key: key,
     });
     
+    console.log("[api/media GET] Sending GetObjectCommand to R2…");
     const response = await client.send(command);
+    console.log("[api/media GET] R2 response status:", response.$metadata.httpStatusCode);
+    
     if (!response.Body) {
+      console.log("[api/media GET] R2 response has no body");
       return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
     }
     
     const contentType = response.ContentType || "application/octet-stream";
     const cacheControl = response.CacheControl || "public, max-age=31536000, immutable";
     
+    console.log("[api/media GET] Converting R2 Body to byte array…");
     const bytes = await response.Body.transformToByteArray();
+    
+    console.log("[api/media GET] Returning", bytes.length, "bytes with Content-Type:", contentType);
     
     return new NextResponse(bytes, {
       status: 200,
@@ -73,7 +90,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[api/media] Failed to fetch R2 media", error);
+    console.error("[api/media GET] Failed to fetch R2 media:", error);
     return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
   }
 }
