@@ -94,6 +94,7 @@ export async function POST(req: Request) {
       assetType: "AUDIO",
       modelUsed: model,
       duration: duration ?? 30,
+      requestPayload: body,
     });
     chargedCredits = creditsToCharge;
     generationId = charge.generationId;

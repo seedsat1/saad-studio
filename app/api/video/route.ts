@@ -1236,6 +1236,7 @@ export async function POST(req: Request) {
         providerCostUsd: bpEstimatedCost,
         providerTokens: bpTokens,
         providerCostSource: "estimated",
+        requestPayload: payload,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1379,6 +1380,7 @@ export async function POST(req: Request) {
         providerModel: isDirectGoogleVeo31ProRoute ? "veo-3.1-generate-preview" : modelRoute,
         providerCostUsd: googleCostEst.usd,
         providerCostSource: googleCostEst.source,
+        requestPayload: payload,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1489,6 +1491,7 @@ export async function POST(req: Request) {
         providerModel: wavespeedRoute,
         providerCostUsd: wsCostEst.usd,
         providerCostSource: wsCostEst.source,
+        requestPayload: payload,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -1621,6 +1624,7 @@ export async function POST(req: Request) {
       providerCostUsd: kieCostEst.usd,
       providerCredits: kieCostEst.usd ? kieCostEst.usd / 0.005 : null,
       providerCostSource: kieCostEst.source,
+      requestPayload: payload,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

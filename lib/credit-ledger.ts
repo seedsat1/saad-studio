@@ -363,6 +363,12 @@ type SpendCreditsInput = {
   providerTokens?: number | null;
   providerCredits?: number | null;
   providerCostSource?: string | null;
+
+  // Snapshot fields
+  generationType?: string | null;
+  mode?: string | null;
+  requestPayload?: any;
+  estimatedProviderCostUsd?: number | null;
 };
 
 type CreditLedgerReason =
@@ -478,6 +484,106 @@ async function resolveProviderTrackingFallback(input: {
   };
 }
 
+async function createRequestSnapshot(
+  tx: any,
+  generationId: string,
+  userId: string,
+  input: SpendCreditsInput,
+  resolved: any,
+  credits: number
+) {
+  try {
+    const payload = input.requestPayload || null;
+    let mode = input.mode || null;
+    let generationType = input.generationType || null;
+    let duration = input.duration ?? null;
+    let resolution = input.resolution ?? null;
+    let aspectRatio = input.aspectRatio ?? null;
+    let quality = input.quality ?? null;
+
+    // Try to infer from payload if not explicitly passed
+    if (payload && typeof payload === "object") {
+      // mode
+      if (!mode) {
+        mode = payload.mode ?? payload.quality ?? payload.style ?? null;
+      }
+      // generationType
+      if (!generationType) {
+        generationType = payload.generation_type ?? payload.generationType ?? payload.type ?? null;
+        if (!generationType) {
+          const hasImage = !!(
+            payload.image_url ??
+            payload.imageUrl ??
+            payload.image ??
+            payload.images ??
+            payload.first_frame_url ??
+            payload.firstFrameUrl ??
+            payload.start_image ??
+            payload.startImage ??
+            payload.reference_image_urls ??
+            payload.referenceImageUrls ??
+            payload.imageUrls ??
+            payload.imageUrlList
+          );
+          const isVideo = String(input.assetType || "").toLowerCase().includes("video");
+          if (isVideo) {
+            generationType = hasImage ? "image-to-video" : "text-to-video";
+          } else {
+            generationType = hasImage ? "image-to-image" : "text-to-image";
+          }
+        }
+      }
+      // duration
+      if (duration === null || duration === undefined) {
+        duration = payload.duration ?? payload.duration_seconds ?? payload.seconds ?? null;
+      }
+      // resolution
+      if (!resolution) {
+        resolution = payload.resolution ?? payload.target_res ?? payload.size ?? null;
+      }
+      // aspectRatio
+      if (!aspectRatio) {
+        aspectRatio = payload.aspect_ratio ?? payload.aspectRatio ?? payload.ratio ?? null;
+      }
+      // quality
+      if (!quality) {
+        quality = payload.quality ?? payload.mode ?? null;
+      }
+    }
+
+    // Coerce values to clean types
+    if (duration !== null && duration !== undefined) {
+      duration = Number(duration);
+      if (isNaN(duration)) duration = null;
+    }
+    if (mode !== null && mode !== undefined) mode = String(mode);
+    if (generationType !== null && generationType !== undefined) generationType = String(generationType);
+    if (resolution !== null && resolution !== undefined) resolution = String(resolution);
+    if (aspectRatio !== null && aspectRatio !== undefined) aspectRatio = String(aspectRatio);
+    if (quality !== null && quality !== undefined) quality = String(quality);
+
+    await tx.generationRequestSnapshot.create({
+      data: {
+        generationId,
+        userId,
+        provider: resolved.providerName ?? null,
+        model: resolved.providerModel ?? null,
+        generationType,
+        duration,
+        resolution,
+        aspectRatio,
+        quality,
+        mode,
+        userCreditsCharged: credits,
+        estimatedProviderCostUsd: resolved.providerCostUsd ?? null,
+        requestPayload: payload,
+      },
+    });
+  } catch (error) {
+    console.error("[createRequestSnapshot] Failed to write generation request snapshot:", error);
+  }
+}
+
 export async function spendCredits(input: SpendCreditsInput) {
   const credits = Math.max(0, Math.ceil(input.credits));
   if (credits <= 0) {
@@ -570,6 +676,8 @@ export async function spendCredits(input: SpendCreditsInput) {
       },
     });
 
+    await createRequestSnapshot(tx, generation.id, input.userId, input, resolved, credits);
+
     await tryCreateCreditLedgerEntry(tx as any, {
       userId: input.userId,
       generationId: generation.id,
@@ -647,6 +755,8 @@ export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credi
       status: input.mediaUrl && isPublicHttpUrl(input.mediaUrl) ? "completed" : "queued",
     },
   });
+
+  await createRequestSnapshot(prismadb, generation.id, input.userId, input, resolved, 0);
 
   return { remainingCredits: null, generationId: generation.id };
 }

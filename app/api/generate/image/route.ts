@@ -610,6 +610,7 @@ export async function POST(req: NextRequest) {
       modelUsed: modelId,
       resolution: chargeQuality,
       aspectRatio,
+      requestPayload: body,
     };
     const spent = unlimited.eligible
       ? await recordFreeGeneration(chargeInput)

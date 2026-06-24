@@ -94,6 +94,7 @@ model Generation {
   @@index([userId])
   @@index([createdAt])
   providerUsageRecords ProviderUsageRecord[]
+  generationRequestSnapshot GenerationRequestSnapshot?
 }
 
 model ProviderUsageRecord {
@@ -123,6 +124,28 @@ model ProviderUsageRecord {
   @@index([providerRequestId])
   @@index([createdAt])
 }
+
+model GenerationRequestSnapshot {
+  id                        String      @id @default(cuid())
+  generationId              String      @unique
+  generation                Generation  @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  userId                    String
+  provider                  String?
+  model                     String?
+  generationType            String?
+  duration                  Float?
+  resolution                String?
+  aspectRatio               String?
+  quality                   String?
+  mode                      String?
+  userCreditsCharged        Float?
+  estimatedProviderCostUsd  Float?
+  requestPayload            Json?
+  createdAt                 DateTime    @default(now())
+
+  @@index([generationId])
+}
+
 
 /// Financial transactions: subscriptions and credit purchases.
 model AdminTransaction {

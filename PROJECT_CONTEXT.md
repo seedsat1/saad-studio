@@ -1,4 +1,38 @@
 # Saad Studio — Project Context
+## آخر مهمة: إضافة جدول تتبع تفاصيل الطلب الأصلي والـ Snapshot لقاعدة البيانات ولوحة التحكم (2026-06-25)
+
+- **المشكلة**:
+  فقدان سجلات التوليد لبعض مواصفات الطلب الأصلية (UNKNOWN أو NULL) بعد انتهاء العمليات أو callbacks للمزودين (مثل Google, BytePlus, KIE.ai, OpenAI, WaveSpeed, Reap) مما يمنع تدقيق الربحية وتحليل استخدام المستخدمين.
+
+- **الإصلاح والتعديل**:
+  1. إضافة نموذج `GenerationRequestSnapshot` في [schema.prisma](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) مع علاقة 1-إلى-1 cascading مع `Generation` وتطبيق الهجرة باستخدام `npx prisma db push`.
+  2. تعديل [credit-ledger.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) لإضافة دالة `createRequestSnapshot` لحفظ مواصفات الطلب لحظة الإرسال (Pre-callback) واستدعائها داخل دالتي `spendCredits` و `recordFreeGeneration`.
+  3. تحديث مسارات توليد الميديا الرئيسية (Legacy/Studio Video, Legacy/Studio Image, Music) لتمرير الـ `body` الكامل كـ `requestPayload` لـ `spendCredits`.
+  4. تحديث API لوحة التحكم [route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-costs/route.ts) ليقوم بعمل join لجدول الـ snapshot واستخدام قيمه كـ fallback وحساب النسب ونوع التوليد.
+  5. تعديل واجهة لوحة التحكم [page.tsx](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/provider-costs/page.tsx) لإضافة عمودي "Type" و "Aspect Ratio" وإدراج زر "Payload" لفتح نافذة Modal تفاعلية ممتازة تسمح للإدارة بمعاينة كائن الطلب الأصلي JSON بالكامل.
+
+- **الملفات المتأثرة**:
+  - [prisma/schema.prisma](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) [MODIFY]
+  - [lib/credit-ledger.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) [MODIFY]
+  - [app/api/generate/video/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/video/route.ts) [MODIFY]
+  - [app/api/video/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [app/api/generate/image/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/image/route.ts) [MODIFY]
+  - [app/api/image/generate/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/image/generate/route.ts) [MODIFY]
+  - [app/api/music/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/music/route.ts) [MODIFY]
+  - [app/api/admin/provider-costs/route.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-costs/route.ts) [MODIFY]
+  - [app/admin/provider-costs/page.tsx](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/provider-costs/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - جاري التحقق من سلامة البناء عبر `npm run build`.
+
+- **القرارات المتخذة**:
+  - استخدام جدول منفصل `GenerationRequestSnapshot` وتخزين الـ requestPayload كـ `Json` لعزل حمولات قاعدة البيانات الكبيرة وتسهيل الفلترة والبحث مستقبلاً دون إبطاء الاستعلامات الأساسية لـ `Generation`.
+  - معالجة أي أخطاء محتملة في المزامنة أو قراءة الـ snapshot برمجياً مع قيم fallback افتراضية لضمان سلامة واستمرارية عمل المنصة.
+
+- **الخطوة المتبقية**:
+  - اختبار عملية توليد كاملة ومراقبة إدراج الـ snapshot في قاعدة البيانات وعرضه في لوحة التحكم الإدارية.
+
 ## آخر مهمة: معالجة استثناءات تشغيل الوسائط لتجنب Unhandled Promise Rejection (2026-06-25)
 
 - **المشكلة**:

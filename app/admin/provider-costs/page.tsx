@@ -36,6 +36,10 @@ interface ProviderCostRow {
   margin: number | null;
   costSource: "actual" | "estimated" | "unknown";
   createdAt: string;
+  // Snapshot additions
+  generationType?: string | null;
+  aspectRatio?: string | null;
+  requestPayload?: any;
 }
 
 export default function ProviderCostTrackingPage() {
@@ -44,6 +48,7 @@ export default function ProviderCostTrackingPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPayload, setSelectedPayload] = useState<{ payload: any; model: string; user: string } | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -324,11 +329,13 @@ export default function ProviderCostTrackingPage() {
               <tr className="border-b border-slate-850 bg-slate-950/80 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 <th className="px-4 py-4">User</th>
                 <th className="px-4 py-4">Model</th>
+                <th className="px-2 py-4 text-center">Type</th>
                 <th className="px-4 py-4">Provider</th>
                 <th className="px-4 py-4">Task ID</th>
                 <th className="px-4 py-4 text-center">Duration</th>
                 <th className="px-4 py-4 text-center">Resolution</th>
                 <th className="px-4 py-4 text-center">Quality</th>
+                <th className="px-2 py-4 text-center">Aspect Ratio</th>
                 <th className="px-4 py-4 text-center">User Credits Charged</th>
                 <th className="px-4 py-4 text-right">Provider Credits</th>
                 <th className="px-4 py-4 text-right">Provider Tokens</th>
@@ -336,6 +343,7 @@ export default function ProviderCostTrackingPage() {
                 <th className="px-4 py-4 text-center">Cost Source</th>
                 <th className="px-4 py-4 text-right">Profit</th>
                 <th className="px-4 py-4 text-center">Margin</th>
+                <th className="px-2 py-4 text-center">Payload</th>
                 <th className="px-4 py-4 text-right">Date</th>
               </tr>
             </thead>
@@ -343,14 +351,14 @@ export default function ProviderCostTrackingPage() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={15} className="px-4 py-4 text-center text-slate-500">
+                    <td colSpan={18} className="px-4 py-4 text-center text-slate-500">
                       Loading data row...
                     </td>
                   </tr>
                 ))
               ) : filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={15} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={18} className="px-4 py-12 text-center text-slate-500">
                     No cost tracking records found matching active filters.
                   </td>
                 </tr>
@@ -380,6 +388,15 @@ export default function ProviderCostTrackingPage() {
                       <td className="px-4 py-4 font-mono max-w-[150px] truncate text-slate-400" title={row.model}>
                         {row.model}
                       </td>
+                      <td className="px-2 py-4 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          row.generationType === "T2V" || row.generationType === "I2V"
+                            ? "bg-indigo-950/40 text-indigo-300 border border-indigo-500/10"
+                            : "bg-slate-800/40 text-slate-400"
+                        }`}>
+                          {row.generationType ?? "UNKNOWN"}
+                        </span>
+                      </td>
                       <td className="px-4 py-4 font-semibold text-slate-200">
                         {row.provider}
                       </td>
@@ -398,6 +415,9 @@ export default function ProviderCostTrackingPage() {
                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${row.quality ? "bg-slate-800/60 text-slate-400 capitalize" : "text-slate-500"}`}>
                           {row.quality ?? "UNKNOWN"}
                         </span>
+                      </td>
+                      <td className="px-2 py-4 text-center text-slate-400 font-mono text-[11px]">
+                        {row.aspectRatio ?? "UNKNOWN"}
                       </td>
                       <td className="px-4 py-4 text-center font-bold text-teal-400">
                         {row.creditsCharged}
@@ -431,6 +451,20 @@ export default function ProviderCostTrackingPage() {
                           {row.margin !== null ? `${row.margin.toFixed(1)}%` : "UNKNOWN"}
                         </span>
                       </td>
+                      <td className="px-2 py-4 text-center">
+                        <button
+                          onClick={() => setSelectedPayload(row.requestPayload ? { payload: row.requestPayload, model: row.model, user: row.userEmail } : null)}
+                          disabled={!row.requestPayload}
+                          className={`p-1.5 rounded-lg border transition-colors ${
+                            row.requestPayload
+                              ? "bg-slate-900 border-slate-800 hover:bg-slate-800 text-teal-400 hover:text-teal-300"
+                              : "bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed"
+                          }`}
+                          title={row.requestPayload ? "View request payload snapshot" : "No request payload snapshot available"}
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                       <td className="px-4 py-4 text-right text-[10px] text-slate-500 whitespace-nowrap">
                         {new Date(row.createdAt).toLocaleDateString(undefined, {
                           month: "short",
@@ -447,6 +481,41 @@ export default function ProviderCostTrackingPage() {
           </table>
         </div>
       </section>
+
+      {/* ── PAYLOAD INSPECTOR MODAL ────────────────────────────────────── */}
+      {selectedPayload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-955/80 backdrop-blur-sm">
+          <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/40">
+              <div>
+                <h3 className="text-base font-bold text-slate-100">Original Request Payload</h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  User: <span className="font-mono text-slate-300">{selectedPayload.user}</span> • Model: <span className="font-mono text-slate-300">{selectedPayload.model}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedPayload(null)}
+                className="text-slate-400 hover:text-slate-200 transition-colors p-1.5 hover:bg-slate-800 rounded-lg text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto font-mono text-xs text-slate-300 bg-slate-950/20 max-h-[60vh]">
+              <pre className="p-4 bg-slate-950 rounded-xl border border-slate-850 overflow-x-auto whitespace-pre-wrap select-text">
+                {JSON.stringify(selectedPayload.payload, null, 2)}
+              </pre>
+            </div>
+            <div className="flex justify-end px-6 py-4 border-t border-slate-800 bg-slate-950/40">
+              <button
+                onClick={() => setSelectedPayload(null)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

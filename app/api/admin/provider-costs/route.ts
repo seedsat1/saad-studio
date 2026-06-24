@@ -42,7 +42,8 @@ export async function GET(req: Request) {
         },
         providerUsageRecords: {
           take: 1
-        }
+        },
+        generationRequestSnapshot: true,
       }
     });
 
@@ -52,17 +53,20 @@ export async function GET(req: Request) {
       const revenue = gen.cost * actualCreditValue;
 
       const usage = gen.providerUsageRecords[0] || null;
+      const snap = gen.generationRequestSnapshot || null;
 
-      let duration = usage ? usage.duration : gen.duration;
-      let resolution = usage ? usage.resolution : gen.resolution;
-      let quality = usage ? usage.quality : gen.quality;
-      let providerCostUsd = usage ? usage.providerCostUsd : gen.providerCostUsd;
-      let providerCostSource = usage ? usage.providerCostSource : gen.providerCostSource;
+      let duration = usage ? usage.duration : (gen.duration ?? snap?.duration);
+      let resolution = usage ? usage.resolution : (gen.resolution ?? snap?.resolution);
+      let quality = usage ? usage.quality : (gen.quality ?? snap?.quality);
+      let aspectRatio = usage ? usage.aspectRatio : (gen.aspectRatio ?? snap?.aspectRatio);
+
+      let providerCostUsd = usage ? usage.providerCostUsd : (gen.providerCostUsd ?? snap?.estimatedProviderCostUsd);
+      let providerCostSource = usage ? usage.providerCostSource : (gen.providerCostSource ?? (snap?.estimatedProviderCostUsd !== null && snap?.estimatedProviderCostUsd !== undefined ? "estimated" : null));
       let providerCredits = usage ? usage.providerCredits : gen.providerCredits;
       let providerTokens = usage ? usage.providerTokens : gen.providerTokens;
       let providerRequestId = usage ? usage.providerRequestId : gen.providerRequestId;
-      let providerName = usage ? usage.providerName : gen.providerName;
-      let providerModel = usage ? usage.providerModel : gen.providerModel;
+      let providerName = usage ? usage.providerName : (gen.providerName ?? snap?.provider);
+      let providerModel = usage ? usage.providerModel : (gen.providerModel ?? snap?.model);
 
       // Estimate only if we have sufficient details
       if (providerCostUsd === null || providerCostUsd === undefined) {
@@ -114,6 +118,29 @@ export async function GET(req: Request) {
         }
       }
 
+      // Normalize generationType
+      const generationType = snap?.generationType ?? (gen.type ? (gen.type === "video" ? "text-to-video" : "text-to-image") : null);
+      let typeAbbr = "UNKNOWN";
+      if (generationType) {
+        const gt = generationType.toLowerCase();
+        if (gt.includes("text-to-video") || gt === "t2v") typeAbbr = "T2V";
+        else if (gt.includes("image-to-video") || gt === "i2v") typeAbbr = "I2V";
+        else if (gt.includes("text-to-image") || gt === "t2i") typeAbbr = "T2I";
+        else if (gt.includes("image-to-image") || gt === "i2i") typeAbbr = "I2I";
+        else if (gt.includes("audio") || gt.includes("music")) typeAbbr = "AUDIO";
+        else typeAbbr = generationType.toUpperCase();
+      } else {
+        const modelLower = gen.modelUsed.toLowerCase();
+        const assetLower = (gen.assetType || "").toLowerCase();
+        if (assetLower.includes("video") || modelLower.includes("video") || modelLower.includes("kling") || modelLower.includes("seedance") || modelLower.includes("veo")) {
+          typeAbbr = "T2V";
+        } else if (assetLower.includes("audio") || modelLower.includes("music")) {
+          typeAbbr = "AUDIO";
+        } else {
+          typeAbbr = "T2I";
+        }
+      }
+
       return {
         id: gen.id,
         userEmail: gen.user?.email || "Unknown",
@@ -123,7 +150,7 @@ export async function GET(req: Request) {
         duration: duration || null,
         resolution: resolution || null,
         quality: quality || null,
-        creditsCharged: gen.cost,
+        creditsCharged: gen.cost || (snap?.userCreditsCharged ?? 0),
         providerCostUsd: providerCostUsd !== null ? parseFloat(providerCostUsd.toFixed(4)) : null,
         providerTokens: providerTokens || null,
         providerCredits: providerCredits || null,
@@ -131,6 +158,9 @@ export async function GET(req: Request) {
         margin: marginPercent !== null ? parseFloat(marginPercent.toFixed(2)) : null,
         costSource: providerCostSource,
         createdAt: gen.createdAt,
+        generationType: typeAbbr,
+        aspectRatio: aspectRatio || null,
+        requestPayload: snap?.requestPayload || null,
       };
     });
 

@@ -234,6 +234,7 @@ export async function POST(req: NextRequest) {
       resolution,
       aspectRatio,
       quality,
+      requestPayload: body,
     });
     generationId = charge.generationId;
     chargedCredits = creditsToCharge;

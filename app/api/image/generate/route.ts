@@ -115,6 +115,7 @@ export async function POST(req: Request) {
       modelUsed: model,
       resolution: chargeQuality,
       aspectRatio,
+      requestPayload: body,
     };
     const charge = unlimited.eligible
       ? await recordFreeGeneration(chargeInput)
