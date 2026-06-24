@@ -22,6 +22,16 @@ function getR2Client(): S3Client {
   return r2Client;
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "*",
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { path: string[] } }
@@ -32,7 +42,7 @@ export async function GET(
     // Reconstruct the key from path parameters
     const pathParts = params.path || [];
     if (pathParts.length === 0) {
-      return new NextResponse("Not Found", { status: 404 });
+      return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
     }
     
     const key = pathParts.join("/");
@@ -45,7 +55,7 @@ export async function GET(
     
     const response = await client.send(command);
     if (!response.Body) {
-      return new NextResponse("Not Found", { status: 404 });
+      return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
     }
     
     const contentType = response.ContentType || "application/octet-stream";
@@ -59,10 +69,11 @@ export async function GET(
         "Content-Type": contentType,
         "Cache-Control": cacheControl,
         "Content-Length": String(bytes.length),
+        ...corsHeaders,
       },
     });
   } catch (error) {
     console.error("[api/media] Failed to fetch R2 media", error);
-    return new NextResponse("Not Found", { status: 404 });
+    return NextResponse.json("Not Found", { status: 404, headers: corsHeaders });
   }
 }
