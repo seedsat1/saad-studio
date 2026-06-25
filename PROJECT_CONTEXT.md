@@ -1,4 +1,30 @@
 # Saad Studio — Project Context
+## آخر مهمة: استعادة واستقرار Seedance 2.0 الأصلي وحذف مسارات الاكتشاف المؤقتة (2026-06-25)
+
+- **المشكلة**:
+  1. الحاجة لضمان استقرار موديل Seedance 2.0 الأصلي والتراجع عن تغييرات Mini المؤقتة لتفادي أي regressions.
+  2. تسرب مفتاح الـ API لـ BytePlus بطريق الخطأ في قيم التراجع الافتراضية، وضرورة إزالته فوراً وتأمين البيئة.
+  3. الحاجة إلى حذف مسارات الاكتشاف العام (`/api/temp-discover`) لمنع أي وصول خارجي للمفاتيح الحساسة.
+
+- **الإصلاح والتعديل**:
+  1. التراجع عن تغييرات fallbacks في `lib/providers/byteplus-video.ts` واستعادة القيم الافتراضية السابقة بالكامل.
+  2. حذف مسار `/api/temp-discover/route.ts` واستبعاد المعرّف الخاص به من `middleware.ts`.
+  3. كتابة وتشغيل سكربت الفحص المحلي `scratch/test-real-generation.js` للتحقق من سلامة الموديلات باستعمال المفتاح الصحيح المحدث محلياً في `.env.local` دون رفعه.
+  4. التحقق بنجاح من توليد موديل Seedance 2.0 الأصلي (`dreamina-seedance-2-0-260128`) وحصوله على `200 OK` واكتمال التوليد بنجاح، مع تأكيد عدم وصول الحساب لـ `dreamina-seedance-2-0-mini-260128` حالياً (يعود بـ 404).
+  5. مسح جميع السكربتات المؤقتة والتحقق من نظافة الـ git diff قبل الدفع النهائي.
+
+- **الملفات المتأثرة**:
+  - [lib/providers/byteplus-video.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-video.ts) [MODIFY]
+  - [middleware.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/middleware.ts) [MODIFY]
+  - [app/api/temp-discover/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/temp-discover/route.ts) [DELETE]
+
+- **نتائج التحقق**:
+  - نجاح تشغيل فحص التوليد الأصلي بنسبة 100% ورجوع الفيديو بنجاح.
+  - خلو الكود تماماً من أي مفاتيح صلبة.
+
+- **القرارات المتخذة**:
+  - عزل وتجميد تكامل Mini لحين توفير وصول كامل له من قبل BytePlus في الحساب، والتركيز على إبقاء الموديل الأساسي آمناً ومستقراً.
+
 ## آخر مهمة: ربط وإضافة موديل Dreamina Seedance 2.0 Mini كخيار مستقل وضبط التسعير التنافسي (2026-06-25)
 
 - **المشكلة**:
