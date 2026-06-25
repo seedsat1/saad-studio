@@ -8,6 +8,11 @@ export const defaultProvider: StorageProvider = new BackblazeProvider();
 export const legacyProvider: StorageProvider = new R2Provider();
 
 function extractMediaPath(url: string): string | null {
+  const apiMediaIndex = url.indexOf("/api/media/");
+  if (apiMediaIndex !== -1) {
+    return url.slice(apiMediaIndex + "/api/media/".length);
+  }
+
   let mediaPath = "";
   const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
   if (match) {

@@ -43,7 +43,7 @@ async function main() {
     console.log("✅ File exists on B2!");
     console.log("Metadata:", res);
   } catch (err: any) {
-    console.error("❌ File does NOT exist on B2 or error checking:", err.message);
+    console.error("❌ File does NOT exist on B2 or error checking:", err);
   }
 }
 

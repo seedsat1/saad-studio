@@ -228,18 +228,23 @@ export default function RootLayout({
                   if (!srcAttr) return;
 
                   let mediaPath = '';
-                  const patterns = [
-                    /https:\\/\\/.*\\.supabase\\.co\\/storage\\/v1\\/object\\/public\\/(.+)/i,
-                    /https:\\/\\/pub-[a-zA-Z0-9]+\\.r2\\.dev\\/(.+)/i,
-                    /https:\\/\\/media\\.saadstudio\\.app\\/(.+)/i,
-                    /https?:\\/\\/(?:www\\.)?saadstudio\\.app\\/api\\/media\\/(.+)/i,
-                    /^\\/api\\/media\\/(.+)/i
-                  ];
-                  for (const regex of patterns) {
-                    const match = srcAttr.match(regex) || (target.src && target.src.match(regex));
-                    if (match && match[1]) {
-                      mediaPath = match[1];
-                      break;
+                  const apiMediaIndex = srcAttr.indexOf('/api/media/');
+                  if (apiMediaIndex !== -1) {
+                    mediaPath = srcAttr.slice(apiMediaIndex + '/api/media/'.length);
+                  } else {
+                    const patterns = [
+                      /https:\\/\\/.*\\.supabase\\.co\\/storage\\/v1\\/object\\/public\\/(.+)/i,
+                      /https:\\/\\/pub-[a-zA-Z0-9]+\\.r2\\.dev\\/(.+)/i,
+                      /https:\\/\\/media\\.saadstudio\\.app\\/(.+)/i,
+                      /https?:\\/\\/(?:www\\.)?saadstudio\\.app\\/api\\/media\\/(.+)/i,
+                      /^\\/api\\/media\\/(.+)/i
+                    ];
+                    for (const regex of patterns) {
+                      const match = srcAttr.match(regex) || (target.src && target.src.match(regex));
+                      if (match && match[1]) {
+                        mediaPath = match[1];
+                        break;
+                      }
                     }
                   }
 

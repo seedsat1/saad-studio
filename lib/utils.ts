@@ -21,9 +21,14 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
   }
   
   let mediaPath = "";
-  const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
-  if (match) {
-    mediaPath = `${match[1]}/${match[2]}`;
+  const apiMediaIndex = url.indexOf("/api/media/");
+  if (apiMediaIndex !== -1) {
+    mediaPath = url.slice(apiMediaIndex + "/api/media/".length);
+  } else {
+    const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
+    if (match) {
+      mediaPath = `${match[1]}/${match[2]}`;
+    }
   }
 
   if (!mediaPath) {

@@ -62,24 +62,35 @@ export async function HEAD(
 
   // 1. Try default provider (Backblaze B2)
   try {
-    const exists = await defaultProvider.exists({ bucket: "", path: key });
-    console.log(`[api/media HEAD] Default provider (Backblaze B2) exists: ${exists}`);
-    if (exists) {
-      const metadata = await defaultProvider.download({ bucket: "", path: key });
-      const fixedContentType = fixContentType(metadata.contentType, key);
-      console.log(`[api/media HEAD] Default provider metadata: content-type=${fixedContentType}, size=${metadata.totalSize}`);
+    const publicUrl = defaultProvider.getPublicUrl("", key);
+    console.log(`[api/media HEAD] Checking B2 public URL: ${publicUrl}`);
+    const checkRes = await fetch(publicUrl, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+    if (checkRes.ok) {
+      const size = checkRes.headers.get("content-length");
+      const contentType = checkRes.headers.get("content-type") || fixContentType(null, key);
+      const cacheControl = checkRes.headers.get("cache-control") || "public, max-age=31536000, immutable";
+      console.log(`[api/media HEAD] Public check success: content-type=${contentType}, size=${size}`);
+      
+      const headers: Record<string, string> = {
+        "Content-Type": contentType,
+        "Cache-Control": cacheControl,
+        ...corsHeaders,
+      };
+      if (size) headers["Content-Length"] = size;
+      
+      const etag = checkRes.headers.get("etag");
+      if (etag) headers["ETag"] = etag;
+      
+      const lm = checkRes.headers.get("last-modified");
+      if (lm) headers["Last-Modified"] = lm;
+
       return new NextResponse(null, {
         status: 200,
-        headers: {
-          "Content-Type": fixedContentType,
-          "Content-Length": String(metadata.totalSize),
-          "Cache-Control": metadata.cacheControl,
-          ...corsHeaders,
-        },
+        headers,
       });
     }
   } catch (err) {
-    console.warn("[api/media HEAD] Default provider failed for key:", key, err);
+    console.warn("[api/media HEAD] Default provider public check failed for key:", key, err);
   }
 
   // 2. Try legacy provider (Cloudflare R2)
@@ -118,36 +129,16 @@ export async function GET(
 
   // 1. Try default provider (Backblaze B2)
   try {
-    const exists = await defaultProvider.exists({ bucket: "", path: key });
-    console.log(`[api/media GET] Default provider (Backblaze B2) exists: ${exists}`);
-    if (exists) {
-      const response = await defaultProvider.download({ bucket: "", path: key, range });
-      const fixedContentType = fixContentType(response.contentType, key);
-      
-      const responseHeaders: Record<string, string> = {
-        "Content-Type": fixedContentType,
-        "Cache-Control": response.cacheControl,
-        ...corsHeaders,
-      };
-
-      if (response.contentRange) {
-        responseHeaders["Content-Range"] = response.contentRange;
-        responseHeaders["Content-Length"] = String(response.contentLength);
-      } else {
-        responseHeaders["Content-Length"] = String(response.totalSize);
-      }
-
-      if (response.etag) responseHeaders["ETag"] = response.etag;
-      if (response.lastModified) responseHeaders["Last-Modified"] = response.lastModified;
-
-      console.log(`[api/media GET] Serving from default provider, content-type: ${fixedContentType}, status: ${range ? 206 : 200}`);
-      return new NextResponse(response.body as ReadableStream, {
-        status: range ? 206 : 200,
-        headers: responseHeaders,
-      });
+    const publicUrl = defaultProvider.getPublicUrl("", key);
+    console.log(`[api/media GET] Checking B2 public URL: ${publicUrl}`);
+    const checkRes = await fetch(publicUrl, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+    if (checkRes.ok) {
+      console.log(`[api/media GET] File exists on B2. Redirecting client to: ${publicUrl}`);
+      // Use 302 redirect so browser streams directly from B2 and handles Range requests automatically
+      return NextResponse.redirect(publicUrl, { status: 302 });
     }
   } catch (err) {
-    console.warn("[api/media GET] Default provider failed for key:", key, err);
+    console.warn("[api/media GET] Default provider check failed for key:", key, err);
   }
 
   // 2. Try legacy provider (Cloudflare R2)
