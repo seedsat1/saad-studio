@@ -456,6 +456,17 @@ export async function getGenerationCost(
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
+
+  if (constitutionId === "seedance2mini") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    if (q === "480p") {
+      return parseFloat((durationSec * numUnits).toFixed(2));
+    } else {
+      const cost = Math.max(0, (28 / 11) * durationSec - (2 / 11));
+      return parseFloat((cost * numUnits).toFixed(2));
+    }
+  }
+
   const perUnit = calcUserCredits(model, durationSec);
   const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
@@ -514,6 +525,17 @@ export function getGenerationCostSync(
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
+
+  if (constitutionId === "seedance2mini") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    if (q === "480p") {
+      return parseFloat((durationSec * numUnits).toFixed(2));
+    } else {
+      const cost = Math.max(0, (28 / 11) * durationSec - (2 / 11));
+      return parseFloat((cost * numUnits).toFixed(2));
+    }
+  }
+
   const perUnit = calcUserCredits(model, durationSec);
   const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
