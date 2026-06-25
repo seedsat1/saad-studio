@@ -16,16 +16,16 @@ const BASE = (
   "https://ark.ap-southeast.bytepluses.com/api/v3"
 ).replace(/\/+$/, "");
 
-const DEFAULT_MODEL = process.env.BYTEPLUS_MODEL ?? "dreamina-seedance-2-0-260128";
+const DEFAULT_MODEL = process.env.BYTEPLUS_MODEL ?? "seedance-pro-2-0-250528";
 
 /** Internal id → BytePlus upstream model. */
 const MODEL_MAP: Record<string, string> = {
   "bytedance/seedance-v2/text-to-video":      DEFAULT_MODEL,
-  "bytedance/seedance-v2/text-to-video-fast": process.env.BYTEPLUS_MODEL_FAST ?? "dreamina-seedance-2-0-lite-260128",
-  "bytedance/seedance-v2/text-to-video-mini": process.env.BYTEPLUS_MODEL_MINI ?? "",
+  "bytedance/seedance-v2/text-to-video-fast": process.env.BYTEPLUS_MODEL_FAST ?? "seedance-lite-2-0-250528",
+  "bytedance/seedance-v2/text-to-video-mini": process.env.BYTEPLUS_MODEL_MINI ?? "seedance-mini-2-0-250528",
   "bytedance/seedance-2":      DEFAULT_MODEL,
-  "bytedance/seedance-2-fast": process.env.BYTEPLUS_MODEL_FAST ?? "dreamina-seedance-2-0-lite-260128",
-  "bytedance/seedance-2-mini": process.env.BYTEPLUS_MODEL_MINI ?? "",
+  "bytedance/seedance-2-fast": process.env.BYTEPLUS_MODEL_FAST ?? "seedance-lite-2-0-250528",
+  "bytedance/seedance-2-mini": process.env.BYTEPLUS_MODEL_MINI ?? "seedance-mini-2-0-250528",
 };
 
 interface CreateTaskResp {
