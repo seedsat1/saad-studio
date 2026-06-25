@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import {
@@ -678,7 +678,7 @@ export default function BulletTimeStudioPage() {
       const json = (await res.json()) as { imageUrls?: string[] };
       let url = json.imageUrls?.[0];
       if (!url) throw new Error("Image URL missing.");
-      const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+      const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
       const isDurableUrl =
         !!url &&
         ((durableBaseUrl && url.startsWith(durableBaseUrl)) ||

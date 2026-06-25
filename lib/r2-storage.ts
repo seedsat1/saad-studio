@@ -17,9 +17,9 @@ const COMMON_EXTENSIONS = [".jpg", ".mp4", ".mp3", ".png", ".webp", ".wav", ".gi
 
 export function isStorageConfigured(): boolean {
   return Boolean(
-    process.env.R2_ACCESS_KEY_ID &&
-    process.env.R2_SECRET_ACCESS_KEY &&
-    (process.env.R2_BUCKET || process.env.R2_BUCKET_NAME)
+    (process.env.B2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID) &&
+    (process.env.B2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY) &&
+    (process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || process.env.R2_BUCKET || process.env.R2_BUCKET_NAME)
   );
 }
 

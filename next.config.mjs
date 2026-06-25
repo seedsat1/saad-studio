@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const r2PublicBaseUrl =
+  process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
+  process.env.B2_PUBLIC_BASE_URL ||
+  process.env.B2_PUBLIC_URL ||
   process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
   process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
   process.env.R2_PUBLIC_BASE_URL ||

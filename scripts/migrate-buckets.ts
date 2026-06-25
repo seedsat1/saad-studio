@@ -92,7 +92,7 @@ async function main() {
         ContinuationToken: continuationToken,
       });
 
-      const listResponse = await r2Client.send(listCommand);
+      const listResponse = (await r2Client.send(listCommand)) as any;
       const contents = listResponse.Contents || [];
 
       if (contents.length === 0) {
@@ -113,9 +113,9 @@ async function main() {
           // 1. Check if it already exists in Backblaze B2 and match sizes
           let b2Exists = false;
           try {
-            const headResponse = await b2Client.send(
+            const headResponse = (await b2Client.send(
               new HeadObjectCommand({ Bucket: b2Bucket, Key: key })
-            );
+            )) as any;
             if (headResponse.ContentLength === size) {
               b2Exists = true;
             }
@@ -131,9 +131,9 @@ async function main() {
 
           // 2. Stream download from R2 and upload to B2
           console.log(`   📥 Downloading from R2...`);
-          const getResponse = await r2Client.send(
+          const getResponse = (await r2Client.send(
             new GetObjectCommand({ Bucket: r2Bucket, Key: key })
-          );
+          )) as any;
 
           if (!getResponse.Body) {
             throw new Error("R2 GET response body is empty");
@@ -145,6 +145,7 @@ async function main() {
               Bucket: b2Bucket,
               Key: key,
               Body: getResponse.Body as any,
+              ContentLength: size,
               ContentType: getResponse.ContentType || "application/octet-stream",
               CacheControl: getResponse.CacheControl || "public, max-age=31536000, immutable",
             })

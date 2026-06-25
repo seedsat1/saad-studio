@@ -22,8 +22,11 @@ export async function GET(
       );
     }
     
-    // محاولة التحميل من R2 أولاً
-    if (process.env.R2_BUCKET && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY) {
+    // محاولة التحميل من التخزين السحابي أولاً
+    const isCloudConfigured = (process.env.B2_BUCKET || process.env.R2_BUCKET) &&
+      (process.env.B2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID) &&
+      (process.env.B2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY);
+    if (isCloudConfigured) {
       return await downloadFromR2(filename);
     }
     

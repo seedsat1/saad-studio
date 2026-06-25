@@ -75,12 +75,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const accountId = getEnv("R2_ACCOUNT_ID");
+  const accountId = getEnv("B2_ACCOUNT_ID", "R2_ACCOUNT_ID");
   const cloudflareApiToken = getEnv("CLOUDFLARE_API_TOKEN", "CF_API_TOKEN");
-  const accessKeyId = getEnv("R2_ACCESS_KEY_ID");
-  const secretAccessKey = getEnv("R2_SECRET_ACCESS_KEY");
-  const bucket = getEnv("R2_BUCKET", "R2_BUCKET_NAME");
-  const endpoint = getEnv("R2_ENDPOINT") || `https://${accountId}.r2.cloudflarestorage.com`;
+  const accessKeyId = getEnv("B2_ACCESS_KEY_ID", "R2_ACCESS_KEY_ID");
+  const secretAccessKey = getEnv("B2_SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY");
+  const bucket = getEnv("B2_BUCKET", "B2_BUCKET_NAME", "R2_BUCKET", "R2_BUCKET_NAME");
+  const endpoint = getEnv("B2_ENDPOINT", "R2_ENDPOINT") || `https://${accountId}.r2.cloudflarestorage.com`;
   const checkOnly = new URL(req.url).searchParams.get("check") === "1";
 
   if ((!accountId && !endpoint) || !accessKeyId || !secretAccessKey || !bucket) {

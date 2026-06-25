@@ -200,7 +200,7 @@ export default function AppToolRuntimePage({
           throw new Error("Video task ID missing from response.");
         }
         let videoUrl = await pollVideoTask(taskId);
-        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
         const isDurableUrl =
           !!videoUrl &&
           ((durableBaseUrl && videoUrl.startsWith(durableBaseUrl)) ||
@@ -221,7 +221,7 @@ export default function AppToolRuntimePage({
         setResult({ videoUrl, mediaUrl: videoUrl });
       } else {
         let url = json.mediaUrl || json.imageUrl || json.audioUrl;
-        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
         const isDurableUrl =
           !!url &&
           ((durableBaseUrl && url.startsWith(durableBaseUrl)) ||

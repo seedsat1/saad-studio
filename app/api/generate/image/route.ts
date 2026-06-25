@@ -361,7 +361,16 @@ async function generateGoogleImage(params: {
   }
 
   const images = extractGoogleInlineImages(json);
-  if (!images.length) throw new Error("Google completed but returned no image.");
+  if (!images.length) {
+    const candidates = json && typeof json === "object" && Array.isArray((json as Record<string, any>).candidates)
+      ? (json as Record<string, any>).candidates
+      : [];
+    const finishReason = candidates[0]?.finishReason;
+    if (finishReason) {
+      throw new Error(`Google image generation was blocked or did not output an image. Reason: ${finishReason}`);
+    }
+    throw new Error(`Google completed but returned no image. Raw response: ${JSON.stringify(json)}`);
+  }
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 

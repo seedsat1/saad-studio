@@ -8,9 +8,9 @@ export async function GET() {
   }
 
   try {
-    const bucketName = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || "saadstudio-storage";
-    const endpoint = process.env.R2_ENDPOINT || "https://s3.eu-central-003.backblazeb2.com";
-    const publicUrl = process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || "";
+    const bucketName = process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || "saadstudio-storage";
+    const endpoint = process.env.B2_ENDPOINT || process.env.R2_ENDPOINT || "https://s3.eu-central-003.backblazeb2.com";
+    const publicUrl = process.env.B2_PUBLIC_URL || process.env.B2_PUBLIC_BASE_URL || process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || "";
 
     let canConnect = false;
     let errorDetail = null;

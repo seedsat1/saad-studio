@@ -1,0 +1,45 @@
+# Ignore local environment files and backups
+.env*
+.env.local.backup*
+*.log
+*.err.log
+*.out.log
+.agents/
+.claude/
+
+# Ignore heavy project source directories at the root level only
+/adobe/
+/CINEMA STUDIO VS.O/
+/HOLLYWOOD-STUDIO/
+/stude/
+/saad/
+/tmp/
+/apps/
+/test/
+/seedance-assets/
+/seedsat1/
+
+# Ignore documentation, templates, mockups and tutorials at the root level
+/docs/
+/*.html
+/README.md
+/DEPLOY.md
+/INFRASTRUCTURE.md
+/R2-UPLOAD-GUIDE.md
+/DOWNLOAD-README.md
+/DOWNLOAD-SETUP.md
+/LICENSE
+/chrome-devtools-plugin/
+/firebase/
+/google-antigravity-sdk/
+/modern-web-guidance-plugin/
+/science/
+
+# Ignore local builds, cache, etc.
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts

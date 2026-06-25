@@ -46,17 +46,21 @@ const KIE_BASE = 'https://api.kie.ai/api/v1/jobs';
 const KIE_VEO_BASE = 'https://api.kie.ai/api/v1/veo';
 const KIE_GPT52_BASE = 'https://api.kie.ai/gpt-5-2/v1';
 const KIE_API_KEY = process.env.KIE_API_KEY || '';
-const R2_BUCKET = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || '';
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_BUCKET = process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || '';
+const R2_ACCESS_KEY_ID = process.env.B2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.B2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY || '';
 const R2_PUBLIC_BASE_URL = (
+  process.env.B2_PUBLIC_BASE_URL ||
+  process.env.B2_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
+  process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
   process.env.R2_PUBLIC_BASE_URL ||
   process.env.R2_PUBLIC_URL ||
   process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
   process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
   ''
 ).replace(/\/+$/, '');
-const R2_ENDPOINT = (process.env.R2_ENDPOINT || (process.env.R2_ACCOUNT_ID ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '')).replace(/\/+$/, '');
+const R2_ENDPOINT = (process.env.B2_ENDPOINT || process.env.R2_ENDPOINT || (process.env.B2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID ? `https://${process.env.B2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '')).replace(/\/+$/, '');
 const R2_ENABLED = Boolean(R2_BUCKET && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_PUBLIC_BASE_URL && R2_ENDPOINT);
 const r2Client = R2_ENABLED
   ? new S3Client({

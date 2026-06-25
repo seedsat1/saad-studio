@@ -32,12 +32,18 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   const fallbacks: string[] = [];
 
-  // 1. Backblaze B2 (New Storage)
-  const publicBaseUrl = (
+  // 1. Backblaze B2 (New Storage - Friendly & S3 Direct)
+  let publicBaseUrl = (
+    process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
-    "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com"
+    ""
   ).replace(/\/+$/, "");
+
+  if (!publicBaseUrl || publicBaseUrl.includes(".r2.dev") || publicBaseUrl.includes("media.saadstudio.app")) {
+    publicBaseUrl = "https://f003.backblazeb2.com/file/saadstudio-storage";
+  }
 
   fallbacks.push(`${publicBaseUrl}/${mediaPath}`);
 

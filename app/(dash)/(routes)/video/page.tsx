@@ -1294,7 +1294,7 @@ function VideoPageInner() {
           completedTaskRefs.current.add(taskId);
 
           let videoUrl = data.outputs[0];
-          const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+          const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
           const isDurableUrl =
             !!videoUrl &&
             ((durableBaseUrl && videoUrl.startsWith(durableBaseUrl)) ||
@@ -1509,7 +1509,7 @@ function VideoPageInner() {
         let finalVideoUrl = lipsyncJson.videoUrl;
 
         // 4. Persist to DB / durable storage
-        const durableBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
+        const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
         const isDurableUrl =
           !!finalVideoUrl &&
           ((durableBaseUrl && finalVideoUrl.startsWith(durableBaseUrl)) ||

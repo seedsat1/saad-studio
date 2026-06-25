@@ -1472,11 +1472,15 @@ function PresetCard({
   onPick: (p: Preset) => void;
 }) {
   const storageBaseUrl =
+    process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL ||
     "";
   const usesLegacySupabase =
+    !process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL &&
+    !process.env.NEXT_PUBLIC_B2_PUBLIC_URL &&
     !process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL &&
     !process.env.NEXT_PUBLIC_R2_PUBLIC_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -245,7 +245,8 @@ export default function RootLayout({
                   if (!mediaPath) return;
 
                   const candidates = [
-                    'https://media.saadstudio.app/' + mediaPath,
+                    'https://f003.backblazeb2.com/file/saadstudio-storage/' + mediaPath,
+                    'https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/' + mediaPath,
                     'https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/' + mediaPath,
                     '/api/media/' + mediaPath
                   ];

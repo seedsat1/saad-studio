@@ -607,7 +607,10 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   const fallbacks: string[] = [];
 
-  // 1. Backblaze B2 (New Storage)
+  // 1. Backblaze B2 (New Storage - Friendly & S3 Direct)
+  const friendlyB2Url = "https://f003.backblazeb2.com/file/saadstudio-storage";
+  fallbacks.push(`${friendlyB2Url}/${mediaPath}`);
+
   const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
   fallbacks.push(`${directB2Url}/${mediaPath}`);
 
