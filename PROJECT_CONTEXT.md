@@ -1,5 +1,29 @@
 # Saad Studio — Project Context
-## آخر مهمة: استعادة واستقرار Seedance 2.0 الأصلي وحذف مسارات الاكتشاف المؤقتة (2026-06-25)
+## آخر مهمة: حذف موديل Gemini Omni Flash كخيار مستقل وتعطيله من المنصة (2026-06-25)
+
+- **المشكلة**:
+  رغبة المستخدم في حذف موديل Gemini Omni Flash من واجهة توليد الفيديو `/video` بالكامل، مع ضمان عدم كسر أي أجزاء أخرى من التطبيق.
+
+- **الإصلاح والتعديل**:
+  1. حذف تعريف موديل `google-gemini-omni-video` من سجل الموديلات `lib/video-model-registry.ts` لإزالته تماماً من خيارات dropdown واجهة توليد الفيديو.
+  2. تحديث `lib/pricing-models.ts` لتعطيل الباقة `gemini_omni_video` بجعل `isActive: false` وإضافتها إلى `CODE_LOCKED_MODEL_IDS` في `DEFAULT_MODELS`. هذا يضمن حظر أي استدعاءات توليد أو تسعير جديدة تطلبه، مع بقاء هيكل التسعير البرمجي وتفاصيل الـ mappings لمنع كسر السجلات التاريخية للعمليات السابقة في قاعدة البيانات.
+
+- **الملفات المتأثرة**:
+  - [lib/video-model-registry.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) [MODIFY]
+  - [lib/pricing-models.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing-models.ts) [MODIFY]
+
+- **نتائج التحقق**:
+  - تشغيل `npm run build` بنجاح كامل لبناء تطبيق Next.js دون أي أخطاء تجميع أو مشاكل في المخرجات.
+  - التحقق من عدم ظهور خيار Gemini Omni Flash في واجهة توليد الفيديو.
+
+- **القرارات المتخذة**:
+  - تعطيل الموديل برمجياً بـ `isActive: false` في Pricing Constitution بدلاً من حذفه بالكامل، للحفاظ على استقرار الفواتير والتحليلات التاريخية للـ generations القديمة.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية.
+
+## المهمة السابقة: استعادة واستقرار Seedance 2.0 الأصلي وحذف مسارات الاكتشاف المؤقتة (2026-06-25)
+
 
 - **المشكلة**:
   1. الحاجة لضمان استقرار موديل Seedance 2.0 الأصلي والتراجع عن تغييرات Mini المؤقتة لتفادي أي regressions.

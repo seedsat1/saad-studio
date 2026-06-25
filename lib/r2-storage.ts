@@ -1,6 +1,7 @@
 import {
   defaultProvider,
   normalizeMediaUrl as newNormalizeMediaUrl,
+  getObjectKeyFromUrl,
 } from "./storage";
 
 export const BUCKETS = {

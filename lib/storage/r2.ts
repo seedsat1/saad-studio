@@ -7,7 +7,7 @@ export class R2Provider implements StorageProvider {
     this.rawR2Url = "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev";
   }
 
-  private getObjectKey(bucket: string, path: string): string {
+  getObjectKey(bucket: string, path: string): string {
     const cleanPath = path.replace(/^\/+/, "").replace(/\\/g, "/");
     return bucket ? `${bucket}/${cleanPath}` : cleanPath;
   }
