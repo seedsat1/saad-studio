@@ -74,7 +74,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ credits: 0, baseCost: 0, modelRoute, duration, quality, sound: soundEnabled });
     }
 
-    const withSound = soundEnabled && !isSeedance2Route(modelRoute) ? baseCost * 1.5 : baseCost;
+    const withSound = baseCost;
     const credits = Math.max(1, Math.ceil(withSound));
 
     return NextResponse.json({

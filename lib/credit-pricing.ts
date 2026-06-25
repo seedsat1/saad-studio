@@ -95,7 +95,7 @@ function hasSoundEnabled(payload?: VideoPayload): boolean {
 }
 
 function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number {
-  return hasSoundEnabled(payload) ? Math.ceil(baseCost * 1.5) : baseCost;
+  return baseCost;
 }
 
 function getKling3Credits(payload?: VideoPayload): number {

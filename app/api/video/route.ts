@@ -1177,7 +1177,7 @@ export async function POST(req: Request) {
       (typeof payload.quality === "string" ? payload.quality : null);
     const soundEnabled = payload.sound === true || payload.generate_audio === true;
     const baseCost = await getGenerationCost(modelRoute, durationForCost, 1, qualityForCost).catch(() => 0);
-    const creditsToCharge = Math.ceil(soundEnabled && !isSeedance2Route ? baseCost * 1.5 : baseCost);
+    const creditsToCharge = baseCost;
     if (creditsToCharge <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }

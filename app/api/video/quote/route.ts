@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
       modelRoute === "bytedance/seedance-v2/text-to-video" ||
       modelRoute === "bytedance/seedance-v2/text-to-video-fast";
-    const credits = Math.ceil(hasSound && !isSeedance2Route ? baseCost * 1.5 : baseCost);
+    const credits = Math.ceil(baseCost);
 
     if (!Number.isFinite(credits) || credits <= 0) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });

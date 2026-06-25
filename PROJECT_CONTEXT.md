@@ -21,13 +21,17 @@
   6. تحديث `lib/credit-ledger.ts` لكتابة `inputType` وربط الموديل كـ `seedance-2.0-mini` والـ provider كـ `BytePlus` في الـ snapshot.
   7. تصنيف `providerCostSource` كـ `"DERIVED_FROM_ACTUAL_USAGE"` في طبقة المصالحة `lib/providers/byteplus-reconcile.ts` وتحديث جداول `Generation` و `ProviderUsageRecord` عند إتمام التوليد بنجاح ووجود توكنز مستهلكة.
   8. إضافة شارات التصميم اللازمة `MINI` في واجهة الفيديو `app/(dash)/(routes)/video/page.tsx`.
+  9. إلغاء مضاعف تكلفة الصوت (1.5x) لجميع موديلات الفيديو وجعل الصوت مشمولاً مجاناً (included) تلبية لرغبة المستخدم، وتحديث الواجهة والـ API وبطاقات الكريديت لإزالة المضاعف.
 
 - **الملفات المتأثرة**:
   - [lib/video-model-registry.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) [MODIFY]
   - [lib/providers/byteplus-video.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-video.ts) [MODIFY]
   - [lib/pricing.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing.ts) [MODIFY]
   - [lib/pricing-models.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing-models.ts) [MODIFY]
+  - [lib/credit-pricing.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-pricing.ts) [MODIFY]
   - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [app/api/pricing/quote/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/pricing/quote/route.ts) [MODIFY]
+  - [app/api/video/quote/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/quote/route.ts) [MODIFY]
   - [prisma/schema.prisma](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) [MODIFY]
   - [lib/credit-ledger.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) [MODIFY]
   - [lib/providers/byteplus-reconcile.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-reconcile.ts) [MODIFY]
@@ -35,10 +39,10 @@
 
 - **نتائج التحقق**:
   - تم إجراء `npx prisma db push` بنجاح تام ومزامنة قاعدة البيانات.
-  - تم تشغيل `npm run build` بنجاح كامل للتحقق من سلامة الأكواد بعد التعديلات الأخيرة.
+  - تم تشغيل `npm run build` بنجاح كامل للتحقق من سلامة الأكواد وخلوها من الأخطاء.
 
 - **القرارات المتخذة**:
-  - تحديد معدل `15 / 35` كمضاعف جودة لدقة 480p ليعادل بالضبط 15 كريديت لكل 15 ثانية بطريقة تناسبية وصحيحة.
+  - إلغاء مضاعف الصوت (1.5x) بالكامل لجميع موديلات توليد الفيديو تلبية لرغبة المستخدم، لتصبح ميزة توليد الصوت مشمولة مجاناً بدون زيادة في قيمة الكريديت.
   - الحفاظ على كود تسعير Kling و Google و KIE و WaveSpeed و Reap والـ Seedance 2.0 العادي سليماً دون تعديل.
 
 - **الخطوة المتبقية**:

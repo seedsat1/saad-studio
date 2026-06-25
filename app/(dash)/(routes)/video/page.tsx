@@ -1395,8 +1395,7 @@ function VideoPageInner() {
       1,
       resolution ?? undefined,
     );
-    const soundMultiplier = caps.has_sound && sound && !isSelectedSeedance2Route ? 1.5 : 1;
-    return parseFloat((base * soundMultiplier).toFixed(2));
+    return base;
   })();
 
   const handleGenerate = useCallback(async () => {
@@ -3848,7 +3847,7 @@ function VideoPageInner() {
                     <Music2 size={13} style={{ color: "#475569" }} />
                     <div className="flex flex-col">
                       <span className="text-[12px]" style={{ color: "#64748b" }}>Generate Sound</span>
-                      <span className="text-[10px]" style={{ color: "#475569" }}>{isSelectedSeedance2Route ? "AI-generated audio track - included" : "AI-generated audio track - x1.5 cost"}</span>
+                      <span className="text-[10px]" style={{ color: "#475569" }}>AI-generated audio track - included</span>
                     </div>
                   </div>
                   <button
@@ -4425,7 +4424,7 @@ function VideoPageInner() {
                   className="text-[10px] px-1 rounded"
                   style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24" }}
                 >
-                  {isSelectedSeedance2Route ? "included" : "x1.5 cost"}
+                  included
                 </span>
               </div>
               <button
