@@ -19,12 +19,6 @@ function parseEnvFile(filePath) {
   return env;
 }
 
-const hashes = [
-  "mfqft7", "0dabja", "4e2p7s", "3sxnmo", "orcbq9", "5j04fj", "owiom9", "s7bw8y",
-  "1779226523728", "1779221745955", "1779220957491", "1779229015580", 
-  "1779229339335", "1779232010558", "1779232842215", "1779231254522"
-];
-
 async function main() {
   const envPath = path.join(process.cwd(), ".env.migration");
   const env = parseEnvFile(envPath);
@@ -37,12 +31,12 @@ async function main() {
     },
   });
 
-  console.log("Searching B2 for original Supabase hashes...");
+  console.log("Listing all video files in Backblaze B2 bucket...");
   
   try {
     let continuationToken = undefined;
     let hasMore = true;
-    let matches = [];
+    let videos = [];
     
     while (hasMore) {
       const response = await b2Client.send(new ListObjectsV2Command({
@@ -52,12 +46,8 @@ async function main() {
       
       const contents = response.Contents || [];
       for (const obj of contents) {
-        if (!obj.Key) continue;
-        const key = obj.Key;
-        for (const hash of hashes) {
-          if (key.includes(hash)) {
-            matches.push({ key, size: obj.Size, matchedHash: hash });
-          }
+        if (obj.Key && (obj.Key.endsWith('.webm') || obj.Key.endsWith('.mp4'))) {
+          videos.push({ key: obj.Key, size: obj.Size });
         }
       }
       
@@ -65,9 +55,9 @@ async function main() {
       hasMore = response.IsTruncated || false;
     }
     
-    console.log(`Found ${matches.length} matches in B2:`);
-    matches.forEach(m => {
-      console.log(`- Matched ${m.matchedHash}: ${m.key} (${(m.size / (1024 * 1024)).toFixed(2)} MB)`);
+    console.log(`Found ${videos.length} videos in B2:`);
+    videos.forEach(v => {
+      console.log(`- ${v.key} (${(v.size / (1024 * 1024)).toFixed(2)} MB)`);
     });
     
   } catch (e) {

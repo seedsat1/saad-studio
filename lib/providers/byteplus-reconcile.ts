@@ -190,14 +190,50 @@ export async function reconcileBytePlusGeneration(generation: {
 
   if (result.status === "completed") {
     const tokensUsed = result.tokensUsed || 0;
-    const actualCost = tokensUsed * 0.0000043; // $4.30 / 1M tokens
+    
+    const genDetails = await prismadb.generation.findUnique({
+      where: { id: generation.id },
+      select: { modelUsed: true }
+    });
+    const modelUsed = genDetails?.modelUsed || "";
+    
+    const isMini =
+      modelUsed === "bytedance-seedance-v2-t2v-mini" ||
+      modelUsed === "bytedance/seedance-v2/text-to-video-mini" ||
+      modelUsed === "bytedance/seedance-2-mini" ||
+      modelUsed.toLowerCase().includes("mini");
+
+    let ratePerToken = 0.0000043; // Default for Seedance Pro/Fast
+    if (isMini) {
+      const snapshot = await prismadb.generationRequestSnapshot.findUnique({
+        where: { generationId: generation.id },
+        select: { inputType: true }
+      });
+      const hasVideo = snapshot?.inputType === "video";
+      ratePerToken = hasVideo ? 0.0000021 : 0.0000035;
+    }
+    
+    const actualCost = tokensUsed * ratePerToken;
+    const costSource = tokensUsed > 0 ? "DERIVED_FROM_ACTUAL_USAGE" : "estimated";
 
     await prismadb.generation.update({
       where: { id: generation.id },
       data: {
         providerTokens: tokensUsed,
         providerCostUsd: actualCost,
-        providerCostSource: "actual",
+        providerCostSource: costSource,
+        providerRequestId: result.providerRequestId || null,
+        ...(result.duration ? { duration: result.duration } : {}),
+        ...(result.resolution ? { resolution: result.resolution } : {}),
+      }
+    });
+
+    await prismadb.providerUsageRecord.updateMany({
+      where: { generationId: generation.id },
+      data: {
+        providerTokens: tokensUsed,
+        providerCostUsd: actualCost,
+        providerCostSource: costSource,
         providerRequestId: result.providerRequestId || null,
         ...(result.duration ? { duration: result.duration } : {}),
         ...(result.resolution ? { resolution: result.resolution } : {}),
@@ -231,6 +267,7 @@ export async function reconcilePendingBytePlusGenerations(
       modelUsed: { in: [
         "bytedance/seedance-v2/text-to-video",
         "bytedance/seedance-v2/text-to-video-fast",
+        "bytedance/seedance-v2/text-to-video-mini",
       ] },
     },
     orderBy: { createdAt: "asc" },

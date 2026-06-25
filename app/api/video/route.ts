@@ -26,9 +26,11 @@ const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
 const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
 const SEEDANCE_2_FAST_MODEL = "dreamina-seedance-2-0-fast-260128";
+const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "seedance-mini-2-0-250528";
 const SEEDANCE_2_ROUTES = new Set([
   "bytedance/seedance-v2/text-to-video",
   "bytedance/seedance-v2/text-to-video-fast",
+  "bytedance/seedance-v2/text-to-video-mini",
 ]);
 
 const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
@@ -39,6 +41,7 @@ const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "kwaivgi/kling-v3.0-pro/motion-control": "kling-3.0/motion-control",
   "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
   "bytedance/seedance-v2/text-to-video-fast": "bytedance/seedance-2-fast",
+  "bytedance/seedance-v2/text-to-video-mini": "bytedance/seedance-2-mini",
 };
 
 function resolveKieVideoModel(modelRoute: string): string | undefined {
@@ -98,9 +101,13 @@ function isOfficialSeedance2Route(modelRoute: string): boolean {
 }
 
 function getOfficialSeedanceModel(modelRoute: string): string {
-  return modelRoute === "bytedance/seedance-v2/text-to-video-fast"
-    ? SEEDANCE_2_FAST_MODEL
-    : SEEDANCE_2_MODEL;
+  if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
+    return SEEDANCE_2_FAST_MODEL;
+  }
+  if (modelRoute === "bytedance/seedance-v2/text-to-video-mini") {
+    return SEEDANCE_2_MINI_MODEL;
+  }
+  return SEEDANCE_2_MODEL;
 }
 
 function getWaveSpeedKey(): string {
@@ -339,7 +346,10 @@ function normalizeOfficialSeedanceDuration(value: unknown): number {
 
 function normalizeOfficialSeedanceResolution(modelRoute: string, value: unknown): string {
   const raw = typeof value === "string" ? value.toLowerCase() : "";
-  if (modelRoute === "bytedance/seedance-v2/text-to-video-fast") {
+  if (
+    modelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
+    modelRoute === "bytedance/seedance-v2/text-to-video-mini"
+  ) {
     return raw === "480p" ? "480p" : "720p";
   }
   if (raw === "480p" || raw === "1080p") return raw;
@@ -1219,7 +1229,15 @@ export async function POST(req: Request) {
       else if (bpResolution.includes("1080")) bpTokensPerSec = 30000;
       else if (bpResolution.includes("4k")) bpTokensPerSec = 70000;
       const bpTokens = durationForCost * bpTokensPerSec;
-      const bpEstimatedCost = bpTokens * 0.0000043;
+
+      const isMini = modelRoute === "bytedance/seedance-v2/text-to-video-mini";
+      let ratePerToken = 0.0000043;
+      if (isMini) {
+        const referenceVideos = Array.isArray(payload.reference_video_urls) ? payload.reference_video_urls : [];
+        const hasVideo = referenceVideos.length > 0 || !!payload.video || !!payload.videoUrl || !!payload.referenceVideoUrls;
+        ratePerToken = hasVideo ? 0.0000021 : 0.0000035;
+      }
+      const bpEstimatedCost = bpTokens * ratePerToken;
 
       const charge = await spendCredits({
         userId,

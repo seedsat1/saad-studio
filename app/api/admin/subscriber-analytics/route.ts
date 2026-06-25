@@ -25,6 +25,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "runwayml/gen4-turbo": "kling25t",
   "bytedance/seedance-2": "seedance2",
   "bytedance/seedance-2-fast": "seedance2f",
+  "bytedance/seedance-2-mini": "seedance2mini",
   "bytedance/seedance-1.5-pro": "seedance2f",
   "bytedance/v1-pro-fast-image-to-video": "seedance2f",
   "bytedance/v1-pro-image-to-video": "seedance2f",
@@ -35,7 +36,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "grok-imagine/image-to-video": "grok_vid",
   "grok-imagine/text-to-video-1-5": "grok_vid_v15",
   "grok-imagine/image-to-video-1-5": "grok_vid_v15_i2v",
-
+ 
   "kwaivgi/kling-v3.0-pro/text-to-video": "kling30",
   "kwaivgi/kling-v3.0-pro/motion-control": "kling30_mc",
   "minimax/hailuo-2.3/i2v-standard": "hailuo23f",
@@ -51,6 +52,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo-3.1-generate-preview": "gemini_omni_video",
   "google/gemini-omni-video": "gemini_omni_video",
   "bytedance/seedance-v2/text-to-video-fast": "seedance2f",
+  "bytedance/seedance-v2/text-to-video-mini": "seedance2mini",
   "bytedance/seedance-v2/text-to-video": "seedance2",
   "bytedance/dreamina-v3.0/text-to-video-720p": "seedance2",
   "x-ai/grok-imagine-video/text-to-video": "grok_vid",

@@ -1,4 +1,46 @@
 # Saad Studio — Project Context
+## آخر مهمة: ربط وإضافة موديل Dreamina Seedance 2.0 Mini كخيار مستقل وضبط التسعير التنافسي (2026-06-25)
+
+- **المشكلة**:
+  رغبة المالك في دمج موديل Dreamina Seedance 2.0 Mini كخيار مستقل وتعديل تسعيره النهائي للمستخدم ليتوافق مع استراتيجية Growth First ومقارنة Higgsfield كالتالي:
+  - 480p / 15s = 15 Credits
+  - 720p / 15s = 35 Credits
+  - حساب الكريديت تناسبي proportional مع مدة الفيديو، دون المساس بأي تسعير آخر.
+
+- **الإصلاح والتعديل**:
+  1. إضافة موديل `bytedance-seedance-v2-t2v-mini` في سجل الموديلات `lib/video-model-registry.ts` وتحديد دقاته المدعومة حصراً بـ 480p و720p وتأكيد مساره `bytedance/seedance-v2/text-to-video-mini`.
+  2. تحديث `lib/providers/byteplus-video.ts` لربط المسار بمفتاح البيئة `BYTEPLUS_MODEL_MINI` مع تراجع افتراضي لـ `seedance-mini-2-0-250528`.
+  3. تحديث `lib/pricing.ts` و `lib/pricing-models.ts` لتعريف الباقة `seedance2mini` بكريديت مستخدم أساسي 2.3333 كريديت/ثانية (35 كريديت لكل 15 ثانية) وضبط مضاعف دقة 480p بقيمة `15 / 35` (ليصبح 15 كريديت لكل 15 ثانية بدلاً من 20 كريديت) وحساب التكلفة ديناميكياً:
+     - إذا احتوت المدخلات على فيديو: `tokens * 0.0000021`.
+     - إذا لم تحتو المدخلات على فيديو: `tokens * 0.0000035`.
+  4. تحديث `app/api/video/route.ts` لدعم مسارات الـ Mini والـ build payload الخاص به وحساب تكلفة البث الأولية بناءً على احتواء مدخلات الـ request على فيديو.
+  5. تعديل `prisma/schema.prisma` لإضافة حقل `inputType String?` في جدول `GenerationRequestSnapshot` وتشغيل `npx prisma db push` بنجاح لمزامنة قاعدة البيانات.
+  6. تحديث `lib/credit-ledger.ts` لكتابة `inputType` وربط الموديل كـ `seedance-2.0-mini` والـ provider كـ `BytePlus` في الـ snapshot.
+  7. تصنيف `providerCostSource` كـ `"DERIVED_FROM_ACTUAL_USAGE"` في طبقة المصالحة `lib/providers/byteplus-reconcile.ts` وتحديث جداول `Generation` و `ProviderUsageRecord` عند إتمام التوليد بنجاح ووجود توكنز مستهلكة.
+  8. إضافة شارات التصميم اللازمة `MINI` في واجهة الفيديو `app/(dash)/(routes)/video/page.tsx`.
+
+- **الملفات المتأثرة**:
+  - [lib/video-model-registry.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) [MODIFY]
+  - [lib/providers/byteplus-video.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-video.ts) [MODIFY]
+  - [lib/pricing.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing.ts) [MODIFY]
+  - [lib/pricing-models.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/pricing-models.ts) [MODIFY]
+  - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [prisma/schema.prisma](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/prisma/schema.prisma) [MODIFY]
+  - [lib/credit-ledger.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts) [MODIFY]
+  - [lib/providers/byteplus-reconcile.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-reconcile.ts) [MODIFY]
+  - [app/(dash)/(routes)/video/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/video/page.tsx) [MODIFY]
+
+- **نتائج التحقق**:
+  - تم إجراء `npx prisma db push` بنجاح تام ومزامنة قاعدة البيانات.
+  - تم تشغيل `npm run build` بنجاح كامل للتحقق من سلامة الأكواد بعد التعديلات الأخيرة.
+
+- **القرارات المتخذة**:
+  - تحديد معدل `15 / 35` كمضاعف جودة لدقة 480p ليعادل بالضبط 15 كريديت لكل 15 ثانية بطريقة تناسبية وصحيحة.
+  - الحفاظ على كود تسعير Kling و Google و KIE و WaveSpeed و Reap والـ Seedance 2.0 العادي سليماً دون تعديل.
+
+- **الخطوة المتبقية**:
+  - اختبار عملية توليد كاملة للـ Mini ومراجعة السجلات المالية.
+
 ## آخر مهمة: التراجع عن استبدال فيديوهات الأنماط السينمائية واستعادة روابط Supabase الأصلية (2026-06-25)
 
 - **المشكلة**:

@@ -343,6 +343,7 @@ const BADGE_STYLE = {
   NEW:  { bg: "rgba(16,185,129,0.15)",  text: "#34d399" },
   PRO:  { bg: "rgba(139,92,246,0.15)",  text: "#a78bfa" },
   FAST: { bg: "rgba(14,165,233,0.15)",  text: "#38bdf8" },
+  MINI: { bg: "rgba(16,185,129,0.15)",  text: "#34d399" },
   "4K": { bg: "rgba(236,72,153,0.16)",  text: "#f472b6" },
 };
 

@@ -136,6 +136,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "runwayml/gen4-turbo":                          "kling25t",
   "bytedance/seedance-2":                         "seedance2",
   "bytedance/seedance-2-fast":                    "seedance2f",
+  "bytedance/seedance-2-mini":                    "seedance2mini",
   "bytedance/seedance-1.5-pro":                   "seedance2f",
   "bytedance/v1-pro-fast-image-to-video":         "seedance2f",
   "bytedance/v1-pro-image-to-video":              "seedance2f",
@@ -164,6 +165,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo-3.1-generate-preview":              "gemini_omni_video",
   "google/gemini-omni-video":                     "gemini_omni_video",
   "bytedance/seedance-v2/text-to-video-fast":     "seedance2f",
+  "bytedance/seedance-v2/text-to-video-mini":     "seedance2mini",
   "bytedance/seedance-v2/text-to-video":          "seedance2",
   "bytedance/dreamina-v3.0/text-to-video-720p":   "seedance2",
   "x-ai/grok-imagine-video/text-to-video":        "grok_vid",
@@ -401,8 +403,11 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "bytedance/seedance-2-fast":                  { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-2-mini":                  { "480p": 15 / 35, "720p": 1.0 },
   "bytedance/seedance-v2/text-to-video-fast":   { "480p": 0.5, "720p": 1.0 },
+  "bytedance/seedance-v2/text-to-video-mini":   { "480p": 15 / 35, "720p": 1.0 },
   "seedance2f":                                 { "480p": 0.5, "720p": 1.0 },
+  "seedance2mini":                              { "480p": 15 / 35, "720p": 1.0 },
   "bytedance/seedance-2":                       { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
   "bytedance/seedance-v2/text-to-video":        { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
   "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
@@ -546,6 +551,7 @@ export function estimateProviderCostSync(
     modelRef === "bytedance/dreamina-v3.0/text-to-video-720p" ||
     modelRef === "bytedance/seedance-v2/text-to-video" ||
     modelRef === "bytedance/seedance-v2/text-to-video-fast" ||
+    modelRef === "bytedance/seedance-v2/text-to-video-mini" ||
     modelRef.includes("dreamina-seedance") ||
     modelRef.includes("seedance2");
 
@@ -556,7 +562,9 @@ export function estimateProviderCostSync(
     else if (bpResolution.includes("1080")) bpTokensPerSec = 30000;
     else if (bpResolution.includes("4k")) bpTokensPerSec = 70000;
     const bpTokens = durationSec * bpTokensPerSec;
-    const bpEstimatedCost = bpTokens * 0.0000043;
+    const isMini = modelLower.includes("mini");
+    const ratePerToken = isMini ? 0.0000021 : 0.0000043;
+    const bpEstimatedCost = bpTokens * ratePerToken;
     return { usd: bpEstimatedCost, source: "estimated" };
   }
 

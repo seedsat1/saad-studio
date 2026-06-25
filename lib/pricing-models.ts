@@ -87,6 +87,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"grok_vid_v15",  name:"Grok Imagine Video 1.5",  notes:"T2V",          type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
   { id:"grok_vid_v15_i2v", name:"Grok Imagine Video 1.5 I2V", notes:"I2V",      type:"video",  provider:"kie",       billing:"per_sec", kieCredits:14.7,  waveUsd:0,     userCreditsRate:2.06,  maxDuration:15,   isActive:true  },
   { id:"seedance2f",    name:"Seedance 2.0 Fast",       notes:"fast",         type:"video",  provider:"kie",       billing:"per_sec", kieCredits:33.0,  waveUsd:0,     userCreditsRate:6.0,  maxDuration:15,   isActive:true  },
+  { id:"seedance2mini",  name:"Seedance 2.0 Mini",       notes:"growth",       type:"video",  provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:2.3333, maxDuration:15,   isActive:true  },
   { id:"seedance2",     name:"Seedance 2.0",            notes:"HQ",           type:"video",  provider:"kie",       billing:"per_sec", kieCredits:41.0,  waveUsd:0,     userCreditsRate:4.5333,  maxDuration:15,   isActive:true  },
   // ── CINEMA — per second via KIE ─────────────────────────────────────────────
   { id:"sora2",         name:"Sora 2",                  notes:"10s max",      type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:3.41,  maxDuration:10,   isActive:true  },
@@ -172,7 +173,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise

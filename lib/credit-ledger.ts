@@ -367,6 +367,7 @@ type SpendCreditsInput = {
   // Snapshot fields
   generationType?: string | null;
   mode?: string | null;
+  inputType?: string | null;
   requestPayload?: any;
   estimatedProviderCostUsd?: number | null;
 };
@@ -500,6 +501,7 @@ async function createRequestSnapshot(
     let resolution = input.resolution ?? null;
     let aspectRatio = input.aspectRatio ?? null;
     let quality = input.quality ?? null;
+    let inputType = input.inputType || null;
 
     // Try to infer from payload if not explicitly passed
     if (payload && typeof payload === "object") {
@@ -549,6 +551,28 @@ async function createRequestSnapshot(
       if (!quality) {
         quality = payload.quality ?? payload.mode ?? null;
       }
+      // inputType
+      if (!inputType) {
+        const hasVideo = !!(
+          payload.videoUrl ??
+          payload.video_url ??
+          payload.video ??
+          payload.reference_video_urls ??
+          payload.referenceVideoUrls
+        );
+        const hasImage = !!(
+          payload.imageUrl ??
+          payload.image_url ??
+          payload.image ??
+          payload.reference_image_urls ??
+          payload.referenceImageUrls ??
+          payload.first_frame_url ??
+          payload.firstFrameUrl
+        );
+        if (hasVideo) inputType = "video";
+        else if (hasImage) inputType = "image";
+        else inputType = "text";
+      }
     }
 
     // Coerce values to clean types
@@ -561,19 +585,34 @@ async function createRequestSnapshot(
     if (resolution !== null && resolution !== undefined) resolution = String(resolution);
     if (aspectRatio !== null && aspectRatio !== undefined) aspectRatio = String(aspectRatio);
     if (quality !== null && quality !== undefined) quality = String(quality);
+    if (inputType !== null && inputType !== undefined) inputType = String(inputType);
+
+    let modelName = resolved.providerModel ?? null;
+    let providerName = resolved.providerName ?? null;
+    const isMiniModel =
+      input.modelUsed === "bytedance-seedance-v2-t2v-mini" ||
+      input.modelUsed === "bytedance/seedance-v2/text-to-video-mini" ||
+      input.modelUsed === "bytedance/seedance-2-mini" ||
+      String(modelName).toLowerCase().includes("mini");
+
+    if (isMiniModel) {
+      modelName = "seedance-2.0-mini";
+      providerName = "BytePlus";
+    }
 
     await tx.generationRequestSnapshot.create({
       data: {
         generationId,
         userId,
-        provider: resolved.providerName ?? null,
-        model: resolved.providerModel ?? null,
+        provider: providerName,
+        model: modelName,
         generationType,
         duration,
         resolution,
         aspectRatio,
         quality,
         mode,
+        inputType,
         userCreditsCharged: credits,
         estimatedProviderCostUsd: resolved.providerCostUsd ?? null,
         requestPayload: payload,
