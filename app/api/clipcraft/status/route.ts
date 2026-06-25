@@ -6,6 +6,7 @@ import { setGenerationMediaUrl, saveAdditionalGenerationUrls, ensureUserRow, fin
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -107,8 +108,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: "completed",
-      url: persistedUrls[0] ?? null,
-      urls: persistedUrls,
+      url: normalizeMediaUrl(persistedUrls[0]) ?? null,
+      urls: persistedUrls.map(url => normalizeMediaUrl(url) || url),
       metadata: result.metadata,
     });
   } catch (err) {

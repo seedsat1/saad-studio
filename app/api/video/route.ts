@@ -15,6 +15,7 @@ import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
 import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, type VeoImageInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -105,7 +106,7 @@ function getOfficialSeedanceModel(modelRoute: string): string {
     return SEEDANCE_2_FAST_MODEL;
   }
   if (modelRoute === "bytedance/seedance-v2/text-to-video-mini") {
-    return SEEDANCE_2_MINI_MODEL;
+    return SEEDANCE_2_MODEL;
   }
   return SEEDANCE_2_MODEL;
 }
@@ -1842,7 +1843,7 @@ export async function GET(req: Request) {
       }).catch(() => null);
 
       if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
-        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+        return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
       }
 
       let poll;
@@ -1912,7 +1913,7 @@ export async function GET(req: Request) {
         await setGenerationMediaUrl(linkedGeneration.id, publicUrl);
       }
 
-      return NextResponse.json({ taskId, status: "completed", outputs: [publicUrl], error: null });
+      return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
     }
 
     // ── WaveSpeed polling ────────────────────────────────────────────────────
@@ -1931,7 +1932,7 @@ export async function GET(req: Request) {
 
       if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
         if (!linkedGeneration.mediaUrl.startsWith("failed:")) {
-          return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+          return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
         }
       }
 
@@ -1977,7 +1978,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId, status: "failed", outputs: [], error: missingOutputError });
       }
 
-      return NextResponse.json({ taskId, status, outputs, error });
+      return NextResponse.json({ taskId, status, outputs: outputs.map(url => normalizeMediaUrl(url) || url), error });
     }
 
     if (taskId.startsWith("ws:")) {
@@ -2036,7 +2037,7 @@ export async function GET(req: Request) {
         }
       } catch { /* best-effort */ }
 
-      return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs, error: wsError });
+      return NextResponse.json({ taskId, status: wsStatus, outputs: wsOutputs.map(url => normalizeMediaUrl(url) || url), error: wsError });
     }
 
     // ── Veo 3.1 polling (dedicated endpoint /api/v1/veo/record-info) ─────────
@@ -2140,7 +2141,7 @@ export async function GET(req: Request) {
         }
       } catch { /* best-effort */ }
 
-      return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs, error: veoError });
+      return NextResponse.json({ taskId, status: veoStatus, outputs: veoOutputs.map(url => normalizeMediaUrl(url) || url), error: veoError });
     }
 
     // ── KIE polling ──────────────────────────────────────────────────────────
@@ -2209,7 +2210,7 @@ export async function GET(req: Request) {
           return NextResponse.json({ taskId, status: "failed", outputs: [], error: errMsg });
         }
         // Already has a real URL from callback
-        return NextResponse.json({ taskId, status: "completed", outputs: [linkedGeneration.mediaUrl], error: null });
+        return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
       }
 
       if (status === "completed" && outputs.length > 0 && linkedGeneration) {
@@ -2229,7 +2230,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       taskId: String(data.taskId || taskId),
       status,
-      outputs,
+      outputs: outputs.map(url => normalizeMediaUrl(url) || url),
       error,
     });
   } catch (err) {

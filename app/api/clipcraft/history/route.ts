@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
         id: g.id,
         prompt: g.prompt,
         projectId,
-        outputUrl: g.outputUrl,
+        outputUrl: normalizeMediaUrl(g.outputUrl) || g.outputUrl,
         model: g.modelUsed.replace("clipcraft:", ""),
         cost: g.cost,
         createdAt: g.createdAt,

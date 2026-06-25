@@ -34,7 +34,6 @@ function resolvePublicUrl(mediaUrl: string | null | undefined, outputUrl: string
   const candidate = outputUrl || mediaUrl;
   if (!candidate) return null;
   if (candidate.startsWith("task:")) return null;
-  if (!/^https?:\/\//i.test(candidate)) return null;
   return normalizeMediaUrl(candidate);
 }
 

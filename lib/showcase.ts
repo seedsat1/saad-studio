@@ -1,4 +1,5 @@
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export type ShowcasePayload = {
   title: string;
@@ -24,8 +25,8 @@ export function toShowcaseDto(item: ShowcaseRecord) {
     slug: item.slug,
     model: item.model,
     provider: item.provider,
-    video_url: item.videoUrl,
-    thumbnail_url: item.thumbnailUrl,
+    video_url: normalizeMediaUrl(item.videoUrl) || item.videoUrl,
+    thumbnail_url: normalizeMediaUrl(item.thumbnailUrl) || item.thumbnailUrl,
     prompt: item.prompt,
     tags: item.tags,
     featured: item.featured,

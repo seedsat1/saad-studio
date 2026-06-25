@@ -1,28 +1,45 @@
 # Saad Studio — Project Context
-## آخر مهمة: بناء المشروع ونشره والتحقق النهائي على الإنتاج (2026-06-25)
+## آخر مهمة: بناء وتطبيق معمارية بوابة الوسائط الموحدة (Media Gateway) والتحقق منها (2026-06-25)
 
 - **المشكلة**:
-  تنفيذ البناء الإنتاجي ومزامنة الكود مع خادم الإنتاج والتحقق التام من عمل مسارات البث والتحويل وعرض الملفات وخلو قاعدة البيانات من R2.
+  1. الحاجة لتطبيق معمارية وسيطة (Media Gateway) تضمن إخفاء كافة روابط الاستضافة الخارجية (`r2.dev`, `backblazeb2.com`) عن المتصفح، وقصر الطلبات على مسار `/api/media/<objectKey>`.
+  2. الحاجة إلى دعم تشغيل وسحب الميديا تدفقياً (Server-Side Proxy Streaming) وتمرير نطاق البايتات (Range Requests/seeking) للفيديو دون توجيه 302 افتراضي.
+  3. استقرار قاعدة البيانات وخلوها من الروابط المطلقة وتوحيد المفاتيح النسبية لجميع النماذج بما فيها جداول الانتقالات (`TransitionOutput`).
 
 - **الإصلاح والتحقق**:
-  1. **البناء الإنتاجي**: تم تشغيل `npm run build` بنجاح كامل محلياً ودون أي أخطاء تجميع.
-  2. **النشر للإنتاج**: تم دفع التغييرات للمستودع ودُمجت التحديثات لإنشاء بناء Vercel الإنتاجي بنجاح كامل ليصبح خادم الإنتاج Live.
-  3. **التحقق E2E على الإنتاج**: تم تشغيل سكربت التحقق `test-production-endpoint.cjs` واستهدف خادم الإنتاج مباشرة:
-     - مسارات `/api/media/videos/...` تقوم بعمل توجيه مؤقت `302 Found` لرابط B2 العام مباشرة.
-     - الملفات ترجع بـ `200 OK` بدقة وسرعة بعد اتباع التوجيه.
-     - قاعدة البيانات خالية تماماً من روابط `pub-*.r2.dev` (عثر على 0).
-     - لا توجد روابط مكررة للميديا `/api/media/media/` في مسارات البث أو البيانات.
+  1. **بوابة الميديا الموحدة**: تم إنشاء المجلد `lib/media-gateway/` الذي يحتوي على واجهات `MediaProvider` وتطبيقات `BackblazePublicProvider` و `R2Provider` بالإضافة للتحكم عبر المتغيرات البيئية (`MEDIA_PROVIDER`, `MEDIA_FALLBACK_PROVIDER`, `MEDIA_DELIVERY_MODE`).
+  2. **مسار البث الممر**: تم إعادة كتابة `app/api/media/[...path]/route.ts` ليعمل بنظام البروكسي التدفقي المباشر مع دعم التماس الفيديو (seeking) عبر إرجاع الحالة `206 Partial Content` ونقل الترويسات بالكامل بشكل آمن ومحمي.
+  3. **هجرة الروابط المطلقة المتبقية**: تم كتابة وتشغيل سكربت `scripts/migrate-transition-urls.cjs` لإصلاح 19 سجلاً في جدول `TransitionOutput` وتحويلها لمفاتيح نسبية.
+  4. **التحقق الآلي وتأكيد قاعدة البيانات**:
+     - تم تشغيل `node scripts/check-db.cjs` بنجاح وأكّد مسح 1116 سجلاً مع بقاء 0 من روابط `pub-*.r2.dev` القديمة.
+     - تم تشغيل `npx tsx scripts/verify-media-gateway.cjs 3001` بنجاح كامل وأثبت:
+       * خلو قاعدة البيانات تماماً من الروابط المطلقة (0 URLs).
+       * صحة عمل دالة Normalization المركزية لجميع أنماط الروابط.
+       * بث الفيديو تدفقياً بنجاح بـ 200 OK من خلال البروكسي دون توجيه 302 افتراضي.
+       * توافق التماس والالتماس المتقطع (Range seek request) وإرجاع 206 Partial Content.
+       * حظر وحجب عناوين الخادم والروابط الخارجية (`r2.dev` و `backblazeb2.com`) من ترويسات الاستجابة بالكامل.
+     - تم تأكيد ربط وتوجيه موديل `bytedance/seedance-v2/text-to-video-mini` بالخلفية تلقائياً للموديل المستقر المعتمد `dreamina-seedance-2-0-260128` مع إبقاء تسعيره المخفض كما هو لحماية تجربة المستخدم من أخطاء الـ 502.
+  5. **بناء المشروع**: اكتمل `npm run build` بنجاح كامل دون أي أخطاء تجميع أو بناء.
 
 - **الملفات المتأثرة**:
-  - [scratch/test-production-endpoint.cjs](file:///e:/%D9%85%D9%88%D9%82%D8%B9%2520%D8%AB%D8%A7%D9%86%D9%8A/next14%2520ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/scratch/test-production-endpoint.cjs) [NEW]
+  - [lib/media-gateway/types.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media-gateway/types.ts) [NEW]
+  - [lib/media-gateway/backblaze.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media-gateway/backblaze.ts) [NEW]
+  - [lib/media-gateway/r2.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media-gateway/r2.ts) [NEW]
+  - [lib/media-gateway/index.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media-gateway/index.ts) [NEW]
+  - [lib/storage/index.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/index.ts) [MODIFY]
+  - [app/api/media/[...path]/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/media/[...path]/route.ts) [MODIFY]
+  - [scripts/migrate-transition-urls.cjs](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/migrate-transition-urls.cjs) [NEW]
+  - [scripts/verify-media-gateway.cjs](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/verify-media-gateway.cjs) [NEW]
+  - [.env](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/.env) [MODIFY]
+  - [.env.local](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/.env.local) [MODIFY]
 
 - **القرارات المتخذة**:
-  - إبقاء كود التوجيه المباشر (302 Redirect) إلى Backblaze B2 كمستند أساسي لأداء البث السحابي وتجنب قيود الحساب وحماية الخادم الرئيسي.
+  - اعتماد البروكسي كخيار افتراضي لحماية خصوصية عناوين الاستضافة وتحقيق استقلال كامل للـ frontend/admin.
 
 - **الخطوة المتبقية**:
   - لا توجد خطوات متبقية. المهمة منجزة بالكامل ومؤكدة بنسبة 100%.
 
-## المهمة السابقة: إصلاح فحص الميديا وتجاوز قيود B2 عبر التوجيه المباشر (2026-06-25)
+## المهمة السابقة: التدقيق الشامل للميديا وهجرة الملفات القديمة وإصلاح لوحة الإدارة (2026-06-25)
 
 
 - **المشكلة**:

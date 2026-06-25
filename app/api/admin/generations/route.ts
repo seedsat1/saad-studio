@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
 import prismadb from "@/lib/prismadb";
+import { normalizeMediaUrl, defaultProvider } from "@/lib/storage";
+import { getProviderFor } from "@/lib/provider-router";
 
 function inferType(assetType: string | null | undefined): "image" | "video" {
   const t = String(assetType || "").toLowerCase();
   return t.includes("video") ? "video" : "image";
-}
-
-function toOutputUrl(mediaUrl: string | null | undefined): string | null {
-  if (!mediaUrl) return null;
-  if (mediaUrl.startsWith("task:")) return null;
-  if (!/^https?:\/\//i.test(mediaUrl)) return null;
-  return mediaUrl;
 }
 
 export async function GET() {
@@ -27,11 +22,18 @@ export async function GET() {
     });
 
     const payload = generations.map((g) => {
-      const outputUrl = g.outputUrl ?? toOutputUrl(g.mediaUrl);
+      const rawUrl = g.outputUrl || g.mediaUrl;
+      const hasTaskPrefix = rawUrl?.startsWith("task:");
+      
+      const objectKey = (!rawUrl || hasTaskPrefix) ? null : rawUrl;
+      const resolvedUrl = objectKey ? normalizeMediaUrl(objectKey) : null;
+      const publicPreviewUrl = objectKey ? defaultProvider.getPublicUrl("", objectKey) : null;
+      
+      const provider = g.providerName || getProviderFor(g.modelUsed);
       const type = (g.type as "image" | "video" | null) ?? inferType(g.assetType);
       const status =
         (g.status as string | null) ??
-        (outputUrl ? "completed" : g.mediaUrl?.startsWith("task:") ? "processing" : "unknown");
+        (objectKey ? "completed" : hasTaskPrefix ? "processing" : "unknown");
 
       return {
         id: g.id,
@@ -41,15 +43,20 @@ export async function GET() {
         model: g.modelUsed,
         type,
         status,
-        outputUrl,
+        outputUrl: resolvedUrl,
         createdAt: g.createdAt.toISOString(),
         apiCost: g.cost,
         flagged: g.isFlagged,
+        objectKey,
+        resolvedUrl,
+        provider,
+        publicPreviewUrl,
       };
     });
 
     return NextResponse.json(payload);
-  } catch {
+  } catch (error) {
+    console.error("[admin/generations GET] Error:", error);
     return NextResponse.json([]);
   }
 }

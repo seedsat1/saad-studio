@@ -71,8 +71,7 @@ export function getProviderFor(modelId: string): ProviderId {
   // BytePlus official (Seedance v2)
   if (
     id.startsWith("bytedance/seedance-v2") ||
-    id === "bytedance/seedance-2" ||
-    id === "bytedance/seedance-2-fast"
+    id.startsWith("bytedance/seedance-2")
   ) {
     return "byteplus";
   }
