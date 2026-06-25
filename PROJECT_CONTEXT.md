@@ -1,26 +1,32 @@
 # Saad Studio — Project Context
-## آخر مهمة: معالجة أخطاء الـ 404 للمكتبة وتفادي أخطاء الميديا المحلية (2026-06-26)
+## آخر مهمة: معالجة أخطاء الـ 404 للميديا في صفحات المستخدم وتفعيل بوابة الميديا للأصول (2026-06-26)
 
 - **المشكلة**:
-  1. تعطل تحميل وعرض الوسائط في صفحة تعديل مكتبة الصور الإدارية (`/admin/cms/studio-img`) وصفحة التوليد الأمامية (`/prompt`) بـ 404 نتيجة طلب المفاتيح النسبية للمخزن بشكل مباشر كروابط نسبية في المتصفح.
-  2. تعطل تحميل الأصول والملفات المحلية الثابتة في مجلد `public` (مثل صور Kling 3.0، صور presets، صور nano.webp وغيرها) في لوحة الإدارة الرئيسية `/admin/cms/home` بسبب إلحاق بادئة `/api/media/` عليها بطريق الخطأ عبر دالة `normalizeMediaUrl` المطبقة في الـ CMS.
+  1. تعطل تحميل وعرض معاينات الأنماط السينمائية (Cinematic Styles) والانتقالات (Transitions) على واجهة المستخدم بـ 404 بسبب طلب مفاتيح التخزين النسبية مباشرةً كروابط نسبية في المتصفح.
+  2. تعطل تحميل الصور والفيديوهات للـ Hero ومجموعات الأصول في صفحات الهبوط الرئيسية (Landing page)، وفهرس التطبيقات (Apps hub)، وصفحة التجميل (Beauty Studio v2)، ولوحة المزاج (Moodboard) بـ 404 عند تعديلها في الـ CMS وتخزينها كروابط تخزين نسبية.
 
 - **الإصلاح والتحقق**:
-  1. **تأمين مكتبة الصور (Studio Image)**: تم تعديل المكون `components/StudioImgPageV2.tsx` (الصفحة الأمامية `/prompt`) لتقوم باستيراد `normalizeMediaUrl` وتغليف كافة عناصر الصور، مقارنات الصور، مشغلات الفيديو، ومكونات اختيار ورفع الصور (`ImagePicker`) بها. هذا يمنع أي طلب نسبي مباشر لروابط التخزين ويضمن مرورها بالكامل من بوابة الميديا `/api/media/...`.
-  2. **فلترة الميديا المحلية وتجاوزها**: تم تحسين دالة `resolveMediaUrl` (عبر تحديث `extractObjectKey` في `lib/media-gateway/index.ts`) لترجع `null` وتتجاهل أي مسارات لا تملك بادئة مجلد تخزين معتمدة (`images/`, `videos/`, `audio/`, `thumbnails/`, `media/`) أو تبدأ بـ `data:`. هذا يسمح للأصول الثابتة المرفوعة محلياً (مثل `/Kling 3.0/Hero.webp`) ولصور الرفع المؤقتة (base64) بالمرور والتحميل من مساراتها المباشرة الطبيعية بدلاً من توجيهها للبروكسي وحصول 404.
-  3. **بناء المشروع محلياً**: تم تشغيل `npm run build` واكتمل بنجاح تام 100% دون أي أخطاء في كتابة أو مطابقة الأنواع (Types).
-  4. **مستودع الكود**: تم دفع كافة التحديثات بنجاح إلى GitHub (`commit 555062d`).
+  1. **الواجهة الأمامية للأدوات**: تم تطبيق `normalizeMediaUrl` على مشغلات الفيديو والبطاقات ومربعات Lightbox في صفحات الأدوات `/apps/tool/cinematic-styles` و `/apps/tool/transitions`.
+  2. **صفحات الهبوط والمحتوى**: تم إدراج وتطبيق `normalizeMediaUrl` في `MediaFill` بصفحة الهبوط الرئيسية `/` وفي معالج عرض الفيديوهات والصور بصفحات `/apps` و `/beauty2.html` و `/moodboard`.
+  3. **بناء المشروع محلياً**: تم تشغيل `npm run build` واكتمل بنجاح تام 100% دون أي أخطاء.
+  4. **مستودع الكود**: تم دفع كافة التحديثات بنجاح إلى GitHub (`commit 5e6e9a8`).
 
 - **الملفات المتأثرة**:
-  - [lib/media-gateway/index.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media-gateway/index.ts) [MODIFY]
-  - [components/StudioImgPageV2.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/components/StudioImgPageV2.tsx) [MODIFY]
-  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+  - [app/(landing)/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/beauty2.html/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/beauty2.html/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/moodboard/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/moodboard/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/transitions/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/transitions/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
 
 - **القرارات المتخذة**:
-  - حصر عمل بوابة الميديا الممررة `/api/media/...` على المفاتيح التي تحتوي صراحة على بادئات مجلدات التخزين، لتجنب كسر أي أصول ثابتة (static assets) أو صور presets في لوحة الإدارة وموقع العميل.
+  - تغليف كافة روابط الوسائط والأصول الديناميكية القادمة من الـ CMS بدالة `normalizeMediaUrl` قبل رندرتها في الواجهة، لضمان تحويلها تلقائياً إلى روابط البروكسي `/api/media/...` وتجنب الأخطاء النسبية.
 
 - **الخطوة المتبقية**:
-  - سحب التعديلات الأخيرة على السيرفر الإنتاجي وإعادة البناء والتشغيل لتفعيل الحل للمستخدمين.
+  - سحب التعديلات الأخيرة على خادم الإنتاج VPS (`git pull && npm run build && pm2 restart saadstudio`) لتأكيد عملها بصورة كاملة للمستخدم النهائي.
+
+## المهمة السابقة: معالجة أخطاء الـ 404 للمكتبة وتفادي أخطاء الميديا المحلية (2026-06-26)
 
 ## المهمة السابقة: بناء وتطبيق معمارية بوابة الوسائط الموحدة (Media Gateway) والتحقق منها (2026-06-25)
 
