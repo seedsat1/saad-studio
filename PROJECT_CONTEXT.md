@@ -7,7 +7,7 @@
 
 - **الإصلاح والتعديل**:
   1. إضافة موديل `bytedance-seedance-v2-t2v-mini` في سجل الموديلات `lib/video-model-registry.ts` وتحديد دقاته المدعومة حصراً بـ 480p و720p وتأكيد مساره `bytedance/seedance-v2/text-to-video-mini`.
-  2. تحديث `lib/providers/byteplus-video.ts` لربط المسار بمفتاح البيئة `BYTEPLUS_MODEL_MINI` مع إسناد معرف نقطة النهاية المخصص للعميل `"ark-2ea1e31a-1727-4552-90da-1ece12c2141a-1353b"` كقيمة تراجع (Fallback) مباشرة للـ Mini لتوفير تشغيل فوري بدون إعداد إضافي، وتعيين `"dreamina-seedance-2-0-lite-260128"` كقيمة تراجع للـ Fast.
+  2. تحديث `lib/providers/byteplus-video.ts` لربط المسار بمفتاح البيئة `BYTEPLUS_MODEL_MINI` وتعيين `"dreamina-seedance-2-0-lite-260128"` كقيمة تراجع للـ Fast.
   3. تحديث `lib/pricing.ts` و `lib/pricing-models.ts` لتعريف الباقة `seedance2mini` بكريديت مستخدم أساسي 2.5333 كريديت/ثانية (38 كريديت لكل 15 ثانية لدقة 720p) وإضافة الحساب المخصص في دوال الاسترجاع لتعويض المعادلات:
      - 480p: دقيقة وتناسبية تماماً (Credits = durationSec).
      - 720p: خطية دقيقة (Credits = (28 / 11) * durationSec - 2 / 11).
