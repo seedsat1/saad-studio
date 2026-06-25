@@ -20,6 +20,7 @@ import {
   ArrowLeft, Monitor, Megaphone, ExternalLink,
 } from "lucide-react";
 import { PRESETS } from "@/lib/cinematic-presets";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    TYPES
@@ -526,10 +527,10 @@ function ImageUpload({ value, onChange, label = "Image" }: {
       {value && (
         <div className="relative mt-2 h-24 w-40 rounded-lg overflow-hidden border border-white/10">
           {isVideoUrl(value) ? (
-            <video src={value} muted autoPlay loop playsInline className="h-full w-full object-cover" />
+            <video src={normalizeMediaUrl(value) || ""} muted autoPlay loop playsInline className="h-full w-full object-cover" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={value} alt="" className="h-full w-full object-cover" />
+            <img src={normalizeMediaUrl(value) || ""} alt="" className="h-full w-full object-cover" />
           )}
           <button onClick={() => onChange("")}
             className="absolute top-1 right-1 h-5 w-5 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-red-600 transition-colors">
@@ -909,8 +910,8 @@ function CinematicStylesCms() {
                       {media?.url ? (
                         media.type === "video" ? (
                           <video
-                            src={media.url}
-                            poster={media.poster}
+                            src={normalizeMediaUrl(media.url) || ""}
+                            poster={normalizeMediaUrl(media.poster) || undefined}
                             className="h-full w-full object-cover"
                             autoPlay
                             loop
@@ -923,7 +924,7 @@ function CinematicStylesCms() {
                             }}
                           />
                         ) : (
-                          <img src={media.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                          <img src={normalizeMediaUrl(media.url) || ""} alt="" className="h-full w-full object-cover" loading="lazy" />
                         )
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
