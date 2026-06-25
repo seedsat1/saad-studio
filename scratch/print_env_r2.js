@@ -1,0 +1,6 @@
+console.log({
+  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID ? "PRESENT" : "MISSING",
+  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY ? "PRESENT" : "MISSING",
+  R2_ENDPOINT: process.env.R2_ENDPOINT,
+  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME
+});

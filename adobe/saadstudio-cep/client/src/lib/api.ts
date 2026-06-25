@@ -571,7 +571,7 @@ function normalizeImageJob(
   };
 }
 
-export function getFallbackUrls(url: string | null | undefined, isDownload = false): string[] {
+export function getFallbackUrls(url: string | null | undefined, _isDownload = false): string[] {
   if (!url) return [];
   
   if (
@@ -605,22 +605,19 @@ export function getFallbackUrls(url: string | null | undefined, isDownload = fal
     return [url];
   }
 
-  const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(mediaPath.toLowerCase());
-
   const fallbacks: string[] = [];
 
   // 1. Backblaze B2 (New Storage)
   const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
   fallbacks.push(`${directB2Url}/${mediaPath}`);
 
-  // 2. Cloudflare R2 (Old Storage)
+  // 2. /api/media (Emergency Fallback - Proxy)
+  // Safe for all assets (including videos) because /api/media streams directly rather than buffering in memory.
+  fallbacks.push(`${apiBase}/api/media/${mediaPath}`);
+
+  // 3. Cloudflare R2 (Old Storage - Direct)
   const rawR2Url = "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev";
   fallbacks.push(`${rawR2Url}/${mediaPath}`);
-
-  // 3. /api/media (Emergency Fallback)
-  if (!isVideo || isDownload) {
-    fallbacks.push(`${apiBase}/api/media/${mediaPath}`);
-  }
 
   // Deduplicate while preserving order
   const uniqueFallbacks: string[] = [];

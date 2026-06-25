@@ -27,7 +27,9 @@ export function normalizeMediaUrl(url: string | null | undefined): string | null
   }
 
   if (legacyProvider.isStoredAssetUrl(url)) {
-    return legacyProvider.getPublicUrl("", mediaPath);
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app";
+    const cleanSite = siteUrl.replace(/\/+$/, "");
+    return `${cleanSite}/api/media/${mediaPath}`;
   }
 
   // Fallback default format
