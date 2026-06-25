@@ -1,4 +1,31 @@
 # Saad Studio — Project Context
+## آخر مهمة: معالجة أخطاء اتصال وتجميد تحميل الوسائط القديمة في المناطق المحظورة عبر بروكسي البث الممر (2026-06-25)
+
+- **المشكلة**:
+  فشل تحميل وتجميد عرض الفيديوهات والصور القديمة (المخزنة في Cloudflare R2) مع ظهور خطأ `net::ERR_CONNECTION_TIMED_OUT` في كونسول المتصفح لدى المستخدمين الذين تقع أجهزتهم في بلدان أو شبكات تحظر مزودي نطاقات `.r2.dev`. نظراً لأن دالة `normalizeMediaUrl` كانت ترجع الروابط المباشرة لـ R2 ولأن حلقة الـ Fallback لم تكن تدرج البروكسي الممر `/api/media` للفيديوهات، تجمدت الصفحات تماماً.
+
+- **الإصلاح والتعديل**:
+  1. تعديل دالة `normalizeMediaUrl` في [lib/storage/index.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/index.ts) لتقوم بإرجاع رابط البروكسي الممر `https://www.saadstudio.app/api/media/...` كـ URL افتراضي لأي أصل وسائط قديم يتبع Cloudflare R2، بدلاً من الرابط المباشر المحظور.
+  2. تعديل دالة `getFallbackUrls` في [lib/utils.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts) لتدرج رابط البروكسي الممر `/api/media` في سلسلة التراجع لكافة أنواع الوسائط (بما في ذلك الفيديو)، وتغيير ترتيبها لتجرب البروكسي قبل الاتصال المباشر بـ R2 لتجنب فترات الانتظار الطويلة للتجميد (Timeout).
+  3. مطابقة التغييرات في المكون البرمجي لإضافة CEP داخل [api.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/api.ts)، وتعديل توقيع دالة `getFallbackUrls` لتعريف المعاملات غير المستخدمة ببادئة `_` لحل اعتراضات مترجم TypeScript (`tsc`).
+  4. التحقق من سلامة البناء (`npm run build`) لكل من تطبيق الويب والـ CEP Client.
+
+- **الملفات المتأثرة**:
+  - [lib/storage/index.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/index.ts) [MODIFY]
+  - [lib/utils.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts) [MODIFY]
+  - [adobe/saadstudio-cep/client/src/lib/api.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/api.ts) [MODIFY]
+
+- **نتائج التحقق**:
+  - تم بناء تطبيق الويب بنجاح كامل دون أي أخطاء.
+  - تم بناء CEP Client بنجاح كامل مع تصفير كافة اعتراضات TypeScript.
+  - نجاح جميع اختبارات Vitest الخاصة بمسارات الوسائط والأصول.
+
+- **القرارات المتخذة**:
+  - استخدام البروكسي الممر المباشر `/api/media` لجميع الوسائط القديمة التي يرجع نطاقها لـ R2 كحل افتراضي، وتعديل ترتيب مصفوفة الـ fallback لتقديم البث المستقر قبل تجربة الروابط المحظورة.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية.
+
 ## آخر مهمة: إعادة هيكلة طبقة التخزين لتصبح مستقلة بالكامل عن مزود الخدمة (Provider-Agnostic) والربط مع Backblaze B2 (2026-06-25)
 
 - **المشكلة**:
