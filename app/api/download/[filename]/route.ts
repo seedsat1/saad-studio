@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
+import { defaultProvider, legacyProvider } from '@/lib/storage';
 
 // دعم التحميل من مصادر مختلفة:
 // 1. R2 (Cloudflare) - الخيار الأول
@@ -38,42 +39,45 @@ export async function GET(
 }
 
 async function downloadFromR2(filename: string): Promise<NextResponse> {
-  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+  const path = `downloads/${filename}`;
   
-  const s3Client = new S3Client({
-    region: 'auto',
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-    endpoint: process.env.R2_ENDPOINT,
-  });
-
+  // 1. Try default provider (Backblaze B2)
   try {
-    const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET,
-      Key: `downloads/${filename}`,
-    });
-
-    const response = await s3Client.send(command);
-    const bytes = await response.Body?.transformToByteArray();
-
-    if (!bytes) {
-      throw new Error('لم يتم الحصول على البيانات من R2');
+    console.log(`[api/download] Attempting B2 download for: ${path}`);
+    const exists = await defaultProvider.exists({ bucket: "", path });
+    if (exists) {
+      const response = await defaultProvider.download({ bucket: "", path });
+      const buffer = Buffer.from(await new Response(response.body).arrayBuffer());
+      return new NextResponse(buffer, {
+        headers: {
+          'Content-Type': response.contentType,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': response.cacheControl,
+        },
+      });
     }
+  } catch (error) {
+    console.error('[api/download] B2 download failed, trying legacy R2:', error);
+  }
 
-    return new NextResponse(Buffer.from(bytes), {
+  // 2. Try legacy provider (Cloudflare R2)
+  try {
+    console.log(`[api/download] Attempting legacy R2 download for: ${path}`);
+    const response = await legacyProvider.download({ bucket: "", path });
+    const buffer = Buffer.from(await new Response(response.body).arrayBuffer());
+    return new NextResponse(buffer, {
       headers: {
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': response.contentType,
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': response.cacheControl,
       },
     });
   } catch (error) {
-    console.error('خطأ في R2:', error);
-    // العودة للاحتياطي
-    return await downloadFromLocal(filename);
+    console.error('[api/download] Legacy R2 download failed:', error);
   }
+
+  // 3. Fallback: Download from local
+  return await downloadFromLocal(filename);
 }
 
 async function downloadFromLocal(filename: string): Promise<NextResponse> {

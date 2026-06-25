@@ -21,19 +21,9 @@ export function getFallbackUrls(url: string | null | undefined, isDownload = fal
   }
   
   let mediaPath = "";
-  const patterns = [
-    /https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev\/(.+)/i,
-    /https:\/\/media\.saadstudio\.app\/(.+)/i,
-    /https?:\/\/(?:www\.)?saadstudio\.app\/api\/media\/(.+)/i,
-    /^\/api\/media\/(.+)/i,
-  ];
-
-  for (const regex of patterns) {
-    const match = url.match(regex);
-    if (match?.[1]) {
-      mediaPath = match[1];
-      break;
-    }
+  const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
+  if (match) {
+    mediaPath = `${match[1]}/${match[2]}`;
   }
 
   if (!mediaPath) {
@@ -42,15 +32,38 @@ export function getFallbackUrls(url: string | null | undefined, isDownload = fal
 
   const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(mediaPath.toLowerCase());
 
-  const fallbacks = [
-    `https://media.saadstudio.app/${mediaPath}`,
-    `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev/${mediaPath}`
-  ];
+  const fallbacks: string[] = [];
 
-  // If it's a video file in preview/stream context, do not route through Vercel proxy.
+  // 1. Backblaze B2 (New Storage)
+  const publicBaseUrl = (
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
+    "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com"
+  ).replace(/\/+$/, "");
+
+  fallbacks.push(`${publicBaseUrl}/${mediaPath}`);
+
+  const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
+  if (publicBaseUrl !== directB2Url) {
+    fallbacks.push(`${directB2Url}/${mediaPath}`);
+  }
+
+  // 2. Cloudflare R2 (Old Storage)
+  const rawR2Url = "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev";
+  fallbacks.push(`${rawR2Url}/${mediaPath}`);
+
+  // 3. /api/media (Emergency Fallback)
   if (!isVideo || isDownload) {
     fallbacks.push(`/api/media/${mediaPath}`);
   }
 
-  return fallbacks;
+  // Deduplicate while preserving order
+  const uniqueFallbacks: string[] = [];
+  for (const f of fallbacks) {
+    if (!uniqueFallbacks.includes(f)) {
+      uniqueFallbacks.push(f);
+    }
+  }
+
+  return uniqueFallbacks;
 }

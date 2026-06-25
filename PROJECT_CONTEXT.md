@@ -1,4 +1,45 @@
 # Saad Studio — Project Context
+## آخر مهمة: إعادة هيكلة طبقة التخزين لتصبح مستقلة بالكامل عن مزود الخدمة (Provider-Agnostic) والربط مع Backblaze B2 (2026-06-25)
+
+- **المشكلة**:
+  الحاجة لإنشاء طبقة تخزين مرنة ومستقلة بالكامل عن مزود التخزين (Cloudflare R2)، لضمان سهولة الانتقال مستقبلاً لأي مزود آخر (مثل AWS S3, Wasabi, MinIO) بمجرد تغيير إعدادات البيئة، مع جعل Backblaze B2 هو المزود الافتراضي وتخصيص Cloudflare R2 كمزود قراءة احتياطي وlegacy للملفات القديمة دون الحاجة لمفاتيح R2.
+
+- **الإصلاح والتعديل**:
+  1. إنشاء واجهة تخزين موحدة `StorageProvider` تحت `lib/storage/types.ts`.
+  2. إنشاء فئة `BackblazeProvider` تحت `lib/storage/backblaze.ts` لدعم Backblaze B2 عبر بروتوكول S3 المتوافق.
+  3. إنشاء فئة `R2Provider` تحت `lib/storage/r2.ts` للقراءة العامة والخالية من المفاتيح والأسرار من R2 عبر طلبات HTTP المباشرة (Legacy Read-Only).
+  4. ربط وتصدير الموفر الافتراضي والقديم مع دالة `normalizeMediaUrl` تحت `lib/storage/index.ts`.
+  5. تعديل `lib/r2-storage.ts` ليصبح مجرد wrapper يقوم بتمثيل وتوجيه كافة استدعاءات الـ APIs الحالية للموفر الافتراضي الجديد.
+  6. تعديل مسار البروكسي وبث الميديا `/api/media/[...path]` للتحقق أولاً من B2 ثم التراجع تلقائياً للبث من R2.
+  7. تعديل دوال تحديد روابط التراجع `getFallbackUrls` في `lib/utils.ts` وإضافة CEP `api.ts` لتشمل روابط B2 و R2 ومسار البروكسي الممر (للتحميلات فقط)، مع استبعاد `media.saadstudio.app` حالياً لخطأ DNS.
+  8. تعديل مسار التنزيل للمثبتات `app/api/download/[filename]/route.ts` ليعتمد طبقة التخزين الجديدة.
+  9. تحديث مسار التشخيص الإداري `app/api/admin/r2-diagnostic/route.ts` لفحص Backblaze B2 بدلاً من Cloudflare Account ID.
+
+- **الملفات المتأثرة**:
+  - [lib/storage/types.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/types.ts) [NEW]
+  - [lib/storage/backblaze.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/backblaze.ts) [NEW]
+  - [lib/storage/r2.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/r2.ts) [NEW]
+  - [lib/storage/index.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/index.ts) [NEW]
+  - [lib/r2-storage.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/r2-storage.ts) [MODIFY]
+  - [lib/utils.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts) [MODIFY]
+  - [adobe/saadstudio-cep/client/src/lib/api.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/api.ts) [MODIFY]
+  - [app/api/media/[...path]/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/media/%5B...path%5D/route.ts) [MODIFY]
+  - [app/api/download/[filename]/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/download/%5Bfilename%5D/route.ts) [MODIFY]
+  - [app/api/admin/r2-diagnostic/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/r2-diagnostic/route.ts) [MODIFY]
+  - [docs/saad-studio-premiere-reference-ar.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/docs/saad-studio-premiere-reference-ar.md) [MODIFY]
+
+- **نتائج التحقق**:
+  - بناء تطبيق Next.js بنجاح تام عبر `npm run build` دون أي مشاكل.
+  - بناء إضافة CEP بنجاح تام عبر `npm run build` في مجلد client.
+  - نجاح جميع اختبارات Vitest الخاصة بمسارات الوسائط والأصول.
+
+- **القرارات المتخذة**:
+  - اعتماد Backblaze B2 كمزود تخزين افتراضي وتعيين Cloudflare R2 كمزود قديم مقيد للقراءة دون الحاجة لمفاتيح R2.
+  - تمرير البث للفيديوهات مباشرة لتجنب استهلاك موارد Vercel وقصر البروكسي على عمليات التنزيل فقط.
+
+- **الخطوة المتبقية**:
+  - إضافة متغيرات البيئة الخاصة بـ Backblaze B2 على Vercel وإجراء اختبار رفع الميديا.
+
 ## آخر مهمة: إصلاح خطأ 404 عند جلب أصول الوسائط للمستخدمين غير المسجلين أو منتهي الجلسة (2026-06-25)
 
 - **المشكلة**:

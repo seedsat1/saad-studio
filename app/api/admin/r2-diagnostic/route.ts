@@ -1,28 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/is-admin";
-import {
-  S3Client,
-  ListObjectsV2Command,
-  HeadBucketCommand,
-} from "@aws-sdk/client-s3";
-
-function getOptionalEnv(...names: string[]): string {
-  for (const name of names) {
-    const value = process.env[name]?.trim();
-    if (value) {
-      return value;
-    }
-  }
-  return "";
-}
-
-function getRequiredEnv(name: string): string | null {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    return null;
-  }
-  return value;
-}
+import { defaultProvider } from "@/lib/storage";
 
 export async function GET() {
   if (!(await isAdmin())) {
@@ -30,76 +8,41 @@ export async function GET() {
   }
 
   try {
-    const R2_BUCKET_NAME = getOptionalEnv("R2_BUCKET_NAME", "R2_BUCKET");
-    let R2_ENDPOINT = getOptionalEnv("R2_ENDPOINT");
-    const R2_ACCOUNT_ID = getRequiredEnv("R2_ACCOUNT_ID");
-    const R2_ACCESS_KEY_ID = getRequiredEnv("R2_ACCESS_KEY_ID");
-    const R2_SECRET_ACCESS_KEY = getRequiredEnv("R2_SECRET_ACCESS_KEY");
-    const R2_PUBLIC_URL = getOptionalEnv(
-      "R2_PUBLIC_BASE_URL",
-      "R2_PUBLIC_URL",
-      "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
-      "NEXT_PUBLIC_R2_PUBLIC_URL"
-    );
+    const bucketName = process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || "saadstudio-storage";
+    const endpoint = process.env.R2_ENDPOINT || "https://s3.eu-central-003.backblazeb2.com";
+    const publicUrl = process.env.R2_PUBLIC_URL || process.env.R2_PUBLIC_BASE_URL || "";
 
-    // Construct endpoint from account ID if not explicitly provided
-    if (!R2_ENDPOINT && R2_ACCOUNT_ID) {
-      R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-    }
+    let canConnect = false;
+    let errorDetail = null;
 
-    let canListBucket = false;
-    let sampleObjectCount = null;
-
-    if (R2_BUCKET_NAME && R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
-      const client = new S3Client({
-        region: "auto",
-        endpoint: R2_ENDPOINT,
-        credentials: {
-          accessKeyId: R2_ACCESS_KEY_ID,
-          secretAccessKey: R2_SECRET_ACCESS_KEY,
-        },
-        requestChecksumCalculation: "WHEN_REQUIRED",
-        responseChecksumValidation: "WHEN_REQUIRED",
-      });
-
-      try {
-        // Test bucket connectivity with HeadBucket
-        await client.send(new HeadBucketCommand({ Bucket: R2_BUCKET_NAME }));
-
-        // Try to list up to 10 objects
-        const listResponse = await client.send(
-          new ListObjectsV2Command({ Bucket: R2_BUCKET_NAME, MaxKeys: 10 })
-        );
-
-        canListBucket = true;
-        if (listResponse.KeyCount !== undefined) {
-          sampleObjectCount = listResponse.KeyCount;
-        } else if (listResponse.Contents) {
-          sampleObjectCount = listResponse.Contents.length;
-        }
-      } catch {
-        canListBucket = false;
-      }
+    try {
+      // Test B2 connectivity by checking if a dummy key exists.
+      // If credentials are valid, this returns false (does not throw).
+      // If credentials or config are invalid, it throws.
+      await defaultProvider.exists({ bucket: "", path: "diagnostics-probe-temp" });
+      canConnect = true;
+    } catch (err: any) {
+      canConnect = false;
+      errorDetail = err.message || String(err);
     }
 
     return NextResponse.json({
-      R2_BUCKET_NAME,
-      R2_ENDPOINT,
-      R2_PUBLIC_URL,
-      R2_ACCOUNT_ID_SUFFIX: R2_ACCOUNT_ID ? R2_ACCOUNT_ID.slice(-6) : null,
-      canListBucket,
-      sampleObjectCount,
+      provider: "Backblaze B2",
+      bucketName,
+      endpoint,
+      publicUrl,
+      canConnect,
+      errorDetail,
     });
-  } catch (error) {
-    console.error("R2 diagnostic route error:", error);
+  } catch (error: any) {
+    console.error("Storage diagnostic route error:", error);
     return NextResponse.json({
-      R2_BUCKET_NAME: null,
-      R2_ENDPOINT: null,
-      R2_PUBLIC_URL: null,
-      R2_ACCOUNT_ID_SUFFIX: null,
-      canListBucket: false,
-      sampleObjectCount: null,
-      error: "Unknown error"
+      provider: "Backblaze B2",
+      bucketName: null,
+      endpoint: null,
+      publicUrl: null,
+      canConnect: false,
+      error: error.message || "Unknown error",
     });
   }
 }

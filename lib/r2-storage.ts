@@ -1,10 +1,7 @@
 import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+  defaultProvider,
+  normalizeMediaUrl as newNormalizeMediaUrl,
+} from "./storage";
 
 export const BUCKETS = {
   images: "images",
@@ -18,120 +15,11 @@ export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];
 
 const COMMON_EXTENSIONS = [".jpg", ".mp4", ".mp3", ".png", ".webp", ".wav", ".gif", ".webm"];
 
-let r2Client: S3Client | null = null;
-
-function getRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required R2 env: ${name}`);
-  }
-  return value;
-}
-
-function getOptionalEnv(...names: string[]): string {
-  for (const name of names) {
-    const value = process.env[name]?.trim();
-    if (value) {
-      return value;
-    }
-  }
-  return "";
-}
-
-function getPublicBaseUrl(): string {
-  return getOptionalEnv(
-    "R2_PUBLIC_BASE_URL",
-    "R2_PUBLIC_URL",
-    "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
-    "NEXT_PUBLIC_R2_PUBLIC_URL"
-  ).replace(/\/+$/, "");
-}
-
-function getStorageBucket(): string {
-  return getOptionalEnv("R2_BUCKET", "R2_BUCKET_NAME");
-}
-
-function getStorageEndpoint(): string {
-  const explicitEndpoint = process.env.R2_ENDPOINT?.trim();
-  if (explicitEndpoint) {
-    return explicitEndpoint.replace(/\/+$/, "");
-  }
-
-  const accountId = getRequiredEnv("R2_ACCOUNT_ID");
-  return `https://${accountId}.r2.cloudflarestorage.com`;
-}
-
-function getR2Client(): S3Client {
-  if (r2Client) {
-    return r2Client;
-  }
-
-  r2Client = new S3Client({
-    region: process.env.R2_REGION || "auto",
-    endpoint: getStorageEndpoint(),
-    credentials: {
-      accessKeyId: getRequiredEnv("R2_ACCESS_KEY_ID"),
-      secretAccessKey: getRequiredEnv("R2_SECRET_ACCESS_KEY"),
-    },
-    // Disable automatic CRC32 checksums — they add x-amz-checksum-crc32
-    // headers to presigned PUT URLs which Cloudflare R2 blocks in CORS preflight.
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-  });
-
-  return r2Client;
-}
-
-function cleanPath(path: string): string {
-  return path.replace(/^\/+/, "").replace(/\\/g, "/");
-}
-
-function objectKey(bucket: string, path: string): string {
-  return `${bucket}/${cleanPath(path)}`;
-}
-
-function urlPathFromKey(key: string): string {
-  return key
-    .split("/")
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
-}
-
-async function bodyToText(body: unknown): Promise<string> {
-  if (!body) {
-    return "";
-  }
-
-  const value = body as {
-    transformToString?: () => Promise<string>;
-    arrayBuffer?: () => Promise<ArrayBuffer>;
-  };
-
-  if (typeof value.transformToString === "function") {
-    return value.transformToString();
-  }
-
-  if (typeof value.arrayBuffer === "function") {
-    const bytes = await value.arrayBuffer();
-    return Buffer.from(bytes).toString("utf8");
-  }
-
-  return Buffer.from(String(body)).toString("utf8");
-}
-
 export function isStorageConfigured(): boolean {
   return Boolean(
-    getOptionalEnv("R2_BUCKET", "R2_BUCKET_NAME") &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      getOptionalEnv(
-        "R2_PUBLIC_BASE_URL",
-        "R2_PUBLIC_URL",
-        "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
-        "NEXT_PUBLIC_R2_PUBLIC_URL"
-      ) &&
-      (process.env.R2_ENDPOINT || process.env.R2_ACCOUNT_ID)
+    process.env.R2_ACCESS_KEY_ID &&
+    process.env.R2_SECRET_ACCESS_KEY &&
+    (process.env.R2_BUCKET || process.env.R2_BUCKET_NAME)
   );
 }
 
@@ -159,44 +47,15 @@ export function extensionFromContentType(ct: string): string {
 }
 
 export function getPublicObjectUrl(bucket: string, path: string): string {
-  return `${getPublicBaseUrl()}/${urlPathFromKey(objectKey(bucket, path))}`;
+  return defaultProvider.getPublicUrl(bucket, path);
 }
 
 export function normalizeMediaUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-
-  const customDomain = "https://media.saadstudio.app";
-  
-  let mediaPath = "";
-  const patterns = [
-    /https:\/\/pub-[a-zA-Z0-9]+\.r2\.dev\/(.+)/i,
-    /https:\/\/media\.saadstudio\.app\/(.+)/i,
-    /https?:\/\/(?:www\.)?saadstudio\.app\/api\/media\/(.+)/i
-  ];
-
-  for (const regex of patterns) {
-    const match = url.match(regex);
-    if (match?.[1]) {
-      mediaPath = match[1];
-      break;
-    }
-  }
-
-  if (mediaPath) {
-    return `${customDomain}/${mediaPath}`;
-  }
-
-  return url;
+  return newNormalizeMediaUrl(url);
 }
 
 export function isStoredAssetUrl(url: string): boolean {
-  const base = getOptionalEnv(
-    "R2_PUBLIC_BASE_URL",
-    "R2_PUBLIC_URL",
-    "NEXT_PUBLIC_R2_PUBLIC_BASE_URL",
-    "NEXT_PUBLIC_R2_PUBLIC_URL"
-  ).replace(/\/+$/, "");
-  return Boolean(base && (url.startsWith(base) || url.includes("pub-") && url.includes(".r2.dev")));
+  return defaultProvider.isStoredAssetUrl(url);
 }
 
 export async function createSignedUploadUrl(params: {
@@ -205,23 +64,7 @@ export async function createSignedUploadUrl(params: {
   contentType: string;
   expiresIn?: number;
 }): Promise<{ signedUrl: string; publicUrl: string; key: string }> {
-  const bucketName = getStorageBucket();
-  const key = objectKey(params.bucket, params.path);
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: key,
-    ContentType: params.contentType,
-  });
-
-  const signedUrl = await getSignedUrl(getR2Client(), command, {
-    expiresIn: params.expiresIn ?? 300,
-  });
-
-  return {
-    signedUrl,
-    publicUrl: getPublicObjectUrl(params.bucket, params.path),
-    key,
-  };
+  return defaultProvider.createSignedUploadUrl(params);
 }
 
 export async function putObjectToStorage(params: {
@@ -231,31 +74,14 @@ export async function putObjectToStorage(params: {
   contentType: string;
   cacheControl?: string;
 }): Promise<string> {
-  const key = objectKey(params.bucket, params.path);
-
-  await getR2Client().send(
-    new PutObjectCommand({
-      Bucket: getStorageBucket(),
-      Key: key,
-      Body: params.body,
-      ContentType: params.contentType,
-      CacheControl: params.cacheControl,
-    })
-  );
-
-  return getPublicObjectUrl(params.bucket, params.path);
+  return defaultProvider.upload(params);
 }
 
 export async function deleteObjectFromStorage(params: {
   bucket: string;
   path: string;
 }): Promise<void> {
-  await getR2Client().send(
-    new DeleteObjectCommand({
-      Bucket: getStorageBucket(),
-      Key: objectKey(params.bucket, params.path),
-    })
-  );
+  return defaultProvider.delete(params);
 }
 
 export async function readTextFromStorage(params: {
@@ -263,14 +89,24 @@ export async function readTextFromStorage(params: {
   path: string;
 }): Promise<string | null> {
   try {
-    const response = await getR2Client().send(
-      new GetObjectCommand({
-        Bucket: getStorageBucket(),
-        Key: objectKey(params.bucket, params.path),
-      })
-    );
-
-    return bodyToText(response.Body);
+    const response = await defaultProvider.download(params);
+    const body = response.body;
+    if (!body) return "";
+    
+    if (typeof body.transformToString === "function") {
+      return await body.transformToString();
+    }
+    
+    if (typeof body.arrayBuffer === "function") {
+      const bytes = await body.arrayBuffer();
+      return Buffer.from(bytes).toString("utf8");
+    }
+    
+    if (Buffer.isBuffer(body)) {
+      return body.toString("utf8");
+    }
+    
+    return Buffer.from(body).toString("utf8");
   } catch {
     return null;
   }
@@ -281,10 +117,7 @@ export async function readJsonFromStorage<T>(params: {
   path: string;
 }): Promise<T | null> {
   const text = await readTextFromStorage(params);
-  if (!text) {
-    return null;
-  }
-
+  if (!text) return null;
   try {
     return JSON.parse(text) as T;
   } catch {
