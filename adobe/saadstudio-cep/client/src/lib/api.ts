@@ -573,6 +573,11 @@ function normalizeImageJob(
 
 export function getFallbackUrls(url: string | null | undefined, _isDownload = false): string[] {
   if (!url) return [];
+
+  // 1. If it is a task placeholder, return empty to prevent browser requests
+  if (url.includes("task:") || url.startsWith("task:")) {
+    return [];
+  }
   
   if (
     url.startsWith("data:") ||
@@ -580,6 +585,26 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
     url.startsWith("gradient:")
   ) {
     return [url];
+  }
+
+  // 2. If it is an external URL, return as-is to bypass R2/B2 fallback timeouts
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.host.toLowerCase();
+      const isOurStorage =
+        host.includes("r2.dev") ||
+        host.includes("backblazeb2.com") ||
+        host.includes("saadstudio.app") ||
+        host.includes("localhost") ||
+        host.includes("127.0.0.1");
+
+      if (!isOurStorage) {
+        return [url];
+      }
+    } catch (e) {
+      // ignore
+    }
   }
   
   let mediaPath = "";

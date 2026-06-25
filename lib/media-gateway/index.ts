@@ -80,12 +80,33 @@ export function extractObjectKey(url: string | null | undefined): string | null 
   return mediaPath || cleanUrl; // fallback to original if not matched, to support direct relative keys
 }
 
-/**
- * resolveMediaUrl(objectKeyOrLegacyUrl): string
- * Browser-facing contract: The browser must only receive and request Saad Studio URLs: /api/media/<objectKey>
- */
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+
+  // 1. If it is a task placeholder, it is not a media file. Return null to prevent requesting it.
+  if (url.includes("task:") || url.startsWith("task:")) {
+    return null;
+  }
+
+  // 2. If it is an external URL (e.g. tempfile.aiquickdraw.com), return as-is so browser loads it directly.
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.host.toLowerCase();
+      const isOurStorage =
+        host.includes("r2.dev") ||
+        host.includes("backblazeb2.com") ||
+        host.includes("saadstudio.app") ||
+        host.includes("localhost") ||
+        host.includes("127.0.0.1");
+
+      if (!isOurStorage) {
+        return url;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
 
   const key = extractObjectKey(url);
   if (!key) return url;
