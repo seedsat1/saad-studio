@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 // ── Types (mirrored from lib/studio-img.ts) ──────────────────────────────────
 
@@ -456,7 +457,7 @@ function ItemCard({
     <div className="group overflow-hidden rounded-2xl border border-white/10 bg-[#0b1222] shadow-lg shadow-black/40 transition hover:border-violet-400/40">
       <button onClick={onEdit} className="relative block aspect-[4/3] w-full overflow-hidden bg-black/40 text-left">
         {cover ? (
-          <img src={cover} alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" />
+          <img src={normalizeMediaUrl(cover) || ""} alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-600">
             <ImageIcon className="h-10 w-10" />
@@ -1034,9 +1035,9 @@ function MediaSlot({
       {url ? (
         <>
           {isVideo ? (
-            <video src={url} controls className="h-full w-full object-contain" />
+            <video src={normalizeMediaUrl(url) || ""} controls className="h-full w-full object-contain" />
           ) : (
-            <img src={url} alt="" className="h-full w-full object-cover" />
+            <img src={normalizeMediaUrl(url) || ""} alt="" className="h-full w-full object-cover" />
           )}
           <button
             type="button"
@@ -1092,7 +1093,7 @@ function MiniMediaSlot({
       </span>
       {url ? (
         <>
-          <img src={url} alt="" className="h-full w-full object-cover" />
+          <img src={normalizeMediaUrl(url) || ""} alt="" className="h-full w-full object-cover" />
           <button
             type="button"
             onClick={onRemove}
