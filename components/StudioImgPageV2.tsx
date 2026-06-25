@@ -39,6 +39,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 type StudioStep = {
   id: string;
@@ -1144,8 +1145,8 @@ function StudioCard({
             <CompareImage beforeUrl={item.beforeUrl!} afterUrl={item.afterUrl!} position={position} />
           ) : hasVideo ? (
             <video
-              src={item.videoUrl}
-              poster={item.posterUrl}
+              src={normalizeMediaUrl(item.videoUrl) || ""}
+              poster={normalizeMediaUrl(item.posterUrl) || undefined}
               muted
               loop
               playsInline
@@ -1160,7 +1161,7 @@ function StudioCard({
             />
           ) : image ? (
             <img
-              src={image}
+              src={normalizeMediaUrl(image) || ""}
               alt={item.title}
               loading="lazy"
               className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
@@ -1254,7 +1255,7 @@ function ListRow({
       )}
       <button onClick={onPreview} className="relative h-[90px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-black/40">
         {image ? (
-          <img src={image} alt={item.title} className="h-full w-full object-cover" />
+          <img src={normalizeMediaUrl(image) || ""} alt={item.title} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-600">
             <ImagePlus className="h-5 w-5" />
@@ -1302,9 +1303,9 @@ function CompareImage({ beforeUrl, afterUrl, position, cover }: { beforeUrl: str
   const mode = cover === false ? "object-contain" : "object-cover";
   return (
     <div className="relative h-full w-full">
-      <img src={beforeUrl} alt="" className={cn("h-full w-full", mode)} />
+      <img src={normalizeMediaUrl(beforeUrl) || ""} alt="" className={cn("h-full w-full", mode)} />
       <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-        <img src={afterUrl} alt="" className={cn("h-full w-full", mode)} />
+        <img src={normalizeMediaUrl(afterUrl) || ""} alt="" className={cn("h-full w-full", mode)} />
       </div>
       <div
         className="absolute bottom-0 top-0 w-px bg-gradient-to-b from-violet-300 via-indigo-300 to-pink-300 shadow-[0_0_12px_rgba(139,92,246,0.7)]"
@@ -1549,7 +1550,7 @@ function DetailView({
           {item.beforeUrl && item.afterUrl ? (
             <CompareImage beforeUrl={item.beforeUrl} afterUrl={item.afterUrl} position={50} cover={false} />
           ) : item.afterUrl || item.beforeUrl ? (
-            <img src={item.afterUrl || item.beforeUrl} alt="" className="h-full w-full object-contain" />
+            <img src={normalizeMediaUrl(item.afterUrl || item.beforeUrl) || ""} alt="" className="h-full w-full object-contain" />
           ) : (
             <ImagePlus className="h-10 w-10 text-slate-600" />
           )}
@@ -1899,7 +1900,7 @@ function Lightbox({
               </div>
             ) : (
               <img
-                src={item.afterUrl || item.beforeUrl}
+                src={normalizeMediaUrl(item.afterUrl || item.beforeUrl) || ""}
                 alt=""
                 className="h-full w-full object-contain"
                 draggable={false}
@@ -2413,7 +2414,7 @@ function ImagePicker({ label, value, onChange }: { label: string; value: string;
     <div className="relative flex aspect-[7/3] min-h-24 items-center justify-center overflow-hidden rounded-xl border border-dashed border-white/15 bg-white/[0.03] transition hover:border-violet-400/40">
       {value ? (
         <>
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          <img src={normalizeMediaUrl(value) || ""} alt="" className="h-full w-full object-cover" />
           <button
             type="button"
             onClick={() => onChange("")}
@@ -2595,8 +2596,8 @@ function StepBlock({
           <div className="mb-3">
             {hasBoth && mode === "side" ? (
               <div className="grid h-40 grid-cols-2 gap-2 overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                <img src={step.beforeUrl} alt="" className="h-full w-full object-contain" />
-                <img src={step.afterUrl} alt="" className="h-full w-full object-contain" />
+                <img src={normalizeMediaUrl(step.beforeUrl) || ""} alt="" className="h-full w-full object-contain" />
+                <img src={normalizeMediaUrl(step.afterUrl) || ""} alt="" className="h-full w-full object-contain" />
               </div>
             ) : hasBoth ? (
               <div
@@ -2610,7 +2611,7 @@ function StepBlock({
               </div>
             ) : (
               <div className="flex h-40 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                <img src={oneImage} alt="" className="h-full max-w-full object-contain" />
+                <img src={normalizeMediaUrl(oneImage) || ""} alt="" className="h-full max-w-full object-contain" />
               </div>
             )}
           </div>

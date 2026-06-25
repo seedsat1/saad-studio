@@ -20,7 +20,6 @@ import {
 } from "../lib/podcast/services/audio-source-inspector-service";
 import { generateSpeakerActivityProof } from "../lib/podcast/services/speaker-activity-service";
 import { generateCameraDecisionPlanProof } from "../lib/podcast/services/camera-decision-plan-service";
-import { runSilenceRemovalDraft, type SilenceRemovalRunResult } from "../lib/podcast/services/silence-removal-service";
 import {
   analyzeSynchronizationPlan,
   applySynchronizationOffsets,
@@ -127,12 +126,6 @@ interface ApplyTrace {
   error: string | null;
 }
 
-const SILENCE_PRESETS = [
-  { id: "aggressive", label: "Aggressive", thresholdDb: -30, minimumDurationSec: 0.25, minimumCutGapSec: 0.5, minimumKeepSegmentDurationSec: 1 },
-  { id: "normal", label: "Normal", thresholdDb: -35, minimumDurationSec: 0.4, minimumCutGapSec: 0.7, minimumKeepSegmentDurationSec: 1.5 },
-  { id: "conservative", label: "Conservative", thresholdDb: -40, minimumDurationSec: 0.6, minimumCutGapSec: 0.9, minimumKeepSegmentDurationSec: 2 },
-];
-
 const DEFAULT_CAMERA_ROLES = ["CAM WIDE", "CAM HOST", "CAM GUEST", "CAM GUESTS", "CAM DRONE / CRANE"];
 
 export function MultiCamAutoSwitchPage(): HTMLElement {
@@ -147,7 +140,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     sourceAttributionProofLoading: false,
     previewAutoSwitchLoading: false,
     applyCameraDecisionsLoading: false,
-    silenceRemovalLoading: false,
     synchronizationLoading: false,
     synchronizationApplyLoading: false,
     executionResearchLoading: null as null | "duplicate" | "disable" | "range" | "insert" | "reconstruct",
@@ -162,7 +154,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     cameraDecisionPlanProof: null as PodcastCameraDecisionPlanProof | null,
     applyCameraDecisionsResult: null as ApplyCameraDecisionsVisualOnlyResult | null,
     applyTrace: createEmptyApplyTrace(),
-    silenceRemovalResult: null as SilenceRemovalRunResult | null,
     synchronizationPlan: null as SynchronizationPlan | null,
     synchronizationApplyResult: null as SynchronizationApplyResult | null,
     executionResearchResult: null as PodcastExecutionResearchResult | null,
@@ -179,13 +170,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     wideCutawayDurationSec: 4,
     enableTransitionalWide: true,
     transitionalWideDurationSec: 2.0,
-    silenceThresholdDb: -35,
-    minimumSilenceDurationSec: 0.4,
-    minimumCutGapSec: 0.7,
-    minimumKeepSegmentDurationSec: 1.5,
     mergeAdjacentKeepGapSec: 0.7,
-    silencePaddingBeforeSec: 0.08,
-    silencePaddingAfterSec: 0.12,
     executionStrategy: "decision-plan-only" as PodcastExecutionStrategy,
     mappings: {} as Record<string, number>,
     cameraLabels: {} as Record<number, string>,
@@ -246,7 +231,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     return el("div.podcast-workflow", null,
       renderSynchronizeTool(),
       renderMultiCamProductionTool(),
-      renderSilenceRemovalTool(),
       renderAutoCaptionsTool(),
       renderOneClickTool(),
       renderProductionSummary(),
@@ -258,9 +242,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     return el("div.podcast-tool-grid", null,
       renderPodcastToolCard("Synchronize", "Ready", "Check timeline sync before camera switching.", true),
       renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
-      renderPodcastToolCard("Silence Removal", "Ready", "Detect pauses and prepare tighter podcast cuts.", true),
       renderPodcastToolCard("Auto Captions", captionStatus, "Generate captions for podcast clips.", true),
-      renderPodcastToolCard("One Click Podcast Edit", "Ready", "Combine switching, silence cleanup, and captions.", true),
+      renderPodcastToolCard("One Click Podcast Edit", "Ready", "Combine camera switching and captions.", true),
     );
   }
 
@@ -269,8 +252,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       ? "podcast-multicam-tool"
       : title === "Synchronize"
         ? "podcast-synchronize-tool"
-      : title === "Silence Removal"
-        ? "podcast-silence-tool"
       : title === "Auto Captions"
         ? "podcast-auto-captions-tool"
       : title === "One Click Podcast Edit"
@@ -458,24 +439,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     ).length;
   }
 
-  function renderSilenceSummary(): HTMLElement | null {
-    const result = state.silenceRemovalResult;
-    if (!result) return null;
-    const diagnostics = result.analysis.silenceDetectionDiagnostics;
-    return el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-      renderSummaryTile("Sequence duration", formatSeconds(result.analysis.sequenceDurationSec ?? 0)),
-      renderSummaryTile("Analyzed duration", formatSeconds(result.analysis.analyzedDurationSec)),
-      renderSummaryTile("Detected pauses", String(diagnostics?.detectedSilenceSegments.length ?? result.analysis.silenceSegments.length)),
-      renderSummaryTile("Rejected pauses", String(diagnostics?.rejectedSilenceSegments.length ?? result.analysis.droppedSilenceSegments?.length ?? 0)),
-      renderSummaryTile("Cut pauses", String(result.analysis.silenceSegments.filter((segment) => segment.cutEligible !== false).length)),
-      renderSummaryTile("Removed duration", formatSeconds(result.analysis.totalRemovedDurationSec)),
-      renderSummaryTile("Kept segments", String(result.analysis.keepSegments.length)),
-      renderSummaryTile("Threshold", `${diagnostics?.thresholdUsed ?? state.silenceThresholdDb} dB`),
-      renderSummaryTile("Min duration", formatSeconds(diagnostics?.minimumDurationUsed ?? state.minimumSilenceDurationSec)),
-      renderSummaryTile("Timeline", result.apply?.ok ? "Current sequence updated" : "Waiting"),
-    );
-  }
-
   function renderMultiCamProductionTool(): HTMLElement {
     return el("div.podcast-production-card", { id: "podcast-multicam-tool" },
       el("div.podcast-section-head", null,
@@ -612,120 +575,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
-  function renderSilenceRemovalTool(): HTMLElement {
-    const busy = isProductionBusy();
-    return el("div.podcast-production-card", { id: "podcast-silence-tool" },
-      el("div.podcast-section-head", null,
-        el("div", null,
-          el("h3", null, "Silence Removal"),
-          el("p", null, "Automatically detect pauses and rebuild the current timeline without internal silence."),
-        ),
-      ),
-      renderSilencePresetButtons(),
-      el("div.podcast-settings.podcast-settings--compact", null,
-        renderField("Silence Threshold dB",
-          el("input.podcast-input", {
-            type: "number",
-            step: "1",
-            value: String(state.silenceThresholdDb),
-            onInput: (event: Event) => {
-              state.silenceThresholdDb = Number((event.currentTarget as HTMLInputElement).value);
-              render();
-            },
-          })),
-        renderField("Minimum Silence Duration",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0",
-            step: "0.1",
-            value: String(state.minimumSilenceDurationSec),
-            onInput: (event: Event) => {
-              state.minimumSilenceDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
-              render();
-            },
-          })),
-        renderField("Minimum Cut Gap",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0",
-            step: "0.1",
-            value: String(state.minimumCutGapSec),
-            onInput: (event: Event) => {
-              state.minimumCutGapSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
-              render();
-            },
-          })),
-        renderField("Minimum Keep Segment",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0",
-            step: "0.1",
-            value: String(state.minimumKeepSegmentDurationSec),
-            onInput: (event: Event) => {
-              state.minimumKeepSegmentDurationSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
-              render();
-            },
-          })),
-        renderField("Padding Before",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0",
-            step: "0.01",
-            value: String(state.silencePaddingBeforeSec),
-            onInput: (event: Event) => {
-              state.silencePaddingBeforeSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
-              render();
-            },
-          })),
-        renderField("Padding After",
-          el("input.podcast-input", {
-            type: "number",
-            min: "0",
-            step: "0.01",
-            value: String(state.silencePaddingAfterSec),
-            onInput: (event: Event) => {
-              state.silencePaddingAfterSec = Number((event.currentTarget as HTMLInputElement).value) || 0;
-              render();
-            },
-          })),
-      ),
-      el("div.podcast-action-row.podcast-action-row--single", null,
-        el("button.btn-primary", {
-          disabled: busy,
-          onClick: removeSilence,
-        }, state.silenceRemovalLoading ? "Removing..." : "Remove Silence"),
-      ),
-      state.silenceRemovalLoading ? renderProcessingLoader("Removing silence") : null,
-      renderSilenceSummary(),
-    );
-  }
-
-  function renderSilencePresetButtons(): HTMLElement {
-    const busy = isProductionBusy();
-    return el("div.podcast-action-row.podcast-action-row--presets", null,
-      ...SILENCE_PRESETS.map((preset) =>
-        el("button.btn-secondary", {
-          type: "button",
-          disabled: busy,
-          onClick: () => {
-            state.silenceThresholdDb = preset.thresholdDb;
-            state.minimumSilenceDurationSec = preset.minimumDurationSec;
-            state.minimumCutGapSec = preset.minimumCutGapSec;
-            state.minimumKeepSegmentDurationSec = preset.minimumKeepSegmentDurationSec;
-            render();
-          },
-        }, preset.label),
-      ),
-    );
-  }
-
 // Auto Zoom render functions removed
 
   function isProductionBusy(): boolean {
     return state.timelineLoading
       || state.previewAutoSwitchLoading
       || state.applyCameraDecisionsLoading
-      || state.silenceRemovalLoading
       || state.synchronizationLoading
       || state.synchronizationApplyLoading
       || state.captionRuntimeLoading
@@ -769,8 +624,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     if (apply?.blockers.length) messages.push(`Apply blocked: ${apply.blockers.join(", ")}`);
     if (apply?.warnings.length) messages.push(`Warnings: ${apply.warnings.length} partial source ranges were handled.`);
     if (apply?.ok) messages.push("A visual-only draft was created on a duplicate sequence. The original sequence was not changed.");
-    if (state.silenceRemovalResult?.ok) messages.push("Silence Removal created a cleaned audio/video draft. The original sequence was not changed.");
-    if (state.silenceRemovalResult && !state.silenceRemovalResult.ok) messages.push(`Silence Removal blocked: ${state.silenceRemovalResult.blockers.join(", ")}`);
     if (!messages.length) messages.push("Analyze the timeline, preview the camera plan, then apply a draft when ready.");
     return el("div.podcast-human-messages", null,
       ...messages.map((message) => el("div.podcast-human-message", null, message)),

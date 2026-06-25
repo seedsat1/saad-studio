@@ -77,11 +77,19 @@ export function extractObjectKey(url: string | null | undefined): string | null 
   if (match) {
     mediaPath = `${match[1]}/${match[2]}`;
   }
-  return mediaPath || cleanUrl; // fallback to original if not matched, to support direct relative keys
+  
+  // Return null if not a recognized storage prefix pattern.
+  // This allows local static assets (e.g. /Kling 3.0/Hero.webp) to bypass media normalization.
+  return mediaPath || null;
 }
 
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+
+  // 0. If it is a data URL (e.g. base64 upload preview), return as-is.
+  if (url.startsWith("data:")) {
+    return url;
+  }
 
   // 1. If it is a task placeholder, it is not a media file. Return null to prevent requesting it.
   if (url.includes("task:") || url.startsWith("task:")) {
