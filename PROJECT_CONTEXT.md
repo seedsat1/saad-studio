@@ -1,4 +1,31 @@
 # Saad Studio — Project Context
+## آخر مهمة: إصلاح صفحة الأنماط السينمائية (Cinematic Styles) ومعالجة روابط Supabase المعطلة (2026-06-25)
+
+- **المشكلة**:
+  فشل تحميل 19 قالباً سينمائياً في صفحة الأنماط السينمائية (`/apps/tool/cinematic-styles`) وظهورها كصناديق سوداء فارغة، بسبب تعليق حساب Supabase الأصلي (`402 Payment Required`) الذي يحتوي على الفيديوهات، وغياب معالجة أخطاء الفيديو في الواجهة.
+
+- **الإصلاح والتعديل**:
+  1. كتابة وتشغيل سكربت `scripts/fix-cinematic-styles.ts` بوضع الكتابة `--write` لإعادة تعيين الـ 19 قالباً المعطلة في جدول `pageLayout` بالإشارة إلى صور WebP محلية عالية الجودة مخزنة في المجلد `public/preset/` وتغيير نوعها لـ `"image"`.
+  2. إضافة حالة `videoErrors` ومعالج `onError` لعنصر الـ `<video>` في صفحة `app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx` للتحول تلقائياً إلى الخلفية المتدرجة للبطاقة (Accent Gradient) عند حدوث أي خطأ تحميل للميديا بدلاً من الصندوق الأسود.
+  3. إضافة نمط رابط `supabase.co` لبروكسي الميديا والـ fallback في `app/layout.tsx`.
+  4. التحقق من بناء المشروع بنجاح كامل وصلاحية تشغيل خادم التطوير.
+
+- **الملفات المتأثرة**:
+  - [app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx) [MODIFY]
+  - [app/layout.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/layout.tsx) [MODIFY]
+  - [scripts/fix-cinematic-styles.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/scripts/fix-cinematic-styles.ts) [NEW]
+
+- **نتائج التحقق**:
+  - بناء المشروع بالكامل `npm run build` بنجاح دون أي خطأ تجميع.
+  - نجاح اختبارات مسارات الميديا والأصول في `test/media-routes.test.ts` و `test/assets-route.test.ts`.
+  - تشغيل خادم التطوير بنجاح للتأكد من خلوه من أي مشاكل تشغيل.
+
+- **القرارات المتخذة**:
+  - الاعتماد على الصور المحلية كـ Fallback للأنماط المعطلة لحين فك تعليق حساب Supabase أو إعادة رفع الفيديوهات يدوياً عبر CMS لوحة التحكم.
+
+- **الخطوة المتبقية**:
+  - قيام المستخدم بالاختبار النهائي لصفحة الأنماط السينمائية على بيئة الإنتاج.
+
 ## آخر مهمة: إتمام هجرة قاعدة البيانات بالكامل وتطهير حقول JSON والـ CMS من R2 (2026-06-25)
 
 - **المشكلة**:

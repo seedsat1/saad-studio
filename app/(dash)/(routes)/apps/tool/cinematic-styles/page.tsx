@@ -542,6 +542,7 @@ export default function CinematicStylesPage() {
   const [selectedOutputId, setSelectedOutputId] = useState<string | null>(null);
   const [outputCopied, setOutputCopied] = useState(false);
   const [presetMedia, setPresetMedia] = useState<Record<string, { type: "image" | "video"; url: string; poster?: string }>>({});
+  const [videoErrors, setVideoErrors] = useState<Record<string, boolean>>({});
   const [lightboxPresetId, setLightboxPresetId] = useState<string | null>(null);
   const [lightboxCopied, setLightboxCopied] = useState(false);
   const [lightboxReferenceSaved, setLightboxReferenceSaved] = useState(false);
@@ -1283,7 +1284,7 @@ export default function CinematicStylesPage() {
                       selectedPresetId === preset.id ? "border-cyan-300 shadow-[0_0_0_1px_rgba(6,182,212,0.45)]" : "border-white/8 hover:border-white/20"
                     )}
                   >
-                    {presetMedia[preset.id]?.url ? (
+                    {presetMedia[preset.id]?.url && !videoErrors[preset.id] ? (
                       presetMedia[preset.id]?.type === "video" ? (
                         <video
                           src={presetMedia[preset.id]?.url}
@@ -1297,6 +1298,9 @@ export default function CinematicStylesPage() {
                           onCanPlay={(e) => {
                             const el = e.currentTarget;
                             try { void el.play(); } catch {}
+                          }}
+                          onError={() => {
+                            setVideoErrors((prev) => ({ ...prev, [preset.id]: true }));
                           }}
                         />
                       ) : (

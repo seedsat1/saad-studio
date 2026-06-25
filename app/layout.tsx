@@ -229,6 +229,7 @@ export default function RootLayout({
 
                   let mediaPath = '';
                   const patterns = [
+                    /https:\\/\\/.*\\.supabase\\.co\\/storage\\/v1\\/object\\/public\\/(.+)/i,
                     /https:\\/\\/pub-[a-zA-Z0-9]+\\.r2\\.dev\\/(.+)/i,
                     /https:\\/\\/media\\.saadstudio\\.app\\/(.+)/i,
                     /https?:\\/\\/(?:www\\.)?saadstudio\\.app\\/api\\/media\\/(.+)/i,
