@@ -2,6 +2,35 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+async function queryUrl(url: string, key: string) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${key}`,
+      },
+    });
+    const text = await res.text();
+    let json = null;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {}
+
+    return {
+      url,
+      status: res.status,
+      statusText: res.statusText,
+      contentType: res.headers.get("content-type"),
+      bodySnippet: text.slice(0, 3000),
+      json,
+    };
+  } catch (e: any) {
+    return {
+      url,
+      error: e.message,
+    };
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get("secret");
@@ -15,41 +44,31 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "BYTEPLUS_API_KEY not found in process.env" }, { status: 500 });
   }
 
-  const base = (
-    process.env.BYTEPLUS_BASE_URL ??
-    "https://ark.ap-southeast.bytepluses.com/api/v3"
-  ).replace(/\/+$/, "");
+  const envBase = (process.env.BYTEPLUS_BASE_URL ?? "").replace(/\/+$/, "");
+  const defaultBase = "https://ark.ap-southeast.bytepluses.com/api/v3";
+
+  // Let's test different candidate base URLs
+  const bases = Array.from(new Set([
+    envBase,
+    envBase ? `${envBase}/api/v3` : null,
+    defaultBase,
+  ].filter((b): b is string => !!b)));
 
   const results: Record<string, any> = {
     apiKeyLength: key.length,
     apiKeyPrefix: key.slice(0, 12),
-    base,
+    basesTested: bases,
+    queries: [],
   };
 
-  // 1. Query models
-  try {
-    const res = await fetch(`${base}/models`, {
-      headers: {
-        Authorization: `Bearer ${key}`,
-      },
-    });
-    results.modelsStatus = res.status;
-    results.models = await res.json().catch((e) => ({ error: e.message }));
-  } catch (e: any) {
-    results.modelsError = e.message;
-  }
+  for (const base of bases) {
+    // Query models
+    const modelsResult = await queryUrl(`${base}/models`, key);
+    results.queries.push(modelsResult);
 
-  // 2. Query endpoints
-  try {
-    const res = await fetch(`${base}/endpoints?PageNumber=1&PageSize=100`, {
-      headers: {
-        Authorization: `Bearer ${key}`,
-      },
-    });
-    results.endpointsStatus = res.status;
-    results.endpoints = await res.json().catch((e) => ({ error: e.message }));
-  } catch (e: any) {
-    results.endpointsError = e.message;
+    // Query endpoints
+    const endpointsResult = await queryUrl(`${base}/endpoints?PageNumber=1&PageSize=100`, key);
+    results.queries.push(endpointsResult);
   }
 
   return NextResponse.json(results);
