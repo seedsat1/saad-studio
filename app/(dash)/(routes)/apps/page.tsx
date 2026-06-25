@@ -11,6 +11,7 @@ import { AppCategorySection } from "@/components/AppCategorySection";
 import { AppToolCard } from "@/components/AppToolCard";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { useCmsData } from "@/lib/use-cms-data";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -137,7 +138,7 @@ export default function AppsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           style={heroMedia?.type === "image" && heroMedia.url ? {
-            backgroundImage: `linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82)), url(${heroMedia.url})`,
+            backgroundImage: `linear-gradient(135deg, rgba(6,12,24,0.82), rgba(6,12,24,0.82)), url(${normalizeMediaUrl(heroMedia.url)})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             border: "1px solid rgba(148,163,184,0.08)",
@@ -151,8 +152,8 @@ export default function AppsPage() {
         >
           {heroMedia?.type === "video" && heroMedia.url && (
             <video
-              src={heroMedia.url}
-              poster={heroMedia.poster}
+              src={normalizeMediaUrl(heroMedia.url) || ""}
+              poster={normalizeMediaUrl(heroMedia.poster) || undefined}
               autoPlay
               muted
               loop

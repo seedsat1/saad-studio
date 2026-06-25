@@ -36,6 +36,7 @@ import {
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -577,10 +578,10 @@ function InputSlot({
     return (
       <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
         {isVideo ? (
-          <video src={mediaUrl} className="w-full h-full object-cover pointer-events-none" muted loop autoPlay playsInline />
+          <video src={normalizeMediaUrl(mediaUrl) || ""} className="w-full h-full object-cover pointer-events-none" muted loop autoPlay playsInline />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={mediaUrl} alt={label} className="w-full h-full object-cover" />
+          <img src={normalizeMediaUrl(mediaUrl) || ""} alt={label} className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute top-2 left-2 h-5 w-5 rounded flex items-center justify-center text-[9px] font-black text-white" style={{ background: slotColor }}>
@@ -729,7 +730,7 @@ function PresetCard({
           preset.previewVideoUrl.match(/\.(mp4|webm|ogg)$/i) && !videoError ? (
             <video
               ref={videoRef}
-              src={preset.previewVideoUrl}
+              src={normalizeMediaUrl(preset.previewVideoUrl) || ""}
               autoPlay
               muted
               loop
@@ -745,7 +746,7 @@ function PresetCard({
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={preset.previewVideoUrl}
+              src={normalizeMediaUrl(preset.previewVideoUrl) || ""}
               alt={preset.name}
               className={cn("w-full h-full object-cover transition-transform duration-500", hovering && "scale-105")}
             />
@@ -835,7 +836,7 @@ function OutputCard({
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
     >
       <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-        <video ref={videoRef} src={output.url} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
+        <video ref={videoRef} src={normalizeMediaUrl(output.url) || ""} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
         <AnimatePresence>
           {hovered && (
             <motion.div
@@ -1628,7 +1629,7 @@ export default function TransitionsStudioPage() {
                       whileHover={{ y: -1 }}
                     >
                       <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                        <video src={output.url} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
+                        <video src={normalizeMediaUrl(output.url) || ""} muted loop playsInline className="w-full h-full object-cover pointer-events-none" />
                       </div>
                       <div className="p-1.5">
                         <p className="text-[9px] font-semibold text-slate-300 truncate">{output.presetName}</p>
@@ -1692,7 +1693,7 @@ export default function TransitionsStudioPage() {
                   {/* Video */}
                   <div className="relative w-full">
                     <video
-                      src={currentOutput.url}
+                      src={normalizeMediaUrl(currentOutput.url) || ""}
                       controls
                       autoPlay
                       loop
@@ -1757,8 +1758,8 @@ export default function TransitionsStudioPage() {
                   >
                     {inputAUrl ? (
                       inputAType === "video"
-                        ? <video src={inputAUrl} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
-                        : <img src={inputAUrl} alt="A" className="w-full h-full object-cover" />
+                        ? <video src={normalizeMediaUrl(inputAUrl) || ""} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
+                        : <img src={normalizeMediaUrl(inputAUrl) || ""} alt="A" className="w-full h-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                         <div className="h-9 w-9 rounded-xl flex items-center justify-center text-base font-black text-white" style={{ background: "rgba(124,58,237,0.2)", border: "1px solid rgba(124,58,237,0.3)" }}>A</div>
@@ -1797,8 +1798,8 @@ export default function TransitionsStudioPage() {
                   >
                     {inputBUrl ? (
                       inputBType === "video"
-                        ? <video src={inputBUrl} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
-                        : <img src={inputBUrl} alt="B" className="w-full h-full object-cover" />
+                        ? <video src={normalizeMediaUrl(inputBUrl) || ""} muted loop autoPlay playsInline className="w-full h-full object-cover pointer-events-none" />
+                        : <img src={normalizeMediaUrl(inputBUrl) || ""} alt="B" className="w-full h-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                         <div className="h-9 w-9 rounded-xl flex items-center justify-center text-base font-black text-white" style={{ background: "rgba(79,70,229,0.2)", border: "1px solid rgba(79,70,229,0.3)" }}>B</div>

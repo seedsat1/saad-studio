@@ -15,6 +15,7 @@ import { usePageLayout } from "@/lib/use-page-layout";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent } from "@/hooks/use-promo-content";
 import { useCmsData } from "@/lib/use-cms-data";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Badge = "NEW" | "PRO" | "TOP" | "HOT" | "";
@@ -100,10 +101,11 @@ const getToolCardMedia = (card: ToolCard) => {
 };
 
 function MediaFill({ src, alt, className = "" }: { src: string; alt: string; className?: string }) {
-  if (isVideoUrl(src)) {
+  const normalizedSrc = normalizeMediaUrl(src) || "";
+  if (isVideoUrl(normalizedSrc)) {
     return (
       <video
-        src={src}
+        src={normalizedSrc}
         autoPlay
         muted
         loop
@@ -117,7 +119,7 @@ function MediaFill({ src, alt, className = "" }: { src: string; alt: string; cla
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={normalizedSrc}
       alt={alt}
       className={cn("absolute inset-0 h-full w-full object-cover object-center", className)}
     />
@@ -533,13 +535,13 @@ function HeroCarousel({
               </div>
             ) : isVideoUrl(slide.bgImage) ? (
               <video
-                src={slide.bgImage}
+                src={normalizeMediaUrl(slide.bgImage) || ""}
                 autoPlay muted loop playsInline
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : (
               <Image
-                src={slide.bgImage}
+                src={normalizeMediaUrl(slide.bgImage) || ""}
                 alt={slide.title}
                 fill
                 sizes="100vw"

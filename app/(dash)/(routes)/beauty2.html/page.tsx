@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { usePageLayout } from "@/lib/use-page-layout";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export default function BeautyStudioPage() {
   const { blocks, hero } = usePageLayout("beauty2");
@@ -21,15 +22,15 @@ export default function BeautyStudioPage() {
           style={{
             minHeight: 260,
             backgroundImage:
-              heroMedia?.type === "image" && heroMedia.url ? `url(${heroMedia.url})` : undefined,
+              heroMedia?.type === "image" && heroMedia.url ? `url(${normalizeMediaUrl(heroMedia.url)})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
         >
           {heroMedia?.type === "video" && heroMedia.url ? (
             <video
-              src={heroMedia.url}
-              poster={heroMedia.poster}
+              src={normalizeMediaUrl(heroMedia.url) || ""}
+              poster={normalizeMediaUrl(heroMedia.poster) || undefined}
               autoPlay
               muted
               loop
@@ -60,8 +61,8 @@ export default function BeautyStudioPage() {
             >
               {block.media?.type === "video" && block.media.url ? (
                 <video
-                  src={block.media.url}
-                  poster={block.media.poster}
+                  src={normalizeMediaUrl(block.media.url) || ""}
+                  poster={normalizeMediaUrl(block.media.poster) || undefined}
                   muted
                   loop
                   autoPlay
@@ -71,7 +72,7 @@ export default function BeautyStudioPage() {
                 />
               ) : block.media?.type === "image" && block.media.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={block.media.url} alt={block.title} className="w-full h-40 object-cover" />
+                <img src={normalizeMediaUrl(block.media.url) || ""} alt={block.title} className="w-full h-40 object-cover" />
               ) : null}
               <div className="p-4">
                 <h3 className="text-white font-semibold text-sm">{block.title}</h3>

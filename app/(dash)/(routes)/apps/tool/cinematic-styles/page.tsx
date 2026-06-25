@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PRESETS, type LocalEffectId, type PresetId, type Preset } from "@/lib/cinematic-presets";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 type FpsMode = "4" | "8" | "10" | "12" | "24" | "manual";
 type ResolutionMode = "1K" | "2K" | "4K";
@@ -1067,11 +1068,11 @@ export default function CinematicStylesPage() {
 
             <div className="mt-3 overflow-hidden rounded-lg border border-white/8 bg-black">
               {outputUrl ? (
-                <video src={outputUrl} controls className="aspect-video w-full object-contain" />
+                <video src={normalizeMediaUrl(outputUrl) || ""} controls className="aspect-video w-full object-contain" />
               ) : sourceUrl ? (
                 <video
                   ref={previewVideoRef}
-                  src={sourceUrl}
+                  src={normalizeMediaUrl(sourceUrl) || ""}
                   controls
                   className="aspect-video w-full object-contain"
                   onLoadedMetadata={(event) => {
@@ -1287,8 +1288,8 @@ export default function CinematicStylesPage() {
                     {presetMedia[preset.id]?.url && !videoErrors[preset.id] ? (
                       presetMedia[preset.id]?.type === "video" ? (
                         <video
-                          src={presetMedia[preset.id]?.url}
-                          poster={presetMedia[preset.id]?.poster}
+                          src={normalizeMediaUrl(presetMedia[preset.id]?.url) || ""}
+                          poster={normalizeMediaUrl(presetMedia[preset.id]?.poster) || undefined}
                           className="absolute inset-0 h-full w-full object-cover"
                           autoPlay
                           loop
@@ -1305,7 +1306,7 @@ export default function CinematicStylesPage() {
                         />
                       ) : (
                         <img
-                          src={presetMedia[preset.id]?.url}
+                          src={normalizeMediaUrl(presetMedia[preset.id]?.url) || ""}
                           alt=""
                           className="absolute inset-0 h-full w-full object-cover"
                           loading="lazy"
@@ -1396,7 +1397,7 @@ export default function CinematicStylesPage() {
                       className="group overflow-hidden rounded-lg border border-white/8 bg-[#11161d] text-left transition hover:border-cyan-300/40"
                     >
                       <div className="relative">
-                        <video src={item.url} className="aspect-video w-full bg-black object-cover" muted />
+                        <video src={normalizeMediaUrl(item.url) || ""} className="aspect-video w-full bg-black object-cover" muted />
                         <div className="absolute right-3 top-3 rounded-full border border-white/15 bg-black/60 px-2 py-1 text-[11px] font-bold text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
                           Details
                         </div>
@@ -1438,7 +1439,7 @@ export default function CinematicStylesPage() {
               {lightboxMedia?.url ? (
                 lightboxMedia.type === "video" ? (
                   <video
-                    src={lightboxMedia.url}
+                    src={normalizeMediaUrl(lightboxMedia.url) || ""}
                     controls
                     autoPlay
                     loop
@@ -1448,7 +1449,7 @@ export default function CinematicStylesPage() {
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={lightboxMedia.url}
+                    src={normalizeMediaUrl(lightboxMedia.url) || ""}
                     alt={lightboxPreset.name}
                     className="max-h-[76vh] max-w-full rounded-xl object-contain"
                   />
@@ -1560,7 +1561,7 @@ export default function CinematicStylesPage() {
           <div className="grid max-h-[88vh] w-full max-w-6xl grid-cols-1 gap-4 overflow-y-auto px-4 md:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
             <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-white/10 bg-black/50 p-3 shadow-2xl">
               <video
-                src={selectedOutput.url}
+                src={normalizeMediaUrl(selectedOutput.url) || ""}
                 controls
                 autoPlay
                 playsInline

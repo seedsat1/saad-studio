@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { presets } from "@/lib/moodboard-data";
 import { PresetCard } from "@/components/moodboard/PresetCard";
 import { usePageLayout } from "@/lib/use-page-layout";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 const HERO_IMAGES = [
   { rotate: -8, offsetX: -145, offsetY: 12, gradient: "from-amber-700 to-orange-900", delay: 0 },
@@ -58,12 +59,12 @@ export default function MoodboardPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="pt-14 pb-24 flex flex-col items-center text-center relative overflow-hidden rounded-3xl"
-          style={heroMedia?.type === "image" && heroMedia.url ? { backgroundImage: `url(${heroMedia.url})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+          style={heroMedia?.type === "image" && heroMedia.url ? { backgroundImage: `url(${normalizeMediaUrl(heroMedia.url)})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
         >
           {heroMedia?.type === "video" && heroMedia.url ? (
             <video
-              src={heroMedia.url}
-              poster={heroMedia.poster}
+              src={normalizeMediaUrl(heroMedia.url) || ""}
+              poster={normalizeMediaUrl(heroMedia.poster) || undefined}
               autoPlay
               muted
               loop
