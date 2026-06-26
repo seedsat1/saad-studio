@@ -34,6 +34,13 @@ const SEEDANCE_2_ROUTES = new Set([
   "bytedance/seedance-v2/text-to-video-mini",
 ]);
 
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
 const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // These are high-traffic paid routes. Keep them immutable so a catalog sync or
   // env override can never accidentally submit a Kling request as Seedance, or
@@ -393,14 +400,16 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     content.push({ type: "image_url", image_url: { url: lastFrame }, role: "last_frame" });
   }
 
-  const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", 9);
+  const maxReferenceImages = Math.max(0, 9 - (firstFrame ? 1 : 0) - (lastFrame ? 1 : 0));
+  const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", maxReferenceImages);
   for (const url of referenceImages) {
     content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
   }
 
   const referenceVideos = await resolveOfficialSeedanceUrlList(payload.reference_video_urls, userId, "video", 3);
   const singleVideo = await resolveOfficialSeedanceUrl(payload.video, userId, "video");
-  for (const url of [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3)) {
+  const finalVideos = [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3);
+  for (const url of finalVideos) {
     content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
   }
 
@@ -409,8 +418,18 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
+  const imageCount = (firstFrame ? 1 : 0) + (lastFrame ? 1 : 0) + referenceImages.length;
+  const videoCount = finalVideos.length;
+  const audioCount = referenceAudios.length;
+
+  if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
+    throw new ValidationError(
+      "Seedance 2.0 does not support 'text + audio' or 'audio-only' inputs. You must provide at least one reference image or video to use audio inputs."
+    );
+  }
+
   if (content.length === 0 || !prompt) {
-    throw new Error("Seedance 2.0 requires a prompt.");
+    throw new ValidationError("Seedance 2.0 requires a prompt.");
   }
 
   const body: Record<string, unknown> = {
@@ -1252,6 +1271,9 @@ export async function POST(req: Request) {
       }
       const bpEstimatedCost = bpTokens * ratePerToken;
 
+      const arkBody = await buildOfficialSeedancePayload(modelRoute, payload, userId);
+      const arkModel = String(arkBody.model || getOfficialSeedanceModel(modelRoute));
+
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
@@ -1263,7 +1285,7 @@ export async function POST(req: Request) {
         aspectRatio: String(payload.aspect_ratio || payload.aspectRatio || "16:9"),
         quality: qualityForCost,
         providerName: "BytePlus",
-        providerModel: getOfficialSeedanceModel(modelRoute),
+        providerModel: arkModel,
         providerCostUsd: bpEstimatedCost,
         providerTokens: bpTokens,
         providerCostSource: "estimated",
@@ -1279,8 +1301,6 @@ export async function POST(req: Request) {
         generationId,
       }).catch(() => {});
 
-      const arkBody = await buildOfficialSeedancePayload(modelRoute, payload, userId);
-      const arkModel = String(arkBody.model || getOfficialSeedanceModel(modelRoute));
       const createRes = await fetch(BYTEPLUS_CONTENT_TASKS_URL, {
         method: "POST",
         headers: arkHeaders(),
@@ -1779,6 +1799,21 @@ export async function POST(req: Request) {
     }).catch(() => {});
     return NextResponse.json(responseJson);
   } catch (err) {
+    if (err instanceof ValidationError) {
+      const msg = err.message;
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 400,
+          responseJson: { error: msg },
+        }).catch(() => {});
+      }
+      return NextResponse.json({ error: msg }, { status: 400 });
+    }
+
     if (err instanceof InsufficientCreditsError) {
       const responseJson = {
         error: "Insufficient credits",

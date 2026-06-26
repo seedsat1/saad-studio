@@ -1604,6 +1604,33 @@ function VideoPageInner() {
         return;
       }
 
+      if (isSeedanceV2) {
+        const refImgs = referenceImages.filter((f) => f.type.startsWith("image/"));
+        const refVids = referenceImages.filter((f) => f.type.startsWith("video/"));
+        const refAuds = referenceImages.filter((f) => f.type.startsWith("audio/"));
+        const hasStartImage =
+          !!startFrame ||
+          (characterSupport.mode === "image_reference" &&
+            !!selectedCharacter?.referenceUrls?.[0]);
+        const hasEndImage = !!endFrame;
+        const imageCount =
+          refImgs.length +
+          characterReferenceUrls.length +
+          (hasStartImage ? 1 : 0) +
+          (hasEndImage ? 1 : 0);
+        const videoCount =
+          refVids.length + (caps.requires_video && !!motionVideo ? 1 : 0);
+        const audioCount = refAuds.length;
+
+        if (audioCount > 0 && imageCount === 0 && videoCount === 0) {
+          setGenerationError(
+            "موديل Seedance 2.0 لا يدعم إدخال 'نص + صوت' أو 'صوت فقط'. يجب إرفاق صورة مرجعية واحدة أو فيديو واحد على الأقل مع الصوت."
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       if (characterSupport.mode === "provider_character_id" && selectedCharacter?.providerCharacterId) {
         payload.character_id_list = [selectedCharacter.providerCharacterId];
       }
