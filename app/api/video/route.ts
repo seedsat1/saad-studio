@@ -27,7 +27,7 @@ const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
 const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
 const SEEDANCE_2_FAST_MODEL = "dreamina-seedance-2-0-fast-260128";
-const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "seed-2-0-mini-260428";
+const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "dreamina-seedance-2-0-mini-260615";
 const SEEDANCE_2_ROUTES = new Set([
   "bytedance/seedance-v2/text-to-video",
   "bytedance/seedance-v2/text-to-video-fast",

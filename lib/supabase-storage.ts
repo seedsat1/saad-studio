@@ -19,8 +19,14 @@ export const BUCKETS = {
 
 export type BucketName = (typeof BUCKETS)[keyof typeof BUCKETS];
 
-// Helper to check if R2 is fully configured (not containing placeholders)
+// Helper to check if Backblaze B2 or Cloudflare R2 is configured
 function isR2FullyConfigured(): boolean {
+  // Check B2 configuration (preferred storage)
+  if (process.env.B2_ACCESS_KEY_ID && process.env.B2_SECRET_ACCESS_KEY) {
+    return true;
+  }
+
+  // Check legacy R2 configuration
   const accountId = process.env.R2_ACCOUNT_ID;
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;

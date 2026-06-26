@@ -1,5 +1,37 @@
 # Saad Studio — Project Context
-## آخر مهمة: إضافة واجهة الصور المرجعية المتعددة (Star Wand) لصفحة Agent Studio ومزامنة حمولتها مع API الفيديو (2026-06-26)
+## آخر مهمة: تصحيح معرّف موديل Dreamina Seedance 2.0 Mini وتحديث آلية التخزين لحل خطأ الـ 502 في توليد الفيديو (2026-06-27)
+
+- **المشكلة**:
+  1. فشل توليد الفيديو لموديل Seedance Mini وحصول خطأ `502 (Bad Gateway)` في الإنتاج بسبب استخدام معرف موديل غير صالح (`seed-2-0-mini-260428`) وهو موديل فهم واستدلال نصوص وليس موديل توليد فيديو.
+  2. توقف وفشل عمليات التوليد لجميع موديلات Seedance (بما فيها Seedance 2.0 Stable) بـ 502 عند قيام المستخدم بإدراج صور مرجعية (أو صور بداية ونهاية) كـ Base64 Data URLs؛ حيث يحاول مسار الـ API رفعها إلى التخزين المؤقت، ولأن الكود القديم يفحص فقط تهيئة Cloudflare R2 ويتراجع تلقائياً لخوادم Supabase Storage (التي تم تعليقها لعدم دفع الفواتير `402 Payment Required` من قبل المالك)، يفشل الرفع وتتوقف العملية بالكامل بـ 502.
+
+- **الإصلاح والتحقق**:
+  1. **تحديث معرّف الموديل**: تصحيح معرّف الموديل لـ Seedance Mini ليكون الموديل الرسمي لتوليد الفيديو `dreamina-seedance-2-0-mini-260615` في حقل التراجع لـ `SEEDANCE_2_MINI_MODEL` بملف `app/api/video/route.ts`.
+  2. **تصحيح آلية التخزين**: تحديث دالة `isR2FullyConfigured` في `lib/supabase-storage.ts` لتقوم بالفحص والتحقق أيضاً من تهيئة خوادم Backblaze B2 النشطة حالياً في البيئة (التي انتقل إليها الموقع مؤخراً كـ default provider)، مما يمنع التراجع التلقائي لخوادم Supabase المعطلة ويوجه الرفع إلى B2 بنجاح تام.
+  3. **تحسين قراءة الأخطاء**: تحسين دالة `providerFailureMessage` لقراءة الأخطاء المتداخلة وتحويل كائنات الخطأ إلى نصوص JSON صريحة بدلاً من طباعة `[object Object]` المبهمة، وطباعة كامل استجابة الخطأ في السجلات البرمجية.
+  4. **الفحص والتوليد الحقيقي**: تشغيل توليد حقيقي للموديل `dreamina-seedance-2-0-mini-260615` والـ Stable بدقة 480p و 720p وتتبع الطلب بنجاح حتى اكتمال الفيديو ورجوع الرابط (`200 OK`).
+
+- **الملفات المتأثرة**:
+  - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [lib/providers/byteplus-video.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-video.ts) [MODIFY]
+  - [lib/supabase-storage.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/supabase-storage.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - استخدام الموديل الرسمي لتوليد الفيديو `dreamina-seedance-2-0-mini-260615` وتحديثه بالخلفية ليتناسق مع الحسابات المفعّلة والتوثيق الرسمي لـ BytePlus ModelArk.
+  - تحويل مسار التراجع للميديا إلى Backblaze B2 مباشرةً لضمان مرونة تشغيل عمليات رفع المدخلات والـ reference images السحابية وتفادي أخطاء Supabase المعطلة.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. المهمة منجزة بالكامل.ib/providers/byteplus-video.ts](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/lib/providers/byteplus-video.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - استخدام الموديل الرسمي لتوليد الفيديو `dreamina-seedance-2-0-mini-260615` وتحديثه بالخلفية ليتناسق مع الحسابات المفعّلة والتوثيق الرسمي لـ BytePlus ModelArk.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+
+## المهمة السابقة: إضافة واجهة الصور المرجعية المتعددة (Star Wand) لصفحة Agent Studio ومزامنة حمولتها مع API الفيديو (2026-06-26)
 
 - **المشكلة**:
   عدم وجود واجهة تحميل أو عرض للصور المرجعية الإضافية (Star Wand) في لوحة التحكم الذكية لصفحة `/agent-studio` لتحديد عدد الصور المرجعية المناسبة لكل موديل توليد فيديو (3 صور لـ Kling 3.0، و 9 صور لـ Seedance 2.0)، وعدم إرسالها ضمن حمولة الطلب الموجه لـ API الفيديو `/api/video`.
