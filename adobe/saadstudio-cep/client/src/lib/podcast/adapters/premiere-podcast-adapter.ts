@@ -8,7 +8,6 @@ import type {
   ApplyCameraDecisionsVisualOnlyResult,
   ApplyCameraSwitchesInput,
   ApplyPodcastCutsInput,
-  ApplySilenceRemovalVisualOnlyInput,
   CreatePodcastSequenceInput,
   DuplicatePodcastSequenceInput,
   PodcastAdapterResult,
@@ -18,7 +17,6 @@ import type {
   PodcastTrackInfo,
   PremierePodcastAdapterContract,
 } from "../types/premiere";
-import type { SilenceRemovalApplyResult } from "../types";
 
 function unsupported(reason: string): Promise<PodcastAdapterResult> {
   return Promise.resolve({ ok: false, reason, dryRun: true });
@@ -80,18 +78,6 @@ export class PremierePodcastAdapter implements PremierePodcastAdapterContract {
       "applyPodcastCameraDecisionsOverlapAwareVisualOnly",
       input.cameraDecisions,
       input.minimumShotLengthSec,
-    );
-  }
-
-  applySilenceRemovalVisualOnly(input: ApplySilenceRemovalVisualOnlyInput): Promise<SilenceRemovalApplyResult> {
-    return evalES<SilenceRemovalApplyResult>(
-      "applyPodcastSilenceRemovalVisualOnly",
-      input.keepSegments,
-      input.silenceRemovedCount,
-      input.totalRemovedDurationSec,
-      input.sequenceDurationSec ?? null,
-      input.analyzedDurationSec ?? null,
-      input.audioSourceDurationSec ?? null,
     );
   }
 

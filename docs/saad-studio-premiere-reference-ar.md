@@ -6,7 +6,7 @@
 
 المرجع المحلي الكامل v3.1 هو `C:\Users\PC\Downloads\المرجع.md`. هوية النسخة المقروءة كاملة بتاريخ 2026-06-18: `25,858` بايت، `531` سطرًا، آخر تعديل `2026-06-06 01:59:15`، وSHA-256: `9D0F1DE093A0C4D19FB6F0B85F3C038F1AFA7BDF738A8C0D5E6A03789498168D`.
 
-تنبيه حالة: قسم `PHASE N — NEXT TASK ONLY` داخل v3.1 يوثق مرحلة تاريخية سبقت التنفيذ الحالي، ولا يُعامل كأمر بإلغاء أو منع Multi-Cam وSilence Removal الموجودتين الآن. تبقى قواعده المعمارية وقواعد السلامة نافذة، بينما تُقرأ حالة الإنجاز من الكود الحالي و`PROJECT_CONTEXT.md` ونتائج Runtime.
+تنبيه حالة: قسم `PHASE N — NEXT TASK ONLY` داخل v3.1 يوثق مرحلة تاريخية سبقت التنفيذ الحالي. تبقى قواعده المعمارية وقواعد السلامة نافذة، بينما تُقرأ حالة الإنجاز من الكود الحالي و`PROJECT_CONTEXT.md` ونتائج Runtime. تم حذف Silence Removal من المنتج الحالي بتاريخ 2026-06-26 بناءً على طلب المستخدم.
 
 ## بيئة التشغيل والحقائق المعروفة
 
@@ -14,7 +14,7 @@
 - التكامل الحالي: **CEP Extension** باستخدام ExtendScript، وليس UXP.
 - **FFmpeg مطلوب** للتحليل الصوتي خارج Premiere.
 - اكتشاف نشاط المتحدث في Multi-Cam يعتمد قياسات **RMS**.
-- أداتا **Multi-Cam Auto Switch** و**Silence Removal** فعّالتان.
+- أداة **Multi-Cam Auto Switch** فعّالة. أداة **Silence Removal** محذوفة من واجهة ومسار تشغيل الإضافة حالياً.
 - **Reap API** مسار منفصل عن تنفيذ المونتاج داخل Premiere.
 
 ## حالة ميزة Auto Zoom الحالية
@@ -54,7 +54,7 @@
 
 ## السلوك الحالي الذي وصل إليه التطوير
 
-- توجد ملاحة وأدوات Multi-Cam Auto Switch وSilence Removal داخل إضافة CEP.
+- توجد ملاحة وأداة Multi-Cam Auto Switch داخل إضافة CEP. Silence Removal محذوفة من الواجهة الحالية.
 - Synchronize يقرن TrackItems الصوتية والمرئية بحسب مسار المصدر نفسه، لا بحسب تساوي رقم V مع رقم A، ثم يحلل waveform خارج Premiere.
 - تحليل Synchronize يمتد حتى 15 دقيقة ويستخدم بحث ارتباط خشن بدقة 1 ثانية ثم دقيق بدقة 0.1 ثانية. اتجاه lag المعتمد هو `targetStart = referenceStart - lag`.
 - توثيق Premiere يعرّف `TrackItem.move(Time)` كإزاحة نسبية، لكن Runtime في 26.2.0 أعطى `Invalid parameter` للإزاحة أو عاد دون تغيير الزمن عند تمرير موضع مطلق؛ لذلك لا يعتمد Synchronize عليه.
@@ -64,9 +64,9 @@
 - تم إثبات هذا السلوك داخل Premiere Runtime بتاريخ 2026-06-18: حالة أربعة تسجيلات متزامنة عرضت `Applied: 4 clips` بنجاح.
 - تدقيق 2026-06-23 ثبّت رفع حد الثقة إلى `0.35` كمعيار قبول، وإضافة جدول معاينة ما قبل التطبيق بالواجهة لعرض الإزاحات وقيم الثقة والأسباب لضمان المعاينة الآمنة قبل تحريك التايملاين. كما تم إخراج خطوة المزامنة مؤقتاً من خط التحرير الموحد One Click (ليعمل بمسار: Duplicate -> Multi-Cam Auto Switch -> Auto Captions) حتى تمام استقرارها. وتمت ترقية دقة المزامنة عبر خوارزمية القمم المتعددة (Multi-Candidate Peaks) بدلاً من اختيار أعلى قمة مطلقة؛ حيث يتم فحص أعلى 5 قمم ترشيحية دقيقة، وتطبيق قاعدة Near/Far (أولوية للـ +/- 15 ثانية) لمنع التقاط إزاحات عشوائية بعيدة في المناخات الصامتة إلا بفارق ثقة ضخم يزيد عن 0.15.
 - التنفيذ الحالي يستخدم `createSubClip` و`overwriteClip` لإعادة بناء أجزاء مطلوبة بدل Razor غير الموجود.
-- السلوك الحالي في worktree ينظّم العناصر المولّدة في Project Panel تحت bin رئيسي باسم `Saad Studio - <Premiere Project Name>` ثم bin فرعي لكل أداة، ومنها `Multi-Cam Auto Switch` و`Silence Removal`.
+- السلوك الحالي في worktree ينظّم العناصر المولّدة في Project Panel تحت bin رئيسي باسم `Saad Studio - <Premiere Project Name>` ثم bin فرعي للأدوات النشطة مثل `Multi-Cam Auto Switch`.
 - عند تشغيل الأداة، تُنقل العناصر القديمة المعروفة من جذر المشروع إلى bin الأداة المناسب.
-- Multi-Cam يمنع إعادة Apply على sequence يحمل marker ` - Saad Auto Switch Draft`. لا يُضاف هذا marker إلى الحارس العام لأن Silence Removal يجب أن يبقى قادرًا على معالجة Draft الـMulti-Cam.
+- Multi-Cam يمنع إعادة Apply على sequence يحمل marker ` - Saad Auto Switch Draft`. لم يعد هناك مسار Silence Removal يعتمد على معالجة Draft الـMulti-Cam.
 - إخراج Multi-Cam على duplicate يفضّل video track فارغًا؛ عند عدم وجوده يستخدم أعلى track قابل للكتابة داخل النسخة فقط، مع warning، بدل إنشاء clone ثم الفشل وترك Draft فارغ.
 - منع التكرار دفاعي في طبقتين: Host JSX يرفض Draft، والواجهة ترفض الاسم نفسه وتقفل Apply بعد أول نتيجة حتى Analyze جديد. قبل Apply تعيد الواجهة تحميل ملف JSX لضمان استخدام النسخة المثبتة.
 - عناصر Runtime Proof تُفصل في bin مستقل ولا تُخلط بمخرجات الأدوات الإنتاجية.
@@ -169,7 +169,7 @@
 ## مزامنة Active Sequence مع واجهة Podcast (2026-06-19)
 
 - تبقي صفحة Podcast مراقبًا خفيفًا كل 1000ms لهوية الـActive Sequence عبر diagnostics، من دون تحليل وسائط أو FFmpeg.
-- عند تغير `sequenceId` أو الاسم تُلغى كل النتائج المخزنة الخاصة بالـSequence السابق قبل السماح بـAnalyze/Preview/Apply على الجديد؛ ويشمل ذلك Sync وMulti-Cam وSilence Removal وإثباتات الصوت.
+- عند تغير `sequenceId` أو الاسم تُلغى كل النتائج المخزنة الخاصة بالـSequence السابق قبل السماح بـAnalyze/Preview/Apply على الجديد؛ ويشمل ذلك Sync وMulti-Cam وإثباتات الصوت.
 - يتوقف المراقب تلقائيًا عند إزالة الصفحة من DOM، ولا يستعلم أثناء تنفيذ أداة إنتاجية لتجنب تداخل طلبات Host.
 
 ## توزيع أربع كاميرات في Multi-Cam (2026-06-19)
@@ -206,13 +206,13 @@
 - وثائق `Create a multi-camera source sequence` تصف workflow والخيارات المتوقعة للمزامنة؛ لا تُعامل كإثبات لواجهة scripting غير مذكورة في مرجع Premiere API.
 - مراجع active-speaker/multitrack مفيدة لقواعد RMS، crosstalk margin، hysteresis، minimum shot، وإدراج wide camera. يجب التحقق من الترخيص والتوافق مع Premiere 26.2 قبل تكييف التنفيذ.
 - مشاريع MCP قد تعمل عبر واجهة خارجية أو UXP أو QE غير موثق؛ لا تُستخدم في CEP إلا بعد تحديد طبقة المضيف ومطابقة عمليات Motion Scale/Position مع Runtime Proof.
-- `One Click Podcast Edit` طبقة orchestration: تبدأ بإنشاء نسخة مكررة (Duplicate) فوراً والعمل عليها حصراً لحفظ الأصل. التتابع الصحيح: Duplicate sequence → Set active → Run Synchronize on duplicate (فشل المزامنة يوقف العملية فوراً بـ `SYNCHRONIZE_FAILED` ويلغي الخطوات التالية) → Multi-Cam Auto Switch → Silence Removal (موقوفة مؤقتاً للتطوير) → Auto Captions ← التحقق النهائي وإعادة التسمية.
+- `One Click Podcast Edit` طبقة orchestration: تبدأ بإنشاء نسخة مكررة (Duplicate) فوراً والعمل عليها حصراً لحفظ الأصل. التتابع الحالي بعد حذف Silence Removal: Duplicate sequence → Set active → Run Synchronize on duplicate إن كان مفعلاً → Multi-Cam Auto Switch → Auto Captions ← التحقق النهائي وإعادة التسمية.
 
 ### ترتيب One Click وفق سير العمل التحريري العام
 
-- يُفصل بين **Multicam setup** (تجميع المصادر المتزامنة) وبين **camera switching** (قرارات الزوايا). الترتيب المحافظ للأتمتة هو: `Synchronize/setup → Silence/content cleanup → Multi-Cam switching → Auto Captions`.
-- إزالة الصمت تعديل بنيوي يغيّر الزمن؛ لذلك تسبق القرارات الجمالية المعتمدة على timestamps. الكابشنز تأتي بعد تثبيت بنية المحتوى. يمكن أن يتداخل content edit وcamera switching يدويًا، لكن الـOrchestrator الآلي يحتاج ترتيبًا حتميًا.
-- السطر القديم الذي وضع Multi-Cam قبل Silence يمثل البنية التجريبية السابقة، وليس معيارًا عالميًا. قبل تغيير التنفيذ يلزم Regression يثبت أن ناتج Silence Removal يحافظ على كل مسارات الميكروفونات والكاميرات المطلوبة لتحليل المتحدث النشط.
+- يُفصل بين **Multicam setup** (تجميع المصادر المتزامنة) وبين **camera switching** (قرارات الزوايا). الترتيب الحالي للأتمتة بعد حذف Silence Removal هو: `Synchronize/setup → Multi-Cam switching → Auto Captions`.
+- إزالة الصمت لم تعد جزءاً من المنتج الحالي. الكابشنز تأتي بعد تثبيت بنية المحتوى الناتجة من Multi-Cam.
+- أي إعادة مستقبلية لـ Silence Removal تحتاج ADR جديد وRegression يثبت أنها لا تكسر مسارات الميكروفونات والكاميرات المطلوبة لتحليل المتحدث النشط.
 
 ## تنويع اللقطة العامة في Multi-Cam
 

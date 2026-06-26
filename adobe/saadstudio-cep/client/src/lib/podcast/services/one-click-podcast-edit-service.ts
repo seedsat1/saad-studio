@@ -17,16 +17,6 @@ export interface OneClickPodcastEditSettings {
   timelineDurationSec?: number;
   videoTrackCount?: number;
   
-  // Silence Removal settings
-  silenceAudioTrackIndex: number;
-  silenceThresholdDb: number;
-  minimumSilenceDurationSec: number;
-  minimumCutGapSec?: number;
-  minimumKeepSegmentDurationSec?: number;
-  mergeAdjacentKeepGapSec?: number;
-  silencePaddingBeforeSec: number;
-  silencePaddingAfterSec: number;
-  
   // Auto Captions settings
   autoCaptionsLanguage: CaptionLanguage;
   autoCaptionsModel: CaptionModel;
@@ -51,7 +41,6 @@ export interface OneClickPodcastEditResult {
   skippedSteps?: string[];
   skipReason?: string;
   switchesApplied: number;
-  silencesRemoved: number;
   captionsCreated: number;
   totalRuntime: number;
   originalTouched: boolean;
@@ -72,16 +61,12 @@ export async function runOneClickPodcastEditService(
   const errorMessages: Record<string, string> = {};
   
   let switchesApplied = 0;
-  let silencesRemoved = 0;
   let captionsCreated = 0;
   let captionDiagnostics: any = null;
   
   let originalSeqId: string | null = null;
   let duplicateSequenceID: string | null = null;
   let duplicateSequenceName = "";
-  
-  // Silence removal is disabled, add it silently to skippedSteps for UI compatibility
-  skippedSteps.push("silence-removal");
   
   try {
     // Force reload JSX script to clear memory caching issues in Premiere Pro
@@ -132,21 +117,13 @@ export async function runOneClickPodcastEditService(
       throw new Error(`ACTIVATION_FAILED: setActiveSequenceById returned false for sequence ID ${duplicateSequenceID}`);
     }
 
-    // Step 1: Run Synchronize on duplicate (Bypassed temporarily in One Click)
-    console.log("[Saad One Click Edit] Step 1: Synchronize | Status: SKIPPED (Bypassed temporarily)");
-    onProgress({ stage: "synchronize", message: "[1/3] Synchronize: SKIPPED (Bypassed temporarily)...", percent: 10 });
-    skippedSteps.push("synchronize");
-    if (!skipReason) {
-      skipReason = "SYNCHRONIZE_TEMPORARILY_DISABLED_IN_ONE_CLICK";
-    }
-    
     // Ensure duplicate remains active
     await evalES<boolean>("setActiveSequenceById", duplicateSequenceID);
     
-    // Step 2: Multi-Cam Auto Switch on duplicate
+    // Step 1: Multi-Cam Auto Switch on duplicate
     const step2Start = Date.now();
-    console.log("[Saad One Click Edit] Step 2: Multi-Cam Auto Switch | Status: STARTED");
-    onProgress({ stage: "multi-cam-switch", message: "[2/3] Auto Switch: Switching angles in-place...", percent: 45 });
+    console.log("[Saad One Click Edit] Step 1: Multi-Cam Auto Switch | Status: STARTED");
+    onProgress({ stage: "multi-cam-switch", message: "[1/2] Auto Switch: Switching angles in-place...", percent: 45 });
     
     let planResult;
     try {
@@ -169,7 +146,7 @@ export async function runOneClickPodcastEditService(
       }
     } catch (planErr) {
       const step2Duration = Date.now() - step2Start;
-      console.log(`[Saad One Click Edit] Step 2: Multi-Cam Auto Switch | Status: FAILED | Duration: ${step2Duration}ms | Error: ${(planErr as Error).message}`);
+      console.log(`[Saad One Click Edit] Step 1: Multi-Cam Auto Switch | Status: FAILED | Duration: ${step2Duration}ms | Error: ${(planErr as Error).message}`);
       throw planErr;
     }
     
@@ -181,7 +158,7 @@ export async function runOneClickPodcastEditService(
     if (!switchResult.ok) {
       const errMsg = switchResult.blockers.join(" | ") || "Camera switching execution failed.";
       const step2Duration = Date.now() - step2Start;
-      console.log(`[Saad One Click Edit] Step 2: Multi-Cam Auto Switch | Status: FAILED | Duration: ${step2Duration}ms | Error: ${errMsg}`);
+      console.log(`[Saad One Click Edit] Step 1: Multi-Cam Auto Switch | Status: FAILED | Duration: ${step2Duration}ms | Error: ${errMsg}`);
       throw new Error(`Auto Switch failed: ${errMsg}`);
     }
     
@@ -189,23 +166,23 @@ export async function runOneClickPodcastEditService(
     completedSteps.push("multi-cam-switch");
     
     const step2Duration = Date.now() - step2Start;
-    console.log(`[Saad One Click Edit] Step 2: Multi-Cam Auto Switch | Status: COMPLETED | Duration: ${step2Duration}ms`);
+    console.log(`[Saad One Click Edit] Step 1: Multi-Cam Auto Switch | Status: COMPLETED | Duration: ${step2Duration}ms`);
     
     // Ensure duplicate remains active
     await evalES<boolean>("setActiveSequenceById", duplicateSequenceID);
     
-    // Step 3: Auto Captions on duplicate
+    // Step 2: Auto Captions on duplicate
     const step3Start = Date.now();
     if (settings.skipCaptions || settings.fastMode) {
-      console.log("[Saad One Click Edit] Step 3: Auto Captions | Status: SKIPPED");
-      onProgress({ stage: "auto-captions", message: "[3/3] Auto Captions: SKIPPED (Generate later)...", percent: null as any });
+      console.log("[Saad One Click Edit] Step 2: Auto Captions | Status: SKIPPED");
+      onProgress({ stage: "auto-captions", message: "[2/2] Auto Captions: SKIPPED (Generate later)...", percent: null as any });
       skippedSteps.push("auto-captions");
       if (!skipReason) {
         skipReason = settings.fastMode ? "FAST_MODE_ENABLED" : "USER_SKIPPED_CAPTIONS";
       }
     } else {
-      console.log("[Saad One Click Edit] Step 3: Auto Captions | Status: STARTED");
-      onProgress({ stage: "auto-captions", message: "[3/3] Auto Captions: Preparing...", percent: null as any });
+      console.log("[Saad One Click Edit] Step 2: Auto Captions | Status: STARTED");
+      onProgress({ stage: "auto-captions", message: "[2/2] Auto Captions: Preparing...", percent: null as any });
       
       try {
         const captionResult = await runPodcastAutoCaptions(
@@ -214,7 +191,7 @@ export async function runOneClickPodcastEditService(
           (p) => {
             onProgress({
               stage: "auto-captions",
-              message: `[3/3] Auto Captions: ${p.message}`,
+              message: `[2/2] Auto Captions: ${p.message}`,
               percent: null as any,
             });
           }
@@ -225,19 +202,19 @@ export async function runOneClickPodcastEditService(
         if (captionResult.ok) {
           captionsCreated = captionResult.captionCount;
           completedSteps.push("auto-captions");
-          console.log(`[Saad One Click Edit] Step 3: Auto Captions | Status: COMPLETED | Duration: ${step3Duration}ms`);
+          console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: COMPLETED | Duration: ${step3Duration}ms`);
         } else {
           failedSteps.push("auto-captions");
           const errMsg = captionResult.blockers.join(" | ") || "Failed to create caption track.";
           errorMessages["auto-captions"] = errMsg;
-          console.log(`[Saad One Click Edit] Step 3: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
+          console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
         }
       } catch (capErr) {
         const step3Duration = Date.now() - step3Start;
         failedSteps.push("auto-captions");
         const errMsg = (capErr as Error).message;
         errorMessages["auto-captions"] = errMsg;
-        console.log(`[Saad One Click Edit] Step 3: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
+        console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
       }
     }
     
@@ -262,7 +239,6 @@ export async function runOneClickPodcastEditService(
       skippedSteps,
       skipReason,
       switchesApplied,
-      silencesRemoved,
       captionsCreated,
       totalRuntime: Date.now() - startTime,
       originalTouched: false,
@@ -286,18 +262,17 @@ export async function runOneClickPodcastEditService(
     return {
       success: false,
       completedSteps,
-      failedSteps: ["synchronize", "multi-cam-switch", "auto-captions"].filter(s => !completedSteps.includes(s) && !skippedSteps.includes(s)),
+      failedSteps: ["multi-cam-switch", "auto-captions"].filter(s => !completedSteps.includes(s) && !skippedSteps.includes(s)),
       skippedSteps,
       skipReason,
       switchesApplied,
-      silencesRemoved,
       captionsCreated,
       totalRuntime: Date.now() - startTime,
       originalTouched: false,
       sequenceName: "Failed Pipeline",
       errorMessages: {
         ...errorMessages,
-        pipeline: errMessage === "SYNCHRONIZE_FAILED" ? "SYNCHRONIZE_FAILED" : errMessage,
+        pipeline: errMessage,
       },
       captionDiagnostics,
     };

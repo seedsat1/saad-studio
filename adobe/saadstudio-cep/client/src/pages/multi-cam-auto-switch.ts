@@ -1616,53 +1616,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         row("cloneResult", String(state.duplicateResult?.duplicateProof?.cloneResult === true)),
         row("newSequenceDetected", String(state.duplicateResult?.duplicateProof?.newSequenceDetected === true)),
         row("renameResult", String(state.duplicateResult?.duplicateProof?.renameResult === true)),
-        row("Silence Analysis Windows", String(state.silenceRemovalResult?.analysis.totalRmsWindows ?? 0)),
-        row("Silence Sequence Duration", formatSeconds(state.silenceRemovalResult?.analysis.sequenceDurationSec ?? 0)),
-        row("Silence Analyzed Duration", formatSeconds(state.silenceRemovalResult?.analysis.analyzedDurationSec ?? 0)),
-        row("Silence Audio Source Duration", formatSeconds(state.silenceRemovalResult?.analysis.audioSourceDurationSec ?? 0)),
-        row("Threshold Used", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.thresholdUsed ?? state.silenceThresholdDb)),
-        row("Minimum Duration Used", formatSeconds(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.minimumDurationUsed ?? state.minimumSilenceDurationSec)),
-        row("Detected Silence Segments Count", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.detectedSilenceSegments.length ?? 0)),
-        row("Detected Silence Start/End", formatSilenceDiagnosticSegments(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.detectedSilenceSegments)),
-        row("Rejected Silence Segments Count", String(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.rejectedSilenceSegments.length ?? 0)),
-        row("Rejected Silence Reasons", formatSilenceDiagnosticSegments(state.silenceRemovalResult?.analysis.silenceDetectionDiagnostics?.rejectedSilenceSegments)),
-        row("Silence Segments", String(state.silenceRemovalResult?.analysis.silenceSegments.length ?? 0)),
-        row("Dropped Silence Candidates", String(state.silenceRemovalResult?.analysis.droppedSilenceSegments?.length ?? 0)),
-        row("Longest Dropped Silence", formatSeconds(state.silenceRemovalResult?.analysis.longestDroppedSilenceSec ?? 0)),
-        row("First Dropped Silences", formatSilenceSegments(state.silenceRemovalResult?.analysis.droppedSilenceSegments)),
-        row("Keep Segments", String(state.silenceRemovalResult?.analysis.keepSegments.length ?? 0)),
-        row("Keep Segments Processed", String(state.silenceRemovalResult?.apply?.keepSegmentsProcessed ?? 0)),
-        row("Keep Segments Skipped", String(state.silenceRemovalResult?.apply?.keepSegmentsSkipped ?? 0)),
-        row("Last Processed Keep Index", String(state.silenceRemovalResult?.apply?.lastProcessedKeepSegmentIndex ?? "none")),
-        row("Last Keep Segment End", formatSeconds(state.silenceRemovalResult?.apply?.lastKeepSegmentEndTime ?? 0)),
-        row("Operation Plan Build Called", state.silenceRemovalResult?.apply?.operationPlanBuildCalled ? "Yes" : "No"),
-        row("Timeline Clips V1/A1", formatTimelineV1A1(state.silenceRemovalResult?.apply?.timelineClipDiscovery)),
-        row("Timeline Video Clip Counts", state.silenceRemovalResult?.apply?.timelineClipDiscovery?.videoClipCounts?.join(", ") || "None"),
-        row("Timeline Audio Clip Counts", state.silenceRemovalResult?.apply?.timelineClipDiscovery?.audioClipCounts?.join(", ") || "None"),
-        row("Processed Video Tracks", String(state.silenceRemovalResult?.apply?.processedVideoTracks ?? 0)),
-        row("Processed Audio Tracks", String(state.silenceRemovalResult?.apply?.processedAudioTracks ?? 0)),
-        row("Planned Operations", String(state.silenceRemovalResult?.apply?.operationPlanCount ?? 0)),
-        row("Executed Operations", String(state.silenceRemovalResult?.apply?.totalOperationsExecuted ?? 0)),
-        row("Duplicate Source Uses", String(state.silenceRemovalResult?.apply?.duplicateSourceClipUseCount ?? 0)),
-        row("Multi-Clip Keep Segments", String(state.silenceRemovalResult?.apply?.multiClipKeepSegments?.length ?? 0)),
-        row("First Multi-Clip Keeps", formatMultiClipKeepSegments(state.silenceRemovalResult?.apply?.multiClipKeepSegments)),
-        row("Reconstructed Video Clips", String(state.silenceRemovalResult?.apply?.reconstructedVideoClipsCount ?? 0)),
-        row("Reconstructed Audio Clips", String(state.silenceRemovalResult?.apply?.reconstructedAudioClipsCount ?? 0)),
-        row("Silence Video Inserts", String(state.silenceRemovalResult?.apply?.visualSegmentsInserted ?? 0)),
-        row("Silence Audio Inserts", String(state.silenceRemovalResult?.apply?.audioSegmentsInserted ?? 0)),
-        row("Video Inserts By Track", state.silenceRemovalResult?.apply?.videoSegmentsInsertedByTrack?.join(", ") || "None"),
-        row("Audio Inserts By Track", state.silenceRemovalResult?.apply?.audioSegmentsInsertedByTrack?.join(", ") || "None"),
-        row("Original Disabled On Draft", state.silenceRemovalResult?.apply?.originalTracksHiddenOrDisabledOnDuplicate ? "Yes" : "No"),
-        row("Original Items Disabled", String(state.silenceRemovalResult?.apply?.originalTrackItemsDisabledOnDuplicate ?? 0)),
-        row("Original Remove Unsafe", state.silenceRemovalResult?.apply?.warnings?.includes("ORIGINAL_TRACKITEM_REMOVE_UNSAFE_DISABLED_INSTEAD") ? "Yes" : "No"),
-        row("Original Residual Items", String(state.silenceRemovalResult?.apply?.originalResidualTrackItems?.length ?? 0)),
-        row("IMG_5575 Diagnostics", formatResidualItems(state.silenceRemovalResult?.apply?.img5575Diagnostics)),
-        row("Silence Draft", state.silenceRemovalResult?.apply?.draftSequenceName || "not-created"),
-        row("Silence Blockers", state.silenceRemovalResult?.blockers.join(" | ") || "None"),
-        row("Silence Active Sequence", state.silenceRemovalResult?.apply?.activeSequenceName || state.diagnostics?.sequenceName || "unknown"),
-        row("Generated Sequence Rule", state.silenceRemovalResult?.apply?.generatedSequenceDetectionRule || "not-matched"),
-        row("Matched Pattern", state.silenceRemovalResult?.apply?.matchedPattern || "none"),
-        row("Blocker Source", state.silenceRemovalResult?.apply?.blockerSource || "none"),
       ),
       el("div.podcast-messages", null,
         el("div.podcast-messages__title", null, "Messages"),
@@ -2008,59 +1961,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     }
   }
 
-  async function removeSilence() {
-    if (isProductionBusy()) return;
-    state.silenceRemovalLoading = true;
-    render();
-    try {
-      state.silenceRemovalResult = await runSilenceRemovalDraft({
-        audioTrackIndex: 0,
-        silenceThresholdDb: state.silenceThresholdDb,
-        autoMode: true,
-        minimumSilenceDurationSec: state.minimumSilenceDurationSec,
-        minimumCutGapSec: state.minimumCutGapSec,
-        minimumKeepSegmentDurationSec: state.minimumKeepSegmentDurationSec,
-        mergeAdjacentKeepGapSec: state.mergeAdjacentKeepGapSec,
-        paddingBeforeSec: state.silencePaddingBeforeSec,
-        paddingAfterSec: state.silencePaddingAfterSec,
-        selectedAudioStreamIndex: state.selectedAudioStreamIndex,
-      });
-    } catch (err) {
-      state.silenceRemovalResult = {
-        ok: false,
-        analysis: {
-          ok: false,
-          audioTrackIndex: 0,
-          analyzedSourcePath: null,
-          selectedAudioStreamIndex: state.selectedAudioStreamIndex,
-          analyzedDurationSec: 0,
-          analysisWindowSec: 0.2,
-          totalRmsWindows: 0,
-          silenceSegments: [],
-          droppedSilenceSegments: [],
-          silenceDetectionDiagnostics: {
-            thresholdUsed: state.silenceThresholdDb,
-            minimumDurationUsed: state.minimumSilenceDurationSec,
-            detectedSilenceSegments: [],
-            rejectedSilenceSegments: [],
-          },
-          keepSegments: [],
-          totalRemovedDurationSec: 0,
-          blockers: ["SILENCE_REMOVAL_FAILED", (err as Error).message],
-          warnings: [],
-          timelineMutation: "none",
-          sequenceMutation: "none",
-        },
-        apply: null,
-        blockers: ["SILENCE_REMOVAL_FAILED", (err as Error).message],
-        warnings: [],
-      };
-    } finally {
-      state.silenceRemovalLoading = false;
-      render();
-    }
-  }
-
   async function createDraftCopy() {
     const plan = buildPlan();
     state.duplicateLoading = true;
@@ -2395,7 +2295,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     state.timelineLayout = null;
     clearSynchronizationRuntimeState();
     clearAutoSwitchRuntimeState();
-    state.silenceRemovalResult = null;
     state.audioProof = null;
     state.rmsProof = null;
     state.fullActivityProof = null;
@@ -3236,7 +3135,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       el("div.podcast-section-head", null,
         el("div", null,
           el("h3", null, "One Click Podcast Edit"),
-          el("p", null, "Run the entire podcast editing pipeline (Silence Removal → Multi-Cam Switch → Auto Captions) in a single click."),
+          el("p", null, "Run the podcast editing pipeline (Multi-Cam Switch → Auto Captions) in a single click."),
         ),
       ),
       el("div.podcast-settings-grid", { style: { marginBottom: "12px" } },
@@ -3311,7 +3210,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               el("li", null, `Steps Completed: ${result.completedSteps.join(", ") || "none"}`),
               result.skippedSteps && result.skippedSteps.length ? el("li", { style: { color: "#e65100" } }, `Steps Skipped: ${result.skippedSteps.join(", ")} (${result.skipReason || ""})`) : null,
               result.failedSteps.length ? el("li", { style: { color: "#c62828" } }, `Steps Failed: ${result.failedSteps.join(", ")}`) : null,
-              el("li", null, `Silence segments removed: ${result.skippedSteps?.includes("silence-removal") ? "SKIPPED" : result.silencesRemoved}`),
               el("li", null, `Camera switch cuts made: ${result.switchesApplied}`),
               el("li", null, `Captions created: ${result.captionsCreated}`)
             ),
@@ -3421,16 +3319,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         selectedAudioStreamIndex: state.selectedAudioStreamIndex,
         timelineDurationSec: layout.sequenceDurationSec ?? boundProof.analyzedDurationSec,
         videoTrackCount: layout.videoTracks.length,
-        
-        silenceAudioTrackIndex: 0,
-        silenceThresholdDb: state.silenceThresholdDb,
-        minimumSilenceDurationSec: state.minimumSilenceDurationSec,
-        minimumCutGapSec: state.minimumCutGapSec,
-        minimumKeepSegmentDurationSec: state.minimumKeepSegmentDurationSec,
-        mergeAdjacentKeepGapSec: state.mergeAdjacentKeepGapSec,
-        silencePaddingBeforeSec: state.silencePaddingBeforeSec,
-        silencePaddingAfterSec: state.silencePaddingAfterSec,
-        
         autoCaptionsLanguage: state.autoCaptionsLanguage,
         autoCaptionsModel: state.autoCaptionsModel,
         skipCaptions: state.oneClickSkipCaptions || state.oneClickFastMode,
@@ -3453,11 +3341,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         success: false,
         sequenceName: "Failed Pipeline",
         completedSteps: [],
-        failedSteps: ["multi-cam-switch", "silence-removal", "auto-captions"],
+        failedSteps: ["multi-cam-switch", "auto-captions"],
         skippedSteps: [],
         skipReason: "",
         switchesApplied: 0,
-        silencesRemoved: 0,
         captionsCreated: 0,
         totalRuntime: 0,
         errorMessages: {
@@ -3512,58 +3399,6 @@ function createEmptyApplyTrace(): ApplyTrace {
 function pushApplyCheckpoint(trace: ApplyTrace, checkpoint: ApplyCheckpoint) {
   trace.lastCheckpoint = checkpoint;
   trace.checkpoints.push(checkpoint);
-}
-
-function formatMultiClipKeepSegments(segments: SilenceRemovalRunResult["apply"] extends infer Apply
-  ? Apply extends { multiClipKeepSegments?: infer Items } ? Items | undefined : never
-  : never): string {
-  if (!Array.isArray(segments) || !segments.length) return "None";
-  return segments.slice(0, 5).map((segment) => {
-    const videoByTrack = Array.isArray(segment.videoClipsMatchedByTrack) ? segment.videoClipsMatchedByTrack.join("/") : "";
-    const audioByTrack = Array.isArray(segment.audioClipsMatchedByTrack) ? segment.audioClipsMatchedByTrack.join("/") : "";
-    return `#${segment.keepSegmentIndex}: V${segment.matchedVideoClipCount} [${videoByTrack}] A${segment.matchedAudioClipCount} [${audioByTrack}]`;
-  }).join(" | ");
-}
-
-function formatResidualItems(items: SilenceRemovalRunResult["apply"] extends infer Apply
-  ? Apply extends { img5575Diagnostics?: infer Items } ? Items | undefined : never
-  : never): string {
-  if (!Array.isArray(items) || !items.length) return "None";
-  return items.slice(0, 5).map((item) =>
-    `${item.mediaKind} T${item.trackIndex + 1} ${formatSeconds(item.startSec)}-${formatSeconds(item.endSec)} disabled=${String(item.disabled)}`
-  ).join(" | ");
-}
-
-function formatSilenceSegments(segments: SilenceRemovalRunResult["analysis"]["droppedSilenceSegments"]): string {
-  if (!Array.isArray(segments) || !segments.length) return "None";
-  return segments.slice(0, 5).map((segment) =>
-    `${formatSeconds(segment.startSec)}-${formatSeconds(segment.endSec)} (${formatSeconds(segment.durationSec)})`
-  ).join(" | ");
-}
-
-function formatSilenceDiagnosticSegments(
-  segments: NonNullable<SilenceRemovalRunResult["analysis"]["silenceDetectionDiagnostics"]>["detectedSilenceSegments"] | undefined,
-): string {
-  if (!Array.isArray(segments) || !segments.length) return "None";
-  return segments.slice(0, 8).map((segment) => {
-    const rms = `rms ${formatDb(segment.rmsMinDb)}/${formatDb(segment.rmsMaxDb)}/${formatDb(segment.rmsAvgDb)}`;
-    const classification = segment.pauseClassification ? `${segment.pauseClassification}` : "unclassified";
-    const decision = segment.cutDecisionReason ? ` - ${segment.cutDecisionReason}` : "";
-    return `${formatSeconds(segment.startSec)}-${formatSeconds(segment.endSec)} (${formatSeconds(segment.durationSec)}) ${classification} ${segment.reason}${decision} ${rms}`;
-  }).join(" | ");
-}
-
-function formatDb(value: number | undefined): string {
-  if (value == null) return "n/a";
-  if (!Number.isFinite(value)) return String(value);
-  return `${Math.round(value * 1000) / 1000}dB`;
-}
-
-function formatTimelineV1A1(discovery: SilenceRemovalRunResult["apply"] extends infer Apply
-  ? Apply extends { timelineClipDiscovery?: infer Discovery } ? Discovery | undefined : never
-  : never): string {
-  if (!discovery) return "None";
-  return `V1:${discovery.v1ClipCount ?? 0} A1:${discovery.a1ClipCount ?? 0}`;
 }
 
 function formatSpeakerSegmentsPerMic(

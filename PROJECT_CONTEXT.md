@@ -2827,3 +2827,54 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
 
 - **القرارات المتخذة**:
   - توثيق بيانات الحساب والـ R2 bucket لضمان سهولة الرجوع إليها وتسهيل إتمام عمليات الـ migration للروابط بأمان.
+
+## حذف Silence Removal من إضافة Saad Studio CEP (2026-06-26)
+
+- الحالة الحالية: تم حذف أداة Silence Removal من واجهة Podcast Automation ومسار One Click والـ Runtime host API. لم يعد يوجد زر Remove Silence أو بطاقة Silence Removal أو خدمة `runSilenceRemovalDraft` في المصدر النشط.
+- الملفات المتأثرة:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/one-click-podcast-edit-service.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/silence-removal-service.ts` (محذوف)
+  - `adobe/saadstudio-cep/client/src/lib/podcast/adapters/premiere-podcast-adapter.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/types/premiere.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/types/index.ts`
+  - `adobe/saadstudio-cep/client/src/lib/cep.ts`
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+  - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/jsx/index.jsx`
+- نتائج التحقق:
+  - `npm.cmd run build:cep` نجح.
+  - البحث في `client/src` و`jsx/index.jsx` و`release/extension` لم يجد بقايا تشغيلية لـ `Silence Removal`, `runSilenceRemovalDraft`, `applyPodcastSilenceRemovalVisualOnly`, `Remove Silence`, أو `silencesRemoved`.
+- القرار:
+  - حذف Silence Removal بالكامل من المنتج الحالي بناءً على طلب المستخدم، مع إبقاء تحليل RMS العام لأنه مستخدم في Multi-Cam Auto Switch وليس أداة إزالة الصمت.
+- أخطاء/ملاحظات:
+  - محاولة البناء الأولى فشلت بسبب بقايا دوال تشخيص TypeScript مرتبطة بـ `SilenceRemovalRunResult`; تم حذفها ثم نجح البناء.
+- الخطوة المتبقية:
+  - إذا أراد المستخدم تشغيل النسخة داخل Premiere، يلزم نسخ release/extension إلى مسار CEP أو تشغيل أمر النشر المعتمد.
+## حالة حذف Silence Removal من CEP ونشر النسخة النظيفة (2026-06-26)
+
+- الحالة: تم حذف قسم/خدمة Silence Removal من واجهة Podcast Automation ومسار One Click داخل إضافة Premiere CEP.
+- النشر: تم بناء نسخة CEP نظيفة ثم نسخها إلى مسار Premiere الفعلي:
+  `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep`
+- التحقق: تم فحص `client/dist` و `jsx` داخل مسار التثبيت ولم تظهر العبارات:
+  `Silence Removal`, `silence-removal`, `Saad Silence`, `Remove Silence`, `silencesRemoved`.
+- سبب الخطأ الظاهر في Premiere: كانت لوحة Premiere تعمل على bundle قديم مثبت في AppData، بينما السورس/release الجديد كان مختلفاً.
+- قرار: عند تعديل CEP يجب تنفيذ build ثم نشر النسخة إلى مسار CEP المثبت، وليس الاكتفاء بتعديل السورس.
+- المتبقي: على المستخدم إغلاق لوحة Saad Studio وإعادة فتحها من Premiere، وإذا بقيت نسخة قديمة بسبب cache يجب إعادة تشغيل Premiere.
+- ملاحظة تحقق: أثناء محاولة فحص كامل مسار التثبيت ظهر false-positive داخل `tools/ffmpeg/ffmpeg.exe` لأن FFmpeg يحتوي فلتر داخلي اسمه `silenceremove`; لذلك التحقق الصحيح يكون على ملفات الواجهة/JSX فقط.
+## إصلاح One Click بعد حذف Silence Removal (2026-06-26)
+
+- الحالة: تم إصلاح مسار One Click بعد حذف Silence Removal.
+- السبب المكتشف من Runtime UI: One Click كان يعرض `synchronize` كخطوة متخطاة برسالة `SYNCHRONIZE_TEMPORARILY_DISABLED_IN_ONE_CLICK`، ثم يفشل Multi-Cam بسبب `DUPLICATE_VALIDATION_FAILED`.
+- الإصلاح:
+  - إزالة `synchronize` من خطوات One Click المعروضة والفاشلة/المتخطاة طالما المزامنة ليست جزءاً من One Click الحالي.
+  - إصلاح `applyPodcastCameraDecisionsOverlapAwareVisualOnly` في JSX عند العمل على draft موجود: الآن يملأ `newSequence` و `duplicateValidationPassed` وبيانات النجاح بدلاً من إسقاط المسار إلى `DUPLICATE_VALIDATION_FAILED`.
+- التحقق:
+  - نجح `npm.cmd run build:cep`.
+  - اختفى `SYNCHRONIZE_TEMPORARILY_DISABLED_IN_ONE_CLICK` من مخرجات `client/dist`.
+  - لم تظهر بقايا Silence Removal في مسار الواجهة المبنية.
+- عائق النشر:
+  - تعذر نسخ النسخة الجديدة إلى `%APPDATA%\Adobe\CEP\extensions\app.saadstudio.cep` من داخل Codex بسبب رفض أداة التصعيد نتيجة حد الاستخدام، لذلك قد يظل Premiere يشغل النسخة القديمة حتى يتم النسخ يدوياً أو عند توفر صلاحية النشر.
+- الملفات المتأثرة:
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/one-click-podcast-edit-service.ts`
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+  - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/jsx/index.jsx`

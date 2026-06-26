@@ -66,7 +66,8 @@ import {
   Laptop,
   DollarSign,
   Mail,
-  FileText
+  FileText,
+  GripVertical
 } from "lucide-react";
 
 // Types
@@ -119,7 +120,7 @@ interface MemoryNode {
   text: string;
 }
 
-// Complete 40+ Skills matching the user list & descriptions
+// 40+ Skills matching the user list & descriptions
 const INITIAL_SKILLS: CustomSkill[] = [
   { id: "static-ads", title: "/static-ads", desc: "Takes an uploaded reference image, derives the layout structure and copy framework internally, generates on-brand copy variations, then renders static ads via GPT Image 2 using product images.", category: "Business & Finance", prompt: "Recreate ad layouts using GPT Image 2 and product references.", isCustom: false, isActive: false, icon: "📊" },
   { id: "b-roll-planner", title: "/b-roll-shot-planner", desc: "Cinematic B-roll shot planner. Analyzes an uploaded image or user text to produce exactly 5 cohesive, edit-ready B-roll shot outputs.", category: "Content Creation", prompt: "Analyze style anchor and output 5 detailed B-roll camera setups.", isCustom: false, isActive: false, icon: "🎥" },
@@ -164,24 +165,6 @@ const INITIAL_SKILLS: CustomSkill[] = [
   { id: "email-sequence", title: "/email-sequence", desc: "Create onboarding email sequences, drip email funnels, welcome cadences, and lifecycle programs.", category: "Marketing & Sales", prompt: "Design transactional email sequences and drip funnels.", isCustom: false, isActive: false, icon: "✉️" }
 ];
 
-const SKILL_CATEGORIES = [
-  "All",
-  "Business & Finance",
-  "Communication & Collaboration",
-  "Content Creation",
-  "Creative & Marketing",
-  "Data & Analytics",
-  "Document Processing",
-  "Frontend Engineer",
-  "Fun & Quirky",
-  "Marketing & Sales",
-  "Personal & Specialized",
-  "Productivity",
-  "UI Kit",
-  "Writing"
-];
-
-// All 31 Connectors exactly matching the Higgsfield screenshot list & descriptions
 const INITIAL_CONNECTORS: Connector[] = [
   { id: "instagram", title: "Instagram", desc: "Publish feed posts, reels, stories, and carousels, then manage media comments.", icon: "📸", isConnected: false, features: ["Publish feed posts and reels", "Publish stories and carousels", "Read & reply to comments", "Analyze profile performance metrics"] },
   { id: "threads", title: "Threads", desc: "Publish text, image, video, and carousel posts, and inspect connected profile limits.", icon: "🧵", isConnected: false, features: ["Publish text & media threads", "Inspect active API limit quotas", "Retrieve thread comments", "Track account engagement rates"] },
@@ -230,97 +213,63 @@ const DEFAULT_MEMORIES: MemoryNode[] = [
   { id: "mem-5", text: "resolution: 4K Ultra HD" }
 ];
 
-const SUGGESTION_CHIPS = [
-  { id: "clipper", label: "Personal Clipper", badge: "New", icon: "🎬" },
-  { id: "skills", label: "Build with skills", icon: "✦" },
-  { id: "ugc", label: "Create UGC", icon: "🎭" },
-  { id: "marketing", label: "Run marketing", icon: "📈" },
-  { id: "cinema", label: "Shoot cinema", icon: "🎥" },
-  { id: "animate", label: "Animate Portrait", icon: "✨" },
-];
+// Custom Mission presets
+interface MissionType {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  defaultSteps: string[];
+}
 
-const EXAMPLE_PROMPTS: Record<string, string[]> = {
-  clipper: [
-    "Cut my hour-long recording into 5 vertical clips focusing on high-energy hooks",
-    "Turn my stream footage into short video segments with centered captions",
-    "Identify key moments in my narration and structure them into reels",
-  ],
-  skills: [
-    "Chain script generation and vertical rendering into a single automated pipeline",
-    "Combine high-resolution upscale with slow horizontal camera pan movements",
-    "Create a character script that maintains visual styling across different scenes",
-  ],
-  ugc: [
-    "Generate a virtual video presenter reviewing product specifications with subtitles",
-    "Create a vertical camera layout showing a narrator explaining tech hacks",
-    "Synthesize a natural presentation of corporate announcements",
-  ],
-  marketing: [
-    "Create 5 vertical ad variations with a distinct hook and call-to-action",
-    "Produce a 15-second visual promo with deep text overlays and fast cuts",
-    "Generate high-fidelity layout graphics matching the creative brief",
-  ],
-  cinema: [
-    "Synthesize a rainy futuristic street establishing shot with neon ambient lighting",
-    "Create a low-angle camera dolly shot of a spacecraft landing",
-    "Direct a scene with high visual contrast and camera focus pulling",
-  ],
-  animate: [
-    "Animate the portrait with slow ambient breathing and head tilt movements",
-    "Turn this environmental artwork into a moving 5-second video loop",
-    "Apply smooth camera panning to bring the landscape scene to life",
-  ],
-};
-
-// Helper to render premium Lucide icons for skills
+// Helpers to render icons dynamically
 function getSkillIcon(skillId: string, fallbackEmoji: string) {
   switch (skillId) {
-    case "static-ads": return <BarChart3 className="h-5 w-5 text-violet-400" />;
-    case "b-roll-planner": return <Video className="h-5 w-5 text-cyan-400" />;
-    case "karpathy-skill": return <Code2 className="h-5 w-5 text-emerald-400" />;
-    case "cod-thumbnail": return <ImageIcon className="h-5 w-5 text-pink-400" />;
-    case "pulp-cinema": return <Film className="h-5 w-5 text-orange-400" />;
-    case "seedance-prompts": return <Compass className="h-5 w-5 text-violet-400" />;
-    case "writing-beats": return <BookOpen className="h-5 w-5 text-emerald-400" />;
-    case "ip-carpetman": return <User className="h-5 w-5 text-amber-400" />;
-    case "ugc-swap": return <Users className="h-5 w-5 text-sky-400" />;
-    case "flash-reel": return <Zap className="h-5 w-5 text-yellow-400" />;
-    case "storyboard-cheatcode": return <Layout className="h-5 w-5 text-fuchsia-400" />;
-    case "prompt-expert": return <BrainCircuit className="h-5 w-5 text-violet-400" />;
-    case "onboarding": return <HelpCircle className="h-5 w-5 text-cyan-400" />;
-    case "ugc-ad-prod": return <Megaphone className="h-5 w-5 text-orange-400" />;
-    case "storyboard-gen": return <Layers className="h-5 w-5 text-rose-400" />;
-    case "gpt-image-dir": return <Palette className="h-5 w-5 text-pink-400" />;
-    case "kling-director": return <Camera className="h-5 w-5 text-sky-400" />;
-    case "seo-auditor": return <SearchCode className="h-5 w-5 text-teal-400" />;
-    case "theme-factory": return <PenTool className="h-5 w-5 text-emerald-400" />;
-    case "cinematic-motion": return <Film className="h-5 w-5 text-violet-400" />;
-    case "edit-article": return <FileText className="h-5 w-5 text-yellow-400" />;
-    case "grill-me": return <Flame className="h-5 w-5 text-red-400" />;
-    case "fragments": return <Binary className="h-5 w-5 text-indigo-400" />;
-    case "content-strategy": return <Map className="h-5 w-5 text-emerald-400" />;
-    case "caveman": return <Terminal className="h-5 w-5 text-zinc-400" />;
-    case "browser-test": return <Globe className="h-5 w-5 text-cyan-400" />;
-    case "social-content": return <MessageSquare className="h-5 w-5 text-purple-400" />;
-    case "marketing-ideas": return <Lightbulb className="h-5 w-5 text-amber-400" />;
-    case "copywriting": return <FileText className="h-5 w-5 text-violet-400" />;
-    case "humanizer": return <HeartHandshake className="h-5 w-5 text-emerald-400" />;
-    case "writing-shape": return <PenTool className="h-5 w-5 text-pink-400" />;
-    case "ab-test": return <Sliders className="h-5 w-5 text-orange-400" />;
-    case "context-eng": return <Workflow className="h-5 w-5 text-sky-400" />;
-    case "perf-opt": return <Zap className="h-5 w-5 text-yellow-400" />;
-    case "marketing-psych": return <BrainCircuit className="h-5 w-5 text-indigo-400" />;
-    case "brand-guide": return <Palette className="h-5 w-5 text-rose-400" />;
-    case "frontend-ui": return <Laptop className="h-5 w-5 text-cyan-400" />;
-    case "comp-patterns": return <Layers className="h-5 w-5 text-indigo-400" />;
-    case "paid-ads": return <DollarSign className="h-5 w-5 text-emerald-400" />;
-    case "ad-creative": return <Megaphone className="h-5 w-5 text-orange-400" />;
-    case "email-sequence": return <Mail className="h-5 w-5 text-sky-400" />;
-    default: return <span className="text-xl shrink-0">{fallbackEmoji}</span>;
+    case "static-ads": return <BarChart3 className="h-4 w-4 text-violet-400" />;
+    case "b-roll-planner": return <Video className="h-4 w-4 text-cyan-400" />;
+    case "karpathy-skill": return <Code2 className="h-4 w-4 text-emerald-400" />;
+    case "cod-thumbnail": return <ImageIcon className="h-4 w-4 text-pink-400" />;
+    case "pulp-cinema": return <Film className="h-4 w-4 text-orange-400" />;
+    case "seedance-prompts": return <Compass className="h-4 w-4 text-violet-400" />;
+    case "writing-beats": return <BookOpen className="h-4 w-4 text-emerald-400" />;
+    case "ip-carpetman": return <User className="h-4 w-4 text-amber-400" />;
+    case "ugc-swap": return <Users className="h-4 w-4 text-sky-400" />;
+    case "flash-reel": return <Zap className="h-4 w-4 text-yellow-400" />;
+    case "storyboard-cheatcode": return <Layout className="h-4 w-4 text-fuchsia-400" />;
+    case "prompt-expert": return <BrainCircuit className="h-4 w-4 text-violet-400" />;
+    case "onboarding": return <HelpCircle className="h-4 w-4 text-cyan-400" />;
+    case "ugc-ad-prod": return <Megaphone className="h-4 w-4 text-orange-400" />;
+    case "storyboard-gen": return <Layers className="h-4 w-4 text-rose-400" />;
+    case "gpt-image-dir": return <Palette className="h-4 w-4 text-pink-400" />;
+    case "kling-director": return <Camera className="h-4 w-4 text-sky-400" />;
+    case "seo-auditor": return <SearchCode className="h-4 w-4 text-teal-400" />;
+    case "theme-factory": return <PenTool className="h-4 w-4 text-emerald-400" />;
+    case "cinematic-motion": return <Film className="h-4 w-4 text-violet-400" />;
+    case "edit-article": return <FileText className="h-4 w-4 text-yellow-400" />;
+    case "grill-me": return <Flame className="h-4 w-4 text-red-400" />;
+    case "fragments": return <Binary className="h-4 w-4 text-indigo-400" />;
+    case "content-strategy": return <Map className="h-4 w-4 text-emerald-400" />;
+    case "caveman": return <Terminal className="h-4 w-4 text-zinc-400" />;
+    case "browser-test": return <Globe className="h-4 w-4 text-cyan-400" />;
+    case "social-content": return <MessageSquare className="h-4 w-4 text-purple-400" />;
+    case "marketing-ideas": return <Lightbulb className="h-4 w-4 text-amber-400" />;
+    case "copywriting": return <FileText className="h-4 w-4 text-violet-400" />;
+    case "humanizer": return <HeartHandshake className="h-4 w-4 text-emerald-400" />;
+    case "writing-shape": return <PenTool className="h-4 w-4 text-pink-400" />;
+    case "ab-test": return <Sliders className="h-4 w-4 text-orange-400" />;
+    case "context-eng": return <Workflow className="h-4 w-4 text-sky-400" />;
+    case "perf-opt": return <Zap className="h-4 w-4 text-yellow-400" />;
+    case "marketing-psych": return <BrainCircuit className="h-4 w-4 text-indigo-400" />;
+    case "brand-guide": return <Palette className="h-4 w-4 text-rose-400" />;
+    case "frontend-ui": return <Laptop className="h-4 w-4 text-cyan-400" />;
+    case "comp-patterns": return <Layers className="h-4 w-4 text-indigo-400" />;
+    case "paid-ads": return <DollarSign className="h-4 w-4 text-emerald-400" />;
+    case "ad-creative": return <Megaphone className="h-4 w-4 text-orange-400" />;
+    case "email-sequence": return <Mail className="h-4 w-4 text-sky-400" />;
+    default: return <span className="text-sm shrink-0">{fallbackEmoji}</span>;
   }
 }
 
-// Helper to render premium logo SVGs for connectors
 function getConnectorIcon(connectorId: string, fallbackEmoji?: string, customClassName?: string) {
   const className = customClassName || "h-5 w-5 shrink-0";
   switch (connectorId) {
@@ -384,7 +333,7 @@ function getConnectorIcon(connectorId: string, fallbackEmoji?: string, customCla
     case "whisper":
       return (
         <svg className={`${className} text-[#10a37f]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M21.73 11.77a4.26 4.26 0 0 0-.47-2.1l1.17-.67a.46.46 0 0 0 .17-.62l-.9-1.56a.46.46 0 0 0-.62-.17l-1.17.67a4.24 4.24 0 0 0-1.63-1.63l.67-1.17a.46.46 0 0 0-.17-.62l-1.56-.9a.46.46 0 0 0-.62.17l-.67 1.17a4.24 4.24 0 0 0-2.1-.47v-1.34a.46.46 0 0 0-.46-.46h-1.8a.46.46 0 0 0-.46.46v1.34a4.24 4.24 0 0 0-2.1.47l-.67-1.17a.46.46 0 0 0-.62-.17l-1.56.9a.46.46 0 0 0-.17.62l.67 1.17a4.24 4.24 0 0 0-1.63 1.63l-1.17-.67a.46.46 0 0 0-.62.17l-.9 1.56a.46.46 0 0 0 .17.62l1.17.67a4.26 4.26 0 0 0-.47 2.1H2.46a.46.46 0 0 0-.46.46v1.8a.46.46 0 0 0 .46.46h1.34a4.26 4.26 0 0 0 .47 2.1l-1.17.67a.46.46 0 0 0-.17.62l.9 1.56a.46.46 0 0 0 .62.17l1.17-.67a4.24 4.24 0 0 0 1.63 1.63l-.67 1.17a.46.46 0 0 0 .17.62l1.56.9a.46.46 0 0 0 .62-.17l.67-1.17a4.24 4.24 0 0 0 2.1.47v1.34a.46.46 0 0 0 .46.46h1.8a.46.46 0 0 0 .46-.46v-1.34a4.24 4.24 0 0 0 2.1-.47l.67 1.17a.46.46 0 0 0 .62.17l1.56-.9a.46.46 0 0 0 .17-.62l-.67-1.17a4.24 4.24 0 0 0 1.63-1.63l1.17.67a.46.46 0 0 0 .62-.17l.9-1.56a.46.46 0 0 0-.17-.62l-1.17-.67a4.26 4.26 0 0 0 .47-2.1h1.34a.46.46 0 0 0 .46-.46v-1.8a.46.46 0 0 0-.46-.46zm-9.73 4.03a3.8 3.8 0 1 1 3.8-3.8 3.8 3.8 0 0 1-3.8 3.8z" />
+          <path d="M21.73 11.77a4.26 4.26 0 0 0-.47-2.1l1.17-.67a.46.46 0 0 0 .17-.62l-.9-1.56a.46.46 0 0 0-.62-.17l-1.17.67a4.24 4.24 0 0 0-1.63 1.63l.67-1.17a.46.46 0 0 0-.17-.62l-1.56-.9a.46.46 0 0 0-.62.17l-.67 1.17a4.24 4.24 0 0 0-2.1-.47v-1.34a.46.46 0 0 0-.46-.46h-1.8a.46.46 0 0 0-.46.46v1.34a4.24 4.24 0 0 0-2.1.47l-.67-1.17a.46.46 0 0 0-.62-.17l-1.56.9a.46.46 0 0 0-.17.62l.67 1.17a4.24 4.24 0 0 0-1.63 1.63l-1.17-.67a.46.46 0 0 0-.62.17l-.9 1.56a.46.46 0 0 0 .17.62l1.17.67a4.26 4.26 0 0 0-.47 2.1H2.46a.46.46 0 0 0-.46.46v1.8a.46.46 0 0 0 .46.46h1.34a4.26 4.26 0 0 0 .47 2.1l-1.17.67a.46.46 0 0 0-.17.62l.9 1.56a.46.46 0 0 0 .62.17l1.17-.67a4.24 4.24 0 0 0 1.63 1.63l-.67 1.17a.46.46 0 0 0 .17.62l1.56.9a.46.46 0 0 0 .62-.17l.67-1.17a4.24 4.24 0 0 0 2.1.47v1.34a.46.46 0 0 0 .46.46h1.8a.46.46 0 0 0 .46-.46v-1.34a4.24 4.24 0 0 0 2.1-.47l.67 1.17a.46.46 0 0 0 .62.17l1.56-.9a.46.46 0 0 0 .17-.62l-.67-1.17a4.24 4.24 0 0 0 1.63-1.63l1.17.67a.46.46 0 0 0 .62-.17l.9-1.56a.46.46 0 0 0-.17-.62l-1.17-.67a4.26 4.26 0 0 0 .47-2.1h1.34a.46.46 0 0 0 .46-.46v-1.8a.46.46 0 0 0-.46-.46zm-9.73 4.03a3.8 3.8 0 1 1 3.8-3.8 3.8 3.8 0 0 1-3.8 3.8z" />
         </svg>
       );
     case "linear":
@@ -461,7 +410,7 @@ function getConnectorIcon(connectorId: string, fallbackEmoji?: string, customCla
       return (
         <svg className={className} viewBox="0 0 24 24">
           <rect x="2" y="2" width="20" height="20" rx="4" fill="#4a154b" />
-          <path d="M8.5 13.5a1.5 1.5 0 1 1-1.5-1.5h1.5v1.5zm1 0a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3zM10.5 8.5a1.5 1.5 0 1 1 1.5-1.5v1.5h-1.5zm0 1a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 6 14v-3a1.5 1.5 0 0 1 1.5-1.5h3zM15.5 10.5a1.5 1.5 0 1 1 1.5 1.5h-1.5v-1.5zm-1 0a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 12 6h3a1.5 1.5 0 0 1 1.5 1.5v3zM13.5 15.5a1.5 1.5 0 1 1-1.5 1.5v-1.5h1.5zm0-1a1.5 1.5 0 0 1-1.5-1.5v-3a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3z" fill="#ffffff" />
+          <path d="M8.5 13.5a1.5 1.5 0 1 1-1.5-1.5h1.5v1.5zm1 0a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3zM10.5 8.5a1.5 1.5 0 1 1 1.5-1.5v1.5h-1.5zm0 1a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3zM15.5 10.5a1.5 1.5 0 1 1 1.5 1.5h-1.5v-1.5zm-1 0a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3A1.5 1.5 0 0 1 12 6h3a1.5 1.5 0 0 1 1.5 1.5v3zM13.5 15.5a1.5 1.5 0 1 1-1.5 1.5v-1.5h1.5zm0-1a1.5 1.5 0 0 1-1.5-1.5v-3a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3z" fill="#ffffff" />
         </svg>
       );
     case "discord":
@@ -470,60 +419,84 @@ function getConnectorIcon(connectorId: string, fallbackEmoji?: string, customCla
           <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.094 13.094 0 0 1-1.873-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z" />
         </svg>
       );
-    case "hubspot":
-      return (
-        <svg className={`${className} text-[#FF7A59]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M21.9 10.3c-.4-.5-1-.8-1.7-.9v-.8c0-1.5-1-2.8-2.4-3.2v-1c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v1.1c-1.3.4-2.2 1.6-2.2 3.1v.8c-.7.1-1.3.4-1.7.9L5.3 5.9C5 5.3 4.4 5 3.7 5s-1.3.3-1.6.9c-.4.7-.2 1.6.4 2l5.4 4.4c-.2.5-.3 1.1-.3 1.7 0 .5.1 1.1.3 1.6l-5.4 4.4c-.6.5-.8 1.4-.4 2 .3.6.9.9 1.6.9.7 0 1.3-.3 1.6-.9l5.4-4.4c.4.5 1 .8 1.7.9v.8c0 1.5 1 2.8 2.4 3.2v1c0 .9.7 1.6 1.6 1.6s1.6-.7 1.6-1.6v-1.1c1.3-.4 2.2-1.6 2.2-3.1v-.8c.7-.1 1.3-.4 1.7-.9l5.4 4.4c.3.6.9.9 1.6.9.7 0 1.3-.3 1.6-.9.4-.7.2-1.6-.4-2l-5.4-4.4c.2-.5.3-1.1.3-1.6s-.1-1.1-.3-1.7l5.4-4.4c.6-.4.8-1.3.4-2z" />
-        </svg>
-      );
-    case "jira":
-      return (
-        <svg className={`${className} text-[#0052CC]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12.03 2.03L2 12.06h10.03V22.1l10.03-10.03H12.03V2.03z" />
-        </svg>
-      );
-    case "sendgrid":
-      return (
-        <svg className={`${className} text-[#009EDB]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M2 2h20v20H2V2zm4 4v12h12V6H6zm2 2h8v8H8V8z" />
-        </svg>
-      );
-    case "todoist":
-      return (
-        <svg className={`${className} text-[#E44332]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-8.5l-2.5-2.5-1.4 1.4L11 16.3l6.9-6.9-1.4-1.4L11 13.5z" />
-        </svg>
-      );
-    case "outlook":
-      return (
-        <svg className={`${className} text-[#0078d4]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 4.25L12 13 5 8.25V6l7 4.75L19 6v2.25z" />
-        </svg>
-      );
-    case "vimeo":
-      return (
-        <svg className={`${className} text-[#1ab7ea]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M22.396 7.42c-.076 1.626-1.206 3.858-3.39 6.697-2.275 2.955-4.214 4.432-5.818 4.432-1.002 0-1.849-.926-2.545-2.778-.47-1.724-.94-3.45-1.41-5.176-.516-1.928-1.072-2.89-1.674-2.89-.13 0-.58.27-.134.81.42.49.62.98.62 1.48 0 1.48-.942 3.904-2.825 7.27-.184.304-.37.45-.556.45-.25 0-.583-.348-.996-1.042C2.658 13.626 2 11.238 2 9.538c0-1.74.52-2.868 1.558-3.387C4.542 5.65 5.568 5.76 6.638 6.48c.84.566 1.4 1.47 1.677 2.714.3 1.83.568 3.518.804 5.062.253 1.64.57 2.458.948 2.458.29 0 .748-.48 1.374-1.442.616-.957.94-1.666.974-2.13.064-.95-.198-1.424-.784-1.424-.282 0-.573.064-.875.19 1.157-3.792 3.37-5.69 6.638-5.69 2.41 0 3.57 1.59 3.49 4.772z" />
-        </svg>
-      );
-    case "frameio":
-      return (
-        <svg className={`${className} text-[#cf2d81]`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15.5h-2v-6h2v6zm0-8h-2V7h2v2.5z" />
-        </svg>
-      );
     default:
       return <span>{fallbackEmoji || "🔌"}</span>;
   }
 }
 
+// Preset missions
+const MISSION_TYPES: MissionType[] = [
+  {
+    id: "create-ad",
+    title: "Create Advertisement",
+    description: "Generate ad outlines, static product banners, or animated commercial segments.",
+    icon: Megaphone,
+    defaultSteps: ["Concept Draft", "Creative Brief", "Generate Ad Image", "Animate Clip", "Add Subtitles", "Compile Final Ad"]
+  },
+  {
+    id: "produce-podcast",
+    title: "Produce Podcast",
+    description: "Plan outlines, transcribe channels, and sequence multi-mic active speaker switching.",
+    icon: Video,
+    defaultSteps: ["Script & Agenda", "Assign Speakers", "Generate Intro visual", "Generate Podcast audio", "Render Final Stream"]
+  },
+  {
+    id: "generate-images",
+    title: "Generate Images",
+    description: "Render on-brand layouts, cinematic concept artwork, and visual product elements.",
+    icon: ImageIcon,
+    defaultSteps: ["Style Reference", "Concept Sketches", "High-Resolution Render", "Upscale & Polish"]
+  },
+  {
+    id: "build-storyboard",
+    title: "Build Storyboard",
+    description: "Assemble multi-panel conceptual storyboards, camera directions, and scene layouts.",
+    icon: Layout,
+    defaultSteps: ["Concept Pitch", "Storyboard Grid", "Scene 1 Render", "Scene 2 Render", "Scene 3 Render", "Export Storyboard"]
+  },
+  {
+    id: "create-campaign",
+    title: "Create Marketing Campaign",
+    description: "Design multi-channel content maps, copywriting variations, and ad campaign structures.",
+    icon: BarChart3,
+    defaultSteps: ["Campaign Objectives", "Audience Profiles", "Ad Copies Outline", "Render Banners", "Schedule Automations"]
+  },
+  {
+    id: "edit-content",
+    title: "Edit Existing Content",
+    description: "Upload assets to crop, swap characters, apply transitions, and compile dynamic reels.",
+    icon: Film,
+    defaultSteps: ["Load Base Assets", "Analyze Footage", "Apply Transitions", "Audio Alignment", "Compile Edit"]
+  },
+  {
+    id: "social-content",
+    title: "Create Social Content",
+    description: "Compose Twitter/X threads, LinkedIn posts, vertical Reels, and automated publishing setups.",
+    icon: MessageSquare,
+    defaultSteps: ["Identify Hooks", "Draft Copy & Scripts", "Generate Vertical Visuals", "Render Reel Clip", "Publish Queue Setup"]
+  },
+  {
+    id: "custom",
+    title: "Custom Mission",
+    description: "Build an open-ended automation chain using specialized skills and model components.",
+    icon: Sparkles,
+    defaultSteps: ["Custom Concept", "Execute Custom Pipeline", "Final Assembly"]
+  }
+];
+
 export default function AgentStudioPage() {
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState<string>("new"); // new | search | skills | connectors | files | memory
+  
+  // Navigation: sidebar tab
+  // new-mission | projects | assets | tasks | templates | automation | settings
+  const [activeTab, setActiveTab] = useState<string>("new-mission");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [credits, setCredits] = useState(1480);
 
-  // Lists loaded from localStorage or fallbacks
+  // Advanced settings sub-tab: skills | memory | connectors
+  const [activeSettingsTab, setActiveSettingsTab] = useState<"skills" | "memory" | "connectors">("skills");
+
+  // Core Data Lists
   const [taskHistory, setTaskHistory] = useState<TaskRun[]>([]);
   const [skillsList, setSkillsList] = useState<CustomSkill[]>([]);
   const [connectorsList, setConnectorsList] = useState<Connector[]>([]);
@@ -531,41 +504,57 @@ export default function AgentStudioPage() {
   const [memoriesList, setMemoriesList] = useState<MemoryNode[]>([]);
   const [lockedMemories, setLockedMemories] = useState<string[]>([]);
 
-  // Task execution states
-  const [prompt, setPrompt] = useState("");
-  const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [activeChip, setActiveChip] = useState("clipper");
-  const [selectedOrchestrator, setSelectedOrchestrator] = useState<string>("orchestrator-gemini");
-  const [executionMode, setExecutionMode] = useState<"confirm" | "autorun">("confirm");
-  const [executionModeDropdownOpen, setExecutionModeDropdownOpen] = useState(false);
-  const [isConfirmingRun, setIsConfirmingRun] = useState(false);
-  const [orchestratorDropdownOpen, setOrchestratorDropdownOpen] = useState(false);
+  // Redesign Mission Selection & Execution States
+  const [selectedMission, setSelectedMission] = useState<MissionType>(MISSION_TYPES[0]);
+  const [objectiveText, setObjectiveText] = useState("");
+  
+  // Drag & drop file upload
+  const [isDragging, setIsDragging] = useState(false);
+  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
 
-  // Sub-tabs
+  // Planning phase states
+  const [isPlanning, setIsPlanning] = useState(false);
+  const [planningStep, setPlanningStep] = useState(0);
+  const [planningTicks, setPlanningTicks] = useState<boolean[]>([false, false, false, false, false]);
+  const [isPlanned, setIsPlanned] = useState(false);
+
+  // Smart Routing states (overrides allowed)
+  const [smartProvider, setSmartProvider] = useState("Kling AI");
+  const [smartModel, setSmartModel] = useState("Kling 3.0 Pro");
+  const [smartResolution, setSmartResolution] = useState("1080p");
+  const [smartAspectRatio, setSmartAspectRatio] = useState("16:9");
+  const [smartStyle, setSmartStyle] = useState("Cinematic");
+  const [smartCredits, setSmartCredits] = useState(6);
+
+  // Workflow Preview editable steps
+  const [workflowSteps, setWorkflowSteps] = useState<string[]>([]);
+  const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
+  const [editingStepValue, setEditingStepValue] = useState("");
+
+  // Live Workspace panels active layout
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<string>("concept"); // concept | storyboard | timeline | assets | tasks
+  const [scriptBrief, setScriptBrief] = useState("");
+  const [storyboardFrames, setStoryboardFrames] = useState<{ id: number; img: string; desc: string }[]>([]);
+  
+  // Standard UI variables mapping onto original states
   const [skillsSubTab, setSkillsSubTab] = useState<"my" | "community">("my");
   const [connectorsSubTab, setConnectorsSubTab] = useState<"available" | "installed">("available");
   const [filesSubTab, setFilesSubTab] = useState<"all" | "video" | "image" | "document">("all");
-  const [isDragging, setIsDragging] = useState(false);
-  const [memorySubTab, setMemorySubTab] = useState<"os">("os");
-
-  // Search filter
   const [skillsCategory, setSkillsCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Modals state
+  // Modals
   const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
   const [newSkillTitle, setNewSkillTitle] = useState("");
   const [newSkillDesc, setNewSkillDesc] = useState("");
   const [newSkillPrompt, setNewSkillPrompt] = useState("");
   const [newSkillCategory, setNewSkillCategory] = useState("Content Creation");
 
-  // Connectors integration modal flow
   const [activeConnector, setActiveConnector] = useState<Connector | null>(null);
-  const [connectorStep, setConnectorStep] = useState<number>(1); // 1: Connect Animation, 2: OIDC Details
+  const [connectorStep, setConnectorStep] = useState<number>(1);
   const [connectorToken, setConnectorToken] = useState("");
   const [connectorSaving, setConnectorSaving] = useState(false);
 
-  // Custom MCP states
   const [isCustomMcpModalOpen, setIsCustomMcpModalOpen] = useState(false);
   const [mcpName, setMcpName] = useState("");
   const [mcpDesc, setMcpDesc] = useState("");
@@ -577,22 +566,19 @@ export default function AgentStudioPage() {
 
   const [newMemoryText, setNewMemoryText] = useState("");
 
-  // Running task execution states
+  // Execution states
   const [runningTaskName, setRunningTaskName] = useState<string | null>(null);
   const [progressVal, setProgressVal] = useState(0);
   const [activeStep, setActiveStep] = useState<"idle" | "claude" | "gpt2" | "kling" | "ffmpeg" | "done">("idle");
   const [activeLogs, setActiveLogs] = useState<string[]>([]);
   const [outputVideo, setOutputVideo] = useState<string | null>(null);
-  const [activeWorkflowPrompt, setActiveWorkflowPrompt] = useState<string>("");
+  const [outputMediaType, setOutputMediaType] = useState<"video" | "image" | "none">("none");
   const [realAiResponse, setRealAiResponse] = useState<string | null>(null);
   const [realAiError, setRealAiError] = useState<string | null>(null);
-  const [outputTab, setOutputTab] = useState<"video" | "response">("video");
-  const [outputMediaType, setOutputMediaType] = useState<"video" | "image" | "none">("none");
-  const [attachedImageUrl, setAttachedImageUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage
+  // Load state from localStorage on mount
   useEffect(() => {
     try {
       const hist = localStorage.getItem("saad_super_history_v6");
@@ -631,7 +617,36 @@ export default function AgentStudioPage() {
     } catch (_) {}
   };
 
-  // Listen for OAuth messages from popup window
+  // Sync default workflow steps when mission changes
+  useEffect(() => {
+    if (selectedMission) {
+      setWorkflowSteps([...selectedMission.defaultSteps]);
+      // Update default smart routing parameters based on selected mission
+      if (selectedMission.id === "create-ad" || selectedMission.id === "edit-content") {
+        setSmartProvider("BytePlus AI");
+        setSmartModel("Seedance 2.0 (Stable)");
+        setSmartCredits(6);
+        setSmartResolution("720p");
+      } else if (selectedMission.id === "produce-podcast" || selectedMission.id === "social-content") {
+        setSmartProvider("Kling AI");
+        setSmartModel("Kling 3.0 Pro");
+        setSmartCredits(8);
+        setSmartResolution("1080p");
+      } else if (selectedMission.id === "generate-images" || selectedMission.id === "build-storyboard") {
+        setSmartProvider("Flux / OpenAI");
+        setSmartModel("Flux.1 Dev");
+        setSmartCredits(2);
+        setSmartResolution("1080p");
+      } else {
+        setSmartProvider("OpenAI");
+        setSmartModel("GPT-4o");
+        setSmartCredits(1);
+        setSmartResolution("N/A");
+      }
+    }
+  }, [selectedMission]);
+
+  // Connectors popup messaging
   useEffect(() => {
     const handleOAuthMessage = (event: MessageEvent) => {
       if (event.data?.type === "OAUTH_SUCCESS" && activeConnector) {
@@ -643,14 +658,12 @@ export default function AgentStudioPage() {
     return () => window.removeEventListener("message", handleOAuthMessage);
   }, [activeConnector]);
 
-  // Open simulated popup OAuth window
   const handleOpenOAuthPopup = () => {
     if (!activeConnector) return;
     const width = 500;
     const height = 620;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
-    
     window.open(
       `/agent-studio/oauth-mock?provider=${activeConnector.id}`,
       "_blank",
@@ -658,47 +671,105 @@ export default function AgentStudioPage() {
     );
   };
 
-  // Run generation task
-  const handleStartTask = () => {
-    if (!prompt.trim() && !youtubeUrl.trim() && activeChip === "clipper") return;
-    if (!prompt.trim() && activeChip !== "clipper") return;
+  // 1. Mission Planning Stage simulation
+  const handleStartPlanning = () => {
+    if (!objectiveText.trim()) return;
+    
+    setIsPlanning(true);
+    setPlanningStep(0);
+    setPlanningTicks([false, false, false, false, false]);
+    setIsPlanned(false);
 
-    let matchedSkill = skillsList.find(s => prompt.trim().startsWith(s.title));
-    const activeSkillTitle = matchedSkill ? matchedSkill.title : "Standard Multi-Model Route";
-    const runPrompt = prompt.trim();
+    // Increment checkpoints with realistic delays
+    const steps = [
+      "Understanding creative objective request...",
+      "Analyzing uploaded workspace assets...",
+      "Selecting optimized model routes & providers...",
+      "Calculating estimated credit costs...",
+      "Compiling workflow pipeline execution roadmap..."
+    ];
 
-    // Map orchestrator to display name
-    let orchestratorName = "Claude 4.6";
-    if (selectedOrchestrator === "orchestrator-gemini") {
-      orchestratorName = "Gemini Orchestrator";
-    } else if (selectedOrchestrator === "claude-opus-analytical") {
-      orchestratorName = "Claude 3.5 Opus (Analytical)";
-    } else if (selectedOrchestrator === "claude-opus-creative") {
-      orchestratorName = "Claude 3.5 Opus (Creative)";
-    } else if (selectedOrchestrator === "claude-sonnet") {
-      orchestratorName = "Claude 3.5 Sonnet";
-    } else if (selectedOrchestrator === "gemini-flash") {
-      orchestratorName = "Gemini 1.5 Flash";
-    } else if (selectedOrchestrator === "gemini-pro") {
-      orchestratorName = "Gemini 1.5 Pro";
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      setPlanningTicks(prev => {
+        const next = [...prev];
+        next[currentStep] = true;
+        return next;
+      });
+      currentStep++;
+      setPlanningStep(currentStep);
+
+      if (currentStep >= 5) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsPlanning(false);
+          setIsPlanned(true);
+          // Set script brief draft placeholder
+          setScriptBrief(`Creative Brief:\nMission Category: ${selectedMission.title}\nObjective: ${objectiveText}\nAI Model Route: ${smartModel} via ${smartProvider}\nStatus: Plan Confirmed`);
+          // Setup initial mock storyboard elements
+          setStoryboardFrames([
+            { id: 1, img: "/preset/cinematic-01.jpg", desc: "Scene 1 (Establishing): Slow zoom into target subject, cinematic backlight." },
+            { id: 2, img: "/preset/cinematic-02.jpg", desc: "Scene 2 (Detail): Extreme close-up detailing texture, high dynamic contrast." },
+            { id: 3, img: "/preset/cinematic-03.jpg", desc: "Scene 3 (Action): Camera pan tracking motion, dynamic background transition." }
+          ]);
+        }, 600);
+      }
+    }, 600);
+  };
+
+  // Workflow steps reordering & editing functions
+  const deleteWorkflowStep = (idx: number) => {
+    const next = [...workflowSteps];
+    next.splice(idx, 1);
+    setWorkflowSteps(next);
+  };
+
+  const moveWorkflowStep = (idx: number, direction: "up" | "down") => {
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === workflowSteps.length - 1) return;
+    const next = [...workflowSteps];
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    const temp = next[idx];
+    next[idx] = next[targetIdx];
+    next[targetIdx] = temp;
+    setWorkflowSteps(next);
+  };
+
+  const startEditStep = (idx: number) => {
+    setEditingStepIndex(idx);
+    setEditingStepValue(workflowSteps[idx]);
+  };
+
+  const saveEditStep = () => {
+    if (editingStepIndex !== null && editingStepValue.trim()) {
+      const next = [...workflowSteps];
+      next[editingStepIndex] = editingStepValue.trim();
+      setWorkflowSteps(next);
+      setEditingStepIndex(null);
+      setEditingStepValue("");
     }
+  };
 
-    setRunningTaskName(activeSkillTitle);
-    setActiveWorkflowPrompt(runPrompt);
+  // Run the full execution orchestration (calling Next.js endpoints)
+  const handleExecuteWorkflow = async () => {
+    if (!objectiveText.trim()) return;
+
+    setRunningTaskName(selectedMission.title);
     setProgressVal(5);
     setActiveStep("claude");
-    setActiveLogs([`[${orchestratorName}] Initializing creative pipeline planning...`]);
+    
+    const initialLog = `[Creative Director] Starting workflow execution for mission: "${selectedMission.title}"`;
+    setActiveLogs([initialLog]);
     setOutputVideo(null);
     setRealAiResponse(null);
     setRealAiError(null);
     setOutputMediaType("none");
-    setOutputTab("response");
+    setActiveWorkspaceTab("tasks"); // Switch to tasks tab to monitor workflow execution progress
 
-    // Fetch real agent response in background utilizing active skills and memories
     const activeSkillsToSend = skillsList.filter(s => s.isActive);
     const lockedMemoriesToSend = memoriesList.filter(m => lockedMemories.includes(m.id));
 
-    // Shared success handler
+    // Shared success logs handler
     const handleSuccess = (
       mediaUrl: string | null,
       mediaType: "video" | "image" | "none",
@@ -713,7 +784,7 @@ export default function AgentStudioPage() {
         setOutputVideo(mediaUrl);
       }
 
-      const cost = mediaType === "video" ? 6 : mediaType === "image" ? 2 : 1;
+      const cost = smartCredits;
       const updatedCredits = credits - cost;
       setCredits(updatedCredits);
       saveToStorage("saad_super_credits_v6", updatedCredits);
@@ -723,31 +794,31 @@ export default function AgentStudioPage() {
         : `image_render_${Math.floor(100 + Math.random() * 900)}.png`;
 
       const dbLog = mediaUrl
-        ? `[System DB Core] Saved output as ${fileName}. Spent ${cost} credits.`
-        : `[System DB Core] Response complete. Spent ${cost} credits.`;
+        ? `[System Storage] Saved output payload as: ${fileName}. Spent ${cost} credits.`
+        : `[System DB Core] Response compiled successfully. Spent ${cost} credits.`;
 
       const allLogs = [...finalLogs, dbLog];
       setActiveLogs(allLogs);
 
-      // Save to history
+      // Save run payload to history list
       const newTask: TaskRun = {
-        id: `task-${Date.now()}`,
-        prompt: runPrompt,
-        category: matchedSkill ? matchedSkill.category : activeChip,
-        skillId: matchedSkill?.id,
-        engine: orchestratorName,
-        renderMode: mediaType === "video" ? "Kling 3.0 + GPT Image 2" : mediaType === "image" ? "Flux-2" : "Orchestrated Claude",
+        id: `run-${Date.now()}`,
+        prompt: objectiveText,
+        category: selectedMission.title,
+        engine: smartModel,
+        renderMode: smartProvider,
         fileSize: mediaType === "video" ? "6.2 MB" : mediaType === "image" ? "1.8 MB" : "0.1 MB",
         timestamp: new Date().toISOString().split("T")[0],
         status: "completed",
         ...(mediaUrl ? { videoUrl: mediaUrl } : {}),
         logs: allLogs
       };
+      
       const updatedHist = [newTask, ...taskHistory];
       setTaskHistory(updatedHist);
       saveToStorage("saad_super_history_v6", updatedHist);
 
-      // Save to files list
+      // Add to files database
       if (mediaUrl) {
         const newFile: AssetFile = {
           id: `file-${Date.now()}`,
@@ -761,212 +832,171 @@ export default function AgentStudioPage() {
         setFilesList(updatedFiles);
         saveToStorage("saad_super_files_v6", updatedFiles);
       }
+
+      // Switch to output visualization
+      setActiveWorkspaceTab("timeline");
     };
 
-    fetch("/api/agent-studio/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: runPrompt,
-        skills: activeSkillsToSend,
-        memories: lockedMemoriesToSend
-      })
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to get orchestration response");
-        return res.json();
-      })
-      .then(async (data) => {
-        setRealAiResponse(data.content);
-        const log1 = `[${orchestratorName}] Orchestration plan constructed. TYPE: ${data.mediaType.toUpperCase()}`;
-        const log2 = data.mediaType !== "none" ? `[${orchestratorName}] Expanded media prompt: "${data.mediaPrompt}"` : "";
-        const log3 = data.mediaType !== "none" ? `[Model Routing] Activating ${data.suggestedModel}...` : "";
-        
-        const logsAfterOrchestration = [
-          `[${orchestratorName}] Initializing creative pipeline planning...`,
-          log1,
-          ...(log2 ? [log2] : []),
-          ...(log3 ? [log3] : [])
-        ];
-        
-        setActiveLogs(logsAfterOrchestration);
-
-        if (data.mediaType === "video") {
-          setOutputMediaType("video");
-          setOutputTab("video");
-          setActiveStep("kling");
-          setProgressVal(35);
-
-          // Map suggestedModel to route
-          let modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
-          if (data.suggestedModel === "wavespeed-ai/cinematic-video-generator") {
-            modelRoute = "wavespeed-ai/cinematic-video-generator";
-          }
-
-          try {
-            const videoPayload = {
-              modelRoute,
-              payload: {
-                prompt: data.mediaPrompt,
-                duration: 5,
-                aspect_ratio: data.aspectRatio || "16:9",
-                resolution: "720p",
-                ...(attachedImageUrl ? { image_url: attachedImageUrl } : {})
-              }
-            };
-
-            const genRes = await fetch("/api/video", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(videoPayload)
-            });
-
-            if (!genRes.ok) {
-              const errData = await genRes.json().catch(() => ({}));
-              throw new Error(errData.error || `Video request failed (HTTP ${genRes.status})`);
-            }
-
-            const genJson = await genRes.json();
-
-            if (genJson.videoUrl) {
-              handleSuccess(genJson.videoUrl, "video", data.content, logsAfterOrchestration);
-            } else if (genJson.taskId) {
-              const log4 = `[Model Polling] Video generation started (Task: ${genJson.taskId})`;
-              const currentLogs = [...logsAfterOrchestration, log4];
-              setActiveLogs(currentLogs);
-              setActiveStep("ffmpeg");
-              setProgressVal(60);
-
-              let finished = false;
-              let attempts = 0;
-              let finalUrl = null;
-              const pollingLogs = [...currentLogs];
-
-              while (!finished && attempts < 90) {
-                attempts++;
-                // Wait 3 seconds
-                await new Promise(r => setTimeout(r, 3000));
-
-                const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(genJson.taskId)}`, { cache: "no-store" });
-                if (!pollRes.ok) continue;
-
-                const pollJson = await pollRes.json();
-                if (pollJson.status === "completed" || pollJson.videoUrl) {
-                  finished = true;
-                  finalUrl = pollJson.videoUrl || pollJson.outputs?.[0];
-                  if (!finalUrl) {
-                    throw new Error("Polling succeeded but no output URL returned.");
-                  }
-                } else if (pollJson.status === "failed") {
-                  finished = true;
-                  throw new Error(pollJson.error || "Generation failed at provider side.");
-                } else {
-                  // Update progress bar
-                  setProgressVal(prev => Math.min(prev + 1, 95));
-                  if (attempts % 4 === 0) {
-                    const pollMsg = `[Model Polling] Generating... (Seconds elapsed: ${attempts * 3}s)`;
-                    pollingLogs.push(pollMsg);
-                    setActiveLogs([...pollingLogs]);
-                  }
-                }
-              }
-
-              if (finalUrl) {
-                handleSuccess(finalUrl, "video", data.content, pollingLogs);
-              } else {
-                throw new Error("Video generation timed out.");
-              }
-            } else {
-              throw new Error("No taskId or videoUrl returned from video endpoint.");
-            }
-          } catch (e: any) {
-            console.error(e);
-            setRealAiError(e.message || "Failed to generate video.");
-            setActiveLogs(prev => [...prev, `[Error] ${e.message || "Video generation failed."}`]);
-            setActiveStep("idle");
-            setRunningTaskName(null);
-            setProgressVal(0);
-          }
-
-        } else if (data.mediaType === "image") {
-          setOutputMediaType("image");
-          setOutputTab("video");
-          setActiveStep("gpt2");
-          setProgressVal(40);
-
-          try {
-            const imagePayload = {
-              prompt: data.mediaPrompt,
-              modelId: data.suggestedModel || "flux-2",
-              aspectRatio: data.aspectRatio || "1:1",
-              numImages: 1,
-              quality: "standard",
-              ...(attachedImageUrl ? { imageUrl: attachedImageUrl } : {})
-            };
-
-            const genRes = await fetch("/api/generate/image", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(imagePayload)
-            });
-
-            if (!genRes.ok) {
-              const errData = await genRes.json().catch(() => ({}));
-              throw new Error(errData.error || `Image request failed (HTTP ${genRes.status})`);
-            }
-
-            const genJson = await genRes.json();
-            const mediaUrl = genJson.imageUrl || genJson.mediaUrl || genJson.imageUrls?.[0];
-
-            if (mediaUrl) {
-              handleSuccess(mediaUrl, "image", data.content, logsAfterOrchestration);
-            } else {
-              throw new Error("No image URL returned from generation endpoint.");
-            }
-          } catch (e: any) {
-            console.error(e);
-            setRealAiError(e.message || "Failed to generate image.");
-            setActiveLogs(prev => [...prev, `[Error] ${e.message || "Image generation failed."}`]);
-            setActiveStep("idle");
-            setRunningTaskName(null);
-            setProgressVal(0);
-          }
-
-        } else {
-          // Pure script/text
-          setOutputMediaType("none");
-          setOutputTab("response");
-          handleSuccess(null, "none", data.content, logsAfterOrchestration);
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        setRealAiError("Could not fetch response from API. Make sure OPENAI_API_KEY is configured.");
-        setActiveLogs(prev => [...prev, `[Error] Orchestration failed.`]);
-        setActiveStep("idle");
-        setRunningTaskName(null);
-        setProgressVal(0);
+    try {
+      // Call Orchestrator api
+      const agentRes = await fetch("/api/agent-studio/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: objectiveText,
+          skills: activeSkillsToSend,
+          memories: lockedMemoriesToSend
+        })
       });
-  };
 
-  const onSubmitPrompt = () => {
-    if (!prompt.trim() && !youtubeUrl.trim() && activeChip === "clipper") return;
-    if (!prompt.trim() && activeChip !== "clipper") return;
+      if (!agentRes.ok) throw new Error("Orchestrator route failed");
+      const agentData = await agentRes.json();
 
-    if (executionMode === "confirm") {
-      setIsConfirmingRun(true);
-    } else {
-      handleStartTask();
+      setRealAiResponse(agentData.content);
+      setScriptBrief(agentData.content);
+
+      const logsAfterOrchestration = [
+        initialLog,
+        `[Creative Director] Plan generated. Suggested route: ${agentData.mediaType.toUpperCase()}`,
+        agentData.mediaType !== "none" ? `[Model Router] Dispatching prompt to ${smartModel} Latents...` : `[Text Engine] Rendering response script.`
+      ];
+      setActiveLogs(logsAfterOrchestration);
+
+      if (agentData.mediaType === "video") {
+        setOutputMediaType("video");
+        setActiveStep("kling");
+        setProgressVal(35);
+
+        // Map to correct API route
+        const modelRoute = smartModel.includes("Seedance") 
+          ? "dreamina-seedance-2-0-260128" 
+          : "kwaivgi/kling-v3.0-pro/text-to-video";
+
+        const videoPayload = {
+          modelRoute,
+          payload: {
+            prompt: agentData.mediaPrompt || objectiveText,
+            duration: 5,
+            aspect_ratio: smartAspectRatio,
+            resolution: smartResolution === "4K" ? "1080p" : "720p",
+            ...(attachedImageUrl ? { image_url: attachedImageUrl } : {})
+          }
+        };
+
+        const genRes = await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(videoPayload)
+        });
+
+        if (!genRes.ok) {
+          const errData = await genRes.json().catch(() => ({}));
+          throw new Error(errData.error || `Video request failed (HTTP ${genRes.status})`);
+        }
+
+        const genJson = await genRes.json();
+
+        if (genJson.videoUrl) {
+          handleSuccess(genJson.videoUrl, "video", agentData.content, logsAfterOrchestration);
+        } else if (genJson.taskId) {
+          const polllog = `[Model Polling] Video generation started (Task: ${genJson.taskId})`;
+          const currentLogs = [...logsAfterOrchestration, polllog];
+          setActiveLogs(currentLogs);
+          setActiveStep("ffmpeg");
+          setProgressVal(60);
+
+          let finished = false;
+          let attempts = 0;
+          let finalUrl = null;
+          const pollingLogs = [...currentLogs];
+
+          while (!finished && attempts < 90) {
+            attempts++;
+            await new Promise(r => setTimeout(r, 3000));
+
+            const pollRes = await fetch(`/api/video?taskId=${encodeURIComponent(genJson.taskId)}`, { cache: "no-store" });
+            if (!pollRes.ok) continue;
+
+            const pollJson = await pollRes.json();
+            if (pollJson.status === "completed" || pollJson.videoUrl) {
+              finished = true;
+              finalUrl = pollJson.videoUrl || pollJson.outputs?.[0];
+            } else if (pollJson.status === "failed") {
+              finished = true;
+              throw new Error(pollJson.error || "Generation failed at provider side.");
+            } else {
+              setProgressVal(prev => Math.min(prev + 1.5, 98));
+              if (attempts % 4 === 0) {
+                pollingLogs.push(`[Model Polling] Rendering frames... (${attempts * 3}s elapsed)`);
+                setActiveLogs([...pollingLogs]);
+              }
+            }
+          }
+
+          if (finalUrl) {
+            handleSuccess(finalUrl, "video", agentData.content, pollingLogs);
+          } else {
+            throw new Error("Video generation timed out.");
+          }
+        } else {
+          throw new Error("Invalid response keys from video API.");
+        }
+
+      } else if (agentData.mediaType === "image") {
+        setOutputMediaType("image");
+        setActiveStep("gpt2");
+        setProgressVal(45);
+
+        const imagePayload = {
+          prompt: agentData.mediaPrompt || objectiveText,
+          modelId: smartModel.toLowerCase().includes("flux") ? "flux-2" : "flux-1-dev",
+          aspectRatio: smartAspectRatio,
+          numImages: 1,
+          quality: "standard",
+          ...(attachedImageUrl ? { imageUrl: attachedImageUrl } : {})
+        };
+
+        const genRes = await fetch("/api/generate/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(imagePayload)
+        });
+
+        if (!genRes.ok) {
+          const errData = await genRes.json().catch(() => ({}));
+          throw new Error(errData.error || `Image request failed`);
+        }
+
+        const genJson = await genRes.json();
+        const mediaUrl = genJson.imageUrl || genJson.mediaUrl || genJson.imageUrls?.[0];
+
+        if (mediaUrl) {
+          handleSuccess(mediaUrl, "image", agentData.content, logsAfterOrchestration);
+        } else {
+          throw new Error("No image output URL returned.");
+        }
+
+      } else {
+        setOutputMediaType("none");
+        handleSuccess(null, "none", agentData.content, logsAfterOrchestration);
+      }
+
+    } catch (e: any) {
+      console.error(e);
+      setRealAiError(e.message || "Pipeline execution failed.");
+      setActiveLogs(prev => [...prev, `[Fatal Error] ${e.message || "Failed to execute pipeline."}`]);
+      setActiveStep("idle");
+      setRunningTaskName(null);
+      setProgressVal(0);
     }
   };
 
-  // Add Custom Skill Action
+  // Custom skills editing
   const handleCreateSkill = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSkillTitle.trim() || !newSkillDesc.trim() || !newSkillPrompt.trim()) return;
 
     const titlePrefix = newSkillTitle.startsWith("/") ? newSkillTitle : `/${newSkillTitle}`;
-
     const newSkill: CustomSkill = {
       id: `skill-${Date.now()}`,
       title: titlePrefix,
@@ -982,7 +1012,6 @@ export default function AgentStudioPage() {
     setSkillsList(updated);
     saveToStorage("saad_super_skills_v6", updated);
 
-    // Reset Form
     setNewSkillTitle("");
     setNewSkillDesc("");
     setNewSkillPrompt("");
@@ -1005,7 +1034,7 @@ export default function AgentStudioPage() {
     saveToStorage("saad_super_skills_v6", updated);
   };
 
-  // Save Connector Connection
+  // Connectors save
   const handleSaveConnector = () => {
     if (!activeConnector) return;
     setConnectorSaving(true);
@@ -1037,7 +1066,6 @@ export default function AgentStudioPage() {
     saveToStorage("saad_super_connectors_v6", updated);
   };
 
-  // Create Custom MCP connector
   const handleCreateCustomMcp = (e: React.FormEvent) => {
     e.preventDefault();
     if (!mcpName.trim()) return;
@@ -1060,7 +1088,6 @@ export default function AgentStudioPage() {
     saveToStorage("saad_super_connectors_v6", updated);
     setIsCustomMcpModalOpen(false);
 
-    // Reset
     setMcpName("");
     setMcpDesc("");
     setMcpType("sse");
@@ -1070,6 +1097,7 @@ export default function AgentStudioPage() {
     setMcpEnv("");
   };
 
+  // Memory additions
   const handleAddMemory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemoryText.trim()) return;
@@ -1091,6 +1119,7 @@ export default function AgentStudioPage() {
     saveToStorage("saad_super_memories_v6", updated);
   };
 
+  // Upload handlers
   const processFiles = (files: FileList) => {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -1121,7 +1150,6 @@ export default function AgentStudioPage() {
           return updated;
         });
 
-        // Auto-attach image reference if uploaded inside prompt workflow
         if (type === "image") {
           setAttachedImageUrl(base64Url);
         }
@@ -1150,12 +1178,7 @@ export default function AgentStudioPage() {
     saveToStorage("saad_super_files_v6", updated);
   };
 
-  const clearHistory = () => {
-    setTaskHistory([]);
-    saveToStorage("saad_super_history_v6", []);
-  };
-
-  // Filters
+  // Filter skills and assets lists
   const filteredSkills = skillsList.filter((skill) => {
     const matchesSearch =
       skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1164,10 +1187,6 @@ export default function AgentStudioPage() {
       skillsCategory === "All" || skill.category === skillsCategory;
     return matchesSearch && matchesCategory;
   });
-
-  const filteredHistory = taskHistory.filter((t) =>
-    t.prompt.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const filteredFiles = filesList.filter((f) => {
     const matchesQuery = f.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1178,19 +1197,19 @@ export default function AgentStudioPage() {
 
   return (
     <div className="relative flex h-[calc(100vh-4rem)] w-full overflow-hidden text-[#e2e8f0] bg-[#02040a]">
-      {/* Glow Orbs in background */}
+      {/* Background visual graphics */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute left-1/4 top-1/4 h-[500px] w-[500px] rounded-full bg-violet-600/5 blur-[120px] mix-blend-screen animate-pulse" />
         <div className="absolute right-1/4 bottom-1/4 h-[600px] w-[600px] rounded-full bg-cyan-500/5 blur-[140px] mix-blend-screen" />
       </div>
 
-      {/* LEFT NAVIGATION SIDEBAR */}
+      {/* LEFT NAVIGATION SIDEBAR (REDESIGNED FOR PRODUCTION FOCUS) */}
       <aside
         className={`relative z-20 flex flex-col border-r border-white/5 bg-[#050914]/95 backdrop-blur-2xl transition-all duration-300 shrink-0 ${
-          sidebarOpen ? "w-[260px]" : "w-0 overflow-hidden"
+          sidebarOpen ? "w-[240px]" : "w-0 overflow-hidden"
         }`}
       >
-        {/* Brand Header */}
+        {/* Sidebar Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="relative h-7 w-7 rounded-lg overflow-hidden border border-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.2)] bg-slate-900/60 p-0.5 animate-pulse">
@@ -1204,7 +1223,7 @@ export default function AgentStudioPage() {
             </div>
             <div className="flex flex-col text-left">
               <span className="font-sans font-bold text-xs tracking-wide text-white">Saad Studio</span>
-              <span className="text-[8.5px] text-zinc-500 font-bold tracking-widest uppercase">Agent Studio</span>
+              <span className="text-[8.5px] text-zinc-500 font-bold tracking-widest uppercase">Agent OS</span>
             </div>
           </div>
           <button
@@ -1215,62 +1234,73 @@ export default function AgentStudioPage() {
           </button>
         </div>
 
-        {/* Sidebar Navigation Tabs */}
+        {/* Rebuilt Sidebar Navigation Items */}
         <nav className="mt-4 flex flex-col gap-0.5 px-2">
           {[
-            { id: "new", label: "+ New task", icon: Plus },
-            { id: "search", label: "Search", icon: Search },
-            { id: "skills", label: "Skills", icon: Sparkles },
-            { id: "connectors", label: "Connectors", icon: Plug },
-            { id: "files", label: "Files", icon: FolderClosed },
-            { id: "memory", label: "Memory", icon: Brain }
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
+            { id: "new-mission", label: "New Mission", icon: Sparkles },
+            { id: "projects", label: "Projects", icon: Layers },
+            { id: "assets", label: "Assets Catalog", icon: FolderClosed },
+            { id: "tasks", label: "Agent Tasks", icon: Activity },
+            { id: "templates", label: "Workflow Presets", icon: Sliders },
+            { id: "automation", label: "Automation Hub", icon: Workflow },
+            { id: "team", label: "Studio Team", icon: Users, badge: "Soon" },
+            { id: "settings", label: "System Config", icon: Settings }
+          ].map((item) => {
+            const isActive = activeTab === item.id;
             return (
               <button
-                key={tab.id}
+                key={item.id}
+                disabled={item.id === "team"}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  setActiveTab(item.id);
                   setSearchQuery("");
                 }}
-                className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-left transition ${
+                className={`group flex items-center justify-between rounded-lg px-3 py-2 text-[13px] text-left transition ${
+                  item.id === "team" ? "opacity-40 cursor-not-allowed" : ""
+                } ${
                   isActive
                     ? "bg-gradient-to-r from-violet-600/20 to-cyan-500/10 border border-violet-500/20 text-white font-medium shadow-[0_4px_12px_rgba(139,92,246,0.1)]"
                     : "text-zinc-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <tab.icon className={`h-[15px] w-[15px] ${isActive ? "text-violet-400" : "text-zinc-500 group-hover:text-zinc-300"}`} />
-                <span>{tab.label}</span>
+                <div className="flex items-center gap-3">
+                  <item.icon className={`h-[15px] w-[15px] ${isActive ? "text-violet-400" : "text-zinc-500 group-hover:text-zinc-300"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className="text-[8px] bg-zinc-800 text-zinc-400 font-bold px-1 py-0.5 rounded uppercase">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
 
-        {/* Tasks background panel */}
-        <div className="mt-6 px-4 flex flex-col gap-2.5">
-          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 text-left px-0.5">
-            Tasks
+        {/* Live Running Tasks display inside Sidebar */}
+        <div className="mt-6 px-4 flex flex-col gap-2 text-left">
+          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 px-0.5">
+            Active Runs
           </div>
           
           {runningTaskName ? (
-            <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-950/10 space-y-2 text-left">
+            <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-950/10 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-white truncate max-w-[130px]">{runningTaskName}</span>
-                <span className="text-[9px] text-cyan-400 font-bold animate-pulse">Running</span>
+                <span className="text-[10px] font-bold text-white truncate max-w-[120px]">{runningTaskName}</span>
+                <span className="text-[9px] text-cyan-400 font-bold animate-pulse">Processing</span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-400 animate-pulse" style={{ width: `${progressVal}%` }} />
+                <div className="h-full bg-cyan-400 animate-pulse transition-all duration-300" style={{ width: `${progressVal}%` }} />
               </div>
             </div>
           ) : (
-            <div className="p-4 border border-dashed border-white/5 rounded-xl text-center">
-              <span className="text-[10px] text-zinc-600">No tasks yet</span>
-              <span className="text-[8px] text-zinc-700 block mt-0.5">Create one to get started</span>
+            <div className="p-3 border border-dashed border-white/5 rounded-xl text-center">
+              <span className="text-[10px] text-zinc-600 block">Idle</span>
             </div>
           )}
         </div>
 
-        {/* Profile Card & Credits */}
+        {/* Bottom Credits Console */}
         <div className="mt-auto p-3.5 border-t border-white/5 flex flex-col gap-2 bg-[#040710]/40">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1288,20 +1318,11 @@ export default function AgentStudioPage() {
                 <span className="text-[9.5px] text-zinc-500 truncate leading-tight">Credits: {credits}</span>
               </div>
             </div>
-            <button className="text-zinc-500 hover:text-white transition p-1 hover:bg-white/5 rounded-md">
-              <Settings className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          
-          <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-white/5">
-            <span className="text-[9px] bg-violet-600/25 border border-violet-500/25 text-violet-300 font-bold px-1.5 py-0.5 rounded">
-              Pricing 50% OFF
-            </span>
           </div>
         </div>
       </aside>
 
-      {/* Sidebar Reopen Button */}
+      {/* Sidebar Trigger */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
@@ -1311,649 +1332,477 @@ export default function AgentStudioPage() {
         </button>
       )}
 
-      {/* MAIN CONTENT REGION */}
+      {/* MAIN SYSTEM CONTROLLER */}
       <main className="relative flex flex-1 flex-col bg-[#02040a] z-10 min-w-0">
         
-        {/* Top Header Panel */}
-        <header className="flex items-center justify-between px-6 py-3.5 border-b border-white/5 bg-[#050914]/30 backdrop-blur-md shrink-0">
+        {/* Navigation Indicator Header */}
+        <header className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-[#050914]/30 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-2.5 text-zinc-400 text-xs font-semibold">
-            <span>Neural Dashboard</span>
+            <span>Agent Studio OS</span>
             <span className="text-zinc-700">/</span>
-            <span className="text-white capitalize">{activeTab === "new" ? "New Task" : activeTab}</span>
-          </div>
-
-          {/* Center selectors */}
-          <div className="flex items-center bg-white/[0.02] border border-white/5 rounded-xl p-0.5">
-            {[
-              { id: "skills", label: "Skills" },
-              { id: "memory", label: "Memory" },
-              { id: "connectors", label: "Connectors" }
-            ].map((headerTab) => {
-              const active = activeTab === headerTab.id;
-              return (
-                <button
-                  key={headerTab.id}
-                  onClick={() => setActiveTab(headerTab.id)}
-                  className={`px-4 py-1.5 text-xs font-semibold rounded-lg transition ${
-                    active
-                      ? "bg-violet-600/20 text-violet-300 border border-violet-500/20 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  }`}
-                >
-                  {headerTab.label}
-                </button>
-              );
-            })}
+            <span className="text-white capitalize">{activeTab.replace("-", " ")}</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="text-xs border border-white/5 bg-white/[0.02] px-3.5 py-1.5 rounded-lg text-zinc-300 hover:bg-white/[0.05] transition">
-              Buy credits
-            </button>
-            <button className="text-xs border border-white/5 bg-white/[0.02] px-3 py-1.5 rounded-lg text-zinc-300 hover:bg-white/[0.05] transition">
-              Shortcuts
-            </button>
+            <span className="text-[10px] border border-violet-500/20 bg-violet-600/10 text-violet-300 px-2.5 py-1 rounded-lg font-bold">
+              Creative Control Center
+            </span>
           </div>
         </header>
 
-        {/* WORKSPACE CENTRAL SCREEN */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 hide-scrollbar">
+        {/* CENTRAL DYNAMIC VIEWPORT */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar">
           
           {/* ======================================================== */}
-          {/* TAB 1: NEW TASK (CREATION / PROMPT WORKSPACE) */}
+          {/* TAB 1: NEW MISSION (MISSION-DRIVEN WORKSPACE) */}
           {/* ======================================================== */}
-          {activeTab === "new" && (
-            <div className="max-w-[760px] mx-auto space-y-8 py-4">
+          {activeTab === "new-mission" && (
+            <div className="space-y-6">
               
-              {!runningTaskName && !outputVideo ? (
-                <>
-                  {/* Neural logo icon container */}
-                  <div className="flex flex-col items-center justify-center text-center space-y-3">
-                    <div className="relative h-14 w-14 rounded-2xl overflow-hidden border border-violet-500/20 bg-slate-950/40 p-2.5 flex items-center justify-center shadow-[0_0_30px_rgba(139,92,246,0.15)] animate-pulse">
-                      <svg className="w-10 h-10 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                      </svg>
+              {!isPlanned && !isPlanning ? (
+                /* SECTION A: Mission Selection Setup */
+                <div className="max-w-[880px] mx-auto space-y-8 py-4">
+                  <div className="text-center space-y-2">
+                    <div className="mx-auto h-12 w-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shadow-[0_0_24px_rgba(139,92,246,0.15)] animate-pulse">
+                      <Sparkles className="w-6 h-6" />
                     </div>
-
-                    <h2 className="text-xl font-extrabold text-white tracking-wide mt-2">
-                      seed, what are we creating today?
-                      <span className="inline-block w-1.5 h-4 ml-1 bg-violet-500 animate-blink" />
+                    <h2 className="text-lg font-extrabold text-white tracking-wide">
+                      Define your creative production mission
                     </h2>
+                    <p className="text-xs text-zinc-500">Select a workflow template below to initialize the agent.</p>
                   </div>
 
-                  {/* Capsule Prompt Box */}
-                  <div className="relative rounded-2xl border border-white/[0.08] bg-[#050914]/85 p-3.5 shadow-2xl backdrop-blur-xl transition hover:border-white/[0.12]">
-                    
-                    {activeChip === "clipper" && (
-                      <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl bg-[#090f1d] border border-white/5">
-                        <LinkIcon className="h-3.5 w-3.5 text-violet-400 shrink-0" />
-                        <input
-                          type="url"
-                          value={youtubeUrl}
-                          onChange={(e) => setYoutubeUrl(e.target.value)}
-                          placeholder="Paste source video link or stream URL..."
-                          className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500"
-                        />
-                      </div>
-                    )}
-
-                    {attachedImageUrl && (
-                      <div className="flex items-center gap-2 p-1.5 mb-2 rounded-xl bg-[#090f1d] border border-violet-500/20 max-w-max ml-3 animate-fade-in">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={attachedImageUrl} className="h-8 w-8 object-cover rounded-lg" alt="Attached reference image" />
-                        <span className="text-[10px] text-zinc-400 font-bold max-w-[120px] truncate">Reference Image</span>
-                        <button
-                          onClick={() => setAttachedImageUrl(null)}
-                          className="text-zinc-500 hover:text-red-400 p-0.5 rounded transition"
-                          title="Remove attachment"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder={
-                        activeChip === "clipper"
-                          ? "Enter prompt instructions (e.g. Cut high-contrast moments with dynamic subtitles)..."
-                          : "Describe the rendering script or choose an active workspace skill below..."
-                      }
-                      className="w-full min-h-[90px] bg-transparent border-none outline-none resize-none px-3 text-xs text-white placeholder-zinc-500 leading-relaxed font-sans"
-                    />
-
-                    {/* Slash Command Autocomplete Popover */}
-                    {prompt.startsWith("/") && !prompt.includes(" ") && (
-                      <div className="absolute left-4 bottom-full mb-3 z-50 w-[360px] rounded-xl border border-white/10 bg-[#090f1d]/95 backdrop-blur-xl p-2.5 shadow-2xl flex flex-col gap-1.5 text-left">
-                        <div className="flex items-center justify-between border-b border-white/5 pb-1.5 px-1.5 mb-1">
-                          <span className="text-[9.5px] font-bold text-zinc-400 uppercase tracking-wider">Slash Commands</span>
-                          <span className="text-[8.5px] text-zinc-600">Type command prefix to filter</span>
-                        </div>
-                        <div className="max-h-[180px] overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
-                          {skillsList
-                            .filter(s => s.isActive && s.title.toLowerCase().includes(prompt.toLowerCase()))
-                            .map(s => (
-                              <button
-                                key={s.id}
-                                onClick={() => {
-                                  setPrompt(`${s.title} `);
-                                }}
-                                className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-violet-600/10 transition border border-transparent hover:border-violet-500/10 flex items-center gap-2"
-                              >
-                                {getSkillIcon(s.id, s.icon)}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[11px] font-bold text-white font-mono">{s.title}</span>
-                                  <span className="text-[9px] text-zinc-500 truncate leading-tight">{s.desc}</span>
-                                </div>
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Selector & Actions row */}
-                    <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-white/5 px-2">
-                      {/* Left: Attachment + Orchestrator Model Selector */}
-                      <div className="flex items-center gap-2">
-                        {/* Attachment + button */}
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-[#090f1d] hover:bg-white/[0.04] text-zinc-400 hover:text-white transition"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-
-                        {/* Orchestrator Selector Dropdown */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setOrchestratorDropdownOpen(!orchestratorDropdownOpen)}
-                            className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-[#090f1d] px-2.5 py-1.5 text-[10.5px] hover:border-white/10 text-zinc-300 font-semibold transition"
-                          >
-                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                            {selectedOrchestrator === "orchestrator-gemini" ? (
-                              <>
-                                <span className="text-white font-extrabold">Orchestrator New</span>
-                                <span className="text-zinc-500 font-medium hidden sm:inline">Powered by Gemini</span>
-                              </>
-                            ) : selectedOrchestrator.startsWith("claude-") ? (
-                              <>
-                                <span className="text-orange-400 font-extrabold">Claude</span>
-                                <span className="text-white font-bold">
-                                  {selectedOrchestrator === "claude-opus-analytical" ? "Opus 3.5" : selectedOrchestrator === "claude-opus-creative" ? "Opus 3.5" : "Sonnet 3.5"}
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="text-blue-400 font-extrabold">Google</span>
-                                <span className="text-white font-bold">
-                                  {selectedOrchestrator === "gemini-flash" ? "Gemini 1.5 Flash" : "Gemini 1.5 Pro"}
-                                </span>
-                              </>
-                            )}
-                            <ChevronDown className="h-3 w-3 text-zinc-500 ml-0.5" />
-                          </button>
-
-                          {orchestratorDropdownOpen && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40 bg-transparent"
-                                onClick={() => setOrchestratorDropdownOpen(false)}
-                              />
-                              <div className="absolute left-0 bottom-full mb-2 z-50 w-[300px] rounded-xl border border-white/10 bg-[#090f1d]/95 p-2.5 shadow-2xl backdrop-blur-xl text-left">
-                                <div className="max-h-[260px] overflow-y-auto space-y-2.5 custom-scrollbar pr-1">
-                                  
-                                  {/* Orchestrator Option */}
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedOrchestrator("orchestrator-gemini");
-                                      setOrchestratorDropdownOpen(false);
-                                    }}
-                                    className={`w-full text-left px-2.5 py-2 rounded-lg text-[10.5px] transition flex flex-col gap-0.5 ${
-                                      selectedOrchestrator === "orchestrator-gemini"
-                                        ? "bg-violet-600/15 text-white border border-violet-500/25"
-                                        : "text-zinc-400 hover:bg-white/[0.03] hover:text-white border border-transparent"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                                      <span className="font-extrabold text-white">Orchestrator New</span>
-                                    </div>
-                                    <span className="text-[8.5px] text-zinc-500 leading-tight">Powered by Gemini. Smart orchestration model.</span>
-                                  </button>
-
-                                  {/* Claude Group */}
-                                  <div className="space-y-1">
-                                    <div className="text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest px-2.5">
-                                      Claude
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      {[
-                                        { id: "claude-opus-analytical", title: "Opus 3.5", subtitle: "Best for complex, analytical work" },
-                                        { id: "claude-opus-creative", title: "Opus 3.5", subtitle: "Best for long-form creative work" },
-                                        { id: "claude-sonnet", title: "Sonnet 3.5", subtitle: "Responsive everyday work" }
-                                      ].map((m) => (
-                                        <button
-                                          key={m.id}
-                                          type="button"
-                                          onClick={() => {
-                                            setSelectedOrchestrator(m.id);
-                                            setOrchestratorDropdownOpen(false);
-                                          }}
-                                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[10.5px] transition flex flex-col ${
-                                            selectedOrchestrator === m.id
-                                              ? "bg-violet-600/15 text-white border border-violet-500/25"
-                                              : "text-zinc-400 hover:bg-white/[0.03] hover:text-white border border-transparent"
-                                          }`}
-                                        >
-                                          <span className="font-bold text-white font-mono">{m.title}</span>
-                                          <span className="text-[8.5px] text-zinc-500 leading-tight">{m.subtitle}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Google Group */}
-                                  <div className="space-y-1">
-                                    <div className="text-[8.5px] font-bold text-zinc-500 uppercase tracking-widest px-2.5">
-                                      Google
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      {[
-                                        { id: "gemini-flash", title: "Gemini 1.5 Flash", subtitle: "Fast, high-quality responses" },
-                                        { id: "gemini-pro", title: "Gemini 1.5 Pro", subtitle: "Deep research, complex tasks" }
-                                      ].map((m) => (
-                                        <button
-                                          key={m.id}
-                                          type="button"
-                                          onClick={() => {
-                                            setSelectedOrchestrator(m.id);
-                                            setOrchestratorDropdownOpen(false);
-                                          }}
-                                          className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[10.5px] transition flex flex-col ${
-                                            selectedOrchestrator === m.id
-                                              ? "bg-violet-600/15 text-white border border-violet-500/25"
-                                              : "text-zinc-400 hover:bg-white/[0.03] hover:text-white border border-transparent"
-                                          }`}
-                                        >
-                                          <span className="font-bold text-white font-mono">{m.title}</span>
-                                          <span className="text-[8.5px] text-zinc-500 leading-tight">{m.subtitle}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right: Confirmation Mode + Submit button */}
-                      <div className="flex items-center gap-2">
-                        {/* Ask before generation selector */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() => setExecutionModeDropdownOpen(!executionModeDropdownOpen)}
-                            className="flex items-center gap-1.5 rounded-lg border border-white/5 bg-[#090f1d] px-2.5 py-1.5 text-[10.5px] hover:border-white/10 text-zinc-300 font-semibold transition"
-                          >
-                            <span>
-                              {executionMode === "confirm"
-                                ? "Ask before generation"
-                                : "Auto-run without asking"}
-                            </span>
-                            <ChevronDown className="h-3 w-3 text-zinc-500" />
-                          </button>
-
-                          {executionModeDropdownOpen && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40 bg-transparent"
-                                onClick={() => setExecutionModeDropdownOpen(false)}
-                              />
-                              <div className="absolute right-0 bottom-full mb-2 z-50 w-[200px] rounded-xl border border-white/10 bg-[#090f1d]/95 p-1.5 shadow-2xl backdrop-blur-xl text-left">
-                                <div className="space-y-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setExecutionMode("autorun");
-                                      setExecutionModeDropdownOpen(false);
-                                    }}
-                                    className={`w-full text-left px-2.5 py-2 rounded-lg text-[10.5px] transition flex items-center justify-between ${
-                                      executionMode === "autorun"
-                                        ? "bg-violet-600/10 text-white font-bold"
-                                        : "text-zinc-400 hover:bg-white/[0.03] hover:text-white"
-                                    }`}
-                                  >
-                                    <span className="flex items-center gap-1.5">
-                                      <CheckCircle2 className="h-3.5 w-3.5 text-violet-400" />
-                                      <span>Auto-run without asking</span>
-                                    </span>
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setExecutionMode("confirm");
-                                      setExecutionModeDropdownOpen(false);
-                                    }}
-                                    className={`w-full text-left px-2.5 py-2 rounded-lg text-[10.5px] transition flex items-center justify-between ${
-                                      executionMode === "confirm"
-                                        ? "bg-violet-600/10 text-white font-bold"
-                                        : "text-zinc-400 hover:bg-white/[0.03] hover:text-white"
-                                    }`}
-                                  >
-                                    <span className="flex items-center gap-1.5">
-                                      <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
-                                      <span>Confirm before running</span>
-                                    </span>
-                                    {executionMode === "confirm" && (
-                                      <Check className="h-3.5 w-3.5 text-violet-400" />
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Submit Send Button */}
-                        <button
-                          type="button"
-                          onClick={onSubmitPrompt}
-                          disabled={(!prompt.trim() && !youtubeUrl.trim() && activeChip === "clipper") || (!prompt.trim() && activeChip !== "clipper")}
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white shadow-[0_4px_12px_rgba(139,92,246,0.3)] transition hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Suggestion Badges */}
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {SUGGESTION_CHIPS.map((chip: { id: string; label: string; icon: string; badge?: string }) => {
-                      const isActive = chip.id === activeChip;
+                  {/* Preset Mission Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {MISSION_TYPES.map((mission) => {
+                      const isSelected = selectedMission.id === mission.id;
+                      const IconComp = mission.icon;
                       return (
                         <button
-                          key={chip.id}
+                          key={mission.id}
                           onClick={() => {
-                            setActiveChip(chip.id);
-                            setPrompt("");
-                            setYoutubeUrl("");
+                            setSelectedMission(mission);
+                            setObjectiveText("");
                           }}
-                          className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs transition ${
-                            isActive
-                              ? "border-violet-500 bg-violet-500/10 text-white shadow-[0_0_12px_rgba(139,92,246,0.15)]"
-                              : "border-white/5 bg-white/[0.02] text-zinc-400 hover:border-white/10"
+                          className={`p-4 rounded-xl border text-left transition duration-200 flex flex-col justify-between h-[120px] hover:shadow-lg ${
+                            isSelected
+                              ? "bg-violet-950/20 border-violet-500/60 shadow-[0_0_16px_rgba(139,92,246,0.15)]"
+                              : "bg-[#050914]/50 border-white/5 hover:border-white/10"
                           }`}
                         >
-                          <span>{chip.icon}</span>
-                          <span>{chip.label}</span>
+                          <div className="flex items-center justify-between w-full">
+                            <div className={`p-2 rounded-lg ${isSelected ? "bg-violet-600/20 text-violet-300" : "bg-white/5 text-zinc-400"}`}>
+                              <IconComp className="h-4 w-4" />
+                            </div>
+                            {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[11.5px] font-bold text-white block">{mission.title}</span>
+                            <span className="text-[9.5px] text-zinc-500 block leading-tight truncate">{mission.description}</span>
+                          </div>
                         </button>
                       );
                     })}
                   </div>
 
-                  {/* Examples checklist */}
-                  <div className="flex flex-col gap-2 bg-white/[0.01] border border-white/5 rounded-2xl p-4 text-left">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
-                      Quick Start Prompt Suggestions
-                    </span>
-                    <div className="flex flex-col gap-2">
-                      {(EXAMPLE_PROMPTS[activeChip] || []).map((ex: string, idx: number) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            if (activeChip === "clipper") {
-                              setYoutubeUrl("https://www.youtube.com/watch?v=saad_studio_footage_921");
-                            }
-                            setPrompt(ex);
-                          }}
-                          className="flex items-center text-xs text-zinc-400 hover:text-white hover:bg-white/[0.02] p-2.5 rounded-lg border border-white/5 text-left transition truncate"
-                        >
-                          <span className="text-violet-400 mr-2">→</span>
-                          <span className="truncate">{ex}</span>
-                        </button>
-                      ))}
+                  {/* Objective Input Area */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-[#050914]/80 p-4 space-y-4 shadow-2xl backdrop-blur-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Mission Description</span>
                     </div>
-                  </div>
-                </>
-              ) : (
-                /* Execution Progress Flow & Logs View */
-                <div className="space-y-6">
-                  
-                  {/* Status header card */}
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-[#050914]/80 backdrop-blur-md">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-600/10 border border-violet-500/20 text-violet-400">
-                        <Activity className="h-5 w-5 animate-pulse" />
-                      </div>
-                      <div className="flex flex-col text-left">
-                        <span className="text-xs font-bold text-white">Pipeline: {runningTaskName || "Multi-Model Route"}</span>
-                        <span className="text-[10px] text-zinc-500 truncate max-w-[280px]">
-                          Prompt: {activeWorkflowPrompt}
-                        </span>
-                      </div>
-                    </div>
-                    {runningTaskName ? (
-                      <span className="text-xs font-bold text-cyan-400 animate-pulse">{Math.round(progressVal)}% Executing</span>
-                    ) : (
-                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                        <Check className="h-3.5 w-3.5" /> Render Complete
-                      </span>
-                    )}
-                  </div>
 
-                  {/* VISUAL MODEL FLOW CHART */}
-                  <div className="p-5 rounded-2xl border border-white/5 bg-[#050914]/50 space-y-4">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-left block">
-                      Active Model Execution Line
-                    </span>
-                    
-                    <div className="grid grid-cols-4 gap-3">
-                      {[
-                        { id: "claude", name: "Claude 4.6", desc: "Plan & Script" },
-                        { id: "gpt2", name: "GPT Image 2", desc: "Storyboard Render" },
-                        { id: "kling", name: "Kling 3.0", desc: "Video Animation" },
-                        { id: "ffmpeg", name: "FFmpeg Engine", desc: "Stitching & Audio" }
-                      ].map((modelStep, idx) => {
-                        const isCurrent = activeStep === modelStep.id;
-                        const isDone = progressVal === 100 || (idx === 0 && (activeStep === "gpt2" || activeStep === "kling" || activeStep === "ffmpeg" || activeStep === "done")) ||
-                                       (idx === 1 && (activeStep === "kling" || activeStep === "ffmpeg" || activeStep === "done")) ||
-                                       (idx === 2 && (activeStep === "ffmpeg" || activeStep === "done")) ||
-                                       (idx === 3 && activeStep === "done");
-                        
-                        return (
-                          <div
-                            key={modelStep.id}
-                            className={`p-3 rounded-xl border text-left transition flex flex-col justify-between h-[82px] ${
-                              isCurrent
-                                ? "bg-violet-950/20 border-violet-500/60 ring-1 ring-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.2)] animate-pulse"
-                                : isDone
-                                ? "bg-emerald-950/5 border-emerald-500/40 text-emerald-400"
-                                : "bg-white/[0.01] border-white/5 text-zinc-500"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-bold uppercase tracking-wider">{modelStep.name}</span>
-                              {isDone ? (
-                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                              ) : isCurrent ? (
-                                <Activity className="h-3.5 w-3.5 text-violet-400 animate-spin" />
-                              ) : (
-                                <HelpCircle className="h-3.5 w-3.5 text-zinc-600" />
-                              )}
-                            </div>
-                            <span className="text-[9px] text-zinc-500 block leading-tight mt-1">{modelStep.desc}</span>
+                    <textarea
+                      value={objectiveText}
+                      onChange={(e) => setObjectiveText(e.target.value)}
+                      placeholder={`Enter objective specifications for "${selectedMission.title}" (e.g. Cinematic horizontal short showing coffee steam pouring)...`}
+                      className="w-full min-h-[110px] bg-transparent border-none outline-none resize-none text-xs text-white placeholder-zinc-600 leading-relaxed font-sans"
+                    />
+
+                    {/* Drag and Drop Asset Attachment */}
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleDrop}
+                      className={`border border-dashed rounded-xl p-4 text-center transition flex flex-col items-center justify-center gap-2 ${
+                        isDragging ? "border-violet-500 bg-violet-600/5" : "border-white/5 hover:border-white/10 bg-[#090f1d]/40"
+                      }`}
+                    >
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                      
+                      {attachedImageUrl ? (
+                        <div className="flex items-center gap-3 p-1.5 rounded-lg border border-violet-500/20 bg-violet-950/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={attachedImageUrl} className="h-9 w-9 object-cover rounded" alt="Asset preview" />
+                          <div className="text-left">
+                            <span className="text-[10.5px] font-bold text-white block">Style Reference Image</span>
+                            <button onClick={() => setAttachedImageUrl(null)} className="text-[9px] text-red-400 hover:underline">Remove</button>
                           </div>
-                        );
-                      })}
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2 text-zinc-500 hover:text-white transition text-xs"
+                        >
+                          <UploadCloud className="h-4 w-4" />
+                          <span>Attach visual asset references or drag and drop</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Submit Actions */}
+                    <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                      <span className="text-[10px] text-zinc-500">Auto-routes to the best model configuration.</span>
+                      <button
+                        onClick={handleStartPlanning}
+                        disabled={!objectiveText.trim()}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white font-bold text-xs shadow-[0_4px_12px_rgba(139,92,246,0.25)] transition shrink-0"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Analyze & Plan Mission</span>
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              ) : isPlanning ? (
+                /* SECTION B: Animated AI Planning Stage */
+                <div className="max-w-[540px] mx-auto py-12 space-y-6 text-left bg-[#050914]/50 border border-white/5 p-6 rounded-2xl">
+                  <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                    <div className="h-9 w-9 items-center justify-center rounded-lg bg-violet-600/10 border border-violet-500/20 text-violet-400 flex">
+                      <Activity className="h-5 w-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">AI Planning Stage</h3>
+                      <span className="text-[10px] text-zinc-500">Creative Director calculating pipeline parameters...</span>
                     </div>
                   </div>
 
-                  {/* Grid: Live logs terminal and cinematic player output */}
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+                  <div className="space-y-3.5 font-mono text-[11px]">
+                    {[
+                      "Understanding creative objective request",
+                      "Analyzing uploaded workspace assets",
+                      "Selecting optimized model routes & providers",
+                      "Calculating estimated credit costs",
+                      "Compiling workflow pipeline execution roadmap"
+                    ].map((step, idx) => {
+                      const isTicked = planningTicks[idx];
+                      const isCurrent = planningStep === idx;
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center justify-between p-2.5 rounded-lg border transition ${
+                            isCurrent
+                              ? "bg-violet-950/20 border-violet-500/40 text-violet-300"
+                              : isTicked
+                              ? "border-emerald-500/20 text-emerald-400 bg-emerald-950/5"
+                              : "border-transparent text-zinc-600"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {isTicked ? (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                            ) : isCurrent ? (
+                              <div className="h-3 w-3 border border-t-transparent border-violet-400 rounded-full animate-spin" />
+                            ) : (
+                              <HelpCircle className="h-4 w-4" />
+                            )}
+                            <span>{step}</span>
+                          </div>
+                          {isTicked && <span className="text-[9.5px] uppercase font-bold text-emerald-400">Ready</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                /* SECTION C: Workflow Execution Dashboard */
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left Column: Smart Routing Panel, visual pipeline, and Activity Console */}
+                  <div className="xl:col-span-5 space-y-6">
                     
-                    {/* Live logs console */}
-                    <div className="md:col-span-7 flex flex-col h-[280px] rounded-2xl border border-white/5 bg-[#050914] p-4 text-left">
-                      <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Terminal className="h-4 w-4 text-violet-400" />
-                          <span className="text-[11px] font-bold text-white font-mono">live_orchestration.log</span>
+                    {/* Smart AI Routing Panel */}
+                    <div className="p-5 rounded-2xl border border-white/5 bg-[#050914]/80 text-left space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Smart AI Routing</span>
+                        <span className="text-[9.5px] text-zinc-500">Calculated defaults (overrideable)</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3.5 text-xs">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Provider</label>
+                          <select
+                            value={smartProvider}
+                            onChange={(e) => setSmartProvider(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            <option value="Kling AI">Kling AI</option>
+                            <option value="BytePlus AI">BytePlus AI</option>
+                            <option value="Flux / OpenAI">Flux / OpenAI</option>
+                            <option value="kie.ai">kie.ai</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">AI Model</label>
+                          <select
+                            value={smartModel}
+                            onChange={(e) => setSmartModel(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            <option value="Kling 3.0 Pro">Kling 3.0 Pro</option>
+                            <option value="Seedance 2.0 (Stable)">Seedance 2.0 (Stable)</option>
+                            <option value="Flux.1 Dev">Flux.1 Dev</option>
+                            <option value="GPT-4o">GPT-4o</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Aspect Ratio</label>
+                          <select
+                            value={smartAspectRatio}
+                            onChange={(e) => setSmartAspectRatio(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            <option value="16:9">16:9 Landscape</option>
+                            <option value="9:16">9:16 Portrait</option>
+                            <option value="1:1">1:1 Square</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Style</label>
+                          <select
+                            value={smartStyle}
+                            onChange={(e) => setSmartStyle(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            <option value="Cinematic">Cinematic</option>
+                            <option value="Photorealistic">Photorealistic</option>
+                            <option value="Anime">Anime</option>
+                            <option value="3D Composite">3D Render</option>
+                          </select>
                         </div>
                       </div>
-                      
-                      <div className="flex-1 overflow-y-auto font-mono text-[10px] text-cyan-300/80 space-y-2 hide-scrollbar pr-1">
+
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-violet-600/10 border border-violet-500/20 text-xs">
+                        <span className="font-bold text-violet-300">Estimated cost:</span>
+                        <span className="font-extrabold text-emerald-400">{smartCredits} Credits</span>
+                      </div>
+                    </div>
+
+                    {/* Workflow pipeline steps visual list */}
+                    <div className="p-5 rounded-2xl border border-white/5 bg-[#050914]/80 text-left space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Visual Workflow Editor</span>
+                        <button
+                          onClick={() => setWorkflowSteps([...workflowSteps, "New Workflow step"])}
+                          className="text-[9.5px] text-violet-400 hover:underline flex items-center gap-0.5"
+                        >
+                          <Plus className="h-3 w-3" /> Add Step
+                        </button>
+                      </div>
+
+                      <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                        {workflowSteps.map((step, idx) => (
+                          <div
+                            key={idx}
+                            className="group flex items-center justify-between p-2 rounded-lg border border-white/5 bg-[#090f1d]/50 text-[11px]"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[9px] text-zinc-600 font-bold shrink-0">{idx + 1}.</span>
+                              {editingStepIndex === idx ? (
+                                <input
+                                  type="text"
+                                  value={editingStepValue}
+                                  onChange={(e) => setEditingStepValue(e.target.value)}
+                                  onBlur={saveEditStep}
+                                  onKeyDown={(e) => e.key === "Enter" && saveEditStep()}
+                                  className="bg-zinc-800 text-white px-2 py-0.5 rounded outline-none border border-violet-500/40 text-[11px]"
+                                  autoFocus
+                                />
+                              ) : (
+                                <span
+                                  onClick={() => startEditStep(idx)}
+                                  className="text-white hover:text-violet-400 cursor-pointer font-medium truncate"
+                                >
+                                  {step}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+                              <button onClick={() => moveWorkflowStep(idx, "up")} className="text-zinc-500 hover:text-white transition">↑</button>
+                              <button onClick={() => moveWorkflowStep(idx, "down")} className="text-zinc-500 hover:text-white transition">↓</button>
+                              <button onClick={() => deleteWorkflowStep(idx)} className="text-zinc-500 hover:text-red-400 transition">×</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={handleExecuteWorkflow}
+                        disabled={runningTaskName !== null}
+                        className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs shadow-md transition disabled:opacity-40"
+                      >
+                        {runningTaskName ? "Executing creative pipeline..." : "Execute Workflow"}
+                      </button>
+                    </div>
+
+                    {/* Agent Activity Console Terminal */}
+                    <div className="p-4 rounded-2xl border border-white/5 bg-[#050914] h-[190px] text-left flex flex-col shadow-xl">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <Terminal className="h-3.5 w-3.5 text-violet-400" />
+                          <span className="text-[10.5px] font-bold text-white font-mono">Agent Console logs</span>
+                        </div>
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto font-mono text-[9.5px] text-cyan-300/80 space-y-1.5 hide-scrollbar">
                         {activeLogs.map((log, index) => (
-                          <div key={index} className="leading-relaxed border-l border-violet-500/20 pl-2">
+                          <div key={index} className="border-l border-zinc-800 pl-2 leading-relaxed">
                             {log}
                           </div>
                         ))}
-                        {runningTaskName && (
-                          <div className="flex items-center gap-1 text-zinc-500 pl-2 font-bold animate-pulse">
-                            <span>_</span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-
-                    {/* Cinematic media preview player */}
-                    <div className="md:col-span-5 flex flex-col h-[280px] rounded-2xl border border-white/5 bg-[#050914] p-4 relative overflow-hidden text-left">
-                      {outputVideo ? (
-                        <div className="absolute inset-0 bg-[#050914] z-10 flex flex-col">
-                          {/* Tab header */}
-                          <div className="flex items-center justify-between px-3 py-2 border-b border-white/5 bg-black/40 z-20">
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => setOutputTab("video")}
-                                className={`text-[10px] font-extrabold px-2.5 py-1 rounded transition ${
-                                  outputTab === "video"
-                                    ? "bg-violet-600/20 border border-violet-500/30 text-violet-300"
-                                    : "text-zinc-500 hover:text-zinc-300"
-                                }`}
-                              >
-                                🎬 Video Stream
-                              </button>
-                              <button
-                                onClick={() => setOutputTab("response")}
-                                className={`text-[10px] font-extrabold px-2.5 py-1 rounded transition ${
-                                  outputTab === "response"
-                                    ? "bg-violet-600/20 border border-violet-500/30 text-violet-300"
-                                    : "text-zinc-500 hover:text-zinc-300"
-                                }`}
-                              >
-                                📝 Real AI Output
-                              </button>
-                            </div>
-                            <div className="rounded bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 text-[8px] font-extrabold text-emerald-400 tracking-wider">
-                              ACTIVE RESULT
-                            </div>
-                          </div>
-
-                          {/* Tab Content */}
-                          <div className="flex-1 relative overflow-hidden">
-                            {outputTab === "video" ? (
-                              <div className="w-full h-full">
-                                {outputMediaType === "image" ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={outputVideo}
-                                    alt="Generated media output"
-                                    className="w-full h-full object-contain"
-                                  />
-                                ) : (
-                                  <video
-                                    src={outputVideo}
-                                    autoPlay
-                                    muted
-                                    loop
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                  />
-                                )}
-                                <div className="absolute top-2 left-2 z-20 rounded bg-black/60 border border-white/10 px-2 py-0.5 text-[8px] font-bold text-emerald-400 tracking-wider">
-                                  {outputMediaType === "image" ? "Supabase CDN Image" : "R2 Storage Stream"}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar bg-black/20 text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap font-sans">
-                                {realAiResponse ? (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
-                                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Orchestrated Script & Code</span>
-                                      <button 
-                                        onClick={() => navigator.clipboard.writeText(realAiResponse)}
-                                        className="text-[9px] text-violet-400 hover:text-violet-300 hover:underline"
-                                      >
-                                        Copy Output
-                                      </button>
-                                    </div>
-                                    <p className="font-mono text-[11px] leading-relaxed text-zinc-300">{realAiResponse}</p>
-                                  </div>
-                                ) : realAiError ? (
-                                  <div className="text-red-400/90 text-[11px] flex items-center justify-center h-full">
-                                    {realAiError}
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-center justify-center h-full space-y-2">
-                                    <div className="h-4 w-4 border-2 border-t-transparent border-violet-400 rounded-full animate-spin" />
-                                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Fetching real agent response...</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center m-auto space-y-3 text-center">
-                          <div className="relative h-12 w-12 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full border border-violet-500/20 border-t-violet-400 animate-spin" />
-                            <HardDrive className="h-5 w-5 text-violet-400 animate-pulse" />
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-white uppercase tracking-wider block">Monitor Loading</span>
-                            <span className="text-[10px] text-zinc-500 mt-1 block">Compiling files to vault storage</span>
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                   </div>
 
-                  {/* Actions post render */}
-                  {!runningTaskName && (
-                    <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                      <button
-                        onClick={() => setActiveTab("files")}
-                        className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white transition"
-                      >
-                        <FolderClosed className="h-4 w-4 text-violet-400" />
-                        <span>View rendered file in Workspace Files</span>
-                      </button>
+                  {/* Right Column: Central Live Workspace panels */}
+                  <div className="xl:col-span-7 space-y-6">
+                    
+                    <div className="border border-white/5 rounded-2xl bg-[#050914]/40 overflow-hidden shadow-xl">
+                      
+                      {/* Workspace top navigation tabs */}
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-black/40">
+                        <div className="flex gap-2">
+                          {[
+                            { id: "concept", label: "Concept script" },
+                            { id: "storyboard", label: "Storyboard frames" },
+                            { id: "timeline", label: "Video Timeline" }
+                          ].map((hubTab) => (
+                            <button
+                              key={hubTab.id}
+                              onClick={() => setActiveWorkspaceTab(hubTab.id)}
+                              className={`text-[10px] font-extrabold px-3 py-1.5 rounded transition ${
+                                activeWorkspaceTab === hubTab.id
+                                  ? "bg-violet-600/20 border border-violet-500/30 text-violet-300"
+                                  : "text-zinc-500 hover:text-zinc-300"
+                              }`}
+                            >
+                              {hubTab.label}
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 rounded font-extrabold text-emerald-400 tracking-wider">
+                          LIVE WORKSPACE
+                        </span>
+                      </div>
 
-                      <button
-                        onClick={() => {
-                          setPrompt("");
-                          setYoutubeUrl("");
-                          setOutputVideo(null);
-                          setProgressVal(0);
-                          setActiveLogs([]);
-                          setActiveStep("idle");
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-[0_4px_12px_rgba(139,92,246,0.2)] transition"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span>New Task prompt</span>
-                      </button>
+                      {/* Workspace central preview canvas */}
+                      <div className="p-5 min-h-[380px] flex flex-col justify-between">
+                        
+                        {activeWorkspaceTab === "concept" && (
+                          <div className="flex-1 flex flex-col text-left space-y-3">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Creative Script Brief</span>
+                            <textarea
+                              value={scriptBrief}
+                              onChange={(e) => setScriptBrief(e.target.value)}
+                              className="w-full flex-1 bg-black/30 border border-white/5 rounded-xl p-4 font-mono text-[11px] text-zinc-300 leading-relaxed outline-none resize-none"
+                            />
+                          </div>
+                        )}
+
+                        {activeWorkspaceTab === "storyboard" && (
+                          <div className="flex-1 text-left space-y-4">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Conceptual Storyboard</span>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                              {storyboardFrames.map((frame) => (
+                                <div key={frame.id} className="rounded-xl border border-white/5 bg-[#090f1d]/60 overflow-hidden flex flex-col">
+                                  <div className="aspect-video relative bg-slate-900 flex items-center justify-center text-xs text-zinc-700">
+                                    {outputVideo && frame.id === 1 ? (
+                                      <video src={outputVideo} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center gap-1.5 p-3">
+                                        <Camera className="h-5 w-5 text-zinc-600" />
+                                        <span className="text-[9px] uppercase font-bold text-zinc-500">Frame {frame.id}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="p-3 text-[10px] text-zinc-400 leading-normal border-t border-white/5">{frame.desc}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {activeWorkspaceTab === "timeline" && (
+                          <div className="flex-1 text-left space-y-6 flex flex-col justify-between">
+                            
+                            {/* Player / Viewport */}
+                            <div className="aspect-video max-w-[480px] mx-auto rounded-xl border border-white/5 bg-black/60 overflow-hidden relative flex items-center justify-center text-zinc-700">
+                              {outputVideo ? (
+                                outputMediaType === "image" ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={outputVideo} alt="image render" className="w-full h-full object-contain" />
+                                ) : (
+                                  <video src={outputVideo} muted loop autoPlay playsInline className="w-full h-full object-cover" />
+                                )
+                              ) : (
+                                <div className="flex flex-col items-center justify-center gap-2">
+                                  <Play className="h-6 w-6 text-zinc-600 animate-pulse" />
+                                  <span className="text-[10px] uppercase font-bold text-zinc-500">Active Viewport Player</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Timeline tracks (NLE editor mock representation) */}
+                            <div className="p-4 rounded-xl border border-white/5 bg-black/40 space-y-3 font-mono text-[9px] text-zinc-500">
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 font-bold text-white">V1</span>
+                                <div className="flex-1 h-6 rounded bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-300 font-bold relative overflow-hidden">
+                                  <span>Cinematic Video Clip</span>
+                                  <div className="absolute top-0 bottom-0 w-0.5 bg-cyan-400 left-1/3 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 font-bold text-white">A1</span>
+                                <div className="flex-1 h-6 rounded bg-cyan-600/10 border border-cyan-500/20 flex items-center justify-center text-cyan-300 font-bold">
+                                  <span>BG Audio track</span>
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        )}
+
+                        {/* Bottom Output Actions block */}
+                        {outputVideo && (
+                          <div className="border-t border-white/5 pt-4 mt-4 flex items-center justify-between">
+                            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                              <Check className="h-3.5 w-3.5" /> Output Ready
+                            </span>
+                            
+                            <a
+                              href={outputVideo}
+                              download={`saad_output_${Math.floor(100+Math.random()*900)}.mp4`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.03] text-zinc-300 hover:text-white transition text-xs font-bold"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Download output
+                            </a>
+                          </div>
+                        )}
+
+                      </div>
+
                     </div>
-                  )}
+
+                  </div>
 
                 </div>
               )}
@@ -1962,538 +1811,76 @@ export default function AgentStudioPage() {
           )}
 
           {/* ======================================================== */}
-          {/* TAB 2: SEARCH (RUN HISTORY FILTER) */}
+          {/* TAB 2: PROJECTS (RUN HISTORY LOG) */}
           {/* ======================================================== */}
-          {activeTab === "search" && (
+          {activeTab === "projects" && (
             <div className="max-w-[860px] mx-auto space-y-4 text-left">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex flex-col">
-                  <h2 className="text-lg font-bold text-white">Task Run History</h2>
-                  <p className="text-xs text-zinc-500">Query and filter completed pipeline tasks.</p>
+                  <h2 className="text-lg font-bold text-white">Mission Logs Database</h2>
+                  <p className="text-xs text-zinc-500">Query and review past creative mission runs.</p>
                 </div>
-                {taskHistory.length > 0 && (
-                  <button
-                    onClick={clearHistory}
-                    className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Clear history</span>
-                  </button>
-                )}
               </div>
 
-              {/* Filter search bar */}
+              {/* Filter runs */}
               <div className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#050914]/80 px-3.5 py-2.5">
                 <Search className="h-4 w-4 text-zinc-500" />
                 <input
                   type="text"
-                  placeholder="Type parameters or prompts to query runs..."
+                  placeholder="Filter logs by mission parameters..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500"
                 />
               </div>
 
-              {filteredHistory.length === 0 ? (
+              {taskHistory.filter(t => t.prompt.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 border border-white/5 rounded-2xl bg-white/[0.01] text-center space-y-2">
                   <Clock className="h-8 w-8 text-zinc-600 animate-pulse" />
-                  <span className="text-xs font-semibold text-zinc-400">No matching history found</span>
+                  <span className="text-xs font-semibold text-zinc-500">No matching runs found</span>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredHistory.map((run) => (
-                    <div key={run.id} className="p-4 rounded-xl border border-white/5 bg-[#050914]/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex flex-col text-left space-y-1 max-w-[520px]">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] bg-violet-500/20 text-violet-300 font-bold px-1.5 py-0.5 rounded capitalize">
-                            {run.category}
-                          </span>
-                          <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-bold px-1.5 py-0.5 rounded font-mono">
-                            {run.engine}
-                          </span>
-                          <span className="text-[10px] text-zinc-500 font-medium">{run.timestamp}</span>
-                        </div>
-                        <span className="text-xs text-white font-medium line-clamp-2 leading-relaxed">{run.prompt}</span>
-                      </div>
-
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[10px] text-zinc-500">{run.fileSize}</span>
-                        <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[9px] px-2 py-0.5 rounded">
-                          <Check className="h-3 w-3" />
-                          <span>Completed</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* TAB 3: WORKFLOW SKILLS (THE CAPABILITY REGISTRY) */}
-          {/* ======================================================== */}
-          {activeTab === "skills" && (
-            <div className="max-w-[960px] mx-auto space-y-6 text-left">
-              
-              {/* Header options */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div className="flex flex-col">
-                  <h2 className="text-lg font-bold text-white">Install Skills to evolve Agent Studio</h2>
-                  
-                  {/* Sub-tabs */}
-                  <div className="flex items-center gap-4 mt-2">
-                    <button
-                      onClick={() => setSkillsSubTab("my")}
-                      className={`text-xs font-bold pb-1 transition border-b-2 ${
-                        skillsSubTab === "my" ? "border-violet-500 text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      My skills
-                    </button>
-                    <button
-                      onClick={() => setSkillsSubTab("community")}
-                      className={`text-xs font-bold pb-1 transition border-b-2 ${
-                        skillsSubTab === "community" ? "border-violet-500 text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      Community
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button className="px-3.5 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-300 rounded-xl hover:bg-white/[0.05] transition">
-                    Import
-                  </button>
-                  <button
-                    onClick={() => setIsSkillModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-[0_4px_12px_rgba(139,92,246,0.2)] transition shrink-0"
-                  >
-                    Create Skill
-                  </button>
-                </div>
-              </div>
-
-              {/* Categories selector */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-white/5 hide-scrollbar">
-                {SKILL_CATEGORIES.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSkillsCategory(category)}
-                    className={`px-3 py-1.5 text-[10.5px] font-bold rounded-lg transition shrink-0 whitespace-nowrap ${
-                      skillsCategory === category
-                        ? "bg-violet-500/10 border border-violet-500/20 text-white"
-                        : "border border-white/5 bg-white/[0.01] text-zinc-400 hover:border-white/10"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-
-              {/* Search bar */}
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#050914]/80 px-3.5 py-2.5">
-                <Search className="h-4 w-4 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder="Search active skills or community workflows..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500"
-                />
-              </div>
-
-              {/* Grid of skills */}
-              {filteredSkills.length === 0 ? (
-                <div className="text-center p-8 border border-white/5 bg-white/[0.01] rounded-2xl">
-                  <span className="text-xs text-zinc-500">No matching skills found in the workspace catalog.</span>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredSkills.map((skill) => (
-                    <div
-                      key={skill.id}
-                      className={`p-4 rounded-xl border transition flex flex-col justify-between h-[190px] relative hover:shadow-[0_4px_20px_rgba(139,92,246,0.1)] group ${
-                        skill.isActive
-                          ? "border-violet-500/30 bg-violet-950/[0.08]"
-                          : "border-white/5 bg-white/[0.01] hover:border-white/10"
-                      }`}
-                    >
-                      <div className="space-y-1.5 text-left">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            {getSkillIcon(skill.id, skill.icon)}
-                            <span className="text-xs font-extrabold text-white group-hover:text-violet-300 transition font-mono">
-                              {skill.title}
+                  {taskHistory
+                    .filter(t => t.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((run) => (
+                      <div key={run.id} className="p-4 rounded-xl border border-white/5 bg-[#050914]/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col text-left space-y-1 max-w-[520px]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] bg-violet-500/20 text-violet-300 font-bold px-1.5 py-0.5 rounded capitalize">
+                              {run.category}
                             </span>
-                          </div>
-                          
-                          <button
-                            onClick={() => toggleSkillActive(skill.id)}
-                            className={`h-5 w-5 flex items-center justify-center rounded-full border transition shrink-0 ${
-                              skill.isActive
-                                ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-400"
-                                : "bg-white/[0.03] border-white/10 text-zinc-500 hover:text-white"
-                            }`}
-                          >
-                            {skill.isActive ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-zinc-400 line-clamp-4 leading-normal mt-1">{skill.desc}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-auto">
-                        <span className="text-[8.5px] text-zinc-600 uppercase font-bold font-mono truncate max-w-[130px]">
-                          {skill.category}
-                        </span>
-                        {skill.isCustom && (
-                          <button
-                            onClick={() => deleteSkill(skill.id)}
-                            className="text-zinc-600 hover:text-red-400 transition"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Create Skill Form Modal */}
-              {isSkillModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-                  <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-[#050914] p-5 shadow-2xl space-y-4">
-                    <button
-                      onClick={() => setIsSkillModalOpen(false)}
-                      className="absolute right-4 top-4 text-zinc-500 hover:text-white"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    
-                    <h3 className="text-sm font-bold text-white">Create Custom Workspace Skill</h3>
-                    
-                    <form onSubmit={handleCreateSkill} className="space-y-3.5 text-xs text-left">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-zinc-400 font-semibold">Skill Slash Command</label>
-                        <input
-                          type="text"
-                          required
-                          value={newSkillTitle}
-                          onChange={(e) => setNewSkillTitle(e.target.value)}
-                          placeholder="e.g. /my-custom-clipper"
-                          className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-zinc-400 font-semibold">Description</label>
-                        <textarea
-                          required
-                          value={newSkillDesc}
-                          onChange={(e) => setNewSkillDesc(e.target.value)}
-                          placeholder="Summarize the capability process."
-                          className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
-                          rows={2}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-zinc-400 font-semibold">System Prompt Instructions</label>
-                        <textarea
-                          required
-                          value={newSkillPrompt}
-                          onChange={(e) => setNewSkillPrompt(e.target.value)}
-                          placeholder="Define the workflow sequence details..."
-                          className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-zinc-400 font-semibold">Category</label>
-                        <select
-                          value={newSkillCategory}
-                          onChange={(e) => setNewSkillCategory(e.target.value)}
-                          className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none"
-                        >
-                          {SKILL_CATEGORIES.filter(c => c !== "All").map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full rounded-xl bg-violet-600 hover:bg-violet-500 py-2.5 font-bold text-white transition mt-2 shadow-[0_4px_12px_rgba(139,92,246,0.2)]"
-                      >
-                        Create Skill
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          )}
-
-          {/* ======================================================== */}
-          {/* TAB 4: CONNECTORS (INTEGRATIONS CANVAS) */}
-          {/* ======================================================== */}
-          {activeTab === "connectors" && (
-            <div className="max-w-[960px] mx-auto space-y-6 text-left">
-              
-              {/* Header */}
-              <div className="flex flex-col border-b border-white/5 pb-4">
-                <h2 className="text-lg font-bold text-white">Install Connectors for context in Agent Studio</h2>
-                
-                <div className="flex items-center justify-between mt-2.5">
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => setConnectorsSubTab("available")}
-                      className={`text-xs font-bold pb-1 transition border-b-2 ${
-                        connectorsSubTab === "available" ? "border-violet-500 text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      Available
-                    </button>
-                    <button
-                      onClick={() => setConnectorsSubTab("installed")}
-                      className={`text-xs font-bold pb-1 transition border-b-2 ${
-                        connectorsSubTab === "installed" ? "border-violet-500 text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      Installed
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setIsCustomMcpModalOpen(true)}
-                    className="px-3.5 py-1.5 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-300 rounded-lg hover:bg-white/[0.05] transition shrink-0"
-                  >
-                    + Custom MCP
-                  </button>
-                </div>
-              </div>
-
-              {/* Search connectors */}
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#050914]/80 px-3.5 py-2.5">
-                <Search className="h-4 w-4 text-zinc-500" />
-                <input
-                  type="text"
-                  placeholder="Search integrations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500"
-                />
-              </div>
-
-              {/* Grid of integrations matching Higgsfield style */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {connectorsList
-                  .filter(c => connectorsSubTab === "available" || c.isConnected)
-                  .filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()) || c.desc.toLowerCase().includes(searchQuery.toLowerCase()))
-                  .map((conn) => (
-                    <div
-                      key={conn.id}
-                      className={`p-4 rounded-xl border flex items-start justify-between gap-4 transition hover:shadow-lg hover:border-white/10 ${
-                        conn.isConnected
-                          ? "border-emerald-500/20 bg-emerald-950/[0.03]"
-                          : "border-white/5 bg-white/[0.01]"
-                      }`}
-                    >
-                      <div className="flex gap-3 min-w-0">
-                        {/* Icon display */}
-                        <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-white/[0.02] border border-white/5 text-xl shrink-0">
-                          {getConnectorIcon(conn.id, conn.icon)}
-                        </div>
-                        <div className="flex flex-col text-left space-y-1 min-w-0">
-                          <span className="text-xs font-bold text-white truncate">{conn.title}</span>
-                          <span className="text-[10px] text-zinc-400 leading-normal line-clamp-2">{conn.desc}</span>
-                          {conn.isConnected && (
-                            <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-1 mt-1 shrink-0">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              Connected ({conn.token})
+                            <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-bold px-1.5 py-0.5 rounded font-mono">
+                              {run.engine}
                             </span>
-                          )}
+                            <span className="text-[10px] text-zinc-500">{run.timestamp}</span>
+                          </div>
+                          <span className="text-xs text-white font-medium leading-relaxed italic text-left">"{run.prompt}"</span>
                         </div>
-                      </div>
 
-                      {conn.isConnected ? (
-                        <button
-                          onClick={() => handleDisconnectConnector(conn.id)}
-                          className="text-[10px] text-red-400 hover:text-red-300 font-bold shrink-0 transition"
-                        >
-                          Disconnect
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActiveConnector(conn);
-                            setConnectorStep(1);
-                            handleOpenOAuthPopup(); // Fire simulated popup immediately
-                          }}
-                          className="h-5 w-5 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 hover:text-white transition shrink-0"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-              </div>
-
-              {/* Connectors Popup Modal Flow - Exactly matching screens */}
-              {activeConnector && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-                  <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-[#050914] p-6 shadow-2xl text-center space-y-6">
-                    <button
-                      onClick={() => {
-                        setActiveConnector(null);
-                        setConnectorToken("");
-                      }}
-                      className="absolute right-4 top-4 text-zinc-500 hover:text-white"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-
-                    {/* Step 1: Connecting Animation */}
-                    {connectorStep === 1 && (
-                      <div className="flex flex-col items-center justify-center space-y-6 py-4">
-                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeConnector.title}</span>
-                        
-                        <div className="flex items-center justify-center gap-8">
-                          {/* Saad Studio Squiggly logo */}
-                          <div className="relative h-14 w-14 rounded-2xl border border-violet-500/20 bg-slate-950/40 p-2.5 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.2)]">
-                            <Image
-                              src="/logo-saad-transparent.png"
-                              alt="Saad Studio Logo"
-                              width={40}
-                              height={40}
-                              className="object-contain"
-                            />
-                          </div>
-
-                          {/* Pulsing Connecting dots */}
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-violet-400 animate-ping" />
-                            <span className="h-1 w-12 border-t-2 border-dashed border-white/20 animate-pulse" />
-                            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
-                          </div>
-
-                          {/* Selected Brand logo */}
-                          <div className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.02] text-3xl flex items-center justify-center shadow-lg">
-                            {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-8 w-8 shrink-0")}
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[10px] text-zinc-500">{run.fileSize}</span>
+                          <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[9px] px-2 py-0.5 rounded">
+                            <Check className="h-3 w-3" />
+                            <span>Executed</span>
                           </div>
                         </div>
-
-                        <div className="space-y-1.5">
-                          <h3 className="text-sm font-bold text-white">Finish connecting {activeConnector.title} in the new window</h3>
-                          <button
-                            onClick={handleOpenOAuthPopup}
-                            className="text-xs text-zinc-500 hover:text-white underline block mx-auto transition"
-                          >
-                            Don't see the window? Reopen it
-                          </button>
-                        </div>
                       </div>
-                    )}
-
-                    {/* Step 2: OIDC Details & Permissions - Screenshot 3 Style */}
-                    {connectorStep === 2 && (
-                      <div className="space-y-5 text-center py-2">
-                        {/* Circular Brand Icon */}
-                        <div className="mx-auto h-20 w-20 rounded-full border border-violet-500/30 bg-slate-900/60 p-3 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.15)] relative">
-                          <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/40 animate-spin" />
-                          {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-10 w-10 shrink-0")}
-                        </div>
-
-                        <div>
-                          <h3 className="text-base font-bold text-white">{activeConnector.title}</h3>
-                          <p className="text-xs text-zinc-500 max-w-[320px] mx-auto mt-1 leading-normal">
-                            Publish text, image, multi-image, and video posts to the connected {activeConnector.title} profile.
-                          </p>
-                        </div>
-
-                        {/* OIDC pill info */}
-                        <div className="mx-auto flex items-center justify-center gap-2 p-2.5 rounded-lg border border-violet-500/20 bg-violet-950/10 text-[10.5px] text-zinc-300 font-semibold cursor-pointer max-w-[340px]">
-                          {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-3.5 w-3.5 shrink-0")}
-                          <span>Get the connected {activeConnector.title} member profile from OIDC userinfo.</span>
-                        </div>
-
-                        {/* Dot indicator carousel */}
-                        <div className="flex items-center justify-center gap-1.5 my-2">
-                          <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                          <span className="h-1.5 w-1.5 rounded-full bg-zinc-700" />
-                        </div>
-
-                        {/* Features Checklist */}
-                        <div className="text-left space-y-2 bg-[#090f1d]/50 p-4 rounded-xl border border-white/5">
-                          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Features</span>
-                          <ul className="space-y-2">
-                            {(activeConnector.features || []).map((feat, idx) => (
-                              <li key={idx} className="flex items-start gap-2.5 text-xs text-zinc-300">
-                                <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                                <span>{feat}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Success notification */}
-                        <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/10 border border-emerald-500/20 p-2.5 rounded-lg animate-pulse">
-                          <span>👤 Authenticated as:</span>
-                          <span className="underline">{connectorToken}</span>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex items-center justify-end gap-2 pt-2">
-                          <button
-                            onClick={() => {
-                              setActiveConnector(null);
-                              setConnectorToken("");
-                            }}
-                            className="px-4 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-400 rounded-xl hover:bg-white/[0.05] transition"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSaveConnector}
-                            disabled={connectorSaving}
-                            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50"
-                          >
-                            {connectorSaving ? (
-                              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                              </svg>
-                            ) : (
-                              <span>Save Connection</span>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
+                    ))}
                 </div>
               )}
-
             </div>
           )}
 
           {/* ======================================================== */}
-          {/* TAB 5: FILES (WORKSPACE MEDIA ARCHIVE) */}
+          {/* TAB 3: ASSETS CATALOG (ARCHIVE OF RENDERED OUTPUTS) */}
           {/* ======================================================== */}
-          {activeTab === "files" && (
+          {activeTab === "assets" && (
             <div className="max-w-[860px] mx-auto space-y-6 text-left">
               
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
                 <div className="flex flex-col">
-                  <h2 className="text-lg font-bold text-white">Files</h2>
+                  <h2 className="text-lg font-bold text-white">Assets Storage</h2>
                   
                   <div className="flex items-center gap-4 mt-2">
                     {[
@@ -2524,56 +1911,21 @@ export default function AgentStudioPage() {
                 </button>
               </div>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                multiple
-                className="hidden"
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple className="hidden" />
 
-              {/* Drag and Drop Zone */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleDrop}
-                className={`border border-dashed p-8 rounded-2xl text-center cursor-pointer transition flex flex-col items-center justify-center space-y-2 select-none ${
-                  isDragging
-                    ? "border-violet-500 bg-violet-950/20 shadow-[0_0_15px_rgba(139,92,246,0.15)] scale-[1.01]"
-                    : "border-white/10 bg-[#050914]/40 hover:border-white/20"
-                }`}
-              >
-                <FolderClosed className={`h-7 w-7 transition-colors ${isDragging ? "text-violet-400" : "text-zinc-500"}`} />
-                <span className={`text-xs font-semibold transition-colors ${isDragging ? "text-violet-300" : "text-zinc-400"}`}>
-                  {isDragging ? "Drop your files here!" : "Drag files here or click to browse"}
-                </span>
-                <span className="text-[9.5px] text-zinc-500">Supports images, vertical movies, or article documents.</span>
-              </div>
-
-              {/* Files Table List */}
               {filteredFiles.length === 0 ? (
-                <div className="text-center p-8 border border-white/5 bg-white/[0.01] rounded-xl">
-                  <span className="text-xs text-zinc-500">No files yet. Start a new task</span>
-                  <button
-                    onClick={() => setActiveTab("new")}
-                    className="mt-2.5 block mx-auto text-xs bg-violet-600/10 border border-violet-500/20 text-violet-400 px-3 py-1.5 rounded-lg hover:bg-violet-500/10"
-                  >
-                    Start a new task
-                  </button>
+                <div className="text-center p-8 border border-white/5 bg-white/[0.01] rounded-2xl">
+                  <span className="text-xs text-zinc-500">No assets stored in target vault</span>
                 </div>
               ) : (
                 <div className="border border-white/5 rounded-2xl bg-[#050914]/40 overflow-hidden">
                   <table className="w-full border-collapse text-xs text-left">
                     <thead>
                       <tr className="border-b border-white/5 bg-[#050914]/80 text-zinc-500 text-[10px] font-bold uppercase tracking-wider">
-                        <th className="p-3.5">File Name</th>
-                        <th className="p-3.5">Type</th>
-                        <th className="p-3.5">File Size</th>
-                        <th className="p-3.5">Date</th>
+                        <th className="p-3.5">Asset File Name</th>
+                        <th className="p-3.5">Format</th>
+                        <th className="p-3.5">Size</th>
+                        <th className="p-3.5">Created Date</th>
                         <th className="p-3.5 text-right">Action</th>
                       </tr>
                     </thead>
@@ -2597,14 +1949,12 @@ export default function AgentStudioPage() {
                               <button
                                 onClick={() => {
                                   setAttachedImageUrl(file.url || null);
-                                  setActiveTab("new");
+                                  setActiveTab("new-mission");
                                 }}
                                 className={`transition p-1 rounded hover:bg-white/5 ${
-                                  attachedImageUrl === file.url
-                                    ? "text-violet-400 font-extrabold"
-                                    : "text-zinc-500 hover:text-violet-400"
+                                  attachedImageUrl === file.url ? "text-violet-400 font-extrabold" : "text-zinc-500 hover:text-violet-400"
                                 }`}
-                                title="Use as reference image"
+                                title="Attach to objective"
                               >
                                 <Paperclip className="h-3.5 w-3.5" />
                               </button>
@@ -2622,400 +1972,612 @@ export default function AgentStudioPage() {
                   </table>
                 </div>
               )}
-
-              {/* Bottom Search input */}
-              <div className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-[#050914]/90 px-3.5 py-2.5">
-                <input
-                  type="text"
-                  placeholder="Ask anything about your files..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500"
-                />
-                <button className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600/20 text-violet-400 hover:bg-violet-600 hover:text-white transition shrink-0">
-                  <ArrowUp className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
             </div>
           )}
 
           {/* ======================================================== */}
-          {/* TAB 6: MEMORY (ALIGNMENT PREFERENCES CANVAS) */}
+          {/* TAB 4: ACTIVE TASKS LOGS */}
           {/* ======================================================== */}
-          {activeTab === "memory" && (() => {
-            // Group memories by category to distribute to sub-hubs representing actual keys
-            const subHubs = [
-              { id: "transitions", icon: "📁", title: "transitions", angle: -Math.PI / 2 },
-              { id: "resolution", icon: "</>", title: "resolution", angle: -Math.PI / 10 },
-              { id: "aspect_ratio", icon: "📷", title: "aspect_ratio", angle: (3 * Math.PI) / 10 },
-              { id: "lighting", icon: "🤍", title: "lighting", angle: (7 * Math.PI) / 10 },
-              { id: "character_voice", icon: "🤖", title: "character_voice", angle: (11 * Math.PI) / 10 }
-            ];
+          {activeTab === "tasks" && (
+            <div className="max-w-[760px] mx-auto space-y-6 text-left">
+              <div className="flex flex-col">
+                <h2 className="text-lg font-bold text-white">Tasks Tracker</h2>
+                <p className="text-xs text-zinc-500">Real-time status of pipeline tasks running in backend.</p>
+              </div>
 
-            const groupedMemories: Record<string, MemoryNode[]> = {
-              transitions: [],
-              resolution: [],
-              aspect_ratio: [],
-              lighting: [],
-              character_voice: []
-            };
-
-            memoriesList.forEach((mem, index) => {
-              const text = mem.text.toLowerCase();
-              if (text.includes("aspect_ratio")) {
-                groupedMemories.aspect_ratio.push(mem);
-              } else if (text.includes("lighting")) {
-                groupedMemories.lighting.push(mem);
-              } else if (text.includes("character_voice")) {
-                groupedMemories.character_voice.push(mem);
-              } else if (text.includes("transitions")) {
-                groupedMemories.transitions.push(mem);
-              } else if (text.includes("resolution")) {
-                groupedMemories.resolution.push(mem);
-              } else {
-                // Distribute user additions evenly
-                const hubId = subHubs[index % 5].id;
-                groupedMemories[hubId].push(mem);
-              }
-            });
-
-            const getDisplayVal = (txt: string) => {
-              return txt.includes(":") ? txt.split(":")[1].trim() : txt;
-            };
-
-            return (
-              <div className="max-w-[960px] mx-auto space-y-6 text-left">
-                
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <div className="flex flex-col">
-                    <h2 className="text-lg font-bold text-white">Agent Studio memory</h2>
-                    <p className="text-xs text-zinc-500">Learning from every chat to customize future models.</p>
-
-                    <div className="flex items-center gap-4 mt-2">
-                      <button
-                        onClick={() => setMemorySubTab("os")}
-                        className={`text-xs font-bold pb-1 transition border-b-2 ${
-                          memorySubTab === "os" ? "border-violet-500 text-white" : "border-transparent text-zinc-500 hover:text-zinc-300"
-                        }`}
-                      >
-                        Your OS
-                      </button>
-                    </div>
+              {runningTaskName ? (
+                <div className="p-5 border border-violet-500/20 bg-violet-950/5 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                    <span className="text-xs font-bold text-white">Active Run: {runningTaskName}</span>
+                    <span className="text-xs text-cyan-400 font-bold animate-pulse">{Math.round(progressVal)}% Executing</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button className="px-3.5 py-1.5 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-300 rounded-lg hover:bg-white/[0.05] transition">
-                      Import
-                    </button>
-                    <button
-                      onClick={() => {
-                        const memVal = window.prompt("Enter new preference parameter to remember:");
-                        if (memVal && memVal.trim()) {
-                          const newMem = { id: `mem-${Date.now()}`, text: memVal.trim() };
-                          const updated = [...memoriesList, newMem];
-                          setMemoriesList(updated);
-                          saveToStorage("saad_super_memories_v6", updated);
-                        }
-                      }}
-                      className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition"
-                    >
-                      + New memory
-                    </button>
-                  </div>
-                </div>
-
-                {/* Hub-and-Spoke Interactive Web - min-h-[520px] matching Higgsfield */}
-                <div 
-                  className="relative min-h-[520px] w-full rounded-2xl border border-white/5 bg-[#050914]/40 overflow-hidden shadow-2xl flex items-center justify-center"
-                  style={{ 
-                    backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)", 
-                    backgroundSize: "16px 16px" 
-                  }}
-                >
-                  
-                  {/* SVG Web Connections */}
-                  <div className="absolute inset-0 z-0">
-                    <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                      {/* Lines from Central Orb to Sub-Hubs */}
-                      {subHubs.map((hub) => {
-                        const x2 = `${50 + 17 * Math.cos(hub.angle)}%`;
-                        const y2 = `${50 + 17 * Math.sin(hub.angle)}%`;
-                        return (
-                          <line
-                            key={hub.id}
-                            x1="50%"
-                            y1="50%"
-                            x2={x2}
-                            y2={y2}
-                            stroke="#84cc16"
-                            strokeWidth="2"
-                            strokeOpacity="0.35"
-                            className="animate-pulse"
-                          />
-                        );
-                      })}
-
-                      {/* Lines from Sub-Hubs to Child Memory Nodes */}
-                      {subHubs.map((hub) => {
-                        const hubX = `${50 + 17 * Math.cos(hub.angle)}%`;
-                        const hubY = `${50 + 17 * Math.sin(hub.angle)}%`;
-                        const children = groupedMemories[hub.id] || [];
-                        const count = children.length;
-
-                        return children.map((_, index) => {
-                          const spread = 0.24; // spread angle between sibling nodes
-                          const itemAngle = hub.angle + (index - (count - 1) / 2) * spread;
-                          const nodeX = `${50 + 36 * Math.cos(itemAngle)}%`;
-                          const nodeY = `${50 + 36 * Math.sin(itemAngle)}%`;
-
-                          return (
-                            <line
-                              key={`${hub.id}-${index}`}
-                              x1={hubX}
-                              y1={hubY}
-                              x2={nodeX}
-                              y2={nodeY}
-                              stroke="#6366f1"
-                              strokeWidth="1.2"
-                              strokeOpacity="0.4"
-                              strokeDasharray="3 3"
-                            />
-                          );
-                        });
-                      })}
-                    </svg>
-                  </div>
-
-                  {/* HTML overlay elements */}
-                  <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
-                    
-                    {/* Central Glowing Yellow-Green Orb (no text, matches Higgsfield) */}
-                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gradient-to-tr from-lime-400 via-yellow-300 to-emerald-400 shadow-[0_0_35px_rgba(163,230,53,0.65)] z-30 animate-pulse pointer-events-auto border border-[#02040a]" />
-
-                    {/* Render Sub-Hubs (Key Node Pills with icon + label) */}
-                    {subHubs.map((hub) => {
-                      const x = `${50 + 17 * Math.cos(hub.angle)}%`;
-                      const y = `${50 + 17 * Math.sin(hub.angle)}%`;
-
+                  {/* Execution line */}
+                  <div className="grid grid-cols-4 gap-3 text-xs">
+                    {[
+                      { id: "claude", name: "Concept Draft", desc: "Plan Objective Script" },
+                      { id: "gpt2", name: "Storyboard", desc: "Previs Visual Outlines" },
+                      { id: "kling", name: "Animate Clip", desc: "Kling AI Video Latents" },
+                      { id: "ffmpeg", name: "Final Compile", desc: "Stitching Outputs" }
+                    ].map((modelStep, idx) => {
+                      const isCurrent = activeStep === modelStep.id;
+                      const isDone = progressVal === 100 || (idx === 0 && (activeStep === "gpt2" || activeStep === "kling" || activeStep === "ffmpeg" || activeStep === "done")) ||
+                                     (idx === 1 && (activeStep === "kling" || activeStep === "ffmpeg" || activeStep === "done")) ||
+                                     (idx === 2 && (activeStep === "ffmpeg" || activeStep === "done")) ||
+                                     (idx === 3 && activeStep === "done");
+                      
                       return (
                         <div
-                          key={hub.id}
-                          style={{ left: x, top: y }}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 h-8 px-3 rounded-full border border-white/10 bg-[#090f1d]/90 hover:border-violet-500/40 flex items-center gap-1.5 text-[10.5px] font-bold text-white shadow-lg pointer-events-auto transition cursor-pointer hover:scale-105 z-20"
+                          key={modelStep.id}
+                          className={`p-3 rounded-xl border text-left flex flex-col justify-between h-[80px] ${
+                            isCurrent
+                              ? "bg-violet-950/20 border-violet-500/60 ring-1 ring-violet-500/30 animate-pulse text-violet-300"
+                              : isDone
+                              ? "bg-emerald-950/5 border-emerald-500/30 text-emerald-400"
+                              : "bg-white/[0.01] border-white/5 text-zinc-500"
+                          }`}
                         >
-                          <span>{hub.icon}</span>
-                          <span className="font-mono text-zinc-300">{hub.title}</span>
+                          <div className="flex items-center justify-between font-bold">
+                            <span className="text-[10px] uppercase tracking-wider">{modelStep.name}</span>
+                            {isDone && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                          </div>
+                          <span className="text-[9px] text-zinc-500 block leading-tight">{modelStep.desc}</span>
                         </div>
                       );
                     })}
+                  </div>
 
-                    {/* Render Memory Nodes (Glassmorphic Capsules showing only value parts) */}
-                    {subHubs.map((hub) => {
-                      const children = groupedMemories[hub.id] || [];
-                      const count = children.length;
+                  {/* Log Viewport */}
+                  <div className="bg-black/50 border border-white/5 p-4 rounded-xl font-mono text-[10px] text-cyan-300/80 space-y-1.5 h-[220px] overflow-y-auto">
+                    {activeLogs.map((log, index) => (
+                      <div key={index} className="border-l border-zinc-800 pl-2">
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl text-center space-y-2">
+                  <Activity className="h-8 w-8 text-zinc-600 mx-auto" />
+                  <span className="text-xs text-zinc-500 block">No active runs currently processing.</span>
+                </div>
+              )}
+            </div>
+          )}
 
-                      return children.map((mem, index) => {
-                        const spread = 0.24;
-                        const itemAngle = hub.angle + (index - (count - 1) / 2) * spread;
-                        const x = `${50 + 36 * Math.cos(itemAngle)}%`;
-                        const y = `${50 + 36 * Math.sin(itemAngle)}%`;
+          {/* ======================================================== */}
+          {/* TAB 5: TEMPLATES (WORKFLOW PRESETS) */}
+          {/* ======================================================== */}
+          {activeTab === "templates" && (
+            <div className="max-w-[860px] mx-auto space-y-6 text-left">
+              <div className="flex flex-col">
+                <h2 className="text-lg font-bold text-white">Workflow Presets</h2>
+                <p className="text-xs text-zinc-500">Pick predefined model chains for creative automation.</p>
+              </div>
 
-                        return (
-                          <div
-                            key={mem.id}
-                            style={{ left: x, top: y }}
-                            className="absolute -translate-x-1/2 -translate-y-1/2 group flex items-center gap-1.5 text-[9.5px] bg-[#050914]/90 border border-white/5 hover:border-violet-500/30 text-zinc-300 px-3 py-1.5 rounded-full backdrop-blur-2xl transition hover:scale-105 duration-150 shadow-lg pointer-events-auto whitespace-nowrap"
-                          >
-                            <span className="font-medium text-zinc-200">{getDisplayVal(mem.text)}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { title: "Vertical Short Cinematic", steps: ["Script outlines", "Storyboard sketch", "Kling Video Pro Animation", "Audio Dubbing"], cost: "8 credits" },
+                  { title: "Interactive Article Beats", steps: ["Draft beats", "Offer path choices", "Rewrite loops"], cost: "1 credit" },
+                  { title: "Social Banner Ad Pack", steps: ["Product structure scan", "Generative copy variation", "GPT Image render"], cost: "4 credits" },
+                  { title: "Audio Sync Podcast", steps: ["Transcribe Whisper", "Active speaker switch", "ExtendScript timeline rebuild"], cost: "5 credits" }
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 rounded-xl border border-white/5 bg-[#050914]/50 flex flex-col justify-between h-[160px]">
+                    <div className="space-y-2">
+                      <span className="text-xs font-bold text-white block text-left">{item.title}</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.steps.map((st, sIdx) => (
+                          <span key={sIdx} className="text-[8.5px] bg-[#090f1d] border border-white/5 text-zinc-400 px-2 py-0.5 rounded font-mono">
+                            {st}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-auto text-[10.5px]">
+                      <span className="text-zinc-500">Cost: <strong className="text-emerald-400 font-bold">{item.cost}</strong></span>
+                      <button
+                        onClick={() => {
+                          const mission = MISSION_TYPES.find(m => m.id === "create-ad") || MISSION_TYPES[0];
+                          setSelectedMission(mission);
+                          setWorkflowSteps(item.steps);
+                          setActiveTab("new-mission");
+                        }}
+                        className="text-violet-400 hover:text-violet-300 font-bold"
+                      >
+                        Apply Preset
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 6: AUTOMATION HUBS */}
+          {/* ======================================================== */}
+          {activeTab === "automation" && (
+            <div className="max-w-[760px] mx-auto space-y-6 text-left">
+              <div className="flex flex-col">
+                <h2 className="text-lg font-bold text-white">Automation Pipeline Webhooks</h2>
+                <p className="text-xs text-zinc-500">Configure webhooks and scheduled triggers to fire workflows.</p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/5 bg-[#050914]/50 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <span className="text-xs font-bold text-white">Active webhook trigger</span>
+                  <span className="text-[10px] text-emerald-400 font-bold">Active</span>
+                </div>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Endpoint:</span>
+                    <span className="font-mono text-zinc-300">https://www.saadstudio.app/api/automation/trigger</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Method:</span>
+                    <span className="font-mono text-zinc-300">POST</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TAB 7: ADVANCED CONFIGURATION (SETTINGS VIEWPORT) */}
+          {/* ======================================================== */}
+          {activeTab === "settings" && (
+            <div className="max-w-[960px] mx-auto space-y-6 text-left">
+              
+              {/* Secondary Navigation for Settings */}
+              <div className="flex items-center bg-white/[0.02] border border-white/5 rounded-xl p-0.5 max-w-max mx-auto mb-6">
+                {[
+                  { id: "skills", label: "Skills Catalog" },
+                  { id: "memory", label: "OS Memory Node" },
+                  { id: "connectors", label: "Connectors Canvas" }
+                ].map((st) => (
+                  <button
+                    key={st.id}
+                    onClick={() => setActiveSettingsTab(st.id as any)}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition ${
+                      activeSettingsTab === st.id
+                        ? "bg-violet-600/20 text-violet-300 border border-violet-500/20"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Skills View */}
+              {activeSettingsTab === "skills" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex flex-col">
+                      <h2 className="text-base font-bold text-white">Install Capability Skills</h2>
+                      <p className="text-xs text-zinc-500">Configure command-triggers mapped to agent system instructions.</p>
+                    </div>
+
+                    <button
+                      onClick={() => setIsSkillModalOpen(true)}
+                      className="px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition"
+                    >
+                      + Create Skill
+                    </button>
+                  </div>
+
+                  {/* Categories selector */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-white/5 hide-scrollbar">
+                    {["All", "Content Creation", "Creative & Marketing", "Frontend Engineer", "Writing", "Marketing & Sales", "Personal & Specialized", "Productivity"].map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => setSkillsCategory(category)}
+                        className={`px-3 py-1.5 text-[10.5px] font-bold rounded-lg transition shrink-0 whitespace-nowrap ${
+                          skillsCategory === category
+                            ? "bg-violet-500/10 border border-violet-500/20 text-white"
+                            : "border border-white/5 bg-white/[0.01] text-zinc-400 hover:border-white/10"
+                        }`}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {filteredSkills.map((skill) => (
+                      <div
+                        key={skill.id}
+                        className={`p-4 rounded-xl border transition flex flex-col justify-between h-[180px] hover:shadow-lg ${
+                          skill.isActive
+                            ? "border-violet-500/30 bg-violet-950/[0.08]"
+                            : "border-white/5 bg-white/[0.01]"
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                              {getSkillIcon(skill.id, skill.icon)}
+                              <span className="text-xs font-bold text-white font-mono">{skill.title}</span>
+                            </div>
+                            
                             <button
-                              type="button"
-                              onClick={() => handleDeleteMemory(mem.id)}
-                              className="h-3 w-3 rounded-full flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-white/5 transition"
+                              onClick={() => toggleSkillActive(skill.id)}
+                              className={`h-5 w-5 flex items-center justify-center rounded-full border transition ${
+                                skill.isActive
+                                  ? "bg-emerald-600/20 border-emerald-500/40 text-emerald-400"
+                                  : "bg-white/[0.03] border-white/10 text-zinc-500"
+                              }`}
                             >
-                              <X className="h-2.5 w-2.5" />
+                              {skill.isActive ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
                             </button>
                           </div>
-                        );
-                      });
-                    })}
+                          <p className="text-[10px] text-zinc-400 line-clamp-4 leading-normal mt-1 text-left">{skill.desc}</p>
+                        </div>
 
-                  </div>
-
-                  {/* Absolute Center overlay text matching Higgsfield */}
-                  <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center pointer-events-none z-10 space-y-1">
-                    <h3 className="text-sm font-bold text-white tracking-wide">Agent Studio memory</h3>
-                    <p className="text-[10px] text-zinc-500">Learning from every chat</p>
-                  </div>
-
-                </div>
-
-                {/* Memory Cards Grid (Higgsfield-Style list of items with Lock/Unlock toggle) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 w-full max-w-[760px] mx-auto">
-                  {memoriesList.map((mem) => {
-                    const isLocked = lockedMemories.includes(mem.id);
-                    return (
-                      <div
-                        key={mem.id}
-                        className="group flex items-center justify-between gap-3 p-3.5 rounded-xl border border-white/5 bg-[#050914]/40 hover:border-white/10 hover:bg-[#090f1d]/40 transition duration-150 backdrop-blur-md"
-                      >
-                        <span className="text-[11.5px] font-bold text-zinc-300 select-none truncate">
-                          {mem.text}
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Delete Button (visible on hover) */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMemory(mem.id)}
-                            className="opacity-0 group-hover:opacity-100 flex h-7 w-7 items-center justify-center rounded-lg border border-white/5 bg-[#090f1d] hover:bg-white/[0.04] text-zinc-500 hover:text-red-400 transition"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                          
-                          {/* Lock Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = lockedMemories.includes(mem.id)
-                                ? lockedMemories.filter((mId) => mId !== mem.id)
-                                : [...lockedMemories, mem.id];
-                              setLockedMemories(updated);
-                              saveToStorage("saad_super_locked_memories_v6", updated);
-                            }}
-                            className={`flex h-7 w-7 items-center justify-center rounded-lg border transition ${
-                              isLocked
-                                ? "border-violet-500/30 bg-violet-600/10 text-violet-400 hover:bg-violet-600/20"
-                                : "border-white/5 bg-[#090f1d] text-zinc-500 hover:text-zinc-300 hover:border-white/10"
-                            }`}
-                            title={isLocked ? "Locked memory (Active)" : "Unlocked memory (Ignored)"}
-                          >
-                            {isLocked ? (
-                              <Lock className="h-3.5 w-3.5" />
-                            ) : (
-                              <Unlock className="h-3.5 w-3.5" />
-                            )}
-                          </button>
+                        <div className="flex items-center justify-between border-t border-white/5 pt-2 mt-auto text-[9px]">
+                          <span className="text-zinc-600 font-bold uppercase">{skill.category}</span>
+                          {skill.isCustom && (
+                            <button onClick={() => deleteSkill(skill.id)} className="text-zinc-600 hover:text-red-400 transition">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                {/* Bottom Add Memory Form (Higgsfield-Style Capsule Prompt Box) */}
-                <form onSubmit={handleAddMemory} className="relative rounded-2xl border border-white/[0.08] bg-[#050914]/85 p-3.5 shadow-2xl backdrop-blur-xl transition hover:border-white/[0.12] w-full max-w-[760px] mx-auto mt-4">
-                  <textarea
-                    value={newMemoryText}
-                    onChange={(e) => setNewMemoryText(e.target.value)}
-                    required
-                    placeholder="Remember that..."
-                    className="w-full min-h-[60px] bg-transparent border-none outline-none resize-none px-3 text-xs text-white placeholder-zinc-500 leading-relaxed font-sans"
-                  />
-                  <div className="flex items-center justify-between border-t border-white/5 pt-3 px-2">
-                    {/* Attachment + icon */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-[#090f1d] hover:bg-white/[0.04] text-zinc-400 hover:text-white transition"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+              {/* Memory View */}
+              {activeSettingsTab === "memory" && (
+                <div className="space-y-6">
+                  
+                  {/* Central hub web connector */}
+                  <div 
+                    className="relative min-h-[440px] w-full rounded-2xl border border-white/5 bg-[#050914]/40 overflow-hidden shadow-2xl flex items-center justify-center"
+                    style={{ 
+                      backgroundImage: "radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px)", 
+                      backgroundSize: "16px 16px" 
+                    }}
+                  >
                     
-                    {/* Send button */}
+                    {/* SVG Connections */}
+                    <div className="absolute inset-0 z-0">
+                      <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                        {[
+                          { id: "resolution", angle: -Math.PI / 2 },
+                          { id: "aspect_ratio", angle: -Math.PI / 6 },
+                          { id: "lighting", angle: (Math.PI / 3) },
+                          { id: "character_voice", angle: (Math.PI * 1.1) }
+                        ].map((hub, index) => {
+                          const x2 = `${50 + 18 * Math.cos(hub.angle)}%`;
+                          const y2 = `${50 + 18 * Math.sin(hub.angle)}%`;
+                          return (
+                            <line
+                              key={index}
+                              x1="50%"
+                              y1="50%"
+                              x2={x2}
+                              y2={y2}
+                              stroke="#84cc16"
+                              strokeWidth="2"
+                              strokeOpacity="0.3"
+                              className="animate-pulse"
+                            />
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    <div className="absolute inset-0 z-10 w-full h-full pointer-events-none">
+                      {/* Central Orb */}
+                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-gradient-to-tr from-lime-400 via-yellow-300 to-emerald-400 shadow-[0_0_30px_rgba(163,230,53,0.5)] z-30 pointer-events-auto border border-[#02040a]" />
+
+                      {/* Sub nodes */}
+                      {[
+                        { id: "resolution", title: "resolution", angle: -Math.PI / 2, icon: "</>" },
+                        { id: "aspect_ratio", title: "aspect_ratio", angle: -Math.PI / 6, icon: "📷" },
+                        { id: "lighting", title: "lighting", angle: (Math.PI / 3), icon: "🤍" },
+                        { id: "character_voice", title: "character_voice", angle: (Math.PI * 1.1), icon: "🤖" }
+                      ].map((hub, idx) => {
+                        const x = `${50 + 18 * Math.cos(hub.angle)}%`;
+                        const y = `${50 + 18 * Math.sin(hub.angle)}%`;
+                        return (
+                          <div
+                            key={idx}
+                            style={{ left: x, top: y }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 h-7 px-3 rounded-full border border-white/10 bg-[#090f1d]/90 flex items-center gap-1.5 text-[10px] font-bold text-white shadow-lg pointer-events-auto cursor-pointer"
+                          >
+                            <span>{hub.icon}</span>
+                            <span className="font-mono text-zinc-300">{hub.title}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center pointer-events-none z-10 space-y-1">
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">Agent Memory Map</h3>
+                      <p className="text-[10px] text-zinc-500">Saved user configuration nodes</p>
+                    </div>
+
+                  </div>
+
+                  {/* List View with locks */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[720px] mx-auto">
+                    {memoriesList.map((mem) => {
+                      const isLocked = lockedMemories.includes(mem.id);
+                      return (
+                        <div key={mem.id} className="p-3.5 rounded-xl border border-white/5 bg-[#050914]/40 flex items-center justify-between text-xs font-semibold">
+                          <span className="text-zinc-300">{mem.text}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => {
+                                const next = lockedMemories.includes(mem.id)
+                                  ? lockedMemories.filter(mId => mId !== mem.id)
+                                  : [...lockedMemories, mem.id];
+                                setLockedMemories(next);
+                                saveToStorage("saad_super_locked_memories_v6", next);
+                              }}
+                              className={`h-7 w-7 rounded-lg border flex items-center justify-center transition ${
+                                isLocked ? "border-violet-500/30 bg-violet-600/10 text-violet-400" : "border-white/5 bg-[#090f1d] text-zinc-500"
+                              }`}
+                            >
+                              {isLocked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+                            </button>
+                            <button onClick={() => handleDeleteMemory(mem.id)} className="text-zinc-600 hover:text-red-400">×</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add memory form */}
+                  <form onSubmit={handleAddMemory} className="max-w-[720px] mx-auto relative rounded-2xl border border-white/[0.08] bg-[#050914]/85 p-3.5">
+                    <textarea
+                      value={newMemoryText}
+                      onChange={(e) => setNewMemoryText(e.target.value)}
+                      required
+                      placeholder="Insert preference for agent memory node..."
+                      className="w-full min-h-[50px] bg-transparent border-none outline-none resize-none px-3 text-xs text-white placeholder-zinc-500 font-sans"
+                    />
+                    <div className="flex justify-end border-t border-white/5 pt-2">
+                      <button type="submit" className="h-7 w-7 flex items-center justify-center rounded-full bg-violet-600 text-white">
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </form>
+
+                </div>
+              )}
+
+              {/* Connectors View */}
+              {activeSettingsTab === "connectors" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                    <div className="flex flex-col">
+                      <h2 className="text-base font-bold text-white">Integrations</h2>
+                      <p className="text-xs text-zinc-500">Connect output channels directly to publish final renders.</p>
+                    </div>
+
                     <button
-                      type="submit"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-white shadow-[0_4px_12px_rgba(139,92,246,0.3)] transition hover:bg-violet-500"
+                      onClick={() => setIsCustomMcpModalOpen(true)}
+                      className="px-3 py-1.5 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-300 rounded-lg hover:bg-white/[0.05] transition"
                     >
-                      <ArrowUp className="h-4 w-4" />
+                      + Custom MCP
                     </button>
                   </div>
-                </form>
 
-              </div>
-            );
-          })()}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {connectorsList.map((conn) => (
+                      <div
+                        key={conn.id}
+                        className={`p-4 rounded-xl border flex items-start justify-between gap-4 transition ${
+                          conn.isConnected ? "border-emerald-500/20 bg-emerald-950/[0.03]" : "border-white/5 bg-white/[0.01]"
+                        }`}
+                      >
+                        <div className="flex gap-3 min-w-0">
+                          <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/[0.02] border border-white/5 text-lg shrink-0">
+                            {getConnectorIcon(conn.id, conn.icon)}
+                          </div>
+                          <div className="flex flex-col text-left min-w-0">
+                            <span className="text-xs font-bold text-white truncate">{conn.title}</span>
+                            <span className="text-[10px] text-zinc-400 leading-normal line-clamp-2">{conn.desc}</span>
+                            {conn.isConnected && (
+                              <span className="text-[9px] text-emerald-400 font-bold flex items-center gap-1 mt-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                Connected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {conn.isConnected ? (
+                          <button
+                            onClick={() => handleDisconnectConnector(conn.id)}
+                            className="text-[10px] text-red-400 hover:text-red-300 font-bold shrink-0"
+                          >
+                            Disconnect
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActiveConnector(conn);
+                              setConnectorStep(1);
+                              handleOpenOAuthPopup();
+                            }}
+                            className="h-6 w-6 flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400"
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
 
         </div>
 
       </main>
 
-      {/* Confirmation Staging Modal */}
-      {isConfirmingRun && (
+      {/* Settings Modal (Create Skill) */}
+      {isSkillModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-          <div className="relative w-full max-w-[400px] rounded-2xl border border-white/10 bg-[#050914] p-6 shadow-2xl space-y-4 text-left">
-            <button
-              type="button"
-              onClick={() => setIsConfirmingRun(false)}
-              className="absolute right-4 top-4 text-zinc-500 hover:text-white"
-            >
+          <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-[#050914] p-5 shadow-2xl space-y-4">
+            <button onClick={() => setIsSkillModalOpen(false)} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
               <X className="h-4 w-4" />
             </button>
-
-            <div className="flex items-center gap-3 border-b border-white/5 pb-3">
-              <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-violet-600/10 border border-violet-500/20 text-violet-400">
-                <Brain className="h-5 w-5 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Staged Pipeline Confirmation</h3>
-                <span className="text-[10px] text-zinc-500">Review task parameters before execution</span>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs text-zinc-300">
-              <div className="p-3 rounded-lg bg-white/[0.02] border border-white/5 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 font-semibold">Orchestrator:</span>
-                  <span className="font-bold text-white capitalize">{selectedOrchestrator.replace("orchestrator-", "").replace("-", " ")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 font-semibold">Pipeline Route:</span>
-                  <span className="font-bold text-white capitalize">{activeChip} workflow</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500 font-semibold">Est. Cost:</span>
-                  <span className="font-bold text-emerald-400">5 credits</span>
-                </div>
+            
+            <h3 className="text-sm font-bold text-white">Create Custom Workspace Skill</h3>
+            
+            <form onSubmit={handleCreateSkill} className="space-y-3.5 text-xs text-left">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-zinc-400 font-semibold">Skill Slash Command</label>
+                <input
+                  type="text"
+                  required
+                  value={newSkillTitle}
+                  onChange={(e) => setNewSkillTitle(e.target.value)}
+                  placeholder="e.g. /my-custom-clipper"
+                  className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
+                />
               </div>
 
-              <div className="space-y-1">
-                <span className="text-zinc-500 font-bold">Prompt text:</span>
-                <p className="p-2.5 rounded-lg bg-black/40 border border-white/5 text-[11px] font-medium leading-normal italic text-zinc-400 max-h-[80px] overflow-y-auto">
-                  "{prompt}"
-                </p>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-zinc-400 font-semibold">Description</label>
+                <textarea
+                  required
+                  value={newSkillDesc}
+                  onChange={(e) => setNewSkillDesc(e.target.value)}
+                  placeholder="Summarize the capability process."
+                  className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
+                  rows={2}
+                />
               </div>
-            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-zinc-400 font-semibold">System Prompt Instructions</label>
+                <textarea
+                  required
+                  value={newSkillPrompt}
+                  onChange={(e) => setNewSkillPrompt(e.target.value)}
+                  placeholder="Define the workflow sequence details..."
+                  className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none placeholder-zinc-600"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-zinc-400 font-semibold">Category</label>
+                <select
+                  value={newSkillCategory}
+                  onChange={(e) => setNewSkillCategory(e.target.value)}
+                  className="w-full rounded-lg border border-white/5 bg-[#090f1d] px-3 py-2 text-white outline-none"
+                >
+                  {["Content Creation", "Creative & Marketing", "Frontend Engineer", "Writing", "Marketing & Sales", "Personal & Specialized", "Productivity"].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
               <button
-                type="button"
-                onClick={() => setIsConfirmingRun(false)}
-                className="px-4 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-300 rounded-lg hover:bg-white/[0.05] transition"
+                type="submit"
+                className="w-full rounded-xl bg-violet-600 hover:bg-violet-500 py-2.5 font-bold text-white transition mt-2 shadow-[0_4px_12px_rgba(139,92,246,0.2)]"
               >
-                Cancel
+                Create Skill
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsConfirmingRun(false);
-                  handleStartTask();
-                }}
-                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition"
-              >
-                Confirm & Run
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Custom MCP Modal Setup */}
+      {/* Settings Modal (Connector Oauth Simulator) */}
+      {activeConnector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-[#050914] p-6 shadow-2xl text-center space-y-6">
+            <button onClick={() => { setActiveConnector(null); setConnectorToken(""); }} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+
+            {connectorStep === 1 ? (
+              <div className="flex flex-col items-center justify-center space-y-6 py-4">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeConnector.title}</span>
+                
+                <div className="flex items-center justify-center gap-8">
+                  <div className="relative h-14 w-14 rounded-2xl border border-violet-500/20 bg-slate-950/40 p-2.5 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.2)]">
+                    <Image src="/logo-saad-transparent.png" alt="Saad Studio Logo" width={40} height={40} className="object-contain" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-violet-400 animate-ping" />
+                    <span className="h-1 w-12 border-t-2 border-dashed border-white/20 animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+                  </div>
+                  <div className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.02] text-3xl flex items-center justify-center shadow-lg">
+                    {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-8 w-8 shrink-0")}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-bold text-white">Finish connecting {activeConnector.title} in the new window</h3>
+                  <button onClick={handleOpenOAuthPopup} className="text-xs text-zinc-500 hover:text-white underline block mx-auto transition">
+                    Don't see the window? Reopen it
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5 text-center py-2">
+                <div className="mx-auto h-20 w-20 rounded-full border border-violet-500/30 bg-slate-900/60 p-3 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.15)] relative">
+                  <div className="absolute inset-0 rounded-full border border-dashed border-violet-400/40 animate-spin" />
+                  {getConnectorIcon(activeConnector.id, activeConnector.icon, "h-10 w-10 shrink-0")}
+                </div>
+
+                <div>
+                  <h3 className="text-base font-bold text-white">{activeConnector.title}</h3>
+                  <p className="text-xs text-zinc-500 max-w-[320px] mx-auto mt-1 leading-normal">
+                    Publish text, image, multi-image, and video posts to the connected {activeConnector.title} profile.
+                  </p>
+                </div>
+
+                <div className="text-left space-y-2 bg-[#090f1d]/50 p-4 rounded-xl border border-white/5">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block font-mono">Scope Features</span>
+                  <ul className="space-y-1.5">
+                    {(activeConnector.features || []).map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-xs text-zinc-300">
+                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 font-bold bg-emerald-950/10 border border-emerald-500/20 p-2.5 rounded-lg animate-pulse">
+                  <span>👤 Profile:</span>
+                  <span className="underline">{connectorToken}</span>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button onClick={() => { setActiveConnector(null); setConnectorToken(""); }} className="px-4 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-400 rounded-xl">
+                    Cancel
+                  </button>
+                  <button onClick={handleSaveConnector} disabled={connectorSaving} className="px-5 py-2.5 rounded-xl bg-violet-600 text-white font-bold text-xs shadow-md">
+                    {connectorSaving ? "Saving..." : "Save Connection"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal (Custom MCP Setup) */}
       {isCustomMcpModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
           <div className="relative w-full max-w-[440px] rounded-2xl border border-white/10 bg-[#050914] p-5 shadow-2xl space-y-4 text-left">
-            <button
-              type="button"
-              onClick={() => setIsCustomMcpModalOpen(false)}
-              className="absolute right-4 top-4 text-zinc-500 hover:text-white"
-            >
+            <button type="button" onClick={() => setIsCustomMcpModalOpen(false)} className="absolute right-4 top-4 text-zinc-500 hover:text-white">
               <X className="h-4 w-4" />
             </button>
 
@@ -3132,17 +2694,10 @@ export default function AgentStudioPage() {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomMcpModalOpen(false)}
-                  className="px-4 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-400 rounded-xl hover:bg-white/[0.05] transition"
-                >
+                <button type="button" onClick={() => setIsCustomMcpModalOpen(false)} className="px-4 py-2 border border-white/5 bg-white/[0.02] text-xs font-bold text-zinc-400 rounded-xl">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md transition"
-                >
+                <button type="submit" className="px-4 py-2 rounded-xl bg-violet-600 text-white font-bold text-xs shadow-md">
                   Install Connector
                 </button>
               </div>

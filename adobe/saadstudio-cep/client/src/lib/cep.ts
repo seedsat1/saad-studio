@@ -241,7 +241,6 @@ function mockEsResult<T>(fn: string): T {
     || fn === "testPodcastInsertOverwriteOnDuplicate"
     || fn === "testPodcastReconstructInsertOverwriteOnDuplicate"
     || fn === "applyPodcastCameraDecisionsOverlapAwareVisualOnly"
-    || fn === "applyPodcastSilenceRemovalVisualOnly"
   ) {
     return {
       ok: false,
