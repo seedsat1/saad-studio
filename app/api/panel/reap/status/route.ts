@@ -19,6 +19,7 @@ import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-
 import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -108,8 +109,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: "completed",
-      url: persistedUrls[0] ?? null,
-      urls: persistedUrls,
+      url: persistedUrls[0] ? normalizeMediaUrl(persistedUrls[0]) : null,
+      urls: persistedUrls.map((u) => normalizeMediaUrl(u) as string),
       metadata: result.metadata,
     });
   } catch (err) {

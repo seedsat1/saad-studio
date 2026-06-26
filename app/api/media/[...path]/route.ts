@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getActiveProvider, getFallbackProvider, getDeliveryMode, extractObjectKey } from "@/lib/media-gateway";
+import { defaultProvider, legacyProvider } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -10,186 +10,205 @@ const corsHeaders = {
   "Accept-Ranges": "bytes",
 };
 
-function fixContentType(contentType: string | null | undefined, key: string): string {
-  if ((!contentType || contentType === "application/octet-stream" || contentType === "binary/octet-stream") && key.includes("video")) {
-    return "video/mp4";
-  }
-  if (key.toLowerCase().endsWith(".mp4")) return "video/mp4";
-  if (key.toLowerCase().endsWith(".webm")) return "video/webm";
-  if (key.toLowerCase().endsWith(".jpg") || key.toLowerCase().endsWith(".jpeg")) return "image/jpeg";
-  if (key.toLowerCase().endsWith(".png")) return "image/png";
-  if (key.toLowerCase().endsWith(".webp")) return "image/webp";
-  if (key.toLowerCase().endsWith(".srt")) return "text/plain";
-  if (key.toLowerCase().endsWith(".vtt")) return "text/vtt";
-  return contentType || "application/octet-stream";
-}
-
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-async function handleMediaRequest(req: NextRequest, pathParts: string[], method: "GET" | "HEAD") {
-  if (pathParts.length === 0) {
-    return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+function fixContentType(contentType: string | undefined, key: string): string {
+  const lowerKey = key.toLowerCase();
+  const rawCt = (contentType || "").toLowerCase();
+  
+  if (lowerKey.endsWith(".mp4")) {
+    return "video/mp4";
   }
-
-  const rawKey = pathParts.join("/");
-  const key = extractObjectKey(rawKey);
-  if (!key) {
-    return new NextResponse("Invalid Path", { status: 400, headers: corsHeaders });
-  }
-
-  const range = req.headers.get("range") || undefined;
-  console.log(`[api/media ${method}] Requested key: ${key}, range: ${range}`);
-
-  const activeProvider = getActiveProvider();
-  const fallbackProvider = getFallbackProvider();
-  const deliveryMode = getDeliveryMode();
-
-  // Active Provider check/fetch
-  try {
-    const publicUrl = activeProvider.getPublicUrl(key);
-    
-    if (deliveryMode === "redirect" && method === "GET") {
-      console.log(`[api/media GET] Redirect mode active. Redirecting to active provider URL: ${publicUrl}`);
-      return NextResponse.redirect(publicUrl, { status: 302 });
-    }
-
-    const headers: Record<string, string> = {};
-    if (range) {
-      headers["Range"] = range;
-    }
-
-    console.log(`[api/media ${method}] Proxying to active provider: ${activeProvider.name}`);
-    const response = await fetch(publicUrl, {
-      method,
-      headers,
-      signal: AbortSignal.timeout(60000),
-    });
-
-    if (response.ok || response.status === 206) {
-      console.log(`[api/media ${method}] Active provider response OK (${response.status})`);
-      const responseHeaders: Record<string, string> = { ...corsHeaders };
-      
-      const headersToPreserve = [
-        "content-type",
-        "content-length",
-        "accept-ranges",
-        "content-range",
-        "cache-control",
-        "etag",
-        "last-modified",
-      ];
-
-      for (const h of headersToPreserve) {
-        const val = response.headers.get(h);
-        if (val) {
-          let keyName = h;
-          if (h === "content-type") keyName = "Content-Type";
-          else if (h === "content-length") keyName = "Content-Length";
-          else if (h === "accept-ranges") keyName = "Accept-Ranges";
-          else if (h === "content-range") keyName = "Content-Range";
-          else if (h === "cache-control") keyName = "Cache-Control";
-          else if (h === "etag") keyName = "ETag";
-          else if (h === "last-modified") keyName = "Last-Modified";
-          responseHeaders[keyName] = val;
-        }
-      }
-
-      // Ensure Content-Type is correct
-      const currentCt = responseHeaders["Content-Type"];
-      responseHeaders["Content-Type"] = fixContentType(currentCt, key);
-
-      // Ensure Accept-Ranges is set
-      responseHeaders["Accept-Ranges"] = "bytes";
-
-      return new NextResponse(method === "HEAD" ? null : response.body, {
-        status: response.status,
-        headers: responseHeaders,
-      });
-    } else {
-      console.warn(`[api/media ${method}] Active provider returned non-ok status: ${response.status}`);
-    }
-  } catch (err) {
-    console.warn(`[api/media ${method}] Active provider failed:`, err);
-  }
-
-  // Fallback Provider check/fetch
-  if (fallbackProvider) {
-    try {
-      const fallbackUrl = fallbackProvider.getPublicUrl(key);
-      if (deliveryMode === "redirect" && method === "GET") {
-        console.log(`[api/media GET] Redirect mode active. Redirecting to fallback provider URL: ${fallbackUrl}`);
-        return NextResponse.redirect(fallbackUrl, { status: 302 });
-      }
-
-      const headers: Record<string, string> = {};
-      if (range) {
-        headers["Range"] = range;
-      }
-
-      console.log(`[api/media ${method}] Proxying to fallback provider: ${fallbackProvider.name}`);
-      const response = await fetch(fallbackUrl, {
-        method,
-        headers,
-        signal: AbortSignal.timeout(60000),
-      });
-
-      if (response.ok || response.status === 206) {
-        console.log(`[api/media ${method}] Fallback provider response OK (${response.status})`);
-        const responseHeaders: Record<string, string> = { ...corsHeaders };
-        
-        const headersToPreserve = [
-          "content-type",
-          "content-length",
-          "accept-ranges",
-          "content-range",
-          "cache-control",
-          "etag",
-          "last-modified",
-        ];
-
-        for (const h of headersToPreserve) {
-          const val = response.headers.get(h);
-          if (val) {
-            let keyName = h;
-            if (h === "content-type") keyName = "Content-Type";
-            else if (h === "content-length") keyName = "Content-Length";
-            else if (h === "accept-ranges") keyName = "Accept-Ranges";
-            else if (h === "content-range") keyName = "Content-Range";
-            else if (h === "cache-control") keyName = "Cache-Control";
-            else if (h === "etag") keyName = "ETag";
-            else if (h === "last-modified") keyName = "Last-Modified";
-            responseHeaders[keyName] = val;
-          }
-        }
-
-        responseHeaders["Content-Type"] = fixContentType(responseHeaders["Content-Type"], key);
-        responseHeaders["Accept-Ranges"] = "bytes";
-
-        return new NextResponse(method === "HEAD" ? null : response.body, {
-          status: response.status,
-          headers: responseHeaders,
-        });
-      }
-    } catch (err) {
-      console.warn(`[api/media ${method}] Fallback provider failed:`, err);
+  if (lowerKey.endsWith(".bin")) {
+    if (lowerKey.includes("videos/") || rawCt.startsWith("video/")) {
+      return "video/mp4";
     }
   }
-
-  return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
-}
-
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { path: string[] } }
-) {
-  return handleMediaRequest(req, params.path, "GET");
+  if (lowerKey.endsWith(".vtt")) {
+    return "text/vtt; charset=utf-8";
+  }
+  if (lowerKey.endsWith(".srt")) {
+    return "text/srt; charset=utf-8";
+  }
+  if (lowerKey.endsWith(".mp3")) {
+    return "audio/mpeg";
+  }
+  if (lowerKey.endsWith(".wav")) {
+    return "audio/wav";
+  }
+  if (lowerKey.endsWith(".png")) {
+    return "image/png";
+  }
+  if (lowerKey.endsWith(".jpg") || lowerKey.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (lowerKey.endsWith(".webp")) {
+    return "image/webp";
+  }
+  return contentType || "application/octet-stream";
 }
 
 export async function HEAD(
   req: NextRequest,
   { params }: { params: { path: string[] } }
 ) {
-  return handleMediaRequest(req, params.path, "HEAD");
+  try {
+    const pathParts = params.path || [];
+    if (pathParts.length === 0) {
+      return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+    }
+
+    const key = pathParts.join("/");
+    const decodedKey = decodeURIComponent(key);
+    const requestedPath = req.nextUrl.pathname;
+
+    console.log(`[api/media HEAD] Requested Path: ${requestedPath}`);
+    console.log(`[api/media HEAD] Decoded Object Key: ${decodedKey}`);
+
+    // 1. Try default provider (Backblaze B2)
+    try {
+      const exists = await defaultProvider.exists({ bucket: "", path: decodedKey });
+      console.log(`[api/media HEAD] Backblaze B2 - Path: ${decodedKey} | Exists: ${exists}`);
+      if (exists) {
+        const metadata = await defaultProvider.download({ bucket: "", path: decodedKey });
+        const fixedCt = fixContentType(metadata.contentType, decodedKey);
+        console.log(`[api/media HEAD] Serving from Backblaze B2 | Key: ${decodedKey} | Content-Type: ${fixedCt}`);
+        return new NextResponse(null, {
+          status: 200,
+          headers: {
+            "Content-Type": fixedCt,
+            "Content-Length": String(metadata.totalSize),
+            "Cache-Control": metadata.cacheControl,
+            ...corsHeaders,
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("[api/media HEAD] Default provider failed for key:", decodedKey, err);
+    }
+
+    // 2. Try legacy provider (Cloudflare R2)
+    try {
+      const exists = await legacyProvider.exists({ bucket: "", path: decodedKey });
+      console.log(`[api/media HEAD] Cloudflare R2 (Legacy) - Path: ${decodedKey} | Exists: ${exists}`);
+      if (exists) {
+        const metadata = await legacyProvider.download({ bucket: "", path: decodedKey });
+        const fixedCt = fixContentType(metadata.contentType, decodedKey);
+        console.log(`[api/media HEAD] Serving from Cloudflare R2 | Key: ${decodedKey} | Content-Type: ${fixedCt}`);
+        return new NextResponse(null, {
+          status: 200,
+          headers: {
+            "Content-Type": fixedCt,
+            "Content-Length": String(metadata.totalSize),
+            "Cache-Control": metadata.cacheControl,
+            ...corsHeaders,
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("[api/media HEAD] Legacy provider failed for key:", decodedKey, err);
+    }
+
+    console.warn(`[api/media HEAD] Key not found in any provider: ${decodedKey}`);
+    return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+  } catch (error) {
+    console.error("[api/media HEAD] Global failure:", error);
+    return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { path: string[] } }
+) {
+  try {
+    const pathParts = params.path || [];
+    if (pathParts.length === 0) {
+      return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+    }
+
+    const key = pathParts.join("/");
+    const decodedKey = decodeURIComponent(key);
+    const requestedPath = req.nextUrl.pathname;
+    const range = req.headers.get("range") || undefined;
+
+    console.log(`[api/media GET] Requested Path: ${requestedPath}`);
+    console.log(`[api/media GET] Decoded Object Key: ${decodedKey}`);
+
+    // 1. Try default provider (Backblaze B2)
+    try {
+      const exists = await defaultProvider.exists({ bucket: "", path: decodedKey });
+      console.log(`[api/media GET] Backblaze B2 - Path: ${decodedKey} | Exists: ${exists}`);
+      if (exists) {
+        const response = await defaultProvider.download({ bucket: "", path: decodedKey, range });
+        const fixedCt = fixContentType(response.contentType, decodedKey);
+        console.log(`[api/media GET] Serving from Backblaze B2 | Key: ${decodedKey} | Content-Type: ${fixedCt} | Range: ${range}`);
+        
+        const responseHeaders: Record<string, string> = {
+          "Content-Type": fixedCt,
+          "Cache-Control": response.cacheControl,
+          ...corsHeaders,
+        };
+
+        if (response.contentRange) {
+          responseHeaders["Content-Range"] = response.contentRange;
+          responseHeaders["Content-Length"] = String(response.contentLength);
+        } else {
+          responseHeaders["Content-Length"] = String(response.totalSize);
+        }
+
+        if (response.etag) responseHeaders["ETag"] = response.etag;
+        if (response.lastModified) responseHeaders["Last-Modified"] = response.lastModified;
+
+        return new NextResponse(response.body as ReadableStream, {
+          status: range ? 206 : 200,
+          headers: responseHeaders,
+        });
+      }
+    } catch (err) {
+      console.warn("[api/media GET] Default provider failed for key:", decodedKey, err);
+    }
+
+    // 2. Try legacy provider (Cloudflare R2)
+    try {
+      const exists = await legacyProvider.exists({ bucket: "", path: decodedKey });
+      console.log(`[api/media GET] Cloudflare R2 (Legacy) - Path: ${decodedKey} | Exists: ${exists}`);
+      if (exists) {
+        const response = await legacyProvider.download({ bucket: "", path: decodedKey, range });
+        const fixedCt = fixContentType(response.contentType, decodedKey);
+        console.log(`[api/media GET] Serving from Cloudflare R2 | Key: ${decodedKey} | Content-Type: ${fixedCt} | Range: ${range}`);
+        
+        const responseHeaders: Record<string, string> = {
+          "Content-Type": fixedCt,
+          "Cache-Control": response.cacheControl,
+          ...corsHeaders,
+        };
+
+        if (response.contentRange) {
+          responseHeaders["Content-Range"] = response.contentRange;
+          responseHeaders["Content-Length"] = String(response.contentLength);
+        } else {
+          responseHeaders["Content-Length"] = String(response.totalSize);
+        }
+
+        if (response.etag) responseHeaders["ETag"] = response.etag;
+        if (response.lastModified) responseHeaders["Last-Modified"] = response.lastModified;
+
+        return new NextResponse(response.body as any, {
+          status: range ? 206 : 200,
+          headers: responseHeaders,
+        });
+      }
+    } catch (err) {
+      console.warn("[api/media GET] Legacy provider failed for key:", decodedKey, err);
+    }
+
+    console.warn(`[api/media GET] Key not found in any provider: ${decodedKey}`);
+    return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+  } catch (error) {
+    console.error("[api/media GET] Global failure:", error);
+    return new NextResponse("Not Found", { status: 404, headers: corsHeaders });
+  }
 }

@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePlainText } from "@/lib/security";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min — long enough for large video transcription
@@ -296,7 +297,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         text: result.text,
-        captionUrl: result.captionUrl,
+        captionUrl: normalizeMediaUrl(result.captionUrl),
         raw: result.raw,
       },
       { status: 200 },

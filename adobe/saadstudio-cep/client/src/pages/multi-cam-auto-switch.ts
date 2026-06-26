@@ -404,8 +404,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
       if (state.synchronizationApplyResult?.ok) {
         const res = state.synchronizationApplyResult;
-        messages.push(`✔ Sync applied successfully: ${countSynchronizedClips(plan)} tracks synchronized.`);
-        messages.push(`  • Clips moved: ${res.clipsMoved}`);
+        messages.push(`✔ Sync applied on duplicate sequence: ${res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft"}.`);
+        messages.push(`  • Original untouched: ${res.originalSequenceName || plan.sequenceName || "source sequence"}`);
+        messages.push(`  • Tracks synchronized: ${countSynchronizedClips(plan)}`);
+        messages.push(`  • Clips moved on duplicate: ${res.clipsMoved}`);
         messages.push(`  • Largest offset before: ${res.largestOffsetBefore != null ? res.largestOffsetBefore.toFixed(3) + "s" : "N/A"}`);
         messages.push(`  • Largest offset after: ${res.largestOffsetAfter != null ? res.largestOffsetAfter.toFixed(3) + "s" : "N/A"} (Proof of alignment)`);
         
@@ -1811,13 +1813,17 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ok: false,
         sequenceName: state.synchronizationPlan.sequenceName ?? null,
         sequenceId: state.synchronizationPlan.sequenceId ?? null,
+        originalSequenceName: state.synchronizationPlan.sequenceName ?? null,
+        originalSequenceId: state.synchronizationPlan.sequenceId ?? null,
+        duplicateSequenceName: null,
+        duplicateSequenceId: null,
         offsetsApplied: 0,
         clipsMoved: 0,
         movedItems: [],
         blockers: ["APPLY_SYNC_FAILED", (err as Error).message],
         warnings: [],
-        timelineMutation: "move current timeline clips",
-        sequenceMutation: "none",
+        timelineMutation: "duplicate + move synchronized clips on duplicate only",
+        sequenceMutation: "duplicate-only",
       };
     } finally {
       state.synchronizationApplyLoading = false;

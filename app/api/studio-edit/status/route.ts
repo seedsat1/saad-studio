@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { pollReapStatus } from "@/lib/providers/reap";
 import { persistProviderUrl } from "@/lib/providers/persist-output";
 import { setGenerationMediaUrl, saveAdditionalGenerationUrls, finalizeReapGeneration } from "@/lib/credit-ledger";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,11 @@ export async function GET(req: NextRequest) {
     });
 
     if (job && (job.status === "completed" || job.status === "failed")) {
+      const outputUrls = Array.isArray(job.outputUrls) ? (job.outputUrls as string[]).map(url => normalizeMediaUrl(url) || url) : [];
       return NextResponse.json({
         status: job.status,
-        url: Array.isArray(job.outputUrls) && job.outputUrls.length ? (job.outputUrls as string[])[0] : null,
-        urls: job.outputUrls,
+        url: outputUrls.length ? outputUrls[0] : null,
+        urls: outputUrls,
         error: job.error,
       });
     }
@@ -102,8 +104,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       status: "completed",
-      url: persistedUrls[0] ?? null,
-      urls: persistedUrls,
+      url: persistedUrls[0] ? normalizeMediaUrl(persistedUrls[0]) : null,
+      urls: persistedUrls.map((u) => normalizeMediaUrl(u) as string),
       metadata: result.metadata,
     });
   } catch (err) {

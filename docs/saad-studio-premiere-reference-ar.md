@@ -1,5 +1,13 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Synchronize media source resolution diagnostics (2026-06-26)
+
+- Timeline snapshot clip media path resolution order is fixed: first `projectItem.getMediaPath()`, then linked timeline items via `clip.getLinkedItems()`/`clip.linkedItems`, then unresolved.
+- Snapshot clips expose `sourcePathResolutionMethod` as `projectItem.getMediaPath`, `linkedItem.projectItem.getMediaPath`, or `unresolved`.
+- Unresolved clips expose `mediaUnavailableReason` as `nested_sequence`, `generated_clip`, `missing_project_item`, `empty_media_path`, or `unknown`.
+- `buildSynchronizationPlan()` must report media-resolution diagnostics before blocking: total video/audio clips, clips with media paths, direct/linked counts, and first unresolved clips with track/index/name/reason.
+- Waveform analysis must not start unless at least one real audio media path exists. Nested/generated clips are not directly analyzable unless a real underlying linked media path is resolved.
+
 آخر مراجعة: 2026-06-22
 
 هذا الملف هو المرجع التشغيلي المختصر للمحادثات اللاحقة. عند التعارض، تكون الأولوية للوثائق الرسمية، ثم لاختبارات Runtime المثبتة داخل Premiere، ثم للمرجع المعماري v3.1.
@@ -322,3 +330,11 @@
 - دالة `findAutoZoomTransformComponent` تجمع الآن `matchName` و`displayName` معاً لضمان اكتشاف تأثير Transform تحت أي لغة واجهة (مثل العربية "تحويل").
 - دالة `findAutoZoomMotionScaleProperty` تطابق خاصية المقياس بالاسم الثابت `"ADBE Motion Scale"` بجانب الأسماء الافتراضية.
 - لتفادي الكي فريمز العشوائية التي يضعها Premiere تلقائياً عند موضع الـ playhead الحالي عند تشغيل الساعة `setTimeVarying(true)`، يتم استدعاء `removeKeyRange` على نطاق المقطع كاملاً لتنظيف الخصائص قبل كتابة مفاتيح الزوم الفعالة.
+
+### قاعدة Synchronize Duplicate-only (2026-06-26)
+- مسار Apply Sync لا يطبق الإزاحات على الـ Original Sequence نهائياً. يجب تنشيط السورس، إنشاء نسخة `Saad Sync Draft`، ثم تنشيط النسخة وتطبيق الإزاحات عليها فقط.
+- يجب الحفاظ على Timeline Scanner وAudio Analysis وPairwise Correlation وSync Graph وFine Alignment وValidation كطبقات مستقلة؛ تغيير سير التطبيق لا يعني إعادة كتابة محرك التحليل.
+- عند تحريك مقطع داخل النسخة، يجب الحفاظ على العلاقات المرتبطة بين الفيديو والصوت عبر منطق linked items في JSX وعدم تحريك العنصر نفسه أكثر من مرة.
+- بعد التطبيق، يجب إعادة فحص النسخة الناتجة وإنتاج تقرير يحتوي: اسم/معرف الأصل، اسم/معرف النسخة، عدد الإزاحات، عدد المقاطع المحركة، أكبر انحراف قبل/بعد، التحذيرات، والـ blockers.
+- إذا كانت المقاطع متزامنة مسبقاً ضمن السماحية، تنشأ نسخة أيضاً وتعود الحالة `already-synced` بدون تعديل الأصل.
+- لا تعتبر العملية ناجحة إنتاجياً إذا فشل إنشاء النسخة، أو فشل تنشيطها، أو لم يثبت التحقق النهائي أن أكبر انحراف بعد التطبيق ضمن السماحية.

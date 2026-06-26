@@ -7,12 +7,26 @@ export * from "./types";
 export const defaultProvider: StorageProvider = new BackblazeProvider();
 export const legacyProvider: StorageProvider = new R2Provider();
 
-import { resolveMediaUrl, extractObjectKey } from "../media-gateway";
-
 export function normalizeMediaUrl(url: string | null | undefined): string | null {
-  return resolveMediaUrl(url);
-}
+  if (!url) return null;
 
-export function getObjectKeyFromUrl(url: string): string | null {
-  return extractObjectKey(url);
+  let mediaPath = "";
+  // 1. If it already starts with /api/media/ or http://.../api/media/, extract the key
+  const apiMediaIndex = url.indexOf("/api/media/");
+  if (apiMediaIndex !== -1) {
+    mediaPath = url.slice(apiMediaIndex + "/api/media/".length);
+  } else {
+    // 2. Extract storage key robustly
+    const match = url.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
+    if (match) {
+      mediaPath = `${match[1]}/${match[2]}`;
+    }
+  }
+
+  if (!mediaPath) {
+    return url;
+  }
+
+  // 3. We should ALWAYS return the relative proxy URL format: `/api/media/${mediaPath}`
+  return `/api/media/${mediaPath}`;
 }

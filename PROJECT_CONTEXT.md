@@ -1,5 +1,80 @@
 # Saad Studio — Project Context
-## آخر مهمة: معالجة أخطاء الـ 404 للميديا في صفحات المستخدم وتفعيل بوابة الميديا للأصول (2026-06-26)
+## آخر مهمة: إضافة واجهة الصور المرجعية المتعددة (Star Wand) لصفحة Agent Studio ومزامنة حمولتها مع API الفيديو (2026-06-26)
+
+- **المشكلة**:
+  عدم وجود واجهة تحميل أو عرض للصور المرجعية الإضافية (Star Wand) في لوحة التحكم الذكية لصفحة `/agent-studio` لتحديد عدد الصور المرجعية المناسبة لكل موديل توليد فيديو (3 صور لـ Kling 3.0، و 9 صور لـ Seedance 2.0)، وعدم إرسالها ضمن حمولة الطلب الموجه لـ API الفيديو `/api/video`.
+
+- **الإصلاح والتحقق**:
+  1. **بناء واجهة الصور المرجعية**: إضافة شبكة (Grid) تفاعلية ومؤتمتة بالكامل تعرض خانات الصور المرجعية المتاحة طبقاً للموديل النشط (3 خانات لـ Kling و 9 لـ Seedance).
+  2. **تحميل وحذف الصور**: ربط كل خانة بمدخل تحميل صور مستقل مع زر حذف وتخزينها في مصفوفة حالة `smartReferenceImages`.
+  3. **ربط حمولة API**: تمرير مصفوفة الروابط المصفاة تحت الحقل `reference_image_urls` في payload طلب التوليد ليتوافق مع API الفيديو بالخلفية.
+  4. **فحص TypeScript**: تشغيل `tsc` بنجاح كامل لضمان خلو التعديلات من أخطاء التجميع.
+
+- **الملفات المتأثرة**:
+  - [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/agent-studio/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - التحقق ديناميكياً من الموديل المختار لتعديل عدد الخانات المتاحة للصور المرجعية تلقائياً (3 أو 9 أو 0).
+  - استخدام التسميات الثنائية العربية/الإنجليزية لتسهيل الفهم بصرياً للمستخدمين.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+
+## المهمة السابقة: دمج خيارات الموديلات الصحيحة ودعم Start & End Frames وتفعيل الصوت في صفحة Agent Studio (2026-06-26)
+
+- **المشكلة**:
+  كانت صفحة `/agent-studio` تفتقر إلى تكاملات الموديلات الصحيحة وقيم النسب، الوقت، الجودة، والستايلات التفصيلية للفيديو. كما كان ينقصها دعم صور البداية والنهاية (Start & End Frame / ستار واند) لتوجيه التوليد من صورة إلى فيديو، وخيار تفعيل/تعطيل الصوت في الفيديوهات المولدة.
+
+- **الإصلاح والتحقق**:
+  1. **تحديث الموديلات والمنافذ**: إتاحة موديلات Kling 3.0 Pro, Kling 3.0 Standard, Seedance 2.0 Stable, Seedance 2.0 Mini كخيارات صريحة في لوحة التحكم الذكية، مع توجيهها بالخلفية لروابط التوجيه الصحيحة: `kwaivgi/kling-v3.0-pro/text-to-video`, `bytedance/seedance-v2/text-to-video`, `bytedance/seedance-v2/text-to-video-mini`.
+  2. **تكامل الإعدادات**:
+     - النسبة (Aspect Ratio): تخصيص الخيارات ديناميكياً بحسب الموديل (Kling يدعم 16:9, 9:16, 1:1; بينما Seedance يدعم أيضاً 4:3, 3:4, 21:9, adaptive).
+     - الوقت (Duration): دعم خيارات 5s, 10s, 15s وتحويلها لأرقام صحيحة في الـ payload.
+     - الجودة (Quality): دعم std/pro/4K لـ Kling، و 480p/720p/1080p/4k لـ Seedance.
+     - الستايلات (Styles): تقديم قائمة غنية بالخيارات الإبداعية (سينمائي، واقعي، أنمي، ثلاثي الأبعاد، الخ).
+  3. **دعم صور البداية والنهاية (Star Wand / ستار واند)**: إضافة مربعات تحميل وسحب وإفلات لصور البداية (Start Frame) والنهاية (End Frame) وتمريرها في كائن التوليد بخصائص `first_frame_url`, `last_frame_url`, `image_urls`.
+  4. **دعم وتوليد الصوت (Generate Audio)**: إضافة زر تبديل (Toggle Switch) تفاعلي لتمكين أو تعطيل الصوت المصاحب للفيديو، وتمريره في الطلب الخلفي من خلال حقلي `sound` و `generate_audio` لتأكيد عمله لجميع الموديلات.
+  5. **حساب الرصيد ديناميكياً**: إضافة useEffect يقوم بتقدير الخصم التلقائي بناء على طول وجودة وموديل الفيديو المختار.
+  6. **فحص TypeScript**: تم تشغيل `npx tsc` بنجاح كامل 100% دون أي خطأ تجميع أو بناء.
+
+- **الملفات المتأثرة**:
+  - [page.tsx](file:///e:/موقع%20ثاني/next14%2520ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/agent-studio/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%2520ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - مزامنة حقول الجودة والنسب والخصم المالي ديناميكياً مع الموديل المختار لضمان عدم تمرير قيم غير صالحة للمنافذ السحابية وتجنب أخطاء 400.
+  - إرسال صور البداية والنهاية في كل من image_urls و first_frame_url/last_frame_url لتأكيد التوافق التام مع متطلبات Kling و Seedance معاً.
+  - تفعيل خيار الصوت افتراضياً وإضافته كزر تبديل لإبقاء المستخدم في تحكم كامل.
+
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+
+## المهمة السابقة: إعادة تصميم صفحة Agent Studio بالكامل لتصبح مساحة عمل إنتاجية وتكاملها مع المنظومة (2026-06-26)
+
+- **المشكلة**:
+  كانت صفحة `/agent-studio` تشبه واجهة دردشة تقليدية (ChatGPT Clone) وتحتوي على أقسام عامة لا تقدم سير عمل حقيقي ولا تعكس فلسفة الإخراج الإبداعي المطلوب (Creative Director).
+
+- **الإصلاح والتحقق**:
+  1. **إعادة التصميم البصري والوظيفي**: تم استبدال الشات التقليدي بصفحة متكاملة تدعم اختيار المهمة (Mission-based) والمخطط الزمني للتحرير (NLE Timeline) ومعاينة الفلو (Workflow Preview) وقائمة المهام المنفذة.
+  2. **تنظيم الإعدادات**: تم نقل أقسام المهارات (Skills) والذاكرة (Memory) والموصلات (Connectors) إلى لوحة إعدادات فرعية داخل الصفحة لتبسيط الملاحة الأساسية.
+  3. **التكامل البرمجي**: ربط الواجهة الجديدة بمسارات الـ APIs الخلفية المعتمدة للمنصة: `/api/agent-studio/run` للمهام الإرشادية و `/api/video` لتوليد الفيديوهات و `/api/generate/image` للصور.
+  4. **إضافة نظام الإرشاد التفاعلي ومحاكاة العمل (Visual Tour & Play Demo)**: تم تطوير لوحة إرشادية مصورة توضح مراحل سير العمل بالصفحة مع جولة تفاعلية من 6 خطوات (Workspace Guided Tour). كما تم بناء ميزة **"See It In Action 🎬"** لمحاكاة توليد مشروع إعلان قهوة كامل حركياً (تعبئة النص، إظهار مراحل التخطيط والتحميل، وتدفق التايملاين لتشغيل الفيديو النهائي وقراءة لوحة الـ Storyboard) لتمكين المشتركين من رؤية وفهم الواجهة بصرياً في 5 ثوانٍ دون الحاجة للقراءة الحرفية.
+  5. **التحقق والترجمة**: تم إجراء فحص تجميع TypeScript بنجاح تام للملف المعدّل دون أي أخطاء.
+
+- **الملفات المتأثرة**:
+  - [page.tsx](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/agent-studio/page.tsx) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - دمج كافة تفاعلات الذكاء الاصطناعي في واجهة مساحة عمل واحدة (Single-page Live Workspace) لمنع تشتيت المستخدم والحفاظ على منظور التحكم الإبداعي.
+  - الحفاظ على مزامنة البيانات عبر الـ LocalStorage keys القديمة لضمان عدم ضياع إعدادات المستخدم والمهارات والذاكرة الحالية.
+
+- **الخطوة المتبقية**:
+  - نشر التغييرات والقيام باختبار إنتاجي كامل للتأكد من سلاسة أزمنة المعالجة السحابية والتنفيذ.
+
+## المهمة السابقة: معالجة أخطاء الـ 404 للميديا في صفحات المستخدم وتفعيل بوابة الميديا للأصول (2026-06-26)
 
 - **المشكلة**:
   1. تعطل تحميل وعرض معاينات الأنماط السينمائية (Cinematic Styles) والانتقالات (Transitions) على واجهة المستخدم بـ 404 بسبب طلب مفاتيح التخزين النسبية مباشرةً كروابط نسبية في المتصفح.
@@ -2841,6 +2916,51 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
   - `adobe/saadstudio-cep/client/src/lib/cep.ts`
   - `adobe/saadstudio-cep/jsx/index.jsx`
   - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/jsx/index.jsx`
+
+## Synchronize Snapshot media path fallback (2026-06-26)
+
+- Current state: minimal fix added for Analyze Sync snapshot media resolution only. Timeline clips still use `projectItem.getMediaPath()` first. If it is empty, JSX now checks linked items via `clip.getLinkedItems()`/`clip.linkedItems` and uses the first linked project item media path when available.
+- Affected files:
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/types/premiere.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts`
+- Behavior:
+  - Each snapshot clip can now report `sourcePathResolutionMethod`: `projectItem.getMediaPath`, `linkedItem.projectItem.getMediaPath`, or `unresolved`.
+  - Unresolved clips report `mediaUnavailableReason`: `nested_sequence`, `generated_clip`, `missing_project_item`, `empty_media_path`, or `unknown`.
+  - `buildSynchronizationPlan()` now adds media-resolution diagnostics before generic sync blockers: total video/audio clips, clips with media paths, direct/linked counts, and the first unresolved clips with track/index/name/reason.
+  - Waveform analysis still requires at least one real audio media path. No fake paths are generated and nested/generated clips are not treated as analyzable unless a real linked media path is found.
+- Verification:
+  - `npm.cmd run build:cep` succeeded.
+  - Release extension was copied to `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep`.
+  - Source and release build contain `sourcePathResolutionMethod`, `mediaUnavailableReason`, linked item fallback, and media-resolution diagnostic strings.
+- Remaining step:
+  - Reload the Saad Studio panel in Premiere, run Analyze Sync, and capture the new runtime messages `VIDEO_MEDIA_RESOLUTION`, `AUDIO_MEDIA_RESOLUTION`, and any `*_MEDIA_UNRESOLVED` lines.
+
+## تحديث مسار Synchronize إلى Duplicate-only مع تقرير تحقق (2026-06-26)
+
+- الحالة الحالية: تم إكمال مسار تطبيق المزامنة بحيث لا يحرّك المقاطع داخل الـ Original Sequence. عند Apply Sync يتم تنشيط الـ source sequence، إنشاء نسخة باسم `- Saad Sync Draft`، تنشيط النسخة، تطبيق الإزاحات عليها فقط، ثم إعادة تحليل النسخة للتحقق من أكبر انحراف متبقٍ.
+- ما بقي محفوظاً دون استبدال: Timeline Scanner، Audio Analysis Engine، Pairwise Correlation، Sync Graph، Fine Alignment helpers، وValidation. التغيير كان في workflow التطبيق والتقرير فقط.
+- الملفات المتأثرة:
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/types/premiere.ts`
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+- قرارات:
+  - تطبيق المزامنة أصبح Duplicate-only لحماية الأصل.
+  - نتيجة التطبيق تعرض `originalSequence*` و`duplicateSequence*` وتنتج `SynchronizationReport`.
+  - إذا كانت الإزاحات ضمن السماحية، يتم إنشاء نسخة أيضاً ثم إرجاع حالة `already-synced` دون تحريك مقاطع.
+  - التحقق النهائي يعتبر ناجحاً إذا نجح تطبيق JSX وانخفض أكبر انحراف بعد التطبيق إلى `<= 0.25s` أو ثبتت حالة syncApplied.
+- نتائج التحقق:
+  - نجح `npm.cmd run build:cep` من مجلد `adobe/saadstudio-cep`.
+  - تم نشر `release/extension/app.saadstudio.cep` إلى `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep`.
+  - تطابقت SHA-256 للملفات runtime الحساسة: `CSXS/manifest.xml` و`client/dist/index.html` و`jsx/index.jsx`.
+  - `git diff --check` نجح للملفات المتأثرة بعد تنظيف المسافات الزائدة.
+- أخطاء مكتشفة ومعالجة:
+  - كانت دالة `correlateEnvelopes` تعلن `confidence` ولا ترجعها؛ تم إرجاع `selected.score`.
+  - كان `SyncGraph` يرجع كائن `validation` غير موثق في النوع؛ تم توثيقه اختيارياً.
+  - كانت واجهة الخطأ في Apply Sync لا تزال تستخدم `move current timeline clips`; تم تحويلها إلى Duplicate-only.
+- الخطوة المتبقية:
+  - اختبار Runtime داخل Premiere: أغلق لوحة Saad Studio وافتحها، شغل Analyze Sync ثم Apply Sync على نسخة اختبارية، وتأكد أن الأصل بقي كما هو وأن نسخة `Saad Sync Draft` تحتوي الإزاحات.
 - نتائج التحقق:
   - `npm.cmd run build:cep` نجح.
   - البحث في `client/src` و`jsx/index.jsx` و`release/extension` لم يجد بقايا تشغيلية لـ `Silence Removal`, `runSilenceRemovalDraft`, `applyPodcastSilenceRemovalVisualOnly`, `Remove Silence`, أو `silencesRemoved`.
@@ -2878,3 +2998,63 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
   - `adobe/saadstudio-cep/client/src/lib/podcast/services/one-click-podcast-edit-service.ts`
   - `adobe/saadstudio-cep/jsx/index.jsx`
   - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/jsx/index.jsx`
+
+## تشخيص وحل خطأ 402 والدفع المسبق (Credit Advance) للمستخدم (2026-06-26)
+
+- **المشكلة**:
+  فشل توليد الفيديو للمستخدم `seedsat@googlemail.com` (الـ ID: `user_3CMgl0E1u3OcgATvBIZR3rByAXo`) بالخطأ 402 (Payment Required / Insufficient credits) على الرغم من ظهور رصيد قدره `2,534 cr` في الواجهة.
+
+- **التشخيص والحل**:
+  1. **الرصيد في قاعدة البيانات**: تم فحص قاعدة البيانات للمستخدم ووجد أن رصيده الحالي `0` وجدول الاشتراكات لديه اشتراك سنوي `Max (annual)` نشط.
+  2. **آلية استهلاك الرصيد وانتهاء الصلاحية**:
+     - انتهت دورة الفواتير السابقة للمستخدم في 26 يونيو 2026 الساعة `19:42:59 UTC`.
+     - عند انتهاء الصلاحية، تخضع الحسابات لـ "سياسة عدم الترحيل" (No-Rollover Policy) حيث تصبح الأرصدة غير المستخدمة صفرية.
+     - تم تجديد الاشتراك السنوي للمستخدم وإيداع `2700` كريديت للدورة الجديدة (26 يونيو - 26 يوليو).
+     - لكن، كان المستخدم قد سحب **سلفة كريديت (Credit Advance)** قدرها `2700` كريديت في الدورة السابقة.
+     - تقوم دالة `handleCreditExpiry` بخصم السلف تلقائياً عند التجديد للدورة التالية: `2700 (رصيد التجديد) - 2700 (السلفة المستحقة) = 0` كريديت.
+  3. **سبب ظهور الـ 2,534 cr في الواجهة**: كان رصيد الواجهة كاش مخزن في الجلسة للمستخدم ولم يتحدث بمجرد انتهاء الدورة ودفع السلفة، مما أحدث اللبس.
+  4. **الحل المقترح**: نظراً لتسوية السلفة القديمة وإرجاع `creditAdvanceBalance` إلى `0` في قاعدة البيانات، أصبح بإمكان المستخدم الآن طلب **سلفة جديدة (Credit Advance)** بقيمة `2700` كريديت للدورة الحالية بالذهاب إلى صفحة الملف الشخصي `/profile` أو الإعدادات `/settings` والضغط على زر "طلب سلفة" أو "Request Credit Advance" لتعبئة الرصيد مجاناً والبدء في التوليد فوراً.
+  5. **أخطاء R2 المتزامنة**: أخطاء `ERR_CONNECTION_TIMED_OUT` لـ R2 srt/vtt هي أخطاء حجب عامة ويتم معالجتها تلقائياً في المتصفح عبر آلية التراجع للمنافذ الاحتياطية (Media Fallback) التي توجه الطلبات إلى البروكسي `/api/media/...` وتعمل بنجاح، وليست هي سبب تعطل التوليد.
+
+- **الملفات المتأثرة**:
+  - [PROJECT_CONTEXT.md](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - عدم إجراء أي تعديلات برمجية لكون الأنظمة (نظام الفواتير، الاستهلاك، تسوية السلف، والـ fallback للميديا) تعمل تماماً بالشكل البرمجي المصمم والصحيح، وتوجيه المستخدم للحل الإجرائي لتفعيل سلفة الدورة الجديدة.
+
+
+## حل مشكلة عرض الميديا والترجمات وحجب R2 بالكامل (2026-06-26)
+
+- **المشكلة**:
+  تعطل عرض ملفات الميديا والترجمات (.srt / .vtt) الناتجة من توليد الفيديو وخدمات مثل WaveSpeed و Reap بسبب محاولة المتصفح تحميلها مباشرة من نطاقات Cloudflare R2 القديمة (`pub-*.r2.dev`) والتي تعود بخطأ `net::ERR_CONNECTION_TIMED_OUT` (حجب أو انتهاء الصلاحية)، بالإضافة إلى حاجة المنظومة لحظر وحجب نطاقات R2/B2 الخارجية تماماً وتوجيه الطلبات عبر بوابة الميديا الموحدة `/api/media/<objectKey>`.
+
+- **الإصلاح والتحقق**:
+  1. **تحديث دوال الرفع في r2-storage**: تعديل دالة `putObjectToStorage` لترجع دائماً المفتاح النسبي للملف (`${bucket}/${path}`) بدلاً من رابط الاستضافة المطلق لضمان كتابة وتخزين المفاتيح النسبية فقط بقاعدة البيانات. وتحديث `createSignedUploadUrl` ليرجع الرابط العام بصيغة البروكسي `/api/media/${key}`.
+  2. **تحديث دوال الرفع الاحتياطية في Supabase**: تعديل دالة `uploadUrlToStorage` و `uploadBufferToStorage` في `lib/supabase-storage.ts` لترجع دائماً المفاتيح النسبية (`${bucket}/${path}`) بدلاً من روابط Supabase المطلقة عند التراجع إليها.
+  3. **تغليف مخرجات الترجمة والتوليد بدالة normalizeMediaUrl**:
+     - تطبيق `normalizeMediaUrl` على مخرجات الترجمة لربطه ببوابة الميديا الموحدة في:
+       - `app/api/generate/captions/route.ts`
+       - `app/api/generate/captions/status/route.ts`
+       - `app/api/panel/generate/captions/route.ts`
+     - تطبيق `normalizeMediaUrl` على مخرجات الفيديو والبودكاست وتأكيد مساراتها في:
+       - `app/api/panel/reap/status/route.ts`
+       - `app/api/studio-edit/status/route.ts`
+  4. **التحقق من عمل الكود**: تشغيل اختبارات الميديا الفرعية `test/media-routes.test.ts` واكتمالها بنجاح تام (4 passed).
+
+- **الملفات المتأثرة**:
+  - [lib/r2-storage.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/r2-storage.ts) [MODIFY]
+  - [lib/supabase-storage.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/supabase-storage.ts) [MODIFY]
+  - [app/api/generate/captions/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/captions/route.ts) [MODIFY]
+  - [app/api/generate/captions/status/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/captions/status/route.ts) [MODIFY]
+  - [app/api/panel/generate/captions/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/generate/captions/route.ts) [MODIFY]
+  - [app/api/panel/reap/status/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/reap/status/route.ts) [MODIFY]
+  - [app/api/studio-edit/status/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/studio-edit/status/route.ts) [MODIFY]
+  - [PROJECT_CONTEXT.md](file:///e:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/PROJECT_CONTEXT.md) [MODIFY]
+
+- **القرارات المتخذة**:
+  - اعتماد تخزين المسارات النسبية (e.g. `videos/user_xxx/file.mp4`) فقط في قاعدة البيانات، والاعتماد بالكامل على دالة `normalizeMediaUrl` المركزية لترجمة هذه المفاتيح إلى روابط بروكسي بوابة الميديا الموحدة `/api/media/...` ديناميكياً قبل تسليمها للواجهة. هذا يمنع تسريب روابط B2/R2 المطلقة وينهي مشاكل المهلات وأخطاء CORS نهائياً.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+
+

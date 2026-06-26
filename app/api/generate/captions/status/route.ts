@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { fetchWithTimeout } from "@/lib/http";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         status: "done",
         text,
-        captionUrl,
+        captionUrl: normalizeMediaUrl(captionUrl),
         raw: data,
       });
     }

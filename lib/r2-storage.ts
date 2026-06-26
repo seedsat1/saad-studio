@@ -1,7 +1,6 @@
 import {
   defaultProvider,
   normalizeMediaUrl as newNormalizeMediaUrl,
-  getObjectKeyFromUrl,
 } from "./storage";
 
 export const BUCKETS = {
@@ -65,7 +64,11 @@ export async function createSignedUploadUrl(params: {
   contentType: string;
   expiresIn?: number;
 }): Promise<{ signedUrl: string; publicUrl: string; key: string }> {
-  return defaultProvider.createSignedUploadUrl(params);
+  const result = await defaultProvider.createSignedUploadUrl(params);
+  return {
+    ...result,
+    publicUrl: `/api/media/${result.key}`,
+  };
 }
 
 export async function putObjectToStorage(params: {
@@ -75,7 +78,9 @@ export async function putObjectToStorage(params: {
   contentType: string;
   cacheControl?: string;
 }): Promise<string> {
-  return defaultProvider.upload(params);
+  await defaultProvider.upload(params);
+  const cleanPath = params.path.replace(/^\/+/, "").replace(/\\/g, "/");
+  return params.bucket ? `${params.bucket}/${cleanPath}` : cleanPath;
 }
 
 export async function deleteObjectFromStorage(params: {

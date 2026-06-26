@@ -7,6 +7,7 @@ import {
 } from "@/lib/credit-ledger";
 import { isSafePublicHttpUrl } from "@/lib/security";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       text,
-      subtitleUrl,
+      subtitleUrl: subtitleUrl ? normalizeMediaUrl(subtitleUrl) : undefined,
       creditsUsed: CAPTIONS_CREDIT_COST,
       balanceAfter,
     });

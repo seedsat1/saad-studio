@@ -484,6 +484,58 @@ const MISSION_TYPES: MissionType[] = [
   }
 ];
 
+const getAspectRatiosForModel = (model: string) => {
+  if (model.includes("Kling")) {
+    return [
+      { value: "16:9", label: "أفقي 16:9 Landscape" },
+      { value: "9:16", label: "عمودي 9:16 Portrait" },
+      { value: "1:1", label: "مربع 1:1 Square" }
+    ];
+  }
+  // Seedance or others
+  return [
+    { value: "16:9", label: "أفقي 16:9 Landscape" },
+    { value: "9:16", label: "عمودي 9:16 Portrait" },
+    { value: "1:1", label: "مربع 1:1 Square" },
+    { value: "4:3", label: "كلاسيكي 4:3 Classic" },
+    { value: "3:4", label: "عمودي كلاسيكي 3:4 Vertical Classic" },
+    { value: "21:9", label: "سينمائي عريض 21:9 Ultra-Wide" },
+    { value: "adaptive", label: "تلقائي متكيف Adaptive" }
+  ];
+};
+
+const getQualitiesForModel = (model: string) => {
+  if (model.includes("Kling")) {
+    return [
+      { value: "pro", label: "احترافي Pro Mode" },
+      { value: "std", label: "عادي Standard Mode" },
+      { value: "4K", label: "فائق الدقة Cinematic 4K" }
+    ];
+  } else if (model.includes("Mini")) {
+    return [
+      { value: "720p", label: "عالي الدقة HD 720p" },
+      { value: "480p", label: "مسودة Draft 480p" }
+    ];
+  } else if (model.includes("Seedance")) {
+    return [
+      { value: "720p", label: "عالي الدقة HD 720p" },
+      { value: "1080p", label: "فائق الدقة FHD 1080p" },
+      { value: "4k", label: "دقة سينمائية UHD 4K" },
+      { value: "480p", label: "مسودة Draft 480p" }
+    ];
+  } else {
+    return [
+      { value: "standard", label: "افتراضي Standard" }
+    ];
+  }
+};
+
+const getReferenceSlotsCount = (model: string) => {
+  if (model.includes("Kling")) return 3;
+  if (model.includes("Seedance")) return 9;
+  return 0;
+};
+
 export default function AgentStudioPage() {
   const { user } = useUser();
   
@@ -524,7 +576,17 @@ export default function AgentStudioPage() {
   const [smartResolution, setSmartResolution] = useState("1080p");
   const [smartAspectRatio, setSmartAspectRatio] = useState("16:9");
   const [smartStyle, setSmartStyle] = useState("Cinematic");
+  const [smartDuration, setSmartDuration] = useState("5s");
+  const [smartQuality, setSmartQuality] = useState("High");
   const [smartCredits, setSmartCredits] = useState(6);
+
+  // Start & End Frame inputs
+  const [startFrameImage, setStartFrameImage] = useState<string | null>(null);
+  const [endFrameImage, setEndFrameImage] = useState<string | null>(null);
+  const [smartSound, setSmartSound] = useState(true);
+  const [smartReferenceImages, setSmartReferenceImages] = useState<string[]>([]);
+
+
 
   // Workflow Preview editable steps
   const [workflowSteps, setWorkflowSteps] = useState<string[]>([]);
@@ -576,7 +638,252 @@ export default function AgentStudioPage() {
   const [realAiResponse, setRealAiResponse] = useState<string | null>(null);
   const [realAiError, setRealAiError] = useState<string | null>(null);
 
+  // Onboarding Guided Tour & Tutorial States
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [showIntroBanner, setShowIntroBanner] = useState(true);
+  const [isDemoPlaying, setIsDemoPlaying] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const startFileInputRef = useRef<HTMLInputElement>(null);
+  const endFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartFrameUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setStartFrameImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEndFrameUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEndFrameImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSmartReferenceImages((prev) => {
+          const next = [...prev];
+          next[index] = reader.result as string;
+          return next;
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleModelChange = (modelName: string) => {
+    setSmartModel(modelName);
+    setSmartReferenceImages([]); // Clear reference images
+    if (modelName.includes("Kling")) {
+      setSmartProvider("Kling AI");
+      setSmartQuality("pro");
+    } else if (modelName.includes("Seedance")) {
+      setSmartProvider("BytePlus AI");
+      setSmartQuality("720p");
+    } else if (modelName.includes("Flux")) {
+      setSmartProvider("Flux / OpenAI");
+      setSmartQuality("standard");
+    } else {
+      setSmartProvider("OpenAI");
+      setSmartQuality("standard");
+    }
+  };
+
+
+
+  // Simulated Auto-play Workspace Demo
+  const runSimulatedDemo = () => {
+    setIsDemoPlaying(true);
+    setShowTour(false);
+    setIsPlanned(false);
+    setIsPlanning(false);
+    setObjectiveText("");
+    setOutputVideo(null);
+    setRealAiResponse(null);
+    setRealAiError(null);
+    setActiveLogs([]);
+    setProgressVal(0);
+    setActiveStep("idle");
+
+    // Step 1: Set mission type and simulate typing prompt (1.5s total)
+    const targetMission = MISSION_TYPES.find(m => m.id === "create-ad") || MISSION_TYPES[0];
+    setSelectedMission(targetMission);
+    
+    setTimeout(() => {
+      setObjectiveText("Commercial advertisement for premium espresso machine, 35mm cinematic lens, warm morning sun steam");
+    }, 400);
+
+    // Step 2: Trigger AI Planning stage (after 1.5s)
+    setTimeout(() => {
+      setIsPlanning(true);
+      setPlanningStep(0);
+      setPlanningTicks([false, false, false, false, false]);
+    }, 1500);
+
+    // Ticks animation
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        setPlanningStep(i);
+        setPlanningTicks(prev => {
+          const next = [...prev];
+          next[i] = true;
+          return next;
+        });
+      }, 1500 + (i * 350));
+    }
+
+    // Step 3: Complete Planning & Setup Routing (after 3.5s)
+    setTimeout(() => {
+      setIsPlanning(false);
+      setIsPlanned(true);
+      setSmartProvider("BytePlus AI");
+      setSmartModel("Seedance 2.0 (Stable)");
+      setSmartAspectRatio("16:9");
+      setSmartResolution("720p");
+      setSmartStyle("Cinematic");
+      setSmartCredits(6);
+      
+      // Load workflow steps
+      setWorkflowSteps([
+        "Concept Draft",
+        "Creative Brief",
+        "Generate Ad Image",
+        "Animate Clip via Seedance 2.0",
+        "Add Subtitles",
+        "Compile Final Ad"
+      ]);
+    }, 3500);
+
+    // Step 4: Simulate execution logs (after 4.2s)
+    setTimeout(() => {
+      setRunningTaskName("Create Advertisement Campaign");
+      setActiveStep("claude");
+      setProgressVal(15);
+      setActiveLogs([
+        "[Creative Director] Initializing Commercial Ad campaign...",
+        "[Creative Director] Objective resolved: Coffee espresso machine ad"
+      ]);
+    }, 4200);
+
+    setTimeout(() => {
+      setActiveStep("gpt2");
+      setProgressVal(35);
+      setActiveLogs(prev => [
+        ...prev,
+        "[Creative Director] Planning storyboard sketch frames...",
+        "[Model Router] Selecting BytePlus Seedance engine for high-fidelity motion latents..."
+      ]);
+    }, 5000);
+
+    setTimeout(() => {
+      setActiveStep("kling");
+      setProgressVal(65);
+      setActiveLogs(prev => [
+        ...prev,
+        "[Model Polling] Generating frames at provider side...",
+        "[Model Polling] Video compilation rendering completed successfully."
+      ]);
+    }, 5800);
+
+    setTimeout(() => {
+      setActiveStep("ffmpeg");
+      setProgressVal(90);
+      setActiveLogs(prev => [
+        ...prev,
+        "[FFmpeg compiler] Stitching video tracks with golden music bed...",
+        "[Output Gateway] Final asset generated successfully (6.2 MB)"
+      ]);
+    }, 6600);
+
+    // Step 5: Complete run, load mock output & show timeline (after 7.4s)
+    setTimeout(() => {
+      setRunningTaskName(null);
+      setActiveStep("done");
+      setProgressVal(100);
+      setOutputMediaType("video");
+      setOutputVideo("/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4");
+      
+      const responseText = `Title: Premium Espresso Machine
+Format: 16:9 Landscape
+Concept script:
+A professional close-up of dark espresso pouring into a ceramic cup. Delicate warm steam rises as golden sun rays filter through a window. The camera dollys slowly around the cup, highlighting the rich crema layers. A soft, soothing acoustic piano track plays in the background as the text appears: 'Pure Espresso. Pure Morning.'`;
+      
+      setScriptBrief(responseText);
+      setRealAiResponse(responseText);
+
+      setStoryboardFrames([
+        { id: 1, img: "/preset/2 Studio Product Shot.webp", desc: "Scene 1: Close-up on coffee pouring into ceramic mug." },
+        { id: 2, img: "/preset/Cinematic portrait.webp", desc: "Scene 2: Steam rises in warm backlit lighting." },
+        { id: 3, img: "/preset/4 Octane 3D Render.webp", desc: "Scene 3: Elegant typography shows: 'Pure Espresso.'" }
+      ]);
+
+      setActiveWorkspaceTab("timeline");
+      setIsDemoPlaying(false);
+
+      // Add to logs database
+      const demoLog = [
+        "[Creative Director] Initializing Commercial Ad campaign...",
+        "[Creative Director] Objective resolved: Coffee espresso machine ad",
+        "[Creative Director] Planning storyboard sketch frames...",
+        "[Model Router] Selecting BytePlus Seedance engine for high-fidelity motion latents...",
+        "[Model Polling] Generating frames at provider side...",
+        "[Model Polling] Video compilation rendering completed successfully.",
+        "[FFmpeg compiler] Stitching video tracks with golden music bed...",
+        "[Output Gateway] Final asset generated successfully (6.2 MB)"
+      ];
+
+      // Save to task history list
+      const demoRunTask: TaskRun = {
+        id: `demo-${Date.now()}`,
+        prompt: "Commercial advertisement for premium espresso machine, 35mm cinematic lens, warm morning sun steam",
+        category: "Create Advertisement",
+        engine: "Seedance 2.0 (Stable)",
+        renderMode: "BytePlus AI",
+        fileSize: "6.2 MB",
+        timestamp: new Date().toISOString().split("T")[0],
+        status: "completed",
+        videoUrl: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4",
+        logs: demoLog
+      };
+
+      setTaskHistory(prev => {
+        const next = [demoRunTask, ...prev];
+        saveToStorage("saad_super_history_v6", next);
+        return next;
+      });
+      
+      // Save file to list
+      const demoFile: AssetFile = {
+        id: `file-demo-${Date.now()}`,
+        name: "espresso_cinematic_ad.mp4",
+        size: "6.2 MB",
+        type: "video",
+        date: new Date().toISOString().split("T")[0],
+        url: "/uploads/cms/1776119656384-tbposz-freepik_cinematic-animation-of-an_2765251370.mp4"
+      };
+
+      setFilesList(prev => {
+        const next = [demoFile, ...prev];
+        saveToStorage("saad_super_files_v6", next);
+        return next;
+      });
+
+    }, 7400);
+  };
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -598,6 +905,11 @@ export default function AgentStudioPage() {
 
       const locked = localStorage.getItem("saad_super_locked_memories_v6");
       setLockedMemories(locked ? JSON.parse(locked) : ["mem-1", "mem-2", "mem-3", "mem-4", "mem-5"]);
+
+      const bannerPref = localStorage.getItem("saad_super_show_intro_banner");
+      if (bannerPref !== null) {
+        setShowIntroBanner(JSON.parse(bannerPref));
+      }
 
       const creds = localStorage.getItem("saad_super_credits_v6");
       if (creds) setCredits(Number(creds));
@@ -624,27 +936,66 @@ export default function AgentStudioPage() {
       // Update default smart routing parameters based on selected mission
       if (selectedMission.id === "create-ad" || selectedMission.id === "edit-content") {
         setSmartProvider("BytePlus AI");
-        setSmartModel("Seedance 2.0 (Stable)");
-        setSmartCredits(6);
+        setSmartModel("Seedance 2.0 Stable");
+        setSmartQuality("720p");
         setSmartResolution("720p");
       } else if (selectedMission.id === "produce-podcast" || selectedMission.id === "social-content") {
         setSmartProvider("Kling AI");
         setSmartModel("Kling 3.0 Pro");
-        setSmartCredits(8);
+        setSmartQuality("pro");
         setSmartResolution("1080p");
       } else if (selectedMission.id === "generate-images" || selectedMission.id === "build-storyboard") {
         setSmartProvider("Flux / OpenAI");
         setSmartModel("Flux.1 Dev");
-        setSmartCredits(2);
+        setSmartQuality("standard");
         setSmartResolution("1080p");
       } else {
         setSmartProvider("OpenAI");
         setSmartModel("GPT-4o");
-        setSmartCredits(1);
+        setSmartQuality("standard");
         setSmartResolution("N/A");
       }
     }
   }, [selectedMission]);
+
+  // Dynamic credit cost calculator based on model, duration, and quality
+  useEffect(() => {
+    let durationSec = 5;
+    if (smartDuration === "5s") durationSec = 5;
+    else if (smartDuration === "10s") durationSec = 10;
+    else if (smartDuration === "15s") durationSec = 15;
+    else durationSec = parseInt(smartDuration, 10) || 5;
+
+    let baseCredits = 5;
+    if (smartModel.includes("Kling 3.0 Pro")) {
+      baseCredits = durationSec * 1.5;
+    } else if (smartModel.includes("Kling 3.0 Standard")) {
+      baseCredits = durationSec * 1.0;
+    } else if (smartModel.includes("Seedance 2.0 Stable") || smartModel.includes("Seedance 2.0 (Stable)")) {
+      if (smartQuality === "1080p") {
+        baseCredits = durationSec * 3;
+      } else if (smartQuality === "4k") {
+        baseCredits = durationSec * 5;
+      } else if (smartQuality === "480p") {
+        baseCredits = durationSec;
+      } else {
+        baseCredits = Math.max(0, (28 / 11) * durationSec - (2 / 11));
+      }
+    } else if (smartModel.includes("Seedance 2.0 Mini")) {
+      if (smartQuality === "480p") {
+        baseCredits = durationSec;
+      } else {
+        baseCredits = Math.max(0, (28 / 11) * durationSec - (2 / 11));
+      }
+    } else if (smartModel.includes("Flux.1 Dev")) {
+      baseCredits = 2;
+    } else if (smartModel.includes("GPT-4o")) {
+      baseCredits = 1;
+    }
+
+    setSmartCredits(Math.max(1, Math.round(baseCredits)));
+  }, [smartModel, smartDuration, smartQuality]);
+
 
   // Connectors popup messaging
   useEffect(() => {
@@ -868,20 +1219,52 @@ export default function AgentStudioPage() {
         setProgressVal(35);
 
         // Map to correct API route
-        const modelRoute = smartModel.includes("Seedance") 
-          ? "dreamina-seedance-2-0-260128" 
-          : "kwaivgi/kling-v3.0-pro/text-to-video";
+        let modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+        let mode = "pro"; // default
+        if (smartModel === "Kling 3.0 Standard") {
+          mode = "std";
+        } else if (smartModel === "Kling 3.0 Pro") {
+          mode = "pro";
+        } else if (smartModel === "Seedance 2.0 Stable" || smartModel === "Seedance 2.0 (Stable)") {
+          modelRoute = "bytedance/seedance-v2/text-to-video";
+        } else if (smartModel === "Seedance 2.0 Mini") {
+          modelRoute = "bytedance/seedance-v2/text-to-video-mini";
+        }
+
+        // Parse duration: convert "5s", "10s", "15s" to integers 5, 10, 15
+        const durationValue = parseInt(smartDuration, 10) || 5;
+
+        // Build list of image URLs
+        const imagesList: string[] = [];
+        if (startFrameImage) {
+          imagesList.push(startFrameImage);
+        } else if (attachedImageUrl) {
+          imagesList.push(attachedImageUrl);
+        }
+        if (endFrameImage) {
+          imagesList.push(endFrameImage);
+        }
 
         const videoPayload = {
           modelRoute,
           payload: {
             prompt: agentData.mediaPrompt || objectiveText,
-            duration: 5,
+            duration: durationValue,
             aspect_ratio: smartAspectRatio,
-            resolution: smartResolution === "4K" ? "1080p" : "720p",
-            ...(attachedImageUrl ? { image_url: attachedImageUrl } : {})
+            resolution: smartQuality, // E.g. "std", "pro", "4K" or "720p", "1080p"
+            quality: smartQuality,
+            mode: mode, // std or pro for Kling 3.0
+            style: smartStyle,
+            sound: smartSound,
+            generate_audio: smartSound,
+            first_frame_url: startFrameImage || attachedImageUrl || undefined,
+            last_frame_url: endFrameImage || undefined,
+            image_urls: imagesList.length > 0 ? imagesList : undefined,
+            reference_image_urls: smartReferenceImages.filter(Boolean).length > 0 ? smartReferenceImages.filter(Boolean) : undefined
           }
         };
+
+
 
         const genRes = await fetch("/api/video", {
           method: "POST",
@@ -1343,7 +1726,28 @@ export default function AgentStudioPage() {
             <span className="text-white capitalize">{activeTab.replace("-", " ")}</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={runSimulatedDemo}
+              disabled={isDemoPlaying}
+              className="flex items-center gap-1.5 text-[10.5px] border border-emerald-500/30 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300 px-3 py-1.5 rounded-lg font-bold transition shadow-[0_0_12px_rgba(16,185,129,0.15)] disabled:opacity-40"
+            >
+              <Play className="h-3.5 w-3.5" />
+              <span>{isDemoPlaying ? "Demo Playing..." : "See It In Action 🎬"}</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("new-mission");
+                setShowTour(true);
+                setTourStep(0);
+                setIsPlanned(false);
+                setIsPlanning(false);
+              }}
+              className="flex items-center gap-1.5 text-[10.5px] border border-cyan-500/30 bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-300 px-3 py-1.5 rounded-lg font-bold transition shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              <span>Workspace Guide Tour</span>
+            </button>
             <span className="text-[10px] border border-violet-500/20 bg-violet-600/10 text-violet-300 px-2.5 py-1 rounded-lg font-bold">
               Creative Control Center
             </span>
@@ -1359,6 +1763,81 @@ export default function AgentStudioPage() {
           {activeTab === "new-mission" && (
             <div className="space-y-6">
               
+              {showIntroBanner && (
+                <div className="relative max-w-[880px] mx-auto p-5 rounded-2xl border border-white/5 bg-[#050914]/65 backdrop-blur-xl shadow-2xl text-left space-y-4 overflow-hidden">
+                  <div className="absolute right-3 top-3">
+                    <button
+                      onClick={() => {
+                        setShowIntroBanner(false);
+                        localStorage.setItem("saad_super_show_intro_banner", "false");
+                      }}
+                      className="text-zinc-500 hover:text-white p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="p-2.5 rounded-xl bg-gradient-to-tr from-violet-600/20 to-cyan-500/10 border border-violet-500/20 text-violet-400 shrink-0">
+                      <Sparkles className="h-6 w-6 animate-pulse" />
+                    </div>
+                    
+                    <div className="space-y-1.5 min-w-0">
+                      <h3 className="text-sm font-extrabold text-white">Welcome to the Creative AI Control Center</h3>
+                      <p className="text-xs text-zinc-400 leading-relaxed">
+                        This workspace acts as your <strong>Creative Director OS</strong>. Instead of typing random prompts, select a mission preset, describe your target output, and watch the AI formulate a production-ready NLE pipeline. 
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Flow Stages Visual Diagram */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2 text-xs">
+                    {[
+                      { step: "1. Select Mission", desc: "Choose templates like Advertisement, Podcast, or Storyboards." },
+                      { step: "2. AI Planning Stage", desc: "The agent analyzes assets, models, and resolves smart routing configs." },
+                      { step: "3. Visual Pipeline Flow", desc: "Preview, reorder, edit, or append pipeline steps before generation." },
+                      { step: "4. Live Workspace Tracks", desc: "View the script brief, storyboards, and final output in NLE timeline tracks." }
+                    ].map((phase, idx) => (
+                      <div key={idx} className="p-3 rounded-xl border border-white/5 bg-slate-950/20 space-y-1">
+                        <span className="text-[10.5px] font-bold text-violet-300 block">{phase.step}</span>
+                        <span className="text-[9.5px] text-zinc-500 leading-normal block">{phase.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-white/5 pt-3.5 mt-2">
+                    <span className="text-[9.5px] text-zinc-500">Need help? Launch the step-by-step interactive workspace tour.</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setShowIntroBanner(false);
+                          localStorage.setItem("saad_super_show_intro_banner", "false");
+                        }}
+                        className="px-3.5 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 hover:text-white text-xs font-bold transition"
+                      >
+                        Dismiss Guide
+                      </button>
+                      <button
+                        onClick={runSimulatedDemo}
+                        disabled={isDemoPlaying}
+                        className="px-4 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300 text-xs font-extrabold shadow-md transition disabled:opacity-40"
+                      >
+                        See It In Action 🎬
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowTour(true);
+                          setTourStep(0);
+                        }}
+                        className="px-4 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold shadow-md transition"
+                      >
+                        Start Guided Tour
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {!isPlanned && !isPlanning ? (
                 /* SECTION A: Mission Selection Setup */
                 <div className="max-w-[880px] mx-auto space-y-8 py-4">
@@ -1529,62 +2008,287 @@ export default function AgentStudioPage() {
                         <span className="text-[9.5px] text-zinc-500">Calculated defaults (overrideable)</span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3.5 text-xs">
+                      <div className="grid grid-cols-2 gap-3 text-[11px]">
                         <div className="flex flex-col gap-1">
-                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Provider</label>
-                          <select
-                            value={smartProvider}
-                            onChange={(e) => setSmartProvider(e.target.value)}
-                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
-                          >
-                            <option value="Kling AI">Kling AI</option>
-                            <option value="BytePlus AI">BytePlus AI</option>
-                            <option value="Flux / OpenAI">Flux / OpenAI</option>
-                            <option value="kie.ai">kie.ai</option>
-                          </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                          <label className="text-zinc-500 font-bold uppercase text-[9px]">AI Model</label>
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">AI Model / النموذج</label>
                           <select
                             value={smartModel}
-                            onChange={(e) => setSmartModel(e.target.value)}
+                            onChange={(e) => handleModelChange(e.target.value)}
                             className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
                           >
-                            <option value="Kling 3.0 Pro">Kling 3.0 Pro</option>
-                            <option value="Seedance 2.0 (Stable)">Seedance 2.0 (Stable)</option>
-                            <option value="Flux.1 Dev">Flux.1 Dev</option>
-                            <option value="GPT-4o">GPT-4o</option>
+                            <option value="Kling 3.0 Pro">Kling 3.0 Pro (كلينك 3 برو)</option>
+                            <option value="Kling 3.0 Standard">Kling 3.0 Standard (كلينك 3 عادي)</option>
+                            <option value="Seedance 2.0 Stable">Seedance 2.0 Stable (سيدسانس 2 مستقر)</option>
+                            <option value="Seedance 2.0 Mini">Seedance 2.0 Mini (سيدانس ميني)</option>
+                            <option value="Flux.1 Dev">Flux.1 Dev (صورة Flux)</option>
+                            <option value="GPT-4o">GPT-4o (نصي فقط)</option>
                           </select>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Aspect Ratio</label>
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Provider / المزود</label>
+                          <select
+                            value={smartProvider}
+                            disabled
+                            className="bg-[#090f1d]/50 border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-zinc-400 font-medium cursor-not-allowed"
+                          >
+                            <option value="Kling AI">Kling AI (كوايشو)</option>
+                            <option value="BytePlus AI">BytePlus AI (بايت دانس)</option>
+                            <option value="Flux / OpenAI">Flux / OpenAI (فلكس)</option>
+                            <option value="OpenAI">OpenAI (أوبن إيه آي)</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Aspect Ratio / النسبة</label>
                           <select
                             value={smartAspectRatio}
                             onChange={(e) => setSmartAspectRatio(e.target.value)}
                             className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
                           >
-                            <option value="16:9">16:9 Landscape</option>
-                            <option value="9:16">9:16 Portrait</option>
-                            <option value="1:1">1:1 Square</option>
+                            {getAspectRatiosForModel(smartModel).map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Style</label>
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Duration / الوقت</label>
+                          <select
+                            value={smartDuration}
+                            onChange={(e) => setSmartDuration(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            <option value="5s">5s (5 ثوانٍ)</option>
+                            <option value="10s">10s (10 ثوانٍ)</option>
+                            <option value="15s">15s (15 ثانية)</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Quality / الدقة والجودة</label>
+                          <select
+                            value={smartQuality}
+                            onChange={(e) => setSmartQuality(e.target.value)}
+                            className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
+                          >
+                            {getQualitiesForModel(smartModel).map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-zinc-500 font-bold uppercase text-[9px]">Style / الستايل الإبداعي</label>
                           <select
                             value={smartStyle}
                             onChange={(e) => setSmartStyle(e.target.value)}
                             className="bg-[#090f1d] border border-white/5 rounded-lg px-2.5 py-1.5 outline-none text-white font-medium focus:border-violet-500/40"
                           >
-                            <option value="Cinematic">Cinematic</option>
-                            <option value="Photorealistic">Photorealistic</option>
-                            <option value="Anime">Anime</option>
-                            <option value="3D Composite">3D Render</option>
+                            <option value="Cinematic">سينمائي Cinematic</option>
+                            <option value="Photorealistic">واقعي فائق Photorealistic</option>
+                            <option value="Anime">أنمي ياباني Anime</option>
+                            <option value="3D Composite">ثلاثي الأبعاد 3D Render</option>
+                            <option value="Cyberpunk">سايبربانك Cyberpunk</option>
+                            <option value="Vintage 35mm">سينمائي عتيق Vintage 35mm</option>
+                            <option value="Fantasy">فانتازيا خيالية Fantasy</option>
                           </select>
                         </div>
+
+                        {/* Sound Toggle (توليد الصوت) */}
+                        {(smartModel.includes("Kling") || smartModel.includes("Seedance")) && (
+                          <div className="flex items-center justify-between col-span-2 p-2.5 rounded-xl bg-white/5 border border-white/5 mt-1.5 text-left">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-bold text-white leading-none">Generate Audio / توليد الصوت</span>
+                              <span className="text-[9px] text-zinc-500 mt-1">Include AI-generated background sound / تفعيل الموسيقى والصوت المرافق</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={smartSound}
+                                onChange={(e) => setSmartSound(e.target.checked)}
+                                className="sr-only peer"
+                              />
+                              <div className="w-8 h-4 bg-[#090f1d] border border-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-500 after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-violet-600 peer-checked:after:bg-white"></div>
+                            </label>
+                          </div>
+                        )}
                       </div>
+
+
+                      {/* Start & End Frames Upload (ستار واند) */}
+                      {(smartModel.includes("Kling") || smartModel.includes("Seedance")) && (
+                        <div className="border-t border-white/5 pt-3.5 space-y-4 text-left">
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-extrabold uppercase tracking-widest text-violet-400 block">
+                              Start & End Frames / صورة البداية والنهاية (ستار واند)
+                            </span>
+                            
+                            <div className="grid grid-cols-2 gap-3.5">
+                              {/* Start Frame Upload */}
+                              <div className="space-y-1">
+                                <label className="text-zinc-500 font-bold uppercase text-[8.5px] block">
+                                  Start Frame (البداية)
+                                </label>
+                                <div
+                                  className="relative border border-dashed border-white/5 hover:border-white/10 rounded-xl bg-[#090f1d]/40 h-20 transition flex flex-col items-center justify-center p-2 text-center cursor-pointer overflow-hidden group"
+                                  onClick={() => startFileInputRef.current?.click()}
+                                >
+                                  <input
+                                    type="file"
+                                    ref={startFileInputRef}
+                                    onChange={handleStartFrameUpload}
+                                    className="hidden"
+                                    accept="image/*"
+                                  />
+                                  {startFrameImage ? (
+                                    <>
+                                      <img
+                                        src={startFrameImage}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                                        alt="Start Frame"
+                                      />
+                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setStartFrameImage(null);
+                                          }}
+                                          className="p-1.5 rounded-full bg-red-600/85 hover:bg-red-600 text-white transition shadow"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1 text-zinc-500 group-hover:text-zinc-300 transition">
+                                      <Camera className="h-3.5 w-3.5 text-violet-400" />
+                                      <span className="text-[9px] font-medium leading-none">تحميل البداية</span>
+                                      <span className="text-[7.5px] text-zinc-600">Start Image</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* End Frame Upload */}
+                              <div className="space-y-1">
+                                <label className="text-zinc-500 font-bold uppercase text-[8.5px] block">
+                                  End Frame (النهاية)
+                                </label>
+                                <div
+                                  className="relative border border-dashed border-white/5 hover:border-white/10 rounded-xl bg-[#090f1d]/40 h-20 transition flex flex-col items-center justify-center p-2 text-center cursor-pointer overflow-hidden group"
+                                  onClick={() => endFileInputRef.current?.click()}
+                                >
+                                  <input
+                                    type="file"
+                                    ref={endFileInputRef}
+                                    onChange={handleEndFrameUpload}
+                                    className="hidden"
+                                    accept="image/*"
+                                  />
+                                  {endFrameImage ? (
+                                    <>
+                                      <img
+                                        src={endFrameImage}
+                                        className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                                        alt="End Frame"
+                                      />
+                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEndFrameImage(null);
+                                          }}
+                                          className="p-1.5 rounded-full bg-red-600/85 hover:bg-red-600 text-white transition shadow"
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-1 text-zinc-500 group-hover:text-zinc-300 transition">
+                                      <Camera className="h-3.5 w-3.5 text-violet-400" />
+                                      <span className="text-[9px] font-medium leading-none">تحميل النهاية</span>
+                                      <span className="text-[7.5px] text-zinc-600">End Image</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Reference Images / صور مرجعية */}
+                          {getReferenceSlotsCount(smartModel) > 0 && (
+                            <div className="border-t border-white/5 pt-3.5 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[9px] font-extrabold uppercase tracking-widest text-violet-400 block">
+                                  Reference Images / صور مرجعية إضافية ({getReferenceSlotsCount(smartModel)} slots)
+                                </span>
+                                <span className="text-[8px] text-zinc-500">
+                                  Max {getReferenceSlotsCount(smartModel)} images / الحد الأقصى {getReferenceSlotsCount(smartModel)} صور
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {Array.from({ length: getReferenceSlotsCount(smartModel) }).map((_, idx) => {
+                                  const img = smartReferenceImages[idx];
+                                  return (
+                                    <div key={idx} className="space-y-1">
+                                      <div
+                                        className="relative border border-dashed border-white/5 hover:border-white/10 rounded-xl bg-[#090f1d]/40 h-16 transition flex flex-col items-center justify-center p-1 text-center cursor-pointer overflow-hidden group"
+                                        onClick={() => document.getElementById(`ref-image-input-${idx}`)?.click()}
+                                      >
+                                        <input
+                                          type="file"
+                                          id={`ref-image-input-${idx}`}
+                                          onChange={(e) => handleReferenceImageUpload(e, idx)}
+                                          className="hidden"
+                                          accept="image/*"
+                                        />
+                                        {img ? (
+                                          <>
+                                            <img
+                                              src={img}
+                                              className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                                              alt={`Reference ${idx + 1}`}
+                                            />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSmartReferenceImages((prev) => {
+                                                    const next = [...prev];
+                                                    next[idx] = "";
+                                                    return next;
+                                                  });
+                                                }}
+                                                className="p-1 rounded-full bg-red-600/85 hover:bg-red-600 text-white transition shadow"
+                                              >
+                                                <Trash2 className="h-2.5 w-2.5" />
+                                              </button>
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <div className="flex flex-col items-center gap-0.5 text-zinc-500 group-hover:text-zinc-300 transition">
+                                            <ImageIcon className="h-3 w-3 text-violet-400" />
+                                            <span className="text-[7.5px] font-medium leading-none">صورة {idx + 1}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-between p-3 rounded-xl bg-violet-600/10 border border-violet-500/20 text-xs">
                         <span className="font-bold text-violet-300">Estimated cost:</span>
@@ -2702,6 +3406,155 @@ export default function AgentStudioPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING GUIDED TOUR TOOLTIPS OVERLAY */}
+      {showTour && (
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] pointer-events-auto" />
+          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[440px] rounded-2xl border border-cyan-500/30 bg-[#050914]/95 p-5 shadow-[0_0_30px_rgba(6,182,212,0.15)] pointer-events-auto space-y-4">
+            
+            <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <div className="flex items-center gap-1.5 text-cyan-400">
+                <Sparkles className="h-4 w-4 animate-spin" />
+                <span className="text-xs font-bold uppercase tracking-wider font-mono">Workspace Guided Tour ({tourStep + 1}/6)</span>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowTour(false)} 
+                className="text-zinc-500 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {tourStep === 0 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  🎯 Step 1: Select Your Creative Mission
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  Start your creative work by selecting a <strong>Mission Preset</strong> from the grid (e.g. *Create Advertisement*, *Produce Podcast*, *Build Storyboard*). 
+                </p>
+                <p className="text-[10.5px] text-zinc-500 leading-normal">
+                  Each mission maps directly onto specialized system prompts and schedules the target model pipeline.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 1 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  📝 Step 2: Describe the Objective & Attach Assets
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  Enter your exact creative requirements inside the <strong>Objective Textarea</strong>. Describe elements like scene lighting, style guidelines, and output dimensions.
+                </p>
+                <p className="text-[10.5px] text-zinc-500 leading-normal">
+                  You can also drag & drop or upload visual reference images as style anchors to guide the AI generation.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 2 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  ⚙️ Step 3: Settings & Advanced System Config
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  To prevent cluttered chat sidebars, we moved all configuration panels under <strong>System Config</strong>.
+                </p>
+                <p className="text-[10.5px] text-zinc-500 leading-normal">
+                  Here you can view the active **Skills Registry** (e.g., /static-ads), manage **Memory Nodes** (aspect ratios, styles), and connect external **Publishing channels** (YouTube, Notion, Linear).
+                </p>
+              </div>
+            )}
+
+            {tourStep === 3 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  🤖 Step 4: Smart AI Routing & Credits Estimation
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  Once you trigger the planning stage, the AI analyzes your request and calculates optimal parameters:
+                </p>
+                <ul className="space-y-1 text-[10.5px] text-zinc-400 pl-3 list-disc">
+                  <li>Best provider (Kling, BytePlus, Flux)</li>
+                  <li>Suggested model and default aspect ratio</li>
+                  <li>Estimated credits calculation</li>
+                </ul>
+              </div>
+            )}
+
+            {tourStep === 4 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  📐 Step 5: Visual Workflow Pipeline Editor
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  The visual workflow displays the exact sequence (e.g. Concept brief &rarr; Storyboard sketch &rarr; Rendering latents).
+                </p>
+                <p className="text-[10.5px] text-zinc-500 leading-normal">
+                  You can drag, reorder, rename, or add custom steps before executing the plan, keeping you in full artistic control.
+                </p>
+              </div>
+            )}
+
+            {tourStep === 5 && (
+              <div className="space-y-2.5 text-left">
+                <div className="p-2 border border-violet-500/20 bg-violet-600/10 rounded-lg text-xs font-bold text-violet-300">
+                  🎬 Step 6: Live Workspace & Timeline Tracks
+                </div>
+                <p className="text-[11.5px] text-zinc-300 leading-relaxed">
+                  Everything happens inside a single unified dashboard: edit the script brief, review storyboard frames, and play output clips over a simulated timeline.
+                </p>
+                <p className="text-[10.5px] text-zinc-500 leading-normal">
+                  Real-time provider polling and compilation statuses stream directly into the terminal console at the bottom left!
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between border-t border-white/5 pt-3">
+              <button
+                type="button"
+                onClick={() => setTourStep(prev => Math.max(0, prev - 1))}
+                disabled={tourStep === 0}
+                className="px-3 py-1 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 hover:text-white text-xs disabled:opacity-30 transition"
+              >
+                Prev
+              </button>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTour(false)}
+                  className="px-3 py-1 rounded-lg text-zinc-500 hover:text-white text-xs transition"
+                >
+                  Exit Tour
+                </button>
+                {tourStep < 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => setTourStep(prev => prev + 1)}
+                    className="px-4 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition"
+                  >
+                    Next Step
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowTour(false)}
+                    className="px-4 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition"
+                  >
+                    Finish Guide
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>
       )}

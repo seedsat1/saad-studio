@@ -119,9 +119,8 @@ export async function uploadUrlToStorage(params: {
       return null;
     }
 
-    // 4. Return the permanent public URL
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(path);
-    return publicUrlData?.publicUrl ?? null;
+    // 4. Return the relative path key
+    return `${bucket}/${path}`;
   } catch (err) {
     console.error("[supabase-storage] uploadUrlToStorage failed:", err);
     return null;
@@ -167,8 +166,7 @@ export async function uploadBufferToStorage(params: {
       return null;
     }
 
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data?.publicUrl ?? null;
+    return `${bucket}/${path}`;
   } catch (err) {
     console.error("[supabase-storage] uploadBufferToStorage failed:", err);
     return null;

@@ -44,7 +44,7 @@ export class BackblazeProvider implements StorageProvider {
     });
   }
 
-  getObjectKey(bucket: string, path: string): string {
+  private getObjectKey(bucket: string, path: string): string {
     const cleanPath = path.replace(/^\/+/, "").replace(/\\/g, "/");
     return bucket ? `${bucket}/${cleanPath}` : cleanPath;
   }
@@ -66,7 +66,7 @@ export class BackblazeProvider implements StorageProvider {
         CacheControl: params.cacheControl,
       })
     );
-    return key; // Return the object key instead of public URL
+    return this.getPublicUrl(params.bucket, params.path);
   }
 
   async download(params: {

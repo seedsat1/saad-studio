@@ -845,8 +845,18 @@ const TopNavbar = () => {
     // Fetch on sign-in/navigation only. Periodic polling kept Neon awake even
     // while the dashboard was idle.
     loadCredits();
+
+    const handleCreditsUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ balance: number }>;
+      if (customEvent.detail && typeof customEvent.detail.balance === "number") {
+        setCreditBalance(customEvent.detail.balance);
+      }
+    };
+    window.addEventListener("saad-credits-updated", handleCreditsUpdate);
+
     return () => {
       disposed = true;
+      window.removeEventListener("saad-credits-updated", handleCreditsUpdate);
     };
   }, [isSignedIn, pathname]);
 

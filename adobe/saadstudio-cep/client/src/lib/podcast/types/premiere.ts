@@ -57,6 +57,18 @@ export interface PodcastTimelineClipInfo {
   sourceInPointSec: number | null;
   sourceOutPointSec: number | null;
   durationSec: number | null;
+
+  // New fields for full timeline synchronization
+  clipId?: string;
+  linkedClipId?: string | null;
+  linkedClipKind?: string | null;
+  isStandaloneAudio?: boolean;
+  hasEmbeddedAudio?: boolean;
+  isMulticamClip?: boolean;
+  projectItemId?: string | null;
+  mediaType?: string | null;
+  isMuted?: boolean;
+  isEnabled?: boolean;
 }
 
 export interface PodcastSynchronizationSnapshot {

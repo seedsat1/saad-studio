@@ -59,9 +59,13 @@ export function useGenerationGate() {
         }
 
         if (response.status === 402) {
+          const balance = pickNumber(payload?.currentBalance, payload?.current, payload?.balance) ?? 0;
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("saad-credits-updated", { detail: { balance } }));
+          }
           openCredits({
             requiredCredits: pickNumber(payload?.requiredCredits, payload?.required),
-            currentBalance: pickNumber(payload?.currentBalance, payload?.current, payload?.balance),
+            currentBalance: balance,
           });
           return {
             ok: false,

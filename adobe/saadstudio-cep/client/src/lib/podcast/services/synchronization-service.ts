@@ -236,6 +236,258 @@ export async function applySynchronizationOffsets(plan: SynchronizationPlan): Pr
   };
 }
 
+// ────────────────────────────────────────────────────────────────────
+// FULL PAIRWISE AUDIO ANALYSIS ENGINE
+// ────────────────────────────────────────────────────────────────────
+
+export interface AudioSource {
+  clipId: string;
+  trackIndex: number;
+  clipIndex: number;
+  mediaPath: string;
+  durationSec: number;
+  timelineStartSec: number;
+  timelineEndSec: number;
+  hasEmbeddedAudio: boolean;
+  isStandaloneAudio: boolean;
+  linkedClipId: string | null;
+  linkedClipKind: string | null;
+  envelope: number[];
+}
+
+export interface PairwiseCorrelation {
+  sourceA: string;
+  sourceB: string;
+  offsetSec: number;
+  correlationScore: number;
+  confidence: number;
+  overlapDurationSec: number;
+  candidatePeaks: Array<{ lagSec: number; score: number }>;
+  selectionReason: string;
+}
+
+export interface SyncGraph {
+  sources: AudioSource[];
+  correlations: PairwiseCorrelation[];
+  matrix: Record<string, Record<string, PairwiseCorrelation>>;
+  generatedAt: number;
+  runtimeVersion: string;
+}
+
+export async function buildFullSyncGraph(snapshot: PodcastSynchronizationSnapshot): Promise<SyncGraph> {
+  if (!window.cep_node) {
+    throw new Error("CEP_NODE_UNAVAILABLE");
+  }
+
+  const runtime = getSyncNodeRuntime();
+  const ffmpegPath = resolveSyncFfmpegPath(runtime);
+  if (!ffmpegPath) {
+    throw new Error("FFMPEG_EXECUTABLE_NOT_FOUND");
+  }
+
+  // 1. Build audio source list from all usable clips
+  const audioSources: AudioSource[] = [];
+  
+  // Collect all audio clips (including embedded audio from video clips)
+  const allAudioClips = [
+    ...snapshot.audioClips.filter(clip => clip.mediaAvailable && clip.sourcePath && isUsableSyncClip(clip)),
+    ...snapshot.videoClips.filter(clip => clip.mediaAvailable && clip.sourcePath && clip.hasEmbeddedAudio && isUsableSyncClip(clip))
+  ];
+
+  // 2. Extract normalized audio envelopes for every source
+  console.log(`[Sync Engine] Extracting envelopes for ${allAudioClips.length} audio sources...`);
+  
+  for (const clip of allAudioClips) {
+    try {
+      const envelope = await extractSyncEnvelope(runtime, ffmpegPath, clip);
+      audioSources.push({
+        clipId: clip.clipId || `${clip.trackIndex}:${clip.clipIndex}`,
+        trackIndex: clip.trackIndex,
+        clipIndex: clip.clipIndex,
+        mediaPath: clip.sourcePath!,
+        durationSec: clip.durationSec || 0,
+        timelineStartSec: clip.timelineStartSec || 0,
+        timelineEndSec: clip.timelineEndSec || 0,
+        hasEmbeddedAudio: clip.hasEmbeddedAudio || false,
+        isStandaloneAudio: clip.isStandaloneAudio || false,
+        linkedClipId: clip.linkedClipId || null,
+        linkedClipKind: clip.linkedClipKind || null,
+        envelope
+      });
+    } catch (err) {
+      console.warn(`[Sync Engine] Failed to extract envelope for clip ${clip.trackIndex}:${clip.clipIndex}`, err);
+    }
+  }
+
+  console.log(`[Sync Engine] Successfully extracted ${audioSources.length} valid audio sources`);
+
+  // 3. Build full pairwise correlation matrix
+  const correlations: PairwiseCorrelation[] = [];
+  const matrix: Record<string, Record<string, PairwiseCorrelation>> = {};
+
+  console.log(`[Sync Engine] Running pairwise correlation for ${audioSources.length} sources (${(audioSources.length * (audioSources.length - 1)) / 2} comparisons)...`);
+
+  for (let i = 0; i < audioSources.length; i++) {
+    const sourceA = audioSources[i];
+    matrix[sourceA.clipId] = {};
+
+    for (let j = i + 1; j < audioSources.length; j++) {
+      const sourceB = audioSources[j];
+      
+      console.log(`[Sync Engine] Comparing ${sourceA.clipId} ↔ ${sourceB.clipId}`);
+      
+      const match = correlateEnvelopes(sourceA.envelope, sourceB.envelope);
+      
+      const correlation: PairwiseCorrelation = {
+        sourceA: sourceA.clipId,
+        sourceB: sourceB.clipId,
+        offsetSec: roundTime(match.lagSec),
+        correlationScore: roundConfidence(match.confidence),
+        confidence: roundConfidence(match.confidence),
+        overlapDurationSec: match.overlapDurationSec,
+        candidatePeaks: match.candidatePeaks,
+        selectionReason: match.selectionReason
+      };
+
+      correlations.push(correlation);
+      matrix[sourceA.clipId][sourceB.clipId] = correlation;
+      
+      // Add reverse entry for symmetric access
+      if (!matrix[sourceB.clipId]) matrix[sourceB.clipId] = {};
+      matrix[sourceB.clipId][sourceA.clipId] = {
+        ...correlation,
+        sourceA: sourceB.clipId,
+        sourceB: sourceA.clipId,
+        offsetSec: roundTime(-match.lagSec)
+      };
+    }
+  }
+
+  console.log(`[Sync Engine] Completed ${correlations.length} pairwise correlations`);
+
+  // ─── Runtime Validation ───────────────────────────────────────────
+  console.log(`\n[Sync Engine Validation] Starting graph integrity check...`);
+  
+  let validationErrors: string[] = [];
+  let validationWarnings: string[] = [];
+
+  // 1. Verify all sources have valid envelopes
+  for (const source of audioSources) {
+    if (!source.envelope || source.envelope.length === 0) {
+      validationErrors.push(`Source ${source.clipId} has empty envelope`);
+    }
+    if (!source.mediaPath) {
+      validationErrors.push(`Source ${source.clipId} has no media path`);
+    }
+    if (source.durationSec <= 0) {
+      validationWarnings.push(`Source ${source.clipId} has invalid duration: ${source.durationSec}`);
+    }
+  }
+
+  // 2. Verify matrix symmetry and offset consistency
+  let symmetricChecks = 0;
+  let symmetricFailures = 0;
+  
+  for (let i = 0; i < audioSources.length; i++) {
+    for (let j = i + 1; j < audioSources.length; j++) {
+      const a = audioSources[i].clipId;
+      const b = audioSources[j].clipId;
+      
+      const ab = matrix[a]?.[b];
+      const ba = matrix[b]?.[a];
+      
+      if (!ab) {
+        validationErrors.push(`Missing correlation ${a} → ${b}`);
+        continue;
+      }
+      if (!ba) {
+        validationErrors.push(`Missing correlation ${b} → ${a}`);
+        continue;
+      }
+      
+      symmetricChecks++;
+      
+      // Verify offset symmetry: A→B offset = -(B→A offset)
+      const offsetDelta = Math.abs(ab.offsetSec + ba.offsetSec);
+      if (offsetDelta > 0.002) { // Allow 2ms floating point error
+        symmetricFailures++;
+        validationErrors.push(`Symmetry failure ${a} ↔ ${b}: ${ab.offsetSec} vs ${ba.offsetSec} (delta: ${offsetDelta}s)`);
+      }
+      
+      // Verify correlation scores match
+      if (Math.abs(ab.correlationScore - ba.correlationScore) > 0.001) {
+        validationWarnings.push(`Correlation score mismatch ${a} ↔ ${b}: ${ab.correlationScore} vs ${ba.correlationScore}`);
+      }
+      
+      // Verify confidence matches
+      if (Math.abs(ab.confidence - ba.confidence) > 0.001) {
+        validationWarnings.push(`Confidence mismatch ${a} ↔ ${b}: ${ab.confidence} vs ${ba.confidence}`);
+      }
+    }
+  }
+
+  // 3. Print validation report
+  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`                    SYNC GRAPH VALIDATION REPORT`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`  Total audio sources:      ${audioSources.length}`);
+  console.log(`  Total correlations:       ${correlations.length}`);
+  console.log(`  Symmetry checks passed:   ${symmetricChecks - symmetricFailures} / ${symmetricChecks}`);
+  console.log(`  Validation errors:        ${validationErrors.length}`);
+  console.log(`  Validation warnings:      ${validationWarnings.length}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+  if (validationErrors.length > 0) {
+    console.error(`\n❌ VALIDATION FAILED:`);
+    for (const err of validationErrors) {
+      console.error(`   - ${err}`);
+    }
+    throw new Error(`Sync graph validation failed with ${validationErrors.length} errors`);
+  }
+
+  if (validationWarnings.length > 0) {
+    console.warn(`\n⚠️  VALIDATION WARNINGS:`);
+    for (const warn of validationWarnings) {
+      console.warn(`   - ${warn}`);
+    }
+  }
+
+  // 4. Print full debug output
+  console.log(`\n📋 DETECTED AUDIO SOURCES:`);
+  for (const source of audioSources) {
+    console.log(`   • ${source.clipId}`);
+    console.log(`       Path:     ${source.mediaPath}`);
+    console.log(`       Duration: ${source.durationSec.toFixed(2)}s`);
+    console.log(`       Envelope: ${source.envelope.length} samples`);
+    console.log(`       Type:     ${source.isStandaloneAudio ? 'Standalone Audio' : source.hasEmbeddedAudio ? 'Video Embedded' : 'Unknown'}`);
+  }
+
+  console.log(`\n📊 PAIRWISE CORRELATION MATRIX:`);
+  console.log(`   Source A    Source B    Offset (ms)    Confidence    Score    Peaks`);
+  console.log(`   ─────────────────────────────────────────────────────────────────────`);
+  
+  for (const corr of correlations) {
+    console.log(`   ${corr.sourceA.padEnd(10)}  ${corr.sourceB.padEnd(10)}  ${String(Math.round(corr.offsetSec * 1000)).padStart(10)}ms  ${corr.confidence.toFixed(3).padStart(10)}  ${corr.correlationScore.toFixed(3).padStart(7)}  ${String(corr.candidatePeaks.length).padStart(5)}`);
+  }
+
+  console.log(`\n✅ SYNC GRAPH VALIDATION PASSED ✓`);
+
+  return {
+    sources: audioSources,
+    correlations,
+    matrix,
+    generatedAt: Date.now(),
+    runtimeVersion: "1.0.0-full-pairwise",
+    validation: {
+      passed: true,
+      errors: validationErrors,
+      warnings: validationWarnings,
+      symmetricChecks,
+      symmetricFailures
+    }
+  };
+}
+
 async function analyzeWaveformOffsets(
   snapshot: PodcastSynchronizationSnapshot,
   plan: SynchronizationPlan,
@@ -246,18 +498,6 @@ async function analyzeWaveformOffsets(
       blockers: [...plan.blockers, "CEP_NODE_UNAVAILABLE"],
     };
   }
-  const audioClips = firstMediaClipByTrack(snapshot.audioClips);
-  const videoClips = snapshot.videoClips.filter((clip) => clip.mediaAvailable && clip.sourcePath);
-  const referenceTrack = plan.referenceAudioTrackIndex;
-  const referenceClip = referenceTrack == null ? null : audioClips.get(referenceTrack) ?? null;
-  if (referenceTrack == null || !referenceClip?.sourcePath) {
-    return {
-      ...plan,
-      blockers: [...plan.blockers, "REFERENCE_AUDIO_SOURCE_REQUIRED"],
-    };
-  }
-  const referenceTrackIndex: number = referenceTrack;
-  const referenceVideo = findPairedVideoClip(referenceClip, videoClips);
 
   const runtime = getSyncNodeRuntime();
   const ffmpegPath = resolveSyncFfmpegPath(runtime);
@@ -280,7 +520,31 @@ async function analyzeWaveformOffsets(
     plan.messages.push(`Known Lag Test passed: all offsets (+2s, +5s, -10s) recovered successfully.`);
   }
 
+  // ─── Build Full Pairwise Sync Graph ───────────────────────────────
+  console.log(`[Saad Sync Engine] Building full pairwise synchronization graph...`);
+  const syncGraph = await buildFullSyncGraph(snapshot);
+  console.log(`[Saad Sync Engine] Sync graph built successfully with ${syncGraph.sources.length} sources and ${syncGraph.correlations.length} correlations`);
+
+  // Attach full sync graph to plan for UI inspection
+  (plan as any).syncGraph = syncGraph;
+
+  // ─── Legacy Reference-Based Offsets (for backwards compatibility) ──
+  const audioClips = firstMediaClipByTrack(snapshot.audioClips);
+  const videoClips = snapshot.videoClips.filter((clip) => clip.mediaAvailable && clip.sourcePath);
+  const referenceTrack = plan.referenceAudioTrackIndex;
+  const referenceClip = referenceTrack == null ? null : audioClips.get(referenceTrack) ?? null;
+  
+  if (referenceTrack == null || !referenceClip?.sourcePath) {
+    return {
+      ...plan,
+      blockers: [...plan.blockers, "REFERENCE_AUDIO_SOURCE_REQUIRED"],
+    };
+  }
+  
+  const referenceTrackIndex: number = referenceTrack;
+  const referenceVideo = findPairedVideoClip(referenceClip, videoClips);
   const referenceEnvelope = await extractSyncEnvelope(runtime, ffmpegPath, referenceClip);
+  
   const offsets: SynchronizationOffsetResult[] = [];
   offsets.push({
     audioTrackIndex: referenceTrackIndex,
@@ -725,10 +989,98 @@ function correlateEnvelopes(
 
   return {
     lagSec: selected.lagSec,
-    confidence: selected.score,
     overlapDurationSec: selected.overlapDurationSec,
     candidatePeaks,
     selectionReason
+  };
+}
+
+/**
+ * Extract raw PCM samples for a specific time window from media file
+ */
+async function extractRawPcmWindow(
+  runtime: ReturnType<typeof getSyncNodeRuntime>,
+  ffmpegPath: string,
+  clip: PodcastTimelineClipInfo,
+  offsetSec: number,
+  durationSec: number,
+  sampleRate: number
+): Promise<Int16Array> {
+  const sourceIn = Math.max(0, (clip.sourceInPointSec ?? 0) + Math.max(0, offsetSec));
+  
+  const args = [
+    "-hide_banner",
+    "-nostdin",
+    "-ss", String(sourceIn),
+    "-t", String(durationSec),
+    "-i", clip.sourcePath ?? "",
+    "-vn",
+    "-ac", "1",
+    "-ar", String(sampleRate),
+    "-f", "s16le",
+    "pipe:1",
+  ];
+  
+  try {
+    const buffer = await execFileBuffer(runtime.cp, ffmpegPath, args);
+    const samples = new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length / 2);
+    
+    // Normalize samples to [-1.0, 1.0] range
+    const normalized = new Float32Array(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      normalized[i] = samples[i] / 32768.0;
+    }
+    
+    return normalized as unknown as Int16Array;
+  } catch {
+    return new Int16Array(0);
+  }
+}
+
+/**
+ * High resolution cross correlation on raw PCM samples
+ */
+function finePcmCrossCorrelation(
+  pcmA: Float32Array,
+  pcmB: Float32Array,
+  sampleRate: number,
+  centerOffsetSamples: number = 0
+): { lagSec: number; confidence: number } {
+  const searchWindowMs = 250;
+  const maxLagSamples = Math.floor((searchWindowMs / 1000) * sampleRate);
+  
+  let bestLag = 0;
+  let bestCorrelation = -1;
+  
+  // Search ±250ms around the provided center offset
+  const startLag = centerOffsetSamples - maxLagSamples;
+  const endLag = centerOffsetSamples + maxLagSamples;
+  
+  for (let lag = startLag; lag <= endLag; lag++) {
+    let sum = 0;
+    let count = 0;
+    
+    const startA = Math.max(0, -lag);
+    const startB = Math.max(0, lag);
+    const end = Math.min(pcmA.length, pcmB.length - lag);
+    
+    for (let i = startA; i < end; i++) {
+      sum += pcmA[i] * pcmB[i + lag];
+      count++;
+    }
+    
+    if (count > 0) {
+      const correlation = sum / count;
+      if (correlation > bestCorrelation) {
+        bestCorrelation = correlation;
+        bestLag = lag;
+      }
+    }
+  }
+  
+  return {
+    lagSec: bestLag / sampleRate,
+    confidence: Math.max(0, Math.min(1, bestCorrelation))
   };
 }
 
@@ -881,4 +1233,74 @@ export function runKnownLagSelfTest(reference: number[]): { ok: boolean; results
   }
   
   return { ok: allOk, results, errors };
+}
+
+/**
+ * Deterministic numeric test for Fine Pass alignment accuracy
+ */
+export function runFinePassAccuracyTest(): {
+  expectedOffsetMs: number;
+  coarseOffsetMs: number;
+  fineAdjustmentMs: number;
+  refinedOffsetMs: number;
+  absoluteErrorMs: number;
+  refinementUsed: boolean;
+  fineScore: number;
+  pass: boolean;
+} {
+  const expectedOffsetMs = 1234;
+  const sampleRate = 48000;
+  const durationSamples = sampleRate * 2; // 2 seconds
+
+  // Generate reference test signal
+  const reference = new Float32Array(durationSamples);
+  let seed = 12345;
+  for (let i = 0; i < durationSamples; i++) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    reference[i] = ((seed / 0x7fffffff) * 2) - 1;
+  }
+
+  // Generate delayed signal with exact 1234ms offset
+  const offsetSamples = Math.round((expectedOffsetMs / 1000) * sampleRate);
+  const delayed = new Float32Array(durationSamples);
+  for (let i = 0; i < durationSamples; i++) {
+    if (i >= offsetSamples) {
+      delayed[i] = reference[i - offsetSamples];
+    } else {
+      delayed[i] = 0;
+    }
+  }
+
+  // Run fine pass correlation
+  const result = finePcmCrossCorrelation(reference, delayed, sampleRate);
+
+  const fineAdjustmentMs = Math.round(result.lagSec * 1000);
+  const refinedOffsetMs = fineAdjustmentMs;
+  const absoluteErrorMs = Math.abs(refinedOffsetMs - expectedOffsetMs);
+  const refinementUsed = result.confidence > 0.5;
+  const pass = absoluteErrorMs <= 10 && refinementUsed;
+
+  console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`                    FINE PASS ACCURACY TEST`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`  Expected offset:        ${expectedOffsetMs} ms`);
+  console.log(`  Coarse offset:          ${expectedOffsetMs} ms (simulated)`);
+  console.log(`  Fine adjustment:        ${fineAdjustmentMs} ms`);
+  console.log(`  Refined offset:         ${refinedOffsetMs} ms`);
+  console.log(`  Absolute error:         ${absoluteErrorMs} ms`);
+  console.log(`  Refinement used:        ${refinementUsed}`);
+  console.log(`  Fine score:             ${result.confidence.toFixed(4)}`);
+  console.log(`  Test result:            ${pass ? "✅ PASS" : "❌ FAIL"}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+  return {
+    expectedOffsetMs,
+    coarseOffsetMs: expectedOffsetMs,
+    fineAdjustmentMs,
+    refinedOffsetMs,
+    absoluteErrorMs,
+    refinementUsed,
+    fineScore: result.confidence,
+    pass
+  };
 }

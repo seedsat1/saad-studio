@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fine Pass Accuracy Test</title>
+</head>
+<body>
+    <h1>Fine Pass Accuracy Test</h1>
+    <pre id="output"></pre>
+
+    <script type="module">
+        import { runFinePassAccuracyTest } from "./adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts";
+
+        const output = document.getElementById("output");
+        const log = (text) => {
+            output.textContent += text + "\n";
+            console.log(text);
+        };
+
+        log("Running Fine Pass Accuracy Test...\n");
+        
+        const result = runFinePassAccuracyTest();
+        
+        log("\nTest completed.");
+        log(`Result: ${result.pass ? "✅ PASS" : "❌ FAIL"}`);
+    </script>
+</body>
+</html>

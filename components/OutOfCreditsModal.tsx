@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { ArrowRight, BatteryLow, Crown, Sparkles, X, Zap } from "lucide-react";
@@ -58,6 +59,27 @@ export default function OutOfCreditsModal() {
   const { isOpen, onClose, requiredCredits, currentBalance } = useCreditModal();
   const router = useRouter();
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
+
+  const [overview, setOverview] = useState<any>(null);
+  const [advanceLoading, setAdvanceLoading] = useState(false);
+  const [advanceMessage, setAdvanceMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/profile/overview")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && !data.error) {
+            setOverview(data);
+          }
+        })
+        .catch((err) => console.error("Error fetching overview inside credit modal:", err));
+    } else {
+      setOverview(null);
+      setAdvanceMessage(null);
+      setAdvanceLoading(false);
+    }
+  }, [isOpen]);
   const liveTopups = cms?.topups?.length ? cms.topups : DEFAULT_TOPUPS;
   const iconSet = [Zap, Sparkles, Crown];
 
@@ -134,6 +156,50 @@ export default function OutOfCreditsModal() {
                         <p className="mt-2 text-2xl font-black text-amber-100">{requiredCredits ?? "-"}</p>
                         <p className="text-xs text-amber-100/60">credits</p>
                       </div>
+                    </div>
+                  )}
+
+                  {overview?.creditAdvance?.available && (
+                    <div className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+                      <p className="text-xs font-bold text-amber-300 mb-1 leading-relaxed text-right" dir="rtl">
+                        💡 تنبيه: تم خصم سلفة الشهر الماضي من رصيد تجديد باقتك تلقائياً لتسوية الحساب. يمكنك سحب سلفة جديدة الآن بقيمة {overview.creditAdvance.amount.toLocaleString()} كريديت مجاناً!
+                      </p>
+                      <p className="text-[10px] text-slate-400 mb-3 leading-relaxed">
+                        Your previous advance was paid off from your annual renewal. You can request a new advance of {overview.creditAdvance.amount.toLocaleString()} credits now!
+                      </p>
+                      <button
+                        onClick={async () => {
+                          setAdvanceLoading(true);
+                          setAdvanceMessage(null);
+                          try {
+                            const res = await fetch("/api/credits/advance", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ amount: overview.creditAdvance.amount }),
+                            });
+                            const data = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                              setAdvanceMessage(data?.error || "Credit advance failed.");
+                            } else {
+                              setAdvanceMessage("نجح طلب السلفة! جاري تحديث الحساب...");
+                              setTimeout(() => {
+                                window.location.reload();
+                              }, 1500);
+                            }
+                          } catch {
+                            setAdvanceMessage("Could not request credit advance right now.");
+                          } finally {
+                            setAdvanceLoading(false);
+                          }
+                        }}
+                        disabled={advanceLoading}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-4 py-2.5 text-xs transition disabled:opacity-50"
+                      >
+                        {advanceLoading ? "جاري الشحن..." : "سحب سلفة جديدة (Request Advance)"}
+                      </button>
+                      {advanceMessage && (
+                        <p className="mt-2 text-center text-xs font-semibold text-amber-200">{advanceMessage}</p>
+                      )}
                     </div>
                   )}
                 </div>

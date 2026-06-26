@@ -34,8 +34,6 @@ export interface StorageProvider {
 
   getPublicUrl(bucket: string, path: string): string;
 
-  getObjectKey(bucket: string, path: string): string;
-
   isStoredAssetUrl(url: string): boolean;
 
   createSignedUploadUrl(params: {
