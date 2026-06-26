@@ -27,7 +27,7 @@ const BYTEPLUS_ARK_BASE = (process.env.BYTEPLUS_ARK_BASE_URL || "https://ark.ap-
 const BYTEPLUS_CONTENT_TASKS_URL = `${BYTEPLUS_ARK_BASE}/contents/generations/tasks`;
 const SEEDANCE_2_MODEL = "dreamina-seedance-2-0-260128";
 const SEEDANCE_2_FAST_MODEL = "dreamina-seedance-2-0-fast-260128";
-const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "seedance-mini-2-0-250528";
+const SEEDANCE_2_MINI_MODEL = process.env.BYTEPLUS_MODEL_MINI ?? "seed-2-0-mini-260428";
 const SEEDANCE_2_ROUTES = new Set([
   "bytedance/seedance-v2/text-to-video",
   "bytedance/seedance-v2/text-to-video-fast",
@@ -50,12 +50,24 @@ function resolveKieVideoModel(modelRoute: string): string | undefined {
 }
 
 function providerFailureMessage(payload: Record<string, unknown> | null, status: number) {
+  if (!payload) return `HTTP ${status}`;
+  
+  if (payload.error && typeof payload.error === "object") {
+    const errObj = payload.error as Record<string, unknown>;
+    if (errObj.message) return String(errObj.message).slice(0, 260);
+    if (errObj.msg) return String(errObj.msg).slice(0, 260);
+  }
+
   const raw =
-    payload?.msg ??
-    payload?.message ??
-    payload?.error ??
-    payload?.code ??
+    payload.msg ??
+    payload.message ??
+    payload.error ??
+    payload.code ??
     `HTTP ${status}`;
+    
+  if (typeof raw === "object") {
+    return JSON.stringify(raw).slice(0, 260);
+  }
   return String(raw).slice(0, 260);
 }
 
@@ -106,7 +118,7 @@ function getOfficialSeedanceModel(modelRoute: string): string {
     return SEEDANCE_2_FAST_MODEL;
   }
   if (modelRoute === "bytedance/seedance-v2/text-to-video-mini") {
-    return SEEDANCE_2_MODEL;
+    return SEEDANCE_2_MINI_MODEL;
   }
   return SEEDANCE_2_MODEL;
 }
@@ -1310,7 +1322,7 @@ export async function POST(req: Request) {
       const createData = createJson?.data as Record<string, unknown> | undefined;
       const rawTaskId = createJson?.id ?? createJson?.task_id ?? createJson?.taskId ?? createData?.id ?? createData?.task_id ?? createData?.taskId;
       if (!createRes.ok || !rawTaskId) {
-        console.error("[api/video POST] BytePlus create task failed", createRes.status, JSON.stringify(createJson).slice(0, 500));
+        console.error("[api/video POST] BytePlus create task failed", createRes.status, JSON.stringify(createJson));
         if (chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
