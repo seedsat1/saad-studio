@@ -1,0 +1,199 @@
+﻿Starting provider-by-provider E2E payload tests...
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance 2.0 Stable - Text Only
+======================================================
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "A beautiful sunny day in a green park"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": false
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance 2.0 Stable - Text + Image
+======================================================
+[Media Pipeline Verification] Checking accessibility of first_frame_url: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "A beautiful sunny day in a green park"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg"
+      },
+      "role": "first_frame"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": false
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance 2.0 Stable - Text + First Frame (R2 Legacy Domain)
+======================================================
+[resolveProviderMediaUrl] Key images/default-thumbnail.jpg not on B2. Attempting migration...
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "A beautiful sunny day in a green park"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": false
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance 2.0 Stable - Text + Last Frame (Proxy URL)
+======================================================
+[Media Pipeline Verification] Checking accessibility of last_frame_url: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-260128",
+  "content": [
+    {
+      "type": "text",
+      "text": "A beautiful sunny day in a green park"
+    },
+    {
+      "type": "image_url",
+      "image_url": {
+        "url": "https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg"
+      },
+      "role": "last_frame"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": false
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance Mini - Text Only
+======================================================
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-mini-260615",
+  "content": [
+    {
+      "type": "text",
+      "text": "A cute cat sleeping on a sofa"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": true
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Seedance Mini - Text + Image (Base64)
+======================================================
+Constructed official Seedance payload: {
+  "model": "dreamina-seedance-2-0-mini-260615",
+  "content": [
+    {
+      "type": "text",
+      "text": "A cute cat sleeping on a sofa"
+    }
+  ],
+  "generate_audio": false,
+  "ratio": "16:9",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": true
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Google Veo - Text + Image
+======================================================
+[Media Pipeline Verification] Checking accessibility of image: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+Google Veo Resolved Start Image: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Kling - Text + Image
+======================================================
+[Media Pipeline Verification] Checking accessibility of image_url: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+Kling input payload for KIE createTask: {
+  "mode": "pro",
+  "sound": false,
+  "duration": "5",
+  "multi_shots": false,
+  "prompt": "A realistic robot dancing, high dynamic range",
+  "multi_prompt": [],
+  "image_urls": [
+    "https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg"
+  ]
+}
+Γ£à Passed
+
+======================================================
+≡ƒº¬ TEST CASE: Minimax - Text + Image/Video Reference
+======================================================
+[Media Pipeline Verification] Checking accessibility of image_url: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+[Media Pipeline Verification] Checking accessibility of video: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] Verified URL: https://f003.backblazeb2.com/file/saadstudio-storage/images/default-thumbnail.jpg
+[Media Pipeline Audit] HEAD status: 200 OK
+[Media Pipeline Audit] Content-Type: image/png
+[Media Pipeline Audit] Content-Length: 1024
+Minimax input payload for KIE createTask: {
+  "prompt": "Stormy ocean waves crash against the rocks",
+  "duration": "5",
+  "resolution": "720p",
+  "image_urls": [
+    "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/images/default-thumbnail.jpg"
+  ]
+}
+Γ£à Passed
+
+======================================================
+≡ƒÄë All provider-by-provider dry-run tests finished.
+======================================================

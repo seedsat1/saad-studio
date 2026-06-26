@@ -4,10 +4,11 @@ import {
   InsufficientCreditsError,
   ensureUserRow,
   spendCredits,
+  refundGenerationCharge,
 } from "@/lib/credit-ledger";
-import { isSafePublicHttpUrl } from "@/lib/security";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -82,23 +83,37 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); }
   catch { return NextResponse.json({ error: "Invalid request body." }, { status: 400 }); }
 
-  const audioUrl = String(body.audioUrl ?? "").trim();
+  let audioUrl = String(body.audioUrl ?? "").trim();
   if (!audioUrl) return NextResponse.json({ error: "audioUrl is required." }, { status: 400 });
-  if (!isSafePublicHttpUrl(audioUrl)) {
-    return NextResponse.json({ error: "audioUrl must be a valid public https URL." }, { status: 400 });
+
+  try {
+    const resolved = await resolveProviderMediaUrl(audioUrl, { userId, assetType: "audio" });
+    await verifyPublicMediaUrl(resolved, "audioUrl");
+    audioUrl = resolved;
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
+    throw err;
   }
 
   const language = String(body.language ?? "en").slice(0, 10);
 
   await ensureUserRow(userId);
 
+  let chargedCredits = 0;
+  let generationId: string | null = null;
+
   try {
-    const { balanceAfter } = await spendCredits(
+    const charge = await spendCredits(
       userId,
       CAPTIONS_CREDIT_COST,
       "panel_captions",
       { audioUrl: audioUrl.slice(0, 80) },
     );
+    chargedCredits = CAPTIONS_CREDIT_COST;
+    generationId = charge.generationId;
+    const balanceAfter = charge.remainingCredits;
 
     const apiKey = getWsKey();
 
@@ -137,6 +152,13 @@ export async function POST(req: NextRequest) {
       balanceAfter,
     });
   } catch (err) {
+    if (chargedCredits > 0 && generationId) {
+      await refundGenerationCharge(generationId, userId, chargedCredits, {
+        reason: "generation_refund_provider_failed",
+        clearMediaUrl: true,
+      }).catch(() => {});
+    }
+
     if (err instanceof InsufficientCreditsError) {
       return NextResponse.json(
         { error: "Insufficient credits.", requiredCredits: CAPTIONS_CREDIT_COST },

@@ -16,6 +16,8 @@ import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
+import { defaultProvider, legacyProvider } from "@/lib/storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
 const WAVESPEED_BASE = "https://api.wavespeed.ai/api/v3";
@@ -33,13 +35,6 @@ const SEEDANCE_2_ROUTES = new Set([
   "bytedance/seedance-v2/text-to-video-fast",
   "bytedance/seedance-v2/text-to-video-mini",
 ]);
-
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
 
 const LOCKED_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   // These are high-traffic paid routes. Keep them immutable so a catalog sync or
@@ -188,7 +183,7 @@ function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasR
   return raw === 4 || raw === 6 || raw === 8 ? raw : 8;
 }
 
-function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
+export function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
   if (typeof payload.duration === "number") out.duration = payload.duration;
@@ -259,30 +254,44 @@ async function uploadDataUrlToKie(value: string): Promise<string> {
   return String(maybeUrl);
 }
 
-async function resolveMediaInInput(input: Record<string, unknown>) {
+export async function resolveMediaInInput(input: Record<string, unknown>, userId: string) {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(input)) {
     if (typeof value === "string" && ["image", "image_url", "first_frame_url", "last_frame_url", "last_image", "end_image", "video"].includes(key)) {
-      resolved[key] = await uploadDataUrlToKie(value);
+      if (value.trim()) {
+        const resolvedUrl = await resolveProviderMediaUrl(value, { userId, assetType: getAssetTypeFromKey(key) });
+        await verifyPublicMediaUrl(resolvedUrl, key);
+        resolved[key] = resolvedUrl;
+      } else {
+        resolved[key] = value;
+      }
       continue;
     }
 
     if (Array.isArray(value) && ["reference_image_urls", "image_urls", "reference_video_urls", "reference_audio_urls"].includes(key)) {
+      const assetType = getAssetTypeFromKey(key);
       const uploaded = await Promise.all(
-        value.map(async (item) => (typeof item === "string" ? await uploadDataUrlToKie(item) : item)),
+        value.map(async (item) => {
+          if (typeof item === "string" && item.trim()) {
+            const resolvedUrl = await resolveProviderMediaUrl(item, { userId, assetType });
+            await verifyPublicMediaUrl(resolvedUrl, key);
+            return resolvedUrl;
+          }
+          return item;
+        }),
       );
       // Verify uploads produced distinct URLs (critical for first/last frame pairs)
       if (key === "image_urls" && uploaded.length >= 2) {
         const urlsOnly = uploaded.filter((u): u is string => typeof u === "string");
         const uniqueUrls = new Set(urlsOnly);
         console.log(
-          `[API/video] image_urls uploaded → ${urlsOnly.length} items, ${uniqueUrls.size} unique URLs`,
+          `[API/video] image_urls resolved → ${urlsOnly.length} items, ${uniqueUrls.size} unique URLs`,
           urlsOnly.map((u, i) => `[${i}] ${u.slice(0, 80)}`),
         );
         if (uniqueUrls.size < urlsOnly.length) {
           console.warn(
-            "[API/video] ⚠ KIE returned duplicate URLs for distinct frames — first/last frame transition will not work!",
+            "[API/video] ⚠ KIE resolved duplicate URLs for distinct frames — first/last frame transition will not work!",
           );
         }
       }
@@ -299,9 +308,14 @@ async function resolveMediaInInput(input: Record<string, unknown>) {
         const next = { ...el };
         if (Array.isArray(next.element_input_urls)) {
           next.element_input_urls = await Promise.all(
-            (next.element_input_urls as unknown[]).map(async (v) =>
-              typeof v === "string" ? await uploadDataUrlToKie(v) : v,
-            ),
+            (next.element_input_urls as unknown[]).map(async (v) => {
+              if (typeof v === "string" && v.trim()) {
+                const resolvedUrl = await resolveProviderMediaUrl(v, { userId, assetType: "image" });
+                await verifyPublicMediaUrl(resolvedUrl, "kling_element");
+                return resolvedUrl;
+              }
+              return v;
+            }),
           );
         }
         return next;
@@ -312,32 +326,20 @@ async function resolveMediaInInput(input: Record<string, unknown>) {
   return resolved;
 }
 
-async function uploadDataUrlToStorage(value: string, userId: string, assetType: "image" | "video" | "audio"): Promise<string> {
-  if (!value.startsWith("data:")) return value;
-  const parsed = extractBase64(value);
-  if (!parsed) return value;
-
-  const buffer = Buffer.from(parsed.fileData, "base64");
-  const uploaded = await uploadBufferToStorage({
-    buffer,
-    contentType: parsed.mime,
-    userId,
-    assetType,
-    generationId: `seedance-input-${Date.now()}-${crypto.randomUUID()}`,
-    fileName: `input.${parsed.ext}`,
-  });
-  if (!uploaded) {
-    throw new Error("Storage upload failed for Seedance input");
-  }
-  return uploaded;
+function getAssetTypeFromKey(key: string): "image" | "video" | "audio" {
+  const k = key.toLowerCase();
+  if (k.includes("video")) return "video";
+  if (k.includes("audio")) return "audio";
+  return "image";
 }
 
 async function resolveOfficialSeedanceUrl(value: unknown, userId: string, assetType: "image" | "video" | "audio"): Promise<string | null> {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const trimmed = value.trim();
-  if (trimmed.startsWith("data:")) return uploadDataUrlToStorage(trimmed, userId, assetType);
-  if (/^https?:\/\//.test(trimmed) || trimmed.startsWith("asset://")) return trimmed;
-  return null;
+  try {
+    return await resolveProviderMediaUrl(value, { userId, assetType });
+  } catch (err) {
+    console.error(`[resolveOfficialSeedanceUrl] failed for value: ${value}`, err);
+    return null;
+  }
 }
 
 async function resolveOfficialSeedanceUrlList(value: unknown, userId: string, assetType: "image" | "video" | "audio", limit: number): Promise<string[]> {
@@ -376,7 +378,7 @@ function normalizeOfficialSeedanceResolution(modelRoute: string, value: unknown)
   return "720p";
 }
 
-async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
+export async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
   const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 20000) : "";
   const content: Array<Record<string, unknown>> = [];
   if (prompt) content.push({ type: "text", text: prompt });
@@ -394,15 +396,18 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     (await resolveOfficialSeedanceUrl(imageUrls[1], userId, "image"));
 
   if (firstFrame) {
+    await verifyPublicMediaUrl(firstFrame, "first_frame_url");
     content.push({ type: "image_url", image_url: { url: firstFrame }, role: "first_frame" });
   }
   if (lastFrame) {
+    await verifyPublicMediaUrl(lastFrame, "last_frame_url");
     content.push({ type: "image_url", image_url: { url: lastFrame }, role: "last_frame" });
   }
 
   const maxReferenceImages = Math.max(0, 9 - (firstFrame ? 1 : 0) - (lastFrame ? 1 : 0));
   const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", maxReferenceImages);
   for (const url of referenceImages) {
+    await verifyPublicMediaUrl(url, "reference_image");
     content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
   }
 
@@ -410,11 +415,13 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
   const singleVideo = await resolveOfficialSeedanceUrl(payload.video, userId, "video");
   const finalVideos = [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3);
   for (const url of finalVideos) {
+    await verifyPublicMediaUrl(url, "reference_video");
     content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
   }
 
   const referenceAudios = await resolveOfficialSeedanceUrlList(payload.reference_audio_urls, userId, "audio", 3);
   for (const url of referenceAudios) {
+    await verifyPublicMediaUrl(url, "reference_audio");
     content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
@@ -463,7 +470,7 @@ function normalizeKling30Mode(value: unknown) {
   return "std";
 }
 
-function mapToKieInput(model: string, payload: Record<string, unknown>) {
+export function mapToKieInput(model: string, payload: Record<string, unknown>) {
   const input: Record<string, unknown> = { ...payload };
 
   const startImage =
@@ -1274,6 +1281,13 @@ export async function POST(req: Request) {
       const arkBody = await buildOfficialSeedancePayload(modelRoute, payload, userId);
       const arkModel = String(arkBody.model || getOfficialSeedanceModel(modelRoute));
 
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] Provider: BytePlus`);
+      console.log(`[Provider Payload Audit] Model: ${arkModel}`);
+      console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
+      console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(arkBody, null, 2));
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
@@ -1406,7 +1420,38 @@ export async function POST(req: Request) {
       const referenceSources = Array.isArray(payload.reference_image_urls)
         ? payload.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 3)
         : [];
-      const hasGoogleReferences = Boolean(startImage) || Boolean(endImage) || referenceSources.length > 0;
+
+      // Resolve and verify accessibility of all media inputs before spending credits
+      const resolvedStartImage = (typeof startImage === "string" && startImage.trim())
+        ? await resolveProviderMediaUrl(startImage, { userId, assetType: "image" })
+        : undefined;
+      const resolvedEndImage = (typeof endImage === "string" && endImage.trim())
+        ? await resolveProviderMediaUrl(endImage, { userId, assetType: "image" })
+        : undefined;
+      
+      const resolvedReferenceSources: string[] = [];
+      for (const source of referenceSources) {
+        if (typeof source === "string" && source.trim()) {
+          const resolved = await resolveProviderMediaUrl(source, { userId, assetType: "image" });
+          resolvedReferenceSources.push(resolved);
+        }
+      }
+
+      if (resolvedStartImage) {
+        await verifyPublicMediaUrl(resolvedStartImage, "google_start_image");
+      }
+      if (resolvedEndImage) {
+        await verifyPublicMediaUrl(resolvedEndImage, "google_end_image");
+      }
+      for (const url of resolvedReferenceSources) {
+        await verifyPublicMediaUrl(url, "google_reference_image");
+      }
+
+      const hasGoogleReferences =
+        Boolean(resolvedStartImage) ||
+        Boolean(resolvedEndImage) ||
+        resolvedReferenceSources.length > 0;
+
       const aspectRatio = payload.aspect_ratio === "9:16" || payload.aspectRatio === "9:16" ? "9:16" : "16:9";
       const resolution = normalizeGeminiResolution(payload.resolution ?? payload.quality ?? payload.mode);
       const durationSeconds = normalizeGeminiDuration(payload.duration, resolution, hasGoogleReferences);
@@ -1414,6 +1459,22 @@ export async function POST(req: Request) {
         typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()
           ? sanitizePrompt(payload.negative_prompt, 1000)
           : undefined;
+
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] Provider: Google Veo`);
+      console.log(`[Provider Payload Audit] Model: veo-3.1-generate-preview`);
+      console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
+      console.log(`[Provider Payload Audit] Payload details:`, JSON.stringify({
+        prompt,
+        aspectRatio,
+        resolution,
+        durationSeconds,
+        negativePrompt,
+        startImage: resolvedStartImage,
+        endImage: resolvedEndImage,
+        referenceSources: resolvedReferenceSources,
+      }, null, 2));
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
 
       const googleCostEst = estimateProviderCostSync(modelRoute, durationSeconds, resolution);
 
@@ -1444,10 +1505,10 @@ export async function POST(req: Request) {
       }).catch(() => {});
 
       const [image, lastFrame, referenceImages] = await Promise.all([
-        sourceToGoogleImageInput(startImage),
-        sourceToGoogleImageInput(endImage),
-        referenceSources.length
-          ? Promise.all(referenceSources.map((source) => sourceToGoogleImageInput(source))).then((items) => items.filter((item): item is VeoImageInput => Boolean(item)))
+        sourceToGoogleImageInput(resolvedStartImage),
+        sourceToGoogleImageInput(resolvedEndImage),
+        resolvedReferenceSources.length
+          ? Promise.all(resolvedReferenceSources.map((source) => sourceToGoogleImageInput(source))).then((items) => items.filter((item): item is VeoImageInput => Boolean(item)))
           : Promise.resolve([]),
       ]);
 
@@ -1521,10 +1582,19 @@ export async function POST(req: Request) {
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
       for (const key of ["image", "image_url", "end_image"] as const) {
         const mediaValue = wsInput[key];
-        if (typeof mediaValue === "string" && mediaValue.startsWith("data:")) {
-          wsInput[key] = await uploadDataUrlToKie(mediaValue).catch(() => mediaValue);
+        if (typeof mediaValue === "string" && mediaValue.trim()) {
+          const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType: getAssetTypeFromKey(key) });
+          await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`);
+          wsInput[key] = resolvedUrl;
         }
       }
+
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] Provider: WaveSpeed`);
+      console.log(`[Provider Payload Audit] Model: ${wavespeedRoute}`);
+      console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
+      console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(wsInput, null, 2));
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
 
       const wsCostEst = estimateProviderCostSync(modelRoute, durationForCost, qualityForCost);
 
@@ -1613,7 +1683,7 @@ export async function POST(req: Request) {
     }
 
     const normalizedInput = normalizeInputForKie(payload);
-    const resolvedInput = await resolveMediaInInput(normalizedInput);
+    const resolvedInput = await resolveMediaInInput(normalizedInput, userId);
 
     // ── KIE 3.0 payload diagnostic log ───────────────────────────────────
     if (kieModel === "kling-3.0/video") {
@@ -1696,6 +1766,13 @@ export async function POST(req: Request) {
     const createBody = isVeoModel
       ? { ...(kieInput as Record<string, unknown>), callBackUrl: callbackUrl }
       : { model: kieModel, callBackUrl: callbackUrl, input: kieInput };
+
+    console.log(`[Provider Payload Audit] ---------------------------------------------`);
+    console.log(`[Provider Payload Audit] Provider: KIE.ai`);
+    console.log(`[Provider Payload Audit] Model: ${kieModel}`);
+    console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
+    console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(createBody, null, 2));
+    console.log(`[Provider Payload Audit] ---------------------------------------------`);
 
     const createRes = await fetch(createEndpoint, {
       method: "POST",

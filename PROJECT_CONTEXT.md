@@ -1,5 +1,36 @@
 # Saad Studio — Project Context
-## آخر مهمة: التحقق من قيود المدخلات المتعددة لموديل Seedance v2 وتجنب الأخطاء غير المدعومة (2026-06-27)
+## آخر مهمة: إصلاح مركزي شامل للبنية التحتية للميديا وتطبيع قاعدة البيانات (2026-06-27)
+
+- **المشكلة**:
+  تعطل تسليم أصول الميديا والمراجع لمزودي الذكاء الاصطناعي بسبب مسارات بروكسي نسبية أو روابط Cloudflare R2 القديمة المتفرقة في قاعدة البيانات والملفات، والحاجة لتوحيد عملية حل الروابط والتحقق المسبق قبل خصم رصيد المستخدم، بالإضافة إلى حماية الكريديت باسترداده ديناميكياً عند فشل المزود.
+
+- **الإصلاح والتحقق**:
+  1. **التحقق المركزي للميديا**:
+     - تطبيق `resolveProviderMediaUrl` و `verifyPublicMediaUrl` على كافة مدخلات مسار الصوت (`/api/generate/audio`) والترجمة (`/api/generate/captions` و `/api/panel/generate/captions`) لحلها إلى روابط Backblaze B2 مطلقة وصحيحة والتحقق من صلاحيتها قبل خصم رصيد المستخدم.
+     - معالجة `ValidationError` لإرجاع 400 Bad Request بدلاً من أخطاء الـ 500 للمدخلات التالفة.
+     - حماية واسترداد الكريديت التلقائي (`refundGenerationCharge`) في مسارات الترجمة والصوت إذا فشل الطلب لاحقاً.
+  2. **تطبيع قاعدة البيانات**:
+     - تطوير وتشغيل سكربت [db-normalization-audit.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/scratch/db-normalization-audit.ts) في وضع الكتابة لتمشيط وتطبيع كافة جداول قاعدة البيانات (132 جيينريشن، 5 مخططات صفحات، 11 صورة استوديو، 23 مخرج انتقالات، 15 مخرج تنويعات) وتطهيرها من روابط R2 التالفة أو المسارات المزدوجة والمزيفة.
+  3. **اختبار مزودي الخدمة**:
+     - تشغيل سكربت [provider-e2e-test.ts](file:///E:/موقع%20ثاني/next14%20ai%2520saas/next14-ai-saas-main/next14-ai-saas-main/scratch/provider-e2e-test.ts) لاختبار توليد payloads وصحتها لجميع الموديلات (Seedance 2, Seedance Mini, Veo, Kling, Minimax) بنجاح كامل 100%.
+
+- **الملفات المتأثرة**:
+  - [lib/media/public-url-resolver.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media/public-url-resolver.ts) [MODIFY]
+  - [app/api/video/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts) [MODIFY]
+  - [app/api/generate/audio/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/audio/route.ts) [MODIFY]
+  - [app/api/generate/captions/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/captions/route.ts) [MODIFY]
+  - [app/api/panel/generate/captions/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/generate/captions/route.ts) [MODIFY]
+  - [scratch/db-normalization-audit.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scratch/db-normalization-audit.ts) [NEW]
+  - [scratch/provider-e2e-test.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scratch/provider-e2e-test.ts) [NEW]
+
+- **القرارات المتخذة**:
+  - منع تمرير الروابط النسبية ومسارات البروكسي وعزلها تماماً عن كود المزودين AI، وحلها ديناميكياً خارج التوجيه بـ B2 URLs.
+  - تمشيط فوري وشامل لقاعدة البيانات لتعديل وتوحيد الروابط وحفظها نظيفة وموحدة لتجنب مشاكل المعاينة.
+
+- **الخطوة المتبقية**:
+  - لا توجد خطوات متبقية. البنية التحتية والمنظومة مستقرة بالكامل.
+
+## المهمة السابقة: إصلاح البنية التحتية للميديا والتحقق المسبق من الروابط على السيرفر لجميع الموديلات (2026-06-27)
 
 - **المشكلة**:
   يدعم موديل Seedance V2 توليد الفيديو باستخدام المدخلات المتعددة ولكن لا يقبل توليد الفيديو من نصوص وصوت فقط دون إدراج صورة مرجعية أو فيديو مرجعي واحد على الأقل، مما يتسبب في فشل الطلب وإرجاع خطأ 400 غير معالج من مزود الخدمة BytePlus بعد خصم الكريديت من حساب المستخدم. كما يجب تحديد عدد الصور المرجعية بـ 9 صور كحد أقصى شاملة صور البداية والنهاية.

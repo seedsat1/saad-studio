@@ -9,7 +9,8 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { isStorageConfigured, uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
-import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { normalizeMediaUrl } from "@/lib/storage";
+import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const maxDuration = 180;
 export const dynamic = "force-dynamic";
@@ -374,28 +375,7 @@ async function generateGoogleImage(params: {
   return images.map((image) => ({ buffer: Buffer.from(image.data, "base64"), mimeType: image.mimeType }));
 }
 
-async function uploadBase64ToStorage(
-  base64Data: string,
-  userId: string,
-  genId: string,
-  idx: number,
-): Promise<string> {
-  const match = base64Data.match(/^data:([^;]+);base64,([\s\S]+)$/);
-  if (!match) throw new Error("Invalid base64 data URL for reference image");
-  const contentType = match[1];
-  const buffer = Buffer.from(match[2], "base64");
-  const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-  const url = await uploadBufferToStorage({
-    buffer,
-    contentType,
-    userId,
-    assetType: "image-ref",
-    generationId: `${genId}-r${idx}`,
-    fileName: `ref.${ext}`,
-  });
-  if (!url) throw new Error("Please check your storage configuration — reference image upload failed.");
-  return url;
-}
+
 
 async function createKieTask(
   apiKey: string,
@@ -621,6 +601,22 @@ export async function POST(req: NextRequest) {
       aspectRatio,
       requestPayload: body,
     };
+    const refUrls: string[] = [];
+    if (imageUrl) refUrls.push(imageUrl);
+    if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
+
+    for (const ref of refUrls) {
+      await checkStoryboardReferenceImageSafety(ref);
+    }
+
+    const resolvedRefs = await Promise.all(
+      refUrls.map((r) => resolveProviderMediaUrl(r, { userId, assetType: "image" }))
+    );
+
+    for (const url of resolvedRefs) {
+      await verifyPublicMediaUrl(url, "reference_image");
+    }
+
     const spent = unlimited.eligible
       ? await recordFreeGeneration(chargeInput)
       : await spendCredits({ ...chargeInput, credits: creditsToCharge });
@@ -631,24 +627,6 @@ export async function POST(req: NextRequest) {
       dailyUsed: unlimited.dailyUsed,
       requestedUnits: numImages,
     });
-
-    // Resolve all reference images: upload base64 → Supabase Storage, pass http URLs as-is.
-    // If Supabase is not configured, pass base64 data URLs directly to KIE (accepted by most models).
-    const storageAvailable = isStorageConfigured();
-    const resolveRef = async (raw: string, idx: number): Promise<string> => {
-      if (!raw.startsWith("data:")) return raw;
-      if (!storageAvailable) return raw; // pass base64 directly if no storage configured
-      return await uploadBase64ToStorage(raw, userId, generationId!, idx);
-    };
-    const refUrls: string[] = [];
-    if (imageUrl) refUrls.push(imageUrl);
-    if (imageUrlsParam?.length) refUrls.push(...imageUrlsParam);
-
-    for (const ref of refUrls) {
-      await checkStoryboardReferenceImageSafety(ref);
-    }
-
-    const resolvedRefs = await Promise.all(refUrls.map((r, i) => resolveRef(r, i)));
 
     if (isFluxKontext) {
       const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
@@ -1120,7 +1098,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (error instanceof UnsafeReferenceImageError) {
+    if (error instanceof ValidationError || error instanceof UnsafeReferenceImageError) {
       if (chargedCredits > 0 && chargedUserId && generationId) {
         await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
       }

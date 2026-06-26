@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
-import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePlainText } from "@/lib/security";
+import { getClientIp, isAllowedOrigin, sanitizePlainText } from "@/lib/security";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 min — long enough for large video transcription
@@ -231,9 +232,13 @@ export async function POST(req: NextRequest) {
     if (!mediaUrl) {
       return NextResponse.json({ error: "Provide mediaUrl or upload a file." }, { status: 400 });
     }
-    if (!isSafePublicHttpUrl(mediaUrl)) {
-      return NextResponse.json({ error: "Invalid media URL." }, { status: 400 });
-    }
+
+    const resolved = await resolveProviderMediaUrl(mediaUrl, {
+      userId,
+      assetType: model === "wavespeed-ai/openai-whisper-with-video" ? "video" : "audio",
+    });
+    await verifyPublicMediaUrl(resolved, "mediaUrl");
+    mediaUrl = resolved;
 
     const payload: Record<string, unknown> = {
       language,
@@ -303,6 +308,9 @@ export async function POST(req: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     const message = error instanceof Error ? error.message : "An unexpected error occurred.";
     const stack = error instanceof Error ? error.stack : undefined;
     console.error("[captions API] 500:", message, stack);

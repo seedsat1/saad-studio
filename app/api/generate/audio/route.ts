@@ -6,6 +6,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
 
 export const runtime = "nodejs";
 
@@ -878,6 +879,40 @@ export async function POST(req: NextRequest) {
 
     const body: AudioRequestBody = await req.json();
     requestHash = hashRequestBody(body);
+
+    // Centralized resolver and accessibility validation for all audio/video/image inputs before billing
+    if (typeof body.audioUrl === "string" && body.audioUrl.trim()) {
+      const resolved = await resolveProviderMediaUrl(body.audioUrl, { userId, assetType: "audio" });
+      await verifyPublicMediaUrl(resolved, "audioUrl");
+      body.audioUrl = resolved;
+    }
+    if (typeof body.videoUrl === "string" && body.videoUrl.trim()) {
+      const resolved = await resolveProviderMediaUrl(body.videoUrl, { userId, assetType: "video" });
+      await verifyPublicMediaUrl(resolved, "videoUrl");
+      body.videoUrl = resolved;
+    }
+    if (typeof body.imageUrl === "string" && body.imageUrl.trim()) {
+      const resolved = await resolveProviderMediaUrl(body.imageUrl, { userId, assetType: "image" });
+      await verifyPublicMediaUrl(resolved, "imageUrl");
+      body.imageUrl = resolved;
+    }
+    if (typeof body.image === "string" && body.image.trim()) {
+      const resolved = await resolveProviderMediaUrl(body.image, { userId, assetType: "image" });
+      await verifyPublicMediaUrl(resolved, "image");
+      body.image = resolved;
+    }
+    if (Array.isArray(body.sampleAudioUrls)) {
+      body.sampleAudioUrls = await Promise.all(
+        body.sampleAudioUrls.map(async (url) => {
+          if (typeof url === "string" && url.trim()) {
+            const resolved = await resolveProviderMediaUrl(url, { userId, assetType: "audio" });
+            await verifyPublicMediaUrl(resolved, "sampleAudioUrl");
+            return resolved;
+          }
+          return url;
+        })
+      );
+    }
     const { actionType } = body;
     const wavespeedKey = process.env.WAVESPEED_API_KEY;
     const kieKey = process.env.KIE_API_KEY || process.env.KIEAI_API_KEY;
@@ -1527,6 +1562,21 @@ export async function POST(req: NextRequest) {
     }
     throw new Error(`Unknown actionType: ${actionType}. Supported: tts | video2audio | music | speech-to-text | audio-isolation | voice-changer | dubbing | lip-sync | voice-cloning.`);
   } catch (error: unknown) {
+    if (error instanceof ValidationError) {
+      const responseJson = { error: error.message };
+      if (chargedUserId && requestHash) {
+        await completeIdempotency({
+          userId: chargedUserId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 400,
+          responseJson,
+        }).catch(() => {});
+      }
+      return NextResponse.json(responseJson, { status: 400 });
+    }
+
     if (error instanceof InsufficientCreditsError) {
       const responseJson = {
         error: "Insufficient credits",
