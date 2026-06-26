@@ -29,7 +29,7 @@ export class R2Provider implements StorageProvider {
       headers["Range"] = params.range;
     }
 
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(3000) });
 
     if (!response.ok && response.status !== 206) {
       throw new Error(`File not found in legacy R2 storage: ${key}`);
@@ -65,7 +65,7 @@ export class R2Provider implements StorageProvider {
     const key = this.getObjectKey(params.bucket, params.path);
     const url = `${this.rawR2Url}/${key}`;
     try {
-      const response = await fetch(url, { method: "HEAD" });
+      const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(3000) });
       return response.ok;
     } catch {
       return false;

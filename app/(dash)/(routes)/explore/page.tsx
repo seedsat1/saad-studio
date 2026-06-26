@@ -35,6 +35,13 @@ import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "
 
 // ─── Types and Constants ───
 
+function formatDuration(seconds: number): string {
+  if (isNaN(seconds) || seconds <= 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 type ShowcaseItem = {
   id: string;
   title: string;
@@ -1121,7 +1128,7 @@ function ReelCard({
           <div className="flex items-center justify-between gap-3">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-200/90">{item.creator}</div>
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
-              {item.type === "video" ? formatDuration(durationSec) : "Image"}
+              {item.type === "video" ? formatDuration(durationSec || 0) : "Image"}
             </div>
           </div>
           <h3 className="mt-2 text-xl font-black leading-tight text-white">{item.title}</h3>

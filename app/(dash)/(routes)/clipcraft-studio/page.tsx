@@ -831,24 +831,26 @@ export default function ClipCraftStudioPage() {
                 <div className="flex-grow overflow-y-auto space-y-3 pr-1.5 custom-scrollbar min-h-0 mb-2 pb-2 flex flex-col justify-between">
                   <div className="space-y-3">
                     {combinedCaptionPresets.map((preset) => {
-                      const isSelected = captionStyle === preset.id;
-                      const styleInfo = PRESET_STYLES[preset.id] || PRESET_STYLES[`system_${preset.id.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
+                      const presetId = preset.id;
+                      if (!presetId) return null;
+                      const isSelected = captionStyle === presetId;
+                      const styleInfo = PRESET_STYLES[presetId] || PRESET_STYLES[`system_${presetId.toLowerCase().replace(/[\s-]/g, "_")}`] || { font: 'sans-serif', textColor: '#ffffff', bgColor: '' };
                       const font = styleInfo.font;
                       const textColor = styleInfo.textColor;
                       const bgColor = styleInfo.bgColor;
-                      const animClass = getPresetAnimationClass(preset.id);
+                      const animClass = getPresetAnimationClass(presetId);
                       
                       const cleanLabel = preset.label.replace(" (NEW)", "").replace(" 🎤", "").replace(" 🍭", "").replace(" 👾", "").replace(" 🌈", "").replace(" 📰", "").replace(" 🏆", "").replace(" ⌨️", "").replace(" 🌊", "").replace(" 💃", "").replace(" 🔥", "").replace(" ✨", "").replace(" 💼", "");
                       const formattedLabel = cleanLabel === "Modern Bold" ? "Modern-Bold" : cleanLabel;
 
                       return (
                         <button
-                          key={preset.id}
+                          key={presetId}
                           type="button"
                           onClick={() => {
-                            setCaptionStyle(preset.id);
+                            setCaptionStyle(presetId);
                             setBrandTemplateId("");
-                            applyPresetStyles(preset.id);
+                            applyPresetStyles(presetId);
                           }}
                           className={`w-full text-left p-4 rounded-xl border transition-all flex flex-col gap-3 relative ${
                             isSelected

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import "@xyflow/react/dist/style.css";
 
@@ -1829,7 +1829,7 @@ function AICanvasInner() {
         .map((edge) => edge.target),
     );
 
-    for (const exportNodeId of exportTargets) {
+    for (const exportNodeId of Array.from(exportTargets)) {
       const inEdges = allEdges.filter((edge) => edge.target === exportNodeId);
       let outputImageUrl: string | undefined;
       let outputVideoUrl: string | undefined;

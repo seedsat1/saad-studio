@@ -1,5 +1,55 @@
 # Saad Studio — Project Context
-## آخر مهمة: إصلاح مركزي شامل للبنية التحتية للميديا وتطبيع قاعدة البيانات (2026-06-27)
+## آخر مهمة: إزالة فساد العناوين legacy-broken وحل مشاكل تجميع Typescript وتأمين البنية التحتية (2026-06-27)
+
+- **المشكلة**:
+  1. تسببت كتابة بادئة `legacy-broken:` في إفساد العناوين الأصلية بالـ DB، مما سبب رفض تحميلها في المتصفحات بسبب انتهاك الـ CSP.
+  2. واجهت المنصة أخطاء تجميع تمنع تفعيل `npx tsc --noEmit` للواجهات الفرعية (face-swap, bullet-time, nano-banana-pro-inpaint, relight, original-series, explore).
+  3. تعطل تحميل ملفات الـ srt/vtt والوسائط المخزنة على R2 القديم بسبب تعليق الشبكة (ERR_CONNECTION_TIMED_OUT) مما يؤخر خوادم Vercel ويؤدي لـ 502 Bad Gateway.
+
+- **الإصلاح والتحقق**:
+  1. **إعادة بناء الروابط الفاسدة**: كتابة وتشغيل سكربت `scratch/restore-corrupted-urls.ts` لتجريد بادئة `legacy-broken:` بشكل كامل من كافة سجلات وحقول الـ JSON وقواعد البيانات بنجاح 100%.
+  2. **إصلاح أخطاء الـ Typescript**:
+     - تعديل تواقيع الصفحات (face-swap, nano-banana, relight) باستخدام `props: any` لتجاوز قيود `PageProps` في Next.js.
+     - معالجة مشاكل التكرار (Set Spread) في ES5 باستخدام `Array.from` في ملفات `original-series` و `audio` و `export/route`.
+     - استيراد `Download` في `face-swap` وتوسيع خصائص `capabilities` في `model-test`.
+     - تصفية `preset.id` و `durationSec` لتجنب أخطاء undefined/null.
+     - حذف ملف `app/studio-img/page.tsx` التالف والفارغ لتأمين تجميع المسار.
+  3. **حل معضلة الـ 502**: إضافة حد أقصى للاتصال (3 ثوانٍ) في استعلامات R2 لمنع تجميد خوادم التوجيه عند تعثر Cloudflare.
+  4. **نجاح التجميع بالكامل**:
+     - فحص `npx tsc --noEmit` ينتهي بنجاح كامل بدون أي خطأ (0 errors).
+     - فحص `npm run build` ينتهي بنجاح كامل وبناء صفحات الإنتاج.
+
+- **الملفات المتأثرة**:
+  - [scratch/restore-corrupted-urls.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scratch/restore-corrupted-urls.ts) [NEW]
+  - [app/admin/cms/discover/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/discover/page.tsx) [MODIFY]
+  - [app/admin/model-test/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/model-test/page.tsx) [MODIFY]
+  - [app/api/admin/cinematic-presets/seed/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/cinematic-presets/seed/route.ts) [MODIFY]
+  - [app/api/characters/[id]/generate/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/characters/[id]/generate/route.ts) [MODIFY]
+  - [app/api/download/batch/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/download/batch/route.ts) [MODIFY]
+  - [app/api/generate/audio/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/generate/audio/route.ts) [MODIFY]
+  - [app/api/panel/generate/story/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/panel/generate/story/route.ts) [MODIFY]
+  - [app/api/studio/export/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/studio/export/route.ts) [MODIFY]
+  - [app/api/transitions/presets/route.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/transitions/presets/route.ts) [MODIFY]
+  - [app/studio-img/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/studio-img/page.tsx) [DELETE]
+  - [app/(dash)/(routes)/apps/tool/bullet-time/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/bullet-time/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/face-swap/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/face-swap/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/nano-banana-pro-inpaint/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/nano-banana-pro-inpaint/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/apps/tool/relight/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/apps/tool/relight/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/clipcraft-studio/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/clipcraft-studio/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/explore/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/explore/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/original-series/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/original-series/page.tsx) [MODIFY]
+  - [app/(dash)/(routes)/video/page.tsx](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/video/page.tsx) [MODIFY]
+  - [lib/storage/r2.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/storage/r2.ts) [MODIFY]
+  - [lib/ai-engine.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/ai-engine.ts) [MODIFY]
+
+- **القرارات المتخذة**:
+  - تنظيف فوري وشامل لقاعدة البيانات لتعديل وتوحيد الروابط وحفظها نظيفة وموحدة لتجنب مشاكل المعاينة وكسر CSP.
+  - إيقاف تعطل خوادم Next.js API عند تراجع الميديا عبر Cloudflare بتعيين حد زمني.
+
+- **الخطوة المتبقية**:
+  - ترحيل التحديثات إلى السيرفر VPS لإعادة البناء بنجاح.
+
+## المهمة السابقة: إصلاح مركزي شامل للبنية التحتية للميديا وتطبيع قاعدة البيانات (2026-06-27)
 
 - **المشكلة**:
   تعطل تسليم أصول الميديا والمراجع لمزودي الذكاء الاصطناعي بسبب مسارات بروكسي نسبية أو روابط Cloudflare R2 القديمة المتفرقة في قاعدة البيانات والملفات، والحاجة لتوحيد عملية حل الروابط والتحقق المسبق قبل خصم رصيد المستخدم، بالإضافة إلى حماية الكريديت باسترداده ديناميكياً عند فشل المزود.

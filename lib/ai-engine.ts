@@ -103,6 +103,7 @@ export interface AiRunInput {
   input: string;
   /** Pass the user's plan so the engine can select the right model tier. */
   userContext?: UserContext;
+  modelId?: string;
 }
 
 export interface AiRunResult {
@@ -351,7 +352,7 @@ export async function runAiTask(params: AiRunInput): Promise<AiRunResult> {
   }
 
   // Resolve model at runtime — plan-aware
-  const modelId = resolveModelId(params.task, params.userContext);
+  const modelId = params.modelId || resolveModelId(params.task, params.userContext);
   const config: ResolvedTaskConfig = { ...baseConfig, modelId };
 
   let content: string;

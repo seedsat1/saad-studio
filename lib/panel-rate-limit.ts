@@ -13,11 +13,11 @@ function now() {
 
 function cleanupExpired(current: number) {
   if (store.size < 5000) return;
-  for (const [key, value] of store.entries()) {
+  store.forEach((value, key) => {
     if (value.resetAt <= current) {
       store.delete(key);
     }
-  }
+  });
 }
 
 export function getRequestIp(headers: Headers): string {

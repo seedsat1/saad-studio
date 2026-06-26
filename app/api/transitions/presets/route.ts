@@ -17,7 +17,7 @@ async function loadMediaMap(): Promise<Record<string, string>> {
         return Object.fromEntries(
           Object.entries(map as Record<string, unknown>).filter(
             ([, v]) => typeof v === "string",
-          ).map(([k, v]) => [k, normalizeMediaUrl(v) || ""]) as Array<[string, string]>,
+          ).map(([k, v]) => [k, normalizeMediaUrl(v as string) || ""]) as Array<[string, string]>,
         );
       }
     }

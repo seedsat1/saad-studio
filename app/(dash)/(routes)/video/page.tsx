@@ -3163,7 +3163,7 @@ function VideoPageInner() {
             <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
               AI Model
             </label>
-            {activeTool !== "lipsync" ? (
+            {(activeTool as string) !== "lipsync" ? (
               // Regular video models
               <>
                 <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />

@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     // Download all media
     const urlToLocal = new Map<string, string | null>();
-    const uniqueUrls = [...new Set(allClips.map((c) => c.src))];
+    const uniqueUrls = Array.from(new Set(allClips.map((c) => c.src)));
     await Promise.all(uniqueUrls.map(async (url, i) => {
       const localPath = await downloadToTemp(url, tmpDir, i);
       urlToLocal.set(url, localPath);
@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
         ])
         .output(outputPath)
         .on('end', () => resolve())
-        .on('error', (err) => reject(err))
+        .on('error', (err: any) => reject(err))
         .run();
     });
 

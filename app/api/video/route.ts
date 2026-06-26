@@ -183,7 +183,7 @@ function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasR
   return raw === 4 || raw === 6 || raw === 8 ? raw : 8;
 }
 
-export function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
+function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (typeof payload.prompt === "string") out.prompt = payload.prompt;
   if (typeof payload.duration === "number") out.duration = payload.duration;
@@ -254,7 +254,7 @@ async function uploadDataUrlToKie(value: string): Promise<string> {
   return String(maybeUrl);
 }
 
-export async function resolveMediaInInput(input: Record<string, unknown>, userId: string) {
+async function resolveMediaInInput(input: Record<string, unknown>, userId: string) {
   const resolved: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(input)) {
@@ -378,7 +378,7 @@ function normalizeOfficialSeedanceResolution(modelRoute: string, value: unknown)
   return "720p";
 }
 
-export async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
+async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
   const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 20000) : "";
   const content: Array<Record<string, unknown>> = [];
   if (prompt) content.push({ type: "text", text: prompt });
@@ -470,7 +470,7 @@ function normalizeKling30Mode(value: unknown) {
   return "std";
 }
 
-export function mapToKieInput(model: string, payload: Record<string, unknown>) {
+function mapToKieInput(model: string, payload: Record<string, unknown>) {
   const input: Record<string, unknown> = { ...payload };
 
   const startImage =

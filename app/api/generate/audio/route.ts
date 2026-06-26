@@ -182,7 +182,7 @@ function resolveGeminiTtsModel(model?: string): string {
 
 function normalizeGeminiVoice(voice?: string): string {
   const raw = String(voice || "Sulafat").replace(/^gemini:/i, "").trim();
-  const exact = [...GOOGLE_GEMINI_TTS_VOICES].find((name) => name.toLowerCase() === raw.toLowerCase());
+  const exact = Array.from(GOOGLE_GEMINI_TTS_VOICES).find((name) => name.toLowerCase() === raw.toLowerCase());
   return exact || "Sulafat";
 }
 

@@ -696,7 +696,7 @@ export default function BulletTimeStudioPage() {
           }
         } catch {}
       }
-      setImageUrl(url);
+      setImageUrl(url || null);
       pushLog("Image generated successfully.");
       await refreshState();
     } catch (err) {

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Upload, AlertCircle, Sparkles, Check } from "lucide-react";
+import { ArrowLeft, Loader2, Upload, AlertCircle, Sparkles, Check, Download } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export default function FaceSwapPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
+export default function FaceSwapPage(props: any) {
+  const isEmbedded = props?.isEmbedded === true;
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   
   const fileInputTargetRef = useRef<HTMLInputElement>(null);

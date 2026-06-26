@@ -75,7 +75,6 @@ async function generateVideoForPreset(p: VeoPreset): Promise<string> {
     aspectRatio: "16:9",
     resolution: "720p",
     durationSeconds: 4,
-    generateAudio: false,
   });
 
   // Poll up to ~6 minutes

@@ -30,7 +30,8 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
+export default function NanoBananaInpaintPage(props: any) {
+  const isEmbedded = props?.isEmbedded === true;
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -110,7 +111,7 @@ export default function NanoBananaInpaintPage({ isEmbedded = false }: { isEmbedd
     if (mediaUrl) {
       setUploadedMediaList((prev) => {
         if (prev.some((item) => item.url === mediaUrl)) return prev;
-        return [{ url: mediaUrl, type: "image" }, ...prev].slice(0, 10);
+        return [{ url: mediaUrl, type: "image" as const }, ...prev].slice(0, 10);
       });
     }
   }, [mediaUrl]);

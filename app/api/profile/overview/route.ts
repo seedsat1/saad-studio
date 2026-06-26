@@ -177,7 +177,7 @@ export async function GET() {
         available: Boolean(
           userResult.advanceColumnsReady &&
           subscriptionActive &&
-            subscription.billingInterval === "annual" &&
+            subscription?.billingInterval === "annual" &&
             monthlyCredits > 0 &&
             !(
               userRow?.creditAdvanceCycleEnd &&

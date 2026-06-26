@@ -434,7 +434,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     id: "bytedance-seedance-v2-t2v-mini",
     name: "Seedance 2.0 Mini",
     family: "seedance", family_label: "Seedance", family_color: "#10b981",
-    badge: "MINI",
+    badge: "FAST",
     description: "Bytedance Seedance 2.0 Mini — lightweight reference-based video. Extremely cost-effective.",
     api_route: "bytedance/seedance-v2/text-to-video-mini",
     route_confirmed: true,

@@ -195,7 +195,8 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
   });
 }
 
-export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boolean } = {}) {
+export default function RelightPage(props: any) {
+  const isEmbedded = props?.isEmbedded === true;
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -222,7 +223,7 @@ export default function RelightPage({ isEmbedded = false }: { isEmbedded?: boole
     if (imageDataUrl) {
       setUploadedMediaList((prev) => {
         if (prev.some((item) => item.url === imageDataUrl)) return prev;
-        return [{ url: imageDataUrl, type: "image" }, ...prev].slice(0, 4);
+        return [{ url: imageDataUrl, type: "image" as const }, ...prev].slice(0, 4);
       });
     }
   }, [imageDataUrl]);

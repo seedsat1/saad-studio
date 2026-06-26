@@ -317,7 +317,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!character) return NextResponse.json({ error: "Character not found." }, { status: 404 });
 
     const refs = Array.isArray(character.referenceUrls)
-      ? character.referenceUrls.filter((url): url is string => typeof url === "string" && /^https?:\/\//i.test(url))
+      ? character.referenceUrls.filter((url: any): url is string => typeof url === "string" && /^https?:\/\//i.test(url))
       : [];
     const image = (typeof character.coverUrl === "string" && isSafePublicHttpUrl(character.coverUrl))
       ? character.coverUrl

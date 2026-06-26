@@ -98,12 +98,13 @@ export async function POST(req: NextRequest) {
   let generationId: string | undefined;
 
   try {
-    const { generationId: gid, balanceAfter } = await spendCredits(
+    const { generationId: gid, remainingCredits } = await spendCredits({
       userId,
-      TTS_CREDIT_COST,
-      "panel_tts",
-      { text: text.slice(0, 100) },
-    );
+      credits: TTS_CREDIT_COST,
+      prompt: text.slice(0, 100),
+      assetType: "audio",
+      modelUsed: "tts",
+    });
     generationId = gid;
 
     const apiKey = getKieKey();
@@ -143,7 +144,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       audioUrl,
       creditsUsed: TTS_CREDIT_COST,
-      balanceAfter,
+      balanceAfter: remainingCredits,
     });
   } catch (err) {
     if (err instanceof InsufficientCreditsError) {

@@ -83,7 +83,8 @@ export async function POST(req: NextRequest) {
   const failures: string[] = [];
   let totalBytes = 0;
 
-  for (const [index, item] of parsedItems.entries()) {
+  for (let index = 0; index < parsedItems.length; index++) {
+    const item = parsedItems[index];
     const sourceUrl = item.url!;
     try {
       const response = await fetch(sourceUrl, {
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
 
   const archive = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return new NextResponse(archive, {
+  return new NextResponse(archive as any, {
     status: 200,
     headers: {
       "Content-Type": "application/zip",

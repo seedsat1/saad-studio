@@ -795,7 +795,7 @@ export async function recordFreeGeneration(input: Omit<SpendCreditsInput, "credi
     },
   });
 
-  await createRequestSnapshot(prismadb, generation.id, input.userId, input, resolved, 0);
+  await createRequestSnapshot(prismadb, generation.id, input.userId, { ...input, credits: 0 }, resolved, 0);
 
   return { remainingCredits: null, generationId: generation.id };
 }

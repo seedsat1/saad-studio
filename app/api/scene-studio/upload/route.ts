@@ -18,7 +18,8 @@ export async function POST(req: Request) {
     if (!serverApiKey) return Response.json({ code: -1, msg: "Service not configured" }, { status: 500 });
 
     const incomingForm = await req.formData();
-    for (const value of incomingForm.values()) {
+    const values = Array.from(incomingForm.values());
+    for (const value of values) {
       if (value instanceof File) {
         const dataUrl = await fileToDataUrl(value);
         if (dataUrl) await checkStoryboardReferenceImageSafety(dataUrl);
@@ -26,7 +27,8 @@ export async function POST(req: Request) {
     }
 
     const outForm = new FormData();
-    for (const [key, value] of incomingForm.entries()) {
+    const entries = Array.from(incomingForm.entries());
+    for (const [key, value] of entries) {
       if (key !== "apiKey") outForm.append(key, value);
     }
 

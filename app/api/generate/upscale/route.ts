@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
       modelUsed: modelToUse,
     });
     generationId = charge.generationId;
-    chargedCredits = creditsToCharge;
+    chargedCredits = userCreditsToCharge;
     chargedUserId = userId;
 
     const kieKey = getKieKey();

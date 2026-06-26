@@ -105,12 +105,13 @@ export async function POST(req: NextRequest) {
   let generationId: string | null = null;
 
   try {
-    const charge = await spendCredits(
+    const charge = await spendCredits({
       userId,
-      CAPTIONS_CREDIT_COST,
-      "panel_captions",
-      { audioUrl: audioUrl.slice(0, 80) },
-    );
+      credits: CAPTIONS_CREDIT_COST,
+      prompt: audioUrl.slice(0, 80),
+      assetType: "audio",
+      modelUsed: "panel_captions",
+    });
     chargedCredits = CAPTIONS_CREDIT_COST;
     generationId = charge.generationId;
     const balanceAfter = charge.remainingCredits;
