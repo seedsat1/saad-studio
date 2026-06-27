@@ -27,6 +27,26 @@ export function normalizeMediaUrl(url: string | null | undefined): string | null
     return url;
   }
 
-  // 3. We should ALWAYS return the relative proxy URL format: `/api/media/${mediaPath}`
-  return `/api/media/${mediaPath}`;
+  // 3. Determine browser media URL mode dynamically
+  const mode = process.env.BROWSER_MEDIA_URL_MODE || process.env.NEXT_PUBLIC_BROWSER_MEDIA_URL_MODE || "b2";
+
+  if (mode === "proxy") {
+    return `/api/media/${mediaPath}`;
+  }
+
+  if (mode === "cdn") {
+    const cdnBase = process.env.BROWSER_CDN_BASE_URL || process.env.NEXT_PUBLIC_BROWSER_CDN_BASE_URL || "";
+    if (cdnBase) {
+      return `${cdnBase.replace(/\/+$/, "")}/${mediaPath}`;
+    }
+    // Fall back to B2 direct if CDN base is not configured
+  }
+
+  // default mode: "b2" - return direct public URL from Backblaze B2 provider
+  const matchParts = mediaPath.match(/^(images|videos|audio|thumbnails|media)\/(.+)$/i);
+  if (matchParts) {
+    return defaultProvider.getPublicUrl(matchParts[1], matchParts[2]);
+  }
+
+  return defaultProvider.getPublicUrl("", mediaPath);
 }
