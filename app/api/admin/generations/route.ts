@@ -10,11 +10,11 @@ function inferType(assetType: string | null | undefined): "image" | "video" {
 }
 
 export async function GET() {
-  if (!(await isAdmin())) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
   try {
+    if (!(await isAdmin())) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const generations = await prismadb.generation.findMany({
       orderBy: { createdAt: "desc" },
       take: 500,
@@ -27,7 +27,10 @@ export async function GET() {
       
       const objectKey = (!rawUrl || hasTaskPrefix) ? null : rawUrl;
       const resolvedUrl = objectKey ? normalizeMediaUrl(objectKey) : null;
-      const publicPreviewUrl = objectKey ? defaultProvider.getPublicUrl("", objectKey) : null;
+      const storageKeyMatch = objectKey?.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/(.+)/i);
+      const publicPreviewUrl = storageKeyMatch
+        ? defaultProvider.getPublicUrl(storageKeyMatch[1], storageKeyMatch[2])
+        : resolvedUrl;
       
       const provider = g.providerName || getProviderFor(g.modelUsed);
       const type = (g.type as "image" | "video" | null) ?? inferType(g.assetType);
@@ -39,12 +42,12 @@ export async function GET() {
         id: g.id,
         prompt: g.prompt,
         userId: g.userId,
-        userEmail: g.user.email,
+        userEmail: g.user?.email ?? "unknown",
         model: g.modelUsed,
         type,
         status,
         outputUrl: resolvedUrl,
-        createdAt: g.createdAt.toISOString(),
+        createdAt: g.createdAt instanceof Date ? g.createdAt.toISOString() : new Date(g.createdAt).toISOString(),
         apiCost: g.cost,
         flagged: g.isFlagged,
         objectKey,

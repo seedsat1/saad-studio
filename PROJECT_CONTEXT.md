@@ -3822,3 +3822,22 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
   - Accept bare image filenames only when they match a strict filename pattern and scope them to `images/<currentUserId>/...`; do not accept arbitrary relative paths.
 - Remaining:
   - Deploy and retry `https://www.saadstudio.app/character` with the same image. If the image still 404s, verify the object exists in storage under the normalized key.
+# Admin uploads and generations stability fix (2026-06-27)
+
+- Status:
+  Fixed `/admin` email attachment/media upload failing in production because the browser performed a direct `PUT` to a Backblaze B2 presigned URL and B2 rejected the CORS preflight. The admin page now uploads attachments through the existing multipart `/api/admin/media/upload` server route. Hardened `/api/admin/generations` so missing user relations or older media URL shapes do not crash the endpoint.
+- Affected files:
+  - `app/admin/page.tsx`
+  - `app/api/admin/generations/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The production console showed `No 'Access-Control-Allow-Origin'` from `saadstudio-storage.s3.eu-central-003.backblazeb2.com` during a browser `PUT`, so the failure was upload transport/CORS, not the email UI itself.
+  - `/api/admin/media/upload` already supported a CORS-safe multipart server upload path, but `/admin` was still using the legacy signed URL path.
+  - `/api/admin/generations` could be brittle when generation rows have missing related user records or non-storage-key absolute media URLs.
+- Decisions:
+  - Use server-side upload for `/admin` attachments and keep the signed URL route only for legacy callers.
+  - Keep `/api/admin/generations` returning an array for the admin UI even when an internal row is imperfect.
+- Remaining:
+  - Deploy and retry uploading the same attachment from `https://www.saadstudio.app/admin`.

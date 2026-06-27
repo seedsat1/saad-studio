@@ -765,26 +765,21 @@ export default function AdminDashboard() {
 
     setEmailAttachmentUploading(true);
     try {
-      const signRes = await fetch("/api/admin/media/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/octet-stream" }),
-      });
-      const signData = await signRes.json().catch(() => ({}));
-      if (!signRes.ok || !signData?.signedUrl || !signData?.publicUrl) {
-        throw new Error(String(signData?.error || "Failed to create upload URL"));
-      }
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const put = await fetch(signData.signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file,
+      const uploadRes = await fetch("/api/admin/media/upload", {
+        method: "POST",
+        body: formData,
       });
-      if (!put.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json().catch(() => ({}));
+      if (!uploadRes.ok || !uploadData?.publicUrl) {
+        throw new Error(String(uploadData?.error || "Upload failed"));
+      }
 
       setEmailAttachments((prev) => [
         ...prev,
-        { filename: file.name, path: String(signData.publicUrl), contentType: file.type || "application/octet-stream" },
+        { filename: file.name, path: String(uploadData.publicUrl), contentType: file.type || "application/octet-stream" },
       ]);
     } catch (e) {
       setEmailAttachmentError(e instanceof Error ? e.message : "Attachment upload failed");
