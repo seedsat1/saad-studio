@@ -1,4 +1,22 @@
 # Saad Studio — Project Context
+## Latest task: Source-only Seedance decision after Ark image rejection (2026-06-27)
+
+- Status:
+  User clarified that Seedance must use the official source provider, not KIE. Any attempted KIE fallback for Seedance reference-image requests was reverted before commit.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed after reverting the attempted routing change.
+- Findings:
+  - The correct solution path is source-only BytePlus/Ark: keep the same `modelRoute` and official model IDs.
+  - Since other images now generate and the same rejected image works on Higgsfield, the remaining issue is likely Ark-specific interpretation of that image, image URL delivery, image metadata/encoding, or Ark policy.
+- Decisions:
+  - Do not route Seedance to KIE.
+  - Do not change credit logic or public model route.
+  - Continue with official Ark mitigations: `BYTEPLUS_MEDIA_URL_MODE=proxy` or `cdn`, sanitized provider audit, and if needed an Ark-hosted file/TOS upload experiment once BytePlus documents the exact Seedance file-reference syntax.
+- Remaining:
+  - In production, set/test `BYTEPLUS_MEDIA_URL_MODE=proxy` for Seedance and retry the same rejected image. If proxy still fails, test a clean re-encoded upload or CDN delivery; if both fail, treat it as Ark provider policy for that image.
+
 ## Latest task: Local safety filter check for Seedance rejected image (2026-06-27)
 
 - Status:
