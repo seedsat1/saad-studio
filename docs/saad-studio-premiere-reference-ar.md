@@ -1,5 +1,14 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Admin provider balance monitor behavior (2026-06-27)
+
+- `/admin` reads supplier balance/cost cards from `/api/admin/provider-balances`.
+- The API returns a structured `providers[]` list for KIE, Google AI Studio, BytePlus Ark, WaveSpeed, and Backblaze B2, while preserving legacy `kie` and `wavespeed` fields for `/admin/pricing`.
+- KIE and WaveSpeed use server-side provider balance APIs when their API keys are configured.
+- Google AI Studio and BytePlus Ark are not scraped from browser console pages. They show numeric values only from explicit server environment values such as `GOOGLE_BILLING_USAGE_USD`, `GOOGLE_AI_STUDIO_COST_USD`, `BYTEPLUS_ARK_BALANCE_USD`, or `BYTEPLUS_ARK_USAGE_USD`; otherwise the UI shows `UNAVAILABLE` and links to the provider billing page.
+- Dashboard values must never be guessed. Manual env-driven amounts are marked `MANUAL` in the UI.
+- Backblaze B2 caps are read only from explicit env values: `BACKBLAZE_B2_CAP_REMAINING_USD`, or computed from `BACKBLAZE_B2_CAP_USD - BACKBLAZE_B2_USAGE_USD`; otherwise Backblaze shows `UNAVAILABLE` and links to `https://secure.backblaze.com/b2_caps_alerts.htm`.
+
 ## Website Transitions tool behavior (2026-06-27)
 
 - `/apps/tool/transitions` uses a visible model picker for AI transition generation. Supported visible models are Kling 3.0 (`kling-3.0/video`) and Seedance Mini (`bytedance/seedance-2-mini`).

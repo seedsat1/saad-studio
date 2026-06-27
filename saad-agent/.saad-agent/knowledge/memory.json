@@ -1,0 +1,932 @@
+{
+  "summary": {
+    "framework": "unknown",
+    "packageManager": "npm",
+    "buildSystem": "TypeScript",
+    "language": "TypeScript",
+    "nodeVersion": "v24.12.0",
+    "lastScanned": 1782581611879,
+    "projectName": "saad-agent",
+    "version": "1.0.0"
+  },
+  "architecture": {
+    "path": "/",
+    "type": "directory",
+    "name": "root",
+    "children": [
+      {
+        "path": "hello.txt",
+        "type": "file",
+        "name": "hello.txt"
+      },
+      {
+        "path": "package-lock.json",
+        "type": "file",
+        "name": "package-lock.json"
+      },
+      {
+        "path": "package.json",
+        "type": "file",
+        "name": "package.json"
+      },
+      {
+        "path": "script.js",
+        "type": "module",
+        "name": "script.js"
+      },
+      {
+        "path": "src\\agent.d.ts",
+        "type": "module",
+        "name": "src\\agent.d.ts"
+      },
+      {
+        "path": "src\\agent.d.ts.map",
+        "type": "file",
+        "name": "src\\agent.d.ts.map"
+      },
+      {
+        "path": "src\\agent.js",
+        "type": "module",
+        "name": "src\\agent.js"
+      },
+      {
+        "path": "src\\agent.js.map",
+        "type": "file",
+        "name": "src\\agent.js.map"
+      },
+      {
+        "path": "src\\agent.ts",
+        "type": "module",
+        "name": "src\\agent.ts"
+      },
+      {
+        "path": "src\\config.d.ts",
+        "type": "module",
+        "name": "src\\config.d.ts"
+      },
+      {
+        "path": "src\\config.d.ts.map",
+        "type": "file",
+        "name": "src\\config.d.ts.map"
+      },
+      {
+        "path": "src\\config.js",
+        "type": "module",
+        "name": "src\\config.js"
+      },
+      {
+        "path": "src\\config.js.map",
+        "type": "file",
+        "name": "src\\config.js.map"
+      },
+      {
+        "path": "src\\config.ts",
+        "type": "module",
+        "name": "src\\config.ts"
+      },
+      {
+        "path": "src\\desktop\\main.ts",
+        "type": "module",
+        "name": "src\\desktop\\main.ts"
+      },
+      {
+        "path": "src\\desktop\\preload.ts",
+        "type": "module",
+        "name": "src\\desktop\\preload.ts"
+      },
+      {
+        "path": "src\\index.d.ts",
+        "type": "module",
+        "name": "src\\index.d.ts"
+      },
+      {
+        "path": "src\\index.d.ts.map",
+        "type": "file",
+        "name": "src\\index.d.ts.map"
+      },
+      {
+        "path": "src\\index.js",
+        "type": "module",
+        "name": "src\\index.js"
+      },
+      {
+        "path": "src\\index.js.map",
+        "type": "file",
+        "name": "src\\index.js.map"
+      },
+      {
+        "path": "src\\index.ts",
+        "type": "module",
+        "name": "src\\index.ts"
+      },
+      {
+        "path": "src\\llm-client.d.ts",
+        "type": "module",
+        "name": "src\\llm-client.d.ts"
+      },
+      {
+        "path": "src\\llm-client.d.ts.map",
+        "type": "file",
+        "name": "src\\llm-client.d.ts.map"
+      },
+      {
+        "path": "src\\llm-client.js",
+        "type": "module",
+        "name": "src\\llm-client.js"
+      },
+      {
+        "path": "src\\llm-client.js.map",
+        "type": "file",
+        "name": "src\\llm-client.js.map"
+      },
+      {
+        "path": "src\\llm-client.ts",
+        "type": "module",
+        "name": "src\\llm-client.ts"
+      },
+      {
+        "path": "src\\main.js",
+        "type": "module",
+        "name": "src\\main.js"
+      },
+      {
+        "path": "src\\memory\\agent-memory.d.ts",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.d.ts"
+      },
+      {
+        "path": "src\\memory\\agent-memory.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\agent-memory.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\agent-memory.js",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.js"
+      },
+      {
+        "path": "src\\memory\\agent-memory.js.map",
+        "type": "file",
+        "name": "src\\memory\\agent-memory.js.map"
+      },
+      {
+        "path": "src\\memory\\agent-memory.ts",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.ts"
+      },
+      {
+        "path": "src\\memory\\checkpoint.d.ts",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.d.ts"
+      },
+      {
+        "path": "src\\memory\\checkpoint.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\checkpoint.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\checkpoint.js",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.js"
+      },
+      {
+        "path": "src\\memory\\checkpoint.js.map",
+        "type": "file",
+        "name": "src\\memory\\checkpoint.js.map"
+      },
+      {
+        "path": "src\\memory\\checkpoint.ts",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.ts"
+      },
+      {
+        "path": "src\\memory\\project-memory.d.ts",
+        "type": "module",
+        "name": "src\\memory\\project-memory.d.ts"
+      },
+      {
+        "path": "src\\memory\\project-memory.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\project-memory.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\project-memory.js",
+        "type": "module",
+        "name": "src\\memory\\project-memory.js"
+      },
+      {
+        "path": "src\\memory\\project-memory.js.map",
+        "type": "file",
+        "name": "src\\memory\\project-memory.js.map"
+      },
+      {
+        "path": "src\\memory\\project-memory.ts",
+        "type": "module",
+        "name": "src\\memory\\project-memory.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\node-runtime.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\node-runtime.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\python-runtime.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\python-runtime.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\runtime-interface.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\runtime-interface.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\runtime-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\runtime-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\context-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\context-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\event-bus.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\event-bus.ts"
+      },
+      {
+        "path": "src\\platform\\services\\health-monitor.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\health-monitor.ts"
+      },
+      {
+        "path": "src\\platform\\services\\job-scheduler.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\job-scheduler.ts"
+      },
+      {
+        "path": "src\\platform\\services\\model-client.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\model-client.ts"
+      },
+      {
+        "path": "src\\platform\\services\\planner.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\planner.ts"
+      },
+      {
+        "path": "src\\platform\\services\\planning-workflow.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\planning-workflow.ts"
+      },
+      {
+        "path": "src\\platform\\services\\reasoning-engine.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\reasoning-engine.ts"
+      },
+      {
+        "path": "src\\platform\\services\\resource-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\resource-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\token-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\token-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\tool-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\tool-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\workflow-engine.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\workflow-engine.ts"
+      },
+      {
+        "path": "src\\platform\\storage-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\storage-manager.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\build-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\build-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\command-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\command-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\diff-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\diff-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\fs-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\fs-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\git-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\git-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\index.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\index.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\package-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\package-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\patch-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\patch-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\search-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\search-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\test-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\test-tool.ts"
+      },
+      {
+        "path": "src\\platform\\workspace-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\workspace-manager.ts"
+      },
+      {
+        "path": "src\\providers\\factory.d.ts",
+        "type": "module",
+        "name": "src\\providers\\factory.d.ts"
+      },
+      {
+        "path": "src\\providers\\factory.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\factory.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\factory.js",
+        "type": "module",
+        "name": "src\\providers\\factory.js"
+      },
+      {
+        "path": "src\\providers\\factory.js.map",
+        "type": "file",
+        "name": "src\\providers\\factory.js.map"
+      },
+      {
+        "path": "src\\providers\\factory.ts",
+        "type": "module",
+        "name": "src\\providers\\factory.ts"
+      },
+      {
+        "path": "src\\providers\\lm-studio.d.ts",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.d.ts"
+      },
+      {
+        "path": "src\\providers\\lm-studio.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\lm-studio.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\lm-studio.js",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.js"
+      },
+      {
+        "path": "src\\providers\\lm-studio.js.map",
+        "type": "file",
+        "name": "src\\providers\\lm-studio.js.map"
+      },
+      {
+        "path": "src\\providers\\lm-studio.ts",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.ts"
+      },
+      {
+        "path": "src\\providers\\ollama.d.ts",
+        "type": "module",
+        "name": "src\\providers\\ollama.d.ts"
+      },
+      {
+        "path": "src\\providers\\ollama.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\ollama.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\ollama.js",
+        "type": "module",
+        "name": "src\\providers\\ollama.js"
+      },
+      {
+        "path": "src\\providers\\ollama.js.map",
+        "type": "file",
+        "name": "src\\providers\\ollama.js.map"
+      },
+      {
+        "path": "src\\providers\\ollama.ts",
+        "type": "module",
+        "name": "src\\providers\\ollama.ts"
+      },
+      {
+        "path": "src\\providers\\provider-interface.d.ts",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.d.ts"
+      },
+      {
+        "path": "src\\providers\\provider-interface.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\provider-interface.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\provider-interface.js",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.js"
+      },
+      {
+        "path": "src\\providers\\provider-interface.js.map",
+        "type": "file",
+        "name": "src\\providers\\provider-interface.js.map"
+      },
+      {
+        "path": "src\\providers\\provider-interface.ts",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.ts"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.d.ts",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.d.ts"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.d.ts.map",
+        "type": "file",
+        "name": "src\\scanner\\project-scanner.d.ts.map"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.js",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.js"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.js.map",
+        "type": "file",
+        "name": "src\\scanner\\project-scanner.js.map"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.ts",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.ts"
+      },
+      {
+        "path": "src\\test-execution-loop.ts",
+        "type": "module",
+        "name": "src\\test-execution-loop.ts"
+      },
+      {
+        "path": "src\\test-incremental.d.ts",
+        "type": "module",
+        "name": "src\\test-incremental.d.ts"
+      },
+      {
+        "path": "src\\test-incremental.d.ts.map",
+        "type": "file",
+        "name": "src\\test-incremental.d.ts.map"
+      },
+      {
+        "path": "src\\test-incremental.js",
+        "type": "module",
+        "name": "src\\test-incremental.js"
+      },
+      {
+        "path": "src\\test-incremental.js.map",
+        "type": "file",
+        "name": "src\\test-incremental.js.map"
+      },
+      {
+        "path": "src\\test-incremental.ts",
+        "type": "module",
+        "name": "src\\test-incremental.ts"
+      },
+      {
+        "path": "src\\test-model-planning.ts",
+        "type": "module",
+        "name": "src\\test-model-planning.ts"
+      },
+      {
+        "path": "src\\test-planning.ts",
+        "type": "module",
+        "name": "src\\test-planning.ts"
+      },
+      {
+        "path": "src\\test-platform.ts",
+        "type": "module",
+        "name": "src\\test-platform.ts"
+      },
+      {
+        "path": "src\\test-providers.d.ts",
+        "type": "module",
+        "name": "src\\test-providers.d.ts"
+      },
+      {
+        "path": "src\\test-providers.d.ts.map",
+        "type": "file",
+        "name": "src\\test-providers.d.ts.map"
+      },
+      {
+        "path": "src\\test-providers.js",
+        "type": "module",
+        "name": "src\\test-providers.js"
+      },
+      {
+        "path": "src\\test-providers.js.map",
+        "type": "file",
+        "name": "src\\test-providers.js.map"
+      },
+      {
+        "path": "src\\test-providers.ts",
+        "type": "module",
+        "name": "src\\test-providers.ts"
+      },
+      {
+        "path": "src\\test-services.ts",
+        "type": "module",
+        "name": "src\\test-services.ts"
+      },
+      {
+        "path": "src\\test-tools.ts",
+        "type": "module",
+        "name": "src\\test-tools.ts"
+      },
+      {
+        "path": "src\\test-workspace.ts",
+        "type": "module",
+        "name": "src\\test-workspace.ts"
+      },
+      {
+        "path": "src\\tools\\command-runner.d.ts",
+        "type": "module",
+        "name": "src\\tools\\command-runner.d.ts"
+      },
+      {
+        "path": "src\\tools\\command-runner.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\command-runner.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\command-runner.js",
+        "type": "module",
+        "name": "src\\tools\\command-runner.js"
+      },
+      {
+        "path": "src\\tools\\command-runner.js.map",
+        "type": "file",
+        "name": "src\\tools\\command-runner.js.map"
+      },
+      {
+        "path": "src\\tools\\command-runner.ts",
+        "type": "module",
+        "name": "src\\tools\\command-runner.ts"
+      },
+      {
+        "path": "src\\tools\\fs-tools.d.ts",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.d.ts"
+      },
+      {
+        "path": "src\\tools\\fs-tools.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\fs-tools.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\fs-tools.js",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.js"
+      },
+      {
+        "path": "src\\tools\\fs-tools.js.map",
+        "type": "file",
+        "name": "src\\tools\\fs-tools.js.map"
+      },
+      {
+        "path": "src\\tools\\fs-tools.ts",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.ts"
+      },
+      {
+        "path": "src\\tools\\patch-tool.d.ts",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.d.ts"
+      },
+      {
+        "path": "src\\tools\\patch-tool.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\patch-tool.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\patch-tool.js",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.js"
+      },
+      {
+        "path": "src\\tools\\patch-tool.js.map",
+        "type": "file",
+        "name": "src\\tools\\patch-tool.js.map"
+      },
+      {
+        "path": "src\\tools\\patch-tool.ts",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.ts"
+      },
+      {
+        "path": "tsconfig.json",
+        "type": "file",
+        "name": "tsconfig.json"
+      },
+      {
+        "path": "ui\\.gitignore",
+        "type": "file",
+        "name": "ui\\.gitignore"
+      },
+      {
+        "path": "ui\\.oxlintrc.json",
+        "type": "file",
+        "name": "ui\\.oxlintrc.json"
+      },
+      {
+        "path": "ui\\index.html",
+        "type": "file",
+        "name": "ui\\index.html"
+      },
+      {
+        "path": "ui\\package-lock.json",
+        "type": "file",
+        "name": "ui\\package-lock.json"
+      },
+      {
+        "path": "ui\\package.json",
+        "type": "file",
+        "name": "ui\\package.json"
+      },
+      {
+        "path": "ui\\public\\favicon.svg",
+        "type": "file",
+        "name": "ui\\public\\favicon.svg"
+      },
+      {
+        "path": "ui\\public\\icons.svg",
+        "type": "file",
+        "name": "ui\\public\\icons.svg"
+      },
+      {
+        "path": "ui\\README.md",
+        "type": "file",
+        "name": "ui\\README.md"
+      },
+      {
+        "path": "ui\\src\\App.css",
+        "type": "file",
+        "name": "ui\\src\\App.css"
+      },
+      {
+        "path": "ui\\src\\App.tsx",
+        "type": "module",
+        "name": "ui\\src\\App.tsx"
+      },
+      {
+        "path": "ui\\src\\assets\\hero.png",
+        "type": "file",
+        "name": "ui\\src\\assets\\hero.png"
+      },
+      {
+        "path": "ui\\src\\assets\\react.svg",
+        "type": "file",
+        "name": "ui\\src\\assets\\react.svg"
+      },
+      {
+        "path": "ui\\src\\assets\\vite.svg",
+        "type": "file",
+        "name": "ui\\src\\assets\\vite.svg"
+      },
+      {
+        "path": "ui\\src\\attachments.ts",
+        "type": "module",
+        "name": "ui\\src\\attachments.ts"
+      },
+      {
+        "path": "ui\\src\\index.css",
+        "type": "file",
+        "name": "ui\\src\\index.css"
+      },
+      {
+        "path": "ui\\src\\main.tsx",
+        "type": "module",
+        "name": "ui\\src\\main.tsx"
+      },
+      {
+        "path": "ui\\src\\mockData.ts",
+        "type": "module",
+        "name": "ui\\src\\mockData.ts"
+      },
+      {
+        "path": "ui\\tsconfig.app.json",
+        "type": "file",
+        "name": "ui\\tsconfig.app.json"
+      },
+      {
+        "path": "ui\\tsconfig.json",
+        "type": "file",
+        "name": "ui\\tsconfig.json"
+      },
+      {
+        "path": "ui\\tsconfig.node.json",
+        "type": "file",
+        "name": "ui\\tsconfig.node.json"
+      },
+      {
+        "path": "ui\\vite.config.ts",
+        "type": "module",
+        "name": "ui\\vite.config.ts"
+      }
+    ]
+  },
+  "dependencies": {
+    "dependencies": {},
+    "devDependencies": {
+      "@types/diff": "^7.0.2",
+      "@types/node": "^26.0.1",
+      "chalk": "^5.6.2",
+      "diff": "^9.0.0",
+      "electron": "^42.5.0",
+      "inquirer": "^14.0.2",
+      "openai": "^6.45.0",
+      "ts-node": "^10.9.2",
+      "typescript": "^6.0.3"
+    },
+    "modules": {}
+  },
+  "taskHistory": [],
+  "lastUpdated": 1782581611922,
+  "fileHashes": {
+    "hello.txt": "59d5e88075c351ea1c33c0d0c8a7c0a429f32667be27e7c74f009dfb21baea01",
+    "package-lock.json": "0b9ba988c31032468033beeb77fe289ecb7d0cc26c2b5c9f2c9bbf1e9c52ee78",
+    "package.json": "377745b1244415573b9a7d8e19c1d292b2befc97d55dd4d627cc93e78ea2c9e2",
+    "script.js": "6f5f625c932ec05e8fc746df54a59e24bcddbe36146b1afe1f7df7ec86393b0f",
+    "src\\agent.d.ts": "d34fbcc6972f2b60869784ccc2a483181f03dab34716c2c62d57a1495ea2b0cb",
+    "src\\agent.d.ts.map": "6e16e9b7393446339cd2a891b8925eda65bfdf26353ffe9aeb19b624346a5e1e",
+    "src\\agent.js": "f2b01400f7cb3ec9fa576fcc7845ff3056468fce193e783f04defc2f5a5dedfe",
+    "src\\agent.js.map": "5a7bf56c937c19ec39af595f447486e41947d3f1e979cb98db25aa19663017b6",
+    "src\\agent.ts": "cdd7273d2dd09e773a994153120b18138322a257e975f53d62c7f021ee0ee61b",
+    "src\\config.d.ts": "ff2a576940626e4b54ff3b8933cd16cb2e41b57a41127c36d8b9e0d4cc5a5c48",
+    "src\\config.d.ts.map": "556a4bda0a41397c895f0e8abb86fa45546b55ff9b2cfc0f53d1073c642ab6e6",
+    "src\\config.js": "77294d302d4967f521618526df0dbcd59cbd4c4ab583e7a8ad0da572dd3aa4ae",
+    "src\\config.js.map": "064f081e245b6bac26b7b60024ba96e7935094301537abb680182808f4d66bec",
+    "src\\config.ts": "013eb0fa62cb1d50be3a1366e3fc3c93b861e8db1426ecc82850319937a0bf74",
+    "src\\desktop\\main.ts": "ead3efb6a56ed7efccc366c76d6675782c8ca3b8bb62e06512d97585a27fa102",
+    "src\\desktop\\preload.ts": "96ccd808290086a7ea31e258c1b56f2e49bad4065bfe085e14cc1198cf767327",
+    "src\\index.d.ts": "28f6febb9b51e593316bd49c125cf3170875188867bb71d4d4a43f01b274b964",
+    "src\\index.d.ts.map": "8683e6f046ca549fcb58c26ec38c39820ce3bba367df8236c2d597aab445b8f1",
+    "src\\index.js": "8019a8e6f9751348e8a72ab4734d0ecad4f936441a7ebd62e302774a58834f30",
+    "src\\index.js.map": "cf5ba85387ed9049225a224587852244c9209cd36f6ad9322d3bcbcab8701c3d",
+    "src\\index.ts": "d95936ec74d80df9c13b0ea744f8de6ed730c59a2f3c2c394380a4889a3cde91",
+    "src\\llm-client.d.ts": "2ce56add0234e8e9f8d65ab3166c16ef15fd95a3ad6b85766a62d49c4362c9fd",
+    "src\\llm-client.d.ts.map": "1f3fcbab7dc8538e5fe53c20099cbc1d5f011c7b3613965ec3b364ac7a2bd881",
+    "src\\llm-client.js": "865fe7ba37b96f08a8848b7f691e1a92863a1ec825bb3b59341c6bef6ea0545d",
+    "src\\llm-client.js.map": "902fbfce58436b4e64f4fe2d7d0970a61f42fa69dac517c9f9374ccf67321c9f",
+    "src\\llm-client.ts": "db6c6e96e5cdb7d372b75826564d0ae73122789edf3695d598792d0e7c04ce58",
+    "src\\main.js": "0efa404d3f3847fc3eae7ac401c19c0d8c97282b98adf622a3e7565bda41186d",
+    "src\\memory\\agent-memory.d.ts": "e3fec9c24602e6131e254de576714806499498f4c03da46a6bfd736f084b0e5a",
+    "src\\memory\\agent-memory.d.ts.map": "00ade1d4949d93963f92c718758373ca4234547d86240c1989439144c989e32b",
+    "src\\memory\\agent-memory.js": "c6c7b71b4c1aaf7f7db7efce8219148b2277857292b9b1279efee2ad212c7200",
+    "src\\memory\\agent-memory.js.map": "d51ddb9dbda69499593b30c4511a6977550a2c361ad7218e4b7457ffccef2596",
+    "src\\memory\\agent-memory.ts": "970d7344d03d364da0d2086aaf6d68904c948b7cfde20fb5aa01111e58e7adeb",
+    "src\\memory\\checkpoint.d.ts": "6fa10cadaf28ea82d4b20558490532cf6bdcfebffe430a3afac48faa4c40f076",
+    "src\\memory\\checkpoint.d.ts.map": "83454230fee98674bc2a2442da4d623225fb2b9c5ca15262c2a6002902022b36",
+    "src\\memory\\checkpoint.js": "585bd2a7a71c66d9d747967fc5598d7969bfa7f025f2cad4979760fe18235668",
+    "src\\memory\\checkpoint.js.map": "d11fcf4ab46ddce175c8e71242a1c74a045120c29e96622c6f39a41b67d4748b",
+    "src\\memory\\checkpoint.ts": "e9cd6b5dc2d5ccc2cf38426aef005e5d57d1de0fcd96376c8429d4eaf22e09c0",
+    "src\\memory\\project-memory.d.ts": "cd325b2cc91f0c90c02c72c58297f9087eb531868357a9ec3b3f1bc294a60ce1",
+    "src\\memory\\project-memory.d.ts.map": "0e4aace669e095f742bce4803b1463766ffa949087fff0c71aef6c3b0b9bf5cf",
+    "src\\memory\\project-memory.js": "be18d36170fa9d633cca17f571f5d0b521ce6508c0c7f280dcbcd02786ec36b7",
+    "src\\memory\\project-memory.js.map": "ba6ddd3c0dd883b0fdc56ad9802ccb5e8445bc35f88fa88df9c221be2e487f06",
+    "src\\memory\\project-memory.ts": "5b2b3e801fd1002ebecdd71d358d3179e5e7217cb04017aa7a613e3266f3bf48",
+    "src\\platform\\runtime\\node-runtime.ts": "f764b6dd1c7578ac29fd84b74e191f3b46afa0191304d8deafefc03ec81cb628",
+    "src\\platform\\runtime\\python-runtime.ts": "53cb89253096c822357e0324994b38ba879d7702b041c13b6d76709854b35596",
+    "src\\platform\\runtime\\runtime-interface.ts": "8ff2027a8427bfc8fff2284f8709ca85adf10af699963f7774d7392656654dcc",
+    "src\\platform\\runtime\\runtime-manager.ts": "02d84846e73d10392c248a750625b22fbff5bf13665da284ae6a4bd146345e5f",
+    "src\\platform\\services\\context-manager.ts": "a4eb01e367acde1d9bd1b0d53beec9398fc55197c966324e04daa0b967648e92",
+    "src\\platform\\services\\event-bus.ts": "a657d3cc02c829e0ce43536f3ba152f9a791a92f369c7ab73c818db569dbee67",
+    "src\\platform\\services\\health-monitor.ts": "f4ee77e87969246f5a55fc4e440402f952798fa60b7946f26e599285d939bac3",
+    "src\\platform\\services\\job-scheduler.ts": "e4b7f75d3e3b760dc77d505b454348c269440247ac6d3e86f0e4253431d100d3",
+    "src\\platform\\services\\model-client.ts": "fc010bf13e331c2e116f8c215f07f369a702b905559e318d6e2bb3a1267a8569",
+    "src\\platform\\services\\planner.ts": "67dde09b278cc5b2dd8c2a19987bc8dad09d41db7f554f89b7d28c4d7aac61b3",
+    "src\\platform\\services\\planning-workflow.ts": "c57605f8dbbbec8590920829fbb090bf9d054d542b62531d6a4692fa834e383e",
+    "src\\platform\\services\\reasoning-engine.ts": "7563f383cc137336b63ea096c8c5c81bd9c436cff00b1a98dcbe3a0e61876c40",
+    "src\\platform\\services\\resource-manager.ts": "0cb6b1d6f92bc71986de18234fe31397c137370e3a05b7e4e38e4dec901ac968",
+    "src\\platform\\services\\token-manager.ts": "76d48e18ed553cbc1bff5c932ae2136ff53dd67fcf9eb7eaf8f9ec708210ebbd",
+    "src\\platform\\services\\tool-manager.ts": "8fc9c808f7c55a3002764a1eef9b963bfefaa3106a333a8577d1984aaf7eaff1",
+    "src\\platform\\services\\workflow-engine.ts": "1207ca54ea04e891a197a35f98d4dd45c22a85744f16eb915d7a7fc906adb543",
+    "src\\platform\\storage-manager.ts": "5fefa32191c8b0e29bb3023e26514c3bda2bd872ba22bb75504dbcb2a62a9a96",
+    "src\\platform\\tools\\build-tool.ts": "ab931b4697c8c65a55f97154c16cb21a7be083063f735dff851f8b1f833b0df3",
+    "src\\platform\\tools\\command-tool.ts": "be48711d15b60fe8fdf636b70166f3b8a7417025f92b69e775c1ea2a219de4f2",
+    "src\\platform\\tools\\diff-tool.ts": "ce0f6c5c734bcc910fc806c37cfba894bbac5dfd19fdde6139a64e19cee23899",
+    "src\\platform\\tools\\fs-tool.ts": "77aa1c5dc1691e180d238ac74f38e944050222d053cd6a7965eac42649fe5b37",
+    "src\\platform\\tools\\git-tool.ts": "7ce7e5dc4143235639c1b2ad3d52f73e3f4a2806402b1128f63903c0da0c5441",
+    "src\\platform\\tools\\index.ts": "de953f3d804f83604bff936ec4a8158e7d64eefa5346ad7e6b31afee02995ea9",
+    "src\\platform\\tools\\package-tool.ts": "55d2c750a745c66ab8313ec7809239e664318ecdccae08aa3f56ef087fc37b8e",
+    "src\\platform\\tools\\patch-tool.ts": "f50f9ea3b74b45591e34059824b86a53c51129ee2e9b662274c28bad1b0cd3c4",
+    "src\\platform\\tools\\search-tool.ts": "42aa950ff576ad861b5a40b6e9ac11661e31e300d6cbd7a1c20dc0a09b9169c3",
+    "src\\platform\\tools\\test-tool.ts": "e93e0311d0fe286e6cc257cb0605481ffe32816bd531077220157e0796d1aacf",
+    "src\\platform\\workspace-manager.ts": "64ee68db5491c8562b7a48a45e2136e8af9e9cfd349063820feb4a769ffcb3ce",
+    "src\\providers\\factory.d.ts": "ddae6d47dd7d22549acc7cb071c4c41e149b5f41338eec001fbfb284ef5285fa",
+    "src\\providers\\factory.d.ts.map": "a712c245860a5bea6332653fc71c49eaf08bd7b341dd7888e7b5438dc9b5e1f8",
+    "src\\providers\\factory.js": "a9a42c02640576dd766c95e2744c14ee0d3d961d0811228e76b5ae6221b168ba",
+    "src\\providers\\factory.js.map": "9313721f5a684bc671397c6620cd0a5d1dca9e129606e86e0527f46fd46cd2e3",
+    "src\\providers\\factory.ts": "1d875e0bc3f83876a46c34425d04260cc9d21d30ffa955978ab3680ab8afe040",
+    "src\\providers\\lm-studio.d.ts": "e388feb2934f86cfdff038cdb7a23dffd6e27797aff962b2d4e218164350d27f",
+    "src\\providers\\lm-studio.d.ts.map": "af3a3cc3e1a230d67e59d1f2817649be62fc4b49b174e9df9959de0c9d75fad0",
+    "src\\providers\\lm-studio.js": "0a647f2449b3768b7ea5069ba49729b3e6f49395a73041ed87d59f1e3bb050cc",
+    "src\\providers\\lm-studio.js.map": "fd395911fbb766f4f2074e686a30e6ff7945b945984683d7a54c6557454fac76",
+    "src\\providers\\lm-studio.ts": "e0be958140ff3ea06ffaa0cc98e8f859771651a7040fb079d6303d73f02979ae",
+    "src\\providers\\ollama.d.ts": "88a8a0386cdabc987d507679bd6d149fd1ef9df422fca4a1fb218d1e70223bdc",
+    "src\\providers\\ollama.d.ts.map": "b10273994152c6d76569872c190c97425bf278d7fa9b58680fd861701e714a74",
+    "src\\providers\\ollama.js": "dceef001e781439d466e1be686195df3ca713f06307894f57ad79951a487e4c8",
+    "src\\providers\\ollama.js.map": "e57bcb83503fb860187a539a37ec3c6c07f819261d55c141d3191c029908dc22",
+    "src\\providers\\ollama.ts": "7f9e9c215d45d5522bdb2ff1314970a03c6808fffeceacc6894103cf6cc55260",
+    "src\\providers\\provider-interface.d.ts": "bb4ae8f4c9e8221167169b1d4514182d4d0bde4df77abd42d3fa050ce89f0a87",
+    "src\\providers\\provider-interface.d.ts.map": "71f51d940d7a8e52127324427599af1d1ae3ef5c7ec1d053fb4af12ec0819726",
+    "src\\providers\\provider-interface.js": "e918a0eb19d9accb901767947538973f58b22790b3f93aa71cea102a7b1d5170",
+    "src\\providers\\provider-interface.js.map": "76758206190d15c146eada3a3d412f4cf8adb6d1ed8d968b8c679193efc0a6a1",
+    "src\\providers\\provider-interface.ts": "53563cb9b480effbc7fba9c091632e34d24c8b80780ec77aee64ce3f23ab0873",
+    "src\\scanner\\project-scanner.d.ts": "698a045ad284e3b838fb7aa18f70ce13458276c5a68befbfefc77dadf9d33d36",
+    "src\\scanner\\project-scanner.d.ts.map": "719eb16e7249141dfe615fae5a4c08354e6b1ddd24fbd5d8d5ac9b075b2dad0e",
+    "src\\scanner\\project-scanner.js": "31e095e516bd1a4fc3a05ac54ddc9fb4479fec38f7a9bd123c90a72b950904ef",
+    "src\\scanner\\project-scanner.js.map": "8034b7cf20cd80d2b520b3e11581712314add1102933e14766047c31098aac92",
+    "src\\scanner\\project-scanner.ts": "38157588d1e350bac3c09b351e6ec0a588ca2cc47382971b26dad66b4af2bf67",
+    "src\\test-execution-loop.ts": "1fca308661e1e428ea730f38c4d16f7ee2cd6dd0830c620d841e6adf31bb893a",
+    "src\\test-incremental.d.ts": "4297633eb87a98b4ea85e6929325e0aa26a01f3d15f202334c1ba6514c6d4719",
+    "src\\test-incremental.d.ts.map": "67752e8bf4293d76f51ded564ba62ca58570269993af00017e3effaf3584a856",
+    "src\\test-incremental.js": "89480dd25d81222b31a655f3784dacfc767f6db85c58089e98d429dbfb1a7cbf",
+    "src\\test-incremental.js.map": "31fd3cb52c7e81ac96d07ba694ee0023bdd6bdff982489049a1c72f9bbf8cee1",
+    "src\\test-incremental.ts": "d649eee533cba8f8dc5223510380772e217434dbb8be6eae287b3b5f91bf4e26",
+    "src\\test-model-planning.ts": "bf88f8b9c4a03b5dc27ae0d844b8ad99554de2d263a6e81b02ec097c0b41e57f",
+    "src\\test-planning.ts": "4030155475ba1dc4ce54fa351eb6a4a1735bf11ba328373d3179fa1856ebc8e2",
+    "src\\test-platform.ts": "21566c230a41afe42cb7369643cc026bdc21efab13a713399fb82cafee22f649",
+    "src\\test-providers.d.ts": "32143fa853ff06277dc5436312ea00a5743d85458c2afa38208d504e74d59153",
+    "src\\test-providers.d.ts.map": "1cd0b4e67d0bb2210ac1ac2652d311a86f19f9be26d8a0e891a05d151d31d87d",
+    "src\\test-providers.js": "127ce82c5eca0c03971242e19089a169bc46d6728d4cc5c3ed03ef5cbb5fa2c6",
+    "src\\test-providers.js.map": "50066c3557abbcf11270bf574a4e89a9e534d8867e8229faf78adde41c05f910",
+    "src\\test-providers.ts": "732a4abb58a102e7b37846faf919317c6f37d43fd6d790ec9927304e73727532",
+    "src\\test-services.ts": "792dd9bb387ff283dcb9a6e053f4cb9d33292cb8a42b1bf9263a17c3ac377285",
+    "src\\test-tools.ts": "c8ee95eaea7628cd19822d362176df29bc0db31f6092541eb1fd3abe4d9daa8f",
+    "src\\test-workspace.ts": "18eea291b3425f5b2003abcbced6469b8931f107348096c1edbe0638272dde22",
+    "src\\tools\\command-runner.d.ts": "587218de645708c5e5f3e7d3a08b25a5f792d7cd41f24a310b4baf42cf00ad79",
+    "src\\tools\\command-runner.d.ts.map": "b641d601ca5a903354443c12558fb37308103d4687e1222fe2c27dca27c6cf27",
+    "src\\tools\\command-runner.js": "6685bb2016481b9d1a97f5bab29b6c0513f39209304dce7e518bbc33cf9b1364",
+    "src\\tools\\command-runner.js.map": "059f1262c774070b49400b1d6fbef392e322cc80bb04a989110fb143eb5b84b2",
+    "src\\tools\\command-runner.ts": "e7e633f35d5b55e872930f980e566d99d3d1958ddee32c6425e849100debb024",
+    "src\\tools\\fs-tools.d.ts": "d0f3d0d633df6fa54c8ca6aff99b0175453fa7c729f3de477b76113f836a154d",
+    "src\\tools\\fs-tools.d.ts.map": "f02e820ab239e7b19989e7da9f8c521ebda6c074bd5396870f23bcf9903e290d",
+    "src\\tools\\fs-tools.js": "e79413a5c132aa2b1a2739304177677df2bbf4c06b7f268965d9ee7d460182f6",
+    "src\\tools\\fs-tools.js.map": "7e7ad2e9d16644fb144bc9c35f8c4f2ed33fba25b18108a49b818e8607ef960d",
+    "src\\tools\\fs-tools.ts": "74a7621de019e578196efd19561c216b2ff59be4294678364a2779065b25d6b6",
+    "src\\tools\\patch-tool.d.ts": "f09e0121e0446ee8fcee601d3eb8075fa3986b4c2f5af01f00fa8cb53ce6d3dd",
+    "src\\tools\\patch-tool.d.ts.map": "e8738b05f3840c138a77b51cb49e7682be33d8b94d5175ac4e7d978cb12b8c97",
+    "src\\tools\\patch-tool.js": "72901175eb36a43b7a5d3acff37bf03b0f7e1d064f96d53294017f2e66402fe2",
+    "src\\tools\\patch-tool.js.map": "77d5612884e03e9e42694f71dd9ce732bddcac961408e6d851afad87acbd650d",
+    "src\\tools\\patch-tool.ts": "09c31f552aa81dd1798cdd1323ad30758d47eb90bb68919934600885b5ce9745",
+    "tsconfig.json": "2cf80aec739132a8d19c3a55b6afe1792d942d2ece5b6a2944e306eadc13e47c",
+    "ui\\.gitignore": "fe718e7babb14f3cbad2d97f08889b9ce5215ed3fe0e43b2b8cfbfb3b9b844e8",
+    "ui\\.oxlintrc.json": "b4d344818a1e1bf43997e4744a9153c8eef770c98b58229cd86363dabb85ded4",
+    "ui\\index.html": "128d4c474060a72145c02787e3493beec0e7c082f0abd3a35e9a7b3fbb77f6d4",
+    "ui\\package-lock.json": "53a751b6ddea2998337ee8ec26750c1656f17dfb2ee07bda29250419c72905a9",
+    "ui\\package.json": "30ab038ec6522b1152cc3391e0f359c05b37e9041eba2eb62de870c29dd3550c",
+    "ui\\public\\favicon.svg": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+    "ui\\public\\icons.svg": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+    "ui\\README.md": "fa8aac78b8be1993010b57f41000a243ecba006f6731513fe4ec91e788bf2517",
+    "ui\\src\\App.css": "6e25a776d3e8102da5bacb3cb99f4a5fc662a2e01e6143140671a556d28c3d5c",
+    "ui\\src\\App.tsx": "5a9834ef1dd1dda8f99e6eb27debfbe561bb45713999a7bd87d41de9583d040d",
+    "ui\\src\\assets\\hero.png": "e29c41315d931997367b6ea96a3afe02e3a5fce9f871a42aec4b881d0b3f26ee",
+    "ui\\src\\assets\\react.svg": "35ef61ed53b323ae94a16a8ec659b3d0af3880698791133f23b084085ab1c2e5",
+    "ui\\src\\assets\\vite.svg": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f",
+    "ui\\src\\attachments.ts": "69129e57850f89132263502ad1b87dacfff9d50c3f2e95a5bd6350f978322655",
+    "ui\\src\\index.css": "b36b8a26c9001cdca051be58921389d1f5eb9056febc473cf5613a331044dfe7",
+    "ui\\src\\main.tsx": "6e9e5807fcbd48b75a96db5cbef36c996262196be42e6d4760dc86babbe61ad2",
+    "ui\\src\\mockData.ts": "00e7b4ad10dd93ca5a7a93a2792c6c4f631cdc4fa66f29d1cf2b1db3ce1b022e",
+    "ui\\tsconfig.app.json": "b1eac9ba6cd1c01d59ebca159805e052c798d9d4ab904680b79ce3e306ea0bbd",
+    "ui\\tsconfig.json": "770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808",
+    "ui\\tsconfig.node.json": "d366cc0827139db39c61815f22491bbfda56c654354a42ad7795143d314e45e8",
+    "ui\\vite.config.ts": "4d36db3522a7b2dd10e0936e1004373c7ee65f10f7cd7920cd76410459c15a45"
+  }
+}

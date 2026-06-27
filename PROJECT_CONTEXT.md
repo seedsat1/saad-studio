@@ -1,4 +1,47 @@
 # Saad Studio — Project Context
+## Latest task: Admin provider balance monitor includes Backblaze B2 caps (2026-06-27)
+
+- Status:
+  Added Backblaze B2 to the `/admin` supplier balance bar and `/api/admin/provider-balances`. The B2 card links to `https://secure.backblaze.com/b2_caps_alerts.htm` and shows a numeric value only from explicit server environment values. It can show `BACKBLAZE_B2_CAP_REMAINING_USD`, compute remaining from `BACKBLAZE_B2_CAP_USD - BACKBLAZE_B2_USAGE_USD`, or show `BACKBLAZE_B2_USAGE_USD` as cost; otherwise it stays `UNAVAILABLE`.
+- Affected files:
+  - `app/admin/page.tsx`
+  - `app/api/admin/provider-balances/route.ts`
+  - `.env.example`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - Backblaze caps/alerts page is an account console page, not a reliable server-side numeric source in the current project.
+- Decisions:
+  - Do not scrape Backblaze console pages or guess billing values.
+  - Use explicit env values for Backblaze B2 cap/usage numbers and mark them `MANUAL` in the UI.
+- Remaining:
+  - Set production `BACKBLAZE_B2_CAP_REMAINING_USD` or `BACKBLAZE_B2_CAP_USD` plus `BACKBLAZE_B2_USAGE_USD`, then deploy and verify `/admin`.
+
+## Latest task: Admin provider balance monitor for Google AI Studio, BytePlus Ark, and WaveSpeed (2026-06-27)
+
+- Status:
+  Updated `/admin` supplier balance bar to show KIE, Google AI Studio, BytePlus Ark, and WaveSpeed from a single admin API. KIE and WaveSpeed use server-side provider API calls when keys are configured. Google AI Studio and BytePlus values are displayed only from explicit server environment values because no browser-console scraping or guessed numbers are accepted; otherwise the UI shows `UNAVAILABLE` with the provider billing link.
+- Affected files:
+  - `app/admin/page.tsx`
+  - `app/api/admin/provider-balances/route.ts`
+  - `.env.example`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The previous `/admin` bar only loaded KIE and Google, and Google was a manual billing amount from env, not a live AI Studio scrape.
+  - Existing `/api/admin/provider-balances` returned only legacy `kie` and `wavespeed` fields. It now also returns a structured `providers[]` list while preserving those legacy fields for `/admin/pricing`.
+  - Google AI Studio and BytePlus console pages are not safe server-side balance sources without explicit billing/API integration; the dashboard now refuses to invent numbers.
+- Decisions:
+  - Display real API values where a provider balance endpoint is already used (KIE, WaveSpeed).
+  - For Google/BytePlus, require explicit env values such as `GOOGLE_BILLING_USAGE_USD`, `BYTEPLUS_ARK_BALANCE_USD`, or `BYTEPLUS_ARK_USAGE_USD`; mark them `MANUAL` in the UI.
+  - Keep fallback links to the exact billing/usage pages requested by the user.
+- Remaining:
+  - Add production env values for Google AI Studio and BytePlus if those consoles should show numeric amounts, then deploy and verify `https://www.saadstudio.app/admin`.
+
 ## Latest task: Transitions ratio/model selector, video stitch duration, and credit pricing fix (2026-06-27)
 
 - Status:

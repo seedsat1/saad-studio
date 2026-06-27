@@ -1,0 +1,784 @@
+{
+  "summary": {
+    "framework": "unknown",
+    "packageManager": "npm",
+    "buildSystem": "TypeScript",
+    "language": "TypeScript",
+    "nodeVersion": "v24.12.0",
+    "lastScanned": 1782581611296,
+    "projectName": "legacy-test",
+    "version": "1.0.0"
+  },
+  "architecture": {
+    "path": "/",
+    "type": "directory",
+    "name": "root",
+    "children": [
+      {
+        "path": "hello.txt",
+        "type": "file",
+        "name": "hello.txt"
+      },
+      {
+        "path": "package-lock.json",
+        "type": "file",
+        "name": "package-lock.json"
+      },
+      {
+        "path": "package.json",
+        "type": "file",
+        "name": "package.json"
+      },
+      {
+        "path": "script.js",
+        "type": "module",
+        "name": "script.js"
+      },
+      {
+        "path": "src\\agent.d.ts",
+        "type": "module",
+        "name": "src\\agent.d.ts"
+      },
+      {
+        "path": "src\\agent.d.ts.map",
+        "type": "file",
+        "name": "src\\agent.d.ts.map"
+      },
+      {
+        "path": "src\\agent.js",
+        "type": "module",
+        "name": "src\\agent.js"
+      },
+      {
+        "path": "src\\agent.js.map",
+        "type": "file",
+        "name": "src\\agent.js.map"
+      },
+      {
+        "path": "src\\agent.ts",
+        "type": "module",
+        "name": "src\\agent.ts"
+      },
+      {
+        "path": "src\\config.d.ts",
+        "type": "module",
+        "name": "src\\config.d.ts"
+      },
+      {
+        "path": "src\\config.d.ts.map",
+        "type": "file",
+        "name": "src\\config.d.ts.map"
+      },
+      {
+        "path": "src\\config.js",
+        "type": "module",
+        "name": "src\\config.js"
+      },
+      {
+        "path": "src\\config.js.map",
+        "type": "file",
+        "name": "src\\config.js.map"
+      },
+      {
+        "path": "src\\config.ts",
+        "type": "module",
+        "name": "src\\config.ts"
+      },
+      {
+        "path": "src\\desktop\\main.ts",
+        "type": "module",
+        "name": "src\\desktop\\main.ts"
+      },
+      {
+        "path": "src\\desktop\\preload.ts",
+        "type": "module",
+        "name": "src\\desktop\\preload.ts"
+      },
+      {
+        "path": "src\\index.d.ts",
+        "type": "module",
+        "name": "src\\index.d.ts"
+      },
+      {
+        "path": "src\\index.d.ts.map",
+        "type": "file",
+        "name": "src\\index.d.ts.map"
+      },
+      {
+        "path": "src\\index.js",
+        "type": "module",
+        "name": "src\\index.js"
+      },
+      {
+        "path": "src\\index.js.map",
+        "type": "file",
+        "name": "src\\index.js.map"
+      },
+      {
+        "path": "src\\index.ts",
+        "type": "module",
+        "name": "src\\index.ts"
+      },
+      {
+        "path": "src\\llm-client.d.ts",
+        "type": "module",
+        "name": "src\\llm-client.d.ts"
+      },
+      {
+        "path": "src\\llm-client.d.ts.map",
+        "type": "file",
+        "name": "src\\llm-client.d.ts.map"
+      },
+      {
+        "path": "src\\llm-client.js",
+        "type": "module",
+        "name": "src\\llm-client.js"
+      },
+      {
+        "path": "src\\llm-client.js.map",
+        "type": "file",
+        "name": "src\\llm-client.js.map"
+      },
+      {
+        "path": "src\\llm-client.ts",
+        "type": "module",
+        "name": "src\\llm-client.ts"
+      },
+      {
+        "path": "src\\main.js",
+        "type": "module",
+        "name": "src\\main.js"
+      },
+      {
+        "path": "src\\memory\\agent-memory.d.ts",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.d.ts"
+      },
+      {
+        "path": "src\\memory\\agent-memory.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\agent-memory.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\agent-memory.js",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.js"
+      },
+      {
+        "path": "src\\memory\\agent-memory.js.map",
+        "type": "file",
+        "name": "src\\memory\\agent-memory.js.map"
+      },
+      {
+        "path": "src\\memory\\agent-memory.ts",
+        "type": "module",
+        "name": "src\\memory\\agent-memory.ts"
+      },
+      {
+        "path": "src\\memory\\checkpoint.d.ts",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.d.ts"
+      },
+      {
+        "path": "src\\memory\\checkpoint.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\checkpoint.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\checkpoint.js",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.js"
+      },
+      {
+        "path": "src\\memory\\checkpoint.js.map",
+        "type": "file",
+        "name": "src\\memory\\checkpoint.js.map"
+      },
+      {
+        "path": "src\\memory\\checkpoint.ts",
+        "type": "module",
+        "name": "src\\memory\\checkpoint.ts"
+      },
+      {
+        "path": "src\\memory\\project-memory.d.ts",
+        "type": "module",
+        "name": "src\\memory\\project-memory.d.ts"
+      },
+      {
+        "path": "src\\memory\\project-memory.d.ts.map",
+        "type": "file",
+        "name": "src\\memory\\project-memory.d.ts.map"
+      },
+      {
+        "path": "src\\memory\\project-memory.js",
+        "type": "module",
+        "name": "src\\memory\\project-memory.js"
+      },
+      {
+        "path": "src\\memory\\project-memory.js.map",
+        "type": "file",
+        "name": "src\\memory\\project-memory.js.map"
+      },
+      {
+        "path": "src\\memory\\project-memory.ts",
+        "type": "module",
+        "name": "src\\memory\\project-memory.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\node-runtime.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\node-runtime.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\python-runtime.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\python-runtime.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\runtime-interface.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\runtime-interface.ts"
+      },
+      {
+        "path": "src\\platform\\runtime\\runtime-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\runtime\\runtime-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\context-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\context-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\event-bus.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\event-bus.ts"
+      },
+      {
+        "path": "src\\platform\\services\\health-monitor.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\health-monitor.ts"
+      },
+      {
+        "path": "src\\platform\\services\\job-scheduler.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\job-scheduler.ts"
+      },
+      {
+        "path": "src\\platform\\services\\model-client.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\model-client.ts"
+      },
+      {
+        "path": "src\\platform\\services\\planner.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\planner.ts"
+      },
+      {
+        "path": "src\\platform\\services\\planning-workflow.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\planning-workflow.ts"
+      },
+      {
+        "path": "src\\platform\\services\\reasoning-engine.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\reasoning-engine.ts"
+      },
+      {
+        "path": "src\\platform\\services\\resource-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\resource-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\token-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\token-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\tool-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\tool-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\workflow-engine.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\workflow-engine.ts"
+      },
+      {
+        "path": "src\\platform\\storage-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\storage-manager.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\build-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\build-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\command-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\command-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\diff-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\diff-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\fs-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\fs-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\git-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\git-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\index.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\index.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\package-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\package-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\patch-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\patch-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\search-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\search-tool.ts"
+      },
+      {
+        "path": "src\\platform\\tools\\test-tool.ts",
+        "type": "module",
+        "name": "src\\platform\\tools\\test-tool.ts"
+      },
+      {
+        "path": "src\\platform\\workspace-manager.ts",
+        "type": "module",
+        "name": "src\\platform\\workspace-manager.ts"
+      },
+      {
+        "path": "src\\providers\\factory.d.ts",
+        "type": "module",
+        "name": "src\\providers\\factory.d.ts"
+      },
+      {
+        "path": "src\\providers\\factory.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\factory.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\factory.js",
+        "type": "module",
+        "name": "src\\providers\\factory.js"
+      },
+      {
+        "path": "src\\providers\\factory.js.map",
+        "type": "file",
+        "name": "src\\providers\\factory.js.map"
+      },
+      {
+        "path": "src\\providers\\factory.ts",
+        "type": "module",
+        "name": "src\\providers\\factory.ts"
+      },
+      {
+        "path": "src\\providers\\lm-studio.d.ts",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.d.ts"
+      },
+      {
+        "path": "src\\providers\\lm-studio.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\lm-studio.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\lm-studio.js",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.js"
+      },
+      {
+        "path": "src\\providers\\lm-studio.js.map",
+        "type": "file",
+        "name": "src\\providers\\lm-studio.js.map"
+      },
+      {
+        "path": "src\\providers\\lm-studio.ts",
+        "type": "module",
+        "name": "src\\providers\\lm-studio.ts"
+      },
+      {
+        "path": "src\\providers\\ollama.d.ts",
+        "type": "module",
+        "name": "src\\providers\\ollama.d.ts"
+      },
+      {
+        "path": "src\\providers\\ollama.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\ollama.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\ollama.js",
+        "type": "module",
+        "name": "src\\providers\\ollama.js"
+      },
+      {
+        "path": "src\\providers\\ollama.js.map",
+        "type": "file",
+        "name": "src\\providers\\ollama.js.map"
+      },
+      {
+        "path": "src\\providers\\ollama.ts",
+        "type": "module",
+        "name": "src\\providers\\ollama.ts"
+      },
+      {
+        "path": "src\\providers\\provider-interface.d.ts",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.d.ts"
+      },
+      {
+        "path": "src\\providers\\provider-interface.d.ts.map",
+        "type": "file",
+        "name": "src\\providers\\provider-interface.d.ts.map"
+      },
+      {
+        "path": "src\\providers\\provider-interface.js",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.js"
+      },
+      {
+        "path": "src\\providers\\provider-interface.js.map",
+        "type": "file",
+        "name": "src\\providers\\provider-interface.js.map"
+      },
+      {
+        "path": "src\\providers\\provider-interface.ts",
+        "type": "module",
+        "name": "src\\providers\\provider-interface.ts"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.d.ts",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.d.ts"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.d.ts.map",
+        "type": "file",
+        "name": "src\\scanner\\project-scanner.d.ts.map"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.js",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.js"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.js.map",
+        "type": "file",
+        "name": "src\\scanner\\project-scanner.js.map"
+      },
+      {
+        "path": "src\\scanner\\project-scanner.ts",
+        "type": "module",
+        "name": "src\\scanner\\project-scanner.ts"
+      },
+      {
+        "path": "src\\test-execution-loop.ts",
+        "type": "module",
+        "name": "src\\test-execution-loop.ts"
+      },
+      {
+        "path": "src\\test-incremental.d.ts",
+        "type": "module",
+        "name": "src\\test-incremental.d.ts"
+      },
+      {
+        "path": "src\\test-incremental.d.ts.map",
+        "type": "file",
+        "name": "src\\test-incremental.d.ts.map"
+      },
+      {
+        "path": "src\\test-incremental.js",
+        "type": "module",
+        "name": "src\\test-incremental.js"
+      },
+      {
+        "path": "src\\test-incremental.js.map",
+        "type": "file",
+        "name": "src\\test-incremental.js.map"
+      },
+      {
+        "path": "src\\test-incremental.ts",
+        "type": "module",
+        "name": "src\\test-incremental.ts"
+      },
+      {
+        "path": "src\\test-model-planning.ts",
+        "type": "module",
+        "name": "src\\test-model-planning.ts"
+      },
+      {
+        "path": "src\\test-planning.ts",
+        "type": "module",
+        "name": "src\\test-planning.ts"
+      },
+      {
+        "path": "src\\test-platform.ts",
+        "type": "module",
+        "name": "src\\test-platform.ts"
+      },
+      {
+        "path": "src\\test-providers.d.ts",
+        "type": "module",
+        "name": "src\\test-providers.d.ts"
+      },
+      {
+        "path": "src\\test-providers.d.ts.map",
+        "type": "file",
+        "name": "src\\test-providers.d.ts.map"
+      },
+      {
+        "path": "src\\test-providers.js",
+        "type": "module",
+        "name": "src\\test-providers.js"
+      },
+      {
+        "path": "src\\test-providers.js.map",
+        "type": "file",
+        "name": "src\\test-providers.js.map"
+      },
+      {
+        "path": "src\\test-providers.ts",
+        "type": "module",
+        "name": "src\\test-providers.ts"
+      },
+      {
+        "path": "src\\test-services.ts",
+        "type": "module",
+        "name": "src\\test-services.ts"
+      },
+      {
+        "path": "src\\test-tools.ts",
+        "type": "module",
+        "name": "src\\test-tools.ts"
+      },
+      {
+        "path": "src\\test-workspace.ts",
+        "type": "module",
+        "name": "src\\test-workspace.ts"
+      },
+      {
+        "path": "src\\tools\\command-runner.d.ts",
+        "type": "module",
+        "name": "src\\tools\\command-runner.d.ts"
+      },
+      {
+        "path": "src\\tools\\command-runner.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\command-runner.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\command-runner.js",
+        "type": "module",
+        "name": "src\\tools\\command-runner.js"
+      },
+      {
+        "path": "src\\tools\\command-runner.js.map",
+        "type": "file",
+        "name": "src\\tools\\command-runner.js.map"
+      },
+      {
+        "path": "src\\tools\\command-runner.ts",
+        "type": "module",
+        "name": "src\\tools\\command-runner.ts"
+      },
+      {
+        "path": "src\\tools\\fs-tools.d.ts",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.d.ts"
+      },
+      {
+        "path": "src\\tools\\fs-tools.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\fs-tools.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\fs-tools.js",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.js"
+      },
+      {
+        "path": "src\\tools\\fs-tools.js.map",
+        "type": "file",
+        "name": "src\\tools\\fs-tools.js.map"
+      },
+      {
+        "path": "src\\tools\\fs-tools.ts",
+        "type": "module",
+        "name": "src\\tools\\fs-tools.ts"
+      },
+      {
+        "path": "src\\tools\\patch-tool.d.ts",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.d.ts"
+      },
+      {
+        "path": "src\\tools\\patch-tool.d.ts.map",
+        "type": "file",
+        "name": "src\\tools\\patch-tool.d.ts.map"
+      },
+      {
+        "path": "src\\tools\\patch-tool.js",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.js"
+      },
+      {
+        "path": "src\\tools\\patch-tool.js.map",
+        "type": "file",
+        "name": "src\\tools\\patch-tool.js.map"
+      },
+      {
+        "path": "src\\tools\\patch-tool.ts",
+        "type": "module",
+        "name": "src\\tools\\patch-tool.ts"
+      },
+      {
+        "path": "tsconfig.json",
+        "type": "file",
+        "name": "tsconfig.json"
+      },
+      {
+        "path": "ui\\.gitignore",
+        "type": "file",
+        "name": "ui\\.gitignore"
+      },
+      {
+        "path": "ui\\.oxlintrc.json",
+        "type": "file",
+        "name": "ui\\.oxlintrc.json"
+      },
+      {
+        "path": "ui\\index.html",
+        "type": "file",
+        "name": "ui\\index.html"
+      },
+      {
+        "path": "ui\\package-lock.json",
+        "type": "file",
+        "name": "ui\\package-lock.json"
+      },
+      {
+        "path": "ui\\package.json",
+        "type": "file",
+        "name": "ui\\package.json"
+      },
+      {
+        "path": "ui\\public\\favicon.svg",
+        "type": "file",
+        "name": "ui\\public\\favicon.svg"
+      },
+      {
+        "path": "ui\\public\\icons.svg",
+        "type": "file",
+        "name": "ui\\public\\icons.svg"
+      },
+      {
+        "path": "ui\\README.md",
+        "type": "file",
+        "name": "ui\\README.md"
+      },
+      {
+        "path": "ui\\src\\App.css",
+        "type": "file",
+        "name": "ui\\src\\App.css"
+      },
+      {
+        "path": "ui\\src\\App.tsx",
+        "type": "module",
+        "name": "ui\\src\\App.tsx"
+      },
+      {
+        "path": "ui\\src\\assets\\hero.png",
+        "type": "file",
+        "name": "ui\\src\\assets\\hero.png"
+      },
+      {
+        "path": "ui\\src\\assets\\react.svg",
+        "type": "file",
+        "name": "ui\\src\\assets\\react.svg"
+      },
+      {
+        "path": "ui\\src\\assets\\vite.svg",
+        "type": "file",
+        "name": "ui\\src\\assets\\vite.svg"
+      },
+      {
+        "path": "ui\\src\\attachments.ts",
+        "type": "module",
+        "name": "ui\\src\\attachments.ts"
+      },
+      {
+        "path": "ui\\src\\index.css",
+        "type": "file",
+        "name": "ui\\src\\index.css"
+      },
+      {
+        "path": "ui\\src\\main.tsx",
+        "type": "module",
+        "name": "ui\\src\\main.tsx"
+      },
+      {
+        "path": "ui\\src\\mockData.ts",
+        "type": "module",
+        "name": "ui\\src\\mockData.ts"
+      },
+      {
+        "path": "ui\\tsconfig.app.json",
+        "type": "file",
+        "name": "ui\\tsconfig.app.json"
+      },
+      {
+        "path": "ui\\tsconfig.json",
+        "type": "file",
+        "name": "ui\\tsconfig.json"
+      },
+      {
+        "path": "ui\\tsconfig.node.json",
+        "type": "file",
+        "name": "ui\\tsconfig.node.json"
+      },
+      {
+        "path": "ui\\vite.config.ts",
+        "type": "module",
+        "name": "ui\\vite.config.ts"
+      }
+    ]
+  },
+  "dependencies": {
+    "dependencies": {},
+    "devDependencies": {
+      "@types/diff": "^7.0.2",
+      "@types/node": "^26.0.1",
+      "chalk": "^5.6.2",
+      "diff": "^9.0.0",
+      "electron": "^42.5.0",
+      "inquirer": "^14.0.2",
+      "openai": "^6.45.0",
+      "ts-node": "^10.9.2",
+      "typescript": "^6.0.3"
+    },
+    "modules": {}
+  },
+  "taskHistory": [],
+  "lastUpdated": 1782581611643,
+  "fileMtimes": {
+    "some-file.ts": 123456789
+  }
+}

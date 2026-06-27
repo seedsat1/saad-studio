@@ -1,0 +1,30 @@
+{
+  "name": "saad-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/desktop/main.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "desktop": "tsc && electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "saad-agent": "./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/diff": "^7.0.2",
+    "@types/node": "^26.0.1",
+    "chalk": "^5.6.2",
+    "diff": "^9.0.0",
+    "electron": "^42.5.0",
+    "inquirer": "^14.0.2",
+    "openai": "^6.45.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "framework": "unknown",
+  "packageManager": "npm",
+  "buildSystem": "TypeScript",
+  "language": "TypeScript",
+  "nodeVersion": "v24.12.0",
+  "lastScanned": 1782581611879,
+  "projectName": "saad-agent",
+  "version": "1.0.0"
+}

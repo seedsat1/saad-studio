@@ -374,10 +374,16 @@ const cardVariants = {
 };
 
 type SupplierBalanceState = {
+  id?: string;
+  provider?: string;
+  label?: string;
   amount: number | null;
   status: "HIGH" | "MEDIUM" | "LOW" | "UNAVAILABLE" | "LOADING";
   syncedAt: string | null;
   billingUrl?: string | null;
+  source?: "api" | "env" | "unavailable" | "loading";
+  kind?: "balance" | "cost" | "manual";
+  note?: string;
 };
 
 type AdminTransactionRow = {
@@ -475,14 +481,58 @@ export default function AdminDashboard() {
     apiCalls: 98430,
   });
   const [kieBalance, setKieBalance] = useState<SupplierBalanceState>({
+    id: "kie",
+    provider: "KIE.ai",
+    label: "KIE Balance",
     amount: null,
     status: "LOADING",
     syncedAt: null,
+    source: "loading",
+    kind: "balance",
   });
   const [googleBalance, setGoogleBalance] = useState<SupplierBalanceState>({
+    id: "google",
+    provider: "Google AI Studio",
+    label: "Google Cost",
     amount: null,
     status: "LOADING",
     syncedAt: null,
+    source: "loading",
+    kind: "cost",
+    billingUrl: "https://aistudio.google.com/billing?billing=01819C-290562-360E8C",
+  });
+  const [bytePlusBalance, setBytePlusBalance] = useState<SupplierBalanceState>({
+    id: "byteplus",
+    provider: "BytePlus Ark",
+    label: "BytePlus Cost",
+    amount: null,
+    status: "LOADING",
+    syncedAt: null,
+    source: "loading",
+    kind: "cost",
+    billingUrl: "https://console.byteplus.com/ark/region:ark+ap-southeast-1/usageTracking?",
+  });
+  const [waveSpeedBalance, setWaveSpeedBalance] = useState<SupplierBalanceState>({
+    id: "wavespeed",
+    provider: "WaveSpeed",
+    label: "WaveSpeed Balance",
+    amount: null,
+    status: "LOADING",
+    syncedAt: null,
+    source: "loading",
+    kind: "balance",
+    billingUrl: "https://wavespeed.ai/top-up",
+  });
+  const [backblazeBalance, setBackblazeBalance] = useState<SupplierBalanceState>({
+    id: "backblaze",
+    provider: "Backblaze B2",
+    label: "B2 Cost",
+    amount: null,
+    status: "LOADING",
+    syncedAt: null,
+    source: "loading",
+    kind: "cost",
+    billingUrl: "https://secure.backblaze.com/b2_caps_alerts.htm",
   });
 
   const [emailMode, setEmailMode] = useState<"single" | "bulk" | "invoice">("bulk");
@@ -562,57 +612,61 @@ export default function AdminDashboard() {
   useEffect(() => {
     let active = true;
 
-    const loadKieBalance = async () => {
-      try {
-        const res = await fetch("/api/admin/suppliers/kie-balance", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load KIE balance");
-        const data = await res.json();
-        if (!active) return;
-
-        setKieBalance({
+    const applyProvider = (setter: React.Dispatch<React.SetStateAction<SupplierBalanceState>>, fallback: SupplierBalanceState) =>
+      (data: any) => {
+        setter({
+          ...fallback,
+          id: typeof data?.id === "string" ? data.id : fallback.id,
+          provider: typeof data?.provider === "string" ? data.provider : fallback.provider,
+          label: typeof data?.label === "string" ? data.label : fallback.label,
           amount: Number.isFinite(Number(data?.amount)) ? Number(data.amount) : null,
           status: data?.status ?? "UNAVAILABLE",
           syncedAt: typeof data?.syncedAt === "string" ? data.syncedAt : new Date().toISOString(),
+          billingUrl: typeof data?.billingUrl === "string" ? data.billingUrl : fallback.billingUrl,
+          source: data?.source ?? "unavailable",
+          kind: data?.kind ?? fallback.kind,
+          note: typeof data?.note === "string" ? data.note : undefined,
         });
-      } catch {
-        if (!active) return;
-        setKieBalance({
-          amount: null,
-          status: "UNAVAILABLE",
-          syncedAt: new Date().toISOString(),
-        });
-      }
+      };
+
+    const markUnavailable = (setter: React.Dispatch<React.SetStateAction<SupplierBalanceState>>, fallback: SupplierBalanceState) => {
+      setter({
+        ...fallback,
+        amount: null,
+        status: "UNAVAILABLE",
+        syncedAt: new Date().toISOString(),
+        source: "unavailable",
+      });
     };
 
-    const loadGoogleBalance = async () => {
+    const loadProviderBalances = async () => {
       try {
-        const res = await fetch("/api/admin/suppliers/google-billing", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to load Google billing");
+        const res = await fetch("/api/admin/provider-balances", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load provider balances");
         const data = await res.json();
         if (!active) return;
 
-        setGoogleBalance({
-          amount: Number.isFinite(Number(data?.amount)) ? Number(data.amount) : null,
-          status: data?.status ?? "UNAVAILABLE",
-          syncedAt: typeof data?.syncedAt === "string" ? data.syncedAt : new Date().toISOString(),
-          billingUrl: typeof data?.billingUrl === "string" ? data.billingUrl : null,
-        });
+        const providers = Array.isArray(data?.providers) ? data.providers : [];
+        const byId = (id: string) => providers.find((provider: any) => provider?.id === id);
+
+        applyProvider(setKieBalance, kieBalance)(byId("kie"));
+        applyProvider(setGoogleBalance, googleBalance)(byId("google"));
+        applyProvider(setBytePlusBalance, bytePlusBalance)(byId("byteplus"));
+        applyProvider(setWaveSpeedBalance, waveSpeedBalance)(byId("wavespeed"));
+        applyProvider(setBackblazeBalance, backblazeBalance)(byId("backblaze"));
       } catch {
         if (!active) return;
-        setGoogleBalance({
-          amount: null,
-          status: "UNAVAILABLE",
-          syncedAt: new Date().toISOString(),
-          billingUrl: "https://console.cloud.google.com/billing/reports",
-        });
+        markUnavailable(setKieBalance, kieBalance);
+        markUnavailable(setGoogleBalance, googleBalance);
+        markUnavailable(setBytePlusBalance, bytePlusBalance);
+        markUnavailable(setWaveSpeedBalance, waveSpeedBalance);
+        markUnavailable(setBackblazeBalance, backblazeBalance);
       }
     };
 
-    loadKieBalance();
-    loadGoogleBalance();
+    loadProviderBalances();
     const timer = window.setInterval(() => {
-      loadKieBalance();
-      loadGoogleBalance();
+      loadProviderBalances();
     }, 60_000);
 
     return () => {
@@ -790,11 +844,23 @@ export default function AdminDashboard() {
 
   const kieBalanceIndicator = getBalanceIndicator(kieBalance.status);
   const googleBalanceIndicator = getBalanceIndicator(googleBalance.status);
+  const bytePlusBalanceIndicator = getBalanceIndicator(bytePlusBalance.status);
+  const waveSpeedBalanceIndicator = getBalanceIndicator(waveSpeedBalance.status);
+  const backblazeBalanceIndicator = getBalanceIndicator(backblazeBalance.status);
   const formattedKieAmount =
     kieBalance.amount !== null ? `$${kieBalance.amount.toFixed(2)}` : "Unavailable";
   const formattedGoogleAmount =
     googleBalance.amount !== null ? `$${googleBalance.amount.toFixed(2)}` : "Open report";
-  const latestSync = [kieBalance.syncedAt, googleBalance.syncedAt]
+  const formatSupplierAmount = (balance: SupplierBalanceState) =>
+    balance.amount !== null ? `$${balance.amount.toFixed(2)}` : "Open report";
+  const supplierBalances = [
+    { state: kieBalance, indicator: kieBalanceIndicator, value: formattedKieAmount },
+    { state: googleBalance, indicator: googleBalanceIndicator, value: formattedGoogleAmount },
+    { state: bytePlusBalance, indicator: bytePlusBalanceIndicator, value: formatSupplierAmount(bytePlusBalance) },
+    { state: waveSpeedBalance, indicator: waveSpeedBalanceIndicator, value: formatSupplierAmount(waveSpeedBalance) },
+    { state: backblazeBalance, indicator: backblazeBalanceIndicator, value: formatSupplierAmount(backblazeBalance) },
+  ];
+  const latestSync = [kieBalance.syncedAt, googleBalance.syncedAt, bytePlusBalance.syncedAt, waveSpeedBalance.syncedAt, backblazeBalance.syncedAt]
     .filter(Boolean)
     .sort()
     .at(-1);
@@ -1082,39 +1148,38 @@ export default function AdminDashboard() {
             </span>
           </div>
 
-          <div className="flex items-center gap-5 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full animate-pulse ${kieBalanceIndicator.dotClass}`} />
-              <span className="text-xs text-slate-400">KIE Balance:</span>
-              <span className={`text-sm font-bold ${kieBalanceIndicator.valueClass}`}>{formattedKieAmount}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${kieBalanceIndicator.badgeClass}`}
-              >
-                {kieBalance.status}
-              </span>
-            </div>
-            <div className="h-4 w-px bg-white/10" />
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full animate-pulse ${googleBalanceIndicator.dotClass}`} />
-              <span className="text-xs text-slate-400">Google Cost:</span>
-              {googleBalance.amount !== null ? (
-                <span className={`text-sm font-bold ${googleBalanceIndicator.valueClass}`}>{formattedGoogleAmount}</span>
-              ) : (
-                <a
-                  href={googleBalance.billingUrl ?? "https://console.cloud.google.com/billing/reports"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-bold text-sky-300 hover:text-sky-200"
-                >
-                  {formattedGoogleAmount}
-                </a>
-              )}
-              <span
-                className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${googleBalanceIndicator.badgeClass}`}
-              >
-                {googleBalance.status}
-              </span>
-            </div>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-4 overflow-x-auto">
+            {supplierBalances.map(({ state, indicator, value }, index) => (
+              <React.Fragment key={state.id ?? state.label ?? index}>
+                {index > 0 && <div className="h-4 w-px bg-white/10 flex-shrink-0" />}
+                <div className="flex items-center gap-2 flex-shrink-0" title={state.note ?? state.provider ?? state.label}>
+                  <span className={`w-2 h-2 rounded-full animate-pulse ${indicator.dotClass}`} />
+                  <span className="text-xs text-slate-400">{state.label ?? state.provider}:</span>
+                  {state.amount !== null ? (
+                    <span className={`text-sm font-bold ${indicator.valueClass}`}>{value}</span>
+                  ) : (
+                    <a
+                      href={state.billingUrl ?? "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-bold text-sky-300 hover:text-sky-200"
+                    >
+                      {value}
+                    </a>
+                  )}
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${indicator.badgeClass}`}
+                  >
+                    {state.status}
+                  </span>
+                  {state.source === "env" && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-sky-500/20 bg-sky-500/10 text-sky-300 font-semibold">
+                      MANUAL
+                    </span>
+                  )}
+                </div>
+              </React.Fragment>
+            ))}
           </div>
 
           <span className="text-[10px] text-slate-600 flex-shrink-0">Last sync: {lastSyncText}</span>
