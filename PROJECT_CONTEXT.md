@@ -1,4 +1,20 @@
 # Saad Studio — Project Context
+## Latest task: Post-push production Ark rejection check (2026-06-27)
+
+- Status:
+  Reviewed the latest production browser console failure and a deployment screenshot proving production is running commit `142d701`.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - The browser still shows `/api/video` returning HTTP 400 with `code: ark_content_rejected` for `generationId: cmqvqieks0002t1hwrgpkpyvg`.
+  - The deployment dashboard shows production is Ready on commit `142d701`, so the backend logging update is deployed.
+  - Browser console output still cannot show `[Provider Payload Audit]` lines because those are server-side PM2 logs, not frontend logs.
+- Decisions:
+  - Do not infer content moderation as root cause from the browser screenshot alone.
+  - Next proof must come from production `pm2 logs` for the failed generation, now that production deployment is confirmed.
+- Remaining:
+  - Capture PM2 logs for `generationId: cmqvqieks0002t1hwrgpkpyvg` or the next failed request, including `[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE`, sanitized Ark payload, image role/domain, and raw Ark failure body.
+
 ## Latest task: Production Ark log correlation audit (2026-06-27)
 
 - Status:
