@@ -1,4 +1,21 @@
 # Saad Studio — Project Context
+## Latest task: Local safety filter check for Seedance rejected image (2026-06-27)
+
+- Status:
+  Reviewed the current `/api/video` request path after the user confirmed the same previously rejected image can generate successfully on Higgsfield, while Saad Studio succeeds with other images.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - `/api/video` runs `precheckGenerationPolicy()` only against prompt text and optional negative prompt before the official BytePlus/Ark Seedance path.
+  - The local precheck returns HTTP `403` with `blocked: true` when it blocks a request.
+  - The reported failures returned HTTP `400` with `providerStatus: 400`, `code: ark_content_rejected`, and a raw Ark rejection, which means the request reached BytePlus/Ark and was rejected provider-side.
+  - Therefore the current evidence does not support "Saad Studio image filter rejected the image" for this `/api/video` path. The likely remaining causes are Ark's own policy/media interpretation, provider-facing image URL handling, or payload role/schema differences.
+- Decisions:
+  - Do not weaken or remove local safety checks because they are not the observed blocker in this failure mode.
+  - Continue using browser-visible `providerAudit` and/or production payload logs to compare image role, media URL domain, and sanitized Ark payload.
+- Remaining:
+  - Capture `response.providerAudit` for the same image under the deployed audit build. If Ark rejects only this image while other images work, compare against Higgsfield by provider/payload behavior rather than assuming a Saad Studio local block.
+
 ## Latest task: BytePlus Seedance package activation screenshot review (2026-06-27)
 
 - Status:
