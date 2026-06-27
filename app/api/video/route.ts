@@ -16,7 +16,14 @@ import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
-import { resolveProviderMediaUrl, verifyPublicMediaUrl, ValidationError } from "@/lib/media/public-url-resolver";
+import {
+  isProviderSafeUrl,
+  parseStorageKey,
+  resolveProviderMediaUrl,
+  uploadDataUrlToStorage,
+  verifyPublicMediaUrl,
+  ValidationError,
+} from "@/lib/media/public-url-resolver";
 import { defaultProvider, legacyProvider } from "@/lib/storage";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
@@ -71,6 +78,41 @@ function providerFailureMessage(payload: Record<string, unknown> | null, status:
     return JSON.stringify(raw).slice(0, 260);
   }
   return String(raw).slice(0, 260);
+}
+
+function sanitizeUrlForProviderAudit(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.search = parsed.search ? "?[query-redacted]" : "";
+    parsed.pathname = parsed.pathname
+      .replace(/user_[A-Za-z0-9]+/g, "user_[redacted]")
+      .replace(/\/input-[A-Za-z0-9-]+/g, "/input-[redacted]");
+    return parsed.toString();
+  } catch {
+    return url
+      .replace(/user_[A-Za-z0-9]+/g, "user_[redacted]")
+      .replace(/^data:[^,]+,.+$/i, "data:[redacted]");
+  }
+}
+
+function sanitizeArkPayloadForLog(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => sanitizeArkPayloadForLog(item));
+  if (!value || typeof value !== "object") {
+    if (typeof value === "string" && /^https?:\/\//i.test(value)) return sanitizeUrlForProviderAudit(value);
+    if (typeof value === "string" && value.startsWith("data:")) return "data:[redacted]";
+    return value;
+  }
+
+  const input = value as Record<string, unknown>;
+  const output: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(input)) {
+    if (key === "text" || key === "prompt") {
+      output[key] = typeof item === "string" ? `[redacted:${item.length} chars]` : "[redacted]";
+      continue;
+    }
+    output[key] = sanitizeArkPayloadForLog(item);
+  }
+  return output;
 }
 
 function isProviderContentRejection(message: string) {
@@ -366,8 +408,95 @@ function getAssetTypeFromKey(key: string): "image" | "video" | "audio" {
   return "image";
 }
 
+type BytePlusMediaUrlMode = "b2" | "proxy" | "cdn" | "passthrough";
+
+function getBytePlusMediaUrlMode(): BytePlusMediaUrlMode {
+  const raw = (process.env.BYTEPLUS_MEDIA_URL_MODE || "b2").trim().toLowerCase();
+  if (raw === "b2" || raw === "proxy" || raw === "cdn" || raw === "passthrough") {
+    return raw;
+  }
+  console.warn(`[BytePlus Media URL] Unknown BYTEPLUS_MEDIA_URL_MODE=${raw}; falling back to b2`);
+  return "b2";
+}
+
+function getAppBaseUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "https://www.saadstudio.app").replace(/\/+$/, "");
+}
+
+function getBytePlusCdnBaseUrl() {
+  return (
+    process.env.BYTEPLUS_MEDIA_CDN_BASE_URL ||
+    process.env.BYTEPLUS_CDN_BASE_URL ||
+    process.env.BROWSER_CDN_BASE_URL ||
+    process.env.NEXT_PUBLIC_BROWSER_CDN_BASE_URL ||
+    ""
+  ).replace(/\/+$/, "");
+}
+
+function encodeMediaKey(bucket: string, path: string) {
+  return [bucket, ...path.split("/")]
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+}
+
+function extractStorageKeyFromUrl(value: string): { bucket: string; path: string } | null {
+  const apiMediaIndex = value.indexOf("/api/media/");
+  if (apiMediaIndex !== -1) {
+    return parseStorageKey(value.slice(apiMediaIndex + "/api/media/".length));
+  }
+
+  const match = value.match(/(?:^|\/)(images|videos|audio|thumbnails|media)\/([^?#]+)/i);
+  if (!match) return null;
+  return parseStorageKey(`${match[1]}/${decodeURIComponent(match[2])}`);
+}
+
+function toBytePlusProxyUrl(key: { bucket: string; path: string }) {
+  return `${getAppBaseUrl()}/api/media/${encodeMediaKey(key.bucket, key.path)}`;
+}
+
+function toBytePlusCdnUrl(key: { bucket: string; path: string }) {
+  const cdnBase = getBytePlusCdnBaseUrl();
+  if (!cdnBase) {
+    throw new ValidationError("BYTEPLUS_MEDIA_URL_MODE=cdn requires BYTEPLUS_MEDIA_CDN_BASE_URL.");
+  }
+  return `${cdnBase}/${encodeMediaKey(key.bucket, key.path)}`;
+}
+
+async function resolveBytePlusStorageKey(value: unknown, userId: string, assetType: "image" | "video" | "audio") {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new ValidationError("Invalid or empty media input");
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.startsWith("data:")) {
+    const uploaded = await uploadDataUrlToStorage(trimmed, userId, assetType);
+    const parsed = parseStorageKey(uploaded);
+    if (parsed) return parsed;
+    throw new ValidationError(`Failed to parse uploaded BytePlus media path: ${uploaded}`);
+  }
+
+  return parseStorageKey(trimmed) || extractStorageKeyFromUrl(trimmed);
+}
+
 async function resolveOfficialSeedanceUrl(value: unknown, userId: string, assetType: "image" | "video" | "audio"): Promise<string | null> {
   try {
+    const mode = getBytePlusMediaUrlMode();
+    if (mode === "passthrough" && typeof value === "string" && isProviderSafeUrl(value.trim())) {
+      return value.trim();
+    }
+
+    if (mode === "proxy" || mode === "cdn") {
+      const key = await resolveBytePlusStorageKey(value, userId, assetType);
+      if (key) return mode === "proxy" ? toBytePlusProxyUrl(key) : toBytePlusCdnUrl(key);
+
+      if (typeof value === "string" && isProviderSafeUrl(value.trim())) {
+        console.warn(`[BytePlus Media URL] ${mode} mode could not derive a storage key; preserving provider-safe HTTPS URL.`);
+        return value.trim();
+      }
+      throw new ValidationError(`Unable to resolve BytePlus ${mode} media URL.`);
+    }
+
     return await resolveProviderMediaUrl(value, { userId, assetType });
   } catch (err) {
     console.error(`[resolveOfficialSeedanceUrl] failed for value: ${value}`, err);
@@ -414,6 +543,8 @@ function normalizeOfficialSeedanceResolution(modelRoute: string, value: unknown)
 async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<string, unknown>, userId: string) {
   const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 20000) : "";
   const content: Array<Record<string, unknown>> = [];
+  const bytePlusMediaUrlMode = getBytePlusMediaUrlMode();
+  const verifyOptions = { allowSaasMediaProxy: bytePlusMediaUrlMode === "proxy" };
   if (prompt) content.push({ type: "text", text: prompt });
 
   const imageUrls = Array.isArray(payload.image_urls) ? payload.image_urls : [];
@@ -429,18 +560,18 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
     (await resolveOfficialSeedanceUrl(imageUrls[1], userId, "image"));
 
   if (firstFrame) {
-    await verifyPublicMediaUrl(firstFrame, "first_frame_url");
+    await verifyPublicMediaUrl(firstFrame, "first_frame_url", verifyOptions);
     content.push({ type: "image_url", image_url: { url: firstFrame }, role: "first_frame" });
   }
   if (lastFrame) {
-    await verifyPublicMediaUrl(lastFrame, "last_frame_url");
+    await verifyPublicMediaUrl(lastFrame, "last_frame_url", verifyOptions);
     content.push({ type: "image_url", image_url: { url: lastFrame }, role: "last_frame" });
   }
 
   const maxReferenceImages = Math.max(0, 9 - (firstFrame ? 1 : 0) - (lastFrame ? 1 : 0));
   const referenceImages = await resolveOfficialSeedanceUrlList(payload.reference_image_urls, userId, "image", maxReferenceImages);
   for (const url of referenceImages) {
-    await verifyPublicMediaUrl(url, "reference_image");
+    await verifyPublicMediaUrl(url, "reference_image", verifyOptions);
     content.push({ type: "image_url", image_url: { url }, role: "reference_image" });
   }
 
@@ -448,13 +579,13 @@ async function buildOfficialSeedancePayload(modelRoute: string, payload: Record<
   const singleVideo = await resolveOfficialSeedanceUrl(payload.video, userId, "video");
   const finalVideos = [...referenceVideos, ...(singleVideo ? [singleVideo] : [])].slice(0, 3);
   for (const url of finalVideos) {
-    await verifyPublicMediaUrl(url, "reference_video");
+    await verifyPublicMediaUrl(url, "reference_video", verifyOptions);
     content.push({ type: "video_url", video_url: { url }, role: "reference_video" });
   }
 
   const referenceAudios = await resolveOfficialSeedanceUrlList(payload.reference_audio_urls, userId, "audio", 3);
   for (const url of referenceAudios) {
-    await verifyPublicMediaUrl(url, "reference_audio");
+    await verifyPublicMediaUrl(url, "reference_audio", verifyOptions);
     content.push({ type: "audio_url", audio_url: { url }, role: "reference_audio" });
   }
 
@@ -1318,7 +1449,8 @@ export async function POST(req: Request) {
       console.log(`[Provider Payload Audit] Provider: BytePlus`);
       console.log(`[Provider Payload Audit] Model: ${arkModel}`);
       console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
-      console.log(`[Provider Payload Audit] Payload:`, JSON.stringify(arkBody, null, 2));
+      console.log(`[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE: ${getBytePlusMediaUrlMode()}`);
+      console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizeArkPayloadForLog(arkBody), null, 2));
       console.log(`[Provider Payload Audit] ---------------------------------------------`);
 
       const charge = await spendCredits({

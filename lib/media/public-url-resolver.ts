@@ -49,14 +49,17 @@ export async function uploadDataUrlToStorage(
   return uploaded;
 }
 
-export function isProviderSafeUrl(url: string): boolean {
+export function isProviderSafeUrl(
+  url: string,
+  options: { allowSaasMediaProxy?: boolean } = {}
+): boolean {
   if (typeof url !== "string") return false;
   const lowercase = url.toLowerCase();
   
   // A provider safe URL must be HTTPS, absolute, cannot be localhost or relative/internal route.
   if (!lowercase.startsWith("https://")) return false;
   if (lowercase.includes("localhost") || lowercase.includes("127.0.0.1") || lowercase.includes("192.168.")) return false;
-  if (lowercase.includes("/api/media")) return false;
+  if (lowercase.includes("/api/media") && !options.allowSaasMediaProxy) return false;
   if (lowercase.startsWith("data:") || lowercase.startsWith("blob:") || lowercase.startsWith("asset:")) return false;
   
   return true;
@@ -162,8 +165,12 @@ async function uploadDataUrlToKieOrB2(
   throw new ValidationError(`Failed to parse uploaded storage path: ${uploadedPath}`);
 }
 
-export async function verifyPublicMediaUrl(url: string, label: string): Promise<void> {
-  if (!isProviderSafeUrl(url)) {
+export async function verifyPublicMediaUrl(
+  url: string,
+  label: string,
+  options: { allowSaasMediaProxy?: boolean } = {}
+): Promise<void> {
+  if (!isProviderSafeUrl(url, options)) {
     throw new ValidationError(`Insecure or invalid public URL format for ${label}: ${url}`);
   }
 

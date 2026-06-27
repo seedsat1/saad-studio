@@ -1,4 +1,44 @@
 # Saad Studio — Project Context
+## Latest task: BytePlus Ark media URL delivery mode flag (2026-06-27)
+
+- Status:
+  Added `BYTEPLUS_MEDIA_URL_MODE=b2|proxy|cdn|passthrough` for official BytePlus/Ark Seedance payload media URLs only. Removed the previous uncommitted experimental KIE reroute so Seedance keeps its original `modelRoute`, model ID mapping, and credit flow.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `lib/media/public-url-resolver.ts`
+  - `PROJECT_CONTEXT.md`
+- Behavior:
+  - `b2` keeps the current direct Backblaze B2 provider URL behavior.
+  - `proxy` emits absolute SaaD Studio media proxy URLs like `https://www.saadstudio.app/api/media/...` and allows them only for this BytePlus verification path.
+  - `cdn` emits `BYTEPLUS_MEDIA_CDN_BASE_URL` / `BYTEPLUS_CDN_BASE_URL` URLs and fails fast if no CDN base is configured.
+  - `passthrough` preserves the original HTTPS URL when it is already provider-safe, otherwise falls back to current B2 resolution.
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Discovered errors:
+  - No new compile errors. The actual Ark A/B provider test still requires production env, Ark credentials, and the same real image/prompt.
+- Decisions:
+  - Do not change browser delivery mode, modelRoute, model IDs, or credit logic.
+  - Add sanitized BytePlus provider payload logging with the selected mode so production can compare b2/proxy/passthrough payloads field by field.
+- Remaining:
+  - On production, run the same prompt/image with `BYTEPLUS_MEDIA_URL_MODE=b2`, then `proxy`, and if possible `passthrough`; compare sanitized Ark payload logs and provider outcomes.
+
+## Latest task: Route Seedance reference-media requests away from Ark rejection path (2026-06-27)
+
+- Status:
+  Updated `/api/video` so `bytedance/seedance-v2/text-to-video` and `text-to-video-fast` requests that include image/video/audio reference media use the existing KIE Seedance path instead of the BytePlus Ark direct path. Text-only Seedance and mini route behavior remain unchanged.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Discovered errors:
+  - Production returned `400 ark_content_rejected` from BytePlus Ark for a request with an input image. The API classification was correct, but the user workflow still failed because Ark rejected the reference image before generation could start.
+- Decisions:
+  - Route reference-media Seedance 2 / Seedance 2 Fast requests through KIE because the KIE mapper already supports these payload shapes explicitly, while Ark is stricter on input-image policy checks.
+  - Keep Ark for text-only Seedance requests and keep mini unchanged because the local KIE mapper has explicit handling for Seedance 2 and Fast only.
+- Remaining:
+  - Deploy to production and retry the same image prompt. If KIE also rejects the image, the remaining action is to use a different source image or soften the prompt.
+
 ## Latest task: Classify BytePlus Ark Seedance submit rejections correctly (2026-06-27)
 
 - Status:
@@ -148,6 +188,19 @@
 
 - **الخطوة المتبقية**:
   - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+
+## Seedance V2 payload regression audit (2026-06-27)
+
+- Status: audit completed; no production fix applied in this task.
+- Compared baseline `e179976` (last known working candidate before Mini/B2 resolver changes) against pushed current `d5613e7`.
+- Finding: `bytedance/seedance-v2/text-to-video` and its official Ark model `dreamina-seedance-2-0-260128` did not change. The material regression is media URL handling.
+- Old official Seedance URL resolver uploaded data URLs and otherwise passed `https://...` / `asset://...` through unchanged.
+- Current resolver calls `resolveProviderMediaUrl()`, which can rewrite `/api/media/...`, storage keys, R2 URLs, and uploaded data URLs into direct Backblaze B2 public URLs, then `verifyPublicMediaUrl()` checks them before provider submit.
+- Payload field names and roles stayed mostly unchanged: `content[].image_url.url` with role `first_frame`, `last_frame`, or `reference_image`.
+- Other current changes: Mini model default changed to `dreamina-seedance-2-0-mini-260615`; reference image limit now subtracts first/last frames; audio-only Seedance requests are rejected before provider submit; Ark provider 4xx/content errors are classified as 400 instead of always 502.
+- Current local worktree also contains an uncommitted experimental KIE reroute for Seedance reference-media requests; keep separate from this audit because production failure screenshots align with the pushed Ark path.
+- Verification: code inspection/diff only; no tests run because this was an audit request.
+- Remaining: decide whether to restore/preserve provider-facing media URL semantics for official Seedance, likely by avoiding forced B2 direct URL rewriting for Ark image references or adding a provider-specific media delivery mode.
 
 ## المهمة السابقة: تصحيح معرّف موديل Dreamina Seedance 2.0 Mini وتحديث آلية التخزين لحل خطأ الـ 502 في توليد الفيديو (2026-06-27)
 
@@ -3232,4 +3285,3 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
 
 - **الخطوة المتبقية**:
   - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
-
