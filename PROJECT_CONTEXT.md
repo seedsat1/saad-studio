@@ -1,4 +1,20 @@
 # Saad Studio — Project Context
+## Latest task: Browser-visible Ark provider audit on failures (2026-06-27)
+
+- Status:
+  Added sanitized `providerAudit` data to BytePlus/Ark Seedance failure responses so production browser console captures can show the media URL mode, image role/domain, sanitized Ark payload, and sanitized raw Ark failure response without requiring PM2 log access for every retry.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - Production remains on `bytedance/seedance-v2/text-to-video` and still returns `ark_content_rejected` for image-based attempts.
+  - The previous diagnostic data existed only in server logs, while the user is actively sharing browser console output.
+- Decisions:
+  - Do not change `modelRoute`, model IDs, credit logic, or provider payload construction in this step.
+  - Expose only sanitized audit fields in API error JSON: `bytePlusMediaUrlMode`, image `role/domain/url`, sanitized payload, and sanitized raw provider response.
+- Remaining:
+  - Deploy this response-audit update and retry once. The expanded browser response should identify whether production is sending `b2`, `proxy`, or another provider media mode and which image role/domain Ark received.
+
 ## Latest task: Post-push production Ark rejection check (2026-06-27)
 
 - Status:

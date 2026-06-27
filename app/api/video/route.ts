@@ -143,6 +143,31 @@ function getArkImageAuditDetails(payload: Record<string, unknown>) {
     .filter((item): item is { role: string; domain: string; url: string } => item !== null);
 }
 
+function buildArkFailureAudit(params: {
+  generationId: string | null;
+  providerStatus: number;
+  arkModel: string;
+  modelRoute: string;
+  imageReferences: ReturnType<typeof getArkImageAuditDetails>;
+  sanitizedPayload: unknown;
+  rawResponse?: unknown;
+  rawResponseText?: string;
+}) {
+  return {
+    generationId: params.generationId,
+    provider: "BytePlus",
+    providerStatus: params.providerStatus,
+    providerModel: params.arkModel,
+    modelRoute: params.modelRoute,
+    bytePlusMediaUrlMode: getBytePlusMediaUrlMode(),
+    imageReferences: params.imageReferences,
+    sanitizedPayload: params.sanitizedPayload,
+    rawResponse:
+      params.rawResponse !== undefined ? sanitizeArkPayloadForLog(params.rawResponse) : undefined,
+    rawResponseText: params.rawResponseText,
+  };
+}
+
 function isProviderContentRejection(message: string) {
   return /safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw|prohibited|input image may contain|content risk/i.test(message);
 }
@@ -1539,6 +1564,15 @@ export async function POST(req: Request) {
           }).catch(() => {});
         }
         const failure = classifyArkSubmitFailure(text, createRes.status);
+        const providerAudit = buildArkFailureAudit({
+          generationId,
+          providerStatus: createRes.status,
+          arkModel,
+          modelRoute,
+          imageReferences: arkImageAuditDetails,
+          sanitizedPayload: sanitizedArkPayload,
+          rawResponseText: text.slice(0, 1000),
+        });
         const responseJson = {
           generationId,
           error: `BytePlus ModelArk returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
@@ -1547,6 +1581,7 @@ export async function POST(req: Request) {
           providerStatus: createRes.status,
           providerModel: arkModel,
           modelRoute,
+          providerAudit,
         };
         await completeIdempotency({
           userId,
@@ -1578,6 +1613,15 @@ export async function POST(req: Request) {
         }
         const rawError = providerFailureMessage(createJson, createRes.status);
         const failure = classifyArkSubmitFailure(rawError, createRes.status);
+        const providerAudit = buildArkFailureAudit({
+          generationId,
+          providerStatus: createRes.status,
+          arkModel,
+          modelRoute,
+          imageReferences: arkImageAuditDetails,
+          sanitizedPayload: sanitizedArkPayload,
+          rawResponse: createJson,
+        });
 
         const responseJson = {
           generationId,
@@ -1587,6 +1631,7 @@ export async function POST(req: Request) {
           providerStatus: createRes.status,
           providerModel: arkModel,
           modelRoute,
+          providerAudit,
         };
         await completeIdempotency({
           userId,
