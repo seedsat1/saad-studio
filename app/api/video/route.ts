@@ -115,6 +115,34 @@ function sanitizeArkPayloadForLog(value: unknown): unknown {
   return output;
 }
 
+function getArkImageAuditDetails(payload: Record<string, unknown>) {
+  const content = Array.isArray(payload.content) ? payload.content : [];
+  return content
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const rec = item as Record<string, unknown>;
+      if (rec.type !== "image_url") return null;
+      const imageUrl = rec.image_url;
+      const url =
+        imageUrl && typeof imageUrl === "object"
+          ? (imageUrl as Record<string, unknown>).url
+          : undefined;
+      if (typeof url !== "string") return null;
+      let domain = "invalid-url";
+      try {
+        domain = new URL(url).hostname;
+      } catch {
+        domain = url.startsWith("data:") ? "data-url" : "invalid-url";
+      }
+      return {
+        role: typeof rec.role === "string" ? rec.role : "none",
+        domain,
+        url: sanitizeUrlForProviderAudit(url),
+      };
+    })
+    .filter((item): item is { role: string; domain: string; url: string } => item !== null);
+}
+
 function isProviderContentRejection(message: string) {
   return /safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw|prohibited|input image may contain|content risk/i.test(message);
 }
@@ -1444,14 +1472,8 @@ export async function POST(req: Request) {
 
       const arkBody = await buildOfficialSeedancePayload(modelRoute, payload, userId);
       const arkModel = String(arkBody.model || getOfficialSeedanceModel(modelRoute));
-
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
-      console.log(`[Provider Payload Audit] Provider: BytePlus`);
-      console.log(`[Provider Payload Audit] Model: ${arkModel}`);
-      console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
-      console.log(`[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE: ${getBytePlusMediaUrlMode()}`);
-      console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizeArkPayloadForLog(arkBody), null, 2));
-      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      const arkImageAuditDetails = getArkImageAuditDetails(arkBody);
+      const sanitizedArkPayload = sanitizeArkPayloadForLog(arkBody);
 
       const charge = await spendCredits({
         userId,
@@ -1473,6 +1495,17 @@ export async function POST(req: Request) {
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
       chargedUserId = userId;
+
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+      console.log(`[Provider Payload Audit] Generation ID: ${generationId}`);
+      console.log(`[Provider Payload Audit] Provider: BytePlus`);
+      console.log(`[Provider Payload Audit] Model: ${arkModel}`);
+      console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
+      console.log(`[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE: ${getBytePlusMediaUrlMode()}`);
+      console.log(`[Provider Payload Audit] Image References:`, JSON.stringify(arkImageAuditDetails, null, 2));
+      console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizedArkPayload, null, 2));
+      console.log(`[Provider Payload Audit] ---------------------------------------------`);
+
       await attachIdempotencyGeneration({
         userId,
         route: IDEMPOTENCY_ROUTE,
@@ -1492,6 +1525,13 @@ export async function POST(req: Request) {
       } catch {
         const text = await createRes.text().catch(() => "");
         console.error("[api/video POST] BytePlus non-JSON response", createRes.status, text.slice(0, 300));
+        console.error("[Provider Payload Audit] Ark Failure:", JSON.stringify({
+          generationId,
+          providerStatus: createRes.status,
+          bytePlusMediaUrlMode: getBytePlusMediaUrlMode(),
+          imageReferences: arkImageAuditDetails,
+          rawResponseText: text.slice(0, 1000),
+        }));
         if (chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",
@@ -1523,6 +1563,13 @@ export async function POST(req: Request) {
       const rawTaskId = createJson?.id ?? createJson?.task_id ?? createJson?.taskId ?? createData?.id ?? createData?.task_id ?? createData?.taskId;
       if (!createRes.ok || !rawTaskId) {
         console.error("[api/video POST] BytePlus create task failed", createRes.status, JSON.stringify(createJson));
+        console.error("[Provider Payload Audit] Ark Failure:", JSON.stringify({
+          generationId,
+          providerStatus: createRes.status,
+          bytePlusMediaUrlMode: getBytePlusMediaUrlMode(),
+          imageReferences: arkImageAuditDetails,
+          rawResponse: createJson,
+        }));
         if (chargedCredits > 0 && chargedUserId && generationId) {
           await refundGenerationCharge(generationId, chargedUserId, chargedCredits, {
             reason: "generation_refund_provider_failed",

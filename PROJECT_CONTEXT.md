@@ -1,4 +1,54 @@
 # Saad Studio — Project Context
+## Latest task: Production Ark log correlation audit (2026-06-27)
+
+- Status:
+  Added provider audit correlation logging for official BytePlus/Ark Seedance requests so future production logs can be tied directly to the local `generationId`.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - Existing `Provider Payload Audit` logs were emitted before `generationId` assignment, making old production failures correlatable only by timestamp.
+  - The current workspace has PM2 deployment docs, but no usable SSH host/session for reading production `pm2 logs` from Codex.
+- Decisions:
+  - Do not change `modelRoute`, model IDs, provider payload schema, media URL mode behavior, or credit logic.
+  - Log `generationId`, `BYTEPLUS_MEDIA_URL_MODE`, sanitized Ark payload, image URL domains, image roles, and raw Ark failure response for future production requests.
+- Remaining:
+  - Deploy this logging update to the VPS, run the same prompt/image with `BYTEPLUS_MEDIA_URL_MODE=b2`, then `proxy`, and compare the logged `Ark Failure` blocks.
+
+## Latest task: Production Ark rejection screenshot review (2026-06-27)
+
+- Status:
+  Reviewed the latest browser console screenshot for `bytedance/seedance-v2/text-to-video`.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - `/api/video` now returns HTTP 400 instead of the earlier misleading 502, so the Ark rejection classifier behavior is active in production.
+  - The provider-facing failure remains `ark_content_rejected` with `providerStatus: 400`.
+  - The screenshot does not show which `BYTEPLUS_MEDIA_URL_MODE` was active, nor the sanitized provider payload log. Therefore it does not prove whether the failing run used `b2`, `proxy`, or `passthrough`.
+- Decision:
+  Do not treat this as proof that the model route is wrong. Continue isolating the provider-facing media URL mode and payload shape.
+- Remaining:
+  Capture server logs for `[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE` and the sanitized Ark payload for the same image/prompt under `b2` and `proxy`.
+
+## Latest task: BytePlus ModelArk Files API docs review (2026-06-27)
+
+- Status:
+  Reviewed the attached BytePlus ModelArk Files API excerpts for `POST /api/v3/files`, `GET /api/v3/files/{id}`, and `GET /api/v3/files`.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - Files API can upload by binary `file` or public `url`; the two inputs are mutually exclusive.
+  - `purpose` defaults to / supports `user_data`.
+  - Uploaded files may live in ModelArk managed storage if no `tos` parameter is passed, or user BytePlus TOS if `tos.bucket` and `tos.prefix` are configured.
+  - File objects expose lifecycle fields such as `id`, `status`, `expire_at`, `mime_type`, and `error`.
+  - The excerpt does not prove that a returned `file.id` can be used directly as Seedance `content[].image_url.url`.
+- Decision:
+  Treat the Files API as a possible future Ark-hosted media path, but do not replace the current Seedance media URL payload until BytePlus documentation confirms the exact reference syntax accepted by the video generation endpoint, such as `asset://...` or another documented file reference format.
+- Remaining:
+  Keep the current `BYTEPLUS_MEDIA_URL_MODE=b2|proxy|cdn|passthrough` A/B test as the fastest proof. If B2/proxy both fail or if BytePlus documents a file/asset reference for Seedance, add a separate Ark upload-and-reference experiment.
+
 ## Latest task: BytePlus Ark media URL delivery mode flag (2026-06-27)
 
 - Status:
