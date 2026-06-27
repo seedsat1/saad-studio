@@ -1,4 +1,23 @@
 # Saad Studio — Project Context
+## Latest task: Transitions upload CORS fix (2026-06-27)
+
+- Status:
+  Fixed `/apps/tool/transitions` asset upload failing in production because the browser attempted a direct `PUT` to a Backblaze B2 presigned URL and B2 rejected the CORS preflight.
+- Affected files:
+  - `app/(dash)/(routes)/apps/tool/transitions/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The console logs showed successful Kling 3.0 payload construction, then `Access to fetch ... backblazeb2.com ... has been blocked by CORS policy`.
+  - The failure happened before/while uploading transition inputs, not inside the Kling payload itself.
+  - The project already has `/api/media/upload`, which accepts multipart file bytes and uploads server-side to storage specifically to bypass browser-to-B2 CORS failures.
+- Decisions:
+  - Change the transitions page upload helper to use `/api/media/upload` multipart upload instead of requesting `/api/studio/upload-url` and doing a browser-side signed `PUT`.
+  - Keep generation model route, prompt construction, project APIs, and credit logic unchanged.
+- Remaining:
+  - Deploy and retry uploading the same transition image. If a file exceeds the server upload limit, inspect `/api/media/upload` response and consider a chunked/server-stream path.
+
 ## Latest task: Download API storage-key compatibility (2026-06-27)
 
 - Status:
