@@ -1,4 +1,18 @@
 # Saad Studio — Project Context
+## Latest task: BytePlus Seedance package activation screenshot review (2026-06-27)
+
+- Status:
+  Reviewed the BytePlus activation screenshot showing multiple `ModelArk_resource_packages` entries for `Dreamina-Seedance-2.0-pack-1000ktokens` created on 2026-06-02.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Findings:
+  - The screenshot strongly indicates the BytePlus account has activated Seedance 2.0 token packages, so missing package activation is unlikely to be the root cause of the current `ark_content_rejected` failures.
+  - Package activation does not prove the current Ark request payload, image role, or provider-facing media URL is accepted by Ark.
+- Decisions:
+  - Keep the investigation focused on provider-facing media delivery and payload audit, not model route or package entitlement.
+- Remaining:
+  - After production runs the browser-visible provider audit commit, expand `response.providerAudit` for the next failed request and compare `BYTEPLUS_MEDIA_URL_MODE`, image role/domain, sanitized payload, and raw Ark response.
+
 ## Latest task: Browser-visible Ark provider audit on failures (2026-06-27)
 
 - Status:
