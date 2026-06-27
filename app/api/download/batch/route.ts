@@ -9,6 +9,7 @@ const MAX_FILES = 25;
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+const STORAGE_KEY_PATTERN = /^(images|videos|audio|thumbnails|media)\/[^?#]+$/i;
 
 type BatchDownloadItem = {
   url?: unknown;
@@ -38,8 +39,18 @@ function sanitizeFilename(filename: string): string {
     .slice(0, 100) || "saadstudio-image";
 }
 
+function isSafeStorageKey(key: string): boolean {
+  if (!STORAGE_KEY_PATTERN.test(key)) return false;
+  if (key.includes("\\") || key.includes("\0")) return false;
+  return key.split("/").every((part) => part.length > 0 && part !== "." && part !== "..");
+}
+
+function encodeStorageKey(key: string): string {
+  return key.split("/").map((part) => encodeURIComponent(part)).join("/");
+}
+
 function inferExtension(contentType: string, sourceUrl: string): string {
-  const pathExtension = new URL(sourceUrl).pathname.split(".").pop()?.toLowerCase();
+  const pathExtension = new URL(sourceUrl, "https://download.saadstudio.local").pathname.split(".").pop()?.toLowerCase();
   if (pathExtension && /^(avif|gif|jpe?g|png|webp)$/.test(pathExtension)) return pathExtension === "jpeg" ? "jpg" : pathExtension;
   if (contentType.includes("png")) return "png";
   if (contentType.includes("webp")) return "webp";
@@ -48,11 +59,22 @@ function inferExtension(contentType: string, sourceUrl: string): string {
   return "jpg";
 }
 
-function parseExternalUrl(rawUrl: unknown): URL | null {
+function parseDownloadSource(rawUrl: unknown): string | null {
   if (typeof rawUrl !== "string" || !rawUrl.trim()) return null;
+  const trimmed = rawUrl.trim();
+
+  if (trimmed.startsWith("/api/media/")) {
+    const key = trimmed.slice("/api/media/".length);
+    return isSafeStorageKey(key) ? `/api/media/${encodeStorageKey(key)}` : null;
+  }
+
+  if (isSafeStorageKey(trimmed)) {
+    return `/api/media/${encodeStorageKey(trimmed)}`;
+  }
+
   try {
-    const url = new URL(rawUrl);
-    return ALLOWED_SCHEMES.has(url.protocol) && isSafeExternalHost(url.hostname) ? url : null;
+    const url = new URL(trimmed);
+    return ALLOWED_SCHEMES.has(url.protocol) && isSafeExternalHost(url.hostname) ? trimmed : null;
   } catch {
     return null;
   }
@@ -72,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   const parsedItems = requestedItems.map((item, index) => ({
-    url: parseExternalUrl(item.url),
+    url: parseDownloadSource(item.url),
     filename: sanitizeFilename(typeof item.filename === "string" ? item.filename : `saadstudio-image-${index + 1}`),
   }));
   if (parsedItems.some((item) => !item.url)) {
@@ -87,7 +109,11 @@ export async function POST(req: NextRequest) {
     const item = parsedItems[index];
     const sourceUrl = item.url!;
     try {
-      const response = await fetch(sourceUrl, {
+      const fetchUrl = sourceUrl.startsWith("/")
+        ? `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${sourceUrl}`
+        : sourceUrl;
+
+      const response = await fetch(fetchUrl, {
         signal: AbortSignal.timeout(45_000),
         headers: { "User-Agent": "Mozilla/5.0 (compatible; SaadStudioBatchDownload/1.0)" },
       });
@@ -101,7 +127,7 @@ export async function POST(req: NextRequest) {
       if (totalBytes + bytes.byteLength > MAX_TOTAL_BYTES) throw new Error("archive size limit reached");
       totalBytes += bytes.byteLength;
 
-      const extension = inferExtension(response.headers.get("content-type") || "", sourceUrl.toString());
+      const extension = inferExtension(response.headers.get("content-type") || "", sourceUrl);
       const baseName = item.filename.replace(/\.(avif|gif|jpe?g|png|webp)$/i, "");
       zip.file(`${String(index + 1).padStart(2, "0")}-${baseName}.${extension}`, bytes);
     } catch (error) {

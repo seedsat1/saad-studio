@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getFallbackUrls } from "@/lib/utils";
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+const STORAGE_KEY_PATTERN = /^(images|videos|audio|thumbnails|media)\/[^?#]+$/i;
 
 function isSafeExternalHost(hostname: string): boolean {
   const h = hostname.toLowerCase();
@@ -30,8 +31,45 @@ function sanitizeFilename(filename: string): string {
     .slice(0, 120) || "saad-download";
 }
 
+function isSafeStorageKey(key: string): boolean {
+  if (!STORAGE_KEY_PATTERN.test(key)) return false;
+  if (key.includes("\\") || key.includes("\0")) return false;
+  return key.split("/").every((part) => part.length > 0 && part !== "." && part !== "..");
+}
+
+function encodeStorageKey(key: string): string {
+  return key.split("/").map((part) => encodeURIComponent(part)).join("/");
+}
+
+function resolveDownloadSource(rawUrl: string): { sourceUrl: string; parsed?: URL } | null {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("/api/media/")) {
+    const key = trimmed.slice("/api/media/".length);
+    if (!isSafeStorageKey(key)) return null;
+    return { sourceUrl: `/api/media/${encodeStorageKey(key)}` };
+  }
+
+  if (isSafeStorageKey(trimmed)) {
+    return { sourceUrl: `/api/media/${encodeStorageKey(trimmed)}` };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+
+  if (!ALLOWED_SCHEMES.has(parsed.protocol)) return null;
+  if (!isSafeExternalHost(parsed.hostname)) return null;
+
+  return { sourceUrl: trimmed, parsed };
+}
+
 function inferExtension(contentType: string, sourceUrl: string): string {
-  const pathExt = new URL(sourceUrl).pathname.split(".").pop()?.toLowerCase();
+  const pathExt = new URL(sourceUrl, "https://download.saadstudio.local").pathname.split(".").pop()?.toLowerCase();
   if (pathExt && /^[a-z0-9]{2,5}$/.test(pathExt)) return pathExt;
   if (contentType.includes("mp4")) return "mp4";
   if (contentType.includes("webm")) return "webm";
@@ -53,23 +91,13 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Missing url parameter", { status: 400 });
   }
 
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
+  const source = resolveDownloadSource(rawUrl);
+  if (!source) {
     return new NextResponse("Invalid URL", { status: 400 });
   }
 
-  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
-    return new NextResponse("URL scheme not allowed", { status: 400 });
-  }
-
-  if (!isSafeExternalHost(parsed.hostname)) {
-    return new NextResponse("URL host not allowed", { status: 400 });
-  }
-
   try {
-    const urls = getFallbackUrls(rawUrl, true);
+    const urls = getFallbackUrls(source.sourceUrl, true);
     let upstream: Response | null = null;
     let lastError: any = null;
 
@@ -108,7 +136,7 @@ export async function GET(req: NextRequest) {
     const contentType = upstream.headers.get("content-type") || "application/octet-stream";
     const buffer = Buffer.from(await upstream.arrayBuffer());
     const requestedFilename = sanitizeFilename(req.nextUrl.searchParams.get("filename") || "saad-download");
-    const extension = inferExtension(contentType, rawUrl);
+    const extension = inferExtension(contentType, source.sourceUrl);
     const filename = /\.[a-z0-9]{2,5}$/i.test(requestedFilename)
       ? requestedFilename
       : `${requestedFilename}.${extension}`;

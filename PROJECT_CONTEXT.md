@@ -1,4 +1,25 @@
 # Saad Studio — Project Context
+## Latest task: Download API storage-key compatibility (2026-06-27)
+
+- Status:
+  Fixed site downloads failing with HTTP 400 when the frontend passed a relative media storage key such as `videos/user_.../persisted-....mp4` to `/api/download?url=...`.
+- Affected files:
+  - `app/api/download/route.ts`
+  - `app/api/download/batch/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - After the B2/media-gateway migration, assets can be stored and passed around as relative keys (`images/...`, `videos/...`) instead of absolute `http(s)` URLs.
+  - The single download API parsed `url` with `new URL(rawUrl)` before media-key fallback resolution, so valid internal keys were rejected as `Invalid URL`.
+  - Batch image download had the same strict external-URL-only parser and could hit the same failure for stored image keys.
+- Decisions:
+  - Keep SSRF protections for external URLs.
+  - Allow only safe internal storage-key prefixes (`images`, `videos`, `audio`, `thumbnails`, `media`) and reject traversal/control/backslash paths.
+  - Resolve safe internal keys to `/api/media/<key>` before fetch so downloads use the existing media gateway and storage fallback behavior.
+- Remaining:
+  - Deploy and retry the same production download URL. If it still fails, inspect the `/api/download` response body and `/api/media` logs for missing object or storage-provider errors.
+
 ## Latest task: Payment proof URL validation fix (2026-06-27)
 
 - Status:
