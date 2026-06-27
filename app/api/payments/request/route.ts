@@ -5,6 +5,7 @@ import { ensureUserRow } from "@/lib/credit-ledger";
 
 type PaymentRequestBody = {
   orderId?: string;
+  order?: string;
   orderType?: "plan" | "topup";
   planId?: string | null;
   planLabel?: string | null;
@@ -17,6 +18,10 @@ type PaymentRequestBody = {
   proofFileName?: string | null;
   proofUrl?: string | null;
 };
+
+function cleanOrderId(input: string | null | undefined): string {
+  return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+}
 
 function appendPaymentMeta(
   plan: string,
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
     await ensureUserRow(userId);
 
     const body = (await req.json()) as PaymentRequestBody;
-    const orderId = (body.orderId ?? "").trim();
+    const orderId = cleanOrderId(body.orderId || body.order);
     const orderType = body.orderType === "topup" ? "topup" : "plan";
     const amount = Number(body.amount ?? 0);
     const credits = Math.max(0, Math.floor(Number(body.credits ?? 0)));

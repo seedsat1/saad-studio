@@ -1,4 +1,29 @@
 # Saad Studio — Project Context
+## Latest task: Payment URL 400 hardening (2026-06-27)
+
+- Status:
+  Hardened the `/payment` route and related payment APIs after production showed HTTP 400 for a direct plan checkout URL such as `/payment?type=plan&id=plus&cycle=monthly&order=...`.
+- Affected files:
+  - `app/(dash)/(routes)/payment/page.tsx`
+  - `app/api/payments/request/route.ts`
+  - `app/api/payments/status/route.ts`
+  - `app/api/payments/upload-proof/route.ts`
+  - `app/api/payments/zaincash/init/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The public pricing links use `/payment?type=plan&id=...&cycle=...`.
+  - The payment page persists the order in the `order` query parameter, while multiple payment APIs expected only `orderId`.
+  - A strict or missing order id could surface as HTTP 400 during payment status, proof upload, manual payment request, or ZainCash init flows.
+- Decisions:
+  - Accept both `order` and `orderId` in payment APIs.
+  - Sanitize order ids consistently to `[A-Za-z0-9_-]` with a 64 character limit.
+  - Wrap the client payment page content in `Suspense` because it uses `useSearchParams` in the App Router production page.
+  - Do not change plan IDs, pricing, credit allocation, or payment provider logic.
+- Remaining:
+  - Deploy and retry the exact production URL. If a 400 remains, capture the Network response body for the failing request because the page and APIs now tolerate both order parameter names.
+
 ## Latest task: Official Seedance image re-encode experiment (2026-06-27)
 
 - Status:

@@ -16,6 +16,10 @@ function getExtension(fileName: string, mimeType: string) {
   return ".bin";
 }
 
+function cleanOrderId(input: string | null | undefined): string {
+  return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -23,7 +27,7 @@ export async function POST(req: Request) {
 
     const form = await req.formData();
     const file = form.get("file");
-    const orderId = String(form.get("orderId") ?? "").trim();
+    const orderId = cleanOrderId(String(form.get("orderId") || form.get("order") || ""));
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: "file is required" }, { status: 400 });
@@ -46,7 +50,7 @@ export async function POST(req: Request) {
     }
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    const safeOrderId = orderId.replace(/[^a-zA-Z0-9_-]/g, "");
+    const safeOrderId = orderId;
     const fileExt = getExtension(file.name, file.type);
     const fileName = `${safeOrderId}-${Date.now()}-${randomUUID().slice(0, 8)}${fileExt}`;
 
@@ -74,4 +78,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

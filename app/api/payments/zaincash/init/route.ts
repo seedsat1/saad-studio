@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 type InitBody = {
   orderId?: string;
+  order?: string;
   orderType?: "plan" | "topup";
   planId?: string | null;
   planLabel?: string | null;
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     await ensureUserRow(userId);
 
     const body = (await req.json()) as InitBody;
-    const orderId = cleanOrderId(String(body.orderId ?? ""));
+    const orderId = cleanOrderId(String(body.orderId || body.order || ""));
     const orderType = body.orderType === "topup" ? "topup" : "plan";
     const amountUsd = Number(body.amount ?? 0);
     const credits = Math.max(0, Math.floor(Number(body.credits ?? 0)));

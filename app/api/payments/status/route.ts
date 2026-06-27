@@ -14,12 +14,16 @@ function parseOrder(plan: string) {
   return { first, isTopup, billingCycle, orderId };
 }
 
+function cleanOrderId(input: string | null | undefined): string {
+  return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+}
+
 export async function GET(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const orderId = String(searchParams.get("orderId") ?? "").trim();
+  const orderId = cleanOrderId(searchParams.get("orderId") || searchParams.get("order"));
   if (!orderId) return NextResponse.json({ error: "orderId is required" }, { status: 400 });
 
   const tx = await prismadb.adminTransaction.findFirst({
@@ -52,4 +56,3 @@ export async function GET(req: NextRequest) {
     createdAt: tx.createdAt.toISOString(),
   });
 }
-

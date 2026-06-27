@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, Upload, X, CheckCircle2, Clock,
@@ -82,6 +82,10 @@ const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
 
 function generateOrderId() {
   return "SS-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 5).toUpperCase();
+}
+
+function cleanPaymentOrderId(input: string | null | undefined) {
+  return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
 }
 
 // ─── StepBar ─────────────────────────────────────────────────────────────────
@@ -380,7 +384,7 @@ const inputCls = (err?: string) =>
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function PaymentPage() {
+function PaymentPageContent() {
   const searchParams = useSearchParams();
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
   const [step, setStep]                     = useState<Step>(1);
@@ -465,12 +469,14 @@ export default function PaymentPage() {
 
   const syncOrderInUrl = useCallback((id: string) => {
     if (typeof window === "undefined") return;
-    if (!id) return;
+    const safeId = cleanPaymentOrderId(id);
+    if (!safeId) return;
     try {
       const url = new URL(window.location.href);
-      url.searchParams.set("order", id);
+      if (url.searchParams.get("order") === safeId) return;
+      url.searchParams.set("order", safeId);
       window.history.replaceState(null, "", url.toString());
-      window.localStorage.setItem("saad_last_payment_order", id);
+      window.localStorage.setItem("saad_last_payment_order", safeId);
     } catch {}
   }, []);
 
@@ -480,9 +486,9 @@ export default function PaymentPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const urlOrder = (searchParams.get("order") ?? "").trim();
-    const storedOrder = (window.localStorage.getItem("saad_last_payment_order") ?? "").trim();
-    const nextId = (urlOrder || storedOrder || generateOrderId()).trim();
+    const urlOrder = cleanPaymentOrderId(searchParams.get("order") || searchParams.get("orderId"));
+    const storedOrder = cleanPaymentOrderId(window.localStorage.getItem("saad_last_payment_order"));
+    const nextId = urlOrder || storedOrder || generateOrderId();
     setOrderId(nextId);
   }, [searchParams]);
 
@@ -565,6 +571,13 @@ export default function PaymentPage() {
 
   const handleSubmit = async () => {
     setSubmitError("");
+    const safeOrderId = cleanPaymentOrderId(orderId);
+    if (!safeOrderId) {
+      const nextId = generateOrderId();
+      setOrderId(nextId);
+      setSubmitError("Order ID was refreshed. Please submit again.");
+      return;
+    }
     if (!selectedItem) {
       setSubmitError("Please select a plan or top-up.");
       return;
@@ -597,7 +610,8 @@ export default function PaymentPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId,
+            orderId: safeOrderId,
+            order: safeOrderId,
             orderType: effectiveOrderType,
             planId: effectiveOrderType === "plan" ? effectivePlanId : null,
             planLabel: effectiveOrderType === "plan" ? (selectedPlan?.label ?? effectivePlanId ?? null) : null,
@@ -626,7 +640,8 @@ export default function PaymentPage() {
 
       const fd = new FormData();
       fd.append("file", proofFile!);
-      fd.append("orderId", orderId);
+      fd.append("orderId", safeOrderId);
+      fd.append("order", safeOrderId);
 
       const uploadRes = await fetch("/api/payments/upload-proof", {
         method: "POST",
@@ -647,7 +662,8 @@ export default function PaymentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId,
+          orderId: safeOrderId,
+          order: safeOrderId,
           orderType: effectiveOrderType,
           planId: effectiveOrderType === "plan" ? effectivePlanId : null,
           planLabel: effectiveOrderType === "plan" ? (selectedPlan?.label ?? effectivePlanId ?? null) : null,
@@ -686,12 +702,13 @@ export default function PaymentPage() {
   };
 
   useEffect(() => {
-    if (!orderId) return;
+    const safeOrderId = cleanPaymentOrderId(orderId);
+    if (!safeOrderId) return;
     let cancelled = false;
     let intervalId: number | null = null;
     const run = async () => {
       try {
-        const res = await fetch(`/api/payments/status?orderId=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+        const res = await fetch(`/api/payments/status?orderId=${encodeURIComponent(safeOrderId)}`, { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json().catch(() => ({}));
         const s = String(data?.status ?? "");
@@ -909,5 +926,13 @@ export default function PaymentPage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <PaymentPageContent />
+    </Suspense>
   );
 }
