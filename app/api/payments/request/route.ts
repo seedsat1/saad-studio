@@ -23,6 +23,16 @@ function cleanOrderId(input: string | null | undefined): string {
   return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
 }
 
+function isValidProofUrl(input: string): boolean {
+  const value = input.trim();
+  if (!value) return false;
+  if (value.startsWith("https://")) return true;
+  if (value.startsWith("/uploads/payment-proofs/")) return true;
+  if (value.startsWith("/api/media/images/")) return !value.includes("..") && !value.includes("\\");
+  if (value.startsWith("images/")) return !value.includes("..") && !value.includes("\\");
+  return false;
+}
+
 function appendPaymentMeta(
   plan: string,
   meta: { proofFileName?: string | null; proofUrl?: string | null }
@@ -73,7 +83,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!proofUrl.startsWith("/uploads/payment-proofs/") && !proofUrl.startsWith("https://")) {
+    if (!isValidProofUrl(proofUrl)) {
       return NextResponse.json({ error: "Invalid proof URL" }, { status: 400 });
     }
 

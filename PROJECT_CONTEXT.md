@@ -1,4 +1,24 @@
 # Saad Studio — Project Context
+## Latest task: Payment proof URL validation fix (2026-06-27)
+
+- Status:
+  Fixed manual payment submission failing with HTTP 400 `Invalid proof URL` after a proof image uploaded successfully.
+- Affected files:
+  - `app/api/payments/upload-proof/route.ts`
+  - `app/api/payments/request/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - Current storage upload helpers return relative storage keys such as `images/...` after the B2/R2 media gateway migration.
+  - `/api/payments/request` only accepted legacy `/uploads/payment-proofs/...` or absolute `https://` proof URLs, so the proof upload succeeded but the payment request rejected the returned key.
+- Decisions:
+  - Return `/api/media/<storage-key>` from `/api/payments/upload-proof` when storage returns a relative key.
+  - Keep `/api/payments/request` validation strict but allow `/api/media/images/...` and raw `images/...` keys for backward compatibility with already returned proof upload responses.
+  - Do not change payment pricing, credit logic, plan IDs, or provider configuration.
+- Remaining:
+  - Deploy and retry the same manual payment submission. If it still fails, inspect the JSON response body from `/api/payments/request`.
+
 ## Latest task: Payment URL 400 hardening (2026-06-27)
 
 - Status:

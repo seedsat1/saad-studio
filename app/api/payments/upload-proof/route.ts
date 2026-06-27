@@ -20,6 +20,14 @@ function cleanOrderId(input: string | null | undefined): string {
   return String(input ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
 }
 
+function toPaymentProofUrl(storageUrl: string): string {
+  const value = storageUrl.trim();
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
+    return value;
+  }
+  return `/api/media/${value.replace(/^\/+/, "")}`;
+}
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();
@@ -54,7 +62,7 @@ export async function POST(req: Request) {
     const fileExt = getExtension(file.name, file.type);
     const fileName = `${safeOrderId}-${Date.now()}-${randomUUID().slice(0, 8)}${fileExt}`;
 
-    const publicUrl = await uploadBufferToStorage({
+    const storageUrl = await uploadBufferToStorage({
       buffer: bytes,
       contentType: file.type,
       userId,
@@ -63,12 +71,12 @@ export async function POST(req: Request) {
       fileName,
     });
 
-    if (!publicUrl) {
+    if (!storageUrl) {
       return NextResponse.json({ error: "Failed to upload proof to storage" }, { status: 500 });
     }
 
     return NextResponse.json({
-      proofUrl: publicUrl,
+      proofUrl: toPaymentProofUrl(storageUrl),
       proofFileName: file.name,
       mimeType: file.type,
       size: file.size,
