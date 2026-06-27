@@ -41,6 +41,7 @@ import {
   Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeMediaUrl } from "@/lib/storage";
 import ToolShowcase from "@/components/ToolShowcase";
 import RelightPage from "../apps/tool/relight/page";
 import FaceSwapPage from "../apps/tool/face-swap/page";
@@ -314,6 +315,21 @@ const imgToDataUrl = async (src: string): Promise<string> => {
     img.onerror = () => resolve(src);
     img.src = src;
   });
+};
+
+const resolveEditMediaUrl = (url: string | null | undefined): string => {
+  return normalizeMediaUrl(url) || url || "";
+};
+
+const toAbsoluteEditMediaUrl = (url: string): string => {
+  const resolved = resolveEditMediaUrl(url);
+  if (!resolved || resolved.startsWith("data:") || /^https?:\/\//i.test(resolved)) {
+    return resolved;
+  }
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}${resolved.startsWith("/") ? "" : "/"}${resolved}`;
+  }
+  return resolved;
 };
 
 // ─── Page Component ────────────────────────────────────────────────────────────
@@ -756,7 +772,7 @@ export default function EditPage() {
   useEffect(() => {
     if (mediaUrl && mediaType === "video") {
       const video = document.createElement("video");
-      video.src = mediaUrl;
+      video.src = resolveEditMediaUrl(mediaUrl);
       video.preload = "metadata";
       video.onloadedmetadata = () => {
         setVideoDuration(video.duration);
@@ -788,7 +804,7 @@ export default function EditPage() {
 
     if (mediaType === "video") {
       const video = document.createElement("video");
-      video.src = mediaUrl;
+      video.src = resolveEditMediaUrl(mediaUrl);
       video.preload = "metadata";
       video.onloadedmetadata = () => {
         if (video.videoWidth && video.videoHeight) {
@@ -800,7 +816,7 @@ export default function EditPage() {
       };
     } else {
       const img = new Image();
-      img.src = mediaUrl;
+      img.src = resolveEditMediaUrl(mediaUrl);
       img.onload = () => {
         if (img.naturalWidth && img.naturalHeight) {
           setMediaAspectRatio(img.naturalWidth / img.naturalHeight);
@@ -1069,17 +1085,11 @@ export default function EditPage() {
 
     try {
       let resultUrl = "";
-      
-      let finalMediaUrl = mediaUrl;
-      if (mediaUrl.startsWith("/")) {
-        if (typeof window !== "undefined") {
-          finalMediaUrl = `${window.location.origin}${mediaUrl}`;
-        }
-      }
+      const finalMediaUrl = toAbsoluteEditMediaUrl(mediaUrl);
 
       const inputMedia = finalMediaUrl.startsWith("data:") || finalMediaUrl.startsWith("http")
         ? finalMediaUrl
-        : await imgToDataUrl(mediaUrl);
+        : await imgToDataUrl(resolveEditMediaUrl(mediaUrl));
 
       if (activeTool === "bgremove") {
         const response = await fetch("/api/generate/remove-bg", {
@@ -1095,7 +1105,7 @@ export default function EditPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            sourceImageUrl: faceImageUrl,
+            sourceImageUrl: toAbsoluteEditMediaUrl(faceImageUrl),
             targetImageUrl: inputMedia,
           }),
         });
@@ -1434,7 +1444,7 @@ export default function EditPage() {
                         <div className="absolute inset-0 pointer-events-none">
                           {mediaType === "video" ? (
                             <video
-                              src={originalMediaUrl || mediaUrl}
+                              src={resolveEditMediaUrl(originalMediaUrl || mediaUrl)}
                               className="absolute inset-0 w-full h-full object-cover"
                               autoPlay
                               loop
@@ -1444,7 +1454,7 @@ export default function EditPage() {
                           ) : (
                             <div
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url('${originalMediaUrl || mediaUrl}')` }}
+                              style={{ backgroundImage: `url('${resolveEditMediaUrl(originalMediaUrl || mediaUrl)}')` }}
                             />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -1460,7 +1470,7 @@ export default function EditPage() {
                         >
                           {mediaType === "video" ? (
                             <video
-                              src={mediaUrl}
+                              src={resolveEditMediaUrl(mediaUrl)}
                               className="absolute inset-0 w-full h-full object-cover"
                               autoPlay
                               loop
@@ -1470,7 +1480,7 @@ export default function EditPage() {
                           ) : (
                             <div
                               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                              style={{ backgroundImage: `url('${mediaUrl}')` }}
+                              style={{ backgroundImage: `url('${resolveEditMediaUrl(mediaUrl)}')` }}
                             />
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -1504,7 +1514,7 @@ export default function EditPage() {
                           type="button"
                           onClick={() => {
                             const link = document.createElement("a");
-                            link.href = mediaUrl;
+                            link.href = resolveEditMediaUrl(mediaUrl);
                             link.download = mediaUrl.split("/").pop() || "result";
                             link.target = "_blank";
                             document.body.appendChild(link);
@@ -1522,7 +1532,7 @@ export default function EditPage() {
                       <div className="absolute inset-0 select-none pointer-events-none">
                         {mediaType === "video" ? (
                           <video
-                            src={mediaUrl}
+                            src={resolveEditMediaUrl(mediaUrl)}
                             className="absolute inset-0 w-full h-full object-cover"
                             autoPlay
                             loop
@@ -1532,7 +1542,7 @@ export default function EditPage() {
                         ) : (
                           <div
                             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                            style={{ backgroundImage: `url('${mediaUrl}')` }}
+                            style={{ backgroundImage: `url('${resolveEditMediaUrl(mediaUrl)}')` }}
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -1673,9 +1683,9 @@ export default function EditPage() {
                             )}
                           >
                             {item.type === "video" ? (
-                              <video src={item.url} className="h-full w-full object-cover pointer-events-none" />
+                              <video src={resolveEditMediaUrl(item.url)} className="h-full w-full object-cover pointer-events-none" />
                             ) : (
-                              <img src={item.url} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
+                              <img src={resolveEditMediaUrl(item.url)} alt="Preset" className="h-full w-full object-cover pointer-events-none" />
                             )}
                           </button>
                         );
@@ -1761,7 +1771,7 @@ export default function EditPage() {
                     <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-video bg-zinc-950">
                       {mediaType === "video" ? (
                         <video
-                          src={mediaUrl}
+                          src={resolveEditMediaUrl(mediaUrl)}
                           className="w-full h-full object-cover"
                           autoPlay
                           loop
@@ -1770,7 +1780,7 @@ export default function EditPage() {
                         />
                       ) : (
                         <img
-                          src={mediaUrl}
+                          src={resolveEditMediaUrl(mediaUrl)}
                           alt="Source"
                           className="w-full h-full object-cover"
                         />
@@ -2689,7 +2699,7 @@ export default function EditPage() {
                       ) : faceImageUrl ? (
                         <div className="relative group rounded-xl overflow-hidden border border-white/10 aspect-square w-32 mx-auto bg-zinc-950">
                           <img
-                            src={faceImageUrl}
+                            src={resolveEditMediaUrl(faceImageUrl)}
                             alt="Reference Face"
                             className="w-full h-full object-cover"
                           />

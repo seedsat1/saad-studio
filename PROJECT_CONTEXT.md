@@ -1,4 +1,22 @@
 # Saad Studio — Project Context
+## Latest task: Edit page storage-key media display fix (2026-06-27)
+
+- Status:
+  Fixed `/edit` rendering uploaded/generated media storage keys such as `/images/user_.../generation-....png` directly as static site paths, which caused production `404 Not Found`.
+- Affected files:
+  - `app/(dash)/(routes)/edit/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The attached production console log showed a direct browser request to `https://www.saadstudio.app/images/user_.../generation-....png`.
+  - That path is a storage object key, not a Next.js public asset path, so the browser must receive a resolved media URL through the existing media resolver/gateway.
+- Decisions:
+  - Add `/edit`-local media URL resolution using the central `normalizeMediaUrl()` before assigning sources to `<img>`, `<video>`, CSS `backgroundImage`, metadata probes, downloads, and generation API inputs.
+  - Keep the original stored URL in React state/history so no model route, generation API contract, or storage schema changes are introduced.
+- Remaining:
+  - Deploy and retry `https://www.saadstudio.app/edit` with the same generated image URL. If the media still fails to load, inspect whether `BROWSER_MEDIA_URL_MODE` is set to `proxy` or whether the resolved B2 object itself is missing.
+
 ## Latest task: Transitions upload CORS fix (2026-06-27)
 
 - Status:
