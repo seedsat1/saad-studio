@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 type CharacterStateKey = "neutral" | "hero" | "motion" | "editorial" | "emotional";
 
@@ -253,6 +254,10 @@ function packageToPrompt(character: CharacterRecord) {
     `States: ${Object.entries(pkg.states).map(([key, value]) => `${key}: ${value}`).join(" | ")}`,
     `Reference images: ${character.referenceUrls.join(", ")}`,
   ].join("\n");
+}
+
+function displayMediaUrl(url: string | null | undefined): string {
+  return normalizeMediaUrl(url) || "";
 }
 
 function RuleGroup({ type, items }: { type: "good" | "avoid"; items: typeof GOOD_RULES }) {
@@ -908,7 +913,7 @@ export default function CharacterPage() {
                     <article key={character.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f1d] hover:border-white/20 transition flex flex-col justify-between">
                       <div className="relative aspect-[16/11] bg-zinc-950">
                         {character.coverUrl ? (
-                          <img src={character.coverUrl} alt={character.name} className="h-full w-full object-cover" />
+                          <img src={displayMediaUrl(character.coverUrl)} alt={character.name} className="h-full w-full object-cover" />
                         ) : (
                           <div className="flex h-full items-center justify-center text-zinc-700 bg-black/40"><UserRound className="h-9 w-9" /></div>
                         )}
@@ -977,10 +982,10 @@ export default function CharacterPage() {
                             {generatedUrls[character.id].slice(0, 4).map((url) => (
                               <button 
                                 key={url} 
-                                onClick={() => window.open(url, "_blank", "noopener,noreferrer")} 
+                                onClick={() => window.open(displayMediaUrl(url) || url, "_blank", "noopener,noreferrer")} 
                                 className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black hover:scale-[1.03] transition-transform duration-200"
                               >
-                                <img src={url} alt="" className="h-full w-full object-cover" />
+                                <img src={displayMediaUrl(url)} alt="" className="h-full w-full object-cover" />
                               </button>
                             ))}
                           </div>

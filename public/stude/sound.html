@@ -716,7 +716,7 @@ async function previewVmVoice(id,name,ev){
       })});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Preview error (${res.status})`);
-      url=json?.audioUrl||json?.url||'';
+      url=studioMediaUrl(json?.audioUrl||json?.url||'');
       if(!url)throw new Error('No preview audio URL returned');
       _vmPreviewCache[cacheKey]=url;
     }
@@ -724,7 +724,7 @@ async function previewVmVoice(id,name,ev){
       url=`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(id)}.mp3`;
       _vmPreviewCache[cacheKey]=url;
     }
-    _vmPreviewAudio=new Audio(url);
+    _vmPreviewAudio=new Audio(studioMediaUrl(url));
     _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
     _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Voice preview failed.','err');};
     await _vmPreviewAudio.play();
@@ -765,7 +765,7 @@ function renderVmGrid(){
     const tl=TL[v.cat]||v.cat;
     let av;
     if(v.isCustom&&v.photoUrl){
-      av=`<div class="vm-v2-avatar"><img src="${v.photoUrl}" alt="${v.name}" style="width:100%;height:100%;object-fit:cover"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
+      av=`<div class="vm-v2-avatar"><img src="${studioMediaUrl(v.photoUrl)}" alt="${v.name}" style="width:100%;height:100%;object-fit:cover"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     } else if(v.isCustom){
       av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}99)">${init}<div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     } else if(v.provider==='gemini'){
@@ -836,7 +836,7 @@ function previewCustomVoice(id,ev){
   if(!entry?.sampleUrl){setStatus('No sample audio stored for this voice.','warn');return;}
   if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
   _vmPreviewAudio?.pause();_vmPlayingId=id;renderVmGrid();
-  _vmPreviewAudio=new Audio(entry.sampleUrl);
+  _vmPreviewAudio=new Audio(studioMediaUrl(entry.sampleUrl));
   _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
   _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Cannot preview sample.','warn');};
   _vmPreviewAudio.play().catch(()=>{_vmPlayingId=null;renderVmGrid();});
@@ -977,7 +977,7 @@ async function cvCreateVoice(){
     const gender=document.getElementById('cvGender')?.value||'';
     const lang=document.getElementById('cvLanguage')?.value||'';
     const accent=document.getElementById('cvAccent')?.value||'';
-    const entry={id:'sample_'+Date.now(),name,sampleUrl:publicUrl,photoUrl:_cvPhotoDataUrl||null,gender,lang,accent,addedAt:Date.now()};
+    const entry={id:'sample_'+Date.now(),name,sampleUrl:studioMediaUrl(publicUrl),photoUrl:studioMediaUrl(_cvPhotoDataUrl)||null,gender,lang,accent,addedAt:Date.now()};
     const list=loadMyVoices();list.unshift(entry);saveMyVoices(list);
     document.getElementById('customVoiceId').value=entry.id;
     document.getElementById('activeCloneBar').style.display='flex';
@@ -1065,7 +1065,7 @@ async function cloneAndSaveVoice(){
     if(bar)bar.style.width='100%';if(pct)pct.textContent='100%';if(lbl)lbl.textContent='Creating clone...';
     let finalId='';
     // Clone API not available via KIE — voice is saved locally by sample URL
-    const entry={id:finalId||('sample_'+Date.now()),name:voiceName,sampleUrl:publicUrl,photoUrl:_clonePhotoDataUrl||null,gender:'',lang:'',accent:'',hasCloneId:!!finalId,addedAt:Date.now()};
+    const entry={id:finalId||('sample_'+Date.now()),name:voiceName,sampleUrl:studioMediaUrl(publicUrl),photoUrl:studioMediaUrl(_clonePhotoDataUrl)||null,gender:'',lang:'',accent:'',hasCloneId:!!finalId,addedAt:Date.now()};
     const list=loadMyVoices();list.unshift(entry);saveMyVoices(list);
     document.getElementById('customVoiceId').value=entry.id;
     document.getElementById('activeCloneBar').style.display='flex';
@@ -1122,8 +1122,28 @@ function slUpdate(inp,valId,fillId){const v=+inp.value,mn=+inp.min,mx=+inp.max;c
 /* STATUS + AUDIO */
 const audioState={latestUrl:'',latestName:'',latestType:'',latestDurationSec:0};
 function setStatus(text,tone){const el=document.getElementById('statusStrip');if(!el)return;const c={info:'var(--text-sec)',ok:'var(--green)',warn:'var(--orange)',err:'var(--rose)'};el.textContent=text;el.style.color=c[tone||'info']||c.info;}
+function studioMediaUrl(raw){
+  const source=String(raw||'').trim();
+  if(!source||source.startsWith('data:')||source.startsWith('blob:'))return source;
+  const fromApi=source.indexOf('/api/media/');
+  if(fromApi>=0)return source.slice(fromApi);
+  const sameOrigin=source.startsWith('/')||source.indexOf(location.origin)===0||/saadstudio\.app/i.test(source);
+  const stored=/\/?(images|videos|audio|thumbnails|media)\/(.+)$/i.exec(source.replace(/^https?:\/\/[^/]+/i,''));
+  if(stored&&sameOrigin)return '/api/media/'+stored[1]+'/'+stored[2].replace(/^\/+/,'');
+  if(!/^https?:\/\//i.test(source)){
+    const rel=/^\/?(images|videos|audio|thumbnails|media)\/(.+)$/i.exec(source);
+    if(rel)return '/api/media/'+rel[1]+'/'+rel[2].replace(/^\/+/,'');
+  }
+  return source;
+}
+function studioProviderMediaUrl(raw){
+  const url=studioMediaUrl(raw);
+  if(url&&url.startsWith('/api/media/'))return location.origin+url;
+  return url;
+}
 function buildOutputWaveform(type){const wf=document.getElementById('outputWaveform');wf.innerHTML='';const col={voice:'#22c55e',music:'#4b7fff',sfx:'#fb923c'}[type]||'#4b7fff';for(let i=0;i<90;i++){const b=document.createElement('div');b.className='wb';b.style.height=(6+Math.random()*44)+'px';b.style.background=col;b.style.opacity=(0.3+Math.random()*0.55).toFixed(2);b.style.animationDelay=(Math.random()*1.4).toFixed(2)+'s';wf.appendChild(b);}}
 function showOutput(type,title,url){
+  url=studioMediaUrl(url);
   const area=document.getElementById('outputArea');area.classList.add('visible');
   document.getElementById('quickActions').style.display='none';
   const badge=document.getElementById('outputBadge');badge.textContent=type.toUpperCase();badge.className='output-badge badge-'+type;
@@ -1135,16 +1155,16 @@ function showOutput(type,title,url){
 }
 let _outPlaying=false;
 function toggleOutPlay(){const p=document.getElementById('audioPreviewPlayer');if(!p.src)return;_outPlaying=!_outPlaying;const icon=document.getElementById('outPlayIcon');if(_outPlaying){p.play();document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='running');icon.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}else{p.pause();document.querySelectorAll('.wb').forEach(w=>w.style.animationPlayState='paused');icon.innerHTML='<path d="M8 5v14l11-7z"/>';}}
-function rememberLatest(a){audioState.latestUrl=a.url||'';audioState.latestName=a.name||'';audioState.latestType=a.type||'';audioState.latestDurationSec=Number(a.durationSec)||0;}
-function postClipToTimeline(a){const p={type:'ff:addClip',clip:{label:a.name,url:a.url,trackType:a.type,durationSec:a.durationSec||6}};try{if(window.parent&&window.parent!==window){const tf=window.parent.document.getElementById('timelineFrame');if(tf&&tf.contentWindow)tf.contentWindow.postMessage(p,'*');}}catch{}}
+function rememberLatest(a){audioState.latestUrl=studioMediaUrl(a.url||'');audioState.latestName=a.name||'';audioState.latestType=a.type||'';audioState.latestDurationSec=Number(a.durationSec)||0;}
+function postClipToTimeline(a){const p={type:'ff:addClip',clip:{label:a.name,url:studioMediaUrl(a.url),trackType:a.type,durationSec:a.durationSec||6}};try{if(window.parent&&window.parent!==window){const tf=window.parent.document.getElementById('timelineFrame');if(tf&&tf.contentWindow)tf.contentWindow.postMessage(p,'*');}}catch{}}
 function addLatestToTimeline(){if(!audioState.latestUrl){setStatus('No generated asset yet.','warn');return;}postClipToTimeline({type:audioState.latestType||'voice',name:audioState.latestName||`audio_${Date.now()}.mp3`,url:audioState.latestUrl,durationSec:audioState.latestDurationSec||6});setStatus('Added to timeline.','ok');}
-async function downloadLatest(){if(!audioState.latestUrl){setStatus('No generated asset to download.','warn');return;}try{const res=await fetch(audioState.latestUrl);const blob=await res.blob();const burl=URL.createObjectURL(blob);const a=document.createElement('a');a.href=burl;a.download=audioState.latestName||'audio_asset.mp3';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(burl),5000);}catch{const a=document.createElement('a');a.href=audioState.latestUrl;a.download=audioState.latestName||'audio_asset.mp3';document.body.appendChild(a);a.click();a.remove();}}
+async function downloadLatest(){if(!audioState.latestUrl){setStatus('No generated asset to download.','warn');return;}const dlUrl=studioMediaUrl(audioState.latestUrl);try{const res=await fetch(dlUrl);const blob=await res.blob();const burl=URL.createObjectURL(blob);const a=document.createElement('a');a.href=burl;a.download=audioState.latestName||'audio_asset.mp3';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(burl),5000);}catch{const a=document.createElement('a');a.href=dlUrl;a.download=audioState.latestName||'audio_asset.mp3';document.body.appendChild(a);a.click();a.remove();}}
 function formatSec(s){if(!s||!Number.isFinite(s))return'0:00';const t=Math.max(0,Math.round(s));return`${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;}
 
 /* API */
 function parseResultJson(r){if(!r)return null;if(typeof r==='object')return r;try{return JSON.parse(r);}catch{return null;}}
-function extractResultUrls(d){const p=parseResultJson(d?.resultJson);if(!p)return[];if(Array.isArray(p.resultUrls))return p.resultUrls.filter(Boolean);if(p.resultObject?.resultUrls&&Array.isArray(p.resultObject.resultUrls))return p.resultObject.resultUrls.filter(Boolean);if(p.resultObject?.audio_url)return[p.resultObject.audio_url];if(p.resultObject?.url)return[p.resultObject.url];return[];}
-async function getAudioDuration(url){return new Promise(resolve=>{const a=new Audio();const done=v=>{a.removeAttribute('src');resolve(Number.isFinite(v)?v:null);};a.addEventListener('loadedmetadata',()=>done(a.duration),{once:true});a.addEventListener('error',()=>done(null),{once:true});a.preload='metadata';a.src=url;});}
+function extractResultUrls(d){const p=parseResultJson(d?.resultJson);if(!p)return[];if(Array.isArray(p.resultUrls))return p.resultUrls.filter(Boolean).map(studioMediaUrl);if(p.resultObject?.resultUrls&&Array.isArray(p.resultObject.resultUrls))return p.resultObject.resultUrls.filter(Boolean).map(studioMediaUrl);if(p.resultObject?.audio_url)return[studioMediaUrl(p.resultObject.audio_url)];if(p.resultObject?.url)return[studioMediaUrl(p.resultObject.url)];return[];}
+async function getAudioDuration(url){return new Promise(resolve=>{const a=new Audio();const done=v=>{a.removeAttribute('src');resolve(Number.isFinite(v)?v:null);};a.addEventListener('loadedmetadata',()=>done(a.duration),{once:true});a.addEventListener('error',()=>done(null),{once:true});a.preload='metadata';a.src=studioMediaUrl(url);});}
 async function createKieTask(model,input){const res=await fetch('/api/kie/createTask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,input})});const json=await res.json();if(!res.ok||json?.code!==200||!json?.data?.taskId)throw new Error(json?.msg||`Create task failed (${res.status})`);return json.data.taskId;}
 async function createKieTaskWithFallback(model,input){try{return await createKieTask(model,input);}catch(error){const msg=String(error?.message||'').toLowerCase();if(Object.prototype.hasOwnProperty.call(input||{},'language_code')&&(msg.includes('language')||msg.includes('422'))){const ri={...input};delete ri.language_code;return await createKieTask(model,ri);}throw error;}}
 async function waitKieTask(taskId,maxMs){const started=Date.now();while(Date.now()-started<maxMs){const res=await fetch('/api/kie/recordInfo?taskId='+encodeURIComponent(taskId));const json=await res.json();if(!res.ok||json?.code!==200||!json?.data)throw new Error(json?.msg||`Polling failed (${res.status})`);const state=String(json.data.state||'').toLowerCase();if(state==='success')return json.data;if(state==='fail')throw new Error(json.data.failMsg||json.data.failCode||'Task failed');await new Promise(r=>setTimeout(r,1800));}throw new Error('Timeout waiting for Kie result');}
@@ -1175,22 +1195,23 @@ async function generateVoice(text){
       const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});
       if(!ur.ok)throw new Error('Failed to upload voice sample');
       const{publicUrl}=await ur.json();
+      const samplePublicUrl=studioProviderMediaUrl(publicUrl);
       setStatus('Cloning voice...','info');
       const cloneName=window._cloneNameForJob||'Custom Voice';
-      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[publicUrl],cloneName})});
+      const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[samplePublicUrl],cloneName})});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
-      url=json?.audioUrl||json?.url||'';
+      url=studioMediaUrl(json?.audioUrl||json?.url||'');
     } else if(customId.startsWith('sample_')){
       /* --- Saved clone voice: use stored sampleUrl --- */
       const myV=loadMyVoices();const entry=myV.find(v=>v.id===customId);
-      const sampleUrl=entry?.sampleUrl||'';
+      const sampleUrl=studioProviderMediaUrl(entry?.sampleUrl||'');
       if(!sampleUrl)throw new Error('Voice sample not found. Please re-clone.');
       setStatus('Cloning voice...','info');
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'voice-cloning',text,sampleAudioUrls:[sampleUrl],cloneName:entry?.name||'Custom Voice'})});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Clone error (${res.status})`);
-      url=json?.audioUrl||json?.url||'';
+      url=studioMediaUrl(json?.audioUrl||json?.url||'');
     } else {
       /* --- Catalog voice: Gemini Google TTS for Gemini voices, otherwise KIE ElevenLabs --- */
       const voiceId=_vmSelectedId||'21m00Tcm4TlvDq8ikWAM';
@@ -1202,7 +1223,7 @@ async function generateVoice(text){
       const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
       const json=await res.json();
       if(!res.ok)throw new Error(json?.error||json?.message||`Voice API error (${res.status})`);
-      url=json?.audioUrl||json?.url||'';
+      url=studioMediaUrl(json?.audioUrl||json?.url||'');
     }
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||Math.max(3,Math.round(text.length/14));
@@ -1224,7 +1245,7 @@ async function generateMusic(text){
     const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt,model:'elevenlabs/music',musicDuration:30,force_instrumental:true,output_format:'mp3_high_quality'})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Music API error (${res.status})`);
-    const url=json?.url||json?.data?.url||json?.audioUrl||'';
+    const url=studioMediaUrl(json?.url||json?.data?.url||json?.audioUrl||'');
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||30;
     const asset={type:'music',name:assetName,url,durationSec:dur};
@@ -1241,7 +1262,7 @@ async function generateSfx(text){
     const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'music',prompt:text,model:'elevenlabs/sound-effect-v2',musicDuration:5,force_instrumental:false})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`SFX API error (${res.status})`);
-    const url=json?.audioUrl||json?.url||'';
+    const url=studioMediaUrl(json?.audioUrl||json?.url||'');
     if(!url)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(url)||5;
     const asset={type:'sfx',name:assetName,url,durationSec:dur};
@@ -1252,9 +1273,9 @@ async function generateSfx(text){
 }
 
 /* AUDIO TOOLS */
-async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const formData=new FormData();formData.append('file',file);formData.append('assetType','audio');const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});if(!ur.ok)throw new Error('Failed to upload audio file');const{publicUrl}=await ur.json();document.getElementById('audioUrlInput').value=publicUrl;setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
+async function handleAudioFileSelect(input){const file=input.files&&input.files[0];if(!file)return;setStatus('Uploading audio file...','info');try{const formData=new FormData();formData.append('file',file);formData.append('assetType','audio');const ur=await fetch('/api/studio/upload-url',{method:'POST',body:formData});if(!ur.ok)throw new Error('Failed to upload audio file');const{publicUrl}=await ur.json();document.getElementById('audioUrlInput').value=studioProviderMediaUrl(publicUrl);setStatus('File uploaded. Ready to transcribe or isolate.','ok');}catch(err){setStatus('Upload failed: '+err.message,'err');}input.value='';}
 async function transcribeAudio(){
-  const url=(document.getElementById('audioUrlInput')?.value||'').trim();
+  const url=studioProviderMediaUrl((document.getElementById('audioUrlInput')?.value||'').trim());
   if(!url){setStatus('Please upload an audio file first.','warn');return;}
   setStatus('Transcribing...','info');
   try{
@@ -1267,14 +1288,14 @@ async function transcribeAudio(){
   }catch(err){setStatus('Transcription failed: '+err.message,'err');}
 }
 async function isolateAudio(){
-  const url=(document.getElementById('audioUrlInput')?.value||'').trim();
+  const url=studioProviderMediaUrl((document.getElementById('audioUrlInput')?.value||'').trim());
   if(!url){setStatus('Please upload an audio file first.','warn');return;}
   setStatus('Isolating audio...','info');
   try{
     const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({actionType:'audio-isolation',audioUrl:url})});
     const json=await res.json();
     if(!res.ok)throw new Error(json?.error||json?.message||`Isolation error (${res.status})`);
-    const outUrl=json?.audioUrl||json?.url||'';
+    const outUrl=studioMediaUrl(json?.audioUrl||json?.url||'');
     if(!outUrl)throw new Error('No audio URL returned');
     const dur=await getAudioDuration(outUrl)||8;
     const asset={type:'voice',name:`isolated_${Date.now()}.mp3`,url:outUrl,durationSec:dur};

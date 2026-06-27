@@ -14,6 +14,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin, isSafePublicHttpUrl, sanitizePrompt } from "@/lib/security";
 import { fetchWithTimeout } from "@/lib/http";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
 
 export const maxDuration = 180;
 
@@ -134,6 +135,33 @@ function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string 
   const match = dataUrl.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (!match) return null;
   return { mimeType: match[1], data: match[2] };
+}
+
+function normalizeCharacterReferenceInput(input: string, userId: string): string {
+  const trimmed = input.trim();
+  if (/^[a-zA-Z0-9._-]+\.(?:png|jpe?g|webp|gif)$/i.test(trimmed)) {
+    return `images/${userId}/${trimmed}`;
+  }
+  return trimmed;
+}
+
+async function resolveCharacterReferenceUrls(input: unknown, userId: string): Promise<string[]> {
+  const rawRefs = Array.isArray(input)
+    ? input.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0)
+    : [];
+  const resolved: string[] = [];
+  for (const rawRef of rawRefs.slice(0, 24)) {
+    try {
+      const url = await resolveProviderMediaUrl(normalizeCharacterReferenceInput(rawRef, userId), { userId, assetType: "image" });
+      if (isSafePublicHttpUrl(url)) resolved.push(url);
+    } catch (error) {
+      console.warn("[characters/generate] Skipping unresolved reference URL", {
+        reference: rawRef.slice(0, 120),
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return Array.from(new Set(resolved));
 }
 
 async function imageUrlToInlineData(url: string): Promise<{ mimeType: string; data: string }> {
@@ -316,12 +344,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
     if (!character) return NextResponse.json({ error: "Character not found." }, { status: 404 });
 
-    const refs = Array.isArray(character.referenceUrls)
-      ? character.referenceUrls.filter((url: any): url is string => typeof url === "string" && /^https?:\/\//i.test(url))
-      : [];
-    const image = (typeof character.coverUrl === "string" && isSafePublicHttpUrl(character.coverUrl))
-      ? character.coverUrl
-      : refs[0];
+    const refs = await resolveCharacterReferenceUrls(character.referenceUrls, userId);
+    const resolvedCover = typeof character.coverUrl === "string" && character.coverUrl.trim()
+      ? await resolveProviderMediaUrl(normalizeCharacterReferenceInput(character.coverUrl, userId), { userId, assetType: "image" }).catch(() => null)
+      : null;
+    const image = resolvedCover && isSafePublicHttpUrl(resolvedCover) ? resolvedCover : refs[0];
     if (!image) return NextResponse.json({ error: "Character has no usable reference image." }, { status: 400 });
 
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;

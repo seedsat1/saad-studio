@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
+import { parseStorageKey, resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
 
 type CharacterImageInput = {
   dataUrl?: string;
@@ -28,14 +29,58 @@ function parseDataUrl(dataUrl: string): { buffer: Buffer; contentType: string } 
   };
 }
 
+function isSafeStoragePath(path: string): boolean {
+  return Boolean(path) && !path.includes("..") && !/[\\\u0000-\u001f]/.test(path);
+}
+
+function isSafeBareImageFileName(value: string): boolean {
+  return /^[a-zA-Z0-9._-]+\.(?:png|jpe?g|webp|gif)$/i.test(value);
+}
+
+function normalizeCharacterReferenceInput(input: unknown, userId: string): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (isSafeBareImageFileName(trimmed)) return `images/${userId}/${trimmed}`;
+
+  const apiMediaIndex = trimmed.indexOf("/api/media/");
+  const storageCandidate = apiMediaIndex === -1
+    ? trimmed
+    : trimmed.slice(apiMediaIndex + "/api/media/".length);
+  const parsed = parseStorageKey(storageCandidate);
+  if (parsed && isSafeStoragePath(parsed.path)) {
+    return `${parsed.bucket}/${parsed.path}`;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return null;
+}
+
+async function resolveCharacterReferenceForSafety(reference: string, userId: string): Promise<string> {
+  return resolveProviderMediaUrl(reference, { userId, assetType: "image" });
+}
+
+function normalizeStoredCharacterReference(row: any, value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (isSafeBareImageFileName(trimmed) && typeof row.userId === "string" && row.userId) {
+    return `images/${row.userId}/${trimmed}`;
+  }
+  return trimmed;
+}
+
 function normalizeCharacter(row: any) {
-  const refs = Array.isArray(row.referenceUrls) ? row.referenceUrls.filter((v: unknown): v is string => typeof v === "string" && v.length > 0) : [];
+  const refs = Array.isArray(row.referenceUrls)
+    ? row.referenceUrls.map((v: unknown) => normalizeStoredCharacterReference(row, v)).filter((v: string | null): v is string => Boolean(v))
+    : [];
+  const coverUrl = normalizeStoredCharacterReference(row, row.coverUrl);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     referenceUrls: refs,
-    coverUrl: row.coverUrl || refs[0] || null,
+    coverUrl: coverUrl || refs[0] || null,
     provider: row.provider,
     providerCharacterId: row.providerCharacterId,
     status: row.status,
@@ -142,7 +187,7 @@ export async function POST(req: NextRequest) {
     const metadataInput = safeMetadata(body.metadata);
     const images = Array.isArray(body.images) ? (body.images as CharacterImageInput[]).slice(0, 24) : [];
     const directUrls = Array.isArray(body.referenceUrls)
-      ? (body.referenceUrls as unknown[]).filter((v): v is string => typeof v === "string" && /^https?:\/\//i.test(v))
+      ? (body.referenceUrls as unknown[]).map((value) => normalizeCharacterReferenceInput(value, userId)).filter((v): v is string => Boolean(v))
       : [];
 
     if (images.length === 0 && directUrls.length === 0) {
@@ -168,13 +213,14 @@ export async function POST(req: NextRequest) {
 
     const uploadedUrls: string[] = [...directUrls];
     for (const url of directUrls) {
-      await checkStoryboardReferenceImageSafety(url);
+      await checkStoryboardReferenceImageSafety(await resolveCharacterReferenceForSafety(url, userId));
     }
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      if (typeof image?.url === "string" && /^https?:\/\//i.test(image.url)) {
-        await checkStoryboardReferenceImageSafety(image.url);
-        uploadedUrls.push(image.url);
+      const normalizedImageUrl = normalizeCharacterReferenceInput(image?.url, userId);
+      if (normalizedImageUrl) {
+        await checkStoryboardReferenceImageSafety(await resolveCharacterReferenceForSafety(normalizedImageUrl, userId));
+        uploadedUrls.push(normalizedImageUrl);
         continue;
       }
       if (typeof image?.dataUrl !== "string") continue;

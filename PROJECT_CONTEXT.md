@@ -1,4 +1,267 @@
 # Saad Studio — Project Context
+## Latest task: Saad Agent Reasoning Engine Refactor & Controlled Execution Loop (2026-06-27)
+
+- Status:
+  Completed the Reasoning Engine refactor and Phase 9 (Controlled Execution Loop). Added a dedicated Reasoning Engine layer responsible for dynamic model role selection (Coding, Vision, Reviewer, Fast), health checks, prompt formatting, JSON validations/repairs, and fallbacks. Implemented the controlled execution loop allowing approved patch applications, rollback checkpoints, compiling build checks, regression test checks, and JSON history report creation.
+- Affected files:
+  - `saad-agent/src/config.ts`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/platform/services/reasoning-engine.ts`
+  - `saad-agent/src/platform/services/planner.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/src/test-execution-loop.ts`
+- Verification:
+  - Executed automated tests using `node dist/test-execution-loop.js` verifying that the Planner communicates only with the Reasoning Engine, dynamic model roles map correctly, rollback checkpoints are made, patches apply cleanly, and build/test checks halt on failures.
+  - Verified compilation and Vite bundling on both backend and React frontend (0 errors).
+
+
+
+## Latest task: Saad Agent Core Engineering Tools implementation (2026-06-27)
+
+- Status:
+  Completed implementing the Core Engineering Tools (Phase 6). Created the 9 production-grade engineering tools registered to the ToolManager registry, routing code executions through the RuntimeManager, and notifying the EventBus system.
+- Affected files:
+  - `saad-agent/src/platform/tools/fs-tool.ts`
+  - `saad-agent/src/platform/tools/search-tool.ts`
+  - `saad-agent/src/platform/tools/diff-tool.ts`
+  - `saad-agent/src/platform/tools/patch-tool.ts`
+  - `saad-agent/src/platform/tools/command-tool.ts`
+  - `saad-agent/src/platform/tools/git-tool.ts`
+  - `saad-agent/src/platform/tools/build-tool.ts`
+  - `saad-agent/src/platform/tools/test-tool.ts`
+  - `saad-agent/src/platform/tools/package-tool.ts`
+  - `saad-agent/src/platform/tools/index.ts`
+  - `saad-agent/src/test-tools.ts`
+- Verification:
+  - Backend and frontend typechecks passed with 0 errors.
+  - Executed automated tests using `node dist/test-tools.js` verifying correct registry listings, fs safe boundaries, search matches, diff comparing, patch dry-runs, git commands, and sandbox package lists.
+
+## Latest task: Saad Agent Platform Services Layer implementation (2026-06-27)
+
+- Status:
+  Completed implementing the Platform Services Layer (Phase 5). Introduced the EventBus pub/sub messaging hub, ToolManager permission registry, ContextManager assembler, TokenManager estimator, ProviderHealthMonitor checks, WorkflowEngine state structures, ResourceManager monitors, and JobScheduler queues.
+- Affected files:
+  - `saad-agent/src/platform/services/event-bus.ts`
+  - `saad-agent/src/platform/services/tool-manager.ts`
+  - `saad-agent/src/platform/services/context-manager.ts`
+  - `saad-agent/src/platform/services/token-manager.ts`
+  - `saad-agent/src/platform/services/health-monitor.ts`
+  - `saad-agent/src/platform/services/workflow-engine.ts`
+  - `saad-agent/src/platform/services/resource-manager.ts`
+  - `saad-agent/src/platform/services/job-scheduler.ts`
+  - `saad-agent/src/test-services.ts`
+- Verification:
+  - Audited type-safety (0 errors) on both backend and frontend.
+  - Executed automated tests using `node dist/test-services.js` verifying correct EventBus subscriptions, ToolManager execution boundaries, ContextManager hook assemblies, TokenManager budgets, pings, sessions, cpus, and job sorting.
+- Findings:
+  - Standardizing optional parameter checks under `exactOptionalPropertyTypes` requires conditional assignments rather than passing `undefined` keys.
+- Decisions:
+  - Used standard NodeJS `os` tools for resource load metrics and resolved virtual environment pings to standard HTTP requests.
+
+## Latest task: Saad Agent Storage Foundation & Runtime Preparation (2026-06-27)
+
+- Status:
+  Completed implementing the Storage Foundation & Runtime Preparation (Phase 4). Introduced the production-grade 10-folder storage structure, checkAndMigrate legacy backups with history reports, BaseRuntime interfaces, NodeRuntime execution mappers, PythonRuntime virtual environment detection, and RuntimeManager orchestrator wrappers.
+- Affected files:
+  - `saad-agent/src/platform/storage-manager.ts`
+  - `saad-agent/src/platform/workspace-manager.ts`
+  - `saad-agent/src/platform/runtime/runtime-interface.ts`
+  - `saad-agent/src/platform/runtime/node-runtime.ts`
+  - `saad-agent/src/platform/runtime/python-runtime.ts`
+  - `saad-agent/src/platform/runtime/runtime-manager.ts`
+  - `saad-agent/src/test-platform.ts`
+- Verification:
+  - Audited type-safety (0 errors) on both backend and frontend.
+  - Executed automated tests using `node dist/test-platform.js` verifying correct directory setups, legacy migrations backups, Node/Python runtime detections, script executions, and package listings.
+- Findings:
+  - Decoupling all execution processes through a centralized `RuntimeManager` prevents individual tools from running raw subprocess operations, enhancing sandbox containment.
+- Decisions:
+  - Implemented automatic directory-relative lookup of virtual environments (`.venv`, `venv`, `env`) on Windows and Unix script structures.
+
+## Latest task: Saad Agent Workspace System implementation (2026-06-27)
+
+- Status:
+  Completed implementing the Workspace System (Phase 3). Introduced WorkspaceManager core, dynamic PROJECT_ROOT config getters, validation checks for package.json/.git footprints, corrupted metadata JSON recovery boundaries, Electron IPC mappings, and React UI sidebar recent list toggling.
+- Affected files:
+  - `saad-agent/src/config.ts`
+  - `saad-agent/src/platform/workspace-manager.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/src/test-workspace.ts`
+- Verification:
+  - Checked type-safety (0 errors) on both backend and frontend.
+  - Executed automated tests using `node dist/test-workspace.js` covering validation, subdirectory setup, corruption detection, recent workspace lists, and config updates.
+- Findings:
+  - Using a dynamic getter for `CONFIG.PROJECT_ROOT` resolves TypeScript const rules and enables workspace switching without process restarts.
+- Decisions:
+  - Implemented dynamic conditional electron loading inside `workspace-manager.ts` to allow CLI runs to execute without Electron import failures.
+
+## Latest task: Saad Agent process separation and Native IPC execution (2026-06-27)
+
+- Status:
+  Completed implementing the Electron inter-process communication bridge (IPC) for directory pickers and secure command runners, enabling React UI components to run compilation and test runs natively under Electron child processes.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/ui/src/App.tsx`
+- Verification:
+  - Validated type safety and module compatibility (0 compile errors in both backend and frontend).
+- Findings:
+  - Allowing child process executions only for pre-defined commands (allowlist checks) prevents dangerous terminal runs from model loops.
+- Decisions:
+  - Exposed `"run-command"` and `"open-folder"` IPC events globally under `contextIsolation: false` to simplify mock integration.
+
+## Latest task: Saad Agent memory, checkpoints, and electron desktop shell (2026-06-27)
+
+- Status:
+  Completed implementing the taggable long-term Agent Memory, system rollbacks Checkpoints manager, segmented subfolders (.saad-agent/knowledge, .saad-agent/memory, .saad-agent/checkpoints), and the Electron main process entry for standalone desktop packaging.
+- Affected files:
+  - `saad-agent/package.json`
+  - `saad-agent/tsconfig.json`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/memory/agent-memory.ts`
+  - `saad-agent/src/memory/checkpoint.ts`
+  - `saad-agent/src/memory/project-memory.ts`
+  - `saad-agent/src/test-incremental.ts`
+- Verification:
+  - Executed automated tests using `node src/test-incremental.js` verifying that legacy index databases are migrated to the `knowledge/` subfolder and legacy mtimes are upgraded.
+  - Parent backend and frontend projects compile with 0 errors via `npx tsc --noEmit`.
+- Findings:
+  - Segmenting index metadata (`knowledge/`) from human-authored patterns/history (`memory/` & `checkpoints/`) keeps the agent structure clean and allows easy long-term file compression.
+- Decisions:
+  - Configured tsconfig.json to exclude the `ui` subproject during parent Node compilation to resolve static CSS import type constraints.
+- Remaining:
+  - Package the compiled Electron desktop application into a standalone Windows .exe using electron-builder.
+
+## Latest task: Saad Agent chat-first desktop UI mockup (2026-06-27)
+
+- Status:
+  Completed implementing the chat-first desktop user interface in a standalone React application (`saad-agent/ui`). Excluded from the production Next.js app to preserve its standalone local helper nature.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/src/mockData.ts`
+- Verification:
+  - Scaffolding and compilation type-checks with 0 errors via `npx tsc --noEmit`.
+- Findings:
+  - The chat-first structure is highly legible, organizing all engineering updates (diff previews, execution logs, and checkpoint IDs) directly inside conversational messages.
+- Decisions:
+  - Embedded a collapsible right side-panel containing accordion segments for Memory, Knowledge Base, Architecture, Models, and Logs to keep the primary view minimal.
+- Remaining:
+  - Maintain, repair, and extend Saad Studio locally using the modular Saad Agent CLI and UI server.
+
+## Latest task: Saad Agent hash-based change detection with legacy compatibility (2026-06-27)
+
+- Status:
+  Completed implementing hash-based change detection (SHA-256) in Saad Agent, including legacy `fileMtimes` database schema upgrades, `dist` and `build` folder exclusions, and ESM/NodeNext clean compilation.
+- Affected files:
+  - `saad-agent/src/agent.ts`
+  - `saad-agent/src/scanner/project-scanner.ts`
+  - `saad-agent/src/test-incremental.ts`
+  - `saad-agent/src/tools/fs-tools.ts`
+- Verification:
+  - Executed automated tests using `node src/test-incremental.js` verifying that legacy `fileMtimes` databases trigger a one-time full scan and are upgraded to the `fileHashes` schema, deleting the old field.
+  - TypeScript compilation passes with 0 errors.
+- Findings:
+  - Hashing using the Node.js `crypto` module is extremely fast, local-first, and prevents any timestamp issues during git checkouts.
+- Decisions:
+  - Ignored `dist` and `build` directories in `listFiles` to prevent indexing build artifact files.
+- Remaining:
+  - Maintain, repair, and extend Saad Studio locally using the modular Saad Agent CLI.
+
+## Latest task: Saad Agent hash-based change detection (2026-06-27)
+
+- Status:
+  Completed implementing hash-based (SHA-256) change detection in the Saad Agent scanner and memory store. This replaces the previous modification time-based checks, ensuring immune change detection across git checkouts and swaps.
+- Affected files:
+  - `saad-agent/src/agent.ts`
+  - `saad-agent/src/memory/project-memory.ts`
+  - `saad-agent/src/scanner/project-scanner.ts`
+  - `saad-agent/src/test-incremental.ts`
+- Verification:
+  - Run test script `saad-agent/src/test-incremental.ts` verifying that file additions, modifications, and deletions are successfully tracked incrementally using content hashes.
+  - TypeScript compilation inside `saad-agent` passes with 0 errors.
+- Findings:
+  - SHA-256 hashing is fast and completely bypasses modification time reset bugs during file operations or git switches.
+- Decisions:
+  - Adopted Node.js native `crypto.createHash("sha256")` for efficient local hashing.
+- Remaining:
+  - Maintain, repair, and extend Saad Studio locally using the modular Saad Agent CLI.
+
+## Latest task: Saad Agent model provider abstraction layer (2026-06-27)
+
+- Status:
+  Completed implementing the Model Provider Abstraction Layer in Saad Agent. Swapped hardcoded LLM configurations for a modular provider interface (`ModelProvider`), a provider factory, and decoupled configs for local providers (LM Studio and Ollama).
+- Affected files:
+  - `saad-agent/src/config.ts`
+  - `saad-agent/src/llm-client.ts`
+  - `saad-agent/src/providers/factory.ts`
+  - `saad-agent/src/providers/lm-studio.ts`
+  - `saad-agent/src/providers/ollama.ts`
+  - `saad-agent/src/providers/provider-interface.ts`
+- Verification:
+  - Run test script `saad-agent/src/test-providers.ts` verifying that LM Studio and Ollama providers load dynamically and read config correctly.
+  - TypeScript compilation inside `saad-agent` passes with 0 errors.
+- Findings:
+  - Decoupling model provider logic allows easy swapping of reasoning models and local server types entirely via config/environment variables.
+- Decisions:
+  - Adopted OpenAI SDK compatibility for both LM Studio and Ollama to guarantee high performance, structured error-handling, and robust retry capabilities out-of-the-box.
+- Remaining:
+  - Maintain, repair, and extend Saad Studio locally using the modular Saad Agent CLI.
+
+## Latest task: Saad Agent knowledge base refresh and incremental updates (2026-06-27)
+
+- Status:
+  Completed implementing the automatic knowledge base refresh and incremental updates in Saad Agent. The agent now checks for changed, new, or deleted files, updates the database incrementally (updating `architecture.json`, `dependency-graph.json`, and `project-summary.json` respectively), and extracts module imports dynamically only from modified/added files.
+- Affected files:
+  - `saad-agent/src/agent.ts`
+  - `saad-agent/src/config.ts`
+  - `saad-agent/src/index.ts`
+  - `saad-agent/src/llm-client.ts`
+  - `saad-agent/src/memory/project-memory.ts`
+  - `saad-agent/src/scanner/project-scanner.ts`
+  - `saad-agent/src/tools/command-runner.ts`
+  - `saad-agent/src/tools/fs-tools.ts`
+  - `saad-agent/src/tools/patch-tool.ts`
+  - `saad-agent/tsconfig.json`
+- Verification:
+  - Automated test script `saad-agent/src/test-incremental.ts` verified that additions, modifications, and deletions of files are correctly scanned, incrementally updated, and pruned from the knowledge base JSON files.
+  - TypeScript compilation inside `saad-agent` passes with 0 errors.
+- Findings:
+  - Under `verbatimModuleSyntax` and NodeNext module resolution, imports require explicit `.js` extensions which have been added.
+  - Ignored `.saad-agent` from directory listing to avoid scanning internal DB files.
+- Decisions:
+  - Separated the master `memory.json` into four files (`memory.json`, `architecture.json`, `dependency-graph.json`, `project-summary.json`) written to disk in sync during saves.
+  - Utilized file modification times (`mtimeMs`) for fast, local-first change detection.
+  - Pruned empty directories from the architecture tree dynamically during deletion.
+- Remaining:
+  - Continue maintaining, repairing, and extending Saad Studio using Saad Agent locally.
+
+## Latest task: Audio Studio legacy media URL display fix (2026-06-27)
+
+- Status:
+  Fixed `/audio` iframe media playback/display paths that were requesting storage keys as static files, including `/images/user_.../generation-....png` and `/stude/audio/user_.../*.wav`, causing production `404 Not Found`.
+- Affected files:
+  - `public/stude/sound.html`
+  - `app/images/[...path]/route.ts`
+  - `app/stude/audio/[...path]/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - `/audio` renders the static `public/stude/sound.html` app inside an iframe, so the previous React `/edit` media resolver did not affect it.
+  - The attached console log showed the same storage image path being loaded as `/images/...`, plus a legacy audio path under `/stude/audio/...`.
+  - `sound.html` was assigning provider/API output URLs directly to `Audio`, `<img>`, download links, and local saved voice data without normalizing storage keys to the media gateway.
+- Decisions:
+  - Add a small client-side resolver inside `sound.html` that maps same-origin storage keys and legacy `/stude/audio/...` paths to `/api/media/...` before playback, duration probing, downloads, timeline posting, and saved voice previews.
+  - Add defensive redirects from `/images/...` and `/stude/audio/...` to `/api/media/images/...` and `/api/media/audio/...` so old cached links are recovered after deployment.
+  - Do not change audio provider selection, credit logic, prompts, or model mapping.
+- Remaining:
+  - Deploy and retry `https://www.saadstudio.app/audio`. If a media URL still 404s, check whether the corresponding object exists in storage under the normalized key.
+
 ## Latest task: Edit page storage-key media display fix (2026-06-27)
 
 - Status:
@@ -3539,3 +3802,23 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
 
 - **الخطوة المتبقية**:
   - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
+# Character Library storage-key media compatibility fix (2026-06-27)
+
+- Status:
+  Fixed `/character` failing after uploaded reference images returned storage keys instead of absolute HTTPS URLs. `/api/characters` now accepts safe internal media references (`images/...`, `/api/media/images/...`, and legacy bare image filenames scoped to the current user) and resolves them to provider-safe URLs only for safety checks and generation. The character page now resolves stored media keys through `normalizeMediaUrl()` before rendering covers and generated previews.
+- Affected files:
+  - `app/(dash)/(routes)/character/page.tsx`
+  - `app/api/characters/route.ts`
+  - `app/api/characters/[id]/route.ts`
+  - `app/api/characters/[id]/generate/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The production error `POST /api/characters 400` can occur because the API filtered `referenceUrls` to absolute `http(s)` URLs only. After the B2/storage-key migration, multipart uploads may return values like `images/user_x/file.webp`, leaving both `images` and accepted references empty.
+  - A bare filename such as `1779672922833_x43oyn.webp` is not a browser-safe media URL by itself and can produce a 404 if rendered directly.
+- Decisions:
+  - Preserve stored internal media keys in the database and resolve them only at browser/provider boundaries.
+  - Accept bare image filenames only when they match a strict filename pattern and scope them to `images/<currentUserId>/...`; do not accept arbitrary relative paths.
+- Remaining:
+  - Deploy and retry `https://www.saadstudio.app/character` with the same image. If the image still 404s, verify the object exists in storage under the normalized key.

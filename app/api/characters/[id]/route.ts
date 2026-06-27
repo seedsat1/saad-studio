@@ -27,6 +27,20 @@ function isMissingUserCharacterTable(error: unknown): boolean {
   );
 }
 
+function isSafeBareImageFileName(value: string): boolean {
+  return /^[a-zA-Z0-9._-]+\.(?:png|jpe?g|webp|gif)$/i.test(value);
+}
+
+function normalizeStoredCharacterReference(row: any, value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (isSafeBareImageFileName(trimmed) && typeof row.userId === "string" && row.userId) {
+    return `images/${row.userId}/${trimmed}`;
+  }
+  return trimmed;
+}
+
 async function ensureUserCharacterTable(): Promise<boolean> {
   try {
     await prismadb.$executeRawUnsafe(`
@@ -56,13 +70,16 @@ async function ensureUserCharacterTable(): Promise<boolean> {
 }
 
 function normalizeCharacter(row: any) {
-  const refs = Array.isArray(row.referenceUrls) ? row.referenceUrls.filter((v: unknown): v is string => typeof v === "string" && v.length > 0) : [];
+  const refs = Array.isArray(row.referenceUrls)
+    ? row.referenceUrls.map((v: unknown) => normalizeStoredCharacterReference(row, v)).filter((v: string | null): v is string => Boolean(v))
+    : [];
+  const coverUrl = normalizeStoredCharacterReference(row, row.coverUrl);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     referenceUrls: refs,
-    coverUrl: row.coverUrl || refs[0] || null,
+    coverUrl: coverUrl || refs[0] || null,
     provider: row.provider,
     providerCharacterId: row.providerCharacterId,
     status: row.status,
