@@ -73,6 +73,39 @@ function providerFailureMessage(payload: Record<string, unknown> | null, status:
   return String(raw).slice(0, 260);
 }
 
+function isProviderContentRejection(message: string) {
+  return /safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw|prohibited|input image may contain|content risk/i.test(message);
+}
+
+function classifyArkSubmitFailure(rawError: string, providerStatus: number) {
+  const isClientFailure = providerStatus >= 400 && providerStatus < 500;
+  const isContentRejection = isProviderContentRejection(rawError);
+
+  if (isContentRejection) {
+    return {
+      responseStatus: 400,
+      code: "ark_content_rejected",
+      publicError:
+        "The image or prompt was rejected by the video provider's safety policy. Please try a different image or rewrite the prompt.",
+    };
+  }
+
+  if (isClientFailure) {
+    return {
+      responseStatus: 400,
+      code: "ark_invalid_request",
+      publicError:
+        "The video provider rejected this request. Please adjust the prompt, image, duration, or resolution and try again.",
+    };
+  }
+
+  return {
+    responseStatus: 502,
+    code: "ark_submit_failed",
+    publicError: "Generation unavailable. Please retry later.",
+  };
+}
+
 function errorMessage(err: unknown) {
   return err instanceof Error ? err.message : String(err || "");
 }
@@ -1333,11 +1366,12 @@ export async function POST(req: Request) {
             clearMediaUrl: true,
           }).catch(() => {});
         }
+        const failure = classifyArkSubmitFailure(text, createRes.status);
         const responseJson = {
           generationId,
           error: `BytePlus ModelArk returned non-JSON (${createRes.status}): ${text.slice(0, 200)}`,
-          publicError: "Generation unavailable. Please retry later.",
-          code: "ark_submit_failed",
+          publicError: failure.publicError,
+          code: failure.code,
           providerStatus: createRes.status,
           providerModel: arkModel,
           modelRoute,
@@ -1347,10 +1381,10 @@ export async function POST(req: Request) {
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: 502,
+          responseStatus: failure.responseStatus,
           responseJson,
         }).catch(() => {});
-        return NextResponse.json(responseJson, { status: 502 });
+        return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
       const createData = createJson?.data as Record<string, unknown> | undefined;
@@ -1363,11 +1397,14 @@ export async function POST(req: Request) {
             clearMediaUrl: true,
           }).catch(() => {});
         }
+        const rawError = providerFailureMessage(createJson, createRes.status);
+        const failure = classifyArkSubmitFailure(rawError, createRes.status);
+
         const responseJson = {
           generationId,
-          error: providerFailureMessage(createJson, createRes.status),
-          publicError: "Generation unavailable. Please retry later.",
-          code: "ark_submit_failed",
+          error: rawError,
+          publicError: failure.publicError,
+          code: failure.code,
           providerStatus: createRes.status,
           providerModel: arkModel,
           modelRoute,
@@ -1377,10 +1414,10 @@ export async function POST(req: Request) {
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: 502,
+          responseStatus: failure.responseStatus,
           responseJson,
         }).catch(() => {});
-        return NextResponse.json(responseJson, { status: 502 });
+        return NextResponse.json(responseJson, { status: failure.responseStatus });
       }
 
       const taskId = `ark:${String(rawTaskId)}`;
@@ -1532,10 +1569,17 @@ export async function POST(req: Request) {
             clearMediaUrl: true,
           }).catch(() => {});
         }
+        const rawError = err instanceof Error ? err.message : "Google Gemini video generation failed";
+        let publicError = VIDEO_PROVIDER_BUSY_MESSAGE;
+
+        if (/safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw/i.test(rawError)) {
+          publicError = "فشل التوليد لأن الصورة المرفقة أو الوصف ينتهك سياسات الأمان والمحتوى الخاصة بمزود الخدمة.";
+        }
+
         const responseJson = {
           generationId,
-          error: err instanceof Error ? err.message : "Google Gemini video generation failed",
-          publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+          error: rawError,
+          publicError,
           code: "provider_submit_failed",
           providerModel: "veo-3.1-generate-preview",
           modelRoute,
@@ -1834,10 +1878,17 @@ export async function POST(req: Request) {
           clearMediaUrl: true,
         }).catch(() => {});
       }
+      const rawError = providerFailureMessage(createJson, createRes.status);
+      let publicError = VIDEO_PROVIDER_BUSY_MESSAGE;
+
+      if (/safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw/i.test(rawError)) {
+        publicError = "فشل التوليد لأن الصورة المرفقة أو الوصف ينتهك سياسات الأمان والمحتوى الخاصة بمزود الخدمة.";
+      }
+
       const responseJson = {
         generationId,
-        error: providerFailureMessage(createJson, createRes.status),
-        publicError: VIDEO_PROVIDER_BUSY_MESSAGE,
+        error: rawError,
+        publicError,
         code: "provider_submit_failed",
         providerStatus: createRes.status,
         providerModel: kieModel,

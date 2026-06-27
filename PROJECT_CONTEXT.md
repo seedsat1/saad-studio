@@ -1,4 +1,22 @@
 # Saad Studio — Project Context
+## Latest task: Classify BytePlus Ark Seedance submit rejections correctly (2026-06-27)
+
+- Status:
+  Fixed `/api/video` handling for official Seedance 2.0 / BytePlus ModelArk submit failures. Provider-side 4xx rejections, including "input image may contain..." content/safety rejections, now return HTTP 400 with an actionable `publicError` instead of a misleading 502 Bad Gateway.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+  - Initial `npx tsc --noEmit` was blocked by the local PowerShell script execution policy for `npx.ps1`; reran with `npx.cmd`.
+- Discovered errors:
+  - Production console showed `/api/video` returning 502 while the provider response was actually `providerStatus: 400` with an input-image/content rejection. This made a user-correctable request look like server failure.
+- Decisions:
+  - Added a small Ark-specific classifier instead of changing provider payload construction, because the logged provider response indicates a rejected input rather than an unreachable provider or malformed local routing.
+  - Kept true provider/server failures as 502, while Ark 4xx failures now return 400 with `ark_content_rejected` or `ark_invalid_request`.
+- Remaining:
+  - Deploy the updated API to production and retry with a different image/prompt when Ark returns `ark_content_rejected`.
+
 ## آخر مهمة: تحسين أداء تسليم ميديا المتصفح وتعديل مسارات البوابة (2026-06-27)
 
 - **المشكلة**:
@@ -3214,5 +3232,4 @@ pm run build:cep) ونقل المخرجات وجميع الملفات التاب
 
 - **الخطوة المتبقية**:
   - لا توجد خطوات متبقية. المهمة منجزة بالكامل.
-
 
