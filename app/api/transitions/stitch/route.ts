@@ -14,7 +14,7 @@ import {
   spendCredits,
 } from "@/lib/credit-ledger";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
-import { calcTransitionCredits, getPresetById } from "@/lib/transition-presets";
+import { calcTransitionCreditsForModel, getPresetById } from "@/lib/transition-presets";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -174,7 +174,12 @@ export async function POST(req: NextRequest) {
     const preset = getPresetById(presetId);
     if (!preset) return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
 
-    const creditsToCharge = calcTransitionCredits(presetId, transitionSeconds, resolution);
+    const creditsToCharge = await calcTransitionCreditsForModel(
+      presetId,
+      transitionSeconds,
+      resolution,
+      "transition/stitch",
+    );
     const charge = await spendCredits({
       userId,
       credits: creditsToCharge,

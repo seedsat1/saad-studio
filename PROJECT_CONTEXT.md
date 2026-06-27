@@ -1,4 +1,28 @@
 # Saad Studio — Project Context
+## Latest task: Transitions ratio/model selector, video stitch duration, and credit pricing fix (2026-06-27)
+
+- Status:
+  Fixed `/apps/tool/transitions` so aspect ratio is a real dropdown, the generation model is visible/selectable, and Seedance Mini is available alongside Kling 3.0. Video-to-video inputs now stay on the stitch path that preserves the uploaded start/end clips, validates uploaded videos at 5-15 seconds, and exposes only real transition-duration choices (1-3s). AI image/frame generation uses model-specific duration and resolution options.
+- Affected files:
+  - `app/(dash)/(routes)/apps/tool/transitions/page.tsx`
+  - `app/api/transitions/generate/route.ts`
+  - `app/api/transitions/stitch/route.ts`
+  - `lib/transition-presets.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit` passed.
+- Findings:
+  - The old Ratio control was display-only, so user changes were impossible.
+  - `/api/transitions/generate` always submitted `kling-3.0/video`, hiding model choice from the user.
+  - Video-to-video stitch showed 5s in the UI while the server clamped the transition duration to 3s, which also made the credit estimate too high.
+- Decisions:
+  - Keep video-to-video on the existing FFmpeg stitch path to preserve both uploaded clips and connect them with a real xfade transition.
+  - Use visible model selection for AI transition generation, with Seedance Mini mapped to `bytedance/seedance-2-mini`.
+  - Calculate transition credits through the central pricing path per model plus preset multiplier, and charge video stitch as a lower local transition operation.
+- Remaining:
+  - Deploy and test production upload/generate on `https://www.saadstudio.app/apps/tool/transitions` with both image-frame AI and two uploaded 5-15s videos.
+
 ## Latest task: Saad Agent Reasoning Engine Refactor & Controlled Execution Loop (2026-06-27)
 
 - Status:

@@ -4,7 +4,8 @@ import prismadb from "@/lib/prismadb";
 import {
   getPresetById,
   assembleHiddenPrompt,
-  calcTransitionCredits,
+  calcTransitionCreditsForModel,
+  type TransitionModelId,
 } from "@/lib/transition-presets";
 import {
   InsufficientCreditsError,
@@ -17,6 +18,11 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
+const DEFAULT_TRANSITION_MODEL: TransitionModelId = "kling-3.0/video";
+const TRANSITION_MODELS = new Set<TransitionModelId>([
+  "kling-3.0/video",
+  "bytedance/seedance-2-mini",
+]);
 
 function kieHeaders(apiKey: string) {
   return {
@@ -69,6 +75,54 @@ async function validateTransitionInput(raw: string): Promise<void> {
   }
 }
 
+function resolveTransitionModel(value: unknown): TransitionModelId {
+  if (typeof value !== "string") return DEFAULT_TRANSITION_MODEL;
+  if (value === "bytedance/seedance-v2/text-to-video-mini") return "bytedance/seedance-2-mini";
+  return TRANSITION_MODELS.has(value as TransitionModelId)
+    ? (value as TransitionModelId)
+    : DEFAULT_TRANSITION_MODEL;
+}
+
+function clampAiDuration(modelId: TransitionModelId, duration: number): number {
+  if (modelId === "bytedance/seedance-2-mini") {
+    return Math.max(4, Math.min(15, Math.floor(duration)));
+  }
+  return [5, 10].includes(Math.round(duration)) ? Math.round(duration) : 5;
+}
+
+function buildKieTransitionPayload(params: {
+  modelId: TransitionModelId;
+  prompt: string;
+  duration: number;
+  aspectRatio: string;
+  resolution: string;
+  inputA: string;
+  inputB: string;
+}): Record<string, unknown> {
+  if (params.modelId === "bytedance/seedance-2-mini") {
+    return {
+      prompt: params.prompt,
+      duration: clampAiDuration(params.modelId, params.duration),
+      aspect_ratio: params.aspectRatio,
+      resolution: params.resolution === "480p" ? "480p" : "720p",
+      generate_audio: false,
+      first_frame_url: params.inputA,
+      last_frame_url: params.inputB,
+    };
+  }
+
+  return {
+    prompt: params.prompt,
+    duration: String(clampAiDuration(params.modelId, params.duration)),
+    aspect_ratio: params.aspectRatio,
+    mode: params.resolution === "720p" ? "std" : "pro",
+    sound: false,
+    multi_shots: false,
+    multi_prompt: [],
+    image_urls: [params.inputA, params.inputB],
+  };
+}
+
 export async function POST(req: NextRequest) {
   let chargedCredits = 0;
   let chargedUserId: string | null = null;
@@ -85,7 +139,9 @@ export async function POST(req: NextRequest) {
     const presetId = typeof body.presetId === "string" ? body.presetId : "";
     const inputAUrl = typeof body.inputAUrl === "string" ? body.inputAUrl : "";
     const inputBUrl = typeof body.inputBUrl === "string" ? body.inputBUrl : "";
-    const duration = typeof body.duration === "number" ? Math.max(3, Math.min(10, body.duration)) : 5;
+    const selectedModelId = resolveTransitionModel(body.modelId);
+    const requestedDuration = typeof body.duration === "number" ? body.duration : 5;
+    const duration = clampAiDuration(selectedModelId, requestedDuration);
     const aspectRatio = typeof body.aspectRatio === "string" ? body.aspectRatio : "16:9";
 
     const controls = {
@@ -122,7 +178,16 @@ export async function POST(req: NextRequest) {
     const preset = getPresetById(presetId);
     if (!preset) return NextResponse.json({ error: "Invalid preset" }, { status: 400 });
 
-    const creditsToCharge = calcTransitionCredits(presetId, duration, controls.resolution);
+    if (selectedModelId === "bytedance/seedance-2-mini" && !["480p", "720p"].includes(controls.resolution)) {
+      controls.resolution = "720p";
+    }
+
+    const creditsToCharge = await calcTransitionCreditsForModel(
+      presetId,
+      duration,
+      controls.resolution,
+      selectedModelId,
+    );
 
     // Assemble hidden prompt
     const { prompt, negativePrompt } = assembleHiddenPrompt(preset, controls);
@@ -145,7 +210,7 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: `Transition: ${preset.name}`,
       assetType: "TRANSITION",
-      modelUsed: `transition/${presetId}`,
+      modelUsed: `${selectedModelId}/transition/${presetId}`,
       duration: duration,
       resolution: controls.resolution,
     });
@@ -163,17 +228,15 @@ export async function POST(req: NextRequest) {
     ]);
 
     // Build KIE payload — Kling 3.0 with start+end frame (image_urls[0]=start, image_urls[1]=end)
-    const mode = controls.resolution === "720p" ? "std" : "pro";
-    const kiePayload: Record<string, unknown> = {
+    const kiePayload = buildKieTransitionPayload({
+      modelId: selectedModelId,
       prompt,
-      duration: String(duration),
-      aspect_ratio: aspectRatio,
-      mode: mode,
-      sound: false,
-      multi_shots: false,
-      multi_prompt: [],
-      image_urls: [resolvedInputA, resolvedInputB],
-    };
+      duration,
+      aspectRatio,
+      resolution: controls.resolution,
+      inputA: resolvedInputA,
+      inputB: resolvedInputB,
+    });
 
     // Create job record first
     const job = await prismadb.transitionJob.create({
@@ -193,7 +256,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: kieHeaders(apiKey),
       body: JSON.stringify({
-        model: "kling-3.0/video",
+        model: selectedModelId,
         input: kiePayload,
       }),
     });

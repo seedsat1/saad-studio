@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Website Transitions tool behavior (2026-06-27)
+
+- `/apps/tool/transitions` uses a visible model picker for AI transition generation. Supported visible models are Kling 3.0 (`kling-3.0/video`) and Seedance Mini (`bytedance/seedance-2-mini`).
+- Aspect ratio is user-selectable in the UI and is passed to generation/stitch requests.
+- When both start and end inputs are videos, the tool preserves the uploaded clips and connects them with the FFmpeg stitch path instead of replacing them with AI-generated footage. Uploaded videos are validated at 5-15 seconds, and the user-selected transition duration is constrained to 1-3 seconds.
+- Transition credit calculation uses central video pricing per selected AI model plus the preset multiplier. Video stitch uses a lower local transition charge because it is not an external AI video generation.
+
 ## Synchronize media source resolution diagnostics (2026-06-26)
 
 - Timeline snapshot clip media path resolution order is fixed: first `projectItem.getMediaPath()`, then linked timeline items via `clip.getLinkedItems()`/`clip.linkedItems`, then unresolved.

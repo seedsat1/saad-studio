@@ -8,6 +8,10 @@
  */
 
 export type SupportedInputType = "image-image" | "video-video" | "image-video" | "video-image";
+export type TransitionModelId =
+  | "kling-3.0/video"
+  | "bytedance/seedance-2-mini"
+  | "transition/stitch";
 
 export type TransitionCategory =
   | "transformation"
@@ -459,6 +463,35 @@ export function calcTransitionCredits(presetId: string, duration: number, resolu
   const multiplier = preset?.costMultiplier ?? 1.0;
   const baseRate = resolution === "720p" ? 15.0 : BASE_CREDITS_PER_SECOND;
   return Math.ceil(baseRate * duration * multiplier);
+}
+
+export async function calcTransitionCreditsForModel(
+  presetId: string,
+  duration: number,
+  resolution: string | undefined,
+  modelId: TransitionModelId,
+): Promise<number> {
+  const preset = TRANSITION_PRESETS.find((p) => p.id === presetId);
+  const multiplier = preset?.costMultiplier ?? 1.0;
+  const safeDuration = Math.max(1, Number.isFinite(duration) ? duration : 5);
+
+  if (modelId === "transition/stitch") {
+    return Math.max(1, Math.ceil(safeDuration * 2 * multiplier));
+  }
+
+  try {
+    const { getGenerationCost } = await import("@/lib/pricing");
+    const quality =
+      modelId === "kling-3.0/video"
+        ? resolution === "720p"
+          ? "std"
+          : "pro"
+        : String(resolution || "720p").toLowerCase();
+    const base = await getGenerationCost(modelId, safeDuration, 1, quality);
+    if (base > 0) return Math.max(1, Math.ceil(base * multiplier));
+  } catch {}
+
+  return calcTransitionCredits(presetId, safeDuration, resolution);
 }
 
 /** Assembles the final prompt for the backend using user controls (for server use only). */

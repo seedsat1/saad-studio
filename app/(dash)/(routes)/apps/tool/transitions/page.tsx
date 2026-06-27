@@ -41,6 +41,7 @@ import { normalizeMediaUrl } from "@/lib/storage";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type InputType = "image" | "video";
+type TransitionModelId = "kling-3.0/video" | "bytedance/seedance-2-mini";
 
 type ClientSafePreset = {
   id: string;
@@ -124,9 +125,16 @@ const AUTOSAVE_INTERVAL = 4000;
 const POLL_INTERVAL = 3500;
 
 const ASPECT_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
-const DURATIONS = [3, 5];
+const STITCH_TRANSITION_DURATIONS = [1, 2, 3];
+const KLING_DURATIONS = [5, 10];
+const SEEDANCE_DURATIONS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 const RESOLUTIONS = ["720p", "1080p", "1440p", "4K"];
+const SEEDANCE_RESOLUTIONS = ["480p", "720p"];
 const FPS_OPTIONS = [24, 30, 60];
+const TRANSITION_MODELS: Array<{ id: TransitionModelId; label: string }> = [
+  { id: "kling-3.0/video", label: "Kling 3.0" },
+  { id: "bytedance/seedance-2-mini", label: "Seedance Mini" },
+];
 
 const CATEGORY_LABELS: Record<string, string> = {
   transformation: "Transformation",
@@ -260,6 +268,34 @@ function getClosestAspectRatio(width: number, height: number): string {
     }
   }
   return closest.label;
+}
+
+function getTransitionDurationOptions(modelId: TransitionModelId, videoStitchMode: boolean): number[] {
+  if (videoStitchMode) return STITCH_TRANSITION_DURATIONS;
+  if (modelId === "bytedance/seedance-2-mini") return SEEDANCE_DURATIONS;
+  return KLING_DURATIONS;
+}
+
+function getResolutionOptions(modelId: TransitionModelId): string[] {
+  return modelId === "bytedance/seedance-2-mini" ? SEEDANCE_RESOLUTIONS : RESOLUTIONS;
+}
+
+function estimateTransitionCredits(
+  preset: ClientSafePreset | undefined,
+  modelId: TransitionModelId,
+  duration: number,
+  resolution: string,
+  videoStitchMode: boolean,
+): number {
+  if (!preset) return 0;
+  const multiplier = preset.costMultiplier || 1;
+  if (videoStitchMode) return Math.max(1, Math.ceil(duration * 2 * multiplier));
+  if (modelId === "bytedance/seedance-2-mini") {
+    const base = resolution === "480p" ? duration : Math.max(1, (28 / 11) * duration - (2 / 11));
+    return Math.max(1, Math.ceil(base * multiplier));
+  }
+  const modeMultiplier = resolution === "720p" ? 1 : 1.6;
+  return Math.max(1, Math.ceil(3.5 * duration * modeMultiplier * multiplier));
 }
 
 function getMediaDimensions(file: File, type: "image" | "video"): Promise<{ width: number; height: number; duration?: number }> {
@@ -452,12 +488,14 @@ function CompactSelect({
   onChange,
   suffix = "",
   minWidth = 70,
+  getLabel,
 }: {
   value: string;
   options: string[];
   onChange: (v: string) => void;
   suffix?: string;
   minWidth?: number;
+  getLabel?: (v: string) => string;
 }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -481,7 +519,7 @@ function CompactSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        {value}{suffix}
+        {getLabel ? getLabel(value) : value}{suffix}
         <ChevronDown className={cn("h-2.5 w-2.5 transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence>
@@ -510,7 +548,7 @@ function CompactSelect({
                 role="option"
                 aria-selected={opt === value}
               >
-                {opt}{suffix}
+                {getLabel ? getLabel(opt) : opt}{suffix}
               </button>
             ))}
           </motion.div>
@@ -658,6 +696,7 @@ function InputSlot({
             </div>
             <Upload className="h-4 w-4 text-slate-600" />
             <p className="text-[9px] text-slate-600">Drop or click</p>
+            <p className="text-[8px] text-slate-700">Video 5-15s</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -955,6 +994,7 @@ export default function TransitionsStudioPage() {
 
   // Settings
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<TransitionModelId>("kling-3.0/video");
   const [aspectRatio, setAspectRatio] = useState("16:9");
   const [duration, setDuration] = useState(5);
   const [controls, setControls] = useState<Controls>({
@@ -993,6 +1033,12 @@ export default function TransitionsStudioPage() {
   const isDirtyRef = useRef(false);
   const projectIdRef = useRef<string | null>(null);
   projectIdRef.current = projectId;
+  const videoStitchMode = inputAType === "video" && inputBType === "video";
+  const durationOptions = useMemo(
+    () => getTransitionDurationOptions(selectedModelId, videoStitchMode),
+    [selectedModelId, videoStitchMode],
+  );
+  const resolutionOptions = useMemo(() => getResolutionOptions(selectedModelId), [selectedModelId]);
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -1014,7 +1060,10 @@ export default function TransitionsStudioPage() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const { projectId: pid } = JSON.parse(saved) as { projectId?: string };
+        const { projectId: pid, modelId } = JSON.parse(saved) as { projectId?: string; modelId?: string };
+        if (TRANSITION_MODELS.some((m) => m.id === modelId)) {
+          setSelectedModelId(modelId as TransitionModelId);
+        }
         if (pid) {
           setProjectId(pid);
           fetch(`/api/transitions/project/${pid}`)
@@ -1072,14 +1121,27 @@ export default function TransitionsStudioPage() {
     } catch (_) {}
   }, []);
 
+  useEffect(() => {
+    if (!durationOptions.includes(duration)) {
+      setDuration(videoStitchMode ? 3 : durationOptions[0] ?? 5);
+    }
+    if (!resolutionOptions.includes(controls.resolution)) {
+      setControls((c) => ({ ...c, resolution: resolutionOptions[0] ?? "720p" }));
+    }
+    try {
+      if (projectIdRef.current) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ projectId: projectIdRef.current, modelId: selectedModelId }));
+      }
+    } catch {}
+  }, [duration, durationOptions, resolutionOptions, controls.resolution, selectedModelId, videoStitchMode]);
+
   // ── Credit estimate ────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!selectedPresetId || !presets.length) { setCreditEstimate(0); return; }
     const preset = presets.find((p) => p.id === selectedPresetId);
-    const baseRate = controls.resolution === "720p" ? 15.0 : 22.0;
-    if (preset) setCreditEstimate(Math.ceil(baseRate * duration * preset.costMultiplier));
-  }, [selectedPresetId, duration, presets, controls.resolution]);
+    setCreditEstimate(estimateTransitionCredits(preset, selectedModelId, duration, controls.resolution, videoStitchMode));
+  }, [selectedPresetId, selectedModelId, duration, presets, controls.resolution, videoStitchMode]);
 
   // ── Auto-save ──────────────────────────────────────────────────────────────
 
@@ -1110,7 +1172,7 @@ export default function TransitionsStudioPage() {
           const data = await res.json();
           if (data.project?.id) {
             setProjectId(data.project.id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ projectId: data.project.id }));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ projectId: data.project.id, modelId: selectedModelId }));
           }
         }
         setAutoSaveStatus("saved");
@@ -1174,7 +1236,7 @@ export default function TransitionsStudioPage() {
     try {
       const type = detectMediaType(file);
       if (type === "video") {
-        await validateVideoDuration(file, 3, 15);
+        await validateVideoDuration(file, 5, 15);
       }
       const dims = await getMediaDimensions(file, type);
       const closestAr = getClosestAspectRatio(dims.width, dims.height);
@@ -1201,7 +1263,7 @@ export default function TransitionsStudioPage() {
     try {
       const type = detectMediaType(file);
       if (type === "video") {
-        await validateVideoDuration(file, 3, 15);
+        await validateVideoDuration(file, 5, 15);
       }
       const dims = await getMediaDimensions(file, type);
       const closestAr = getClosestAspectRatio(dims.width, dims.height);
@@ -1245,7 +1307,7 @@ export default function TransitionsStudioPage() {
     setStageMode("input");
 
     try {
-      const preserveVideoInputs = inputAType === "video" && inputBType === "video";
+      const preserveVideoInputs = videoStitchMode;
       let activeAFrameUrl = inputAFrameUrl;
       let activeBFrameUrl = inputBFrameUrl;
 
@@ -1281,7 +1343,7 @@ export default function TransitionsStudioPage() {
         pid = pData.project?.id ?? null;
         if (pid) {
           setProjectId(pid);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({ projectId: pid }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ projectId: pid, modelId: selectedModelId }));
         }
       }
       if (!pid) throw new Error("Failed to create project.");
@@ -1311,6 +1373,7 @@ export default function TransitionsStudioPage() {
         body: JSON.stringify({
           projectId: pid,
           presetId: selectedPresetId,
+          modelId: selectedModelId,
           inputAUrl: preserveVideoInputs ? inputAUrl : activeAFrameUrl ?? inputAUrl,
           inputBUrl: preserveVideoInputs ? inputBUrl : activeBFrameUrl ?? inputBUrl,
           inputADuration,
@@ -1472,21 +1535,56 @@ export default function TransitionsStudioPage() {
 
         <StatusBadge status={genStatus} />
 
-        {/* Automatic aspect ratio label */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-semibold text-slate-500 bg-white/[0.02] border border-white/[0.06] select-none">
-          Ratio: <span className="text-violet-400">{aspectRatio}</span>
+        {/* Aspect ratio picker */}
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+          <span className="hidden sm:inline">Ratio:</span>
+          <CompactSelect
+            value={aspectRatio}
+            options={ASPECT_RATIOS}
+            onChange={(ratio) => {
+              setAspectRatio(ratio);
+              markDirty();
+            }}
+            minWidth={72}
+          />
+        </div>
+
+        {/* Model picker */}
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+          <span className="hidden md:inline">Model:</span>
+          <CompactSelect
+            value={selectedModelId}
+            options={TRANSITION_MODELS.map((m) => m.id)}
+            getLabel={(id) => TRANSITION_MODELS.find((m) => m.id === id)?.label ?? id}
+            onChange={(modelId) => {
+              setSelectedModelId(modelId as TransitionModelId);
+              markDirty();
+            }}
+            minWidth={130}
+          />
         </div>
 
         {/* Duration picker */}
         <CompactSelect
           value={String(duration)}
-          options={DURATIONS.map(String)}
+          options={durationOptions.map(String)}
           onChange={(d) => {
             setDuration(Number(d));
             markDirty();
           }}
           suffix="s"
           minWidth={55}
+        />
+
+        {/* Resolution picker */}
+        <CompactSelect
+          value={controls.resolution}
+          options={resolutionOptions}
+          onChange={(resolution) => {
+            setControls((c) => ({ ...c, resolution }));
+            markDirty();
+          }}
+          minWidth={72}
         />
 
         {/* Credits */}
@@ -1850,7 +1948,7 @@ export default function TransitionsStudioPage() {
                       key={preset.id}
                       preset={preset}
                       selected={selectedPresetId === preset.id}
-                      creditEstimate={Math.ceil((controls.resolution === "720p" ? 15.0 : 22.0) * duration * preset.costMultiplier)}
+                      creditEstimate={estimateTransitionCredits(preset, selectedModelId, duration, controls.resolution, videoStitchMode)}
                       onClick={() => { setSelectedPresetId(preset.id); markDirty(); }}
                     />
                   ))}
