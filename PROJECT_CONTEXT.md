@@ -1,4 +1,24 @@
 # Saad Studio — Project Context
+## Latest task: Official Seedance image re-encode experiment (2026-06-27)
+
+- Status:
+  Added an official BytePlus/Ark-only image preprocessing experiment behind `BYTEPLUS_IMAGE_PREPROCESS_MODE=off|reencode` after the same rejected image continued to fail while other Seedance images worked.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+- Behavior:
+  - Default `off` preserves current behavior.
+  - `reencode` fetches the original Seedance image input server-side, strips metadata through Sharp, rotates according to EXIF, converts to sRGB JPEG, limits the longest side to 2048px without enlargement, uploads the cleaned image to storage, then sends that cleaned image URL to Ark through the existing `BYTEPLUS_MEDIA_URL_MODE`.
+  - Browser/media delivery, `modelRoute`, official model IDs, and credit logic remain unchanged.
+- Findings:
+  - If `BYTEPLUS_MEDIA_URL_MODE=proxy` still returns `ark_content_rejected`, the B2-domain hypothesis is weakened.
+  - The next non-KIE, source-only test is whether Ark rejects the original image encoding/metadata but accepts a clean re-encoded provider-facing copy.
+- Decisions:
+  - Keep Seedance on the official BytePlus/Ark provider.
+  - Add the preprocessing as an environment-controlled experiment rather than changing all requests by default.
+- Remaining:
+  - Deploy, set `BYTEPLUS_IMAGE_PREPROCESS_MODE=reencode` in production, keep `BYTEPLUS_MEDIA_URL_MODE=proxy` for the first retry, and test the same image/prompt. If it still fails, treat the remaining cause as Ark policy/schema for that image and inspect the browser-visible `providerAudit`.
+
 ## Latest task: Source-only Seedance decision after Ark image rejection (2026-06-27)
 
 - Status:

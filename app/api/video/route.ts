@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 
 export const maxDuration = 90;
 export const dynamic = "force-dynamic";
@@ -160,6 +161,7 @@ function buildArkFailureAudit(params: {
     providerModel: params.arkModel,
     modelRoute: params.modelRoute,
     bytePlusMediaUrlMode: getBytePlusMediaUrlMode(),
+    bytePlusImagePreprocessMode: getBytePlusImagePreprocessMode(),
     imageReferences: params.imageReferences,
     sanitizedPayload: params.sanitizedPayload,
     rawResponse:
@@ -462,6 +464,7 @@ function getAssetTypeFromKey(key: string): "image" | "video" | "audio" {
 }
 
 type BytePlusMediaUrlMode = "b2" | "proxy" | "cdn" | "passthrough";
+type BytePlusImagePreprocessMode = "off" | "reencode";
 
 function getBytePlusMediaUrlMode(): BytePlusMediaUrlMode {
   const raw = (process.env.BYTEPLUS_MEDIA_URL_MODE || "b2").trim().toLowerCase();
@@ -470,6 +473,13 @@ function getBytePlusMediaUrlMode(): BytePlusMediaUrlMode {
   }
   console.warn(`[BytePlus Media URL] Unknown BYTEPLUS_MEDIA_URL_MODE=${raw}; falling back to b2`);
   return "b2";
+}
+
+function getBytePlusImagePreprocessMode(): BytePlusImagePreprocessMode {
+  const raw = (process.env.BYTEPLUS_IMAGE_PREPROCESS_MODE || "off").trim().toLowerCase();
+  if (raw === "off" || raw === "reencode") return raw;
+  console.warn(`[BytePlus Image Preprocess] Unknown BYTEPLUS_IMAGE_PREPROCESS_MODE=${raw}; falling back to off`);
+  return "off";
 }
 
 function getAppBaseUrl() {
@@ -522,6 +532,13 @@ async function resolveBytePlusStorageKey(value: unknown, userId: string, assetTy
   }
 
   const trimmed = value.trim();
+
+  if (assetType === "image" && getBytePlusImagePreprocessMode() === "reencode") {
+    const normalizedKey = await normalizeBytePlusImageInputToStorageKey(trimmed, userId);
+    if (normalizedKey) return normalizedKey;
+    console.warn("[BytePlus Image Preprocess] Re-encode failed; falling back to original media reference.");
+  }
+
   if (trimmed.startsWith("data:")) {
     const uploaded = await uploadDataUrlToStorage(trimmed, userId, assetType);
     const parsed = parseStorageKey(uploaded);
@@ -530,6 +547,68 @@ async function resolveBytePlusStorageKey(value: unknown, userId: string, assetTy
   }
 
   return parseStorageKey(trimmed) || extractStorageKeyFromUrl(trimmed);
+}
+
+async function readBytePlusImageInputBuffer(value: string, userId: string): Promise<Buffer | null> {
+  const trimmed = value.trim();
+
+  const dataUrlMatch = trimmed.match(/^data:([a-zA-Z0-9/+.-]+);base64,(.+)$/);
+  if (dataUrlMatch) {
+    return Buffer.from(dataUrlMatch[2], "base64");
+  }
+
+  const directKey = parseStorageKey(trimmed) || extractStorageKeyFromUrl(trimmed);
+  let fetchUrl: string | null = null;
+
+  if (directKey) {
+    fetchUrl = defaultProvider.getPublicUrl(directKey.bucket, directKey.path);
+  } else if (/^https?:\/\//i.test(trimmed)) {
+    fetchUrl = await resolveProviderMediaUrl(trimmed, { userId, assetType: "image" });
+  }
+
+  if (!fetchUrl) return null;
+
+  const res = await fetch(fetchUrl, { signal: AbortSignal.timeout(30000) });
+  if (!res.ok) {
+    throw new ValidationError(`Unable to fetch image for BytePlus preprocessing (HTTP ${res.status}).`);
+  }
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function normalizeBytePlusImageInputToStorageKey(value: string, userId: string) {
+  try {
+    const inputBuffer = await readBytePlusImageInputBuffer(value, userId);
+    if (!inputBuffer?.length) return null;
+
+    const normalizedBuffer = await sharp(inputBuffer)
+      .rotate()
+      .resize({ width: 2048, height: 2048, fit: "inside", withoutEnlargement: true })
+      .toColorspace("srgb")
+      .jpeg({ quality: 94, mozjpeg: true })
+      .toBuffer();
+
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const uploaded = await uploadBufferToStorage({
+      buffer: normalizedBuffer,
+      contentType: "image/jpeg",
+      userId,
+      assetType: "image",
+      generationId: `byteplus-normalized-${uniqueId}`,
+      fileName: "input.jpg",
+    });
+
+    if (!uploaded) return null;
+    const parsed = parseStorageKey(uploaded);
+    if (!parsed) {
+      throw new ValidationError(`Failed to parse normalized BytePlus image path: ${uploaded}`);
+    }
+
+    console.log(`[BytePlus Image Preprocess] Re-encoded image for Ark payload: ${parsed.bucket}/${parsed.path}`);
+    return parsed;
+  } catch (err) {
+    console.error("[BytePlus Image Preprocess] failed:", err);
+    return null;
+  }
 }
 
 async function resolveOfficialSeedanceUrl(value: unknown, userId: string, assetType: "image" | "video" | "audio"): Promise<string | null> {
@@ -1527,6 +1606,7 @@ export async function POST(req: Request) {
       console.log(`[Provider Payload Audit] Model: ${arkModel}`);
       console.log(`[Provider Payload Audit] Route: ${modelRoute}`);
       console.log(`[Provider Payload Audit] BYTEPLUS_MEDIA_URL_MODE: ${getBytePlusMediaUrlMode()}`);
+      console.log(`[Provider Payload Audit] BYTEPLUS_IMAGE_PREPROCESS_MODE: ${getBytePlusImagePreprocessMode()}`);
       console.log(`[Provider Payload Audit] Image References:`, JSON.stringify(arkImageAuditDetails, null, 2));
       console.log(`[Provider Payload Audit] Sanitized Payload:`, JSON.stringify(sanitizedArkPayload, null, 2));
       console.log(`[Provider Payload Audit] ---------------------------------------------`);
