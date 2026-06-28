@@ -2,11 +2,12 @@ import { ProjectMemoryStore } from "./memory/project-memory.js";
 import { ProjectScanner } from "./scanner/project-scanner.js";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { CONFIG } from "./config.js";
+import { CONFIG, setProjectRoot } from "./config.js";
 import { existsSync } from "fs";
 
 async function runTest() {
   console.log("=== Saad Agent Incremental Scan Test ===");
+  setProjectRoot(process.cwd());
 
   const memoryStore = new ProjectMemoryStore();
   const scanner = new ProjectScanner();

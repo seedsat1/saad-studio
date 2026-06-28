@@ -5,7 +5,7 @@
     "buildSystem": "TypeScript",
     "language": "TypeScript",
     "nodeVersion": "v24.12.0",
-    "lastScanned": 1782581611296,
+    "lastScanned": 1782612647138,
     "projectName": "legacy-test",
     "version": "1.0.0"
   },
@@ -20,6 +20,11 @@
         "name": "hello.txt"
       },
       {
+        "path": "implementation_plan.md",
+        "type": "file",
+        "name": "implementation_plan.md"
+      },
+      {
         "path": "package-lock.json",
         "type": "file",
         "name": "package-lock.json"
@@ -28,6 +33,411 @@
         "path": "package.json",
         "type": "file",
         "name": "package.json"
+      },
+      {
+        "path": "release\\builder-debug.yml",
+        "type": "file",
+        "name": "release\\builder-debug.yml"
+      },
+      {
+        "path": "release\\Saad Agent Setup 1.0.0.exe",
+        "type": "file",
+        "name": "release\\Saad Agent Setup 1.0.0.exe"
+      },
+      {
+        "path": "release\\Saad Agent Setup 1.0.0.exe.blockmap",
+        "type": "file",
+        "name": "release\\Saad Agent Setup 1.0.0.exe.blockmap"
+      },
+      {
+        "path": "release\\Saad Agent-Portable-1.0.0.exe",
+        "type": "file",
+        "name": "release\\Saad Agent-Portable-1.0.0.exe"
+      },
+      {
+        "path": "release\\win-unpacked\\chrome_100_percent.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\chrome_100_percent.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\chrome_200_percent.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\chrome_200_percent.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\d3dcompiler_47.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\d3dcompiler_47.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\dxcompiler.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\dxcompiler.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\dxil.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\dxil.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\ffmpeg.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\ffmpeg.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\icudtl.dat",
+        "type": "file",
+        "name": "release\\win-unpacked\\icudtl.dat"
+      },
+      {
+        "path": "release\\win-unpacked\\libEGL.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\libEGL.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\libGLESv2.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\libGLESv2.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\LICENSE.electron.txt",
+        "type": "file",
+        "name": "release\\win-unpacked\\LICENSE.electron.txt"
+      },
+      {
+        "path": "release\\win-unpacked\\LICENSES.chromium.html",
+        "type": "file",
+        "name": "release\\win-unpacked\\LICENSES.chromium.html"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\af.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\af.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\am.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\am.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ar.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ar.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\bg.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\bg.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\bn.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\bn.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ca.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ca.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\cs.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\cs.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\da.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\da.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\de.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\de.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\el.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\el.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\en-GB.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\en-GB.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\en-US.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\en-US.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\es-419.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\es-419.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\es.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\es.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\et.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\et.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\fa.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\fa.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\fi.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\fi.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\fil.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\fil.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\fr.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\fr.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\gu.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\gu.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\he.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\he.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\hi.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\hi.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\hr.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\hr.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\hu.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\hu.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\id.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\id.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\it.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\it.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ja.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ja.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\kn.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\kn.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ko.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ko.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\lt.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\lt.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\lv.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\lv.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ml.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ml.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\mr.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\mr.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ms.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ms.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\nb.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\nb.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\nl.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\nl.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\pl.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\pl.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\pt-BR.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\pt-BR.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\pt-PT.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\pt-PT.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ro.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ro.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ru.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ru.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\sk.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\sk.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\sl.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\sl.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\sr.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\sr.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\sv.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\sv.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\sw.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\sw.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ta.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ta.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\te.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\te.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\th.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\th.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\tr.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\tr.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\uk.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\uk.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\ur.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\ur.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\vi.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\vi.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\zh-CN.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\zh-CN.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\locales\\zh-TW.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\locales\\zh-TW.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\resources\\app.asar",
+        "type": "file",
+        "name": "release\\win-unpacked\\resources\\app.asar"
+      },
+      {
+        "path": "release\\win-unpacked\\resources\\elevate.exe",
+        "type": "file",
+        "name": "release\\win-unpacked\\resources\\elevate.exe"
+      },
+      {
+        "path": "release\\win-unpacked\\resources.pak",
+        "type": "file",
+        "name": "release\\win-unpacked\\resources.pak"
+      },
+      {
+        "path": "release\\win-unpacked\\Saad Agent.exe",
+        "type": "file",
+        "name": "release\\win-unpacked\\Saad Agent.exe"
+      },
+      {
+        "path": "release\\win-unpacked\\snapshot_blob.bin",
+        "type": "file",
+        "name": "release\\win-unpacked\\snapshot_blob.bin"
+      },
+      {
+        "path": "release\\win-unpacked\\v8_context_snapshot.bin",
+        "type": "file",
+        "name": "release\\win-unpacked\\v8_context_snapshot.bin"
+      },
+      {
+        "path": "release\\win-unpacked\\vk_swiftshader.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\vk_swiftshader.dll"
+      },
+      {
+        "path": "release\\win-unpacked\\vk_swiftshader_icd.json",
+        "type": "file",
+        "name": "release\\win-unpacked\\vk_swiftshader_icd.json"
+      },
+      {
+        "path": "release\\win-unpacked\\vulkan-1.dll",
+        "type": "file",
+        "name": "release\\win-unpacked\\vulkan-1.dll"
+      },
+      {
+        "path": "resources\\icon.ico",
+        "type": "file",
+        "name": "resources\\icon.ico"
+      },
+      {
+        "path": "resources\\icon.png",
+        "type": "file",
+        "name": "resources\\icon.png"
       },
       {
         "path": "script.js",
@@ -85,9 +495,59 @@
         "name": "src\\config.ts"
       },
       {
+        "path": "src\\context\\context-engine.ts",
+        "type": "module",
+        "name": "src\\context\\context-engine.ts"
+      },
+      {
+        "path": "src\\context\\context-types.ts",
+        "type": "module",
+        "name": "src\\context\\context-types.ts"
+      },
+      {
+        "path": "src\\context\\ranking-engine.ts",
+        "type": "module",
+        "name": "src\\context\\ranking-engine.ts"
+      },
+      {
+        "path": "src\\context\\retrieval-engine.ts",
+        "type": "module",
+        "name": "src\\context\\retrieval-engine.ts"
+      },
+      {
+        "path": "src\\context\\semantic-search.ts",
+        "type": "module",
+        "name": "src\\context\\semantic-search.ts"
+      },
+      {
+        "path": "src\\context\\token-optimizer.ts",
+        "type": "module",
+        "name": "src\\context\\token-optimizer.ts"
+      },
+      {
+        "path": "src\\creative\\creative-engine.ts",
+        "type": "module",
+        "name": "src\\creative\\creative-engine.ts"
+      },
+      {
+        "path": "src\\creative\\creative-providers.ts",
+        "type": "module",
+        "name": "src\\creative\\creative-providers.ts"
+      },
+      {
+        "path": "src\\creative\\creative-types.ts",
+        "type": "module",
+        "name": "src\\creative\\creative-types.ts"
+      },
+      {
         "path": "src\\desktop\\main.ts",
         "type": "module",
         "name": "src\\desktop\\main.ts"
+      },
+      {
+        "path": "src\\desktop\\preload.cjs",
+        "type": "file",
+        "name": "src\\desktop\\preload.cjs"
       },
       {
         "path": "src\\desktop\\preload.ts",
@@ -245,9 +705,34 @@
         "name": "src\\platform\\runtime\\runtime-manager.ts"
       },
       {
+        "path": "src\\platform\\services\\attachments.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\attachments.ts"
+      },
+      {
+        "path": "src\\platform\\services\\connectors.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\connectors.ts"
+      },
+      {
+        "path": "src\\platform\\services\\context-engine.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\context-engine.ts"
+      },
+      {
         "path": "src\\platform\\services\\context-manager.ts",
         "type": "module",
         "name": "src\\platform\\services\\context-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\creative.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\creative.ts"
+      },
+      {
+        "path": "src\\platform\\services\\engineering-memory.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\engineering-memory.ts"
       },
       {
         "path": "src\\platform\\services\\event-bus.ts",
@@ -270,6 +755,16 @@
         "name": "src\\platform\\services\\model-client.ts"
       },
       {
+        "path": "src\\platform\\services\\multi-agent.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\multi-agent.ts"
+      },
+      {
+        "path": "src\\platform\\services\\orchestrator.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\orchestrator.ts"
+      },
+      {
         "path": "src\\platform\\services\\planner.ts",
         "type": "module",
         "name": "src\\platform\\services\\planner.ts"
@@ -278,6 +773,16 @@
         "path": "src\\platform\\services\\planning-workflow.ts",
         "type": "module",
         "name": "src\\platform\\services\\planning-workflow.ts"
+      },
+      {
+        "path": "src\\platform\\services\\production.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\production.ts"
+      },
+      {
+        "path": "src\\platform\\services\\project-intelligence.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\project-intelligence.ts"
       },
       {
         "path": "src\\platform\\services\\reasoning-engine.ts",
@@ -290,6 +795,16 @@
         "name": "src\\platform\\services\\resource-manager.ts"
       },
       {
+        "path": "src\\platform\\services\\sdk.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\sdk.ts"
+      },
+      {
+        "path": "src\\platform\\services\\skills.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\skills.ts"
+      },
+      {
         "path": "src\\platform\\services\\token-manager.ts",
         "type": "module",
         "name": "src\\platform\\services\\token-manager.ts"
@@ -298,6 +813,11 @@
         "path": "src\\platform\\services\\tool-manager.ts",
         "type": "module",
         "name": "src\\platform\\services\\tool-manager.ts"
+      },
+      {
+        "path": "src\\platform\\services\\vision-analyzer.ts",
+        "type": "module",
+        "name": "src\\platform\\services\\vision-analyzer.ts"
       },
       {
         "path": "src\\platform\\services\\workflow-engine.ts",
@@ -363,6 +883,51 @@
         "path": "src\\platform\\workspace-manager.ts",
         "type": "module",
         "name": "src\\platform\\workspace-manager.ts"
+      },
+      {
+        "path": "src\\production\\auto-updater.ts",
+        "type": "module",
+        "name": "src\\production\\auto-updater.ts"
+      },
+      {
+        "path": "src\\production\\backup-manager.ts",
+        "type": "module",
+        "name": "src\\production\\backup-manager.ts"
+      },
+      {
+        "path": "src\\production\\crash-recovery.ts",
+        "type": "module",
+        "name": "src\\production\\crash-recovery.ts"
+      },
+      {
+        "path": "src\\production\\diagnostics-exporter.ts",
+        "type": "module",
+        "name": "src\\production\\diagnostics-exporter.ts"
+      },
+      {
+        "path": "src\\production\\diagnostics.ts",
+        "type": "module",
+        "name": "src\\production\\diagnostics.ts"
+      },
+      {
+        "path": "src\\production\\logger.ts",
+        "type": "module",
+        "name": "src\\production\\logger.ts"
+      },
+      {
+        "path": "src\\production\\performance-monitor.ts",
+        "type": "module",
+        "name": "src\\production\\performance-monitor.ts"
+      },
+      {
+        "path": "src\\production\\settings-manager.ts",
+        "type": "module",
+        "name": "src\\production\\settings-manager.ts"
+      },
+      {
+        "path": "src\\production\\startup-manager.ts",
+        "type": "module",
+        "name": "src\\production\\startup-manager.ts"
       },
       {
         "path": "src\\providers\\factory.d.ts",
@@ -490,6 +1055,71 @@
         "name": "src\\scanner\\project-scanner.ts"
       },
       {
+        "path": "src\\sdk\\agent-sdk.ts",
+        "type": "module",
+        "name": "src\\sdk\\agent-sdk.ts"
+      },
+      {
+        "path": "src\\sdk\\extension-registry.ts",
+        "type": "module",
+        "name": "src\\sdk\\extension-registry.ts"
+      },
+      {
+        "path": "src\\sdk\\mcp-client.ts",
+        "type": "module",
+        "name": "src\\sdk\\mcp-client.ts"
+      },
+      {
+        "path": "src\\sdk\\plugin-sdk.ts",
+        "type": "module",
+        "name": "src\\sdk\\plugin-sdk.ts"
+      },
+      {
+        "path": "src\\skills\\builtin-skills.ts",
+        "type": "module",
+        "name": "src\\skills\\builtin-skills.ts"
+      },
+      {
+        "path": "src\\skills\\skill-registry.ts",
+        "type": "module",
+        "name": "src\\skills\\skill-registry.ts"
+      },
+      {
+        "path": "src\\skills\\skill-types.ts",
+        "type": "module",
+        "name": "src\\skills\\skill-types.ts"
+      },
+      {
+        "path": "src\\standards\\standards-manager.ts",
+        "type": "module",
+        "name": "src\\standards\\standards-manager.ts"
+      },
+      {
+        "path": "src\\standards\\standards-types.ts",
+        "type": "module",
+        "name": "src\\standards\\standards-types.ts"
+      },
+      {
+        "path": "src\\test-connectors.ts",
+        "type": "module",
+        "name": "src\\test-connectors.ts"
+      },
+      {
+        "path": "src\\test-context-engine.ts",
+        "type": "module",
+        "name": "src\\test-context-engine.ts"
+      },
+      {
+        "path": "src\\test-creative.ts",
+        "type": "module",
+        "name": "src\\test-creative.ts"
+      },
+      {
+        "path": "src\\test-engineering-memory.ts",
+        "type": "module",
+        "name": "src\\test-engineering-memory.ts"
+      },
+      {
         "path": "src\\test-execution-loop.ts",
         "type": "module",
         "name": "src\\test-execution-loop.ts"
@@ -525,6 +1155,21 @@
         "name": "src\\test-model-planning.ts"
       },
       {
+        "path": "src\\test-multi-agent.ts",
+        "type": "module",
+        "name": "src\\test-multi-agent.ts"
+      },
+      {
+        "path": "src\\test-orchestrator.ts",
+        "type": "module",
+        "name": "src\\test-orchestrator.ts"
+      },
+      {
+        "path": "src\\test-packaging.ts",
+        "type": "module",
+        "name": "src\\test-packaging.ts"
+      },
+      {
         "path": "src\\test-planning.ts",
         "type": "module",
         "name": "src\\test-planning.ts"
@@ -533,6 +1178,16 @@
         "path": "src\\test-platform.ts",
         "type": "module",
         "name": "src\\test-platform.ts"
+      },
+      {
+        "path": "src\\test-production.ts",
+        "type": "module",
+        "name": "src\\test-production.ts"
+      },
+      {
+        "path": "src\\test-project-intelligence.ts",
+        "type": "module",
+        "name": "src\\test-project-intelligence.ts"
       },
       {
         "path": "src\\test-providers.d.ts",
@@ -560,14 +1215,39 @@
         "name": "src\\test-providers.ts"
       },
       {
+        "path": "src\\test-sdk.ts",
+        "type": "module",
+        "name": "src\\test-sdk.ts"
+      },
+      {
+        "path": "src\\test-self-fixing.ts",
+        "type": "module",
+        "name": "src\\test-self-fixing.ts"
+      },
+      {
         "path": "src\\test-services.ts",
         "type": "module",
         "name": "src\\test-services.ts"
       },
       {
+        "path": "src\\test-settings.ts",
+        "type": "module",
+        "name": "src\\test-settings.ts"
+      },
+      {
+        "path": "src\\test-skills.ts",
+        "type": "module",
+        "name": "src\\test-skills.ts"
+      },
+      {
         "path": "src\\test-tools.ts",
         "type": "module",
         "name": "src\\test-tools.ts"
+      },
+      {
+        "path": "src\\test-vision.ts",
+        "type": "module",
+        "name": "src\\test-vision.ts"
       },
       {
         "path": "src\\test-workspace.ts",
@@ -680,6 +1360,11 @@
         "name": "ui\\package.json"
       },
       {
+        "path": "ui\\public\\favicon.ico",
+        "type": "file",
+        "name": "ui\\public\\favicon.ico"
+      },
+      {
         "path": "ui\\public\\favicon.svg",
         "type": "file",
         "name": "ui\\public\\favicon.svg"
@@ -688,6 +1373,11 @@
         "path": "ui\\public\\icons.svg",
         "type": "file",
         "name": "ui\\public\\icons.svg"
+      },
+      {
+        "path": "ui\\public\\logo.png",
+        "type": "file",
+        "name": "ui\\public\\logo.png"
       },
       {
         "path": "ui\\README.md",
@@ -723,6 +1413,36 @@
         "path": "ui\\src\\attachments.ts",
         "type": "module",
         "name": "ui\\src\\attachments.ts"
+      },
+      {
+        "path": "ui\\src\\components\\ContextCards.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\ContextCards.tsx"
+      },
+      {
+        "path": "ui\\src\\components\\ExtensionsPanel.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\ExtensionsPanel.tsx"
+      },
+      {
+        "path": "ui\\src\\components\\ProductionPanel.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\ProductionPanel.tsx"
+      },
+      {
+        "path": "ui\\src\\components\\SettingsModal.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\SettingsModal.tsx"
+      },
+      {
+        "path": "ui\\src\\components\\SettingsPanel.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\SettingsPanel.tsx"
+      },
+      {
+        "path": "ui\\src\\components\\SkillsPanel.tsx",
+        "type": "module",
+        "name": "ui\\src\\components\\SkillsPanel.tsx"
       },
       {
         "path": "ui\\src\\index.css",
@@ -769,6 +1489,7 @@
       "chalk": "^5.6.2",
       "diff": "^9.0.0",
       "electron": "^42.5.0",
+      "electron-builder": "^26.0.0",
       "inquirer": "^14.0.2",
       "openai": "^6.45.0",
       "ts-node": "^10.9.2",
@@ -777,7 +1498,7 @@
     "modules": {}
   },
   "taskHistory": [],
-  "lastUpdated": 1782581611643,
+  "lastUpdated": 1782612647307,
   "fileMtimes": {
     "some-file.ts": 123456789
   }

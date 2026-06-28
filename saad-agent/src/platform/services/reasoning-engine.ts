@@ -2,6 +2,7 @@ import { ModelClient } from "./model-client.js";
 import { ProviderHealthMonitor } from "./health-monitor.js";
 import { EventBus } from "./event-bus.js";
 import { CONFIG } from "../../config.js";
+import { SettingsManager } from "../../production/settings-manager.js";
 
 export type ModelRole = "Coding" | "Vision" | "Reviewer" | "Fast";
 
@@ -9,6 +10,7 @@ export interface ReasoningRequest {
   role: ModelRole;
   systemPrompt: string;
   userPrompt: string;
+  imageUrl?: string;
 }
 
 export interface ReasoningResponse {
@@ -21,25 +23,53 @@ export interface ReasoningResponse {
 
 export class ReasoningEngine {
   static async requestCompletion(request: ReasoningRequest): Promise<ReasoningResponse> {
-    const modelName = CONFIG.ROLES[request.role];
+    const runtime = await SettingsManager.getModelRuntime(request.role);
+    const modelName = runtime.model.modelName || CONFIG.ROLES[request.role];
     if (!modelName) {
       throw new Error(`Model role "${request.role}" is not configured in CONFIG.ROLES`);
     }
 
     // 1. Provider Health Verification
-    const health = await ProviderHealthMonitor.checkProviderHealth(CONFIG.PROVIDER);
-    if (health.status === "offline") {
-      throw new Error(`Provider "${CONFIG.PROVIDER}" is offline: ${health.details || "Connection failed"}`);
+    const health = await ProviderHealthMonitor.checkProviderHealth(runtime.provider.id);
+    if (health.status === "offline" && runtime.provider.healthStatus === "offline") {
+      throw new Error(`Provider "${runtime.provider.name}" is offline: ${health.details || runtime.provider.lastError || "Connection failed"}`);
     }
 
     // 2. Chat Request
     try {
-      const response = await ModelClient.chatCompletion(
-        request.systemPrompt,
-        request.userPrompt,
-        modelName
-      );
-      return { rawResponse: response };
+      const response = request.imageUrl
+        ? await ModelClient.chatCompletionMultimodal(
+            request.systemPrompt,
+            request.userPrompt,
+            modelName,
+            request.imageUrl,
+            runtime
+          )
+        : await ModelClient.chatCompletion(
+            request.systemPrompt,
+            request.userPrompt,
+            modelName,
+            runtime
+          );
+
+      let parsedJson: any = undefined;
+      let isValidJson = false;
+      let isRepaired = false;
+      try {
+        parsedJson = JSON.parse(response);
+        isValidJson = true;
+      } catch {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            parsedJson = JSON.parse(jsonMatch[0]);
+            isValidJson = true;
+            isRepaired = true;
+          } catch {}
+        }
+      }
+
+      return { rawResponse: response, parsedJson, isValidJson, isRepaired };
     } catch (err: any) {
       throw new Error(`Reasoning request failed: ${err.message}`);
     }
@@ -50,7 +80,9 @@ export class ReasoningEngine {
     systemPrompt: string,
     userPrompt: string
   ): Promise<ReasoningResponse> {
-    EventBus.publish("ModelPlanningStarted", { sessionId, provider: CONFIG.PROVIDER });
+    const settings = await SettingsManager.getSettings();
+    const codingProvider = settings.providers.find(p => p.id === settings.models.Coding.providerId);
+    EventBus.publish("ModelPlanningStarted", { sessionId, provider: codingProvider?.id || CONFIG.PROVIDER });
 
     let response: ReasoningResponse;
     try {

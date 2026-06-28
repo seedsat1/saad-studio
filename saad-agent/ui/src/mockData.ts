@@ -19,7 +19,10 @@ export interface Message {
     | "checkpoint"
     | "memory-updated"
     | "vision-analysis"
-    | "plan-approval";
+    | "plan-approval"
+    | "engineering-memory"
+    | "creative-plan"
+    | "generated-asset";
   cardData?: any;
 }
 

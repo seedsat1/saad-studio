@@ -147,12 +147,30 @@ export class ProjectMemoryStore {
     const depPath = path.join(knowledgeDir, "dependency-graph.json");
     const sumPath = path.join(knowledgeDir, "project-summary.json");
 
-    await Promise.all([
-      fs.writeFile(memoryPath, JSON.stringify(this.memory, null, 2), "utf8"),
-      fs.writeFile(archPath, JSON.stringify(this.memory.architecture, null, 2), "utf8"),
-      fs.writeFile(depPath, JSON.stringify(this.memory.dependencies, null, 2), "utf8"),
-      fs.writeFile(sumPath, JSON.stringify(this.memory.summary, null, 2), "utf8"),
-    ]);
+    await this.writeJsonFile(memoryPath, this.memory);
+    await this.writeJsonFile(archPath, this.memory.architecture);
+    await this.writeJsonFile(depPath, this.memory.dependencies);
+    await this.writeJsonFile(sumPath, this.memory.summary);
+  }
+
+  private async writeJsonFile(filePath: string, data: unknown): Promise<void> {
+    const tempPath = `${filePath}.${process.pid}.tmp`;
+    const content = JSON.stringify(data, null, 2);
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await fs.writeFile(tempPath, content, "utf8");
+        await fs.rename(tempPath, filePath);
+        return;
+      } catch (err) {
+        lastError = err;
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Failed to write project memory file");
   }
 
   get(): ProjectMemory {

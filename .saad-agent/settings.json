@@ -1,0 +1,230 @@
+{
+  "version": 2,
+  "general": {
+    "theme": "dark_glass",
+    "startup": "last_workspace",
+    "language": "ar"
+  },
+  "workspace": {
+    "restoreLastWorkspace": true,
+    "ignoredFolders": [
+      "node_modules",
+      ".git",
+      "dist",
+      "release"
+    ],
+    "indexingMode": "balanced"
+  },
+  "providers": [
+    {
+      "id": "lm-studio",
+      "name": "LM Studio",
+      "type": "local",
+      "endpointUrl": "http://localhost:1234/v1",
+      "enabled": true,
+      "isDefault": true,
+      "priority": 1,
+      "fallbackProvider": "ollama",
+      "healthStatus": "online",
+      "latencyMs": 4,
+      "lastTestedAt": "2026-06-28T16:49:58.175Z",
+      "lastSuccessfulConnectionAt": "2026-06-28T16:49:58.175Z",
+      "lastModelDiscoveryAt": "2026-06-28T16:49:58.175Z",
+      "discoveredModels": [
+        {
+          "id": "qwen2.5-vl-32b-instruct",
+          "name": "qwen2.5-vl-32b-instruct",
+          "contextWindow": 32768,
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "qwen/qwen3-coder-30b",
+          "name": "qwen/qwen3-coder-30b",
+          "contextWindow": 32768,
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "qwen2.5-coder-32b-instruct",
+          "name": "qwen2.5-coder-32b-instruct",
+          "contextWindow": 32768,
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "name": "openai/gpt-oss-20b",
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "text-embedding-nomic-embed-text-v1.5",
+          "name": "text-embedding-nomic-embed-text-v1.5",
+          "ownedBy": "organization_owner"
+        }
+      ],
+      "modelCount": 5
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "type": "local",
+      "endpointUrl": "http://localhost:11434/v1",
+      "enabled": true,
+      "isDefault": false,
+      "priority": 2,
+      "fallbackProvider": "lm-studio",
+      "healthStatus": "unknown"
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "type": "cloud",
+      "endpointUrl": "https://api.openai.com/v1",
+      "enabled": false,
+      "isDefault": false,
+      "priority": 3,
+      "fallbackProvider": "openrouter",
+      "healthStatus": "unknown"
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "type": "cloud",
+      "endpointUrl": "https://api.anthropic.com/v1",
+      "enabled": false,
+      "isDefault": false,
+      "priority": 4,
+      "fallbackProvider": "openrouter",
+      "healthStatus": "unknown"
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "type": "cloud",
+      "endpointUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "enabled": false,
+      "isDefault": false,
+      "priority": 5,
+      "fallbackProvider": "openrouter",
+      "healthStatus": "unknown"
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "type": "cloud",
+      "endpointUrl": "https://openrouter.ai/api/v1",
+      "enabled": false,
+      "isDefault": false,
+      "priority": 6,
+      "fallbackProvider": "lm-studio",
+      "healthStatus": "unknown"
+    },
+    {
+      "id": "saad-studio",
+      "name": "Saad Studio",
+      "type": "first_party",
+      "endpointUrl": "https://www.saadstudio.app/api/agent/v1",
+      "organization": "Saad Studio",
+      "enabled": false,
+      "isDefault": false,
+      "priority": 7,
+      "fallbackProvider": "lm-studio",
+      "healthStatus": "unknown"
+    }
+  ],
+  "models": {
+    "Coding": {
+      "role": "Coding",
+      "providerId": "lm-studio",
+      "modelName": "qwen/qwen3-coder-30b",
+      "temperature": 0.1,
+      "maxTokens": 8192,
+      "detectedContextWindow": 32768,
+      "streaming": true,
+      "timeoutMs": 120000,
+      "retryCount": 2
+    },
+    "Vision": {
+      "role": "Vision",
+      "providerId": "lm-studio",
+      "modelName": "qwen2.5-vl-32b-instruct",
+      "temperature": 0.1,
+      "maxTokens": 4096,
+      "detectedContextWindow": 32768,
+      "streaming": false,
+      "timeoutMs": 120000,
+      "retryCount": 1
+    },
+    "Reviewer": {
+      "role": "Reviewer",
+      "providerId": "ollama",
+      "modelName": "deepseek-coder-33b",
+      "temperature": 0.1,
+      "maxTokens": 8192,
+      "detectedContextWindow": 32768,
+      "streaming": true,
+      "timeoutMs": 90000,
+      "retryCount": 2
+    },
+    "Fast": {
+      "role": "Fast",
+      "providerId": "ollama",
+      "modelName": "gpt-oss-20b",
+      "temperature": 0.2,
+      "maxTokens": 4096,
+      "detectedContextWindow": 8192,
+      "streaming": true,
+      "timeoutMs": 45000,
+      "retryCount": 1
+    }
+  },
+  "skills": {
+    "disabledSkillIds": [],
+    "customSkills": []
+  },
+  "connectors": {},
+  "mcp": {
+    "enabled": true,
+    "allowedServers": []
+  },
+  "creative": {
+    "enabled": true,
+    "requireApproval": true,
+    "outputFolder": ".saad-agent/attachments/generated"
+  },
+  "vision": {
+    "enabled": true,
+    "providerRole": "Vision"
+  },
+  "knowledge": {
+    "memoryEnabled": true,
+    "architectureIndexEnabled": true,
+    "attachmentMetadataEnabled": true
+  },
+  "execution": {
+    "autoCheckpoints": true,
+    "approvalRequired": true,
+    "selfFixRetries": 2
+  },
+  "security": {
+    "redactDiagnostics": true,
+    "blockSensitiveFiles": true,
+    "developerMode": false
+  },
+  "backups": {
+    "autoBackupOnUpgrade": true,
+    "retentionCount": 10
+  },
+  "diagnostics": {
+    "logLevel": "info",
+    "exportRedactedOnly": true
+  },
+  "advanced": {
+    "developerMode": false,
+    "experimentalMcp": false
+  },
+  "theme": "dark_glass",
+  "defaultProvider": "lm-studio",
+  "defaultModel": "qwen/qwen3-coder-30b",
+  "autoCheckpoints": true,
+  "logLevel": "info",
+  "autoBackupOnUpgrade": true
+}

@@ -6,6 +6,7 @@
     "chalk": "^5.6.2",
     "diff": "^9.0.0",
     "electron": "^42.5.0",
+    "electron-builder": "^26.0.0",
     "inquirer": "^14.0.2",
     "openai": "^6.45.0",
     "ts-node": "^10.9.2",

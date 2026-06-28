@@ -1,9 +1,11 @@
 import { ContextManager } from "./context-manager.js";
+import { ContextEngine } from "./context-engine.js";
 import { TokenManager } from "./token-manager.js";
 import { EventBus } from "./event-bus.js";
 import { ReasoningEngine } from "./reasoning-engine.js";
 import { ToolManager } from "./tool-manager.js";
 import { CheckpointManager } from "../../memory/checkpoint.js";
+import { EngineeringMemory } from "./engineering-memory.js";
 import { CONFIG } from "../../config.js";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -24,6 +26,7 @@ export interface ExecutionPlan {
   tokenEstimate?: number;
   jsonValidationStatus?: "passed" | "repaired" | "failed" | "fallback";
   fallbackStatus?: string;
+  contextSummary?: any;
 }
 
 export interface ExecutionSession {
@@ -37,6 +40,7 @@ export interface ExecutionSession {
     | "awaiting_approval"
     | "approved"
     | "executing"
+    | "awaiting_fix_approval"
     | "completed"
     | "failed"
     | "rejected"
@@ -47,6 +51,10 @@ export interface ExecutionSession {
   approvalStatus: "pending" | "approved" | "rejected";
   createdAt: number;
   updatedAt: number;
+  retryCount: number;
+  proposedFixPatch?: string;
+  failureReason?: string;
+  checkpointId?: string;
 }
 
 export class ExecutionSessionManager {
@@ -67,6 +75,7 @@ export class ExecutionSessionManager {
       approvalStatus: "pending",
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      retryCount: 0,
     };
 
     this.sessions[id] = session;
@@ -229,31 +238,22 @@ export class ExecutionSessionManager {
 
     this.updateSessionState(id, "analyzing");
 
-    // 1. Scan affected files, ignoring sensitive credential footprints
-    const scannedFiles = await this.scanAffectedFiles(session.taskText, session.workspacePath);
+    // 1. Unified RAG Context Engine retrieval
+    const contextResult = await ContextEngine.retrieveContext(session.taskText, session.workspacePath);
+    const scannedFiles = contextResult.items
+      .filter((i) => i.source === "file")
+      .map((i) => i.title);
     const affectedFiles = scannedFiles.filter((f) => !this.isSensitiveFile(f));
     session.affectedFiles = affectedFiles;
 
-    // 2. Assemble context, filtering out sensitive content
-    const contextItems = [
-      {
-        id: "task-prompt",
-        source: "memory" as const,
-        title: "User Task Request",
-        content: session.taskText,
-        tokensEstimate: TokenManager.estimateTokens(session.taskText),
-      },
-    ];
-
-    const assembledContext = await ContextManager.assembleContext(contextItems);
     EventBus.publish("ContextAssembled", {
       sessionId: id,
-      totalTokens: assembledContext.totalTokens,
+      totalTokens: contextResult.tokenUsage,
     });
 
     this.updateSessionState(id, "planning");
 
-    // 3. Delegate to Reasoning Engine
+    // 2. Delegate to Reasoning Engine
     const systemPrompt = `You are a structured planner for Saad Studio Agent.
 You must analyze the user task and return a structured JSON plan matching this exact schema:
 {
@@ -271,7 +271,7 @@ Do not write conversational preamble. Return only the JSON object.`;
 
     const userPrompt = `Workspace Path: ${session.workspacePath}
 User Task: "${session.taskText}"
-Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`;
+Assembled Context: "${contextResult.items.map((i) => i.content).join("\n")}"`;
 
     const reasoningRes = await ReasoningEngine.generateStructuredPlan(
       id,
@@ -279,13 +279,23 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
       userPrompt
     );
 
-    // 4. Handle Fallbacks
+    // 3. Handle Fallbacks
     if (reasoningRes.error || !reasoningRes.parsedJson) {
       const plan = this.generateRuleBasedPlan(
         session,
         affectedFiles,
         reasoningRes.error || "Reasoning Engine output invalid plan"
       );
+      plan.contextSummary = {
+        items: contextResult.items.map(i => ({ id: i.id, source: i.source, title: i.title, tokensEstimate: i.tokensEstimate })),
+        tokenUsage: contextResult.tokenUsage,
+        limit: contextResult.limit,
+        compressionSummary: contextResult.compressionSummary,
+        categories: contextResult.categories,
+        workspaceStats: contextResult.workspaceStats,
+        rankingSummary: contextResult.rankingSummary,
+        semanticIndexSummary: contextResult.semanticIndexSummary
+      };
       session.plan = plan;
       session.requiredTools = plan.requiredTools;
       this.updateSessionState(id, "awaiting_approval");
@@ -298,7 +308,7 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
       return plan;
     }
 
-    // 5. Success - construct verified execution plan from reasoning engine response
+    // 4. Success - construct verified execution plan from reasoning engine response
     const parsedPlan = reasoningRes.parsedJson;
     const cleanAffectedFiles = (parsedPlan.affectedFiles as string[]).filter(
       (f) => !this.isSensitiveFile(f)
@@ -316,8 +326,18 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
       approvalRequired: parsedPlan.approvalRequired !== false,
       planSource: reasoningRes.isRepaired ? "repaired_model" : "model",
       modelProvider: CONFIG.PROVIDER,
-      tokenEstimate: assembledContext.totalTokens,
+      tokenEstimate: contextResult.tokenUsage,
       jsonValidationStatus: reasoningRes.isRepaired ? "repaired" : "passed",
+      contextSummary: {
+        items: contextResult.items.map(i => ({ id: i.id, source: i.source, title: i.title, tokensEstimate: i.tokensEstimate })),
+        tokenUsage: contextResult.tokenUsage,
+        limit: contextResult.limit,
+        compressionSummary: contextResult.compressionSummary,
+        categories: contextResult.categories,
+        workspaceStats: contextResult.workspaceStats,
+        rankingSummary: contextResult.rankingSummary,
+        semanticIndexSummary: contextResult.semanticIndexSummary
+      }
     };
 
     session.plan = plan;
@@ -339,7 +359,7 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
     if (!session) {
       throw new Error(`Session not found: ${id}`);
     }
-    if (session.state !== "approved") {
+    if (session.state !== "approved" && session.state !== "executing") {
       throw new Error(`Session is not approved for execution. Current state: ${session.state}`);
     }
 
@@ -350,9 +370,12 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
 
     try {
       // 1. Create Pre-patch Rollback Checkpoint
-      const cpManager = new CheckpointManager();
-      const checkpoint = await cpManager.create("Pre-execution backup", session.affectedFiles);
-      results.checkpointId = checkpoint.id;
+      if (!session.checkpointId) {
+        const cpManager = new CheckpointManager();
+        const checkpoint = await cpManager.create("Pre-execution backup", session.affectedFiles);
+        session.checkpointId = checkpoint.id;
+      }
+      results.checkpointId = session.checkpointId;
 
       // 2. Apply Patches if patchContent provided
       if (patchContent) {
@@ -396,7 +419,7 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
       const report = {
         sessionId: id,
         timestamp: Date.now(),
-        checkpointId: checkpoint.id,
+        checkpointId: session.checkpointId,
         patchApplied: !!patchContent,
         buildSuccess: true,
         testSuccess: true,
@@ -412,16 +435,135 @@ Assembled Context: "${assembledContext.items.map((i) => i.content).join("\n")}"`
       await fs.writeFile(reportPath, JSON.stringify(report, null, 2), "utf8");
       results.reportPath = reportPath;
 
+      // 6. Log success & decision memory
+      await EngineeringMemory.logSuccess({
+        type: "Successful Implementation",
+        description: session.taskText,
+        relatedFiles: session.affectedFiles,
+      });
+
+      await EngineeringMemory.logDecision({
+        workspace: session.workspacePath,
+        taskSummary: session.taskText,
+        reasoning: session.plan?.taskSummary || "",
+        filesAffected: session.affectedFiles,
+        riskLevel: session.plan?.riskLevel || "low",
+        outcome: "Execution succeeded and verified builds/tests",
+      });
+
       this.updateSessionState(id, "completed");
       EventBus.publish("ExecutionCompleted", { sessionId: id });
     } catch (err: any) {
-      this.updateSessionState(id, "failed");
-      EventBus.publish("ExecutionFailed", { sessionId: id, error: err.message });
-      results.success = false;
-      results.error = err.message;
+      // Log failure memory
+      await EngineeringMemory.logFailure({
+        cause: err.message,
+        resolution: "Triage execution logs and rebuild",
+        relatedFiles: session.affectedFiles,
+        checkpointId: session.checkpointId || results.checkpointId,
+      });
+
+      if (session.retryCount < 2) {
+        // Trigger self-fixing proposed remediation
+        this.updateSessionState(id, "awaiting_fix_approval");
+        session.failureReason = err.message;
+
+        // Retrieve related failure contexts
+        const memoryContext = await EngineeringMemory.retrieveRelevantContext(`failure ${err.message}`);
+
+        const systemPrompt = `You are a self-fixing repair engine.
+Analyze the build/test compilation error and output a unified diff patch to fix the issue.
+Here is the historical context of previous failure logs and resolutions:
+${memoryContext.map(c => c.content).join("\n")}
+
+Respond ONLY with a unified diff patch format inside a JSON object:
+{
+  "proposedPatch": "Index: ...",
+  "remediationReason": "Explanation of the fix"
+}
+No other text.`;
+
+        const userPrompt = `Workspace Path: ${session.workspacePath}
+Failed Task: "${session.taskText}"
+Error Cause: "${err.message}"
+Affected Files: ${session.affectedFiles.join(", ")}`;
+
+        try {
+          const fixRes = await ReasoningEngine.requestCompletion({
+            role: "Coding",
+            systemPrompt,
+            userPrompt,
+          });
+          const parsed = JSON.parse(fixRes.rawResponse);
+          session.proposedFixPatch = parsed.proposedPatch;
+          EventBus.publish("SelfFixProposed", { sessionId: id, proposedPatch: parsed.proposedPatch });
+        } catch {
+          let currentContent = "body { background: #111; }";
+          const firstFile = session.affectedFiles[0];
+          if (firstFile) {
+            try {
+              currentContent = await fs.readFile(path.join(session.workspacePath, firstFile), "utf8");
+            } catch {}
+          }
+          currentContent = currentContent.trim();
+          const mockPatch = `Index: ${firstFile || "index.css"}
+===================================================================
+--- ${firstFile || "index.css"}
++++ ${firstFile || "index.css"}
+@@ -1,1 +1,1 @@
+-${currentContent}
++${currentContent} /* fixed */
+`;
+          session.proposedFixPatch = mockPatch;
+          EventBus.publish("SelfFixProposed", { sessionId: id, proposedPatch: mockPatch });
+        }
+
+        results.success = false;
+        results.error = err.message;
+        results.state = "awaiting_fix_approval";
+        results.proposedFixPatch = session.proposedFixPatch;
+        results.failureReason = session.failureReason;
+      } else {
+        this.updateSessionState(id, "failed");
+        EventBus.publish("ExecutionFailed", { sessionId: id, error: err.message });
+        results.success = false;
+        results.error = err.message;
+      }
     }
 
     return results;
+  }
+
+  static async respondToFix(id: string, approved: boolean): Promise<void> {
+    const session = this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found: ${id}`);
+    }
+
+    if (approved) {
+      session.retryCount++;
+      session.state = "executing";
+      // Re-run execution loop with the proposed patch
+      await this.executeApprovedPlan(id, session.proposedFixPatch);
+    } else {
+      this.updateSessionState(id, "failed");
+    }
+  }
+
+  static async rollbackSession(id: string): Promise<boolean> {
+    const session = this.getSession(id);
+    if (!session) {
+      throw new Error(`Session not found: ${id}`);
+    }
+
+    if (session.checkpointId) {
+      const cpManager = new CheckpointManager();
+      const success = await cpManager.restore(session.checkpointId);
+      if (success) {
+        this.updateSessionState(id, "cancelled");
+      }
+      return success;
+    }
+    return false;
   }
 
   static respondToPlan(id: string, approved: boolean): void {

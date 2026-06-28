@@ -1,29 +1,110 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
-  MOCK_PROVIDERS,
-  MOCK_CONNECTORS,
-  MOCK_ARCHITECTURE,
-  MOCK_DEPENDENCY_GRAPH,
-  MOCK_CHECKPOINTS,
-  MOCK_LOGS,
-  MOCK_CONVERSATIONS,
   MOCK_MESSAGES,
-  MOCK_MODEL_ROLES,
 } from "./mockData.js";
 import type { Message } from "./mockData.js";
 import type { Attachment } from "./attachments.js";
+import { ContextCards } from "./components/ContextCards.js";
+import { SettingsModal } from "./components/SettingsModal.js";
+type SettingsTab = "general" | "workspace" | "models" | "providers" | "agents" | "skills" | "tools" | "connectors" | "mcp" | "creative" | "vision" | "knowledge" | "execution" | "security" | "backups" | "diagnostics" | "advanced";
+type RuntimeModelRole = {
+  role: string;
+  providerName: string;
+  modelName: string;
+  healthStatus?: string;
+};
+
+const quickActions = [
+  "Generate Code",
+  "Explain Code",
+  "Refactor",
+  "Fix Errors",
+  "Review",
+  "Generate Tests",
+  "Analyze Image",
+  "Generate Image",
+  "Generate Video",
+  "Search Workspace",
+  "Search Memory",
+  "Search Knowledge Base",
+];
+
+const runtimeAgents = ["Coding", "Reviewer", "Vision", "Fast"];
+const runtimeSkills = ["Auto", "React", "TypeScript", "Next.js", "Electron", "Python", "FFmpeg"];
 
 export default function App() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [conversations] = useState(MOCK_CONVERSATIONS);
-  const [activeConv, setActiveConv] = useState("conv-1");
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [settingsModalTab, setSettingsModalTab] = useState<SettingsTab>("general");
+  const [messages, setMessages] = useState<Message[]>(() => ((window as any).electronAPI ? [] : MOCK_MESSAGES));
   const [inputValue, setInputValue] = useState("");
+  const [composerAction, setComposerAction] = useState("Generate Code");
+  const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
+  const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
+  const [activeMcpTool, setActiveMcpTool] = useState("None");
   const [workspacePath, setWorkspacePath] = useState("e:/موقع ثاني/next14 ai saas");
   const [projectName, setProjectName] = useState("next14-ai-saas");
   const [recentWorkspaces, setRecentWorkspaces] = useState<any[]>([]);
+  const [runtimeModels, setRuntimeModels] = useState<RuntimeModelRole[]>([]);
   const [planApprovalStates, setPlanApprovalStates] = useState<Record<string, string>>({});
-  const [planExecutionStates, setPlanExecutionStates] = useState<Record<string, { state: string; checkpointId?: string; error?: string }>>({});
+  const [planExecutionStates, setPlanExecutionStates] = useState<
+    Record<
+      string,
+      {
+        state: string;
+        checkpointId?: string;
+        error?: string;
+        proposedFixPatch?: string;
+        failureReason?: string;
+      }
+    >
+  >({});
+
+  useEffect(() => {
+    if ((window as any).electronAPI && (window as any).electronAPI.onMenuNavigate) {
+      (window as any).electronAPI.onMenuNavigate((dest: string) => {
+        if (dest === "settings") {
+          setSettingsModalTab("general");
+          setIsSettingsModalOpen(true);
+        }
+      });
+    }
+  }, []);
+
+  const loadRuntimeModels = async () => {
+    const api = (window as any).electronAPI;
+    if (!api?.loadSettings) {
+      setRuntimeModels([]);
+      return;
+    }
+
+    const result = await api.loadSettings();
+    if (!result?.success || !result.settings?.models || !Array.isArray(result.settings.providers)) {
+      setRuntimeModels([]);
+      return;
+    }
+
+    const providers = result.settings.providers;
+    const modelEntries = Object.entries(result.settings.models)
+      .map(([role, model]: [string, any]) => {
+        if (!model?.modelName) return null;
+        const provider = providers.find((item: any) => item.id === model.providerId);
+        if (!provider) return null;
+        return {
+          role,
+          providerName: provider.name,
+          modelName: model.modelName,
+          healthStatus: provider.healthStatus,
+        };
+      })
+      .filter(Boolean) as RuntimeModelRole[];
+
+    setRuntimeModels(modelEntries);
+  };
+
+  useEffect(() => {
+    void loadRuntimeModels();
+  }, []);
 
   const handleExecutePlan = (sessionId: string, patchContent?: string) => {
     setPlanExecutionStates((prev) => ({
@@ -31,16 +112,31 @@ export default function App() {
       [sessionId]: { state: "executing" },
     }));
 
-    if ((window as any).electronAPI && (window as any).electronAPI.executePlan) {
-      (window as any).electronAPI.executePlan(sessionId, patchContent).then((res: any) => {
+    if ((window as any).electronAPI && (window as any).electronAPI.orchestratorExecutePlan) {
+      (window as any).electronAPI.orchestratorExecutePlan(sessionId, patchContent).then((res: any) => {
         if (res && res.success) {
-          setPlanExecutionStates((prev) => ({
-            ...prev,
-            [sessionId]: {
-              state: "completed",
-              checkpointId: res.results.checkpointId,
-            },
-          }));
+          setOrchestratorSession(res.session);
+          if (res.results.state === "awaiting_fix_approval") {
+            setPlanExecutionStates((prev) => ({
+              ...prev,
+              [sessionId]: {
+                state: "awaiting_fix_approval",
+                checkpointId: res.results.checkpointId,
+                error: res.results.error,
+                proposedFixPatch: res.results.proposedFixPatch,
+                failureReason: res.results.failureReason,
+              },
+            }));
+          } else {
+            setPlanExecutionStates((prev) => ({
+              ...prev,
+              [sessionId]: {
+                state: res.results.success ? "completed" : "failed",
+                checkpointId: res.results.checkpointId,
+                error: res.results.error,
+              },
+            }));
+          }
         } else {
           setPlanExecutionStates((prev) => ({
             ...prev,
@@ -62,10 +158,82 @@ export default function App() {
     }
   };
 
-  const handlePlanResponse = (sessionId: string, approved: boolean) => {
-    if ((window as any).electronAPI && (window as any).electronAPI.respondToPlan) {
-      (window as any).electronAPI.respondToPlan(sessionId, approved).then((res: any) => {
+  const handleFixResponse = (sessionId: string, approved: boolean) => {
+    if ((window as any).electronAPI && (window as any).electronAPI.orchestratorRespondToFix) {
+      setPlanExecutionStates((prev) => ({
+        ...prev,
+        [sessionId]: { state: "executing" },
+      }));
+      (window as any).electronAPI.orchestratorRespondToFix(sessionId, approved).then((res: any) => {
         if (res && res.success) {
+          setOrchestratorSession(res.session);
+          if (res.state === "awaiting_fix_approval") {
+            setPlanExecutionStates((prev) => ({
+              ...prev,
+              [sessionId]: {
+                state: "awaiting_fix_approval",
+                checkpointId: prev[sessionId]?.checkpointId,
+                error: res.failureReason,
+                proposedFixPatch: res.proposedFixPatch,
+                failureReason: res.failureReason,
+              },
+            }));
+          } else {
+            setPlanExecutionStates((prev) => ({
+              ...prev,
+              [sessionId]: {
+                state: res.state === "completed" ? "completed" : "failed",
+                checkpointId: prev[sessionId]?.checkpointId,
+                error: res.error,
+              },
+            }));
+          }
+        } else {
+          setPlanExecutionStates((prev) => ({
+            ...prev,
+            [sessionId]: {
+              state: "failed",
+              error: res.error,
+            },
+          }));
+        }
+      });
+    } else {
+      setPlanExecutionStates((prev) => ({
+        ...prev,
+        [sessionId]: { state: "completed" },
+      }));
+    }
+  };
+
+  const handleRollback = (sessionId: string) => {
+    if ((window as any).electronAPI && (window as any).electronAPI.orchestratorRollback) {
+      (window as any).electronAPI.orchestratorRollback(sessionId).then((res: any) => {
+        if (res && res.success) {
+          setOrchestratorSession(res.session);
+          setPlanExecutionStates((prev) => ({
+            ...prev,
+            [sessionId]: { state: "failed", error: "Workspace rolled back to checkpoint." },
+          }));
+          setPlanApprovalStates((prev) => ({
+            ...prev,
+            [sessionId]: "rejected",
+          }));
+        }
+      });
+    } else {
+      setPlanExecutionStates((prev) => ({
+        ...prev,
+        [sessionId]: { state: "failed", error: "Workspace rolled back to checkpoint." },
+      }));
+    }
+  };
+
+  const handlePlanResponse = (sessionId: string, approved: boolean) => {
+    if ((window as any).electronAPI && (window as any).electronAPI.orchestratorRespondToPlan) {
+      (window as any).electronAPI.orchestratorRespondToPlan(sessionId, approved).then((res: any) => {
+        if (res && res.success) {
+          setOrchestratorSession(res.session);
           setPlanApprovalStates((prev) => ({
             ...prev,
             [sessionId]: res.state,
@@ -77,6 +245,43 @@ export default function App() {
         ...prev,
         [sessionId]: approved ? "approved" : "rejected",
       }));
+    }
+  };
+
+  const [creativeApprovalStates, setCreativeApprovalStates] = useState<Record<string, string>>({});
+
+  const handleCreativeApprove = async (taskId: string, approved: boolean) => {
+    setCreativeApprovalStates((prev) => ({ ...prev, [taskId]: approved ? "generating" : "rejected" }));
+    if ((window as any).electronAPI && (window as any).electronAPI.approveCreativeJob) {
+      const res = await (window as any).electronAPI.approveCreativeJob(taskId, approved);
+      if (res && res.success && approved) {
+        const interval = setInterval(async () => {
+          const statusRes = await (window as any).electronAPI.getCreativeJobStatus(taskId);
+          if (statusRes && statusRes.success && statusRes.status) {
+            if (statusRes.status.status === "completed" && statusRes.status.asset) {
+              clearInterval(interval);
+              setCreativeApprovalStates((prev) => ({ ...prev, [taskId]: "completed" }));
+              const assetMsgId = `msg-agent-asset-${Date.now()}`;
+              const assetMsg: Message = {
+                id: assetMsgId,
+                sender: "agent",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                content: `Creative Generation Completed Successfully via ${statusRes.status.asset.providerName}!`,
+                cardType: "generated-asset",
+                cardData: statusRes.status.asset
+              };
+              setMessages((prev) => [...prev, assetMsg]);
+            } else if (statusRes.status.status === "failed") {
+              clearInterval(interval);
+              setCreativeApprovalStates((prev) => ({ ...prev, [taskId]: "failed" }));
+            }
+          }
+        }, 300);
+      }
+    } else {
+      setTimeout(() => {
+        setCreativeApprovalStates((prev) => ({ ...prev, [taskId]: approved ? "completed" : "rejected" }));
+      }, 500);
     }
   };
 
@@ -250,7 +455,55 @@ export default function App() {
       updateLogsCard(activeLogs);
     }
   };
-  
+  // Project Intelligence states
+  const [projectHealth, setProjectHealth] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [resources, setResources] = useState<any>(null);
+  const [orchestratorSession, setOrchestratorSession] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchIntelligence = () => {
+      if ((window as any).electronAPI) {
+        if ((window as any).electronAPI.getProjectIntelligence) {
+          (window as any).electronAPI.getProjectIntelligence().then((res: any) => {
+            if (res) {
+              setProjectHealth(res.health);
+            }
+          });
+        }
+        if ((window as any).electronAPI.getResourceSnapshot) {
+          (window as any).electronAPI.getResourceSnapshot().then((res: any) => {
+            if (res && res.success) {
+              setResources(res.snapshot);
+            }
+          });
+        }
+      }
+    };
+
+    fetchIntelligence();
+    const interval = setInterval(fetchIntelligence, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const [agents, setAgents] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchAgents = () => {
+      if ((window as any).electronAPI && (window as any).electronAPI.orchestratorGetAgents) {
+        (window as any).electronAPI.orchestratorGetAgents().then((res: any) => {
+          if (res && res.success) {
+            setAgents(res.agents);
+          }
+        });
+      }
+    };
+    fetchAgents();
+    const interval = setInterval(fetchAgents, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+
+
   // Attachments state
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -258,6 +511,17 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    const nextHeight = Math.min(textarea.scrollHeight, 280);
+    textarea.style.height = `${Math.max(24, nextHeight)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > 280 ? "auto" : "hidden";
+  }, [inputValue]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -267,9 +531,12 @@ export default function App() {
     dependencies: false,
     providers: false,
     modelRoles: true,
-    connectors: false,
+    connectors: true,
     checkpoints: false,
     logs: false,
+    projectIntelligence: false,
+    activeSessionTasks: true,
+    multiAgentTeam: false,
   });
 
   useEffect(() => {
@@ -284,45 +551,40 @@ export default function App() {
   const processFiles = (files: FileList | File[]) => {
     setErrorMsg(null);
     setStatusMsg(null);
-    const newAttachments: Attachment[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (!file) continue;
 
-      // Mime check: png, jpg, jpeg, webp, and pdf
-      const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "application/pdf"];
-      if (!validTypes.includes(file.type)) {
-        setErrorMsg(`Invalid file type: ${file.name}. Only PNG, JPG, JPEG, WEBP, and PDF are supported.`);
-        return;
-      }
-
-      // Size check: 8MB max
-      const maxSize = 8 * 1024 * 1024;
+      const maxSize = 25 * 1024 * 1024;
       if (file.size > maxSize) {
-        setErrorMsg(`File too large: ${file.name}. Maximum size is 8MB.`);
+        setErrorMsg(`File too large: ${file.name}. Maximum size is 25MB.`);
         return;
       }
 
-      // Generate local preview URL
-      const previewUrl = file.type === "application/pdf"
-        ? "" // PDF placeholder does not need image blob
-        : URL.createObjectURL(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawResult = e.target?.result as string;
+        const base64Data = rawResult.split(",")[1] || "";
+        const isImage = file.type.startsWith("image/");
+        const isPdf = file.type === "application/pdf";
+        const isFolderItem = Boolean((file as any).webkitRelativePath);
+        const previewUrl = isImage ? rawResult : "";
 
-      newAttachments.push({
-        id: `att-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`,
-        type: file.type === "application/pdf" ? "pdf" : "image",
-        name: file.name,
-        mimeType: file.type,
-        size: file.size,
-        previewUrl,
-        source: previewUrl || "PDF_PLACEHOLDER"
-      });
-    }
+        const attachmentItem: Attachment = {
+          id: `att-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 4)}`,
+          type: isFolderItem ? "folder" : isPdf ? "pdf" : isImage ? "image" : "file",
+          name: (file as any).webkitRelativePath || file.name,
+          mimeType: file.type,
+          size: file.size,
+          previewUrl,
+          source: base64Data
+        };
 
-    if (newAttachments.length > 0) {
-      setAttachments((prev) => [...prev, ...newAttachments]);
-      setStatusMsg("Upload ready");
+        setAttachments((prev) => [...prev, attachmentItem]);
+        setStatusMsg("Upload ready");
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -376,9 +638,20 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim() && attachments.length === 0) return;
+    const activeModel = runtimeModels.find(model => model.role === activeRuntimeRole) || runtimeModels[0];
+    const runtimeInstruction = [
+      `Composer action: ${composerAction}`,
+      `Runtime agent: ${activeRuntimeRole}`,
+      activeModel ? `Runtime model: ${activeModel.modelName}` : "",
+      activeModel ? `Runtime provider: ${activeModel.providerName}` : "",
+      `Runtime skill: ${activeRuntimeSkill}`,
+      activeMcpTool !== "None" ? `Requested MCP tool: ${activeMcpTool}` : "",
+      `Workspace: ${projectName}`,
+    ].filter(Boolean).join("\n");
+    const executionPrompt = `${runtimeInstruction}\n\nUser request:\n${inputValue || (attachments.length > 0 ? `Uploaded ${attachments.length} attachment(s)` : "")}`;
 
     const userMsgId = `msg-user-${Date.now()}`;
     const userMsg: Message = {
@@ -395,41 +668,119 @@ export default function App() {
     setStatusMsg(null);
     setErrorMsg(null);
 
-    // Check if Electron bridge is present
-    if ((window as any).electronAPI && (window as any).electronAPI.createExecutionSession && !userMsg.attachments?.some((a: any) => a.type === "image")) {
-      (window as any).electronAPI.createExecutionSession(userMsg.content).then((res: any) => {
-        const agentMsgId = `msg-agent-${Date.now()}`;
-        if (res && res.success) {
-          const agentMsg: Message = {
-            id: agentMsgId,
-            sender: "agent",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            content: `I have initialized an execution session and generated a task plan for your review:`,
-            cardType: "plan-approval",
-            cardData: {
-              sessionId: res.sessionId,
-              plan: res.plan,
-              status: "awaiting_approval",
-            },
-          };
-          setMessages((prev) => [...prev, agentMsg]);
-        } else {
-          const errorAgentMsg: Message = {
-            id: agentMsgId,
-            sender: "agent",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            content: `Error generating plan: ${res?.error || "Unknown error occurred."}`,
-          };
-          setMessages((prev) => [...prev, errorAgentMsg]);
+    const hasImage = userMsg.attachments?.some((a) => a.type === "image");
+    const hasPdf = userMsg.attachments?.some((a) => a.type === "pdf");
+
+    if ((window as any).electronAPI) {
+      const savedAttachments: any[] = [];
+      if (userMsg.attachments && userMsg.attachments.length > 0) {
+        for (const att of userMsg.attachments) {
+          const res = await (window as any).electronAPI.storeAttachment(
+            att.name,
+            att.mimeType,
+            att.source,
+            "upload",
+            workspacePath || "default-ws"
+          );
+          if (res && res.success) {
+            savedAttachments.push(res.attachment);
+          }
         }
-      });
+      }
+
+      if (hasImage && savedAttachments.length > 0) {
+        const imageAtt = savedAttachments.find((a) => a.mimeType.startsWith("image/"));
+        if (imageAtt) {
+          const agentMsgId = `msg-agent-${Date.now()}`;
+          const loaderMsg: Message = {
+            id: agentMsgId,
+            sender: "agent",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: `Analyzing screenshot "${imageAtt.filename}" using the Vision Provider...`,
+          };
+          setMessages((prev) => [...prev, loaderMsg]);
+
+          (window as any).electronAPI.analyzeImage(imageAtt.localPath, imageAtt.mimeType).then((res: any) => {
+            setMessages((prev) => prev.filter((m) => m.id !== agentMsgId));
+            const responseMsgId = `msg-agent-res-${Date.now()}`;
+            if (res && res.success) {
+              const findings = res.result.layoutIssues.map((issue: string, idx: number) => ({
+                id: idx + 1,
+                element: res.result.detectedElements[idx] || "UI Element",
+                issue,
+                severity: "Medium"
+              }));
+
+              const resultMsg: Message = {
+                id: responseMsgId,
+                sender: "agent",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                content: res.result.summary,
+                cardType: "vision-analysis",
+                cardData: {
+                  imageName: imageAtt.filename,
+                  dimensions: "1920 x 1080",
+                  findings: findings.length > 0 ? findings : [{ id: 1, element: "UI Structure", issue: "No layout issues detected.", severity: "Low" }],
+                  recommendations: res.result.recommendedActions.join("\n"),
+                  confidence: res.result.confidence,
+                  textDetected: res.result.textDetected,
+                  designIssues: res.result.designIssues,
+                }
+              };
+              setMessages((prev) => [...prev, resultMsg]);
+            } else {
+              const warningMsg: Message = {
+                id: responseMsgId,
+                sender: "agent",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                content: `Vision analysis failed or model provider is offline: ${res?.error || "Qwen2.5-VL Vision Model is currently unavailable."}`,
+              };
+              setMessages((prev) => [...prev, warningMsg]);
+            }
+          });
+        }
+      } else if (hasPdf) {
+        const agentMsgId = `msg-agent-${Date.now()}`;
+        const pdfMsg: Message = {
+          id: agentMsgId,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          content: "Successfully received and stored PDF attachment metadata. Full PDF content parsing and document analysis is marked as a future capability under our multimodal roadmap.",
+        };
+        setMessages((prev) => [...prev, pdfMsg]);
+      } else {
+        (window as any).electronAPI.orchestratorCreateSession(executionPrompt).then((res: any) => {
+          const agentMsgId = `msg-agent-${Date.now()}`;
+          if (res && res.success) {
+            setOrchestratorSession(res.session);
+            const agentMsg: Message = {
+              id: agentMsgId,
+              sender: "agent",
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: `I have initialized an execution session and generated a task plan for your review:`,
+              cardType: "plan-approval",
+              cardData: {
+                sessionId: res.session.id,
+                plan: res.plan,
+                status: "awaiting_approval",
+              },
+            };
+            setMessages((prev) => [...prev, agentMsg]);
+          } else {
+            const errorAgentMsg: Message = {
+              id: agentMsgId,
+              sender: "agent",
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: `Error generating plan: ${res?.error || "Unknown error occurred."}`,
+            };
+            setMessages((prev) => [...prev, errorAgentMsg]);
+          }
+        });
+      }
     } else {
-      // Simulate Agent response
       setTimeout(() => {
-        const hasImage = userMsg.attachments?.some((a) => a.type === "image");
         const agentMsgId = `msg-agent-${Date.now()}`;
         let agentMsg: Message;
-
         if (hasImage) {
           agentMsg = {
             id: agentMsgId,
@@ -447,36 +798,23 @@ export default function App() {
               recommendations: "Apply flex-wrap utility classes to columns, and use logic RTL direction parameters inside tailwind settings."
             }
           };
-        } else {
-          // Mock planning session fallback for browser testing
+        } else if (hasPdf) {
           agentMsg = {
             id: agentMsgId,
             sender: "agent",
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            content: `I've received your request: "${userMsg.content}". Formulating plan:`,
-            cardType: "plan-approval",
-            cardData: {
-              sessionId: `mock-session-${Date.now()}`,
-              plan: {
-                taskSummary: `Mock plan for: "${userMsg.content}"`,
-                affectedFiles: ["index.css", "App.tsx"],
-                requiredTools: ["fs-tool", "search-tool"],
-                requiredPermissions: ["read", "write"],
-                riskLevel: "medium",
-                proposedSteps: [
-                  "Verify structural configurations and styling directories.",
-                  "Render interactive planning badges to request approvals."
-                ],
-                validationSteps: [
-                  "Compile workspace files to verify type correctness."
-                ]
-              },
-              status: "awaiting_approval"
-            }
+            content: "PDF metadata stored. Document parsing is marked as future work.",
+          };
+        } else {
+          agentMsg = {
+            id: agentMsgId,
+            sender: "agent",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: `I've received your request: "${userMsg.content}". (Browser Mock Response)`,
           };
         }
         setMessages((prev) => [...prev, agentMsg]);
-      }, 1200);
+      }, 1000);
     }
   };
 
@@ -778,6 +1116,74 @@ export default function App() {
           </div>
         );
 
+      case "creative-plan": {
+        const plan = msg.cardData;
+        const currentStatus = creativeApprovalStates[plan.taskId] || plan.status;
+
+        return (
+          <div className="engineering-card plan-approval-card" style={{ borderLeft: "3px solid var(--accent-purple)" }}>
+            <div className="card-header">
+              <span className="card-title">🎨 Creative AI Generation Approval</span>
+              <span className="card-badge badge-purple">{plan.providerName}</span>
+            </div>
+            <div className="plan-section">
+              <span className="section-title">Prompt Request</span>
+              <p className="plan-summary-text" style={{ fontStyle: "italic" }}>"{plan.prompt}"</p>
+            </div>
+            <div className="plan-section plan-metadata-row" style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "8px 0 12px 0", fontSize: "11px" }}>
+              <span className="card-badge badge-blue">Model: {plan.model}</span>
+              <span className="card-badge badge-cyan">Size: {plan.size}</span>
+              <span className="card-badge badge-emerald">Cost: {plan.estimatedCost}</span>
+              <span className="card-badge badge-orange">Output: {plan.outputPath}</span>
+            </div>
+            <div className="plan-actions-container">
+              {currentStatus === "awaiting_approval" ? (
+                <div className="approval-buttons">
+                  <button className="approve-btn" style={{ background: "var(--accent-purple)" }} onClick={() => handleCreativeApprove(plan.taskId, true)}>
+                    Approve Generation
+                  </button>
+                  <button className="reject-btn" onClick={() => handleCreativeApprove(plan.taskId, false)}>
+                    Cancel
+                  </button>
+                </div>
+              ) : currentStatus === "approved" || currentStatus === "generating" ? (
+                <div className="approved-status-text" style={{ color: "var(--accent-purple)" }}>⏳ Generation Request Approved. Processing...</div>
+              ) : currentStatus === "completed" ? (
+                <div className="approved-status-text">✅ Asset Generated Successfully!</div>
+              ) : (
+                <div className="rejected-status-text">❌ Generation Cancelled</div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      case "generated-asset": {
+        const asset = msg.cardData;
+        return (
+          <div className="engineering-card" style={{ borderColor: "rgba(168, 85, 247, 0.3)", background: "rgba(168, 85, 247, 0.04)" }}>
+            <div className="card-header">
+              <span className="card-title" style={{ color: "var(--accent-purple)" }}>✨ Generated Creative Asset</span>
+              <span className="card-badge badge-purple">{asset.providerName}</span>
+            </div>
+            {asset.previewUrl && (
+              <div style={{ margin: "10px 0", borderRadius: "6px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", textAlign: "center", background: "#000" }}>
+                <img src={asset.previewUrl} alt={asset.prompt} style={{ maxHeight: "240px", maxWidth: "100%", objectFit: "contain" }} />
+              </div>
+            )}
+            <div style={{ fontSize: "12px", color: "var(--text-primary)", marginBottom: "8px" }}>
+              <strong>Prompt:</strong> {asset.prompt}
+            </div>
+            <div className="plan-metadata-row" style={{ display: "flex", flexWrap: "wrap", gap: "6px", fontSize: "10px" }}>
+              <span className="card-badge badge-blue">Model: {asset.model}</span>
+              <span className="card-badge badge-cyan">Resolution: {asset.size}</span>
+              <span className="card-badge badge-emerald">Cost: {asset.cost || "Free"}</span>
+              <span className="card-badge badge-orange">Path: {asset.localPath}</span>
+            </div>
+          </div>
+        );
+      }
+
       case "plan-approval": {
         const { sessionId, plan, status } = msg.cardData;
         const currentStatus = planApprovalStates[sessionId] || status;
@@ -855,6 +1261,27 @@ export default function App() {
               </ol>
             </div>
 
+            {plan.contextSummary && (
+              <div className="plan-section context-summary-section" style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "12px" }}>
+                <ContextCards summary={plan.contextSummary} />
+                <span className="section-title">🧠 RAG Context Engine Matches</span>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+                  <strong>Compression Summary:</strong> {plan.contextSummary.compressionSummary}
+                </div>
+                <div className="plan-items-grid" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {plan.contextSummary.items.map((item: any, idx: number) => {
+                    const icon = item.source === "file" ? "📄" : item.source === "memory" ? "🧠" : item.source === "attachment" ? "📎" : "📄";
+                    return (
+                      <div key={idx} className="context-item-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)", padding: "4px 8px", borderRadius: "4px", fontSize: "12px" }}>
+                        <span style={{ color: "var(--text-primary)" }}>{icon} {item.title}</span>
+                        <span style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{item.tokensEstimate} tokens</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="plan-actions-container">
               {currentStatus === "awaiting_approval" ? (
                 <div className="approval-buttons">
@@ -887,16 +1314,16 @@ export default function App() {
                     <div className="execution-preview-status-block">
                       <span className="section-title">Execution Progress</span>
                       <div className="exec-steps-list">
-                        <div className={`exec-step-item ${["executing", "completed", "failed"].includes(planExecutionStates[sessionId]!.state) ? "done" : ""}`}>
+                        <div className={`exec-step-item ${["executing", "completed", "failed", "awaiting_fix_approval"].includes(planExecutionStates[sessionId]!.state) ? "done" : ""}`}>
                           <span className="step-bullet">✓</span> Pre-execution Checkpoint created
                         </div>
-                        <div className={`exec-step-item ${["completed", "failed"].includes(planExecutionStates[sessionId]!.state) ? "done" : ""}`}>
+                        <div className={`exec-step-item ${["completed", "failed", "awaiting_fix_approval"].includes(planExecutionStates[sessionId]!.state) ? "done" : ""}`}>
                           <span className="step-bullet">✓</span> Safe file patch applications
                         </div>
-                        <div className={`exec-step-item ${["completed"].includes(planExecutionStates[sessionId]!.state) ? "done" : planExecutionStates[sessionId]!.state === "failed" ? "failed" : "running"}`}>
+                        <div className={`exec-step-item ${["completed"].includes(planExecutionStates[sessionId]!.state) ? "done" : ["failed", "awaiting_fix_approval"].includes(planExecutionStates[sessionId]!.state) ? "failed" : "running"}`}>
                           <span className="step-bullet">✓</span> Build compilation runs
                         </div>
-                        <div className={`exec-step-item ${["completed"].includes(planExecutionStates[sessionId]!.state) ? "done" : planExecutionStates[sessionId]!.state === "failed" ? "failed" : "running"}`}>
+                        <div className={`exec-step-item ${["completed"].includes(planExecutionStates[sessionId]!.state) ? "done" : ["failed", "awaiting_fix_approval"].includes(planExecutionStates[sessionId]!.state) ? "failed" : "running"}`}>
                           <span className="step-bullet">✓</span> Regression tests validations
                         </div>
                       </div>
@@ -906,10 +1333,50 @@ export default function App() {
                           `✅ Execution Succeeded! Checkpoint: ${planExecutionStates[sessionId]!.checkpointId}`
                         ) : planExecutionStates[sessionId]!.state === "failed" ? (
                           `❌ Execution Failed: ${planExecutionStates[sessionId]!.error}`
+                        ) : planExecutionStates[sessionId]!.state === "awaiting_fix_approval" ? (
+                          "⚠️ Build/Test Failed. Self-Fixing Proposed."
                         ) : (
                           "⚡ Running execution steps..."
                         )}
                       </div>
+
+                      {planExecutionStates[sessionId]!.state === "awaiting_fix_approval" && (
+                        <div className="remediation-block" style={{ marginTop: "12px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
+                          <span className="section-title" style={{ color: "var(--accent-rose)", fontSize: "11px", fontWeight: "600", textTransform: "uppercase" }}>❌ Failure Reason</span>
+                          <pre style={{ background: "rgba(0,0,0,0.4)", padding: "8px", borderRadius: "6px", fontSize: "11px", color: "var(--accent-rose)", overflowX: "auto", border: "1px solid rgba(244,63,94,0.2)", marginTop: "4px" }}>
+                            {planExecutionStates[sessionId]!.failureReason || planExecutionStates[sessionId]!.error}
+                          </pre>
+
+                          <span className="section-title" style={{ color: "var(--accent-cyan)", marginTop: "12px", display: "block", fontSize: "11px", fontWeight: "600", textTransform: "uppercase" }}>🧠 Proposed Fix (Patch Diff)</span>
+                          <pre style={{ background: "rgba(0,0,0,0.5)", padding: "8px", borderRadius: "6px", fontSize: "11px", color: "var(--accent-cyan)", overflowX: "auto", border: "1px solid rgba(6,182,212,0.2)", marginTop: "4px", whiteSpace: "pre-wrap" }}>
+                            {planExecutionStates[sessionId]!.proposedFixPatch}
+                          </pre>
+
+                          <div className="fix-actions" style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                            <button
+                              className="approve-btn"
+                              style={{ background: "var(--accent-emerald)", flex: 1, padding: "8px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer", border: "none", color: "#fff" }}
+                              onClick={() => handleFixResponse(sessionId, true)}
+                            >
+                              Approve Fix
+                            </button>
+                            <button
+                              className="reject-btn"
+                              style={{ background: "rgba(244,63,94,0.1)", border: "1px solid var(--accent-rose)", color: "var(--accent-rose)", flex: 1, padding: "8px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer" }}
+                              onClick={() => handleFixResponse(sessionId, false)}
+                            >
+                              Reject Fix
+                            </button>
+                            <button
+                              className="reject-btn"
+                              style={{ background: "rgba(255,255,255,0.08)", color: "#fff", padding: "8px 16px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", border: "none" }}
+                              onClick={() => handleRollback(sessionId)}
+                            >
+                              Rollback
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -923,10 +1390,76 @@ export default function App() {
         );
       }
 
+      case "engineering-memory": {
+        const { decisions, successes, failures } = msg.cardData;
+
+        return (
+          <div className="engineering-card engineering-memory-card" style={{ borderLeftColor: "var(--accent-cyan)" }}>
+            <div className="card-header">
+              <span className="card-title">🧠 Retrieved Engineering Memory</span>
+              <span className="card-badge badge-blue">KNOWLEDGE BASE</span>
+            </div>
+
+            {decisions && decisions.length > 0 && (
+              <div className="plan-section">
+                <span className="section-title">Similar Decisions</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                  {decisions.map((dec: any) => (
+                    <div key={dec.id} className="memory-item-box" style={{ padding: "8px", background: "rgba(255,255,255,0.02)", borderRadius: "6px", borderLeft: "2px solid var(--accent-emerald)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", marginBottom: "4px" }}>
+                        <strong>ID: {dec.id}</strong>
+                        <span className={`card-badge risk-${dec.riskLevel}`}>{dec.riskLevel.toUpperCase()} RISK</span>
+                      </div>
+                      <p style={{ margin: "2px 0", fontSize: "12px" }}><strong>Task:</strong> {dec.taskSummary}</p>
+                      <p style={{ margin: "2px 0", fontSize: "11px", color: "rgba(255,255,255,0.6)" }}><strong>Reasoning:</strong> {dec.reasoning}</p>
+                      <p style={{ margin: "2px 0", fontSize: "11px", color: "var(--accent-emerald)" }}><strong>Outcome:</strong> {dec.outcome}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {successes && successes.length > 0 && (
+              <div className="plan-section" style={{ marginTop: "12px" }}>
+                <span className="section-title">Successful Fixes & Refactors</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                  {successes.map((succ: any, idx: number) => (
+                    <div key={idx} className="memory-item-box" style={{ padding: "8px", background: "rgba(255,255,255,0.02)", borderRadius: "6px", borderLeft: "2px solid var(--accent-cyan)" }}>
+                      <p style={{ margin: "2px 0", fontSize: "12px" }}><strong>Fix Type:</strong> {succ.type}</p>
+                      <p style={{ margin: "2px 0", fontSize: "11px", color: "rgba(255,255,255,0.6)" }}><strong>Description:</strong> {succ.description}</p>
+                      <p style={{ margin: "2px 0", fontSize: "11px", color: "rgba(255,255,255,0.4)" }}><strong>Affected:</strong> {succ.relatedFiles.join(", ")}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {failures && failures.length > 0 && (
+              <div className="plan-section" style={{ marginTop: "12px" }}>
+                <span className="section-title">Previous Failure Warnings</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                  {failures.map((fail: any, idx: number) => (
+                    <div key={idx} className="memory-item-box" style={{ padding: "8px", background: "rgba(255,255,255,0.02)", borderRadius: "6px", borderLeft: "2px solid var(--accent-rose)" }}>
+                      <p style={{ margin: "2px 0", fontSize: "12px", color: "var(--accent-rose)" }}><strong>Cause:</strong> {fail.cause}</p>
+                      <p style={{ margin: "2px 0", fontSize: "11px", color: "rgba(255,255,255,0.6)" }}><strong>Resolution:</strong> {fail.resolution}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       default:
         return null;
     }
   };
+
+  const activeComposerModel = runtimeModels.find(model => model.role === activeRuntimeRole) || runtimeModels[0];
+  const activeProviderName = activeComposerModel?.providerName || "Provider not set";
+  const activeModelName = activeComposerModel?.modelName || "Model not set";
+  const providerConnected = activeComposerModel?.healthStatus === "online";
 
   return (
     <div className="app-container" onDragOver={handleDrag} onDragEnter={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop}>
@@ -989,25 +1522,218 @@ export default function App() {
             </>
           )}
 
-          <div className="section-label">Maintenance Chats</div>
-          <div className="conversation-list">
-            {conversations.map((c) => (
+          <div
+            className="section-label"
+            style={{ display: "none", justifyContent: "space-between", cursor: "pointer" }}
+            onClick={() => toggleSection("projectIntelligence")}
+          >
+            <span>Project Intelligence</span>
+            <span>{openSections.projectIntelligence ? "▼" : "▶"}</span>
+          </div>
+
+          {openSections.projectIntelligence && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "8px 12px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", marginBottom: "16px", border: "1px solid rgba(255,255,255,0.04)" }}>
+              {projectHealth ? (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+                    <span style={{ color: "rgba(255,255,255,0.6)" }}>Workspace Health:</span>
+                    <span style={{ color: projectHealth.workspaceValid ? "var(--accent-emerald)" : "var(--accent-rose)", fontWeight: "600" }}>
+                      {projectHealth.workspaceValid ? "✅ Healthy" : "❌ Invalid"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+                    <span style={{ color: "rgba(255,255,255,0.6)" }}>Git status:</span>
+                    <span style={{ color: "var(--accent-cyan)", fontWeight: "600" }}>
+                      {projectHealth.gitStatus.clean ? "Clean" : `Modified (${projectHealth.gitStatus.uncommittedCount})`}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+                    <span style={{ color: "rgba(255,255,255,0.6)" }}>Provider (LM Studio):</span>
+                    <span style={{ color: projectHealth.providerStatus === "online" ? "var(--accent-emerald)" : "rgba(255,255,255,0.4)" }}>
+                      {projectHealth.providerStatus.toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+                    <span style={{ color: "rgba(255,255,255,0.6)" }}>Runtime Runtimes:</span>
+                    <span style={{ color: "#fff" }}>
+                      Node: {projectHealth.runtimeStatus.nodeAvailable ? "Yes" : "No"} | Python: {projectHealth.runtimeStatus.pythonAvailable ? "Yes" : "No"}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>Fetching state...</div>
+              )}
+
+              {resources && (
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px", marginTop: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "rgba(255,255,255,0.4)", marginBottom: "4px" }}>
+                    <span>CPU: {resources.cpuUsage}%</span>
+                    <span>RAM: {Math.round(resources.memoryUsage.usedBytes / 1024 / 1024 / 1024)}GB / {Math.round(resources.memoryUsage.totalBytes / 1024 / 1024 / 1024)}GB</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "rgba(255,255,255,0.4)" }}>
+                    <span>GPU: {resources.gpuUsage}%</span>
+                    <span>Disk: {Math.round(resources.diskFreeBytes / 1024 / 1024 / 1024)}GB Free</span>
+                  </div>
+                </div>
+              )}
+
+              {notifications.length > 0 && (
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "6px", marginTop: "4px" }}>
+                  <div style={{ fontSize: "10px", fontWeight: "600", textTransform: "uppercase", color: "var(--accent-cyan)", marginBottom: "4px" }}>Notifications</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", maxHeight: "120px", overflowY: "auto" }}>
+                    {notifications.map((n: any) => (
+                      <div key={n.id} style={{ background: "rgba(255,255,255,0.02)", padding: "4px 6px", borderRadius: "4px", fontSize: "10px", position: "relative", borderLeft: `2px solid ${n.severity === "error" ? "var(--accent-rose)" : n.severity === "warning" ? "var(--accent-gold)" : "var(--accent-cyan)"}` }}>
+                        <div style={{ fontWeight: "500", color: "#fff" }}>{n.title}</div>
+                        <div style={{ color: "rgba(255,255,255,0.6)" }}>{n.message}</div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if ((window as any).electronAPI && (window as any).electronAPI.clearNotification) {
+                              (window as any).electronAPI.clearNotification(n.id);
+                            }
+                            setNotifications((prev) => prev.filter((item) => item.id !== n.id));
+                          }}
+                          style={{ position: "absolute", top: "2px", right: "4px", background: "none", border: "none", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: "8px" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {orchestratorSession && (
+            <>
               <div
-                key={c.id}
-                className={`conversation-item ${c.id === activeConv ? "active" : ""}`}
-                onClick={() => setActiveConv(c.id)}
+                className="section-label"
+                style={{ display: "flex", justifyContent: "space-between", cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "8px" }}
+                onClick={() => toggleSection("activeSessionTasks")}
               >
-                <span>💬</span>
-                {c.title}
+                <span>Active Session Tasks</span>
+                <span>{openSections.activeSessionTasks ? "▼" : "▶"}</span>
               </div>
-            ))}
+
+              {openSections.activeSessionTasks && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "8px 12px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", marginBottom: "16px", border: "1px solid rgba(255,255,255,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "600", color: "var(--accent-cyan)" }}>
+                      Status: {orchestratorSession.status.toUpperCase()}
+                    </span>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      {orchestratorSession.status === "paused" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if ((window as any).electronAPI && (window as any).electronAPI.orchestratorResumeSession) {
+                              (window as any).electronAPI.orchestratorResumeSession(orchestratorSession.id).then((res: any) => {
+                                if (res && res.success) setOrchestratorSession(res.session);
+                              });
+                            }
+                          }}
+                          style={{ background: "var(--accent-emerald)", border: "none", color: "#fff", fontSize: "10px", padding: "2px 6px", borderRadius: "4px", cursor: "pointer" }}
+                        >
+                          Resume
+                        </button>
+                      ) : (
+                        (orchestratorSession.status === "running" || orchestratorSession.status === "awaiting_approval" || orchestratorSession.status === "awaiting_fix_approval") && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if ((window as any).electronAPI && (window as any).electronAPI.orchestratorPauseSession) {
+                                (window as any).electronAPI.orchestratorPauseSession(orchestratorSession.id).then((res: any) => {
+                                  if (res && res.success) setOrchestratorSession(res.session);
+                                });
+                              }
+                            }}
+                            style={{ background: "var(--accent-gold)", border: "none", color: "#000", fontSize: "10px", padding: "2px 6px", borderRadius: "4px", cursor: "pointer", fontWeight: "600" }}
+                          >
+                            Pause
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px", marginTop: "4px" }}>
+                    {orchestratorSession.tasks.map((task: any) => {
+                      let statusIcon = "⏳";
+                      let color = "rgba(255,255,255,0.4)";
+                      if (task.status === "completed") {
+                        statusIcon = "✅";
+                        color = "var(--accent-emerald)";
+                      } else if (task.status === "running") {
+                        statusIcon = "⚡";
+                        color = "var(--accent-cyan)";
+                      } else if (task.status === "failed") {
+                        statusIcon = "❌";
+                        color = "var(--accent-rose)";
+                      } else if (task.status === "waiting") {
+                        statusIcon = "⏸️";
+                        color = "var(--accent-gold)";
+                      }
+
+                      return (
+                        <div key={task.id} style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color }}>
+                          <span>{statusIcon} {task.name}</span>
+                          <span style={{ fontSize: "10px", opacity: 0.8 }}>{task.status}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <div
+            className="section-label"
+            style={{ display: agents.length > 0 || orchestratorSession?.assignedAgents?.length ? "flex" : "none", justifyContent: "space-between", cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "8px" }}
+            onClick={() => toggleSection("multiAgentTeam")}
+          >
+            <span>Multi-Agent Team</span>
+            <span>{openSections.multiAgentTeam ? "▼" : "▶"}</span>
           </div>
-        </div>
-        <div className="sidebar-footer">
-          <div className="status-badge">
-            <div className="status-dot"></div>
-            <span>Local Node Running</span>
-          </div>
+
+          {(agents.length > 0 || orchestratorSession?.assignedAgents?.length) && openSections.multiAgentTeam && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "8px 12px", background: "rgba(255,255,255,0.01)", borderRadius: "6px", marginBottom: "16px", border: "1px solid rgba(255,255,255,0.04)" }}>
+              {orchestratorSession?.assignedAgents && (
+                <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px", marginBottom: "4px" }}>
+                  <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontWeight: "600" }}>ASSIGNED AGENTS</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", margin: "4px 0" }}>
+                    {orchestratorSession.assignedAgents.map((agentName: string) => (
+                      <span key={agentName} style={{ background: "rgba(0, 229, 255, 0.1)", border: "1px solid rgba(0, 229, 255, 0.2)", color: "var(--accent-cyan)", fontSize: "9px", padding: "2px 6px", borderRadius: "4px" }}>
+                        👤 {agentName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontWeight: "600" }}>TEAM REGISTRY</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                {agents.length > 0 ? (
+                  agents.map((a: any) => {
+                    const isAssigned = orchestratorSession?.assignedAgents?.includes(a.name);
+                    return (
+                      <div key={a.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
+                        <span style={{ color: isAssigned ? "var(--accent-cyan)" : "#fff", fontWeight: isAssigned ? "600" : "400" }}>
+                          {isAssigned ? "⚡" : "👤"} {a.name}
+                        </span>
+                        <span style={{ fontSize: "9px", padding: "1px 4px", borderRadius: "3px", background: a.currentStatus === "busy" ? "rgba(234, 179, 8, 0.15)" : "rgba(16, 185, 129, 0.15)", color: a.currentStatus === "busy" ? "var(--accent-gold)" : "var(--accent-emerald)" }}>
+                          {a.currentStatus}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.4)" }}>No active agents registered.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -1015,16 +1741,7 @@ export default function App() {
       <main className="main-area">
         {/* Top Status Bar */}
         <header className="top-bar">
-          <div className="top-bar-left">
-            <div className="model-pill">
-              <div className="model-dot"></div>
-              <span>Coding: Qwen3 Coder</span>
-            </div>
-            <div className="model-pill" style={{ borderStyle: "dashed" }}>
-              <div className="model-dot" style={{ backgroundColor: "var(--accent-cyan)", boxShadow: "0 0 6px var(--accent-cyan)" }}></div>
-              <span>Vision: Qwen2.5-VL</span>
-            </div>
-          </div>
+          <div className="top-bar-left"></div>
           <div className="top-bar-right">
             <button
               className={`panel-toggle-btn ${rightPanelOpen ? "active" : ""}`}
@@ -1080,7 +1797,7 @@ export default function App() {
         </div>
 
         {/* Bottom Input Area */}
-        <div className="input-area">
+        <div className="input-area" onDragEnter={handleDrag} onDragOver={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop}>
           {errorMsg && (
             <div className="input-error-msg">
               <span>⚠️</span>
@@ -1102,15 +1819,29 @@ export default function App() {
             </div>
           )}
 
-          <form onSubmit={handleSendMessage} className={`input-box-wrapper ${isDragActive ? "drag-active" : ""}`}>
+          <div className="composer-context-row">
+            <button type="button" className="context-chip"><span>Workspace</span><strong>{projectName}</strong></button>
+            <button type="button" className="context-chip"><span>Provider</span><strong>{activeProviderName}</strong></button>
+            <button type="button" className="context-chip"><span>Model</span><strong>{activeModelName}</strong></button>
+            <button type="button" className="context-chip removable" onClick={() => setActiveRuntimeSkill("Auto")}><span>Skill</span><strong>{activeRuntimeSkill}</strong></button>
+          </div>
+
+          <form onSubmit={handleSendMessage} className={`input-box-wrapper composer-shell ${isDragActive ? "drag-active" : ""}`}>
             {/* Hidden File Picker */}
             <input
               type="file"
               multiple
-              accept="image/png, image/jpeg, image/jpg, image/webp, application/pdf"
               ref={fileInputRef}
               onChange={handleFileChange}
               style={{ display: "none" }}
+            />
+            <input
+              type="file"
+              multiple
+              ref={folderInputRef}
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+              {...({ webkitdirectory: "true", directory: "true" } as any)}
             />
 
             {/* Click to upload button */}
@@ -1118,9 +1849,18 @@ export default function App() {
               type="button"
               className="attachment-btn"
               onClick={() => fileInputRef.current?.click()}
-              title="Add attachment (PNG, JPG, JPEG, WEBP, PDF)"
+              title="Add files, images, PDFs, videos, or documents"
             >
               📎
+            </button>
+
+            <button
+              type="button"
+              className="attachment-btn"
+              onClick={() => folderInputRef.current?.click()}
+              title="Add folder"
+            >
+              Dir
             </button>
 
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
@@ -1152,8 +1892,9 @@ export default function App() {
               )}
 
               <textarea
+                ref={textareaRef}
                 className="input-textarea"
-                placeholder="Ask Saad Agent to run project maintenance tasks, drop/paste screenshots, or attach PDFs..."
+                placeholder="Ask anything, @ mention context, / for actions..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -1167,6 +1908,34 @@ export default function App() {
               />
             </div>
 
+            <div className="composer-toolbar">
+              <div className="composer-toolbar-left">
+                <select className="composer-select action-select" value={composerAction} onChange={(e) => setComposerAction(e.target.value)}>
+                  {quickActions.map(action => <option key={action} value={action}>{action}</option>)}
+                </select>
+                <select className="composer-select" value={activeRuntimeRole} onChange={(e) => setActiveRuntimeRole(e.target.value)}>
+                  {runtimeAgents.map(agent => <option key={agent} value={agent}>{agent}</option>)}
+                </select>
+                <select className="composer-select" value={activeRuntimeSkill} onChange={(e) => setActiveRuntimeSkill(e.target.value)}>
+                  {runtimeSkills.map(skill => <option key={skill} value={skill}>{skill}</option>)}
+                </select>
+                <select className="composer-select" value={activeMcpTool} onChange={(e) => setActiveMcpTool(e.target.value)}>
+                  <option value="None">No MCP Tool</option>
+                  <option value="Filesystem">Filesystem</option>
+                  <option value="Git">Git</option>
+                  <option value="Browser">Browser</option>
+                  <option value="Playwright">Playwright</option>
+                </select>
+              </div>
+              <div className="composer-runtime-status">
+                <span className={`status-dot ${providerConnected ? "online" : ""}`} />
+                <span>{activeProviderName}</span>
+                <span>{activeModelName}</span>
+                <span>Context auto</span>
+                <span>{projectName}</span>
+              </div>
+            </div>
+
             <button type="submit" className="send-btn">
               <span>➔</span>
             </button>
@@ -1177,212 +1946,105 @@ export default function App() {
       {/* Collapsible Right Panel */}
       {rightPanelOpen && (
         <aside className="right-panel">
-          <div className="panel-header">
-            <span>⚡ Collapsible Engineering Panel</span>
+          <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>⚡ Engineering Context Panel</span>
+            <button 
+              onClick={() => setIsSettingsModalOpen(true)}
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "4px", color: "#fff", cursor: "pointer", padding: "2px 6px", fontSize: "11px" }}
+              title="Open Settings Modal"
+            >
+              ⚙️ Settings
+            </button>
           </div>
           <div className="panel-scroll">
-            
-            {/* Accordion 0: Model Roles */}
-            <div className={`panel-section ${openSections.modelRoles ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("modelRoles")}>
-                <span>⚙️ Model Roles Configuration</span>
+            <div className="panel-section open">
+              <div className="panel-section-header">
+                <span>Workspace</span>
                 <span className="chevron"></span>
               </div>
-              {openSections.modelRoles && (
+              <div className="panel-section-content">
+                <div className="kv-row">
+                  <span className="kv-key">Project</span>
+                  <span className="kv-val">{projectName}</span>
+                </div>
+                <div className="kv-row">
+                  <span className="kv-key">Path</span>
+                  <span className="kv-val" style={{ maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis" }}>{workspacePath}</span>
+                </div>
+                <button className="small-action-btn" onClick={() => { setSettingsModalTab("workspace"); setIsSettingsModalOpen(true); }}>
+                  Manage workspace settings
+                </button>
+              </div>
+            </div>
+
+            {runtimeModels.length > 0 && (
+              <div className="panel-section open">
+                <div className="panel-section-header">
+                  <span>Current Models</span>
+                  <span className="chevron"></span>
+                </div>
                 <div className="panel-section-content">
-                  <div className="model-roles-container">
-                    {MOCK_MODEL_ROLES.map((role) => (
-                      <div key={role.role} className="model-role-card">
-                        <div className="role-header">
-                          <span className="role-name">{role.role}</span>
-                          <span className={`role-badge ${role.active ? "" : "inactive"}`}>
-                            {role.active ? "Active" : "Inactive"}
-                          </span>
-                        </div>
-                        <span className="role-model">{role.model}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 1: Memory */}
-            <div className={`panel-section ${openSections.memory ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("memory")}>
-                <span>🧠 Long-Term Memory</span>
-                <span className="chevron"></span>
-              </div>
-              {openSections.memory && (
-                <div className="panel-section-content">
-                  <div className="kv-row">
-                    <span className="kv-key">Knowledge State</span>
-                    <span className="kv-val" style={{ color: "var(--accent-emerald)" }}>Initialized</span>
-                  </div>
-                  <div className="kv-row">
-                    <span className="kv-key">Learnings Logged</span>
-                    <span className="kv-val">12 entries</span>
-                  </div>
-                  <div className="kv-row" style={{ flexDirection: "column", gap: "4px" }}>
-                    <span className="kv-key">Latest Lesson Learned:</span>
-                    <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                      "SHA-256 content hashing replaces timestamp comparisons to avoid date conflicts."
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 2: Knowledge Base */}
-            <div className={`panel-section ${openSections.knowledge ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("knowledge")}>
-                <span>📚 Project Knowledge Base</span>
-                <span className="chevron"></span>
-              </div>
-              {openSections.knowledge && (
-                <div className="panel-section-content">
-                  <div className="kv-row">
-                    <span className="kv-key">Indexed Files</span>
-                    <span className="kv-val">148 files</span>
-                  </div>
-                  <div className="kv-row">
-                    <span className="kv-key">Exclusion Rules</span>
-                    <span className="kv-val">6 folders</span>
-                  </div>
-                  <div className="kv-row">
-                    <span className="kv-key">Scanning Mode</span>
-                    <span className="kv-val" style={{ color: "var(--accent-cyan)" }}>Hash-Based Scan</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 3: Architecture Node */}
-            <div className={`panel-section ${openSections.architecture ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("architecture")}>
-                <span>📁 Project Architecture</span>
-                <span className="chevron"></span>
-              </div>
-              {openSections.architecture && (
-                <div className="panel-section-content" style={{ maxHeight: "250px", overflowY: "auto" }}>
-                  {renderTree(MOCK_ARCHITECTURE)}
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 4: Dependency Graph */}
-            <div className={`panel-section ${openSections.dependencies ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("dependencies")}>
-                <span>🔗 Dependency Graph</span>
-                <span className="chevron"></span>
-              </div>
-              {openSections.dependencies && (
-                <div className="panel-section-content" style={{ maxHeight: "220px", overflowY: "auto", gap: "8px" }}>
-                  {Object.entries(MOCK_DEPENDENCY_GRAPH).map(([file, deps]) => (
-                    <div key={file} style={{ borderBottom: "1px solid rgba(255,255,255,0.02)", paddingBottom: "6px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--accent-cyan)" }}>
-                        {file.split("/").pop()}
-                      </span>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" }}>
-                        {deps.map((dep) => (
-                          <span key={dep} style={{ background: "rgba(255,255,255,0.03)", padding: "2px 6px", borderRadius: "4px", fontSize: "9px", fontFamily: "var(--font-mono)" }}>
-                            {dep.split("/").pop()}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 5: Model Providers */}
-            <div className={`panel-section ${openSections.providers ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("providers")}>
-                <span>⚙️ Model Providers</span>
-                <span className="chevron"></span>
-              </div>
-              {openSections.providers && (
-                <div className="panel-section-content">
-                  {MOCK_PROVIDERS.map((provider) => (
-                    <div key={provider.name} className="kv-row">
-                      <span className="kv-key" style={{ fontWeight: provider.active ? "600" : "normal" }}>
-                        {provider.name}
-                      </span>
-                      <span className={`kv-val ${provider.active ? "active" : "inactive"}`}>
-                        {provider.ping}
+                  {runtimeModels.map((role) => (
+                    <div key={role.role} className="kv-row">
+                      <span className="kv-key">{role.role}</span>
+                      <span className="kv-val" title={`${role.providerName}: ${role.modelName}`}>
+                        {role.modelName}
                       </span>
                     </div>
                   ))}
+                  <button className="small-action-btn" onClick={() => { setSettingsModalTab("models"); setIsSettingsModalOpen(true); }}>
+                    Configure models
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Accordion 6: Connectors */}
-            <div className={`panel-section ${openSections.connectors ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("connectors")}>
-                <span>🔌 Account Connectors</span>
+            {orchestratorSession && (
+            <div className="panel-section open">
+              <div className="panel-section-header">
+                <span>Running Tasks</span>
                 <span className="chevron"></span>
               </div>
-              {openSections.connectors && (
-                <div className="panel-section-content">
-                  {MOCK_CONNECTORS.map((c) => (
-                    <div key={c.name} className="kv-row" style={{ flexDirection: "column", gap: "2px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontWeight: "500" }}>{c.name}</span>
-                        <span className={`kv-val ${c.status === "connected" ? "active" : "inactive"}`}>{c.status}</span>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-muted)" }}>
-                        <span>{c.account}</span>
-                        <span>{c.permissions}</span>
-                      </div>
-                    </div>
-                  ))}
+              <div className="panel-section-content">
+                <div className="kv-row">
+                  <span className="kv-key">Orchestrator</span>
+                  <span className="kv-val" style={{ color: "var(--accent-emerald)" }}>{orchestratorSession.status}</span>
                 </div>
-              )}
+                <div className="kv-row">
+                  <span className="kv-key">Active jobs</span>
+                  <span className="kv-val">{orchestratorSession.tasks?.filter((task: any) => task.status === "running").length || 0}</span>
+                </div>
+              </div>
             </div>
+            )}
 
-            {/* Accordion 7: Checkpoints */}
-            <div className={`panel-section ${openSections.checkpoints ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("checkpoints")}>
-                <span>🔐 System Checkpoints</span>
+            {notifications.length > 0 && (
+            <div className="panel-section open">
+              <div className="panel-section-header">
+                <span>Notifications</span>
                 <span className="chevron"></span>
               </div>
-              {openSections.checkpoints && (
-                <div className="panel-section-content">
-                  {MOCK_CHECKPOINTS.map((cp) => (
-                    <div key={cp.id} style={{ display: "flex", flexDirection: "column", borderBottom: "1px solid rgba(255,255,255,0.03)", paddingBottom: "6px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent-blue)" }}>{cp.id}</span>
-                        <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>{cp.timestamp.split(" ")[1]}</span>
-                      </div>
-                      <span style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>{cp.description}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 8: Logs */}
-            <div className={`panel-section ${openSections.logs ? "open" : ""}`}>
-              <div className="panel-section-header" onClick={() => toggleSection("logs")}>
-                <span>📄 Console Session Logs</span>
-                <span className="chevron"></span>
+              <div className="panel-section-content">
+                {notifications.map((notification: any) => (
+                  <div key={notification.id} style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "8px" }}>
+                    <strong style={{ color: "#fff" }}>{notification.title}</strong>
+                    <div>{notification.message}</div>
+                  </div>
+                ))}
               </div>
-              {openSections.logs && (
-                <div className="panel-section-content" style={{ maxHeight: "150px", overflowY: "auto", fontFamily: "var(--font-mono)", fontSize: "10px", padding: "10px" }}>
-                  {MOCK_LOGS.map((log, i) => (
-                    <div key={i} style={{ marginBottom: "4px", color: log.includes("Error") ? "var(--accent-rose)" : "var(--text-secondary)" }}>
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-
+            )}
           </div>
         </aside>
       )}
+      <SettingsModal 
+        isOpen={isSettingsModalOpen} 
+        onClose={() => {
+          setIsSettingsModalOpen(false);
+          void loadRuntimeModels();
+        }} 
+        initialTab={settingsModalTab} 
+      />
     </div>
   );
 }

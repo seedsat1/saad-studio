@@ -1,0 +1,146 @@
+[
+  {
+    "timestamp": 1782666900334,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\locales\\uk.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\locales\\uk.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900361,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\locales\\ur.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\locales\\ur.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900372,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\locales\\vi.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\locales\\vi.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900379,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\locales\\zh-CN.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\locales\\zh-CN.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900389,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\locales\\zh-TW.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\locales\\zh-TW.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900398,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\resources.pak",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\resources.pak"
+    ]
+  },
+  {
+    "timestamp": 1782666900405,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\snapshot_blob.bin",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\snapshot_blob.bin"
+    ]
+  },
+  {
+    "timestamp": 1782666900420,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\v8_context_snapshot.bin",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\v8_context_snapshot.bin"
+    ]
+  },
+  {
+    "timestamp": 1782666900428,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\vk_swiftshader.dll",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\vk_swiftshader.dll"
+    ]
+  },
+  {
+    "timestamp": 1782666900439,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\vk_swiftshader_icd.json",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\vk_swiftshader_icd.json"
+    ]
+  },
+  {
+    "timestamp": 1782666900547,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\vulkan-1.dll",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\vulkan-1.dll"
+    ]
+  },
+  {
+    "timestamp": 1782666905293,
+    "type": "File change detected",
+    "description": "Classified: documentation | Impact: low | File: saad-agent\\release-composer-mcp\\win-unpacked\\LICENSE.electron.txt",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\LICENSE.electron.txt"
+    ]
+  },
+  {
+    "timestamp": 1782666905381,
+    "type": "File change detected",
+    "description": "Classified: dependencies | Impact: high | File: saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\package.json",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\package.json"
+    ]
+  },
+  {
+    "timestamp": 1782666905499,
+    "type": "File change detected",
+    "description": "Classified: assets | Impact: low | File: saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\resources\\icon.ico",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\resources\\icon.ico"
+    ]
+  },
+  {
+    "timestamp": 1782666905767,
+    "type": "File change detected",
+    "description": "Classified: assets | Impact: low | File: saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\resources\\icon.png",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\resources\\app.asar\\resources\\icon.png"
+    ]
+  },
+  {
+    "timestamp": 1782666905947,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\electron.exe",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\electron.exe"
+    ]
+  },
+  {
+    "timestamp": 1782666910125,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\Saad Agent.exe",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\Saad Agent.exe"
+    ]
+  },
+  {
+    "timestamp": 1782666915006,
+    "type": "File change detected",
+    "description": "Classified: source code | Impact: medium | File: saad-agent\\release-composer-mcp\\win-unpacked\\Saad Agent.exe",
+    "relatedFiles": [
+      "saad-agent\\release-composer-mcp\\win-unpacked\\Saad Agent.exe"
+    ]
+  }
+]

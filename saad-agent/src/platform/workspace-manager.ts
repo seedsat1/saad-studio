@@ -113,23 +113,6 @@ export class WorkspaceManager {
         return { valid: false, error: "Selected path is not a directory." };
       }
 
-      // Check workspace footprint (must have package.json or .git folder)
-      const packageJsonExists = await fs
-        .access(path.join(normalizedPath, "package.json"))
-        .then(() => true)
-        .catch(() => false);
-      const gitDirExists = await fs
-        .access(path.join(normalizedPath, ".git"))
-        .then(() => true)
-        .catch(() => false);
-
-      if (!packageJsonExists && !gitDirExists) {
-        return {
-          valid: false,
-          error: "Directory is not a valid project (missing package.json or .git).",
-        };
-      }
-
       return { valid: true };
     } catch (err: any) {
       return { valid: false, error: err.message || "Directory is not accessible." };

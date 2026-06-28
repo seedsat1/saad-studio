@@ -1,5 +1,68 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Saad Agent Settings Management Center behavior (2026-06-28)
+
+- Settings is the central management center for the packaged Saad Agent desktop app. It is not a cosmetic preferences dialog.
+- Permanent main interface scope is limited to productivity: Chat, Workspace, Attachments, Running Tasks, Current Models, and Notifications.
+- Provider, SDK, MCP, diagnostics, memory, security, backup, execution, connector, and advanced configuration must live inside Settings instead of remaining permanently visible in the main chat workspace.
+- Settings navigation uses grouped desktop-app information architecture inspired by Cursor, VS Code, JetBrains IDEs, Claude Desktop, and Figma: Application, AI Runtime, Engineering, Creative, Operations, and System.
+- Required Settings sections are: General, Workspace, Models, Providers, Agents, Skills, Tools, Connectors, MCP, Creative AI, Vision, Knowledge & Memory, Execution, Security, Backups, Diagnostics, and Advanced.
+- Providers management must support add, remove, edit, enable/disable, test connection, health status, API key, endpoint URL, organization, default provider, priority order, and fallback provider. Supported visible providers include Ollama, LM Studio, OpenAI, Anthropic, Gemini, OpenRouter, and Saad Studio.
+- Models are configured independently by role: Coding Model, Vision Model, Reviewer Model, and Fast Model. Each role stores provider, model name, temperature, max tokens, context window, streaming, timeout, and retry count.
+- Current implementation is UI-state based for the redesign pass; persistence should later route through `SettingsManager` and encrypted secret storage.
+
+## Saad Agent Agent SDK, Plugin SDK & MCP Integration behavior (2026-06-28)
+
+- Phase 22 transforms Saad Agent into an extensible platform without modifying core code.
+- Public `BaseAgentSDK` (`saad-agent/src/sdk/agent-sdk.ts`) exposes standard metadata and lifecycle hooks (`initialize`, `activate`, `deactivate`, `execute`, `dispose`).
+- `PluginSDK` (`saad-agent/src/sdk/plugin-sdk.ts`) enforces sandboxed permission validation (`filesystem.read/write`, `network.read/write`, `provider.use`, `connector.use`, `workspace.modify`).
+- `MCPClient` (`saad-agent/src/sdk/mcp-client.ts`) implements Model Context Protocol integration for discovering local/remote MCP servers, tools, and resources without executing remote code without explicit user approval.
+- `ExtensionRegistry` (`saad-agent/src/sdk/extension-registry.ts`) manages dynamic extension points for custom agents, skills, connectors, creative providers, and tools with state toggling.
+- UI renders an interactive `ExtensionsPanel` in the right engineering sidebar featuring Installed Extensions and Discovered MCP Servers.
+
+## Saad Agent Windows Packaging & Release Hardening behavior (2026-06-28)
+
+- Phase 21 prepares Saad Agent for Windows desktop distribution (`Saad Agent.exe`) using `electron-builder` with NSIS installer and portable targets.
+- Production boot flow (`StartupManager`) sequentially loads settings, restores crash/workspace snapshots, and initializes skills/connectors with safe recovery fallbacks.
+- Diagnostics bundle exporter (`DiagnosticsExporter`) exports structured JSON archives (`.saad-agent/exports/`) with automatic secret/token redaction (`[REDACTED_SECRET]`).
+- Auto-updater architecture (`AutoUpdaterPlaceholder`) provides offline mock interfaces for update checking and downloads.
+- Release hardening maintains strict IPC isolation (`contextIsolation: true`, `nodeIntegration: false`) and zero credential leaks.
+
+## Saad Agent Production Platform & Engineering Standards behavior (2026-06-28)
+
+- Phase 20 establishes permanent Engineering Standards (`saad-agent/src/standards/`) governing coding conventions, UI guidelines, architecture boundaries, code review checklists, user preferences, and non-negotiable decision policies (never modify `.env`, mandatory checkpoints).
+- Production Platform infrastructure (`saad-agent/src/production/`) includes `CrashRecoveryManager` (automatic state snapshot restoration), local `DiagnosticsService` (OS, Node/Python runtimes, memory, connector health), structured `Logger` (exportable JSON logs), `BackupManager` (`.saad-agent/backups/`), `SettingsManager`, and real-time `PerformanceMonitor` (CPU, memory, context tokens).
+- Security & Approval enforcement: Production mode strictly preserves explicit user approval workflows, checkpoint rollbacks, and secret isolation in encrypted connector storage.
+- UI renders an interactive `ProductionPanel` in the right engineering sidebar featuring Diagnostics, Metrics, Standards, and Backup management tabs.
+
+## Saad Agent Skills System & Domain Expertise Layer behavior (2026-06-28)
+
+- Phase 19 introduces a modular Skills System (`saad-agent/src/skills/`) loading domain expertise guidelines dynamically without prompt bloat.
+- `SkillRegistry` manages 12 initial built-in engineering skills (TypeScript, React, Next.js, Electron, Python, FFmpeg, Supabase, Backblaze B2, Vercel, Creative Design, Prompt Engineering, Adobe Premiere CEP).
+- Matching is performed dynamically via task keywords and affected file patterns (`matchSkillsForTask`). Matched skill guidelines are automatically injected into the `ContextEngine` RAG context candidates as high-priority candidates.
+- Security and control constraints: Skills contain purely static engineering guidelines and domain rules; they never store credentials or execute code directly. Tool execution remains strictly governed by the Orchestrator.
+- UI renders a compact `SkillsPanel` in the right engineering sidebar displaying available skills, active task matches, confidence percentages, and activation reasons.
+
+## Saad Agent Creative AI & Product Integration behavior (2026-06-28)
+
+- Phase 18 introduces a modular Creative AI Engine (`saad-agent/src/creative/`) and Saad Studio product integration supporting text-to-image and placeholders for image-to-image, editing, and storyboarding.
+- Provider interface (`CreativeProvider`) supports `local`, `saad_studio`, and future cloud types. `SaadStudioCreativeProvider` connects via first-party internal API shapes with safe mock fallback when unconfigured.
+- Strict explicit user approval is mandatory before any generation job starts. Uncontrolled paid API calls, auto-spending credits, auto-publishing, and code deployment are strictly blocked.
+- Generated assets are stored locally under `.saad-agent/attachments/generated/` with complete JSON metadata tracking (asset ID, prompt, model, seed, resolution, local path, timestamp, and cost).
+- EventBus dispatches: `CreativePlanCreated`, `GenerationApprovalRequired`, `GenerationStarted`, `GenerationProgressUpdated`, `GenerationCompleted`, `GenerationFailed`, and `GeneratedAssetStored`.
+- UI renders interactive chat cards for Creative Plan, Generation Approval, Progress, and Generated Assets.
+
+## Saad Agent Context Engine & RAG behavior (2026-06-28)
+
+- Phase 17 adds a read-only Context Engine used before planner/reasoning execution. The pipeline is: user request -> workspace analysis -> knowledge search -> engineering memory search -> dependency search -> architecture search -> attachment search -> context ranking -> token budget -> Reasoning Engine.
+- Retrieval sources are `.saad-agent/knowledge/architecture.json`, `.saad-agent/knowledge/dependency-graph.json`, `.saad-agent/knowledge/project-summary.json`, Engineering Memory decisions/failures/successes/knowledge records, selected source files, attachment metadata, workspace statistics, and recent modification events.
+- The implementation is split under `saad-agent/src/context/`: `context-engine.ts`, `retrieval-engine.ts`, `semantic-search.ts`, `ranking-engine.ts`, `token-optimizer.ts`, and `context-types.ts`. `platform/services/context-engine.ts` remains the compatibility service used by Electron IPC and Planner.
+- Ranking includes filename/title similarity, symbol matches, dependency relationships, semantic token overlap, previous engineering decisions, task history, recent modifications, and workspace scope.
+- Token optimization must not exceed the selected model/context limit. It preserves architecture, decision/failure/success memory, and dependency context first, trimming preserved high-priority content only when needed.
+- Security filtering excludes `.env`, credentials, API keys, tokens, cookies, private keys, encrypted secret storage, and paths/files whose names indicate secrets. Memory content is scrubbed before storage and context assembly.
+- The UI shows Context cards for retrieved files, engineering memory matches, previous decisions, previous failures, previous successes, architecture references, dependency references, token usage, compression summary, and ranking examples. It must not expose internal prompts.
+- Project memory writes use sequential atomic JSON saves with short retries to avoid transient Windows file-lock failures while updating `.saad-agent/knowledge`.
+
 ## Admin provider balance monitor behavior (2026-06-27)
 
 - `/admin` reads supplier balance/cost cards from `/api/admin/provider-balances`.
@@ -361,3 +424,86 @@
 - بعد التطبيق، يجب إعادة فحص النسخة الناتجة وإنتاج تقرير يحتوي: اسم/معرف الأصل، اسم/معرف النسخة، عدد الإزاحات، عدد المقاطع المحركة، أكبر انحراف قبل/بعد، التحذيرات، والـ blockers.
 - إذا كانت المقاطع متزامنة مسبقاً ضمن السماحية، تنشأ نسخة أيضاً وتعود الحالة `already-synced` بدون تعديل الأصل.
 - لا تعتبر العملية ناجحة إنتاجياً إذا فشل إنشاء النسخة، أو فشل تنشيطها، أو لم يثبت التحقق النهائي أن أكبر انحراف بعد التطبيق ضمن السماحية.
+
+## Saad Agent Settings Runtime Wiring (2026-06-28)
+
+- Settings is now a functional management center, not a static preferences mock. The approved sections remain unchanged, but each visible section must either save real data, manage runtime behavior, or stay developer-gated until implementation.
+- `SettingsManager` owns the persisted application schema under `.saad-agent/settings.json`. Provider records store metadata only: id, name, type, endpoint URL, organization, enabled flag, default flag, priority, fallback provider, health status, latency, last tested timestamp, and `apiKeySecretRef`.
+- Provider API keys are never written to Settings JSON. Secrets are stored through encrypted secret storage under the runtime `.saad-agent/secrets/` area and Settings keeps only the reference id.
+- Model role configuration for Coding, Vision, Reviewer, and Fast is applied at runtime by `ReasoningEngine` and `ModelClient`. The applied values include provider, model name, temperature, max output tokens, streaming, timeout, and retry count.
+- Context window is not a user-editable Settings value. It is displayed as detected/read-only model metadata and should be refreshed by provider/model discovery logic in future work.
+- Provider Test Connection must call the backend and perform a real request to the provider models endpoint. The UI displays online/offline, latency, error, and last-tested timestamp from that backend result.
+- Domain Skills is now a Skill Manager. Built-in skills may be viewed and enabled/disabled but cannot be deleted. Custom skills may be created, imported from JSON/folder manifests, edited, saved, removed, and reloaded.
+- Custom skill manifests are data-only. Reject manifests containing credential-like fields, executable code markers, unsafe commands, direct filesystem write behavior, or secrets.
+- Disabled skills must not be matched by `SkillRegistry.matchSkillsForTask`; therefore the Context Engine cannot inject disabled skill guidance into retrieved context.
+
+## Saad Agent Chat Layout Overflow Rule (2026-06-28)
+
+- The desktop chat viewport must not create horizontal movement. Chat, input, message, card, and attachment containers should use `min-width: 0`, `max-width: 100%`, and horizontal overflow guards where needed.
+- Vision reports and other tables must wrap inside the card using fixed table layout or equivalent responsive behavior instead of widening the conversation column.
+- Uploaded screenshots and sent attachment previews must scale down to the available message width.
+- On narrow windows, side panels may be hidden and chat/input padding reduced to preserve a stable single-column conversation area.
+## Saad Agent Settings product honesty update (2026-06-28)
+
+- The packaged desktop app must expose Settings runtime APIs through the CJS preload file copied by the build script. `preload.ts` and `preload.cjs` must stay functionally aligned for Settings IPC.
+- Settings pages must not display fake management data. If a backend bridge, registry, or discovery source is unavailable, the page must show an explicit unavailable/empty state.
+- Model role controls use labeled responsive fields. Provider dropdowns are populated only from persisted provider configuration, and context window remains read-only detected metadata.
+- Built-in skills are viewable and can be enabled or disabled, but their manifest fields are read-only in Settings. Custom skills remain editable/importable/removable after validation.
+- MCP Settings must show registered/discovered MCP servers and tools only. Demo seeded servers/tools are not allowed in the product UI; an empty registry is shown as an honest empty state.
+## Saad Agent Settings unwired-section rule (2026-06-28)
+
+- Production Settings navigation must not expose sections whose controls only persist JSON without changing runtime behavior.
+- Unwired sections must stay hidden from the normal Settings sidebar until each section has backend/runtime integration and verification tests.
+- Creative AI must not be presented as production-ready while providers generate placeholder assets.
+- Vision, Knowledge, Execution, Security, Tools, Connectors, Backups, Diagnostics, and Advanced settings require verified runtime consumers before returning to the production Settings UI.
+## Saad Agent Models management production workflow (2026-06-28)
+
+- Models Settings must be provider-driven. Users should not manually type model ids for configured providers.
+- Provider defaults must always be available and merged with persisted user settings: LM Studio, Ollama, OpenAI, Anthropic, Gemini, OpenRouter, and Saad Studio.
+- LM Studio and OpenAI-compatible providers use `GET /v1/models` for discovery. The discovered list is stored on the provider record with model count, last discovery timestamp, latency, last successful connection, and optional context-window metadata.
+- Model role selection for Coding, Vision, Reviewer, and Fast must use discovered model choices. Context window remains detected/read-only.
+- The Models page must expose Test Connection and Discover / Fetch Models and show live provider health, latency, last successful connection, and discovered model count.
+- `ReasoningEngine` must consume the selected persisted role/provider/model from `SettingsManager`, and `ModelClient` must tolerate local OpenAI-compatible providers that reject `response_format` by retrying without it.
+- Verified runtime on the local test machine: LM Studio at `http://127.0.0.1:1234/v1` returned 6 models; Coding was persisted as `lm-studio` / `qwen/qwen3-coder-30b`; a real inference request returned valid JSON.
+## Saad Agent main interface product honesty rule (2026-06-28)
+
+- The desktop main interface must not render mock conversations, fake model names, static maintenance chats, static orchestration status, or static provider-management notifications as production data.
+- The main interface is limited to productivity surfaces: Chat, active Workspace, Attachments, real Running Tasks, real Current Models, and real Notifications.
+- Current Models must be read from persisted `SettingsManager` model role/provider configuration via the Electron settings bridge. If no real model configuration is available, the card is hidden.
+- Running Tasks and Multi-Agent content must be hidden unless real runtime session/agent data exists.
+- Project intelligence, diagnostics, provider management, MCP, memory, backup, advanced controls, and other engineering internals belong in Settings or diagnostics views, not permanently in the main workspace.
+## Saad Agent chat viewport hard horizontal lock (2026-06-28)
+
+- The desktop chat viewport must never move horizontally or expose a horizontal scrollbar.
+- Message rows must account for fixed avatar width plus gap; the content column should not use `max-width: 100%` in a way that makes avatar + gap + content exceed the viewport.
+- Engineering cards, analysis grids, plan steps, code/diff previews, images, tables, attachment previews, and input controls must remain inside the available chat width.
+- Wide text and code should wrap inside cards. Production chat should prefer wrapping/clipping over horizontal scrolling.
+## Saad Agent Settings visible-controls honesty rule (2026-06-28)
+
+- Production Settings must not expose user-facing fields that only persist JSON without complete runtime behavior.
+- The General preferences page is hidden until theme switching, localization, and startup behavior are implemented and verified end to end.
+- Opening Settings with a General target should route to the first real production settings module, currently Workspace.
+- Persisted schema compatibility may remain internal, but hidden fields must not appear in the product UI.
+## Saad Agent Settings modal scrolling behavior (2026-06-28)
+
+- Settings is a fixed desktop modal, but long management pages must remain fully usable on smaller windows.
+- The modal must be constrained to the viewport and must not clip Models, Skills, Providers, or other long pages.
+- The content pane owns vertical scrolling; grid and flex parents must use `minHeight: 0`/`minmax(0, 1fr)` so Electron does not expand content beyond the visible window.
+- Settings pages should not require horizontal movement or hidden off-screen controls to reach Save, Reload, model role fields, or skill details.
+## Saad Agent MCP Manager behavior (2026-06-28)
+
+- MCP Settings is a production MCP Manager, not a placeholder registry view.
+- MCP servers are persisted in `SettingsManager` with transport, command/endpoint, args, cwd, non-secret env vars, enabled state, auto-start, auto-reconnect, permissions, health metadata, discovered tools/resources/prompts, and communication logs.
+- Discovery must run the MCP JSON-RPC sequence for enabled servers: `initialize`, `tools/list`, `resources/list`, `prompts/list`.
+- STDIO MCP servers are launched as hidden child processes and communicate over JSON-RPC lines. HTTP/SSE entries are treated as JSON-RPC HTTP endpoints for this implementation.
+- The UI must support Add MCP Server, Test Connection before save, Configure, Enable/Disable, Restart, Remove, tool permission modes (`Always Allow`, `Ask Every Time`, `Never Allow`), resource inspection, prompt listing, health status, and logs.
+- LM Studio is not an MCP server and must never be managed from MCP Settings. It belongs in Settings -> Providers with endpoint, API key if needed, Test Connection, Fetch Models, and model role assignment.
+- MCP environment variables in Settings must not contain API keys, tokens, passwords, cookies, credentials, or secrets. Secret-like values are rejected.
+## Saad Agent Composer behavior (2026-06-28)
+
+- The chat composer is the runtime command center for active work, while Settings remains the permanent configuration center.
+- Composer runtime selections may include active provider/model, workspace, agent, skill, MCP tool, and quick action. These are temporary and must not overwrite Settings.
+- The text box starts as a single-line input and grows upward only because of typed text. It keeps fixed width, caps around 250-300px, then uses internal scrolling.
+- Attachments must not increase composer height. Images, PDFs, videos, documents, and folders appear as compact chips or thumbnails above the composer.
+- Image attachments use small thumbnails only; large previews belong in message history or a separate preview, not inside the input height.
+- The composer must remain anchored at the bottom and must not create horizontal movement.

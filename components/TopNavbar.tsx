@@ -334,8 +334,9 @@ const EDIT_TOOL_MAP: Record<string, string> = {
 };
 
 function imageFeatureHref(label: string): string {
-  if (label === "Prompt") return "/gallery";
+  if (label === "Prompt") return "/prompt";
   if (label === "Prompt Extractor") return "/prompt-extractor";
+  if (label === "Cinema Studio Image 2.0") return "/cinema-studio";
 
   const editToolsMap: Record<string, string> = {
     Relight: "relight",
