@@ -1,0 +1,74 @@
+[
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:44:44.130Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:44:44.346Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:44:44.597Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:46:48.439Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:46:48.879Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:46:49.441Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:47:25.002Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:47:25.074Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:47:25.142Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:53:14.478Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:53:14.772Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T19:53:15.073Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  }
+]

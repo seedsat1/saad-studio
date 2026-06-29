@@ -1,0 +1,98 @@
+[
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:44:44.480Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:44:44.727Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:46:49.055Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:46:49.604Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:47:25.095Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:47:25.161Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:53:14.928Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T19:53:15.091Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      }
+    ]
+  }
+]

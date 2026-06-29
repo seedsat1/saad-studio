@@ -23,12 +23,69 @@ export interface KnowledgeVectorIndex {
   chunks: KnowledgeChunkRecord[];
 }
 
+export type TrainingKnowledgeCategory =
+  | "books"
+  | "maps"
+  | "diagrams"
+  | "screenshots"
+  | "api-docs"
+  | "project-docs"
+  | "ui-references"
+  | "code-examples"
+  | "lessons";
+
+export interface TrainingKnowledgeRegistryItem {
+  id: string;
+  fileName: string;
+  filePath: string;
+  type: string;
+  category: TrainingKnowledgeCategory;
+  summary: string;
+  tags: string[];
+  addedDate: string;
+  indexedStatus: "indexed" | "skipped" | "failed";
+  chunkCount: number;
+  embeddingStatus: "indexed" | "metadata-only" | "skipped" | "failed";
+  lastUsedDate: string | null;
+}
+
+export interface TrainingKnowledgeRegistry {
+  version: 1;
+  generatedAt: string;
+  items: TrainingKnowledgeRegistryItem[];
+}
+
+export interface TrainingKnowledgeMatch {
+  item: TrainingKnowledgeRegistryItem;
+  chunks: KnowledgeChunkRecord[];
+}
+
+export interface PreAnswerReviewResult {
+  diagnostics: string;
+  finalContext: string;
+  knowledgeMatches: TrainingKnowledgeMatch[];
+  skillsLoaded: string[];
+  projectContextLoaded: boolean;
+  noKnowledgeNotice: string | null;
+}
+
 export class KnowledgeIngestionService {
   private static readonly MAX_FILES = 350;
   private static readonly MAX_FILE_BYTES = 512 * 1024;
   private static readonly MAX_CHUNKS = 900;
   private static readonly CHUNK_TOKENS = 450;
   private static readonly VECTOR_DIMENSIONS = 256;
+  private static readonly TRAINING_CATEGORIES: TrainingKnowledgeCategory[] = [
+    "books",
+    "maps",
+    "diagrams",
+    "screenshots",
+    "api-docs",
+    "project-docs",
+    "ui-references",
+    "code-examples",
+    "lessons"
+  ];
 
   static async search(workspacePath: string, query: string, limit = 6): Promise<KnowledgeChunkRecord[]> {
     const index = await this.loadOrBuildIndex(workspacePath);
@@ -39,6 +96,165 @@ export class KnowledgeIngestionService {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map((entry) => entry.chunk);
+  }
+
+  static async ensureTrainingFolders(workspacePath: string): Promise<string[]> {
+    const createdOrVerified: string[] = [];
+    for (const category of this.TRAINING_CATEGORIES) {
+      const folder = path.join(workspacePath, ".saad-agent", "training", category);
+      await fs.mkdir(folder, { recursive: true });
+      createdOrVerified.push(path.relative(workspacePath, folder).replace(/\\/g, "/"));
+    }
+    await fs.mkdir(path.join(workspacePath, ".saad-agent", "knowledge"), { recursive: true });
+    return createdOrVerified;
+  }
+
+  static async ingestTrainingKnowledge(workspacePath: string): Promise<TrainingKnowledgeRegistry> {
+    await this.ensureTrainingFolders(workspacePath);
+    const trainingRoot = path.join(workspacePath, ".saad-agent", "training");
+    const files = await SemanticSearch.listFilesRecursive(trainingRoot, this.MAX_FILES).catch(() => []);
+    const previous = await this.loadRegistry(workspacePath);
+    const previousByPath = new Map(previous.items.map((item) => [item.filePath, item]));
+    const items: TrainingKnowledgeRegistryItem[] = [];
+    const index = await this.loadOrBuildIndex(workspacePath);
+    const trainingChunks = new Map<string, KnowledgeChunkRecord[]>();
+
+    index.chunks = index.chunks.filter((chunk) => {
+      const normalized = chunk.sourcePath.replace(/\\/g, "/");
+      return !normalized.startsWith(".saad-agent/training/");
+    });
+
+    for (const filePath of files) {
+      const rel = path.relative(workspacePath, filePath).replace(/\\/g, "/");
+      const category = this.trainingCategoryFromPath(rel);
+      if (!category) continue;
+      if (SemanticSearch.isSensitiveFile(rel)) {
+        await this.appendLog(workspacePath, "ingestion-log.json", {
+          event: "training-file-skipped-sensitive",
+          filePath: rel,
+          timestamp: new Date().toISOString()
+        });
+        continue;
+      }
+      const stat = await fs.stat(filePath).catch(() => null);
+      if (!stat) continue;
+      const extension = path.extname(filePath).toLowerCase().replace(".", "") || "unknown";
+      if (stat.size > this.MAX_FILE_BYTES) {
+        const previousItem = previousByPath.get(rel);
+        items.push(this.registryItem(rel, category, extension, "File skipped because it exceeds the safe indexing size limit.", [], "skipped", 0, "skipped", previousItem?.lastUsedDate || null, previousItem?.addedDate));
+        continue;
+      }
+
+      const extracted = await this.extractTrainingText(filePath, rel, category);
+      const text = EngineeringMemory.scrubSecrets(extracted.text).trim();
+      const summary = this.summarizeTrainingText(text, rel, category, extracted.metadataOnly);
+      const chunks = text ? TokenManager.chunkText(text, this.CHUNK_TOKENS).filter((chunk) => chunk.trim()) : [];
+      const tags = this.inferTags(rel, category, summary);
+      const previousItem = previousByPath.get(rel);
+      const registryItem = this.registryItem(
+        rel,
+        category,
+        extension,
+        summary,
+        tags,
+        "indexed",
+        chunks.length,
+        extracted.metadataOnly ? "metadata-only" : "indexed",
+        previousItem?.lastUsedDate || null,
+        previousItem?.addedDate
+      );
+      items.push(registryItem);
+      const records = chunks.map((content, indexNumber) => {
+        const trimmed = content.trim();
+        return {
+          id: this.chunkId(rel, indexNumber, trimmed),
+          sourcePath: rel,
+          sourceType: "file" as const,
+          title: `${rel}#${indexNumber + 1}`,
+          content: trimmed,
+          hash: this.hash(trimmed),
+          vector: this.embed(`${registryItem.fileName} ${registryItem.category} ${registryItem.tags.join(" ")} ${trimmed}`),
+          tokensEstimate: TokenManager.estimateTokens(trimmed),
+          updatedAt: new Date(stat.mtimeMs).toISOString()
+        };
+      });
+      trainingChunks.set(rel, records);
+      index.chunks.push(...records);
+    }
+
+    index.generatedAt = new Date().toISOString();
+    index.chunks = index.chunks.slice(0, this.MAX_CHUNKS);
+    await this.writeIndex(workspacePath, index);
+
+    const registry: TrainingKnowledgeRegistry = {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      items: items.sort((a, b) => a.filePath.localeCompare(b.filePath))
+    };
+    await this.writeRegistry(workspacePath, registry);
+    await this.appendLog(workspacePath, "ingestion-log.json", {
+      event: "training-ingestion-completed",
+      timestamp: registry.generatedAt,
+      filesIndexed: registry.items.filter((item) => item.indexedStatus === "indexed").length,
+      chunksIndexed: Array.from(trainingChunks.values()).reduce((sum, records) => sum + records.length, 0)
+    });
+    return registry;
+  }
+
+  static async searchTrainingKnowledge(workspacePath: string, query: string, limit = 6): Promise<TrainingKnowledgeMatch[]> {
+    const registry = await this.ingestTrainingKnowledge(workspacePath);
+    const chunks = await this.search(workspacePath, query, Math.max(limit * 3, 12));
+    const byPath = new Map(registry.items.map((item) => [item.filePath, item]));
+    const matchesByPath = new Map<string, KnowledgeChunkRecord[]>();
+
+    for (const chunk of chunks) {
+      if (!chunk.sourcePath.replace(/\\/g, "/").startsWith(".saad-agent/training/")) continue;
+      const list = matchesByPath.get(chunk.sourcePath) || [];
+      list.push(chunk);
+      matchesByPath.set(chunk.sourcePath, list);
+    }
+
+    if (matchesByPath.size < limit) {
+      const queryTokens = this.queryTokens(query);
+      const scoredItems = registry.items
+        .map((item) => ({ item, score: this.registryScore(item, queryTokens) }))
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score);
+      for (const entry of scoredItems) {
+        if (matchesByPath.size >= limit) break;
+        if (!matchesByPath.has(entry.item.filePath)) {
+          matchesByPath.set(entry.item.filePath, []);
+        }
+      }
+    }
+
+    const now = new Date().toISOString();
+    const matches: TrainingKnowledgeMatch[] = [];
+    for (const [filePath, matchedChunks] of matchesByPath) {
+      const item = byPath.get(filePath);
+      if (!item) continue;
+      item.lastUsedDate = now;
+      matches.push({ item, chunks: matchedChunks });
+      if (matches.length >= limit) break;
+    }
+
+    if (matches.length > 0) {
+      await this.writeRegistry(workspacePath, {
+        ...registry,
+        generatedAt: new Date().toISOString()
+      });
+    }
+    await this.appendLog(workspacePath, "retrieval-log.json", {
+      event: "training-knowledge-searched",
+      timestamp: now,
+      query: EngineeringMemory.scrubSecrets(query).slice(0, 500),
+      matches: matches.map((match) => ({
+        filePath: match.item.filePath,
+        summary: match.item.summary,
+        chunks: match.chunks.length
+      }))
+    });
+    return matches;
   }
 
   static async upsertVisionSummary(workspacePath: string, localPath: string, summary: string): Promise<void> {
@@ -68,7 +284,8 @@ export class KnowledgeIngestionService {
     const roots = [
       path.join(workspacePath, "docs"),
       path.join(workspacePath, ".saad-agent", "knowledge"),
-      path.join(workspacePath, ".saad-agent", "memory")
+      path.join(workspacePath, ".saad-agent", "memory"),
+      path.join(workspacePath, ".saad-agent", "training")
     ];
 
     for (const root of roots) {
@@ -138,6 +355,124 @@ export class KnowledgeIngestionService {
     if (SemanticSearch.isSensitiveFile(relPath)) return false;
     if (lower.includes("/node_modules/") || lower.includes("/.git/") || lower.includes("/dist/") || lower.includes("/build/")) return false;
     return /\.(md|txt|json|ts|tsx|js|jsx|css|html)$/i.test(relPath);
+  }
+
+  private static async loadRegistry(workspacePath: string): Promise<TrainingKnowledgeRegistry> {
+    const registryPath = path.join(workspacePath, ".saad-agent", "knowledge", "registry.json");
+    try {
+      const raw = await fs.readFile(registryPath, "utf8");
+      const parsed = JSON.parse(raw) as TrainingKnowledgeRegistry;
+      if (parsed.version === 1 && Array.isArray(parsed.items)) return parsed;
+    } catch {}
+    return { version: 1, generatedAt: new Date().toISOString(), items: [] };
+  }
+
+  private static async writeRegistry(workspacePath: string, registry: TrainingKnowledgeRegistry): Promise<void> {
+    const registryPath = path.join(workspacePath, ".saad-agent", "knowledge", "registry.json");
+    await fs.mkdir(path.dirname(registryPath), { recursive: true });
+    await fs.writeFile(registryPath, JSON.stringify(registry, null, 2), "utf8");
+  }
+
+  private static registryItem(
+    rel: string,
+    category: TrainingKnowledgeCategory,
+    extension: string,
+    summary: string,
+    tags: string[],
+    indexedStatus: TrainingKnowledgeRegistryItem["indexedStatus"],
+    chunkCount: number,
+    embeddingStatus: TrainingKnowledgeRegistryItem["embeddingStatus"],
+    lastUsedDate: string | null,
+    addedDate?: string
+  ): TrainingKnowledgeRegistryItem {
+    return {
+      id: `training:${this.hash(rel)}`,
+      fileName: path.basename(rel),
+      filePath: rel,
+      type: extension,
+      category,
+      summary: EngineeringMemory.scrubSecrets(summary),
+      tags,
+      addedDate: addedDate || new Date().toISOString(),
+      indexedStatus,
+      chunkCount,
+      embeddingStatus,
+      lastUsedDate
+    };
+  }
+
+  private static trainingCategoryFromPath(rel: string): TrainingKnowledgeCategory | null {
+    const normalized = rel.replace(/\\/g, "/");
+    const prefix = ".saad-agent/training/";
+    if (!normalized.startsWith(prefix)) return null;
+    const category = normalized.slice(prefix.length).split("/")[0] as TrainingKnowledgeCategory | undefined;
+    return category && this.TRAINING_CATEGORIES.includes(category) ? category : null;
+  }
+
+  private static async extractTrainingText(filePath: string, rel: string, category: TrainingKnowledgeCategory): Promise<{ text: string; metadataOnly: boolean }> {
+    const extension = path.extname(filePath).toLowerCase();
+    if (/\.(md|txt|json|ts|tsx|js|jsx|css|html)$/i.test(extension)) {
+      const raw = await fs.readFile(filePath, "utf8").catch(() => "");
+      return { text: raw, metadataOnly: false };
+    }
+    if (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(extension)) {
+      return {
+        text: `Visual training item in ${category}: ${path.basename(rel)}. Use the vision pipeline to inspect this screenshot, diagram, or map when it matches the task.`,
+        metadataOnly: true
+      };
+    }
+    if (extension === ".pdf") {
+      return {
+        text: `PDF training item in ${category}: ${path.basename(rel)}. Text extraction requires a PDF extractor; metadata is indexed until readable text is available.`,
+        metadataOnly: true
+      };
+    }
+    return {
+      text: `Training item in ${category}: ${path.basename(rel)}.`,
+      metadataOnly: true
+    };
+  }
+
+  private static summarizeTrainingText(text: string, rel: string, category: TrainingKnowledgeCategory, metadataOnly: boolean): string {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) return `Empty training item in ${category}: ${path.basename(rel)}.`;
+    const clipped = normalized.slice(0, 260);
+    return metadataOnly ? clipped : clipped + (normalized.length > clipped.length ? "..." : "");
+  }
+
+  private static inferTags(rel: string, category: TrainingKnowledgeCategory, summary: string): string[] {
+    const words = `${rel} ${category} ${summary}`
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}_-]+/gu, " ")
+      .split(/\s+/)
+      .filter((word) => word.length > 2 && !this.looksSecret(word));
+    return Array.from(new Set([category, ...words])).slice(0, 14);
+  }
+
+  private static queryTokens(query: string): string[] {
+    return query
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}_-]+/gu, " ")
+      .split(/\s+/)
+      .filter((token) => token.length > 2 && !this.looksSecret(token));
+  }
+
+  private static registryScore(item: TrainingKnowledgeRegistryItem, queryTokens: string[]): number {
+    const haystack = `${item.fileName} ${item.filePath} ${item.category} ${item.summary} ${item.tags.join(" ")}`.toLowerCase();
+    return queryTokens.reduce((score, token) => score + (haystack.includes(token) ? 1 : 0), 0);
+  }
+
+  private static async appendLog(workspacePath: string, fileName: string, entry: Record<string, unknown>): Promise<void> {
+    const logPath = path.join(workspacePath, ".saad-agent", "knowledge", fileName);
+    await fs.mkdir(path.dirname(logPath), { recursive: true });
+    let list: unknown[] = [];
+    try {
+      const raw = await fs.readFile(logPath, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) list = parsed;
+    } catch {}
+    list.push(entry);
+    await fs.writeFile(logPath, JSON.stringify(list.slice(-200), null, 2), "utf8");
   }
 
   private static embed(text: string): Record<string, number> {

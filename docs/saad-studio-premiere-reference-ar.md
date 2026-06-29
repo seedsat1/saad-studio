@@ -506,6 +506,7 @@
 - The text box starts as a single-line input and grows upward only because of typed text. It keeps fixed width, caps around 250-300px, then uses internal scrolling.
 - Attachments must not increase composer height. Images, PDFs, videos, documents, and folders appear as compact chips or thumbnails above the composer.
 - Image attachments use small thumbnails only; large previews belong in message history or a separate preview, not inside the input height.
+- Queued image attachments in the composer must not show persistent filename/size details inside the prompt box. They render as thumbnail-only items with a remove control; metadata may remain available through hover/title or sent-message history.
 - The composer must remain anchored at the bottom and must not create horizontal movement.
 - Queued attachments may render inside the prompt box as compact fixed-size previews when the user explicitly wants inline prompt context. They must remain bounded and must not create horizontal movement.
 - The composer must not expose a microphone/voice control unless real voice input is implemented. Upload controls should render with stable text/icon assets that do not depend on fragile emoji glyphs.
@@ -564,3 +565,41 @@
 - `SettingsManager` migrates legacy workspace `.saad-agent/settings.json` into the global settings root when the global file does not exist.
 - Provider form edits use an explicit `Save Provider` action. Test Connection, Set Default, Add, Remove, Discover Models, and API key save remain backend operations.
 - API keys still use encrypted secret references only; Provider JSON stores metadata and `apiKeySecretRef`, never raw secrets.
+
+## Saad Agent Training Knowledge and Pre-Answer Review (2026-06-29)
+
+- The agent supports a dedicated training knowledge folder at `.saad-agent/training/` with these enforced subfolders:
+  - `books/`
+  - `maps/`
+  - `diagrams/`
+  - `screenshots/`
+  - `api-docs/`
+  - `project-docs/`
+  - `ui-references/`
+  - `code-examples/`
+  - `lessons/`
+- Training knowledge is stored as retrieval memory, not model fine-tuning. The agent does not modify model weights.
+- `KnowledgeIngestionService` scans the training folders, extracts readable text for text/code/Markdown/JSON files, chunks and indexes the content into `.saad-agent/knowledge/vector-index.json`, and maintains `.saad-agent/knowledge/registry.json`.
+- `ProjectIntelligenceService` watches `.saad-agent/training/` as a special allowed `.saad-agent` path and re-runs training ingestion when training files are added, modified, or deleted.
+- Registry entries include file name, type, category, summary, tags, added date, indexed status, chunk count, embedding status, and last used date.
+- Image, screenshot, diagram, map, and PDF files are registered safely as metadata-only until a real OCR, vision summary, or PDF extractor provides readable text. The system must not pretend OCR happened when it did not.
+- `PreAnswerReviewService` is the mandatory direct-chat gate before model invocation:
+  - Detect intent.
+  - Load conversation/request context available to the backend.
+  - Load project rules from `AGENTS.md` and `PROJECT_CONTEXT.md`.
+  - Load ADR/decision context from Engineering Memory.
+  - Search training knowledge.
+  - Search the existing project Context Engine separately in the direct chat path.
+  - Load matching enabled skills.
+  - Build the final context.
+  - Then call the configured model.
+- Direct chat replies must show compact diagnostics before the answer:
+  - `Memory: loaded`
+  - `Training Knowledge: searched`
+  - `Knowledge matches: X`
+  - `Skills: loaded`
+  - `Project context: loaded/skipped`
+  - `Final context built: yes`
+- If no training file matches, chat must explicitly say: `No matching trained knowledge found. Answering from model knowledge only.`
+- Asking what trained knowledge was used should return the matched files and summaries from the registry/retrieval result.
+- Sensitive files and secret-looking values remain excluded or scrubbed. `.env`, credentials, API keys, tokens, cookies, passwords, encrypted secret storage, and secret-like values must not be stored in registry, logs, diagnostics, or retrieved context.

@@ -1,0 +1,1 @@
+Provider X requires endpoint /v1/generate and header x-provider-key.

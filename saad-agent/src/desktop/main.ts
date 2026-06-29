@@ -19,6 +19,7 @@ import { SDKService } from "../platform/services/sdk.js";
 import { SettingsManager } from "../production/settings-manager.js";
 import { CONFIG } from "../config.js";
 import { ReasoningEngine } from "../platform/services/reasoning-engine.js";
+import { PreAnswerReviewService } from "../platform/services/pre-answer-review.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -126,9 +127,23 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
 
 ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName }) => {
   try {
+    const activeWorkspace = workspacePath || CONFIG.PROJECT_ROOT;
+    const preAnswerReview = await PreAnswerReviewService.review(prompt, activeWorkspace);
+    if (/what trained knowledge did you use|ما(?:ذا)? المعرفة المدربة|ما المعرفة التي استخدمت|أي معرفة مدربة/i.test(prompt || "")) {
+      return {
+        success: true,
+        response: [
+          PreAnswerReviewService.formatUserVisiblePrefix(preAnswerReview),
+          "",
+          "Trained knowledge used:",
+          PreAnswerReviewService.formatKnowledgeUsageReport(preAnswerReview)
+        ].join("\n")
+      };
+    }
+
     const context = await ContextEngine.retrieveContext(
       prompt,
-      workspacePath || CONFIG.PROJECT_ROOT,
+      activeWorkspace,
       4096
     ).catch(() => null);
     const contextSummary = context?.items?.slice(0, 6).map((item) => {
@@ -140,19 +155,29 @@ ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectNa
       systemPrompt: [
         "You are Saad Agent, a practical AI engineering assistant.",
         "Reply directly to the user in the user's language.",
+        "Every answer must obey the Mandatory Pre-Answer Review Context before using model knowledge.",
         "Use the retrieved workspace context when useful.",
+        "Use matched trained knowledge when it applies. If it conflicts with model knowledge, prefer trained knowledge.",
         "Do not claim that you changed files unless an execution tool actually changed files.",
         "If a provider/model/runtime problem prevents completion, explain the exact problem."
       ].join("\n"),
       userPrompt: [
-        `Project: ${projectName || path.basename(workspacePath || CONFIG.PROJECT_ROOT)}`,
+        `Project: ${projectName || path.basename(activeWorkspace)}`,
+        preAnswerReview.finalContext,
         "Retrieved workspace context:",
         contextSummary,
         "User request:",
         prompt
       ].join("\n\n")
     });
-    return { success: true, response: response.rawResponse };
+    return {
+      success: true,
+      response: [
+        PreAnswerReviewService.formatUserVisiblePrefix(preAnswerReview),
+        "",
+        response.rawResponse
+      ].join("\n")
+    };
   } catch (err: any) {
     return { success: false, error: err.message || "Chat completion failed." };
   }

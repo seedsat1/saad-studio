@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-29T19:53:15.091Z",
+  "items": [
+    {
+      "id": "training:97ef4f0e",
+      "fileName": "provider-test.md",
+      "filePath": ".saad-agent/training/api-docs/provider-test.md",
+      "type": "md",
+      "category": "api-docs",
+      "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+      "tags": [
+        "api-docs",
+        "saad-agent",
+        "training",
+        "provider-test",
+        "provider",
+        "requires",
+        "endpoint",
+        "generate",
+        "and",
+        "header",
+        "x-provider-key"
+      ],
+      "addedDate": "2026-06-29T19:46:49.220Z",
+      "indexedStatus": "indexed",
+      "chunkCount": 1,
+      "embeddingStatus": "indexed",
+      "lastUsedDate": "2026-06-29T19:53:15.091Z"
+    },
+    {
+      "id": "training:e7a5c68e",
+      "fileName": "test-rule.md",
+      "filePath": ".saad-agent/training/lessons/test-rule.md",
+      "type": "md",
+      "category": "lessons",
+      "summary": "All new pages must include Loading State, Error State, and Empty State.",
+      "tags": [
+        "lessons",
+        "saad-agent",
+        "training",
+        "test-rule",
+        "all",
+        "new",
+        "pages",
+        "must",
+        "include",
+        "loading",
+        "state",
+        "error",
+        "and",
+        "empty"
+      ],
+      "addedDate": "2026-06-29T19:46:49.222Z",
+      "indexedStatus": "indexed",
+      "chunkCount": 1,
+      "embeddingStatus": "indexed",
+      "lastUsedDate": "2026-06-29T19:53:14.928Z"
+    }
+  ]
+}

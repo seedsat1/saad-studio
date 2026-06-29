@@ -533,15 +533,21 @@ const VOICE_CATALOG=[
 
 const MY_VOICES_KEY='ff_my_voices_v1';
 const VPM_FAV_KEY='ff_vpm_favs_v1';
+const VPM_CACHE_KEY='ff_vpm_cache_v2';
 let _vmFavs=new Set(JSON.parse(localStorage.getItem(VPM_FAV_KEY)||'[]'));
 let _vmSelectedId='21m00Tcm4TlvDq8ikWAM';
 let _vmActiveCat='All';
 let _vmActiveTab='all';
 let _vmGenderFilter='';
 let _vmLangFilter='';
-const _vmPreviewCache={};
+let _vmPreviewCache=(()=>{try{return JSON.parse(localStorage.getItem(VPM_CACHE_KEY)||'{}');}catch{return{};}})();
 let _vmPlayingId=null;
 let _vmPreviewAudio=null;
+
+function loadMyVoices(){try{return JSON.parse(localStorage.getItem(MY_VOICES_KEY)||'[]');}catch{return[];}}
+function saveMyVoices(l){localStorage.setItem(MY_VOICES_KEY,JSON.stringify(l));}
+function saveVmFavs(){localStorage.setItem(VPM_FAV_KEY,JSON.stringify([..._vmFavs]));}
+function saveVmPreviewCache(){try{localStorage.setItem(VPM_CACHE_KEY,JSON.stringify(_vmPreviewCache));}catch{}}
 
 function loadMyVoices(){try{return JSON.parse(localStorage.getItem(MY_VOICES_KEY)||'[]');}catch{return[];}}
 function saveMyVoices(l){localStorage.setItem(MY_VOICES_KEY,JSON.stringify(l));}
@@ -586,17 +592,43 @@ function toggleFavFilter(){
 function toggleVmFav(id,ev){ev.stopPropagation();if(_vmFavs.has(id))_vmFavs.delete(id);else _vmFavs.add(id);saveVmFavs();updateVmFavCount();renderVmGrid();}
 function updateVmFavCount(){const el=document.getElementById('vmFavCount');if(el)el.textContent=_vmFavs.size>0?_vmFavs.size:'';}
 
-function previewVmVoice(id,name,ev){
+async function previewVmVoice(id,name,ev){
   ev.stopPropagation();
   if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
   _vmPreviewAudio?.pause();_vmPlayingId=null;
-  const cleanId=id.replace(/^gemini:/,'');
-  const url=_vmPreviewCache[id]||(String(id).startsWith('gemini:')?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
-  _vmPreviewCache[id]=url;_vmPlayingId=id;renderVmGrid();
-  _vmPreviewAudio=new Audio(url);
-  _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
-  _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();};
-  _vmPreviewAudio.play().catch(()=>{_vmPlayingId=null;renderVmGrid();});
+  _vmPlayingId=id;renderVmGrid();
+  try{
+    const cleanId=id.replace(/^gemini:/,'');
+    const cacheKey=String(id).startsWith('gemini:')?`gemini:${cleanId}`:id;
+    let url=_vmPreviewCache[cacheKey]||_vmPreviewCache[id];
+    if(!url){
+      if(String(id).startsWith('gemini:')){
+        setStatus(`Generating ${name} preview...`,'info');
+        const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+          actionType:'tts',
+          model:'gemini-3.1-flash-tts-preview',
+          text:'مرحبا، هذا اختبار قصير للصوت العربي في سعد ستوديو.',
+          voice:cleanId,
+          language_code:'ar'
+        })});
+        const json=await res.json();
+        if(!res.ok)throw new Error(json?.error||json?.message||`Preview error (${res.status})`);
+        url=studioMediaUrl(json?.audioUrl||json?.url||'');
+        if(!url)throw new Error('No preview audio URL returned');
+      }else{
+        url=`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`;
+      }
+      _vmPreviewCache[cacheKey]=url;
+      _vmPreviewCache[id]=url;
+      saveVmPreviewCache();
+    }
+    _vmPreviewAudio=new Audio(studioMediaUrl(url));
+    _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
+    _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Voice preview failed.','err');};
+    await _vmPreviewAudio.play();
+  }catch(error){
+    _vmPlayingId=null;renderVmGrid();
+  }
 }
 
 function renderVmGrid(){

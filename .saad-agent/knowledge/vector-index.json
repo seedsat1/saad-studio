@@ -1,7 +1,7 @@
 {
   "version": 1,
   "workspacePath": "E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main",
-  "generatedAt": "2026-06-29T15:54:55.104Z",
+  "generatedAt": "2026-06-29T19:53:15.039Z",
   "chunks": [
     {
       "id": "knowledge:ff57ac71",
@@ -25739,6 +25739,59 @@
       },
       "tokensEstimate": 42,
       "updatedAt": "2026-06-29T01:33:07.093Z"
+    },
+    {
+      "id": "knowledge:aa3cad4",
+      "sourcePath": ".saad-agent/training/api-docs/provider-test.md",
+      "sourceType": "file",
+      "title": ".saad-agent/training/api-docs/provider-test.md#1",
+      "content": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+      "hash": "bef3259f",
+      "vector": {
+        "23": 1,
+        "55": 1,
+        "56": 1,
+        "57": 2,
+        "85": 2,
+        "96": 2,
+        "123": 1,
+        "124": 2,
+        "133": 1,
+        "146": 1,
+        "166": 2,
+        "169": 1,
+        "188": 2,
+        "242": 1
+      },
+      "tokensEstimate": 17,
+      "updatedAt": "2026-06-29T19:53:14.358Z"
+    },
+    {
+      "id": "knowledge:d6b9bdd1",
+      "sourcePath": ".saad-agent/training/lessons/test-rule.md",
+      "sourceType": "file",
+      "title": ".saad-agent/training/lessons/test-rule.md#1",
+      "content": "All new pages must include Loading State, Error State, and Empty State.",
+      "hash": "ee81d254",
+      "vector": {
+        "8": 1,
+        "17": 2,
+        "40": 2,
+        "55": 1,
+        "56": 1,
+        "81": 2,
+        "103": 2,
+        "166": 2,
+        "183": 2,
+        "196": 2,
+        "209": 1,
+        "223": 2,
+        "230": 1,
+        "238": 2,
+        "246": 5
+      },
+      "tokensEstimate": 18,
+      "updatedAt": "2026-06-29T19:53:14.347Z"
     }
   ]
 }

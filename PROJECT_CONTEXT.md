@@ -1,4 +1,36 @@
 # Saad Studio — Project Context
+## Latest task: Implement persistent automatic caching for voice sample previews (2026-06-29)
+
+- Status:
+  Updated `previewVmVoice` in `public/stude/sound.html` and `stude/sound.html` so that when a user previews a voice for the first time, it generates the preview audio sample once and automatically persists the returned audio URL into `localStorage` (`_vmPreviewCache` under key `ff_vpm_cache_v2`). On all subsequent preview clicks or future sessions, the saved audio sample loads and plays instantly from storage without generating again or hitting the API.
+- Affected files:
+  - `public/stude/sound.html`
+  - `stude/sound.html`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Verified compilation and typechecking passes successfully with 0 errors using `npx tsc --noEmit`.
+- Findings:
+  - Persisting generated preview URLs into `localStorage` ensures that generated samples are saved once per voice and replayed immediately on future visits.
+- Decisions:
+  - Use `ff_vpm_cache_v2` in `localStorage` to retain voice preview audio URLs permanently across browser sessions.
+
+## Latest task: Saad Agent composer image attachment preview compacting (2026-06-29)
+
+- Status:
+  Fixed the chat composer queued image preview so uploaded images render as compact thumbnails only, without showing filename or file size inside the prompt box. Non-image files still show a compact metadata card. The image metadata remains available through the hover title, but it no longer consumes composer space or makes the input area feel oversized.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `npm.cmd run build` in `saad-agent` passed.
+- Findings:
+  - Image attachments were using the same preview card layout as documents, including visible name and size, which made the composer larger than needed.
+- Decisions:
+  - Image attachments in the composer should be visual-only thumbnails with a small remove control. Details belong in hover metadata or sent-message history, not permanently inside the prompt box.
+
 ## Latest task: Create dedicated `/api/voice-sample` route for streaming authentic Gemini voice timber samples (2026-06-29)
 
 - Status:
@@ -4798,3 +4830,46 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Providers and Models are application runtime configuration and must persist in the Electron app data root, not as per-workspace project files.
   - Workspace-specific skills can still use the workspace `.saad-agent/skills` directory.
   - Use an explicit `Save Provider` action for provider form fields.
+
+# Saad Agent mandatory training knowledge review (2026-06-29)
+
+- Status:
+  Implemented the requested Training Knowledge and Pre-Answer Review backend path without adding UI. `.saad-agent/training/` is now enforced with dedicated category subfolders, training files are ingested into `.saad-agent/knowledge/registry.json`, training chunks are added to the existing deterministic vector index, and direct chat answers now run a mandatory review before the model is called. The model receives the built review context, and chat replies are prefixed with compact diagnostics.
+- Affected files:
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts`
+  - `saad-agent/src/platform/services/project-intelligence.ts`
+  - `saad-agent/src/platform/services/pre-answer-review.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/test-training-knowledge.ts`
+  - `.saad-agent/training/lessons/test-rule.md`
+  - `.saad-agent/training/api-docs/provider-test.md`
+  - `.saad-agent/knowledge/registry.json`
+  - `.saad-agent/knowledge/ingestion-log.json`
+  - `.saad-agent/knowledge/retrieval-log.json`
+  - `.saad-agent/knowledge/vector-index.json`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-training-knowledge.js` passed.
+  - `node dist/test-knowledge-ingestion.js` passed.
+  - `node dist/test-context-engine.js` passed.
+- Test results:
+  - Test A passed: `.saad-agent/training/lessons/test-rule.md` was retrieved for `Create a new page.` and the final context included Loading State, Error State, and Empty State.
+  - Test B passed: `.saad-agent/training/api-docs/provider-test.md` was retrieved for `Add Provider X.` and the final context included `/v1/generate` and `x-provider-key`.
+  - Test C passed: `PreAnswerReviewService.formatKnowledgeUsageReport` lists matched trained knowledge files and summaries.
+- Behavior:
+  - Chat diagnostics show `Memory`, `Training Knowledge`, `Knowledge matches`, `Skills`, `Project context`, and `Final context built`.
+  - If no trained knowledge matches, the reply includes: `No matching trained knowledge found. Answering from model knowledge only.`
+  - Asking what trained knowledge was used returns the matched registry entries instead of a generic model answer.
+  - Workspace change scanning no longer ignores `.saad-agent/training/`; training file additions, modifications, and deletions trigger a training knowledge re-index while the rest of `.saad-agent` remains ignored.
+- Decisions:
+  - Keep the feature as retrieval-augmented training memory, not model-weight fine-tuning.
+  - Reuse the existing local vector index to avoid adding dependencies or an external vector database.
+  - Index readable text directly; image/PDF files are registered as metadata-only until a real OCR/PDF extractor supplies readable text.
+  - Do not prefix diagnostics inside internal JSON planning calls; the mandatory user-visible review is applied to direct chat before model invocation so structured planner parsing is not broken.
+- Findings:
+  - The old index did not include `.saad-agent/training/` and had no registry/log layer for training files.
+  - Image/PDF training ingestion needs a future real OCR/PDF extraction pass for full content search.
+- Remaining:
+  - Add real PDF text extraction and OCR/vision summaries for image training assets when requested.

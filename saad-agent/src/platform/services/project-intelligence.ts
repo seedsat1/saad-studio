@@ -7,6 +7,7 @@ import { ProviderHealthMonitor } from "./health-monitor.js";
 import { RuntimeManager } from "../runtime/runtime-manager.js";
 import { ResourceManager } from "./resource-manager.js";
 import { CONFIG } from "../../config.js";
+import { KnowledgeIngestionService } from "./knowledge-ingestion.js";
 
 export interface ProjectHealthStatus {
   workspaceValid: boolean;
@@ -98,6 +99,8 @@ export class ProjectIntelligenceService {
   }
 
   private static isIgnored(filepath: string): boolean {
+    const normalized = filepath.replace(/\\/g, "/");
+    if (normalized.startsWith(".saad-agent/training/")) return false;
     const parts = filepath.split(path.sep);
     const ignoredDirs = ["node_modules", ".git", "dist", "build", ".next", ".saad-agent", "cache", "temp-test"];
     return parts.some((p) => ignoredDirs.includes(p));
@@ -163,6 +166,12 @@ export class ProjectIntelligenceService {
 
     if (added.length > 0 || modified.length > 0 || deleted.length > 0) {
       // 2. Incremental knowledge refresh
+      const trainingChanged = [...added, ...modified, ...deleted].some((file) =>
+        file.replace(/\\/g, "/").startsWith(".saad-agent/training/")
+      );
+      if (trainingChanged) {
+        await KnowledgeIngestionService.ingestTrainingKnowledge(rootDir).catch(() => undefined);
+      }
       EventBus.publish("WorkspaceChanged", { added, modified, deleted });
       EventBus.publish("KnowledgeUpdated", { timestamp: Date.now() });
 
