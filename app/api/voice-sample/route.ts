@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
 
 export const dynamic = "force-dynamic";
-
-const sampleCache = new Map<string, Buffer>();
-
-export function setSampleCache(voiceName: string, buffer: Buffer) {
-  const exact = Array.from(GOOGLE_GEMINI_TTS_VOICES).find(
-    (v) => v.toLowerCase() === voiceName.toLowerCase()
-  ) || voiceName;
-  sampleCache.set(exact, buffer);
-}
 
 const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
@@ -17,6 +11,31 @@ const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Laomedeia", "Achernar", "Alnilam", "Schedar", "Gacrux", "Pulcherrima", "Achird", "Zubenelgenubi",
   "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ]);
+
+const REGISTRY_PATH = path.join(process.cwd(), "public/stude/voice_samples_registry.json");
+
+export function getRegistry(): Record<string, string> {
+  try {
+    if (fs.existsSync(REGISTRY_PATH)) {
+      return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
+    }
+  } catch (e) {
+    console.error("Error reading registry:", e);
+  }
+  return {};
+}
+
+export function saveRegistry(registry: Record<string, string>) {
+  try {
+    const dir = path.dirname(REGISTRY_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(REGISTRY_PATH, JSON.stringify(registry, null, 2), "utf8");
+  } catch (e) {
+    console.error("Error writing registry:", e);
+  }
+}
 
 function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitsPerSample = 16): Buffer {
   const byteRate = (sampleRate * channels * bitsPerSample) / 8;
@@ -64,17 +83,14 @@ export async function GET(req: NextRequest) {
       (v) => v.toLowerCase() === rawName.toLowerCase()
     ) || "Sulafat";
 
-    if (sampleCache.has(exactVoice)) {
-      const cachedBuffer = sampleCache.get(exactVoice)!;
-      return new NextResponse(new Uint8Array(cachedBuffer), {
-        status: 200,
-        headers: {
-          "Content-Type": "audio/wav",
-          "Cache-Control": "public, max-age=31536000, immutable",
-        },
-      });
+    // 1. Check persistent registry
+    const registry = getRegistry();
+    const storedUrl = registry[exactVoice];
+    if (storedUrl) {
+      return NextResponse.redirect(new URL(storedUrl, req.url));
     }
 
+    // 2. Generate if not found
     const apiKey =
       process.env.GOOGLE_AI_API_KEY ||
       process.env.GOOGLE_API_KEY ||
@@ -123,7 +139,21 @@ export async function GET(req: NextRequest) {
     const raw = Buffer.from(audio.data, "base64");
     const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
 
-    sampleCache.set(exactVoice, buffer);
+    // 3. Upload buffer to permanent storage
+    const uploadedUrl = await uploadBufferToStorage({
+      buffer,
+      contentType: "audio/wav",
+      userId: "admin_previews",
+      assetType: "audio",
+      generationId: `voice_sample_${exactVoice.toLowerCase()}`,
+      fileName: `sample_${exactVoice.toLowerCase()}.wav`,
+    });
+
+    if (uploadedUrl) {
+      registry[exactVoice] = uploadedUrl;
+      saveRegistry(registry);
+      return NextResponse.redirect(new URL(uploadedUrl, req.url));
+    }
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,

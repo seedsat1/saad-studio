@@ -1,11 +1,11 @@
 # Saad Studio — Project Context
-## Latest task: Synchronize Admin voice sample pre-rendering with subscriber audio studio (2026-06-30)
+## Latest task: Implement disk-based persistent cloud registry for voice samples (2026-06-30)
 
 - Status:
-  Connected `app/api/admin/voice-samples/route.ts` with `app/api/voice-sample/route.ts` via `setSampleCache`. When the Admin generates a voice sample from `/admin/voice-samples`, it immediately populates the server cache and permanent storage. All subscribers on `/audio` retrieve this exact pre-rendered audio sample directly without any on-the-fly generation or credit cost.
+  Updated `app/api/voice-sample/route.ts` and `app/api/admin/voice-samples/route.ts` with `voice_samples_registry.json`. Once a voice sample is generated (either by Admin or automatically on first request), it is uploaded to permanent cloud storage (B2) and registered on disk. Subsequent requests for that voice sample perform an instant HTTP 307 redirect directly to the public CDN storage URL, ensuring 0 AI calls, 0 server overhead, and 100% permanent lifetime caching.
 - Affected files:
-  - `app/api/admin/voice-samples/route.ts`
   - `app/api/voice-sample/route.ts`
+  - `app/api/admin/voice-samples/route.ts`
   - `PROJECT_CONTEXT.md`
 - Affected files:
   - `app/admin/voice-samples/page.tsx`

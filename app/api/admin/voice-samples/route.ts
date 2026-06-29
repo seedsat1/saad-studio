@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
-import { setSampleCache } from "@/app/api/voice-sample/route";
+import { getRegistry, saveRegistry } from "@/app/api/voice-sample/route";
 
 export const runtime = "nodejs";
 
@@ -152,8 +152,6 @@ export async function POST(req: NextRequest) {
     const raw = Buffer.from(audio.data, "base64");
     const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
 
-    setSampleCache(voiceId, buffer);
-
     const uploadedUrl = await uploadBufferToStorage({
       buffer,
       contentType: "audio/wav",
@@ -162,6 +160,12 @@ export async function POST(req: NextRequest) {
       generationId: `voice_sample_${voiceId.toLowerCase()}`,
       fileName: `sample_${voiceId.toLowerCase()}.wav`,
     });
+
+    if (uploadedUrl) {
+      const registry = getRegistry();
+      registry[voiceId] = uploadedUrl;
+      saveRegistry(registry);
+    }
 
     return NextResponse.json({
       success: true,
