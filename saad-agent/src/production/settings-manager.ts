@@ -231,7 +231,9 @@ export interface ManagedSkill {
 }
 
 export class SettingsManager {
-  private static settingsFile = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "settings.json");
+  private static settingsDir = () => process.env["SAAD_AGENT_SETTINGS_ROOT"] || path.join(CONFIG.PROJECT_ROOT, ".saad-agent");
+  private static settingsFile = () => path.join(this.settingsDir(), "settings.json");
+  private static legacyWorkspaceSettingsFile = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "settings.json");
   private static workspaceSkillsDir = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "skills");
   private static cachedSettings: AppSettings | null = null;
 
@@ -260,6 +262,7 @@ export class SettingsManager {
         { id: "gemini", name: "Gemini", type: "cloud", endpointUrl: "https://generativelanguage.googleapis.com/v1beta", enabled: false, isDefault: false, priority: 5, fallbackProvider: "openrouter", healthStatus: "unknown" },
         { id: "openrouter", name: "OpenRouter", type: "cloud", endpointUrl: "https://openrouter.ai/api/v1", enabled: false, isDefault: false, priority: 6, fallbackProvider: "lm-studio", healthStatus: "unknown" },
         { id: "saad-studio", name: "Saad Studio", type: "first_party", endpointUrl: "https://www.saadstudio.app/api/agent/v1", organization: "Saad Studio", enabled: false, isDefault: false, priority: 7, fallbackProvider: "lm-studio", healthStatus: "unknown" },
+        { id: "brave-answers", name: "Brave Answers", type: "cloud", endpointUrl: "https://api.search.brave.com/res/v1/web/search", enabled: true, isDefault: false, priority: 8, fallbackProvider: "lm-studio", healthStatus: "online", apiKeySecretRef: "provider:brave-answers:api-key" },
       ],
       models: {
         Coding: { role: "Coding", providerId: "lm-studio", modelName: CONFIG.ROLES.Coding, temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
@@ -431,6 +434,13 @@ export class SettingsManager {
   static async getSettings(): Promise<AppSettings> {
     if (this.cachedSettings) return this.cachedSettings;
     try {
+      if (!fsSync.existsSync(this.settingsFile())) {
+        const legacyPath = this.legacyWorkspaceSettingsFile();
+        if (legacyPath !== this.settingsFile() && fsSync.existsSync(legacyPath)) {
+          await fs.mkdir(path.dirname(this.settingsFile()), { recursive: true });
+          await fs.copyFile(legacyPath, this.settingsFile());
+        }
+      }
       const content = await fs.readFile(this.settingsFile(), "utf8");
       this.cachedSettings = this.mergeWithDefaults(JSON.parse(content));
       return this.cachedSettings!;
@@ -443,6 +453,13 @@ export class SettingsManager {
   static getSettingsSync(): AppSettings {
     if (this.cachedSettings) return this.cachedSettings;
     try {
+      if (!fsSync.existsSync(this.settingsFile())) {
+        const legacyPath = this.legacyWorkspaceSettingsFile();
+        if (legacyPath !== this.settingsFile() && fsSync.existsSync(legacyPath)) {
+          fsSync.mkdirSync(path.dirname(this.settingsFile()), { recursive: true });
+          fsSync.copyFileSync(legacyPath, this.settingsFile());
+        }
+      }
       const content = fsSync.readFileSync(this.settingsFile(), "utf8");
       this.cachedSettings = this.mergeWithDefaults(JSON.parse(content));
       return this.cachedSettings;
@@ -539,6 +556,67 @@ export class SettingsManager {
     return SecretsManager.getSecret(provider.apiKeySecretRef);
   }
 
+  private static normalizeProviderEndpoint(provider: ProviderSettings): string {
+    let endpoint = provider.endpointUrl.trim().replace(/\/+$/, "");
+    endpoint = endpoint.replace("http://localhost:", "http://127.0.0.1:");
+    if (provider.id === "lm-studio" && /^http:\/\/127\.0\.0\.1:1234$/i.test(endpoint)) {
+      endpoint = "http://127.0.0.1:1234/v1";
+    }
+    if (provider.id === "lm-studio" && !/\/v1$/i.test(endpoint) && /127\.0\.0\.1:1234/i.test(endpoint)) {
+      endpoint = `${endpoint}/v1`;
+    }
+    return endpoint;
+  }
+
+  private static buildProviderModelEndpoints(provider: ProviderSettings): string[] {
+    const base = this.normalizeProviderEndpoint(provider);
+    const endpoints: string[] = [];
+    const add = (endpoint: string) => {
+      if (!endpoints.includes(endpoint)) endpoints.push(endpoint);
+    };
+    const isLmStudio = provider.id === "lm-studio" || provider.name.toLowerCase().includes("lm studio");
+    if (isLmStudio) {
+      try {
+        const origin = new URL(base).origin;
+        add(`${origin}/api/v1/models`);
+        add(`${origin}/v1/models`);
+        add(`${origin}/models`);
+      } catch {
+        add(base.endsWith("/models") ? base : `${base}/models`);
+      }
+      return endpoints;
+    }
+    add(base.endsWith("/models") ? base : `${base}/models`);
+    return endpoints;
+  }
+
+  private static parseDiscoveredModels(payload: any): DiscoveredModel[] {
+    const rawModels = Array.isArray(payload?.data)
+      ? payload.data
+      : Array.isArray(payload?.models)
+        ? payload.models
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+    return rawModels
+      .map((item: any) => {
+        const id = String(item?.id || item?.name || item?.model || "").trim();
+        if (!id) return null;
+        const discovered: DiscoveredModel = {
+          id,
+          name: String(item?.name || item?.id || id),
+        };
+        const contextWindow = this.detectContextWindow(id, item);
+        if (contextWindow) discovered.contextWindow = contextWindow;
+        if (item?.owned_by) discovered.ownedBy = String(item.owned_by);
+        else if (item?.ownedBy) discovered.ownedBy = String(item.ownedBy);
+        if (typeof item?.created === "number") discovered.created = item.created;
+        return discovered;
+      })
+      .filter(Boolean) as DiscoveredModel[];
+  }
+
   private static async requestProviderModels(provider: ProviderSettings): Promise<{ models: DiscoveredModel[]; latencyMs: number }> {
     const start = Date.now();
     const apiKey = await this.getProviderApiKey(provider);
@@ -549,45 +627,30 @@ export class SettingsManager {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const base = provider.endpointUrl.replace(/\/$/, "");
-      const modelsEndpoint = base.endsWith("/models") ? base : `${base}/models`;
       const headers: Record<string, string> = { Accept: "application/json" };
       if (apiKey) {
         if (provider.id === "anthropic") headers["x-api-key"] = apiKey;
         else headers.Authorization = `Bearer ${apiKey}`;
       }
 
-      const response = await fetch(modelsEndpoint, { method: "GET", headers, signal: controller.signal });
-      const latencyMs = Date.now() - start;
-      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
-
-      const payload: any = await response.json();
-      const rawModels = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.models)
-          ? payload.models
-          : Array.isArray(payload)
-            ? payload
-            : [];
-
-      const models = rawModels
-        .map((item: any) => {
-          const id = String(item?.id || item?.name || item?.model || "").trim();
-          if (!id) return null;
-          const discovered: DiscoveredModel = {
-            id,
-            name: String(item?.name || item?.id || id),
-          };
-          const contextWindow = this.detectContextWindow(id, item);
-          if (contextWindow) discovered.contextWindow = contextWindow;
-          if (item?.owned_by) discovered.ownedBy = String(item.owned_by);
-          else if (item?.ownedBy) discovered.ownedBy = String(item.ownedBy);
-          if (typeof item?.created === "number") discovered.created = item.created;
-          return discovered;
-        })
-        .filter(Boolean) as DiscoveredModel[];
-
-      return { models, latencyMs };
+      let lastError: any;
+      for (const modelsEndpoint of this.buildProviderModelEndpoints(provider)) {
+        try {
+          const response = await fetch(modelsEndpoint, { method: "GET", headers, signal: controller.signal });
+          const latencyMs = Date.now() - start;
+          const text = await response.text();
+          const payload: any = text.trim() ? JSON.parse(text) : {};
+          if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          const models = this.parseDiscoveredModels(payload);
+          if (models.length === 0) {
+            throw new Error(`No models returned from ${modelsEndpoint}`);
+          }
+          return { models, latencyMs };
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error("No model discovery endpoints were available.");
     } catch (err: any) {
       if (err?.name === "AbortError") throw new Error("Connection timed out");
       throw err;
@@ -616,8 +679,9 @@ export class SettingsManager {
     const model = settings.models[role];
     const provider = settings.providers.find(p => p.id === model.providerId && p.enabled);
     if (!provider) throw new Error(`Enabled provider for ${role} model is not configured.`);
+    const runtimeProvider = { ...provider, endpointUrl: this.normalizeProviderEndpoint(provider) };
     const apiKey = await this.getProviderApiKey(provider);
-    return apiKey ? { model, provider, apiKey } : { model, provider };
+    return apiKey ? { model, provider: runtimeProvider, apiKey } : { model, provider: runtimeProvider };
   }
 
   static async testProviderConnection(providerId: string): Promise<ProviderSettings> {

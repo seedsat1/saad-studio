@@ -188,7 +188,8 @@
   "connectors": {},
   "mcp": {
     "enabled": true,
-    "allowedServers": []
+    "allowedServers": [],
+    "servers": []
   },
   "creative": {
     "enabled": true,

@@ -2,6 +2,8 @@ import { ReasoningEngine } from "./reasoning-engine.js";
 import { EventBus } from "./event-bus.js";
 import { CONFIG } from "../../config.js";
 import * as fs from "fs/promises";
+import { KnowledgeIngestionService } from "./knowledge-ingestion.js";
+import { EngineeringMemory } from "./engineering-memory.js";
 
 export interface VisionAnalysisResult {
   summary: string;
@@ -68,6 +70,19 @@ You must return a raw JSON object complying with the following schema:
         confidence: response.parsedJson.confidence || 0.8,
         relatedFilesIfAny: response.parsedJson.relatedFilesIfAny || []
       };
+
+      const durableSummary = [
+        `Summary: ${result.summary}`,
+        `Text detected: ${result.textDetected}`,
+        `Layout issues: ${result.layoutIssues.join("; ")}`,
+        `Design issues: ${result.designIssues.join("; ")}`,
+        `Recommended actions: ${result.recommendedActions.join("; ")}`
+      ].join("\n");
+      await KnowledgeIngestionService.upsertVisionSummary(
+        CONFIG.PROJECT_ROOT,
+        localPath,
+        EngineeringMemory.scrubSecrets(durableSummary)
+      ).catch(() => {});
 
       EventBus.publish("VisionAnalysisCompleted", { localPath, result });
       return result;

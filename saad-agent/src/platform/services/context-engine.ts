@@ -11,6 +11,7 @@ import { TokenOptimizer } from "../../context/token-optimizer.js";
 import { RetrievalEngine } from "../../context/retrieval-engine.js";
 import { SkillRegistry } from "../../skills/skill-registry.js";
 import type { ContextRetrievalResult, RankedContextCandidate } from "../../context/context-types.js";
+import { KnowledgeIngestionService } from "./knowledge-ingestion.js";
 
 export class ContextEngine {
   private static recentModifications: string[] = [];
@@ -159,6 +160,26 @@ export class ContextEngine {
           kind: "summary",
           reasons: [match.activationReason]
         });
+      }
+    } catch {}
+
+    // 3c. Retrieve persistent local knowledge chunks from the lightweight vector index.
+    try {
+      const knowledgeChunks = await KnowledgeIngestionService.search(workspacePath, query, 6);
+      for (const chunk of knowledgeChunks) {
+        candidates.push({
+          item: {
+            id: chunk.id,
+            source: "memory",
+            title: chunk.title,
+            content: `[Knowledge Source: ${chunk.sourcePath}]\n${chunk.content}`,
+            tokensEstimate: chunk.tokensEstimate
+          },
+          score: 55,
+          kind: "knowledge",
+          reasons: ["semantic vector similarity", "knowledge index"]
+        });
+        semanticIndexSummary.engineeringTopics += 1;
       }
     } catch {}
 

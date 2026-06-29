@@ -14,6 +14,75 @@ type RuntimeModelRole = {
   healthStatus?: string;
 };
 
+type Conversation = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  workspacePath?: string;
+  projectName?: string;
+  messages: Message[];
+  titleEdited?: boolean;
+};
+
+type MessageUpdater = Message[] | ((previous: Message[]) => Message[]);
+
+const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
+const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
+
+const createConversation = (messages: Message[] = [], title = "New Chat"): Conversation => {
+  const now = Date.now();
+  return {
+    id: `chat-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+    createdAt: now,
+    updatedAt: now,
+    messages,
+  };
+};
+
+const deriveConversationTitle = (messages: Message[]) => {
+  const firstUserMessage = messages.find((message) => message.sender === "user" && message.content.trim());
+  if (!firstUserMessage) return "New Chat";
+  const compact = firstUserMessage.content.replace(/\s+/g, " ").trim();
+  return compact.length > 42 ? `${compact.slice(0, 42)}...` : compact;
+};
+
+const loadConversationBootstrap = (defaultMessages: Message[]) => {
+  if (typeof window === "undefined") {
+    const fallback = createConversation(defaultMessages, deriveConversationTitle(defaultMessages));
+    return { conversations: [fallback], activeId: fallback.id };
+  }
+
+  try {
+    const stored = window.localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
+    const activeId = window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY);
+    const parsed = stored ? JSON.parse(stored) : null;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const conversations = parsed
+        .filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
+        .map((item) => ({
+          ...item,
+          title: typeof item.title === "string" && item.title.trim() ? item.title.trim() : deriveConversationTitle(item.messages),
+          createdAt: Number(item.createdAt) || Date.now(),
+          updatedAt: Number(item.updatedAt) || Date.now(),
+        })) as Conversation[];
+
+      if (conversations.length > 0) {
+        return {
+          conversations,
+          activeId: conversations.some((conversation) => conversation.id === activeId) ? (activeId as string) : conversations[0].id,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to load conversations", error);
+  }
+
+  const fallback = createConversation(defaultMessages, deriveConversationTitle(defaultMessages));
+  return { conversations: [fallback], activeId: fallback.id };
+};
+
 const quickActions = [
   "Generate Code",
   "Explain Code",
@@ -31,17 +100,24 @@ const quickActions = [
 
 const runtimeAgents = ["Coding", "Reviewer", "Vision", "Fast"];
 const runtimeSkills = ["Auto", "React", "TypeScript", "Next.js", "Electron", "Python", "FFmpeg"];
+void [quickActions, runtimeAgents, runtimeSkills];
 
 export default function App() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settingsModalTab, setSettingsModalTab] = useState<SettingsTab>("general");
-  const [messages, setMessages] = useState<Message[]>(() => ((window as any).electronAPI ? [] : MOCK_MESSAGES));
+  const defaultMessagesRef = useRef<Message[]>((window as any).electronAPI ? [] : MOCK_MESSAGES);
+  const conversationBootstrapRef = useRef(loadConversationBootstrap(defaultMessagesRef.current));
+  const [conversations, setConversations] = useState<Conversation[]>(conversationBootstrapRef.current.conversations);
+  const [activeConversationId, setActiveConversationId] = useState(conversationBootstrapRef.current.activeId);
+  const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [composerAction, setComposerAction] = useState("Generate Code");
   const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
+  void [composerAction, setComposerAction, activeRuntimeRole, setActiveRuntimeRole, activeRuntimeSkill, setActiveRuntimeSkill, activeMcpTool, setActiveMcpTool];
   const [workspacePath, setWorkspacePath] = useState("e:/موقع ثاني/next14 ai saas");
   const [projectName, setProjectName] = useState("next14-ai-saas");
   const [recentWorkspaces, setRecentWorkspaces] = useState<any[]>([]);
@@ -59,6 +135,46 @@ export default function App() {
       }
     >
   >({});
+  const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) || conversations[0];
+  const messages = activeConversation?.messages || [];
+
+  const updateConversationMessages = (
+    conversationId: string,
+    updater: MessageUpdater,
+    options: { preserveTitle?: boolean } = {}
+  ) => {
+    setConversations((previous) =>
+      previous.map((conversation) => {
+        if (conversation.id !== conversationId) return conversation;
+        const nextMessages = typeof updater === "function" ? updater(conversation.messages) : updater;
+        const title = conversation.titleEdited || options.preserveTitle
+          ? conversation.title
+          : deriveConversationTitle(nextMessages);
+        return {
+          ...conversation,
+          messages: nextMessages,
+          title,
+          updatedAt: Date.now(),
+          workspacePath,
+          projectName,
+        };
+      })
+    );
+  };
+
+  const setMessages = (updater: MessageUpdater) => {
+    if (!activeConversationId) return;
+    updateConversationMessages(activeConversationId, updater);
+  };
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+      window.localStorage.setItem(ACTIVE_CONVERSATION_STORAGE_KEY, activeConversationId);
+    } catch (error) {
+      console.warn("Failed to save conversations", error);
+    }
+  }, [conversations, activeConversationId]);
 
   useEffect(() => {
     if ((window as any).electronAPI && (window as any).electronAPI.onMenuNavigate) {
@@ -509,6 +625,7 @@ export default function App() {
   const [isDragActive, setIsDragActive] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -638,9 +755,133 @@ export default function App() {
     }
   };
 
+  const formatAttachmentSize = (bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getAttachmentKindLabel = (attachment: Attachment) => {
+    if (attachment.type === "image") return "Image";
+    if (attachment.type === "pdf") return "PDF";
+    if (attachment.type === "folder") return "Folder";
+    if (attachment.mimeType?.startsWith("video/")) return "Video";
+    if (attachment.mimeType?.startsWith("audio/")) return "Audio";
+    return "File";
+  };
+
+  const handleCopyMessage = async (message: Message) => {
+    const cardText = message.cardType ? `\n\n[${message.cardType}]` : "";
+    const attachmentText = message.attachments?.length
+      ? `\n\nAttachments:\n${message.attachments
+          .map((att) => `- ${att.name} (${getAttachmentKindLabel(att)}, ${formatAttachmentSize(att.size)})`)
+          .join("\n")}`
+      : "";
+    const text = `${message.content}${cardText}${attachmentText}`.trim();
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedMessageId(message.id);
+      window.setTimeout(() => setCopiedMessageId((current) => (current === message.id ? null : current)), 1400);
+    } catch {
+      setErrorMsg("Failed to copy message.");
+    }
+  };
+
+  const handleNewConversation = () => {
+    const nextConversation = {
+      ...createConversation([], `Chat ${conversations.length + 1}`),
+      workspacePath,
+      projectName,
+    };
+    setConversations((previous) => [nextConversation, ...previous]);
+    setActiveConversationId(nextConversation.id);
+    setRenamingConversationId(null);
+    setRenameValue("");
+    setInputValue("");
+    setAttachments([]);
+    setStatusMsg(null);
+    setErrorMsg(null);
+  };
+
+  const handleStartRenameConversation = (conversation: Conversation, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    setRenamingConversationId(conversation.id);
+    setRenameValue(conversation.title);
+  };
+
+  const handleCancelRenameConversation = () => {
+    setRenamingConversationId(null);
+    setRenameValue("");
+  };
+
+  const handleSaveRenameConversation = (conversationId: string) => {
+    const nextTitle = renameValue.trim();
+    if (!nextTitle) {
+      handleCancelRenameConversation();
+      return;
+    }
+
+    setConversations((previous) =>
+      previous.map((conversation) =>
+        conversation.id === conversationId
+          ? {
+              ...conversation,
+              title: nextTitle,
+              titleEdited: true,
+              updatedAt: Date.now(),
+            }
+          : conversation
+      )
+    );
+    handleCancelRenameConversation();
+  };
+
+  const handleDeleteConversation = (conversationId: string, event?: React.MouseEvent) => {
+    event?.stopPropagation();
+    const target = conversations.find((conversation) => conversation.id === conversationId);
+    const confirmed = window.confirm(`Delete conversation "${target?.title || "New Chat"}"?`);
+    if (!confirmed) return;
+
+    const remaining = conversations.filter((conversation) => conversation.id !== conversationId);
+    if (remaining.length === 0) {
+      const replacement = {
+        ...createConversation([], "New Chat"),
+        workspacePath,
+        projectName,
+      };
+      setConversations([replacement]);
+      setActiveConversationId(replacement.id);
+    } else {
+      setConversations(remaining);
+      if (activeConversationId === conversationId) {
+        setActiveConversationId(remaining[0].id);
+      }
+    }
+    handleCancelRenameConversation();
+  };
+
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim() && attachments.length === 0) return;
+    const targetConversationId = activeConversationId;
+    const appendMessageToConversation = (message: Message) =>
+      updateConversationMessages(targetConversationId, (prev) => [...prev, message]);
+    const removeMessageFromConversation = (messageId: string) =>
+      updateConversationMessages(targetConversationId, (prev) => prev.filter((message) => message.id !== messageId), {
+        preserveTitle: true,
+      });
     const activeModel = runtimeModels.find(model => model.role === activeRuntimeRole) || runtimeModels[0];
     const runtimeInstruction = [
       `Composer action: ${composerAction}`,
@@ -662,7 +903,7 @@ export default function App() {
       attachments: attachments.length > 0 ? attachments : undefined
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    appendMessageToConversation(userMsg);
     setInputValue("");
     setAttachments([]);
     setStatusMsg(null);
@@ -698,10 +939,10 @@ export default function App() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             content: `Analyzing screenshot "${imageAtt.filename}" using the Vision Provider...`,
           };
-          setMessages((prev) => [...prev, loaderMsg]);
+          appendMessageToConversation(loaderMsg);
 
           (window as any).electronAPI.analyzeImage(imageAtt.localPath, imageAtt.mimeType).then((res: any) => {
-            setMessages((prev) => prev.filter((m) => m.id !== agentMsgId));
+            removeMessageFromConversation(agentMsgId);
             const responseMsgId = `msg-agent-res-${Date.now()}`;
             if (res && res.success) {
               const findings = res.result.layoutIssues.map((issue: string, idx: number) => ({
@@ -727,7 +968,7 @@ export default function App() {
                   designIssues: res.result.designIssues,
                 }
               };
-              setMessages((prev) => [...prev, resultMsg]);
+              appendMessageToConversation(resultMsg);
             } else {
               const warningMsg: Message = {
                 id: responseMsgId,
@@ -735,7 +976,7 @@ export default function App() {
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 content: `Vision analysis failed or model provider is offline: ${res?.error || "Qwen2.5-VL Vision Model is currently unavailable."}`,
               };
-              setMessages((prev) => [...prev, warningMsg]);
+              appendMessageToConversation(warningMsg);
             }
           });
         }
@@ -747,25 +988,27 @@ export default function App() {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           content: "Successfully received and stored PDF attachment metadata. Full PDF content parsing and document analysis is marked as a future capability under our multimodal roadmap.",
         };
-        setMessages((prev) => [...prev, pdfMsg]);
+        appendMessageToConversation(pdfMsg);
       } else {
-        (window as any).electronAPI.orchestratorCreateSession(executionPrompt).then((res: any) => {
+        const loaderMsgId = `msg-agent-loading-${Date.now()}`;
+        appendMessageToConversation({
+          id: loaderMsgId,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          content: "Thinking with the active model...",
+        });
+
+        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName).then((res: any) => {
+          removeMessageFromConversation(loaderMsgId);
           const agentMsgId = `msg-agent-${Date.now()}`;
           if (res && res.success) {
-            setOrchestratorSession(res.session);
             const agentMsg: Message = {
               id: agentMsgId,
               sender: "agent",
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              content: `I have initialized an execution session and generated a task plan for your review:`,
-              cardType: "plan-approval",
-              cardData: {
-                sessionId: res.session.id,
-                plan: res.plan,
-                status: "awaiting_approval",
-              },
+              content: res.response || "The model returned an empty response.",
             };
-            setMessages((prev) => [...prev, agentMsg]);
+            appendMessageToConversation(agentMsg);
           } else {
             const errorAgentMsg: Message = {
               id: agentMsgId,
@@ -773,8 +1016,16 @@ export default function App() {
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               content: `Error generating plan: ${res?.error || "Unknown error occurred."}`,
             };
-            setMessages((prev) => [...prev, errorAgentMsg]);
+            appendMessageToConversation(errorAgentMsg);
           }
+        }).catch((err: any) => {
+          removeMessageFromConversation(loaderMsgId);
+          appendMessageToConversation({
+            id: `msg-agent-error-${Date.now()}`,
+            sender: "agent",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: `Chat request failed: ${err?.message || "Unknown IPC/runtime error."}`,
+          });
         });
       }
     } else {
@@ -813,7 +1064,7 @@ export default function App() {
             content: `I've received your request: "${userMsg.content}". (Browser Mock Response)`,
           };
         }
-        setMessages((prev) => [...prev, agentMsg]);
+        appendMessageToConversation(agentMsg);
       }, 1000);
     }
   };
@@ -1460,6 +1711,7 @@ export default function App() {
   const activeProviderName = activeComposerModel?.providerName || "Provider not set";
   const activeModelName = activeComposerModel?.modelName || "Model not set";
   const providerConnected = activeComposerModel?.healthStatus === "online";
+  void [activeProviderName, activeModelName, providerConnected];
 
   return (
     <div className="app-container" onDragOver={handleDrag} onDragEnter={handleDrag} onDragLeave={handleDrag} onDrop={handleDrop}>
@@ -1491,6 +1743,90 @@ export default function App() {
           <div className="project-box">
             <div className="project-title">{projectName}</div>
             <div className="project-path" title={workspacePath}>{workspacePath}</div>
+          </div>
+
+          <div className="section-label conversation-section-header">
+            <span>Conversations</span>
+            <button type="button" className="new-chat-btn" onClick={handleNewConversation}>
+              + New
+            </button>
+          </div>
+          <div className="conversation-list chat-pages-list">
+            {conversations.map((conversation) => {
+              const isRenaming = renamingConversationId === conversation.id;
+              const isActive = conversation.id === activeConversationId;
+              return (
+                <div
+                  key={conversation.id}
+                  className={`conversation-item chat-page-item ${isActive ? "active" : ""}`}
+                  onClick={() => {
+                    if (!isRenaming) {
+                      setActiveConversationId(conversation.id);
+                      handleCancelRenameConversation();
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !isRenaming) {
+                      setActiveConversationId(conversation.id);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  title={conversation.title}
+                >
+                  <span className="chat-page-icon">#</span>
+                  <span className="chat-page-text">
+                    {isRenaming ? (
+                      <input
+                        className="chat-title-input"
+                        value={renameValue}
+                        autoFocus
+                        onClick={(event) => event.stopPropagation()}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            handleSaveRenameConversation(conversation.id);
+                          }
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            handleCancelRenameConversation();
+                          }
+                        }}
+                        onBlur={() => handleSaveRenameConversation(conversation.id)}
+                      />
+                    ) : (
+                      <>
+                        <span className="chat-page-title">{conversation.title || "New Chat"}</span>
+                        <span className="chat-page-meta">
+                          {conversation.messages.length} message{conversation.messages.length === 1 ? "" : "s"}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  {!isRenaming && (
+                    <span className="chat-page-actions">
+                      <button
+                        type="button"
+                        className="chat-page-action-btn"
+                        onClick={(event) => handleStartRenameConversation(conversation, event)}
+                        title="Rename conversation"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="chat-page-action-btn danger"
+                        onClick={(event) => handleDeleteConversation(conversation.id, event)}
+                        title="Delete conversation"
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {recentWorkspaces.length > 0 && (
@@ -1761,6 +2097,17 @@ export default function App() {
                 <div className="message-meta">
                   <span className="message-sender">{msg.sender === "user" ? "Developer" : "Saad Agent"}</span>
                   <span className="message-time">{msg.timestamp}</span>
+                  <span className="message-actions">
+                    <button
+                      type="button"
+                      className="message-action-btn"
+                      onClick={() => handleCopyMessage(msg)}
+                      title="Copy message"
+                      aria-label="Copy message"
+                    >
+                      {copiedMessageId === msg.id ? "Copied" : "Copy"}
+                    </button>
+                  </span>
                 </div>
                 <div className="message-bubble">{msg.content}</div>
                 
@@ -1781,7 +2128,7 @@ export default function App() {
                           <span className="sent-pdf-icon">📄</span>
                           <div className="sent-pdf-info">
                             <span className="sent-pdf-name">{att.name}</span>
-                            <span className="sent-pdf-size">{(att.size / 1024).toFixed(1)} KB (PDF Placeholder)</span>
+                            <span className="sent-pdf-size">{formatAttachmentSize(att.size)}</span>
                           </div>
                         </div>
                       )
@@ -1819,12 +2166,6 @@ export default function App() {
             </div>
           )}
 
-          <div className="composer-context-row">
-            <button type="button" className="context-chip"><span>Workspace</span><strong>{projectName}</strong></button>
-            <button type="button" className="context-chip"><span>Provider</span><strong>{activeProviderName}</strong></button>
-            <button type="button" className="context-chip"><span>Model</span><strong>{activeModelName}</strong></button>
-            <button type="button" className="context-chip removable" onClick={() => setActiveRuntimeSkill("Auto")}><span>Skill</span><strong>{activeRuntimeSkill}</strong></button>
-          </div>
 
           <form onSubmit={handleSendMessage} className={`input-box-wrapper composer-shell ${isDragActive ? "drag-active" : ""}`}>
             {/* Hidden File Picker */}
@@ -1851,7 +2192,7 @@ export default function App() {
               onClick={() => fileInputRef.current?.click()}
               title="Add files, images, PDFs, videos, or documents"
             >
-              📎
+              +
             </button>
 
             <button
@@ -1908,33 +2249,6 @@ export default function App() {
               />
             </div>
 
-            <div className="composer-toolbar">
-              <div className="composer-toolbar-left">
-                <select className="composer-select action-select" value={composerAction} onChange={(e) => setComposerAction(e.target.value)}>
-                  {quickActions.map(action => <option key={action} value={action}>{action}</option>)}
-                </select>
-                <select className="composer-select" value={activeRuntimeRole} onChange={(e) => setActiveRuntimeRole(e.target.value)}>
-                  {runtimeAgents.map(agent => <option key={agent} value={agent}>{agent}</option>)}
-                </select>
-                <select className="composer-select" value={activeRuntimeSkill} onChange={(e) => setActiveRuntimeSkill(e.target.value)}>
-                  {runtimeSkills.map(skill => <option key={skill} value={skill}>{skill}</option>)}
-                </select>
-                <select className="composer-select" value={activeMcpTool} onChange={(e) => setActiveMcpTool(e.target.value)}>
-                  <option value="None">No MCP Tool</option>
-                  <option value="Filesystem">Filesystem</option>
-                  <option value="Git">Git</option>
-                  <option value="Browser">Browser</option>
-                  <option value="Playwright">Playwright</option>
-                </select>
-              </div>
-              <div className="composer-runtime-status">
-                <span className={`status-dot ${providerConnected ? "online" : ""}`} />
-                <span>{activeProviderName}</span>
-                <span>{activeModelName}</span>
-                <span>Context auto</span>
-                <span>{projectName}</span>
-              </div>
-            </div>
 
             <button type="submit" className="send-btn">
               <span>➔</span>

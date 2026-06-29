@@ -20,26 +20,32 @@
       "id": "lm-studio",
       "name": "LM Studio",
       "type": "local",
-      "endpointUrl": "http://localhost:1234/v1",
+      "endpointUrl": "http://127.0.0.1:32768",
       "enabled": true,
       "isDefault": true,
       "priority": 1,
       "fallbackProvider": "ollama",
       "healthStatus": "online",
-      "latencyMs": 4,
-      "lastTestedAt": "2026-06-28T16:49:58.175Z",
-      "lastSuccessfulConnectionAt": "2026-06-28T16:49:58.175Z",
-      "lastModelDiscoveryAt": "2026-06-28T16:49:58.175Z",
+      "latencyMs": 76,
+      "lastTestedAt": "2026-06-29T18:45:18.990Z",
+      "lastSuccessfulConnectionAt": "2026-06-29T18:45:18.990Z",
+      "lastModelDiscoveryAt": "2026-06-29T16:12:14.023Z",
       "discoveredModels": [
         {
-          "id": "qwen2.5-vl-32b-instruct",
-          "name": "qwen2.5-vl-32b-instruct",
+          "id": "qwen/qwen3-coder-30b",
+          "name": "qwen/qwen3-coder-30b",
           "contextWindow": 32768,
           "ownedBy": "organization_owner"
         },
         {
-          "id": "qwen/qwen3-coder-30b",
-          "name": "qwen/qwen3-coder-30b",
+          "id": "qwen/qwen3-coder-30b:2",
+          "name": "qwen/qwen3-coder-30b:2",
+          "contextWindow": 32768,
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "qwen2.5-vl-32b-instruct",
+          "name": "qwen2.5-vl-32b-instruct",
           "contextWindow": 32768,
           "ownedBy": "organization_owner"
         },
@@ -58,9 +64,19 @@
           "id": "text-embedding-nomic-embed-text-v1.5",
           "name": "text-embedding-nomic-embed-text-v1.5",
           "ownedBy": "organization_owner"
+        },
+        {
+          "id": "google/gemma-4-31b-qat",
+          "name": "google/gemma-4-31b-qat",
+          "ownedBy": "organization_owner"
+        },
+        {
+          "id": "google/gemma-4-12b-qat",
+          "name": "google/gemma-4-12b-qat",
+          "ownedBy": "organization_owner"
         }
       ],
-      "modelCount": 5
+      "modelCount": 8
     },
     {
       "id": "ollama",
@@ -128,6 +144,18 @@
       "priority": 7,
       "fallbackProvider": "lm-studio",
       "healthStatus": "unknown"
+    },
+    {
+      "id": "brave-answers",
+      "name": "Brave Answers",
+      "type": "cloud",
+      "endpointUrl": "https://api.search.brave.com/res/v1/web/search",
+      "enabled": true,
+      "isDefault": false,
+      "priority": 8,
+      "fallbackProvider": "lm-studio",
+      "healthStatus": "online",
+      "apiKeySecretRef": "provider:brave-answers:api-key"
     }
   ],
   "models": {
@@ -183,7 +211,8 @@
   "connectors": {},
   "mcp": {
     "enabled": true,
-    "allowedServers": []
+    "allowedServers": [],
+    "servers": []
   },
   "creative": {
     "enabled": true,

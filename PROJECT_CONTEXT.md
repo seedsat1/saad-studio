@@ -1,4 +1,20 @@
 # Saad Studio — Project Context
+## Latest task: Fix audio page voice sample preview and lingerie page type error (2026-06-29)
+
+- Status:
+  Fixed an issue in `/audio` (`public/stude/sound.html` and `stude/sound.html`) where clicking to preview/listen to a voice sample ("خامة الصوت") for Gemini voices triggered an expensive live POST request to `/api/generate/audio` (`actionType: 'tts'`) to generate TTS on the fly. Replaced the dynamic TTS generation logic in `previewVmVoice` with direct playback of original pre-recorded voice sample URLs from the static CDN source, eliminating credit consumption and delays during voice selection. Also fixed a type error in `app/(dash)/(routes)/lingerie/page.tsx` where `<SimpleToast>` was passed `onClose` instead of `show` and `onHide`.
+- Affected files:
+  - `public/stude/sound.html`
+  - `stude/sound.html`
+  - `app/(dash)/(routes)/lingerie/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Verified compilation and typechecking passes successfully using `npx tsc --noEmit`.
+- Findings:
+  - Gemini voices previously executed `fetch('/api/generate/audio', ...)` during preview, whereas catalog voices should play static voice timber samples directly without invoking AI generation pipelines.
+- Decisions:
+  - Strip `gemini:` prefix from voice IDs during sample URL formatting and route sample preview playback directly through the static media source.
+
 ## Latest task: Fix redirect route for "Cinema Studio Image 2.0" feature to point to `/cinema-studio` instead of `/image?tool=create` (2026-06-28)
 
 - Status:
@@ -4532,3 +4548,213 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Keep permanent configuration in Settings while passing temporary composer selections into the execution prompt as runtime context.
   - Keep image/file previews compact and outside the textarea height calculation.
   - Do not package in this task.
+# Saad Agent conversation pages rename/delete and unpacked package refresh (2026-06-29)
+
+- Status:
+  Added real multi-conversation state in the Saad Agent desktop UI with persisted local conversation pages, active-conversation restoration, automatic title derivation from the first user message, manual rename, delete with confirmation, and a New Chat control in the left sidebar. The active message list is now scoped to the selected conversation so separate topics do not share one visible chat stream. Refreshed the unpacked production app bundle at `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; the launch target is `saad-agent/release-production-v4/win-unpacked/Saad Agent.exe`.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - Verified `release-production-v4/win-unpacked/resources/app.asar` contains only the current UI assets `index-D21mZk0Y.js` and `index-CYD_rAGw.css`, plus `main.js` and `preload.cjs`.
+- Findings:
+  - Existing intent regression tests currently fail outside this UI change: `test-intent-engine.js` routes one coding request as `internet_answers` instead of `code_generation`, and `test-multimodal-routing.js` routes a web-search case as `internet_answers` instead of `web_search`.
+  - Project memory/reference files contain legacy mojibake/encoding artifacts; this task did not rewrite those files beyond adding the current concise task notes.
+- Decisions:
+  - Store conversation pages in renderer `localStorage` because this is a user-facing desktop chat organization feature and does not contain provider secrets.
+  - Use confirmation before deleting a conversation and keep at least one empty conversation available after deleting the last page.
+- Remaining:
+  - If conversation history must sync across machines or be managed by backend profiles later, move conversation persistence from renderer storage into a SettingsManager or workspace conversation store.
+
+# Saad Agent composer inline attachment preview and upload icon cleanup (2026-06-29)
+
+- Status:
+  Updated the desktop chat composer so queued image/file attachments render as compact previews inside the prompt box instead of floating above it. Replaced the mojibake/emoji upload glyph that visually resembled a microphone with a clear `+` upload control while keeping the folder `Dir` control. Refreshed `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; launch target remains `saad-agent/release-production-v4/win-unpacked/Saad Agent.exe`.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - Verified `release-production-v4/win-unpacked/resources/app.asar` contains current UI assets `index-3OeiQi7u.js` and `index-DKd_EHX4.css`, plus `main.js` and `preload.cjs`.
+- Findings:
+  - Attachment previews already existed but were positioned outside the composer with absolute CSS.
+  - The upload icon was an emoji/glyph that could render incorrectly and look like a microphone in the packaged app.
+- Decisions:
+  - Keep attachments compact inside the composer with fixed thumbnail/card sizing.
+  - Do not add voice/microphone UI until real voice input exists.
+- Remaining:
+  - A later visual pass can replace the text `+` with a proper icon component once an icon set is standardized for the desktop app.
+
+# Saad Agent knowledge/RAG/training capability review (2026-06-29)
+
+- Status:
+  Reviewed the attached "agent training / Multimodal Knowledge RAG" claims against the current Saad Agent implementation. The agent has a real Context Engine, project knowledge JSON retrieval, engineering memory retrieval, skill matching/injection, Settings-backed custom skill persistence, Vision image analysis through the configured Vision model role, Brave Answers provider integration, workspace watcher, validation pipeline, execution history, user memory, and recovery service. It does not currently implement true model training/fine-tuning, persistent embedding generation, or a vector database. Current semantic retrieval is keyword/symbol/file/JSON based with ranking and token optimization.
+- Verification:
+  - `node dist/test-context-engine.js` passed.
+  - `node dist/test-skills.js` passed, but built-in skill unregister returns false by design.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-intent-engine.js` failed: a real coding request was classified as `internet_answers` instead of `code_generation`.
+- Findings:
+  - The attached claim "Chunks + Embeddings + Vector Database" is not fully implemented; chunking exists in utilities/tests, but Context Engine does not store embeddings or query a vector DB.
+  - Vision analysis is real runtime analysis, but image summaries are not automatically persisted as durable knowledge items for future retrieval.
+  - Intent confidence values are often fixed (`0.98` or `1`) rather than genuinely dynamic.
+  - WorkspaceWatcher watches only the `src` folder and triggers project code indexing, not full documentation/knowledge ingestion.
+  - RecoveryEngine uses `git stash save` as backup behavior; this is not a targeted rollback engine.
+- Decisions:
+  - Treat the current system as "Knowledge Base + rule/keyword RAG + Skills + runtime memory", not as real training/fine-tuning.
+  - Do not modify implementation during this review task; report applied vs missing capabilities first.
+- Remaining:
+  - Fix Intent Engine priority rules so explicit coding/debugging requests are not routed to internet search.
+  - Add a real ingestion pipeline for docs/PDF/images if production-grade "training by knowledge" is required.
+  - Add embeddings/vector storage only if semantic retrieval beyond keyword/symbol matching is required.
+# Saad Agent chat message rendering polish and unpacked package refresh (2026-06-29)
+
+- Status:
+  Applied a real chat-message UI improvement using the provided AI UI component patterns as guidance only. Added a functional dark Copy action to every rendered message, improved sent attachment presentation, reduced image attachments to compact thumbnails, removed the visible PDF placeholder wording, and kept message/card rendering tied only to existing runtime message data. Refreshed `saad-agent/release-production-v4/win-unpacked/resources/app.asar` so the unpacked desktop executable uses the updated UI.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - Verified `release-production-v4/win-unpacked/resources/app.asar` contains `index-CXwoMn37.js`, `index-CYD_rAGw.css`, `main.js`, and `preload.cjs`.
+- Findings:
+  - The previous message copy control could appear as a browser-default light/white control in some contexts; the new action is styled by the app and copies real message text plus attachment metadata.
+  - Existing attachment display labeled PDFs as placeholders even though the attached file metadata is real. The label was removed from the UI.
+- Decisions:
+  - Do not import the pasted demo components wholesale because they depend on a different shadcn/Tailwind setup and include demo content. Instead, implement only the matching production behavior in the existing UI architecture.
+  - Do not add fake agent/tool/package cards. All visible chat content remains sourced from existing messages, attachments, or runtime card data.
+- Remaining:
+  - A future pass can extract chat messages into standalone `Message`, `MessageActions`, and `MessageAttachments` components after the current UI stabilizes.
+
+# Saad Agent v6.5 architecture diagrams, intent routing, and durable knowledge index (2026-06-29)
+
+- Status:
+  Completed the remaining concrete items from the v6.5 architecture/reference request without restarting or redesigning the existing agent. Added a real local knowledge ingestion service that builds deterministic semantic chunk vectors into `.saad-agent/knowledge/vector-index.json`, integrated those `knowledge:*` chunks into Context Engine retrieval, persisted Vision analysis summaries into the durable knowledge index, fixed Intent Engine priority routing so explicit coding/debugging requests are not stolen by web/latest keywords, and added the requested v6.5 architecture diagrams/reference document.
+- Affected files:
+  - `saad-agent/src/platform/services/intent-engine.ts`
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts`
+  - `saad-agent/src/platform/services/context-engine.ts`
+  - `saad-agent/src/platform/services/vision-analyzer.ts`
+  - `saad-agent/src/test-knowledge-ingestion.ts`
+  - `saad-agent/docs/saad-agent-v6.5-architecture.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-intent-engine.js` passed.
+  - `node dist/test-multimodal-routing.js` passed.
+  - `node dist/test-knowledge-ingestion.js` passed.
+  - `node dist/test-context-engine.js` passed and retrieved `knowledge:*` candidates from the new index.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-skills.js` passed; built-in skill unregister remains false by design while the regression test completes successfully.
+  - Refreshed `release-production-v4/win-unpacked/resources/app.asar` and verified it contains `knowledge-ingestion.js`, updated `intent-engine.js`, updated `context-engine.js`, updated `vision-analyzer.js`, current preload, and current UI assets.
+- Findings:
+  - Prior routing treated the Arabic coding request `أنشئ صفحة Next.js جديدة باسم /test` as `internet_answers` because `next.js` was included in web keywords before engineering intent priority.
+  - Prior multimodal routing treated image-link search as generic `internet_answers`; image search now has a dedicated priority rule.
+  - Prior knowledge/RAG behavior had keyword/symbol/JSON retrieval but no persistent vector-like local index.
+  - Vision analysis returned real runtime results but did not persist the summary for future retrieval.
+- Decisions:
+  - Implement local deterministic vector retrieval without adding external dependencies or claiming model fine-tuning.
+  - Keep the production boundary explicit: this is knowledge ingestion/retrieval, not model training.
+  - Store only scrubbed text chunks; sensitive filenames and secret-like values remain excluded from indexing and Context Engine retrieval.
+  - Document the requested Mermaid diagrams in `saad-agent/docs/saad-agent-v6.5-architecture.md`.
+- Remaining:
+  - PDF parsing, connector ingestion, Git-history ingestion, and external vector database support remain future enhancements unless explicitly requested.
+  - RecoveryEngine still uses checkpoint/stash fallback behavior rather than a fully targeted rollback system.
+
+# Saad Agent no-response chat runtime fix for moved D:\win-unpacked build (2026-06-29)
+
+- Status:
+  Investigated the user's report that sending chat messages in the moved `D:\win-unpacked` build produced no agent reply. The UI previously appended the user message and then called `orchestratorCreateSession` with no visible loading state and no `.catch` handler, so IPC/model failures could appear as silence. Added a direct `chat-complete` IPC path for normal chat messages, backed by `ReasoningEngine.requestCompletion`, with retrieved Context Engine snippets and explicit loading/error messages in the chat UI. Also forced non-streaming OpenAI-compatible requests because the current `ModelClient` reads JSON responses and does not parse SSE streams. Normalized LM Studio endpoints from `localhost` to `127.0.0.1` and auto-appended `/v1` for the standard `127.0.0.1:1234` server.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `.saad-agent/settings.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `D:\win-unpacked\resources\app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-intent-engine.js` passed.
+  - `node dist/test-context-engine.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`, copied it to `D:\win-unpacked\resources\app.asar`, and verified the D build contains updated `main.js`, `preload.cjs`, `model-client.js`, `settings-manager.js`, and UI asset `index-DIGWimRx.js`.
+- Findings:
+  - A live Node probe to `http://127.0.0.1:1234/v1/models` failed with `ECONNREFUSED`, so the local LM Studio server was not reachable from Node at verification time even though the screenshot showed LM Studio open.
+  - The workspace-level `.saad-agent/settings.json` had LM Studio endpoint set to `http://127.0.0.1:32768`; it was corrected to `http://127.0.0.1:1234/v1`.
+  - Model role settings may have `streaming: true`, but the current fetch path does not consume server-sent event streams; this is now overridden to `stream: false` until a real streaming parser is implemented.
+- Decisions:
+  - Normal chat should produce a direct model response, not silently create only an engineering execution plan.
+  - Failures must be visible in chat as actionable text instead of disappearing into console/IPC.
+  - Keep permanent provider/model configuration in Settings, but make the runtime client tolerant of common LM Studio endpoint formats.
+- Remaining:
+  - For a successful real reply, LM Studio must have the local server started and reachable at `http://127.0.0.1:1234/v1`, with the selected model id loaded.
+  - Implement true streaming response rendering later if the UI should support `streaming: true`.
+
+# Saad Agent blank renderer fix after D:\win-unpacked app.asar refresh (2026-06-29)
+
+- Status:
+  Fixed the blank Electron renderer window shown after the latest `D:\win-unpacked` update. The repacked `app.asar` accidentally placed the Vite UI at `ui/index.html`, while `desktop/main.ts` loads `ui/dist/index.html` in packaged mode. Updated `main.ts` to tolerate both `ui/dist/index.html` and `ui/index.html`, then repacked `app.asar` with the correct `ui/dist/` directory structure and copied it to `D:\win-unpacked\resources\app.asar`.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `D:\win-unpacked\resources\app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Verified `release-production-v4/win-unpacked/resources/app.asar` contains `ui/dist/index.html`, `ui/dist/assets/*`, `dist/desktop/main.js`, and `dist/desktop/preload.cjs`.
+  - Copied the corrected bundle to `D:\win-unpacked\resources\app.asar` and verified the same packaged paths exist there.
+- Findings:
+  - Electron opened successfully and DevTools showed an empty page because the UI file path inside `app.asar` did not match the packaged load path.
+- Decisions:
+  - Future manual ASAR refreshes must preserve the same structure that `electron-builder` expects: `ui/dist/**`, not just `ui/**`.
+
+# Saad Agent Providers settings persistence fix (2026-06-29)
+
+- Status:
+  Fixed the Providers Settings page persistence issue reported by the user. Provider field edits now remain local until the user clicks the explicit `Save Provider` button, preventing per-keystroke validation/race behavior while editing endpoint URLs. `SettingsManager` now uses a stable application settings root when running under Electron via `SAAD_AGENT_SETTINGS_ROOT = app.getPath("userData")`, and it automatically migrates a legacy workspace `.saad-agent/settings.json` file if no global settings file exists. Repacked and copied the corrected bundle to `D:\win-unpacked\resources\app.asar`.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/ui/src/components/SettingsModal.tsx`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `D:\win-unpacked\resources\app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - A targeted `SAAD_AGENT_SETTINGS_ROOT` persistence probe saved and reloaded `lm-studio.endpointUrl = http://127.0.0.1:1234/v1` successfully.
+  - Verified `D:\win-unpacked\resources\app.asar` contains `ui/dist/index.html`, UI asset `index-BFCJLVfL.js`, `dist/desktop/main.js`, `dist/desktop/preload.cjs`, and updated `dist/production/settings-manager.js`.
+- Findings:
+  - Provider settings were stored under `CONFIG.PROJECT_ROOT/.saad-agent/settings.json`, so app-level provider/model configuration could vary by workspace or launch path.
+  - The Providers page previously attempted to save on every field change, which is fragile for URL editing and can fail validation mid-typing.
+- Decisions:
+  - Providers and Models are application runtime configuration and must persist in the Electron app data root, not as per-workspace project files.
+  - Workspace-specific skills can still use the workspace `.saad-agent/skills` directory.
+  - Use an explicit `Save Provider` action for provider form fields.

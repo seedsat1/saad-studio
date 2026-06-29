@@ -382,6 +382,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
   const [mcpDraft, setMcpDraft] = useState<Partial<MCPServer>>(createMcpDraft());
   const [mcpTesting, setMcpTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [providerDirty, setProviderDirty] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -617,6 +618,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
     setSaving(false);
     if (result.success && result.settings) {
       setSettings(result.settings);
+      setProviderDirty(false);
       setStatus(successMessage);
     } else {
       setStatus(result.error || "Settings validation failed.");
@@ -636,7 +638,13 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
     });
     const next = { ...settings, providers: nextProviders };
     setSettings(next);
-    void save(next, "Provider settings saved.");
+    setProviderDirty(true);
+    setStatus("Provider has unsaved changes.");
+  }
+
+  function saveSelectedProvider() {
+    setProviderDirty(false);
+    void save(settings, "Provider settings saved.");
   }
 
   function addProvider(template?: ProviderSettings) {
@@ -648,6 +656,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
     const next = { ...settings, providers: [...settings.providers, base] };
     setSettings(next);
     setSelectedProviderId(base.id);
+    setProviderDirty(false);
     void save(next, "Provider added.");
   }
 
@@ -658,6 +667,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
     const next = { ...settings, providers: nextProviders };
     setSettings(next);
     setSelectedProviderId(nextProviders[0]?.id || "");
+    setProviderDirty(false);
     void save(next, "Provider removed.");
   }
 
@@ -667,6 +677,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
       providers: settings.providers.map(provider => ({ ...provider, isDefault: provider.id === providerId })),
     };
     setSettings(next);
+    setProviderDirty(false);
     void save(next, "Default provider updated.");
   }
 
@@ -917,7 +928,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
                     </select>
                     <button onClick={() => addProvider()} style={{ ...fieldStyle, cursor: "pointer", background: "#38bdf8", color: "#06111f", fontWeight: 800 }}>Add Custom Provider</button>
                     {[...settings.providers].sort((a, b) => a.priority - b.priority).map((provider) => (
-                      <button key={provider.id} onClick={() => setSelectedProviderId(provider.id)} style={{ ...fieldStyle, cursor: "pointer", textAlign: "left", background: provider.id === selectedProviderId ? "rgba(56, 189, 248, 0.12)" : "#0b1220" }}>
+                      <button key={provider.id} onClick={() => { setSelectedProviderId(provider.id); setProviderDirty(false); }} style={{ ...fieldStyle, cursor: "pointer", textAlign: "left", background: provider.id === selectedProviderId ? "rgba(56, 189, 248, 0.12)" : "#0b1220" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: "8px" }}>
                           <strong>{provider.name}</strong>
                           <span style={{ color: provider.healthStatus === "online" ? "#34d399" : provider.healthStatus === "offline" ? "#fb7185" : "#fbbf24" }}>{provider.healthStatus}</span>
@@ -930,6 +941,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", alignItems: "center" }}>
                       <h4 style={{ margin: 0, color: "#f8fafc" }}>{selectedProvider.name}</h4>
                       <div style={{ display: "flex", gap: "8px" }}>
+                        <button onClick={saveSelectedProvider} disabled={!providerDirty && !saving} style={{ ...fieldStyle, cursor: providerDirty || saving ? "pointer" : "not-allowed", background: providerDirty ? "#38bdf8" : "#0b1220", color: providerDirty ? "#06111f" : "#f8fafc", fontWeight: 800 }}>{saving ? "Saving..." : "Save Provider"}</button>
                         <button onClick={testProvider} style={{ ...fieldStyle, cursor: "pointer" }}>Test Connection</button>
                         <button onClick={() => setDefaultProvider(selectedProvider.id)} style={{ ...fieldStyle, cursor: "pointer" }}>Set Default</button>
                         <button onClick={() => removeProvider(selectedProvider.id)} style={{ ...fieldStyle, cursor: "pointer", color: "#fb7185" }}>Remove</button>

@@ -7,7 +7,92 @@ export interface ModelRuntimeOptions {
   apiKey?: string;
 }
 
+interface ChatEndpointCandidate {
+  url: string;
+  responseFormat: boolean;
+}
+
 export class ModelClient {
+  private static normalizeHost(baseUrl: string): string {
+    let normalized = baseUrl.trim().replace(/\/+$/, "");
+    normalized = normalized.replace("http://localhost:", "http://127.0.0.1:");
+    return normalized;
+  }
+
+  private static normalizeOpenAIBaseUrl(baseUrl: string): string {
+    let normalized = this.normalizeHost(baseUrl);
+    if (/^http:\/\/127\.0\.0\.1:1234$/i.test(normalized)) {
+      normalized = "http://127.0.0.1:1234/v1";
+    }
+    if (!/\/v1$/i.test(normalized) && /127\.0\.0\.1:1234/i.test(normalized)) {
+      normalized = `${normalized}/v1`;
+    }
+    return normalized;
+  }
+
+  private static endpointOrigin(baseUrl: string): string {
+    try {
+      return new URL(baseUrl).origin;
+    } catch {
+      return baseUrl.replace(/\/+$/, "");
+    }
+  }
+
+  private static isLmStudioRuntime(runtime: ModelRuntimeOptions | undefined, baseUrl: string): boolean {
+    const providerId = runtime?.provider?.id?.toLowerCase() || "";
+    const providerName = runtime?.provider?.name?.toLowerCase() || "";
+    return providerId === "lm-studio"
+      || providerName.includes("lm studio")
+      || /127\.0\.0\.1:(1234|32768)/i.test(baseUrl);
+  }
+
+  private static buildChatEndpoints(baseUrl: string, isLmStudio: boolean): ChatEndpointCandidate[] {
+    const normalized = this.normalizeHost(baseUrl);
+    const openAIBase = this.normalizeOpenAIBaseUrl(baseUrl);
+    const origin = this.endpointOrigin(normalized);
+    const candidates: ChatEndpointCandidate[] = [];
+    const add = (url: string, responseFormat: boolean) => {
+      if (!candidates.some(candidate => candidate.url === url)) candidates.push({ url, responseFormat });
+    };
+
+    if (isLmStudio) {
+      add(`${origin}/api/v1/chat`, false);
+      add(`${origin}/v1/chat/completions`, false);
+    }
+
+    add(`${openAIBase}/chat/completions`, !isLmStudio);
+    add(`${normalized}/chat/completions`, !isLmStudio);
+    return candidates;
+  }
+
+  private static extractText(payload: any): string {
+    const content = payload?.choices?.[0]?.message?.content
+      ?? payload?.choices?.[0]?.text
+      ?? payload?.message?.content
+      ?? payload?.message
+      ?? payload?.content
+      ?? payload?.response
+      ?? payload?.text;
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => typeof part === "string" ? part : part?.text || part?.content || "")
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+    }
+    return typeof content === "string" ? content.trim() : "";
+  }
+
+  private static async readJsonOrText(response: Response): Promise<any> {
+    const text = await response.text();
+    if (!text.trim()) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { text };
+    }
+  }
+
   private static async fetchWithRuntime(url: string, init: RequestInit, runtime?: ModelRuntimeOptions): Promise<Response> {
     const retryCount = runtime?.model?.retryCount ?? 0;
     const timeoutMs = runtime?.model?.timeoutMs ?? 120000;
@@ -27,6 +112,42 @@ export class ModelClient {
     throw lastError;
   }
 
+  private static async postChatCandidate(
+    candidate: ChatEndpointCandidate,
+    body: any,
+    headers: Record<string, string>,
+    runtime?: ModelRuntimeOptions
+  ): Promise<string> {
+    const requestBody = { ...body };
+    if (candidate.responseFormat) requestBody.response_format = { type: "json_object" };
+
+    let response = await this.fetchWithRuntime(candidate.url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(requestBody),
+    }, runtime);
+
+    if (response.status === 400 && requestBody.response_format) {
+      delete requestBody.response_format;
+      response = await this.fetchWithRuntime(candidate.url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+      }, runtime);
+    }
+
+    const payload = await this.readJsonOrText(response);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}: ${JSON.stringify(payload).slice(0, 240)}`);
+    }
+
+    const content = this.extractText(payload);
+    if (!content) {
+      throw new Error(`Provider returned no message content from ${candidate.url}: ${JSON.stringify(payload).slice(0, 240)}`);
+    }
+    return content;
+  }
+
   static async chatCompletion(
     systemPrompt: string,
     userPrompt: string,
@@ -34,7 +155,8 @@ export class ModelClient {
     runtime?: ModelRuntimeOptions
   ): Promise<string> {
     const isLms = CONFIG.PROVIDER === "lm-studio";
-    const baseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);
     const apiKey = runtime?.apiKey || (isLms ? CONFIG.LM_STUDIO_API_KEY : CONFIG.OLLAMA_API_KEY);
     const temperature = runtime?.model?.temperature ?? CONFIG.TEMPERATURE;
     const maxTokens = runtime?.model?.maxTokens;
@@ -48,38 +170,20 @@ export class ModelClient {
         ],
         temperature,
         max_tokens: maxTokens,
-        stream: runtime?.model?.streaming ?? false,
-        response_format: { type: "json_object" },
+        // Streaming requires SSE parsing; use non-stream responses for the current chat renderer.
+        stream: false,
       };
-      let response = await this.fetchWithRuntime(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      }, runtime);
-
-      if (response.status === 400) {
-        delete body.response_format;
-        response = await this.fetchWithRuntime(`${baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(body),
-        }, runtime);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+      let lastError: any;
+      for (const candidate of this.buildChatEndpoints(rawBaseUrl, isLmStudio)) {
+        try {
+          return await this.postChatCandidate(candidate, body, headers, runtime);
+        } catch (err) {
+          lastError = err;
+        }
       }
-
-      if (!response.ok) {
-        throw new Error(
-          `Model request failed: HTTP ${response.status} - ${response.statusText}`
-        );
-      }
-
-      const data: any = await response.json();
-      return data.choices?.[0]?.message?.content || "";
+      throw lastError || new Error("No provider endpoint candidates were available.");
     } catch (err: any) {
       throw new Error(`Failed to contact model provider: ${err.message}`);
     }
@@ -93,7 +197,8 @@ export class ModelClient {
     runtime?: ModelRuntimeOptions
   ): Promise<string> {
     const isLms = CONFIG.PROVIDER === "lm-studio";
-    const baseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);
     const apiKey = runtime?.apiKey || (isLms ? CONFIG.LM_STUDIO_API_KEY : CONFIG.OLLAMA_API_KEY);
     const temperature = runtime?.model?.temperature ?? CONFIG.TEMPERATURE;
     const maxTokens = runtime?.model?.maxTokens;
@@ -113,38 +218,20 @@ export class ModelClient {
         ],
         temperature,
         max_tokens: maxTokens,
-        stream: runtime?.model?.streaming ?? false,
-        response_format: { type: "json_object" },
+        // Streaming requires SSE parsing; use non-stream responses for the current chat renderer.
+        stream: false,
       };
-      let response = await this.fetchWithRuntime(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      }, runtime);
-
-      if (response.status === 400) {
-        delete body.response_format;
-        response = await this.fetchWithRuntime(`${baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(body),
-        }, runtime);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+      let lastError: any;
+      for (const candidate of this.buildChatEndpoints(rawBaseUrl, isLmStudio)) {
+        try {
+          return await this.postChatCandidate(candidate, body, headers, runtime);
+        } catch (err) {
+          lastError = err;
+        }
       }
-
-      if (!response.ok) {
-        throw new Error(
-          `Model request failed: HTTP ${response.status} - ${response.statusText}`
-        );
-      }
-
-      const data: any = await response.json();
-      return data.choices?.[0]?.message?.content || "";
+      throw lastError || new Error("No provider endpoint candidates were available.");
     } catch (err: any) {
       throw new Error(`Failed to contact model provider: ${err.message}`);
     }

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "adr_1782700947278_jj4mv",
+    "title": "Storage Provider Choice",
+    "decision": "Use Backblaze B2 instead of AWS R2",
+    "status": "accepted",
+    "timestamp": 1782700947278,
+    "rationale": "Lower bandwidth egress cost."
+  }
+]

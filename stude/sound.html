@@ -590,7 +590,8 @@ function previewVmVoice(id,name,ev){
   ev.stopPropagation();
   if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
   _vmPreviewAudio?.pause();_vmPlayingId=null;
-  const url=_vmPreviewCache[id]||`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(id)}.mp3`;
+  const cleanId=id.replace(/^gemini:/,'');
+  const url=_vmPreviewCache[id]||`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`;
   _vmPreviewCache[id]=url;_vmPlayingId=id;renderVmGrid();
   _vmPreviewAudio=new Audio(url);
   _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};

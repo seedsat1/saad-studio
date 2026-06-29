@@ -507,3 +507,58 @@
 - Attachments must not increase composer height. Images, PDFs, videos, documents, and folders appear as compact chips or thumbnails above the composer.
 - Image attachments use small thumbnails only; large previews belong in message history or a separate preview, not inside the input height.
 - The composer must remain anchored at the bottom and must not create horizontal movement.
+- Queued attachments may render inside the prompt box as compact fixed-size previews when the user explicitly wants inline prompt context. They must remain bounded and must not create horizontal movement.
+- The composer must not expose a microphone/voice control unless real voice input is implemented. Upload controls should render with stable text/icon assets that do not depend on fragile emoji glyphs.
+## Saad Agent conversation pages behavior (2026-06-29)
+
+- The desktop chat supports multiple local conversation pages so the user can separate topics instead of mixing all work in one stream.
+- Conversation pages are persisted in renderer `localStorage` with active page restoration, title, timestamps, optional workspace metadata, and messages.
+- A new conversation starts empty and becomes titled automatically from the first user message unless the user manually renames it.
+- Each conversation can be renamed from the sidebar and deleted after explicit confirmation. Deleting the final conversation creates a replacement empty page.
+- Message rendering must always be scoped to the active conversation page.
+- This is local desktop UI organization only; provider secrets, API keys, credentials, and runtime secrets must never be stored in conversation page data.
+
+## Saad Agent chat message rendering behavior (2026-06-29)
+
+- Chat message UI may use professional AI component patterns for structure, but must not import demo content, fake tools, fake packages, fake agents, or placeholder cards into production chat.
+- Message actions must operate on real message data. Copy copies the visible message text plus real attachment/card metadata labels.
+- Sent attachments render as compact, bounded cards or thumbnails and must not create horizontal scrolling or resize the composer.
+- Attachment labels must describe real metadata only; do not show placeholder wording for files that were actually attached.
+- Agent/tool/artifact style cards should appear only when backed by existing runtime `cardType`/`cardData` or real backend events.
+
+## Saad Agent v6.5 cognitive architecture and knowledge ingestion (2026-06-29)
+
+- The complete v6.5 architecture diagrams are recorded in `saad-agent/docs/saad-agent-v6.5-architecture.md` as Mermaid diagrams for:
+  - Cognitive & Multi-Layer RAG Engine.
+  - 11-Step Automated Workflow.
+  - Continuous Self-Healing Pipeline.
+- The implemented service inventory includes `intent-engine.ts`, `cognitive-orchestrator.ts`, `tool-orchestrator.ts`, `operational-skill-pipeline.ts`, `execution-engine.ts`, `validation-pipeline.ts`, `recovery-engine.ts`, `execution-history.ts`, `brave-answers.ts`, `workspace-watcher.ts`, `settings-manager.ts`, `secrets-manager.ts`, and `knowledge-ingestion.ts`.
+- `IntentEngine` now prioritizes local engineering/code/debugging requests before web/latest-documentation routing, so framework names such as Next.js do not automatically force internet search when the user is clearly asking to create or modify code.
+- Image-link/search requests route to `image_search`; explicit web search remains `web_search`; latest/current external knowledge remains `internet_answers`.
+- `KnowledgeIngestionService` performs local chunking plus deterministic vector-style indexing into `.saad-agent/knowledge/vector-index.json`. This gives durable semantic retrieval without external services.
+- `ContextEngine` retrieves `knowledge:*` candidates from the local knowledge index in addition to architecture, dependency graph, project summary, skills, engineering memory, source files, and attachment metadata.
+- `VisionAnalyzer` stores scrubbed image-analysis summaries into the durable knowledge index so later related prompts can retrieve prior visual findings.
+- Security boundary: this is knowledge retrieval, not model fine-tuning. The agent does not train model weights. Sensitive files, `.env`, credentials, API keys, tokens, cookies, passwords, secret storage, and secret-like values must remain excluded from indexing, memory, diagnostics, and context retrieval.
+
+## Saad Agent direct chat runtime behavior (2026-06-29)
+
+- Normal composer messages use the `chat-complete` IPC path and must return either a direct model reply or a visible error message in the chat.
+- The UI must show an interim `Thinking with the active model...` message while waiting for the backend so provider/runtime failures do not appear as silence.
+- Direct chat uses `ReasoningEngine.requestCompletion` with the Coding role and short retrieved Context Engine snippets. It must not claim file edits unless an execution tool actually changed files.
+- OpenAI-compatible local providers are called with `stream: false` until the renderer implements real SSE streaming parsing. Persisted `streaming: true` settings must not break JSON response parsing.
+- LM Studio endpoints are normalized for runtime use: `localhost` becomes `127.0.0.1`, and the standard local server `127.0.0.1:1234` is treated as `http://127.0.0.1:1234/v1`.
+- If LM Studio is closed, the local server is not started, or the selected model id is not loaded, the chat must show the actual provider error instead of silently doing nothing.
+
+## Saad Agent packaged UI loading rule (2026-06-29)
+
+- Packaged Electron builds load the Vite renderer from `ui/dist/index.html` inside `app.asar`.
+- Manual ASAR refresh scripts must copy `ui/dist` to `ui/dist` inside the archive. Copying the contents directly to `ui/` can produce a blank renderer window.
+- `desktop/main.ts` should tolerate both `ui/dist/index.html` and `ui/index.html`, but the production package structure remains `ui/dist/**`.
+
+## Saad Agent Providers persistence behavior (2026-06-29)
+
+- Providers and Models settings are global application runtime configuration. They must persist under the Electron application data root, not under the active workspace.
+- `main.ts` sets `SAAD_AGENT_SETTINGS_ROOT` to `app.getPath("userData")` before the Settings backend is used.
+- `SettingsManager` migrates legacy workspace `.saad-agent/settings.json` into the global settings root when the global file does not exist.
+- Provider form edits use an explicit `Save Provider` action. Test Connection, Set Default, Add, Remove, Discover Models, and API key save remain backend operations.
+- API keys still use encrypted secret references only; Provider JSON stores metadata and `apiKeySecretRef`, never raw secrets.

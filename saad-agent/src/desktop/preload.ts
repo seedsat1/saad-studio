@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("get-resource-snapshot"),
   orchestratorCreateSession: (taskText: string) =>
     ipcRenderer.invoke("orchestrator-create-session", taskText),
+  chatComplete: (prompt: string, workspacePath?: string, projectName?: string) =>
+    ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName }),
   orchestratorRespondToPlan: (sessionId: string, approved: boolean) =>
     ipcRenderer.invoke("orchestrator-respond-to-plan", { sessionId, approved }),
   orchestratorExecutePlan: (sessionId: string, patchContent?: string) =>

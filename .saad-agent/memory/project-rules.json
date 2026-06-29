@@ -1,0 +1,10 @@
+[
+  {
+    "id": "rule_01",
+    "rule": "Never start coding from memory alone. Always retrieve project rules, matching skills, relevant code files, and ADRs before modifying code."
+  },
+  {
+    "id": "rule_02",
+    "rule": "Preserve Saad Studio aesthetic: Dark Glass theme with deep blue and gold highlights."
+  }
+]

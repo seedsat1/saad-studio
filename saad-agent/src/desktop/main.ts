@@ -1,5 +1,7 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, shell } from "electron";
+import electronPkg from "electron";
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, shell } = electronPkg;
 import * as path from "path";
+import * as fs from "fs";
 import { fileURLToPath } from "url";
 import { WorkspaceManager } from "../platform/workspace-manager.js";
 import { ExecutionSessionManager } from "../platform/services/planner.js";
@@ -16,11 +18,17 @@ import { ProductionService } from "../platform/services/production.js";
 import { SDKService } from "../platform/services/sdk.js";
 import { SettingsManager } from "../production/settings-manager.js";
 import { CONFIG } from "../config.js";
+import { ReasoningEngine } from "../platform/services/reasoning-engine.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let mainWindow: BrowserWindow | null = null;
+try {
+  app.commandLine.appendSwitch("disable-gpu-cache");
+  app.commandLine.appendSwitch("disable-http-cache");
+} catch (_) {}
+
+let mainWindow: any = null;
 
 ipcMain.handle("switch-workspace", async (event, workspacePath) => {
   try {
@@ -108,11 +116,45 @@ ipcMain.handle("get-resource-snapshot", async () => {
 ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
   try {
     const session = EngineeringOrchestrator.createSession(taskText, CONFIG.PROJECT_ROOT);
+    const plan = await ExecutionSessionManager.generatePlanForSession(session.id);
     await EngineeringOrchestrator.executeParallelGraph(session);
-    const plannerSession = ExecutionSessionManager.getSession(session.id);
-    return { success: true, session, plan: plannerSession?.plan };
+    return { success: true, session, plan };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName }) => {
+  try {
+    const context = await ContextEngine.retrieveContext(
+      prompt,
+      workspacePath || CONFIG.PROJECT_ROOT,
+      4096
+    ).catch(() => null);
+    const contextSummary = context?.items?.slice(0, 6).map((item) => {
+      return `- ${item.title}: ${item.content.slice(0, 700)}`;
+    }).join("\n\n") || "No workspace context was retrieved.";
+
+    const response = await ReasoningEngine.requestCompletion({
+      role: "Coding",
+      systemPrompt: [
+        "You are Saad Agent, a practical AI engineering assistant.",
+        "Reply directly to the user in the user's language.",
+        "Use the retrieved workspace context when useful.",
+        "Do not claim that you changed files unless an execution tool actually changed files.",
+        "If a provider/model/runtime problem prevents completion, explain the exact problem."
+      ].join("\n"),
+      userPrompt: [
+        `Project: ${projectName || path.basename(workspacePath || CONFIG.PROJECT_ROOT)}`,
+        "Retrieved workspace context:",
+        contextSummary,
+        "User request:",
+        prompt
+      ].join("\n\n")
+    });
+    return { success: true, response: response.rawResponse };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Chat completion failed." };
   }
 });
 
@@ -669,7 +711,7 @@ ipcMain.handle("run-command", async (event, { command, cwd }) => {
   }
 });
 
-async function setupApplicationMenu(win: BrowserWindow) {
+async function setupApplicationMenu(win: any) {
   const recentData = await WorkspaceManager.loadRecentWorkspaces();
   const recentItems = recentData.workspaces.map((w) => ({
     label: w.name + " (" + w.path + ")",
@@ -793,8 +835,8 @@ async function setupApplicationMenu(win: BrowserWindow) {
               type: "info",
               icon: appIcon,
               title: "About Saad Studio Agent",
-              message: "Saad Studio Agent v1.0.0",
-              detail: `Autonomous AI Engineering Studio Desktop Platform\n\nCopyright © 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\n• Electron: v${process.versions.electron}\n• Node.js: v${process.versions.node}\n• Chromium: v${process.versions.chrome}\n• Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
+              message: "Saad Studio Agent v6.5.0 Production Release",
+              detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright © 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\n• Electron: v${process.versions.electron}\n• Node.js: v${process.versions.node}\n• Chromium: v${process.versions.chrome}\n• Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
             });
           }
         },
@@ -886,50 +928,67 @@ async function setupApplicationMenu(win: BrowserWindow) {
 }
 
 async function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    icon: path.join(app.getAppPath(), "resources", "icon.png"),
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(app.getAppPath(), "dist", "desktop", "preload.cjs"),
-    },
-    backgroundColor: "#070a13",
-    title: "Saad Studio Agent",
-  });
-
-  await setupApplicationMenu(mainWindow);
-
   try {
-    const globalConfig = await WorkspaceManager.loadGlobalConfig();
-    if (globalConfig.lastActiveWorkspace) {
-      await WorkspaceManager.switchWorkspace(globalConfig.lastActiveWorkspace);
-      const folderName = path.basename(globalConfig.lastActiveWorkspace);
-      mainWindow.setTitle("Saad Studio Agent - " + folderName);
-      await setupApplicationMenu(mainWindow);
+    mainWindow = new BrowserWindow({
+      width: 1280,
+      height: 800,
+      icon: path.join(app.getAppPath(), "resources", "icon.png"),
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        webSecurity: false,
+        preload: path.join(app.getAppPath(), "dist", "desktop", "preload.cjs"),
+      },
+      backgroundColor: "#070a13",
+      title: "Saad Studio Agent",
+    });
+
+    await setupApplicationMenu(mainWindow);
+
+    try {
+      const globalConfig = await WorkspaceManager.loadGlobalConfig();
+      if (globalConfig.lastActiveWorkspace) {
+        await WorkspaceManager.switchWorkspace(globalConfig.lastActiveWorkspace);
+        const folderName = path.basename(globalConfig.lastActiveWorkspace);
+        mainWindow.setTitle("Saad Studio Agent - " + folderName);
+        await setupApplicationMenu(mainWindow);
+      }
+    } catch (e) {
+      console.error("Error restoring last active workspace:", e);
     }
-  } catch (e) {
-    console.error("Error restoring last active workspace:", e);
+
+    const isDev = process.env.NODE_ENV === "development";
+    if (isDev) {
+      mainWindow.loadURL("http://localhost:5173");
+    } else {
+      let uiPath = path.join(app.getAppPath(), "ui", "dist", "index.html");
+      if (!fs.existsSync(uiPath)) {
+        uiPath = path.join(app.getAppPath(), "ui", "index.html");
+      }
+      if (!fs.existsSync(uiPath)) {
+        uiPath = path.resolve(__dirname, "../../ui/dist/index.html");
+      }
+      if (!fs.existsSync(uiPath)) {
+        uiPath = path.resolve(__dirname, "../ui/dist/index.html");
+      }
+      mainWindow.loadFile(uiPath);
+    }
+
+    mainWindow.on("closed", () => {
+      mainWindow = null;
+      try { ProjectIntelligenceService.stopWatcher(); } catch (_) {}
+    });
+
+    try { ProjectIntelligenceService.startWatcher(); } catch (_) {}
+  } catch (err: any) {
+    dialog.showErrorBox("Startup Error", err.message + "\n" + err.stack);
   }
-
-  const isDev = process.env.NODE_ENV === "development";
-  if (isDev) {
-    mainWindow.loadURL("http://localhost:5173");
-  } else {
-    // Path resolution to load the compiled UI frontend inside packaged asar
-    mainWindow.loadFile(path.join(app.getAppPath(), "ui", "dist", "index.html"));
-  }
-
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-    ProjectIntelligenceService.stopWatcher();
-  });
-
-  ProjectIntelligenceService.startWatcher();
 }
 
-app.on("ready", createWindow);
+app.on("ready", () => {
+  process.env["SAAD_AGENT_SETTINGS_ROOT"] = app.getPath("userData");
+  void createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   orchestratorConnectConnector: (id, credentials) => ipcRenderer.invoke("orchestrator-connect-connector", { id, credentials }),
   orchestratorDisconnectConnector: (id) => ipcRenderer.invoke("orchestrator-disconnect-connector", id),
   orchestratorRefreshConnector: (id) => ipcRenderer.invoke("orchestrator-refresh-connector", id),
+  chatComplete: (prompt, workspacePath, projectName) => ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName }),
   storeAttachment: (filename, mimeType, dataBase64, source, workspaceId) => ipcRenderer.invoke("attachments-store", { filename, mimeType, dataBase64, source, workspaceId }),
   analyzeImage: (localPath, mimeType) => ipcRenderer.invoke("vision-analyze", { localPath, mimeType }),
   retrieveContext: (query, workspacePath, tokenLimit) => ipcRenderer.invoke("context-retrieve", { query, workspacePath, tokenLimit }),
