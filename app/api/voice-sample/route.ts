@@ -4,6 +4,13 @@ export const dynamic = "force-dynamic";
 
 const sampleCache = new Map<string, Buffer>();
 
+export function setSampleCache(voiceName: string, buffer: Buffer) {
+  const exact = Array.from(GOOGLE_GEMINI_TTS_VOICES).find(
+    (v) => v.toLowerCase() === voiceName.toLowerCase()
+  ) || voiceName;
+  sampleCache.set(exact, buffer);
+}
+
 const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Zephyr", "Puck", "Charon", "Kore", "Fenrir", "Leda", "Orus", "Aoede", "Callirrhoe", "Autonoe",
   "Enceladus", "Iapetus", "Umbriel", "Algieba", "Despina", "Erinome", "Algenib", "Rasalgethi",
