@@ -18,8 +18,7 @@ import { ProductionService } from "../platform/services/production.js";
 import { SDKService } from "../platform/services/sdk.js";
 import { SettingsManager } from "../production/settings-manager.js";
 import { CONFIG } from "../config.js";
-import { ReasoningEngine } from "../platform/services/reasoning-engine.js";
-import { PreAnswerReviewService } from "../platform/services/pre-answer-review.js";
+import { ChatOrchestratorService } from "../platform/services/chat-orchestrator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -127,62 +126,12 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
 
 ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName }) => {
   try {
-    const activeWorkspace = workspacePath || CONFIG.PROJECT_ROOT;
-    const preAnswerReview = await PreAnswerReviewService.review(prompt, activeWorkspace);
-    if (/what trained knowledge did you use|ما(?:ذا)? المعرفة المدربة|ما المعرفة التي استخدمت|أي معرفة مدربة/i.test(prompt || "")) {
-      return {
-        success: true,
-        response: [
-          PreAnswerReviewService.formatUserVisiblePrefix(preAnswerReview),
-          "",
-          "Trained knowledge used:",
-          PreAnswerReviewService.formatKnowledgeUsageReport(preAnswerReview)
-        ].join("\n")
-      };
-    }
-
-    const context = await ContextEngine.retrieveContext(
-      prompt,
-      activeWorkspace,
-      4096
-    ).catch(() => null);
-    const contextSummary = context?.items?.slice(0, 6).map((item) => {
-      return `- ${item.title}: ${item.content.slice(0, 700)}`;
-    }).join("\n\n") || "No workspace context was retrieved.";
-
-    const response = await ReasoningEngine.requestCompletion({
-      role: "Coding",
-      systemPrompt: [
-        "You are Saad Agent, a practical AI engineering assistant.",
-        "Reply directly to the user in the user's language.",
-        "Every answer must obey the Mandatory Pre-Answer Review Context before using model knowledge.",
-        "Use the retrieved workspace context when useful.",
-        "Use matched trained knowledge when it applies. If it conflicts with model knowledge, prefer trained knowledge.",
-        "Do not claim that you changed files unless an execution tool actually changed files.",
-        "If a provider/model/runtime problem prevents completion, explain the exact problem."
-      ].join("\n"),
-      userPrompt: [
-        `Project: ${projectName || path.basename(activeWorkspace)}`,
-        preAnswerReview.finalContext,
-        "Retrieved workspace context:",
-        contextSummary,
-        "User request:",
-        prompt
-      ].join("\n\n")
-    });
-    return {
-      success: true,
-      response: [
-        PreAnswerReviewService.formatUserVisiblePrefix(preAnswerReview),
-        "",
-        response.rawResponse
-      ].join("\n")
-    };
+    const result = await ChatOrchestratorService.handleDirectChat({ prompt, workspacePath, projectName });
+    return { success: true, response: result.response, intent: result.intent, usedModel: result.usedModel };
   } catch (err: any) {
     return { success: false, error: err.message || "Chat completion failed." };
   }
 });
-
 ipcMain.handle("orchestrator-respond-to-plan", async (event, { sessionId, approved }) => {
   try {
     await EngineeringOrchestrator.respondToPlan(sessionId, approved);
@@ -861,7 +810,7 @@ async function setupApplicationMenu(win: any) {
               icon: appIcon,
               title: "About Saad Studio Agent",
               message: "Saad Studio Agent v6.5.0 Production Release",
-              detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright © 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\n• Electron: v${process.versions.electron}\n• Node.js: v${process.versions.node}\n• Chromium: v${process.versions.chrome}\n• Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
+              detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright Â© 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\nâ€¢ Electron: v${process.versions.electron}\nâ€¢ Node.js: v${process.versions.node}\nâ€¢ Chromium: v${process.versions.chrome}\nâ€¢ Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
             });
           }
         },
