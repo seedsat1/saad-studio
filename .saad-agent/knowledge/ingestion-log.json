@@ -124,5 +124,41 @@
     "timestamp": "2026-06-29T22:05:35.565Z",
     "filesIndexed": 2,
     "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:37:06.115Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:40:59.260Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:43:23.611Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:56:45.826Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:57:19.060Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:57:30.535Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
   }
 ]

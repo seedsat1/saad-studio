@@ -1,12 +1,10 @@
 # Saad Studio — Project Context
-## Latest task: Fix storage path key resolution and add dynamic status badges for voice samples (2026-06-30)
+## Latest task: Move voice sample registry to hidden `.data` directory to prevent Next.js hot-reload (2026-06-30)
 
 - Status:
-  Resolved the issue where generated voice samples failed to play for subscribers. Relative storage keys returned from `uploadBufferToStorage` are now correctly prefixed with `/api/media/` during redirections and admin listings, enabling successful streaming. Also added a dynamic status badge in `/admin/voice-samples` ("جاهز للمشتركين" vs "بانتظار التوليد") to track pre-rendering progress.
+  Moved the voice sample registry file `voice_samples_registry.json` from `public/stude/` to a new hidden directory `.data/` at the project root. This prevents the Next.js filesystem watcher from detecting file writes during admin generation, resolving the browser automatic reload bug. The public voice sample streaming API now correctly points to `.data/voice_samples_registry.json`.
 - Affected files:
   - `app/api/voice-sample/route.ts`
-  - `app/api/admin/voice-samples/route.ts`
-  - `app/admin/voice-samples/page.tsx`
   - `PROJECT_CONTEXT.md`
 - Affected files:
   - `app/admin/voice-samples/page.tsx`

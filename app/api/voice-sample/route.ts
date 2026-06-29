@@ -11,7 +11,7 @@ const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ]);
 
-const REGISTRY_PATH = path.join(process.cwd(), "public/stude/voice_samples_registry.json");
+const REGISTRY_PATH = path.join(process.cwd(), ".data/voice_samples_registry.json");
 
 export function getRegistry(): Record<string, string> {
   try {
