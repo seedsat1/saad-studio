@@ -2209,16 +2209,22 @@ export default function App() {
               {attachments.length > 0 && (
                 <div className="preview-area">
                   {attachments.map((att) => (
-                    <div key={att.id} className="preview-item">
+                    <div
+                      key={att.id}
+                      className={`preview-item ${att.type === "image" ? "image-only" : ""}`}
+                      title={`${att.name} (${formatAttachmentSize(att.size)})`}
+                    >
                       {att.type === "image" ? (
                         <img src={att.previewUrl} alt={att.name} className="preview-img" />
                       ) : (
-                        <div className="preview-pdf-placeholder">PDF</div>
+                        <>
+                          <div className="preview-pdf-placeholder">PDF</div>
+                          <div className="preview-meta">
+                            <span className="preview-name">{att.name}</span>
+                            <span className="preview-size">{formatAttachmentSize(att.size)}</span>
+                          </div>
+                        </>
                       )}
-                      <div className="preview-meta">
-                        <span className="preview-name">{att.name}</span>
-                        <span className="preview-size">{(att.size / 1024).toFixed(0)} KB</span>
-                      </div>
                       <button
                         type="button"
                         className="remove-attachment-btn"
