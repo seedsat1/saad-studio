@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 
     if (sampleCache.has(exactVoice)) {
       const cachedBuffer = sampleCache.get(exactVoice)!;
-      return new NextResponse(cachedBuffer, {
+      return new NextResponse(new Uint8Array(cachedBuffer), {
         status: 200,
         headers: {
           "Content-Type": "audio/wav",
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
 
     sampleCache.set(exactVoice, buffer);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": "audio/wav",
