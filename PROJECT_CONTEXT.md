@@ -1,4 +1,22 @@
 # Saad Studio — Project Context
+## Latest task: Build Admin Voice Samples Studio (`/admin/voice-samples`) for official pre-rendering and storage (2026-06-29)
+
+- Status:
+  Built a dedicated Admin Voice Samples Studio dashboard page at `app/admin/voice-samples/page.tsx` and admin API route `app/api/admin/voice-samples/route.ts`. The Admin can view all catalog voices and click "توليد كـ أدمن" to pre-render and upload official sample audio to permanent storage. Public audio studio (`sound.html`) is updated so end-users only play pre-rendered audio samples directly without any dynamic TTS generation calls or credit costs on preview.
+- Affected files:
+  - `app/admin/voice-samples/page.tsx`
+  - `app/api/admin/voice-samples/route.ts`
+  - `app/admin/page.tsx`
+  - `public/stude/sound.html`
+  - `stude/sound.html`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Verified compilation and typechecking passes successfully with 0 errors using `npx tsc --noEmit`.
+- Findings:
+  - Providing an admin-only portal for pre-rendering voice timber samples eliminates on-the-fly generation costs for end-users while granting the admin complete control over official sample audio.
+- Decisions:
+  - Admin pre-renders voice samples once via `/admin/voice-samples`; end-users stream pre-rendered static WAV samples.
+
 ## Latest task: Implement persistent automatic caching for voice sample previews (2026-06-29)
 
 - Status:

@@ -699,41 +699,22 @@ function toggleFavFilter(){
 function toggleVmFav(id,ev){ev.stopPropagation();if(_vmFavs.has(id))_vmFavs.delete(id);else _vmFavs.add(id);saveVmFavs();updateVmFavCount();renderVmGrid();}
 function updateVmFavCount(){const el=document.getElementById('vmFavCount');if(el)el.textContent=_vmFavs.size>0?_vmFavs.size:'';}
 
-async function previewVmVoice(id,name,ev){
+function previewVmVoice(id,name,ev){
   ev.stopPropagation();
   if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
   _vmPreviewAudio?.pause();_vmPlayingId=null;
   _vmPlayingId=id;renderVmGrid();
   try{
     const cleanId=id.replace(/^gemini:/,'');
-    const cacheKey=isGeminiVoiceId(id)?`${getGeminiTtsModel()}:${id}`:id;
-    let url=_vmPreviewCache[cacheKey]||_vmPreviewCache[id];
-    if(!url){
-      if(isGeminiVoiceId(id)){
-        setStatus(`Generating ${name} preview...`,'info');
-        const res=await fetch('/api/generate/audio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-          actionType:'tts',
-          model:getGeminiTtsModel(),
-          text:'مرحبا، هذا اختبار قصير للصوت العربي في سعد ستوديو.',
-          voice:cleanId,
-          language_code:'ar'
-        })});
-        const json=await res.json();
-        if(!res.ok)throw new Error(json?.error||json?.message||`Preview error (${res.status})`);
-        url=studioMediaUrl(json?.audioUrl||json?.url||'');
-        if(!url)throw new Error('No preview audio URL returned');
-      }else{
-        url=`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`;
-      }
-      _vmPreviewCache[cacheKey]=url;
-      _vmPreviewCache[id]=url;
-      saveVmPreviewCache();
-    }
+    let url=_vmPreviewCache[id]||(isGeminiVoiceId(id)?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
+    _vmPreviewCache[id]=url;
     _vmPreviewAudio=new Audio(studioMediaUrl(url));
     _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};
     _vmPreviewAudio.onerror=()=>{_vmPlayingId=null;renderVmGrid();setStatus('Voice preview failed.','err');};
-    await _vmPreviewAudio.play();
-    if(isGeminiVoiceId(id))setStatus(`${name} preview ready.`,'ok');
+    _vmPreviewAudio.play().catch(error=>{
+      _vmPlayingId=null;renderVmGrid();
+      setStatus(`Voice preview failed: ${error.message}`,'err');
+    });
   }catch(error){
     _vmPlayingId=null;renderVmGrid();
     setStatus(`Voice preview failed: ${error.message}`,'err');
