@@ -3,6 +3,7 @@ import * as path from "path";
 import { TokenManager } from "./token-manager.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { SemanticSearch } from "../../context/semantic-search.js";
+import type { Attachment } from "./attachments.js";
 
 export interface KnowledgeChunkRecord {
   id: string;
@@ -67,6 +68,14 @@ export interface PreAnswerReviewResult {
   skillsLoaded: string[];
   projectContextLoaded: boolean;
   noKnowledgeNotice: string | null;
+}
+
+export interface TrainingAttachmentImportResult {
+  attachmentId: string;
+  fileName: string;
+  trainingPath: string;
+  category: TrainingKnowledgeCategory;
+  indexed: boolean;
 }
 
 export class KnowledgeIngestionService {
@@ -257,6 +266,45 @@ export class KnowledgeIngestionService {
     return matches;
   }
 
+  static async importAttachmentsAsTraining(
+    workspacePath: string,
+    attachments: Attachment[],
+    requestedCategory?: TrainingKnowledgeCategory
+  ): Promise<TrainingAttachmentImportResult[]> {
+    await this.ensureTrainingFolders(workspacePath);
+    const imported: TrainingAttachmentImportResult[] = [];
+    for (const attachment of attachments) {
+      const sourcePath = attachment.localPath;
+      if (!sourcePath || SemanticSearch.isSensitiveFile(sourcePath)) continue;
+      const stat = await fs.stat(sourcePath).catch(() => null);
+      if (!stat || !stat.isFile()) continue;
+      const category = requestedCategory || this.trainingCategoryFromAttachment(attachment);
+      const safeName = this.safeTrainingFileName(attachment.filename || path.basename(sourcePath));
+      const destPath = await this.nextAvailableTrainingPath(workspacePath, category, safeName);
+      await fs.copyFile(sourcePath, destPath);
+      const rel = path.relative(workspacePath, destPath).replace(/\\/g, "/");
+      imported.push({
+        attachmentId: attachment.id,
+        fileName: attachment.filename,
+        trainingPath: rel,
+        category,
+        indexed: true
+      });
+      await this.appendLog(workspacePath, "ingestion-log.json", {
+        event: "attachment-imported-to-training",
+        timestamp: new Date().toISOString(),
+        attachmentId: attachment.id,
+        sourceFile: EngineeringMemory.scrubSecrets(attachment.filename),
+        trainingPath: rel,
+        category
+      });
+    }
+    if (imported.length > 0) {
+      await this.ingestTrainingKnowledge(workspacePath);
+    }
+    return imported;
+  }
+
   static async upsertVisionSummary(workspacePath: string, localPath: string, summary: string): Promise<void> {
     const safeSummary = EngineeringMemory.scrubSecrets(summary).trim();
     if (!safeSummary) return;
@@ -407,6 +455,36 @@ export class KnowledgeIngestionService {
     if (!normalized.startsWith(prefix)) return null;
     const category = normalized.slice(prefix.length).split("/")[0] as TrainingKnowledgeCategory | undefined;
     return category && this.TRAINING_CATEGORIES.includes(category) ? category : null;
+  }
+
+  private static trainingCategoryFromAttachment(attachment: Attachment): TrainingKnowledgeCategory {
+    const mime = (attachment.mimeType || "").toLowerCase();
+    const ext = path.extname(attachment.filename || "").toLowerCase();
+    if (mime.startsWith("image/")) return "screenshots";
+    if (ext === ".pdf") return "project-docs";
+    if ([".doc", ".docx", ".rtf"].includes(ext)) return "project-docs";
+    if ([".json", ".yaml", ".yml"].includes(ext)) return "api-docs";
+    if ([".ts", ".tsx", ".js", ".jsx", ".py", ".css", ".html"].includes(ext)) return "code-examples";
+    if ([".md", ".txt"].includes(ext)) return "lessons";
+    return "project-docs";
+  }
+
+  private static safeTrainingFileName(fileName: string): string {
+    const base = path.basename(fileName).replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_").trim();
+    return base || `attachment-${Date.now()}.bin`;
+  }
+
+  private static async nextAvailableTrainingPath(workspacePath: string, category: TrainingKnowledgeCategory, fileName: string): Promise<string> {
+    const folder = path.join(workspacePath, ".saad-agent", "training", category);
+    await fs.mkdir(folder, { recursive: true });
+    const parsed = path.parse(fileName);
+    let candidate = path.join(folder, fileName);
+    let counter = 1;
+    while (await fs.stat(candidate).then(() => true).catch(() => false)) {
+      candidate = path.join(folder, `${parsed.name}-${counter}${parsed.ext}`);
+      counter += 1;
+    }
+    return candidate;
   }
 
   private static async extractTrainingText(filePath: string, rel: string, category: TrainingKnowledgeCategory): Promise<{ text: string; metadataOnly: boolean }> {

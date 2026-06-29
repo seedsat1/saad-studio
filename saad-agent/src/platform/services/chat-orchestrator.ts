@@ -1,11 +1,13 @@
 import * as path from "path";
 import { CONFIG } from "../../config.js";
 import { BraveAnswersService } from "./brave-answers.js";
+import type { Attachment } from "./attachments.js";
 import { ContextEngine } from "./context-engine.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { IntentEngine, type SupportedIntent } from "./intent-engine.js";
 import { PreAnswerReviewService } from "./pre-answer-review.js";
 import { ReasoningEngine } from "./reasoning-engine.js";
+import { KnowledgeIngestionService } from "./knowledge-ingestion.js";
 
 export interface ChatOrchestrationResult {
   response: string;
@@ -19,6 +21,7 @@ export class ChatOrchestratorService {
     workspacePath?: string;
     projectName?: string;
     sessionId?: string;
+    attachments?: Attachment[];
   }): Promise<ChatOrchestrationResult> {
     const prompt = EngineeringMemory.scrubSecrets(input.prompt || "").trim();
     const activeWorkspace = input.workspacePath || CONFIG.PROJECT_ROOT;
@@ -43,6 +46,22 @@ export class ChatOrchestratorService {
     }
 
     if (intent === "memory_save") {
+      if (input.attachments && input.attachments.length > 0) {
+        const imported = await KnowledgeIngestionService.importAttachmentsAsTraining(activeWorkspace, input.attachments);
+        const importedLines = imported.length
+          ? imported.map((item) => `- ${item.fileName} -> ${item.trainingPath} (${item.category})`)
+          : ["لم أتمكن من حفظ أي مرفق. تأكد أن الملف موجود وليس ملفًا حساسًا أو محذوفًا."];
+        return {
+          intent,
+          usedModel: false,
+          response: [
+            prefix,
+            "",
+            "تم حفظ المرفقات كمراجع تدريب دائمة وإعادة فهرستها.",
+            ...importedLines
+          ].join("\n")
+        };
+      }
       const fact = this.extractMemoryFact(prompt);
       if (!fact) {
         return {

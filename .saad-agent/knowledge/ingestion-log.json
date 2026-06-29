@@ -106,5 +106,23 @@
     "timestamp": "2026-06-29T21:56:17.970Z",
     "filesIndexed": 2,
     "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:05:35.427Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:05:35.495Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T22:05:35.565Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
   }
 ]

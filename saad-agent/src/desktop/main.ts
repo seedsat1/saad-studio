@@ -124,9 +124,9 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
   }
 });
 
-ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName }) => {
+ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments }) => {
   try {
-    const result = await ChatOrchestratorService.handleDirectChat({ prompt, workspacePath, projectName });
+    const result = await ChatOrchestratorService.handleDirectChat({ prompt, workspacePath, projectName, attachments });
     return { success: true, response: result.response, intent: result.intent, usedModel: result.usedModel };
   } catch (err: any) {
     return { success: false, error: err.message || "Chat completion failed." };

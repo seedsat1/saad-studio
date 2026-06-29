@@ -5,6 +5,7 @@ import * as path from "path";
 import { setProjectRoot } from "./config.js";
 import { ChatOrchestratorService } from "./platform/services/chat-orchestrator.js";
 import { ReasoningEngine } from "./platform/services/reasoning-engine.js";
+import { KnowledgeIngestionService } from "./platform/services/knowledge-ingestion.js";
 
 async function main() {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "saad-chat-orchestrator-"));
@@ -53,9 +54,39 @@ async function main() {
     );
     assert.strictEqual(modelCalls, 0, "web search must not fall back to model guessing");
 
+    const attachmentSource = path.join(workspace, "uploaded-reference.md");
+    await fs.writeFile(attachmentSource, "Attachment rule: saved files must become permanent training references.", "utf8");
+    const attachmentSaveResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "احفظ هذا الملف كمرجع",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      attachments: [{
+        id: "att-test-reference",
+        filename: "uploaded-reference.md",
+        mimeType: "text/markdown",
+        size: 72,
+        localPath: attachmentSource,
+        previewPath: attachmentSource,
+        source: "upload",
+        timestamp: Date.now(),
+        workspaceId: "test-workspace"
+      }]
+    });
+    assert.strictEqual(attachmentSaveResult.intent, "memory_save");
+    assert.strictEqual(attachmentSaveResult.usedModel, false);
+    assert.ok(attachmentSaveResult.response.includes(".saad-agent/training/lessons/uploaded-reference.md"));
+    assert.strictEqual(modelCalls, 0, "attachment save must not call the model");
+
+    const registry = await KnowledgeIngestionService.ingestTrainingKnowledge(workspace);
+    assert.ok(
+      registry.items.some((item) => item.filePath.endsWith(".saad-agent/training/lessons/uploaded-reference.md")),
+      "saved attachment was not registered as training knowledge"
+    );
+
     console.log("Chat orchestrator memory_save no-model test passed.");
     console.log("Chat orchestrator memory_recall no-model test passed.");
     console.log("Chat orchestrator web_search no-model/no-guessing test passed.");
+    console.log("Chat orchestrator attachment-to-training no-model test passed.");
   } finally {
     ReasoningEngine.requestCompletion = originalRequestCompletion;
     await fs.rm(workspace, { recursive: true, force: true });

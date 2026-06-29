@@ -911,6 +911,7 @@ export default function App() {
 
     const hasImage = userMsg.attachments?.some((a) => a.type === "image");
     const hasPdf = userMsg.attachments?.some((a) => a.type === "pdf");
+    const isAttachmentSaveRequest = /(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|درّب|درب|تدريب|مرجع|reference|train|training|remember|save|store)/i.test(inputValue || "");
 
     if ((window as any).electronAPI) {
       const savedAttachments: any[] = [];
@@ -929,7 +930,33 @@ export default function App() {
         }
       }
 
-      if (hasImage && savedAttachments.length > 0) {
+      if (isAttachmentSaveRequest && savedAttachments.length > 0) {
+        const loaderMsgId = `msg-agent-loading-${Date.now()}`;
+        appendMessageToConversation({
+          id: loaderMsgId,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          content: "Saving attachment(s) into permanent training knowledge...",
+        });
+
+        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments).then((res: any) => {
+          removeMessageFromConversation(loaderMsgId);
+          appendMessageToConversation({
+            id: `msg-agent-${Date.now()}`,
+            sender: "agent",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: res?.success ? (res.response || "Attachment saved.") : `Attachment save failed: ${res?.error || "Unknown error."}`,
+          });
+        }).catch((err: any) => {
+          removeMessageFromConversation(loaderMsgId);
+          appendMessageToConversation({
+            id: `msg-agent-error-${Date.now()}`,
+            sender: "agent",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: `Attachment save failed: ${err?.message || "Unknown IPC/runtime error."}`,
+          });
+        });
+      } else if (hasImage && savedAttachments.length > 0) {
         const imageAtt = savedAttachments.find((a) => a.mimeType.startsWith("image/"));
         if (imageAtt) {
           const agentMsgId = `msg-agent-${Date.now()}`;
@@ -998,7 +1025,7 @@ export default function App() {
           content: "Thinking with the active model...",
         });
 
-        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName).then((res: any) => {
+        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments).then((res: any) => {
           removeMessageFromConversation(loaderMsgId);
           const agentMsgId = `msg-agent-${Date.now()}`;
           if (res && res.success) {

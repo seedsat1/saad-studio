@@ -78,15 +78,24 @@ function extractGeminiAudio(value: unknown): { data: string; mimeType: string } 
 
 export async function GET() {
   try {
-    const voices = GOOGLE_GEMINI_TTS_VOICES.map(([name, tone, gender]) => ({
-      id: `gemini:${name}`,
-      name: `Gemini ${name}`,
-      cleanId: name,
-      tone,
-      gender,
-      provider: "Google Gemini",
-      sampleUrl: `/api/voice-sample?voice=${encodeURIComponent(name)}`,
-    }));
+    const registry = getRegistry();
+    const voices = GOOGLE_GEMINI_TTS_VOICES.map(([name, tone, gender]) => {
+      const storedUrl = registry[name];
+      const sampleUrl = storedUrl
+        ? (storedUrl.startsWith("http") || storedUrl.startsWith("/") ? storedUrl : `/api/media/${storedUrl}`)
+        : `/api/voice-sample?voice=${encodeURIComponent(name)}`;
+
+      return {
+        id: `gemini:${name}`,
+        name: `Gemini ${name}`,
+        cleanId: name,
+        tone,
+        gender,
+        provider: "Google Gemini",
+        sampleUrl,
+        isGenerated: !!storedUrl,
+      };
+    });
 
     return NextResponse.json({ voices });
   } catch (error: any) {
@@ -114,7 +123,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Google API key not configured on server." }, { status: 500 });
     }
 
-    const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج رسمس لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
+    const prompt = `اقرأ النص التالي بالعربية بصوت واضح وطبيعي ومناسب للجمهور العربي:\n\nمرحباً، هذا نموذج لمعاينة خامة الصوت الاصطناعي في سعد ستوديو.`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent`,
@@ -167,10 +176,14 @@ export async function POST(req: NextRequest) {
       saveRegistry(registry);
     }
 
+    const finalSampleUrl = uploadedUrl
+      ? (uploadedUrl.startsWith("http") || uploadedUrl.startsWith("/") ? uploadedUrl : `/api/media/${uploadedUrl}`)
+      : `/api/voice-sample?voice=${encodeURIComponent(voiceId)}`;
+
     return NextResponse.json({
       success: true,
       voiceId,
-      sampleUrl: uploadedUrl || `/api/voice-sample?voice=${encodeURIComponent(voiceId)}`,
+      sampleUrl: finalSampleUrl,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || "Internal server error" }, { status: 500 });

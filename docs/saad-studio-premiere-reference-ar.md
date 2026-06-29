@@ -617,3 +617,19 @@
 - `memory_recall` is an execution path. Identity and recall questions read stored user memory directly and do not ask the model to guess.
 - Explicit internet/link/latest/search requests route to `BraveAnswersService`. If Brave/provider/network/API key is unavailable, the agent must say the real search failed and must not fabricate links or current information from model knowledge.
 - Only generation, review, debugging, workspace reasoning, and general reasoning requests may call `ReasoningEngine`, and only after the memory/training/context review has built the final context.
+
+## Saad Agent Attachment Training References (2026-06-30)
+
+- Uploaded chat files become permanent training references when the user explicitly asks to save, remember, store, train on, or use them as a reference.
+- The renderer must store files through `AttachmentManager` first, then pass the stored attachment records to `chat-complete`.
+- `ChatOrchestratorService` handles attachment save requests as `memory_save` execution paths and must not call the model for the save operation.
+- `KnowledgeIngestionService.importAttachmentsAsTraining` copies stored attachments into `.saad-agent/training/` and immediately rebuilds the training registry and vector index.
+- Category routing:
+  - Images -> `.saad-agent/training/screenshots/`
+  - PDF, Word, RTF, generic docs -> `.saad-agent/training/project-docs/`
+  - JSON/YAML -> `.saad-agent/training/api-docs/`
+  - Source code -> `.saad-agent/training/code-examples/`
+  - Markdown/TXT -> `.saad-agent/training/lessons/`
+- Text, Markdown, JSON, and source-code files are indexed from readable text.
+- PDF, Word, screenshots, diagrams, and other binary files are stored as permanent references and metadata-only unless a real PDF/DOCX/OCR/Vision extractor generates text. The system must not claim extracted content that was not actually extracted.
+- Sensitive files and secret-looking paths remain excluded from training import.

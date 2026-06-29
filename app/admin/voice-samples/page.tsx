@@ -11,6 +11,7 @@ interface VoiceItem {
   gender: string;
   provider: string;
   sampleUrl: string;
+  isGenerated?: boolean;
 }
 
 export default function AdminVoiceSamplesPage() {
@@ -169,9 +170,15 @@ export default function AdminVoiceSamplesPage() {
                       </div>
                     </div>
 
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      جاهز للمشتركين
-                    </span>
+                    {v.isGenerated ? (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        جاهز للمشتركين
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                        بانتظار التوليد
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">

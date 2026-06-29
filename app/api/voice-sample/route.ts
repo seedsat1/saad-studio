@@ -48,13 +48,19 @@ export async function GET(req: NextRequest) {
     const registry = getRegistry();
     const storedUrl = registry[exactVoice];
     if (storedUrl) {
-      return NextResponse.redirect(new URL(storedUrl, req.url));
+      const targetUrl = (storedUrl.startsWith("http") || storedUrl.startsWith("/"))
+        ? storedUrl
+        : `/api/media/${storedUrl}`;
+      return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
     // 2. Strict rule: Fallback to Sulafat's pre-rendered URL to avoid on-the-fly paid calls
     const fallbackUrl = registry["Sulafat"] || Object.values(registry)[0];
     if (fallbackUrl) {
-      return NextResponse.redirect(new URL(fallbackUrl, req.url));
+      const targetUrl = (fallbackUrl.startsWith("http") || fallbackUrl.startsWith("/"))
+        ? fallbackUrl
+        : `/api/media/${fallbackUrl}`;
+      return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
     return new NextResponse("Voice sample not pre-rendered by admin yet.", { status: 404 });
