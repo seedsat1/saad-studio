@@ -70,5 +70,41 @@
     "timestamp": "2026-06-29T19:53:15.073Z",
     "filesIndexed": 2,
     "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:51:34.008Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:51:34.079Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:51:34.151Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:56:17.833Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:56:17.899Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-06-29T21:56:17.970Z",
+    "filesIndexed": 2,
+    "chunksIndexed": 2
   }
 ]

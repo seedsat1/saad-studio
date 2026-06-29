@@ -4894,3 +4894,31 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Image/PDF training ingestion needs a future real OCR/PDF extraction pass for full content search.
 - Remaining:
   - Add real PDF text extraction and OCR/vision summaries for image training assets when requested.
+
+# Saad Agent direct chat orchestration gate fix (2026-06-30)
+
+- Status:
+  Fixed the direct chat behavior so normal composer messages no longer go straight to model generation. Added a dedicated `ChatOrchestratorService` as the single backend gate for direct chat. It classifies intent first, runs the mandatory pre-answer review, then either saves/recalls memory, performs real internet search, or only then calls the model with reviewed context.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-training-knowledge.js` passed.
+  - `node dist/test-knowledge-ingestion.js` passed.
+  - `node dist/test-context-engine.js` passed.
+- Behavior:
+  - `memory_save` requests such as `احفظ اسمي سعد` are saved to Engineering Memory and return a confirmation without calling the model.
+  - `memory_recall` requests such as `من انا` read stored user memory and return it without calling the model.
+  - Explicit web/link/latest requests route to `BraveAnswersService`. If real search is unavailable because the provider/key/network is missing, the agent reports that failure and does not invent links from model knowledge.
+  - Generation/review/debug/general requests still run the mandatory memory/training/context review before the model call.
+- Findings:
+  - The prior `chat-complete` IPC path called `ReasoningEngine.requestCompletion` for almost every message after context retrieval, so commands like “احفظ” could be treated as a normal prompt instead of a memory operation.
+- Decisions:
+  - Direct chat must have a deterministic orchestration gate before model invocation.
+  - Memory operations and internet search are execution paths, not prompts to the model.
+  - Search results must be source-backed or explicitly report that search is unavailable.

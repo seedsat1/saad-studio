@@ -603,3 +603,17 @@
 - If no training file matches, chat must explicitly say: `No matching trained knowledge found. Answering from model knowledge only.`
 - Asking what trained knowledge was used should return the matched files and summaries from the registry/retrieval result.
 - Sensitive files and secret-looking values remain excluded or scrubbed. `.env`, credentials, API keys, tokens, cookies, passwords, encrypted secret storage, and secret-like values must not be stored in registry, logs, diagnostics, or retrieved context.
+
+## Saad Agent Direct Chat Orchestration Gate (2026-06-30)
+
+- Direct composer messages must pass through `ChatOrchestratorService` before any model call.
+- The orchestration order is:
+  1. Detect intent.
+  2. Run mandatory pre-answer review.
+  3. Execute deterministic non-model paths when applicable.
+  4. Retrieve project context.
+  5. Call the model only if the request actually requires model reasoning/generation.
+- `memory_save` is an execution path. Requests such as `احفظ ...`, `تذكر ...`, `خزن ...`, `remember ...`, or `save ...` must write to Engineering Memory and return a confirmation without calling the model.
+- `memory_recall` is an execution path. Identity and recall questions read stored user memory directly and do not ask the model to guess.
+- Explicit internet/link/latest/search requests route to `BraveAnswersService`. If Brave/provider/network/API key is unavailable, the agent must say the real search failed and must not fabricate links or current information from model knowledge.
+- Only generation, review, debugging, workspace reasoning, and general reasoning requests may call `ReasoningEngine`, and only after the memory/training/context review has built the final context.
