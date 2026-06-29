@@ -547,6 +547,8 @@
 - Direct chat uses `ReasoningEngine.requestCompletion` with the Coding role and short retrieved Context Engine snippets. It must not claim file edits unless an execution tool actually changed files.
 - OpenAI-compatible local providers are called with `stream: false` until the renderer implements real SSE streaming parsing. Persisted `streaming: true` settings must not break JSON response parsing.
 - LM Studio endpoints are normalized for runtime use: `localhost` becomes `127.0.0.1`, and the standard local server `127.0.0.1:1234` is treated as `http://127.0.0.1:1234/v1`.
+- LM Studio 0.4.18 Developer API is supported as a first-class local runtime: model discovery tries `GET /api/v1/models`, and chat tries `POST /api/v1/chat` with the required `input` payload before falling back to OpenAI-compatible `/v1/chat/completions`.
+- LM Studio Developer API requests must not include unsupported OpenAI-only fields such as `response_format` or `max_tokens` on `/api/v1/chat`. If a provider returns HTTP 200 without extractable message content, the runtime treats it as a provider failure instead of showing silent success.
 - If LM Studio is closed, the local server is not started, or the selected model id is not loaded, the chat must show the actual provider error instead of silently doing nothing.
 
 ## Saad Agent packaged UI loading rule (2026-06-29)

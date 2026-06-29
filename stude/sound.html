@@ -591,7 +591,7 @@ function previewVmVoice(id,name,ev){
   if(_vmPlayingId===id){_vmPreviewAudio?.pause();_vmPlayingId=null;renderVmGrid();return;}
   _vmPreviewAudio?.pause();_vmPlayingId=null;
   const cleanId=id.replace(/^gemini:/,'');
-  const url=_vmPreviewCache[id]||`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`;
+  const url=_vmPreviewCache[id]||(String(id).startsWith('gemini:')?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
   _vmPreviewCache[id]=url;_vmPlayingId=id;renderVmGrid();
   _vmPreviewAudio=new Audio(url);
   _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};

@@ -704,7 +704,7 @@ function previewVmVoice(id,name,ev){
   _vmPlayingId=id;renderVmGrid();
   try{
     const cleanId=id.replace(/^gemini:/,'');
-    let url=_vmPreviewCache[id]||`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`;
+    let url=_vmPreviewCache[id]||(isGeminiVoiceId(id)?`/api/voice-sample?voice=${encodeURIComponent(cleanId)}`:`https://static.aiquickdraw.com/elevenlabs/voice/${encodeURIComponent(cleanId)}.mp3`);
     _vmPreviewCache[id]=url;
     _vmPreviewAudio=new Audio(studioMediaUrl(url));
     _vmPreviewAudio.onended=()=>{_vmPlayingId=null;renderVmGrid();};

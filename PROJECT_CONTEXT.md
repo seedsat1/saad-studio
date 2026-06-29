@@ -1,4 +1,44 @@
 # Saad Studio — Project Context
+## Latest task: Create dedicated `/api/voice-sample` route for streaming authentic Gemini voice timber samples (2026-06-29)
+
+- Status:
+  Resolved the issue where canceling dynamic TTS generation on preview resulted in unplayable audio for Gemini voices. Built a dedicated GET endpoint `app/api/voice-sample/route.ts` that serves static WAV audio samples of Gemini voice timbers ("خامات الصوت") with server-side buffer caching. Updated `previewVmVoice` in `public/stude/sound.html` and `stude/sound.html` to route Gemini sample requests directly to `/api/voice-sample?voice=${cleanId}`, enabling instant, authentic voice sample playback without credit usage or UI generation spinners.
+- Affected files:
+  - `app/api/voice-sample/route.ts`
+  - `public/stude/sound.html`
+  - `stude/sound.html`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Verified compilation and typechecking passes successfully with 0 errors using `npx tsc --noEmit`.
+- Findings:
+  - ElevenLabs voices have static sample MP3s on `static.aiquickdraw.com/elevenlabs/voice/`, whereas Gemini voices required a dedicated server route to stream cached voice timber samples.
+- Decisions:
+  - Server caches pre-rendered sample buffers in memory (`sampleCache`) and streams them with long-term `Cache-Control` headers for instant playback.
+
+## Latest task: Saad Agent LM Studio 0.4.18 chat/runtime endpoint fix and message clipping guard (2026-06-29)
+
+- Status:
+  Fixed the packaged Saad Agent chat silence when using LM Studio 0.4.18 on `http://127.0.0.1:32768`. The runtime previously called OpenAI-style paths such as `/models` and `/chat/completions`, which LM Studio logged as unexpected endpoints and returned HTTP 200 without usable content. `ModelClient` now detects LM Studio runtimes and tries the real Developer API first: `GET /api/v1/models` for discovery and `POST /api/v1/chat` for chat. The `/api/v1/chat` payload uses LM Studio's `input` shape and omits unsupported `max_tokens`/`response_format` fields. OpenAI-compatible `/v1/chat/completions` remains as fallback. Empty 200 responses are now treated as errors instead of silent success. Also loosened chat message CSS clipping so sender, timestamp, copy action, and RTL/long text wrap instead of overlapping or disappearing.
+- Affected files:
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/ui/src/index.css`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-settings.js` passed.
+  - Live LM Studio verification passed: `POST http://127.0.0.1:32768/api/v1/chat` with `input` returned `OK`.
+  - Built `ModelClient.chatCompletion(...)` against the local LM Studio endpoint returned `OK`.
+- Findings:
+  - LM Studio 0.4.18 Developer API exposes `GET /api/v1/models` and `POST /api/v1/chat`; the latter requires `input` and rejects OpenAI `messages` plus unsupported keys such as `max_tokens`.
+  - The existing UI message rows used hidden overflow around message containers, which could clip metadata/content on narrow or RTL layouts.
+- Decisions:
+  - Prefer LM Studio Developer API for LM Studio providers and keep OpenAI-compatible endpoints as fallback only.
+  - Treat provider responses with no extracted message content as failures so the UI shows a real error instead of no reply.
+  - Keep the chat viewport horizontally locked while allowing message metadata and body text to wrap naturally.
+
 ## Latest task: Fix audio page voice sample preview and lingerie page type error (2026-06-29)
 
 - Status:

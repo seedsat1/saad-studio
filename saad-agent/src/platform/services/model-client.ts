@@ -10,6 +10,7 @@ export interface ModelRuntimeOptions {
 interface ChatEndpointCandidate {
   url: string;
   responseFormat: boolean;
+  lmStudioDeveloperApi?: boolean;
 }
 
 export class ModelClient {
@@ -51,12 +52,12 @@ export class ModelClient {
     const openAIBase = this.normalizeOpenAIBaseUrl(baseUrl);
     const origin = this.endpointOrigin(normalized);
     const candidates: ChatEndpointCandidate[] = [];
-    const add = (url: string, responseFormat: boolean) => {
-      if (!candidates.some(candidate => candidate.url === url)) candidates.push({ url, responseFormat });
+    const add = (url: string, responseFormat: boolean, lmStudioDeveloperApi = false) => {
+      if (!candidates.some(candidate => candidate.url === url)) candidates.push({ url, responseFormat, lmStudioDeveloperApi });
     };
 
     if (isLmStudio) {
-      add(`${origin}/api/v1/chat`, false);
+      add(`${origin}/api/v1/chat`, false, true);
       add(`${origin}/v1/chat/completions`, false);
     }
 
@@ -68,6 +69,7 @@ export class ModelClient {
   private static extractText(payload: any): string {
     const content = payload?.choices?.[0]?.message?.content
       ?? payload?.choices?.[0]?.text
+      ?? payload?.output?.[0]?.content
       ?? payload?.message?.content
       ?? payload?.message
       ?? payload?.content
@@ -118,7 +120,21 @@ export class ModelClient {
     headers: Record<string, string>,
     runtime?: ModelRuntimeOptions
   ): Promise<string> {
-    const requestBody = { ...body };
+    const requestBody = candidate.lmStudioDeveloperApi
+      ? {
+          model: body.model,
+          input: body.messages
+            .map((message: any) => {
+              const content = Array.isArray(message.content)
+                ? message.content.map((part: any) => part.text || part.image_url?.url || "").filter(Boolean).join("\n")
+                : message.content;
+              return `${message.role}: ${content}`;
+            })
+            .join("\n\n"),
+          temperature: body.temperature,
+          stream: false,
+        }
+      : { ...body };
     if (candidate.responseFormat) requestBody.response_format = { type: "json_object" };
 
     let response = await this.fetchWithRuntime(candidate.url, {
