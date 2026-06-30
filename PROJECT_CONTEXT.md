@@ -1,4 +1,318 @@
 # Saad Studio — Project Context
+
+## Known Truths
+- target_host_version: Premiere Pro 26.2.0.
+- cep_extension: True.
+- ffmpeg_required: True.
+- speaker_activity_rms: True.
+- multi_cam_auto_switch: True.
+- silence_removal: True.
+- reap_api_separate: True.
+
+## Latest task: Credit Advance Restriction for Last Two Months of Subscription (2026-07-01)
+
+- Status:
+  Implemented a restriction where annual subscribers are blocked from requesting a credit advance (loan) during the last two months (60 days) of their active subscription period.
+- Affected files:
+  - [credit-ledger.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts)
+  - [overview/route.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/app/api/profile/overview/route.ts)
+  - [settings/route.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/app/api/profile/settings/route.ts)
+  - [credit-ledger.test.ts](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/test/credit-ledger.test.ts)
+- Verification:
+  - Added unit tests in `test/credit-ledger.test.ts` validating both restriction and allowance paths.
+  - Ran `npx vitest run test/credit-ledger.test.ts` successfully (all 7 tests passed).
+- Findings:
+  - Defined "last two months" as 60 days before `stripeCurrentPeriodEnd`.
+  - Returning a clear bilingual Arabic/English error message for user-facing API failures.
+- Decisions:
+  - Used `vi.hoisted()` in Vitest tests to prevent hoisting-related reference errors on mocked module variables.
+
+## Latest task: Compact Approval Mode Chip Fix (2026-07-01)
+
+- Status:
+  Refined the prompt Approval Mode control after runtime testing showed the custom menu was still too large and clipped inside the composer. The composer now shows a compact `Approval` chip with short current values (`Ask`, `Auto`, `Full`), and the dropdown options no longer render long descriptions inside the prompt box.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Updated `app-asar-work/ui/dist` with the new Vite output.
+  - Repacked and copied the verified ASAR into `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified the packaged ASAR still contains `dist/desktop/main.js` and includes the new UI assets `index-B7R440Gq.js` and `index-BXdPNpE-.css`.
+- Findings:
+  - The composer wrapper had `overflow: hidden`, which clipped the custom approval menu. The composer shell now allows visible overflow for this popover while preserving bounded input layout.
+- Decisions:
+  - Keep the approval mode selector visible but compact. Long explanations remain as hover titles, not visible menu text.
+
+## Latest task: Approval Mode Composer Dropdown UI Fix (2026-07-01)
+
+- Status:
+  Replaced the native Windows/Electron `select` used for the prompt Approval / Access Mode with a custom dark popover menu. This prevents the white OS dropdown from appearing over the dark Saad Agent composer.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Rebuilt `ui/dist` after deleting stale assets.
+  - Repacked and copied the updated UI into `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified the packaged ASAR contains the new UI assets `index-DLiP5vHS.js` and `index-Dq2QqdmW.css`, and no longer contains the stale `index-mIlcnEIC.js` or `index-B3OhLRbV.css`.
+- Findings:
+  - The previous packaged ASAR kept stale Vite assets because the dist folder contained old hashed files. Cleaning `ui/dist` before build fixed the packaging ambiguity.
+- Decisions:
+  - Keep Approval Mode enforcement unchanged in the backend. This task only fixes the composer control rendering.
+
+## Latest task: Prompt Box Approval & Access Mode Selector (2026-07-01)
+
+- Status:
+  Implemented a backend-enforced Approval / Access Mode system for Saad Agent. The prompt composer now shows a compact approval selector with `Ask for approval`, `Approve for me`, and `Full access`. The selected mode is stored per local conversation and is sent with every `chat-complete` request. Added `ApprovalPolicyService` as the central backend authority for read/write/delete/search/terminal/git/internet/knowledge-import/local-path decisions, with structured approval requests and audit logging.
+- Affected files:
+  - `saad-agent/src/platform/services/approval-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/src/test-approval-policy.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/src/mockData.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-approval-policy.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed with `SAAD_AGENT_SETTINGS_ROOT` pointed at the local runtime test settings directory.
+  - `node dist/test-intent-engine-v2.js` passed with 107 routing cases.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` successfully; new size is 12,759,404 bytes and timestamp is 2026-07-01 01:25:04.
+  - Extracted the packaged ASAR to a temporary verification folder and confirmed it contains `approval-policy.js`, `approval:remember`, `approvalMode`, `approval-mode-selector`, and `runtime-approval`.
+- Findings:
+  - The agent response claiming it cannot inspect `C:\Users\PC\Pictures\Screenshots` is a product behavior bug. Correct behavior is to require that the folder be added as a trusted workspace or approved through the prompt access mode, then inspect it through the trusted workspace runtime.
+  - Existing chat tests needed an explicit approval mode for attachment-to-training import because importing knowledge now passes through the approval policy.
+- Decisions:
+  - Approval enforcement lives in the backend, not React UI.
+  - `Full access` still blocks `.env`, keys, tokens, cookies, credentials, private keys, and secret storage.
+  - `Approve for me` allows safe actions such as workspace search and build/typecheck/lint/test, while delete, git push/reset, npm install, unknown shell commands, secret access, and outside-workspace modification still require approval or remain blocked.
+  - `Ask for approval` requires approval before file edits, terminal commands, internet access, deletes, git actions, and training knowledge imports.
+
+## Latest task: RAG Vault Path Alignment & Crawler Stability (2026-07-01)
+
+- Status:
+  Aligned all RAG storage query paths (list, get-document, get-dictionaries, get-term) and chat orchestrator logic with the configured portable Knowledge Vault (`E:\SaadAgentData`) instead of project-local directories.
+  - Added `registry` folder field to `DIRS` configuration object in `KnowledgeManagerService`.
+  - Redirected Electron IPC handlers and chat lookup to use vault-based paths dynamically.
+  - Implemented exact stage diagnostics and strict undefined guards in `knowledge-worker.ts` crawler loop to eliminate the `Cannot read properties of undefined (reading 'includes')` error.
+  - Added warning styling and amber UI states in `KnowledgeManager.tsx` for completed crawls containing warnings.
+  - Rendered active storage vault locations in both settings panel and import report views.
+  - Fixed startup initialization bug: Added `await KnowledgeManagerService.initialize();` inside the `createWindow` function in `main.ts` to ensure RAG configuration and active folder properties (DIRS) are fully loaded in the main Electron process on boot.
+  - Aligned self-knowledge of the LLM: Added instructions to the system prompts in `chat-orchestrator.ts` informing Saad Agent that it has direct access to the internet using the integrated Brave Search tool.
+  - Implemented Trusted Workspaces IPC handlers: Added Electron IPC bridge registrations for `trusted-workspace:*` APIs in `main.ts`, `preload.ts`, and `preload.cjs` to fully activate the new `TrustedWorkspaceRuntime` and restore frontend dropdown and search operations in the developer dashboard.
+  - Added Chat Cancelability and Stop Button: Implemented `chat-abort` IPC API in `main.ts` with `AbortController` request cancellation inside `ChatOrchestratorService`. Modified UI send button in `App.tsx` to morph into a red glassmorphic stop button (`■`) during active generation, allowing users to stop ongoing requests instantly.
+- Affected files:
+  - [knowledge-manager.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/knowledge-manager.ts)
+  - [main.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+  - [chat-orchestrator.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+  - [knowledge-worker.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/workers/knowledge-worker.ts)
+  - [KnowledgeManager.tsx](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/components/KnowledgeManager.tsx)
+- Verification:
+  - Built backend and UI bundles successfully with 0 errors.
+  - Ran pack reindex and persistent vault tests successfully.
+  - Repacked app.asar production archive (12,025,087 bytes).
+- Decisions:
+  - Keep configuration directories structured and clean to allow easy portable migration and multi-process access (main vs background worker).
+
+## Latest task: Merge Cleanup & Refactoring (2026-06-30)
+
+- Status:
+  Cleaned up duplicated imports, handlers, obsolete React components, and unused IPC endpoints to maintain a single production implementation.
+  - Consolidated `child_process` and `util` imports at the top of `main.ts`.
+  - Deleted duplicate handlers `knowledge:pack-rebuild` and `knowledge:get-registry` (keeping `knowledge:pack-reindex` and `knowledge:list` respectively).
+  - Deleted dummy unused handler `knowledge:reindex`.
+  - Cleaned preload mappings in `preload.ts` and `preload.cjs` to remove unused APIs.
+  - Updated `KnowledgeManager.tsx` UI to call `knowledgePackReindex`.
+  - Deleted the obsolete `ui/src/components/SettingsPanel.tsx` React component file.
+- Affected files:
+  - [main.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+  - [preload.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/preload.ts)
+  - [preload.cjs](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/preload.cjs)
+  - [KnowledgeManager.tsx](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/components/KnowledgeManager.tsx)
+  - `ui/src/components/SettingsPanel.tsx` [DELETE]
+- Verification:
+  - Recompiled TS backend (`npm run build`) and Vite React UI (`npm run build:ui`) with zero errors.
+  - Ran reindexing, metadata normalization, and persistent storage vault tests (`test-pack-reindex.js` and `test-persistent-vault.js`), verifying all assertions passed successfully.
+  - Packed and verified the final `app.asar` archive (size: 11,620,280 bytes) under `release-production-v4/win-unpacked/resources/`.
+- Decisions:
+  - Prefer keeping single robust handlers and removing dead APIs to ensure lightweight, maintainable code.
+  - Automate file staging and app.asar packaging using a dedicated script to prevent staging mismatches.
+
+## Latest task: Knowledge Pack Card & Reindex Action (2026-06-30)
+
+- Status:
+  Implemented the Knowledge Pack card normalization rules and full, end-to-end Reindex action.
+  - Normalizes missing pack metadata before rendering: pages = 0, chunks = 0, dictionaryTerms = 0, storageSize = 0, relations = "Not available", lastUpdated = null.
+  - Prevents NaN and Invalid Date from ever appearing in the UI.
+  - Implemented the `reindexPack` action which locates source, re-ingests documents, rebuilds dictionaries, updates search index, updates pack metadata, and refreshes the UI immediately with feedback.
+  - Displays clear error message "Cannot reindex. Source files are missing." if pack source files are missing.
+- Affected files:
+  - [main.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+  - [knowledge-manager.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/knowledge-manager.ts)
+  - [KnowledgeManager.tsx](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/components/KnowledgeManager.tsx)
+- Verification:
+  - Added new test suite verifying reindexing, missing source handling, and metadata normalization (All passed).
+  - Built Vite React UI and Electron backend with 0 compiler errors.
+- Findings:
+  - If no custom pack name is provided during import, deriving from folder name provides a clean default name.
+- Decisions:
+  - Maintain the UI normalization function to sanitize any legacy JSON packs that do not contain the full set of metadata keys.
+
+## Latest task: Engineering Import Summary & Knowledge Pack Report (2026-06-30)
+
+- Status:
+  Implemented the professional Engineering Import Report and detailed Knowledge Pack Report with strict real data extraction rules.
+  - Removed fallback/estimated topics list; Topics Learned now displays "No topics extracted." if empty.
+  - Replaced technicalTerms-based API references calculation with a strict regex parser matching real HTTP methods (GET, POST, etc.) and path endings (/v1/..., /api/...).
+  - Moved metadata terms (base_url, headers, endpoint, bearer token, authorization, api_key) to a separate `API Metadata` field.
+  - Derived Knowledge Pack names dynamically from their source URLs or folder names, and allowed the user to override it with a custom Pack Name input during local imports.
+  - Set `relationsBuilt` to "Not available" since a backend graph database is not implemented yet (graph links are constructed dynamically in D3 renderer from registry list).
+  - Corrected success status checks so that `Completed Successfully` is only output if skipped pages, failed pages, and timeouts are all 0.
+  - Kept console logs collapsed by default.
+- Affected files:
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/platform/workers/knowledge-worker.ts`
+  - `saad-agent/ui/src/components/KnowledgeManager.tsx`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - Built Vite React UI and Electron backend with 0 compiler errors.
+  - Repacked and updated `release-production-v4/win-unpacked/resources/app.asar`.
+- Findings:
+  - Allowing custom pack names for local imports improves card classification in the library.
+  - Restoring true "Not available" graph status represents system capabilities accurately.
+- Decisions:
+  - Updated IPC handlers for file and folder imports to write/update pack JSON files using the custom or derived name so they appear as real Knowledge Packs.
+
+## Latest task: Saad Agent clickable external chat links (2026-06-30)
+
+- Status:
+  Fixed chat message links so plain `http`/`https` URLs and Markdown links render as clickable links in the packaged Electron chat. Links open through a safe Electron IPC bridge using `shell.openExternal`, limited to `http:` and `https:` schemes only.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified the archive contains `open-external-url`, `openExternalUrl`, and `ui/dist/index.html`.
+- Findings:
+  - Chat messages previously rendered URLs as plain text with no safe Electron external-link handler, so links like `https://antigravity.google/auth-success?app=antigravity` could not be clicked reliably.
+- Decisions:
+  - Keep link opening in the main process via IPC instead of allowing arbitrary renderer navigation. Only `http` and `https` links are allowed.
+
+## Latest task: Persistent Vault (Storage v3) & Premium Conversation UI Redesign (2026-06-30)
+
+- Status:
+  Completed the external persistent vault backend (Storage v3), safe copy-verify-archive migration rules, and the complete Premium Conversation UI redesign. Redesigned chat messages to use glassmorphism CSS, integrated a custom React Markdown and PremiumCodeBlock editor (with download, copy, wrap, and line numbers), added three conversation modes (Normal, Engineering, Developer), cycled animated staging loaders, and created a floating preferences controls card.
+- Affected files:
+  - `saad-agent/src/platform/services/knowledge-manager.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/mockData.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - Ran persistent vault, workspaces fingerprinting, and automatic reconnection tests. All tests passed.
+  - Built React UI and Electron backend with 0 compiler errors.
+  - Updated win-unpacked app.asar package successfully.
+- Findings:
+  - Keeping config file at `%USERPROFILE%/.saad-agent/knowledge-config.json` allows full workspace mobility.
+  - Word-by-word streaming is simulated with intervals using split spaces to provide a premium real-time streaming feel.
+- Decisions:
+  - Implemented safe copy-verify-archive migration instead of direct file deletion.
+
+## Latest task: Implement Engineering Knowledge Manager & Permanent Learning Library — Phase 2 (2026-06-30)
+
+- Status:
+  Completed Phase 2: Built background crawler worker child process (`knowledge-worker.ts`), added robots.txt parser, 500ms crawl delay, 50-page crawl limit, and subpath crawler matching. Upgraded UI (`KnowledgeManager.tsx`) to render Knowledge Packs cards, live logs view with Pause/Resume/Cancel, interactive SVG relationship graph, searchable terms dictionary, and real-time statistics. Labeled RAG search as Keyword/Concept Search.
+- Affected files:
+  - `saad-agent/src/platform/workers/knowledge-worker.ts` [NEW]
+  - `saad-agent/src/platform/services/knowledge-manager.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/ui/src/components/KnowledgeManager.tsx` [NEW]
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/scratch/test-knowledge.js` [NEW]
+- Verification:
+  - Rebuilt Electron backend and Vite React UI successfully (0 errors).
+  - Executed automated test suite verifying RAG ingestion (Markdown, TXT, JSON, recursive folders), registry creation, technical dictionary extraction, dialect/attributes LLM-bypass resolvers, and concept keyword searches (27 passed, 0 failed).
+  - Packaged and deployed runtime `app.asar` (6.1MB, LastWriteTime: 6/30/2026 9:31 AM).
+- Findings:
+  - The `registry.json` file uses a nested TrainingKnowledgeRegistry wrapper `{ version: 1, items: [...] }`. Modifying the RAG parser and IPC handlers to handle both flat arrays and wrapped objects prevents any runtime or IPC crashes.
+- Decisions:
+  - Use `(m.item as any).title || (m.item as any).fileName` format to bypass strict typescript property verification.
+  - Label RAG search clearly as Keyword & Concept search to distinguish it from semantic vector search if actual embeddings models are simulated.
+
+## Latest task: Add Smart Code Spelling & Naming Review system (2026-06-30)
+
+- Status:
+  Completed implementing the Smart Code Spelling & Naming Review system. Built the `SmartSpellReviewService`, integrated it into the `ValidationPipelineService` check pipeline, created the allowed project dictionary at `.saad-agent/dictionaries/project-terms.json`, and verified it with a suite of automated tests.
+- Affected files:
+  - `saad-agent/src/platform/services/smart-spell-review.ts` [NEW]
+  - `saad-agent/src/platform/services/validation-pipeline.ts`
+  - `saad-agent/.saad-agent/dictionaries/project-terms.json` [NEW]
+- Verification:
+  - Rebuilt source successfully (0 errors).
+  - Executed automated tests verifying misspelled variables, misspelled components, misspelled providers, allowed words bypass, route name casing, and UI messages grammar (17 passed, 0 failed).
+- Findings:
+  - Matching the entire identifier against the allowed dictionary before splitting it into tokens prevents constituent words (like `banana` or `studio` from `NanoBanana` or `SaadStudio`) from triggering false positives.
+- Decisions:
+  - Utilize `String.charAt(0)` rather than bracket indexing (`String[0]`) to ensure type compatibility under `noUncheckedIndexedAccess`.
+
+## Latest task: Pack app.asar inside release-production-v4/win-unpacked and apply Saad Agent critical fixes (2026-06-30)
+
+- Status:
+  Completed the 8 critical bug fixes to the agent codebase and successfully rebuilt and packaged the updated `app.asar` runtime package inside `release-production-v4/win-unpacked/resources/`.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/domain-resolver.ts` [NEW]
+  - `saad-agent/src/platform/services/brave-answers.ts`
+  - `saad-agent/src/platform/services/reasoning-engine.ts`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/.saad-agent/language/iraqi-engineering-dialect.json` [NEW]
+- Verification:
+  - Rebuilt typescript source and Vite UI assets successfully.
+  - Ran 23 automated edge-case tests covering domain resolution, intent classification, routing priorities, and dialect mapping (All 23 passed, 0 failed).
+  - Created timestamped backup of the previous `app.asar` and verified its existence.
+  - Synced fresh builds to `app-asar-work` and packed it to `resources/app.asar`. Verified size (5,328,841 bytes), timestamp (6/30/2026 3:57 AM), and content list.
+- Findings:
+  - Under `exactOptionalPropertyTypes: true` in tsconfig, optional parameters such as `signal?: AbortSignal` must be explicitly declared as `AbortSignal | undefined` to allow passing undefined variables.
+  - Normalizing Arabic (replacing `ة` with `ه` and `أ/إ` with `ا`) requires utilizing normalized forms in regex filters (e.g. `امراه` and `سمينه` instead of `امرأة` and `سمينة`).
+- Decisions:
+  - Position the `DomainResolver` module before the Intent Engine and Reasoning Engine to ensure specific domains (like `human_attributes` or `software_release`) are resolved cleanly without defaulting to web search or generating LLM errors.
+  - Support instant request cancellation by registering a custom `"chat-abort"` IPC handler and linking AbortSignals directly down to fetch options.
+
+## Latest task: Update SAAD_AGENT_CONTEXT.md with all Agent Architecture Diagrams (2026-06-30)
+
+- Status:
+  Added complete Mermaid flowcharts and diagrams (Cognitive Multi-Layer RAG Engine, 11-Step Automated Task Pipeline, and v6.5 Continuous Self-Healing & Recovery Pipeline) to SAAD_AGENT_CONTEXT.md. Updated docs/saad-studio-premiere-reference-ar.md to record the newly injected architectural diagrams reference.
+- Affected files:
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Verified syntax correctness of all Mermaid chart syntax.
+- Findings:
+  - Keeping architecture diagrams consolidated in SAAD_AGENT_CONTEXT.md provides a single source of truth for the Agent's reasoning mechanisms.
+- Decisions:
+  - Maintain Mermaid flowcharts inside SAAD_AGENT_CONTEXT.md for direct visual parsing in markdown.
+
 ## Latest task: Move voice sample registry to hidden `.data` directory to prevent Next.js hot-reload (2026-06-30)
 
 - Status:
@@ -4957,3 +5271,183 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Keep original attachment storage under `.saad-agent/attachments/`, then copy selected references into `.saad-agent/training/` for durable retrieval.
 - Remaining:
   - Add real DOCX/PDF text extraction and OCR/Vision summaries for richer searchable content from binary documents and screenshots.
+
+## Latest task: Saad Agent conversation and training-command routing fix (2026-06-30)
+
+- Status:
+  Fixed Saad Agent chat conversation creation/deletion stability and removed the renderer dependency on mock messages. New conversations now start as clean empty `New Chat` pages and stale active conversation ids are repaired automatically. Fixed training/save routing so Arabic requests such as `درب نفسك على هذا الملف` with attachments are treated as `memory_save` and do not call the model.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Direct Unicode test for `درب نفسك على هذا الملف` with attachment returned `intent=memory_save`, `usedModel=false`, and saved to `.saad-agent/training/lessons/`.
+- Decisions:
+  - Training/reference attachment requests must be deterministic save operations before model routing.
+  - Production chat must not bootstrap from mock messages.
+
+## Latest task: Saad Agent memory recall output cleanup (2026-06-30)
+
+- Status:
+  Fixed memory save/recall formatting so runtime composer metadata is never stored or displayed as user memory. `ChatOrchestratorService` now extracts only the text after `User request:` before saving, removes save/train prefixes, and cleans legacy memory descriptions during recall display. Existing polluted root user-memory content was sanitized to keep the real user fact while removing `Composer action`, `Runtime model`, provider, skill, and workspace lines.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `.saad-agent/knowledge/engineering_kb.json`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Direct wrapped-runtime memory test confirmed `saveUsedModel=false`, `recallHasRuntime=false`, and the cleaned user fact remains visible.
+- Decisions:
+  - Diagnostics may prove the Brain ran, but internal runtime prompt fields must never be treated as memory facts.
+
+## Latest task: Saad Agent training-recall intent fix (2026-06-30)
+
+- Status:
+  Fixed a false `memory_save` classification where questions such as `الذي دربك عليه قبل` were incorrectly treated as new training/save commands because they contained the word `دربك`. Training save detection now requires explicit imperative save/train/reference wording such as `درب نفسك على هذا الملف` or `احفظه كمرجع`, while recall/explanation wording about previous training routes to normal reasoning after the Brain/pre-answer review.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Direct test of the screenshot-style phrase reached model reasoning instead of memory save; no Memory ID/save response was produced.
+- Decisions:
+  - Bare references to previous training, such as `دربك عليه قبل`, are questions and must not mutate memory.
+
+## Latest task: Saad Agent Semantic Intent Engine v2 and Conversation Intelligence (2026-06-30)
+
+- Status:
+  Replaced the old keyword-first Intent Engine with a sentence-aware semantic classifier. The new engine supports JSON-backed intent rules under `.saad-agent/intents/`, multi-candidate scoring, conversation inheritance, Iraqi dialect follow-ups, intent history, confidence scores, matched pattern, reason, selected pipeline, and selected tools. Added deterministic Natural Conversation Intelligence before final intent selection for correction, continuation, reference resolution, topic switching, and memory references.
+- Affected files:
+  - `saad-agent/src/platform/services/intent-engine.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-intent-engine-v2.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `.saad-agent/intents/*.json`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - `node dist/test-intent-engine-v2.js` passed with 107 routing cases.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-training-knowledge.js` passed.
+  - `node dist/test-context-engine.js` passed.
+- Findings:
+  - JavaScript `\b` word boundaries are unreliable for Arabic words, so Arabic sentence rules now use whitespace/end boundaries.
+  - `كمل` should inherit the previous workflow intent, while `مو هذا` and similar phrases become correction/modification.
+- Decisions:
+  - Use the requested v2 intent names such as `external_research`, `training_ingest`, `bug_fix`, and `code_modification` while preserving orchestrator behavior.
+  - Do not mutate memory for phrases like `الذي دربك عليه قبل`; they are recall/lookup questions, not save commands.
+- Packaging:
+  - Source and builds are complete. Updating `release-production-v4/win-unpacked/resources/app.asar` was attempted but the environment rejected the packaging command due usage-limit enforcement, so the packaged app was not refreshed in this step.
+
+## Latest task: Saad Agent concise memory recall and explicit research routing fix (2026-06-30)
+
+- Status:
+  Fixed direct chat behavior so normal answers no longer expose Brain/diagnostic blocks unless the user explicitly asks for diagnostics/debug/routing. Memory recall questions such as `من انا` now return a short ChatGPT-like answer from saved user memory, without calling the model and without dumping internal runtime context. Explicit link/source/image-search requests such as `اعطني روابط ...` are recognized as external research and routed away from the model path.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/intent-engine.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/src/test-intent-engine-v2.ts`
+  - `saad-agent/.saad-agent/intents/*.json`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-intent-engine-v2.js` passed (107 routing cases).
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Manual memory recall check returned exactly: `أنت سعد مصمم كرافيك.`
+- Findings:
+  - The semantic intent engine classified explicit link requests correctly, but `ChatOrchestrator` still had an older explicit-internet-search guard that did not include Arabic link/source wording.
+  - Always prepending diagnostics made normal memory answers feel like internal debug output rather than a user-facing assistant response.
+- Decisions:
+  - Diagnostics remain available only when requested with diagnostics/debug/routing wording.
+  - Attachment save/reference requests remain non-model save operations and are tested as `memory_save` paths that import files into training knowledge.
+
+## Packaging note: refreshed project win-unpacked app.asar (2026-06-30)
+
+- Status:
+  Refreshed `saad-agent/release-production-v4/win-unpacked/resources/app.asar` after the concise memory recall and explicit research routing fix by syncing the latest `dist/` into `resources/app-asar-work` and packing a new ASAR.
+- Verification:
+  - New `app.asar` timestamp: 2026-06-30 14:55:18.
+  - New `app.asar` size: 9,131,364 bytes.
+- Finding:
+  - The external test location `D:\win-unpacked` could not be updated from this environment because drive `D:` is not visible to the sandbox/runtime.
+
+## Latest task: Saad Agent identity recall filters training pollution (2026-06-30)
+
+- Status:
+  Fixed `memory_recall` for identity questions such as `من انا` so it returns only personal identity facts and excludes training protocols, rules, and learned engineering documents that may have been saved into `user-memory` by older builds. The response is now concise and ChatGPT-like instead of listing all saved memory entries.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-intent-engine-v2.js` passed (107 cases).
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Manual polluted-memory check returned: `أنت سعد مصمم كرافيك ومصمم موقع سعد ستوديو ومصمم هذا الاجينت.` and did not include `Saad Agent Core Training Protocol` or `Rule 1`.
+- Findings:
+  - Older saves allowed training text to live under `user-memory`; listing all user-memory entries caused identity questions to dump training protocols.
+- Decisions:
+  - Identity recall uses identity-only facts. Training/protocol/rule-like memory entries are filtered from normal user-facing identity answers.
+  - Refreshed only the project work location package at `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; the deleted `D:\win-unpacked` path is not used.
+
+## Latest task: Saad Agent casual thanks/greeting no-generation fix (2026-06-30)
+
+- Status:
+  Fixed short conversational acknowledgements such as `شكرا لك` so they return a concise natural reply and bypass pre-answer knowledge retrieval, project context, and model generation. This prevents trained provider/page rules from turning a simple thank-you into an engineering implementation proposal.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-intent-engine-v2.js` passed (107 cases).
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Manual check for `شكرا لك` returned `{ intent: "conversation", usedModel: false, response: "العفو سعد، حاضر." }`.
+  - Verified the refreshed `app.asar` contains `isCasualAcknowledgement` and `العفو سعد`.
+- Findings:
+  - `IntentEngine` classified thanks as conversation, but `ChatOrchestrator` still let generic conversation fall through to the reasoning/model branch.
+- Decisions:
+  - Short thanks and greetings are deterministic no-model responses. They must not search training knowledge or propose code.
+
+## Latest task: Full Power Workspace Runtime (2026-06-30)
+
+- Status:
+  Implemented a trusted workspace runtime so Saad Agent can operate on real project files with Codex-like local workspace power while staying bounded to user-approved roots. The runtime stores trusted workspaces, blocks secret-looking paths, provides local open/reveal/copy actions, searches file names and readable contents, reads/writes trusted files with backups, deletes only with explicit approval, and runs a constrained set of safe build/test/git commands.
+- Affected files:
+  - `AGENTS.md`
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/platform/services/pre-answer-review.ts`
+  - `saad-agent/src/platform/workspace-manager.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/components/WorkspaceRuntimePanel.tsx`
+  - `saad-agent/ui/src/index.css`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Runtime service test loaded `AGENTS.md`, `PROJECT_CONTEXT.md`, `saad-agent/SAAD_AGENT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md` successfully.
+  - Trusted workspace search returned real paths, including `saad-agent/SAAD_AGENT_CONTEXT.md`.
+  - Safe command runner executed `git status` inside the trusted workspace.
+- Findings:
+  - The old global app data helper needed `SAAD_AGENT_SETTINGS_ROOT` support so packaged Electron and tests can share the intended settings root without writing outside the allowed environment.
+  - `SAAD_AGENT_CONTEXT.md` must be treated as a first-class agent behavior file, not just a chat attachment/reference.
+- Decisions:
+  - The agent never scans the whole computer by default; every file action is checked against trusted workspace roots.
+  - Local path actions reject `.env`, keys, tokens, credentials, cookies, encrypted secret storage, unsafe traversal, and untrusted paths.
+  - Git push is exposed only through the safe runner and remains explicit-only; it is never automatic.

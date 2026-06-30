@@ -1,5 +1,25 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## تحديث سياسة السلفة (Credit Advance Policy Update) — (2026-07-01)
+- **منع طلب السلفة في آخر شهرين**: تم تعديل آلية طلب السلفة (`creditAdvance`) للمشتركين السنويين بحيث تُعطل تلقائياً وتظهر غير متاحة (`available: false`) خلال آخر شهرين (60 يوماً) من فترة الاشتراك الفعلي المتبقية (`stripeCurrentPeriodEnd`). يمنع النظام الخلفي طلبها في هذه الفترة ويعيد رسالة خطأ واضحة باللغة العربية والإنجليزية.
+
+## Saad Agent Engineering Knowledge Manager & Permanent Learning Library — Phase 2 & Action Updates (2026-06-30)
+
+- **Knowledge Pack Card Validation**: Normalizes missing metadata attributes (pages, chunks, dictionaryTerms, storageSize = 0, relations = "Not available", lastUpdated = null) to prevent NaN and Invalid Date in the interface.
+- **Knowledge Pack Reindexing**: Implemented a complete Reindex action that re-loads documents, re-calculates chunk sizes and dictionary terms, updates the database/indexes, and updates UI feedback immediately.
+- **Graceful Error Handling**: Displays clear error message "Cannot reindex. Source files are missing." if pack source files are missing.
+- **Dynamic Pack Naming**: Derives Knowledge Pack name from source URL/folder name if no name is specified, and allows user overrides.
+- **Strict Data Summary**: topicsLearned only shows real headings/tags/terms; apiReferences only counts actual HTTP verb patterns; relationsBuilt is set to "Not available" since a backend graph database is not implemented yet.
+
+
+## RAG Vault Path Alignment & Crawler Stability — Action Updates (2026-07-01)
+
+- **Path Redirection to Vault**: Aligned all RAG queries (`list`, `get-document`, `get-dictionaries`, `get-term`) and chat orchestrator lookups to resolve dynamically using `KnowledgeManagerService.getDirs().registry` and `.dictionaries` rather than hardcoding local project-level paths under `.saad-agent/knowledge/`.
+- **Compartmentalized Vault Registry**: Added a dedicated `registry` folder (`Registry/`) configuration property inside `DIRS` of `KnowledgeManagerService` to manage the RAG registry file dynamically under `E:\SaadAgentData\Registry\registry.json` with fallback migration capability.
+- **Crawler Loop Safeguard**: Added undefined check guard `if (!existingPack.documents) { existingPack.documents = []; }` prior to scanning doc references inside pack JSON structures.
+- **Diagnostics & Warning States**: Integrated active storage vault path display inside the settings panel and crawling reports, and updated `KnowledgeManager.tsx` to handle warning types with custom orange/amber alerts when crawls finish with warnings.
+
+
 ## Saad Agent Settings Management Center behavior (2026-06-28)
 
 - Settings is the central management center for the packaged Saad Agent desktop app. It is not a cosmetic preferences dialog.
@@ -633,3 +653,11 @@
 - Text, Markdown, JSON, and source-code files are indexed from readable text.
 - PDF, Word, screenshots, diagrams, and other binary files are stored as permanent references and metadata-only unless a real PDF/DOCX/OCR/Vision extractor generates text. The system must not claim extracted content that was not actually extracted.
 - Sensitive files and secret-looking paths remain excluded from training import.
+## Saad Agent Approval / Access Mode behavior (2026-07-01)
+
+- The chat prompt composer includes an Approval / Access Mode selector per conversation: Ask for approval, Approve for me, and Full access.
+- Enforcement is centralized in `ApprovalPolicyService`; React UI is only the control surface, not the security boundary.
+- Backend checks cover trusted workspace search, local path open/reveal/copy, terminal runner, git runner, internet/search use, knowledge imports, delete operations, and chat-triggered training imports.
+- If an action requires approval, the backend returns a structured approval request with action, risk, reason, command, and files. The chat UI renders an approval card with Approve, Reject, and Always allow this type in this conversation.
+- Full access does not expose secrets. `.env`, private keys, tokens, cookies, credentials, and secret storage stay blocked in every mode.
+- The correct response to a local folder request outside the active project, such as `C:\Users\PC\Pictures\Screenshots`, is not to claim generic inability. The agent must ask the user to trust/approve the folder and then inspect it through the trusted workspace runtime.

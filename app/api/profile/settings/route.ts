@@ -115,6 +115,12 @@ export async function GET() {
     const planCredits = SAAD_PLANS.find((p) => p.id === inferredPlanId)?.credits ?? 0;
     const monthlyCredits = Math.max(0, Math.floor(planCredits || userRow?.monthlyCredits || 0));
 
+    const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+    const isWithinLastTwoMonths = Boolean(
+      subscription?.stripeCurrentPeriodEnd &&
+        Date.now() >= subscription.stripeCurrentPeriodEnd.getTime() - sixtyDaysMs
+    );
+
     return NextResponse.json({
       profile: {
         name: userRow?.name ?? "",
@@ -139,6 +145,7 @@ export async function GET() {
           subscriptionActive &&
             subscription?.billingInterval === "annual" &&
             monthlyCredits > 0 &&
+            !isWithinLastTwoMonths &&
             userRow?.creditsExpireAt &&
             !sameCycleEnd(userRow.creditAdvanceCycleEnd, userRow.creditsExpireAt),
         ),

@@ -259,6 +259,18 @@ export async function requestAnnualCreditAdvance(userId: string, requestedAmount
     throw new CreditAdvanceError("annual_subscription_required", "Credit advance is available for active annual subscriptions only.");
   }
 
+  // Restrict credit advance in the last two months (60 days) of the subscription
+  if (subscription?.stripeCurrentPeriodEnd) {
+    const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+    const limitTime = subscription.stripeCurrentPeriodEnd.getTime() - sixtyDaysMs;
+    if (now.getTime() >= limitTime) {
+      throw new CreditAdvanceError(
+        "last_two_months_restriction",
+        "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)"
+      );
+    }
+  }
+
   if (!user?.creditsExpireAt || user.creditsExpireAt.getTime() <= now.getTime()) {
     throw new CreditAdvanceError("no_active_credit_cycle", "No active credit cycle is available for advance credits.");
   }

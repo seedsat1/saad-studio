@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const { mockUserFindUnique, mockUserUpdate, mockUserSubscriptionFindUnique } = vi.hoisted(() => {
+  return {
+    mockUserFindUnique: vi.fn(async () => null),
+    mockUserUpdate: vi.fn(async () => ({})),
+    mockUserSubscriptionFindUnique: vi.fn(async () => null),
+  };
+});
+
 const tx = {
   user: {
     update: vi.fn(async () => ({})),
@@ -22,6 +30,13 @@ vi.mock("@/lib/prismadb", () => {
         findUnique: vi.fn(async () => null),
         findMany: vi.fn(async () => []),
       },
+      user: {
+        findUnique: mockUserFindUnique,
+        update: mockUserUpdate,
+      },
+      userSubscription: {
+        findUnique: mockUserSubscriptionFindUnique,
+      },
     },
   };
 });
@@ -36,7 +51,7 @@ vi.mock("@clerk/nextjs/server", () => {
   };
 });
 
-import { keywordBlocksPrompt, precheckGenerationPolicy, refundGenerationCharge } from "@/lib/credit-ledger";
+import { keywordBlocksPrompt, precheckGenerationPolicy, refundGenerationCharge, requestAnnualCreditAdvance, CreditAdvanceError } from "@/lib/credit-ledger";
 
 describe("credit-ledger policy + refunds", () => {
   beforeEach(() => {
@@ -89,10 +104,71 @@ describe("credit-ledger policy + refunds", () => {
     });
     expect(tx.generation.update).toHaveBeenCalledWith({
       where: { id: "g1" },
-      data: { cost: 0, mediaUrl: null },
+      data: { cost: 0, mediaUrl: null, outputUrl: null, status: "failed" },
     });
     expect(tx.creditLedgerEntry.create).toHaveBeenCalledWith({
       data: { userId: "u1", generationId: "g1", delta: 10, reason: "generation_refund_provider_failed" },
     });
+  });
+
+  it("requestAnnualCreditAdvance blocks advance in the last 2 months", async () => {
+    const now = Date.now();
+    const mockUser = {
+      id: "u1",
+      creditBalance: 100,
+      monthlyCredits: 1000,
+      creditsExpireAt: new Date(now + 15 * 24 * 60 * 60 * 1000),
+      creditAdvanceBalance: 0,
+      creditAdvanceCycleEnd: null,
+    };
+    // 30 days from now (within the last 2 months/60 days of subscription)
+    const mockSubscription = {
+      billingInterval: "annual",
+      planId: "pro",
+      stripePriceId: "price_123",
+      stripeCurrentPeriodEnd: new Date(now + 30 * 24 * 60 * 60 * 1000),
+    };
+
+    mockUserFindUnique.mockResolvedValue(mockUser);
+    mockUserSubscriptionFindUnique.mockResolvedValue(mockSubscription);
+
+    await expect(requestAnnualCreditAdvance("u1", 500)).rejects.toThrow(
+      new CreditAdvanceError("last_two_months_restriction", "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)")
+    );
+  });
+
+  it("requestAnnualCreditAdvance allows advance when not in the last 2 months", async () => {
+    const now = Date.now();
+    const mockUser = {
+      id: "u1",
+      creditBalance: 100,
+      monthlyCredits: 1000,
+      creditsExpireAt: new Date(now + 15 * 24 * 60 * 60 * 1000),
+      creditAdvanceBalance: 0,
+      creditAdvanceCycleEnd: null,
+    };
+    // 90 days from now (not in the last 2 months/60 days of subscription)
+    const mockSubscription = {
+      billingInterval: "annual",
+      planId: "pro",
+      stripePriceId: "price_123",
+      stripeCurrentPeriodEnd: new Date(now + 90 * 24 * 60 * 60 * 1000),
+    };
+
+    mockUserFindUnique.mockResolvedValue(mockUser);
+    mockUserSubscriptionFindUnique.mockResolvedValue(mockSubscription);
+
+    mockUserUpdate.mockResolvedValueOnce({
+      creditBalance: 600,
+      monthlyCredits: 1000,
+      creditsExpireAt: mockUser.creditsExpireAt,
+      creditAdvanceBalance: 500,
+      creditAdvanceRequestedAt: new Date(),
+      creditAdvanceCycleEnd: mockUser.creditsExpireAt,
+    });
+
+    const res = await requestAnnualCreditAdvance("u1", 500);
+    expect(res.credited).toBe(500);
+    expect(res.creditAdvanceBalance).toBe(500);
   });
 });
