@@ -798,3 +798,10 @@
 - Rejecting an approval card must stop execution and show a concise stop message.
 - Deterministic project-context questions such as `ماهو مشروع سعد ستوديو` and `شنو مشروع سعد ستوديو` must answer from Saad Agent context without calling the active provider model.
 - Project modification requests under Ask mode must still return approval before execution or model planning.
+## Saad Agent Production Package Asset Rule (2026-07-03)
+
+- The production `win-unpacked` folder is part of the runnable desktop product and must contain the Electron Chromium assets required by the executable.
+- `chrome_100_percent.pak` and `chrome_200_percent.pak` were confirmed missing from `release-production-v4/win-unpacked` and restored from `node_modules/electron/dist`.
+- Repacking `resources/app.asar` alone is not enough to validate a production build. The outer Electron runtime files beside `Saad Agent.exe` must also be checked.
+- Runtime backups such as `app.asar.backup-*`, `app.asar.bak-*`, `app.asar.linkfix-*`, and `app.asar.new*` should not be deleted without explicit human approval.
+- If Chromium asset errors continue after the PAK files are restored, perform a full Electron rebuild and verify the final unpacked output before testing chat behavior.

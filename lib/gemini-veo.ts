@@ -109,6 +109,51 @@ export async function startVeoGeneration(
   const ai = getGenAI();
   const model = VEO_MODELS[params.tier];
 
+  if (params.tier === "omni_flash") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${KEY}`;
+    
+    // Support multimodal input parts if image is present
+    let input: any = params.prompt;
+    if (params.image) {
+      input = [
+        {
+          inlineData: {
+            mimeType: params.image.mimeType,
+            data: params.image.imageBytes,
+          }
+        },
+        { text: params.prompt }
+      ];
+    }
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gemini-omni-flash-preview",
+        input,
+        response_modalities: ["video"],
+        background: true,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Google Interactions API error: ${response.status} ${errText}`);
+    }
+    
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message || "Google Interactions API error");
+    }
+    
+    if (!data.id) {
+      throw new Error("Google Interactions API returned no interaction ID.");
+    }
+    
+    return { name: data.id as string, model: "gemini-omni-flash-preview" };
+  }
+
   // Build the config block (only set what the user picked)
   const config: Record<string, unknown> = {};
   if (params.aspectRatio) config.aspectRatio = params.aspectRatio;
@@ -145,6 +190,49 @@ export async function startVeoGeneration(
 export async function pollVeoOperation(
   handle: VeoOperationHandle,
 ): Promise<VeoPollResult> {
+  if (handle.model === "gemini-omni-flash-preview") {
+    const interactionId = handle.name.startsWith("interactions/")
+      ? handle.name.replace("interactions/", "")
+      : handle.name;
+    const url = `https://generativelanguage.googleapis.com/v1beta/interactions/${interactionId}?key=${KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Interactions polling failed: ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error.message || "Interactions failed");
+    }
+    
+    // Status can be: 'in_progress', 'completed', 'failed', 'cancelled'
+    if (data.status === "failed" || data.status === "cancelled") {
+      throw new Error(`Interactions generation ended with status: ${data.status}`);
+    }
+    if (data.status !== "completed") {
+      return { done: false };
+    }
+    
+    // Extract video
+    let videoUri: string | null = null;
+    const steps = data.steps || [];
+    for (const step of steps) {
+      const parts = step.parts || step.model_output?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) {
+          videoUri = `inline:${part.inlineData.data}`;
+          break;
+        }
+        if (part.fileData?.fileUri) {
+          videoUri = part.fileData.fileUri;
+          break;
+        }
+      }
+      if (videoUri) break;
+    }
+    
+    return { done: true, videoUri, rawResponse: data };
+  }
+
   const ai = getGenAI();
   const operationsApi = ai.operations as any;
   let operation: any;
@@ -207,6 +295,14 @@ export async function pollVeoOperation(
 export async function downloadVeoVideo(
   videoUri: string,
 ): Promise<{ buffer: Buffer; contentType: string }> {
+  if (videoUri.startsWith("inline:")) {
+    const base64 = videoUri.replace("inline:", "");
+    return {
+      buffer: Buffer.from(base64, "base64"),
+      contentType: "video/mp4",
+    };
+  }
+
   if (!KEY) {
     throw new Error("GOOGLE_AI_API_KEY missing — cannot download Veo output.");
   }

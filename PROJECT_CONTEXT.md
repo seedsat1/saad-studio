@@ -6260,3 +6260,51 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
 - Decision:
   - Approval is an actionable runtime state, not plain text. Any backend approval request must render an approval card and must not leave the user stuck with a running trace.
   - Project identity/context questions are deterministic knowledge lookups and must not depend on a live provider.
+
+## Latest task: Production Package Chromium Asset Verification (2026-07-03)
+
+- Status:
+  - Investigated the reported Electron package asset issue in `saad-agent/release-production-v4/win-unpacked`.
+  - Confirmed `chrome_100_percent.pak` and `chrome_200_percent.pak` were missing from the production unpacked folder.
+  - Confirmed core runtime files such as `resources.pak`, `icudtl.dat`, `libEGL.dll`, `libGLESv2.dll`, `ffmpeg.dll`, `vk_swiftshader.dll`, `vulkan-1.dll`, and `d3dcompiler_47.dll` exist.
+  - Copied `chrome_100_percent.pak` and `chrome_200_percent.pak` from `saad-agent/node_modules/electron/dist` into the production `win-unpacked` folder.
+  - Confirmed three `app.asar` backup files remain in `release-production-v4/win-unpacked/resources`, totaling about 27 MB.
+  - Did not delete backup files because deletion is destructive and requires explicit user approval.
+- Affected files:
+  - `saad-agent/release-production-v4/win-unpacked/chrome_100_percent.pak`
+  - `saad-agent/release-production-v4/win-unpacked/chrome_200_percent.pak`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `chrome_100_percent.pak` now exists with size `119889` bytes.
+  - `chrome_200_percent.pak` now exists with size `197073` bytes.
+  - `saad-agent/release-production-v4/win-unpacked/debug.log` was not present during inspection.
+- Warnings:
+  - `chrome_crashpad_handler.exe` was not found in the current Electron `node_modules/electron/dist` folder or the production package.
+  - A full Electron rebuild may still be required if runtime logs continue to report missing Chromium crashpad assets.
+- Decision:
+  - Chromium package assets must be verified directly in the final `win-unpacked` folder, not assumed from a successful `app.asar` repack.
+  - Backup cleanup should be done only after explicit approval and only inside `release-production-v4/win-unpacked/resources`.
+
+## Latest task: Production Backup Artifact Cleanup (2026-07-03)
+
+- Status:
+  - Cleaned verified `app.asar` backup artifacts from `saad-agent/release-production-v4/win-unpacked/resources` after user approval.
+  - Deleted two stale backup artifacts:
+    - `app.asar.backup-simple-question-fastpath-20260703`
+    - `app.asar.backup-simple-question-timeout-20260703`
+  - Preserved the current production `app.asar`.
+  - One older backup artifact remains because Windows reported it is locked by another process:
+    - `app.asar.backup-20260630T005600.asar`
+- Affected files:
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar.backup-simple-question-fastpath-20260703` [deleted]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar.backup-simple-question-timeout-20260703` [deleted]
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Remaining backup count: `1`.
+  - Remaining backup size: `5251412` bytes.
+  - Current `app.asar` still exists with size `11015881` bytes.
+  - `chrome_100_percent.pak`, `chrome_200_percent.pak`, `resources.pak`, `icudtl.dat`, `libEGL.dll`, `libGLESv2.dll`, `ffmpeg.dll`, `vulkan-1.dll`, and `Saad Agent.exe` all exist in the production folder.
+- Warning:
+  - To remove the remaining locked backup file, close the running Saad Agent/Electron process first, then rerun the cleanup.
+- Decision:
+  - Only verified backup artifacts may be deleted. Runtime DLLs, PAK files, `Saad Agent.exe`, and current `app.asar` must not be deleted during cleanup.
