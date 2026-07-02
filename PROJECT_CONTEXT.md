@@ -6,6 +6,7 @@
   - Integrated the new `Google Gemini Omni Flash` video generation and editing model (upstream ID: `gemini-omni-flash-preview`) across the video generation workspace, API routes, credit/pricing layers, and draw-to-video tools.
 - Affected files/folders:
   - `.gitignore` [MODIFY]
+  - `lib/video-model-registry.ts` [MODIFY]
   - `lib/video-models.ts` [MODIFY]
   - `lib/pricing-models.ts` [MODIFY]
   - `lib/pricing.ts` [MODIFY]

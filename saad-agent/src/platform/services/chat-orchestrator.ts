@@ -137,6 +137,40 @@ export class ChatOrchestratorService {
       };
     }
 
+    if (!input.attachments?.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+      try {
+        const response = await ReasoningEngine.requestCompletion({
+          role: "Coding",
+          systemPrompt: [
+            "You are Saad Studio Agent, the user's local AI assistant.",
+            "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
+            "Always reply in natural Iraqi Arabic unless the user asks for another language.",
+            "This is a simple general question. Do not inspect project files, workspace context, tools, MCP, or training knowledge.",
+            "Answer directly, briefly, respectfully, and clearly. Keep the answer compact."
+          ].join("\n"),
+          userPrompt: userRequestText,
+          signal: input.signal
+        });
+        return {
+          intent: "conversation",
+          usedModel: true,
+          response: response.rawResponse
+        };
+      } catch (err: any) {
+        return {
+          intent: "conversation",
+          usedModel: true,
+          response: [
+            "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
+            "",
+            `السبب: ${err?.message || "Unknown model provider error"}`,
+            "",
+            "هذا سؤال عام وما يحتاج فحص المشروع. إذا تكرر التوقف، راجع اتصال LM Studio والموديل النشط."
+          ].join("\n")
+        };
+      }
+    }
+
     const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     await TaskStateStore.initializeTask(taskId, conversationId); // State: NEW
 
@@ -272,7 +306,7 @@ export class ChatOrchestratorService {
     }
 
     // 3. Load Memory / Training / Knowledge (Section 1)
-    const preAnswerReview = await PreAnswerReviewService.review(prompt, activeWorkspace, { taskId, conversationId });
+    const preAnswerReview = await PreAnswerReviewService.review(userRequestText, activeWorkspace, { taskId, conversationId });
 
     if (ChatOrchestratorService.isExplicitCodexRuntimeRequest(userRequestText)) {
       await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Codex bridge context collected");
@@ -387,7 +421,7 @@ export class ChatOrchestratorService {
         ].join("\n");
         await this.transitionToComplete(taskId, "Attachments saved successfully");
       } else {
-        const fact = this.extractMemoryFact(prompt);
+        const fact = this.extractMemoryFact(userRequestText);
         if (!fact) {
           responseText = "اكتب المعلومة التي تريد حفظها بوضوح، وسأحفظها في الذاكرة الدائمة بدون توليد رد من الموديل.";
           await this.transitionToComplete(taskId, "No fact extracted");
@@ -409,7 +443,7 @@ export class ChatOrchestratorService {
         .map((item) => this.cleanMemoryDescriptionForDisplay(item.description))
         .filter(Boolean)
         .slice(-12);
-      responseText = this.formatMemoryRecallResponse(userMemory, prompt);
+      responseText = this.formatMemoryRecallResponse(userMemory, userRequestText);
       await this.transitionToComplete(taskId, "Memory recalled successfully");
     } else if (intent === "knowledge_list") {
       usedModel = false;
@@ -453,7 +487,7 @@ export class ChatOrchestratorService {
           conversationId,
           action: "use_internet"
         }, approval, true, "internet search allowed");
-        const search = await BraveAnswersService.query(prompt);
+        const search = await BraveAnswersService.query(userRequestText);
         const sourceBlock = BraveAnswersService.formatSourcesMarkdown(search.sources);
         responseText = [
           `Internet Search: completed in ${search.latencyMs}ms${search.cacheHit ? " (cache)" : ""}`,
@@ -477,7 +511,7 @@ export class ChatOrchestratorService {
       let contextSummary = "No workspace context was retrieved.";
       if (!isGreeting) {
         try {
-          const context = await ContextEngine.retrieveContext(prompt, activeWorkspace, 4096);
+          const context = await ContextEngine.retrieveContext(userRequestText, activeWorkspace, 4096);
           contextSummary = context?.items?.slice(0, 6).map((item) => {
             return `- ${item.title}: ${item.content.slice(0, 700)}`;
           }).join("\n\n") || "No workspace context was retrieved.";
@@ -488,11 +522,11 @@ export class ChatOrchestratorService {
       let localFileSystemContext = "";
       if (!isGreeting) {
         try {
-          localFileSystemContext = await ChatOrchestratorService.detectAndReadLocalPaths(prompt);
+          localFileSystemContext = await ChatOrchestratorService.detectAndReadLocalPaths(userRequestText);
         } catch {}
       }
 
-      const localMatches = isGreeting ? [] : KnowledgeManagerService.search(prompt);
+      const localMatches = isGreeting ? [] : KnowledgeManagerService.search(userRequestText);
 
       // Augment user prompt with matched knowledge rules to force model application (Section 4)
       let promptAugmentationText = "";
@@ -588,7 +622,7 @@ export class ChatOrchestratorService {
             localFileSystemContext ? `Retrieved Local Filesystem Data:\n${localFileSystemContext}` : "",
             promptAugmentationText,
             "User request:",
-            prompt
+            userRequestText
           ].filter(Boolean).join("\n\n"),
           signal: input.signal
         });
@@ -691,14 +725,14 @@ export class ChatOrchestratorService {
     // Check dictionary matches
     let dictMatchesCount = 0;
     try {
-      const hasDialect = DomainResolver.resolve(prompt).domain === "iraqi_dialect";
-      const hasHumanAttr = DomainResolver.resolve(prompt).domain === "human_attributes";
+      const hasDialect = DomainResolver.resolve(userRequestText).domain === "iraqi_dialect";
+      const hasHumanAttr = DomainResolver.resolve(userRequestText).domain === "human_attributes";
       if (hasDialect || hasHumanAttr) {
         dictMatchesCount = 1;
       }
     } catch {}
 
-    const localMatches = KnowledgeManagerService.search(prompt);
+    const localMatches = KnowledgeManagerService.search(userRequestText);
     const allMatches = [...preAnswerReview.knowledgeMatches, ...localMatches.map(m => ({ item: { filePath: m.sourcePath, summary: m.summary, title: m.title, category: m.category }, chunks: [] }))];
 
     // 6. Format Diagnostics Prefix (Section 17)
@@ -966,6 +1000,28 @@ export class ChatOrchestratorService {
       "السلام عليكم", "صباح الخير", "مساء الخير", "hello", "hi", "hey"
     ];
     return greetings.includes(normalized);
+  }
+
+  private static isSimpleGeneralQuestion(prompt: string): boolean {
+    const normalized = this.normalizeArabic(prompt);
+    const lower = prompt.trim().toLowerCase();
+    const words = normalized.split(/\s+/).filter(Boolean);
+    if (words.length === 0 || words.length > 18) return false;
+
+    const asksQuestion = /\?/.test(prompt)
+      || /^(?:منو|من|ما|ماذا|شنو|شني|ليش|لماذا|هل|اين|وين|متى|كم|كيف|شلون)\b/.test(normalized)
+      || /^(?:who|what|why|where|when|how|is|are|do|does|did)\b/i.test(lower)
+      || /(?:عندي سؤال|اريد اسال|اريد اسأل|سؤال).{0,30}(?:منو|من هو|شنو|ما هو|ليش|لماذا|وين|اين|متى|شلون|كيف)/.test(normalized)
+      || /(?:منو هو|من هو|شنو هو|ما هو)/.test(normalized);
+    if (!asksQuestion) return false;
+
+    const engineeringSignals = /(كود|برمج|مشروع|ملف|فولدر|صفحه|صفحة|route|component|api|provider|model|workspace|mcp|terminal|git|build|test|lint|fix|bug|error|review|deploy|install|npm|next|react|electron|saad studio|سعد ستوديو|اصلح|عدّل|عدل|سوّي|سوي|انشئ|انشء|اضف|اربط|افتح|ابحث|احفظ|درب|تذكر|خزن)/i;
+    if (engineeringSignals.test(normalized) || engineeringSignals.test(lower)) return false;
+
+    const localPathSignal = /[a-zA-Z]:[\\/]|\.env|\.ts\b|\.tsx\b|\.js\b|\.json\b|\/|\\/;
+    if (localPathSignal.test(prompt)) return false;
+
+    return true;
   }
 
   private static isAgentIdentityQuestion(prompt: string): boolean {

@@ -403,6 +403,23 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 3,
     }),
   },
+  {
+    id: "google-gemini-omni-flash",
+    name: "Gemini Omni Flash",
+    family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
+    badge: "NEW",
+    description: "Gemini Omni Flash. Durations: 3-10s. Native audio always-on. Up to 3 reference images.",
+    api_route: "google/gemini-omni-flash",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image: true,
+      has_end_frame:  true,
+      aspect_ratios: ["16:9", "9:16"],
+      durations:     [3, 4, 5, 6, 7, 8, 9, 10],
+      resolutions:   ["720p"],
+      max_reference_images: 3,
+    }),
+  },
 
   // ╔══════════════════════════════════════════════════════════════════════════
   // ║ Bytedance Seedance 2.0
