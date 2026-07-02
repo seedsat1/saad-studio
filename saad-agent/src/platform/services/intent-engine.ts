@@ -246,6 +246,7 @@ const DEFAULT_RULES: Record<string, IntentRuleFile> = {
     tools: ["BraveAnswersService"],
     patterns: [
       { pattern: "(?:ابحث|بحث).*(?:الانترنت|الإنترنت|ويب|web)", weight: 0.97, reason: "User explicitly asks for web research." },
+      { pattern: "(?:ابحثلي|ابحث لي|ابحث|دورلي|دور لي|دور|فتشلي|فتش لي|فتش|جيبلي معلومات|جيب لي معلومات|هاتلي معلومات|هات لي معلومات|طلعلي معلومات|طلع لي معلومات).*(?:[A-Za-z][A-Za-z0-9_.\\-/]*|\\d+(?:\\.\\d+)+|موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|معلومات|تفاصيل)", weight: 0.96, reason: "User asks to search for an external product/model/topic." },
       { pattern: "(?:اعطني|اعطيني|هات|اريد).*(?:روابط|مصادر|links|sources)", weight: 0.96, reason: "User asks for external links or sources." },
       { pattern: "(?:اخر|آخر|احدث|أحدث|latest|current|recent).*(?:اصدار|إصدار|نسخه|نسخة|update|version)", weight: 0.94, reason: "User asks for current external information." },
       { pattern: "\\b(?:search web|search online|latest|current|recent)\\b", weight: 0.94, reason: "User asks for external/current information." }

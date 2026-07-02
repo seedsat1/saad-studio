@@ -214,20 +214,62 @@ export async function pollVeoOperation(
     
     // Extract video
     let videoUri: string | null = null;
-    const steps = data.steps || [];
-    for (const step of steps) {
-      const parts = step.parts || step.model_output?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          videoUri = `inline:${part.inlineData.data}`;
+    
+    // A. Check top-level output_video or outputVideo (direct REST payload format)
+    if (data.output_video?.data) {
+      videoUri = `inline:${data.output_video.data}`;
+    } else if (data.outputVideo?.data) {
+      videoUri = `inline:${data.outputVideo.data}`;
+    } else if (data.output_video?.uri) {
+      videoUri = data.output_video.uri;
+    } else if (data.outputVideo?.uri) {
+      videoUri = data.outputVideo.uri;
+    }
+    
+    // B. Check steps array (timeline steps format)
+    if (!videoUri) {
+      const steps = data.steps || [];
+      for (const step of steps) {
+        const parts = step.parts || step.model_output?.parts || step.modelOutput?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            videoUri = `inline:${part.inlineData.data}`;
+            break;
+          }
+          if (part.fileData?.fileUri) {
+            videoUri = part.fileData.fileUri;
+            break;
+          }
+          if (part.inline_data?.data) {
+            videoUri = `inline:${part.inline_data.data}`;
+            break;
+          }
+          if (part.file_data?.file_uri) {
+            videoUri = part.file_data.file_uri;
+            break;
+          }
+        }
+        if (videoUri) break;
+      }
+    }
+
+    // C. Check legacy outputs array (if present)
+    if (!videoUri) {
+      const outputs = data.outputs || [];
+      for (const output of outputs) {
+        if (output.video?.uri) {
+          videoUri = output.video.uri;
           break;
         }
-        if (part.fileData?.fileUri) {
-          videoUri = part.fileData.fileUri;
+        if (output.video?.url) {
+          videoUri = output.video.url;
+          break;
+        }
+        if (output.video?.data) {
+          videoUri = `inline:${output.video.data}`;
           break;
         }
       }
-      if (videoUri) break;
     }
     
     return { done: true, videoUri, rawResponse: data };

@@ -160,6 +160,21 @@ export class ExecutionPolicyService {
     if (/\b(search online|search web|web search|internet search|latest|current|recent)\b/i.test(lowerPrompt)) {
       return true;
     }
+    const localScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalizedArabic)
+      || /\b(workspace|codebase|local files|project files)\b/i.test(lowerPrompt);
+    const explicitWeb = /(الانترنت|الإنترنت|انترنت|الويب|ويب|روابط|مصادر|لنكات|لينكات|اخبار|أخبار|وثائق|توثيق)/i.test(normalizedArabic)
+      || /\b(web|internet|online|links|sources|docs|documentation|news)\b/i.test(lowerPrompt);
+    if (explicitWeb) return true;
+
+    const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|بحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalizedArabic)
+      || /\b(search for|look up|research|find info about|find information about)\b/i.test(lowerPrompt);
+    const externalTopicSignal = /[A-Za-z][A-Za-z0-9_.\-/]*(?:\s+\d+(?:\.\d+)*)?/i.test(lowerPrompt)
+      || /\d+(?:\.\d+)+/.test(lowerPrompt)
+      || /(موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|اصدار|إصدار|نسخه|نسخة|معلومات|تفاصيل|سعر|اسعار|أسعار)/i.test(normalizedArabic);
+    if (directSearchVerb && externalTopicSignal && !localScope) {
+      return true;
+    }
+
     const searchWords = ["ابحث", "بحث", "دور", "فتش"];
     const internetWords = ["الانترنت", "الإنترنت", "انترنت", "الويب", "ويب"];
     return searchWords.some((word) => normalizedArabic.includes(this.normalizeArabic(word)))

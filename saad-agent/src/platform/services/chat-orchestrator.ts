@@ -988,11 +988,19 @@ export class ChatOrchestratorService {
 
   private static isExplicitInternetSearch(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
+    const asksLocalScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalized)
+      || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
     const allowedTriggers = /(ابحث في الانترنت|ابحث في الإنترنت|ابحث بالويب|اخر تحديث|آخر تحديث|وثائق|توثيق|اخبار|أخبار|مستندات)/i.test(normalized)
       || /\b(search online|search web|latest|official docs|documentation|api docs|news)\b/i.test(lower);
     const explicitLinksOrSources = /(?:\u0627\u0639\u0637\u0646\u064a|\u0627\u0639\u0637\u064a\u0646\u064a|\u0647\u0627\u062a|\u0627\u0631\u064a\u062f|\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a).*(?:\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0635\u0648\u0631)/.test(normalized)
       || /\b(give me links|give me sources|links|sources|find images|image search)\b/i.test(lower);
-    return allowedTriggers || explicitLinksOrSources;
+    const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalized)
+      || /\b(?:search for|look up|research|find info about|find information about)\b/i.test(lower);
+    const externalTopicSignal = /[A-Za-z][A-Za-z0-9_.\-/]*(?:\s+\d+(?:\.\d+)*)?/i.test(prompt)
+      || /\d+(?:\.\d+)+/.test(prompt)
+      || /(موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|اصدار|إصدار|نسخه|نسخة|معلومات|تفاصيل|سعر|اسعار|أسعار|وثائق|توثيق|مصادر|روابط)/i.test(normalized);
+    const directExternalSearch = directSearchVerb && externalTopicSignal && !asksLocalScope;
+    return allowedTriggers || explicitLinksOrSources || directExternalSearch;
   }
 
   private static isSimpleGreeting(prompt: string): boolean {
