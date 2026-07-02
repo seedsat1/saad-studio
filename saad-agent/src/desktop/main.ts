@@ -20,6 +20,8 @@ import { SettingsManager } from "../production/settings-manager.js";
 import { CONFIG } from "../config.js";
 import { ChatOrchestratorService } from "../platform/services/chat-orchestrator.js";
 import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emitter.js";
+import { KnowledgeManagerService } from "../platform/services/knowledge-manager.js";
+import { TrustedWorkspaceRuntime } from "../platform/services/trusted-workspace-runtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +32,23 @@ try {
 } catch (_) {}
 
 let mainWindow: any = null;
+
+function readKnowledgeRegistry(): any[] {
+  const dirs = KnowledgeManagerService.getDirs();
+  const candidates = [
+    path.join(dirs.registry || "", "registry.json"),
+    path.join(dirs.root || "", "registry.json")
+  ];
+  for (const registryPath of candidates) {
+    if (!registryPath || !fs.existsSync(registryPath)) continue;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed && Array.isArray(parsed.items)) return parsed.items;
+    } catch {}
+  }
+  return [];
+}
 
 ipcMain.handle("switch-workspace", async (event, workspacePath) => {
   try {
@@ -637,6 +656,283 @@ ipcMain.handle("mcp-set-tool-permission", async (event, { serverId, toolId, perm
   try {
     const server = await SDKService.setMCPToolPermission(serverId, toolId, permission, enabled);
     return { success: true, server };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:list", async () => {
+  try {
+    const workspaces = await TrustedWorkspaceRuntime.listWorkspaces();
+    return { success: true, workspaces };
+  } catch (err: any) {
+    return { success: false, error: err.message, workspaces: [] };
+  }
+});
+
+ipcMain.handle("trusted-workspace:add", async (event, { workspacePath, name }) => {
+  try {
+    const workspace = await TrustedWorkspaceRuntime.addWorkspace(workspacePath, name);
+    return { success: true, workspace, workspaces: await TrustedWorkspaceRuntime.listWorkspaces() };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:remove", async (event, { id }) => {
+  try {
+    const removed = await TrustedWorkspaceRuntime.removeWorkspace(id);
+    return { success: true, removed, workspaces: await TrustedWorkspaceRuntime.listWorkspaces() };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:search", async (event, { workspaceId, query, limit }) => {
+  try {
+    const results = await TrustedWorkspaceRuntime.search(workspaceId, query, limit || 50);
+    return { success: true, results };
+  } catch (err: any) {
+    return { success: false, error: err.message, results: [] };
+  }
+});
+
+ipcMain.handle("trusted-workspace:run-command", async (event, { workspaceId, command, args, explicitApproval }) => {
+  try {
+    const result = await TrustedWorkspaceRuntime.runSafeCommand(workspaceId, command, Array.isArray(args) ? args : [], Boolean(explicitApproval));
+    return { success: true, result };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:open-path", async (event, { targetPath }) => {
+  try {
+    return await TrustedWorkspaceRuntime.openLocalPath(targetPath);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:reveal-path", async (event, { targetPath }) => {
+  try {
+    return await TrustedWorkspaceRuntime.revealLocalPath(targetPath);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("trusted-workspace:copy-path", async (event, { targetPath }) => {
+  try {
+    return await TrustedWorkspaceRuntime.copyLocalPath(targetPath);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:list", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, documents: readKnowledgeRegistry() };
+  } catch (err: any) {
+    return { success: false, error: err.message, documents: [] };
+  }
+});
+
+ipcMain.handle("knowledge:search", async (event, { query, category, limit }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, results: KnowledgeManagerService.search(query || "", category, limit || 25) };
+  } catch (err: any) {
+    return { success: false, error: err.message, results: [] };
+  }
+});
+
+ipcMain.handle("knowledge:import-file", async (event, { filePath, category, tags }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const document = await KnowledgeManagerService.ingestDocument(filePath, category || "custom", Array.isArray(tags) ? tags : []);
+    return { success: true, document };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:import-folder", async (event, { folderPath, category }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const result = await KnowledgeManagerService.learnCodebase(folderPath);
+    return { success: true, category: category || "custom", result };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:import-github", async () => {
+  return { success: false, error: "GitHub knowledge import is not implemented in this build." };
+});
+
+ipcMain.handle("knowledge:get-document", async (event, { id }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const document = readKnowledgeRegistry().find((item: any) => item.documentId === id || item.id === id);
+    return document ? { success: true, document } : { success: false, error: "Document not found." };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:get-dictionaries", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const dirs = KnowledgeManagerService.getDirs();
+    const dictionaries: any[] = [];
+    if (fs.existsSync(dirs.dictionaries)) {
+      for (const file of fs.readdirSync(dirs.dictionaries).filter((name) => name.endsWith(".json"))) {
+        try {
+          dictionaries.push({ category: path.basename(file, ".json"), terms: JSON.parse(fs.readFileSync(path.join(dirs.dictionaries, file), "utf8")) });
+        } catch {}
+      }
+    }
+    return { success: true, dictionaries };
+  } catch (err: any) {
+    return { success: false, error: err.message, dictionaries: [] };
+  }
+});
+
+ipcMain.handle("knowledge:get-term", async (event, { id, category }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const dirs = KnowledgeManagerService.getDirs();
+    const files = category ? [`${category}.json`] : fs.existsSync(dirs.dictionaries) ? fs.readdirSync(dirs.dictionaries).filter((name) => name.endsWith(".json")) : [];
+    for (const file of files) {
+      const full = path.join(dirs.dictionaries, file);
+      if (!fs.existsSync(full)) continue;
+      const terms = JSON.parse(fs.readFileSync(full, "utf8"));
+      const term = Array.isArray(terms) ? terms.find((item: any) => item.id === id || item.term === id) : null;
+      if (term) return { success: true, term };
+    }
+    return { success: false, error: "Term not found." };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:delete-document", async (event, { id }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    KnowledgeManagerService.deleteDocument(id);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:get-stats", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, stats: KnowledgeManagerService.getStats() };
+  } catch (err: any) {
+    return { success: false, error: err.message, stats: null };
+  }
+});
+
+ipcMain.handle("knowledge:import-url", async () => {
+  return { success: false, error: "URL knowledge import is not implemented in this build." };
+});
+
+ipcMain.handle("knowledge:import-control", async () => {
+  return { success: false, error: "No active knowledge import task is running." };
+});
+
+ipcMain.handle("knowledge:list-packs", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, packs: KnowledgeManagerService.listPacks() };
+  } catch (err: any) {
+    return { success: false, error: err.message, packs: [] };
+  }
+});
+
+ipcMain.handle("knowledge:pack-delete", async (event, { category }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    KnowledgeManagerService.deletePack(category);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:pack-reindex", async (event, { category }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return await KnowledgeManagerService.reindexPack(category);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:pack-export", async (event, { category }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const pack = KnowledgeManagerService.listPacks().find((item: any) => item.category === category || item.name === category);
+    return pack ? { success: true, pack } : { success: false, error: "Knowledge pack not found." };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:get-config", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, config: KnowledgeManagerService.getStorageConfig() };
+  } catch (err: any) {
+    return { success: false, error: err.message, config: null };
+  }
+});
+
+ipcMain.handle("knowledge:save-config", async (event, { newConfig }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: KnowledgeManagerService.updateStorageConfig(newConfig || {}) };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:list-workspaces", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, workspaces: KnowledgeManagerService.listWorkspaces() };
+  } catch (err: any) {
+    return { success: false, error: err.message, workspaces: [] };
+  }
+});
+
+ipcMain.handle("knowledge:create-backup", async (event, { label }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    const backupId = KnowledgeManagerService.createBackup(label || "manual");
+    return { success: true, backupId };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("knowledge:list-backups", async () => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: true, backups: KnowledgeManagerService.listBackups() };
+  } catch (err: any) {
+    return { success: false, error: err.message, backups: [] };
+  }
+});
+
+ipcMain.handle("knowledge:restore-backup", async (event, { backupId }) => {
+  try {
+    await KnowledgeManagerService.initialize();
+    return { success: KnowledgeManagerService.restoreBackup(backupId) };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

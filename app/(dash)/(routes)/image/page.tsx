@@ -1690,10 +1690,16 @@ export default function ImageWorkspacePage() {
       // Try direct fetch first; many CDNs (KIE temp domain) block CORS, so
       // fall back to our authenticated server-side proxy when that happens.
       let blob: Blob | null = null;
-      try {
-        const direct = await fetch(item.url, { mode: "cors" });
-        if (direct.ok) blob = await direct.blob();
-      } catch { /* CORS or network — fall through to proxy */ }
+      const requiresProxy = item.url.includes("backblazeb2.com") ||
+                            item.url.includes("r2.dev") ||
+                            item.url.includes("supabase.co") ||
+                            item.url.includes("cloudflare");
+      if (!requiresProxy) {
+        try {
+          const direct = await fetch(item.url, { mode: "cors" });
+          if (direct.ok) blob = await direct.blob();
+        } catch { /* CORS or network — fall through to proxy */ }
+      }
       if (!blob) {
         const proxied = await fetch(`/api/proxy-image?url=${encodeURIComponent(item.url)}`);
         if (!proxied.ok) throw new Error(`Proxy returned ${proxied.status}`);
