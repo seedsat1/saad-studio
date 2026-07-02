@@ -6308,3 +6308,22 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - To remove the remaining locked backup file, close the running Saad Agent/Electron process first, then rerun the cleanup.
 - Decision:
   - Only verified backup artifacts may be deleted. Runtime DLLs, PAK files, `Saad Agent.exe`, and current `app.asar` must not be deleted during cleanup.
+
+## Latest task: Remaining Backup Lock Diagnosis (2026-07-03)
+
+- Status:
+  - Retried deletion of the remaining backup artifact after the user reported everything was closed.
+  - Direct PowerShell deletion failed because Windows still reported the file was in use by another process.
+  - Rename-to-delete-marker failed for the same reason.
+  - `cmd.exe del /f /q` also failed because the file was still locked.
+  - Windows Restart Manager identified the locking process as `Codex` with process id `47144`.
+- Remaining locked file:
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar.backup-20260630T005600.asar`
+- Verification:
+  - Current production `app.asar` still exists.
+  - Remaining backup count is `1`.
+- Warning:
+  - The last backup artifact cannot be deleted from the active Codex session because Codex itself is holding the file handle.
+  - Close Codex Desktop, then delete the file from PowerShell/File Explorer, or rerun cleanup from a fresh session that has not inspected the file.
+- Decision:
+  - Do not kill Codex or unrelated processes automatically. Report the exact locking process and stop before risky process termination.

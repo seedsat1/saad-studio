@@ -22,8 +22,8 @@ const IDEMPOTENCY_ROUTE = "generate:image";
 const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
   "google/nano-banana": "gemini-2.5-flash-image",
   "google/nano-banana-edit": "gemini-2.5-flash-image",
-  "nano-banana-2": "gemini-3.1-flash-image-preview",
-  "nano-banana-2-lite": "gemini-3.1-flash-lite-image-preview",
+  "nano-banana-2": "gemini-3.1-flash-image",
+  "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
   "nano-banana-pro": "gemini-3-pro-image-preview",
 };
 const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
