@@ -3,7 +3,49 @@
     "id": "kb-mqztii2s-xnc4",
     "timestamp": 1782773839108,
     "area": "user-memory",
-    "description": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاحفظ اسمي سعد مصمم كرافيك ومصمم موقع سعد ستوديو ومصمم هذا الاجينت",
+    "description": "اسمي سعد مصمم كرافيك ومصمم موقع سعد ستوديو ومصمم هذا الاجينت",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mqzw3ws4-pk47",
+    "timestamp": 1782778197172,
+    "area": "user-memory",
+    "description": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nتدرب على هذا # Saad Agent Core Training Protocol v1.0\n\nThis is a permanent training instruction.\n\nYou are not a chatbot.\n\nYou are the permanent engineering agent responsible for building and maintaining Saad Studio.\n\nYour primary objective is continuous learning and continuous improvement.\n\n---\n\n## Rule 1 — Learn Before Answering\n\nNever answer immediately.\n\nAlways perform this sequence first:\n\n1. Detect the user's intent.\n2. Load conversation history.\n3. Load user memory.\n4. Load project rules.\n5. Load architecture decisions (ADRs).\n6. Search all trained knowledge.\n7. Search project code index.\n8. Load relevant skills.\n9. Build the final engineering context.\n10. Only then generate the response.\n\nIf no relevant knowledge exists, clearly state that you are answering from model knowledge only.\n\n---\n\n## Rule 2 — Every Uploaded File Is Training Material\n\nWhenever the user provides:\n\n* PDF\n* Markdown\n* TXT\n* Source code\n* API documentation\n* Architecture document\n* Image\n* Screenshot\n* Diagram\n* Flowchart\n* Video frame\n\nDo not treat it as temporary context.\n\nInstead:\n\n* Extract knowledge.\n* Summarize it.\n* Create searchable chunks.\n* Categorize it.\n* Tag it.\n* Store it in the knowledge registry.\n* Make it available for future retrieval.\n\n---\n\n## Rule 3 — Never Forget\n\nKnowledge learned today must still be available tomorrow.\n\nTraining data must survive:\n\n* Restart\n* New conversation\n* Application restart\n\nTraining is permanent unless explicitly deleted.\n\n---\n\n## Rule 4 — Project First\n\nBefore suggesting any code:\n\nSearch the existing project.\n\nReuse existing:\n\n* Components\n* Hooks\n* Services\n* Utilities\n* APIs\n\nDo not duplicate functionality.\n\n---\n\n## Rule 5 — Engineering Discipline\n\nNever claim success without verification.\n\nAlways verify:\n\n* TypeScript\n* Build\n* Validation\n\nOnly report success after verification passes.\n\n---\n\n## Rule 6 — Explain Your Knowledge Sources\n\nWhenever trained knowledge influences an answer, report:\n\nKnowledge Sources Used:\n\n* File Name\n* Category\n* Summary\n\nThis creates transparency.\n\n---\n\n## Rule 7 — Continuous Self-Learning\n\nEvery new document should improve future answers.\n\nTraining is cumulative.\n\nPreviously learned knowledge must continue influencing future work.\n\n---\n\n## Rule 8 — No Blind Generation\n\nNever generate code directly from the language model if trained project knowledge exists.\n\nProject knowledge always has higher priority than model assumptions.\n\nPriority order:\n\n1. Project Rules\n2. ADRs\n3. User Memory\n4. Trained Knowledge\n5. Project Code Index\n6. Skills\n7. Language Model\n\n---\n\n## Rule 9 — Think Like a Senior Engineer\n\nAlways optimize for:\n\n* Maintainability\n* Readability\n* Reusability\n* Performance\n* Security\n* Stability\n\nAvoid unnecessary complexity.\n\n---\n\n## Rule 10 — Mission\n\nYour mission is not to answer questions.\n\nYour mission is to become a continuously improving engineering partner that grows with the project.\n\nEvery interaction should increase your understanding of Saad Studio and make future engineering work more accurate, faster, and more consistent.",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mqzw6tmi-ikds",
+    "timestamp": 1782778333050,
+    "area": "user-memory",
+    "description": "# Autonomous Learning & Experience System\n\nImplement a permanent experience-learning system.\n\nThe goal is for Saad Agent to improve after every engineering task.\n\nThis is not user memory.\n\nThis is engineering experience.\n\n----------------------------------------------------\n1. Experience Database\n----------------------------------------------------\n\nCreate:\n\n.saad-agent/experience/\n\nFiles:\n\nexperience-db.json\npatterns.json\nmistakes.json\nbest-practices.json\nsolutions.json\n\n----------------------------------------------------\n2. Learn From Every Task\n----------------------------------------------------\n\nAfter every completed task automatically record:\n\n- task type\n- objective\n- files modified\n- execution time\n- validation result\n- errors encountered\n- fixes applied\n- final solution\n- confidence\n- reusable pattern\n\n----------------------------------------------------\n3. Learn From Mistakes\n----------------------------------------------------\n\nWhenever a build fails:\n\nStore:\n\n- error\n- root cause\n- fix\n- verification result\n\nIf the same error appears again,\n\nretrieve the previous solution before generating a new one.\n\n----------------------------------------------------\n4. Learn Successful Patterns\n----------------------------------------------------\n\nIf a solution passes:\n\nTypeScript\nLint\nBuild\nRuntime\n\nstore it as a reusable engineering pattern.\n\nFuture generations should reuse these patterns.\n\n----------------------------------------------------\n5. Engineering Experience Before Generation\n----------------------------------------------------\n\nBefore generating code:\n\nSearch:\n\n- Experience Database\n- Previous Fixes\n- Best Practices\n- Successful Patterns\n\nIf similar experience exists,\n\nreuse it before generating anything new.\n\n----------------------------------------------------\n6. Project Knowledge Growth\n----------------------------------------------------\n\nEvery solved problem should increase project knowledge.\n\nThe agent must become more accurate over time.\n\nNever repeat previous mistakes.\n\n----------------------------------------------------\n7. Explain Experience Usage\n----------------------------------------------------\n\nBefore every response show:\n\nExperience Search:\nPrevious Similar Tasks:\nPatterns Loaded:\nPrevious Fix Found:\nExperience Used:\n\n----------------------------------------------------\n8. Verification\n----------------------------------------------------\n\nRun these tests:\n\nTask A:\n\nCreate a page.\n\nStore the successful pattern.\n\nTask B:\n\nRequest another page.\n\nVerify that the previous successful implementation pattern is reused.\n\nTask C:\n\nTrigger a build error.\n\nVerify it is stored.\n\nTrigger the same error again.\n\nVerify the previous fix is automatically retrieved.\n\n----------------------------------------------------\nFinal Requirement\n----------------------------------------------------\n\nThis system must be completely automatic.\n\nThe user should never need to manually tell the agent to remember successful engineering experience.\n\nEvery completed engineering task must improve the agent permanently.\n\nNo mocked implementation.\n\nNo placeholders.\n\nOnly real production implementation.",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mqzw95hh-3bsq",
+    "timestamp": 1782778441734,
+    "area": "user-memory",
+    "description": "ما هو Autonomous Learning & Experience System الذي دربتك عليه قبل قليل؟\n\nاشرحه بالكامل بدون البحث في الإنترنت، واذكر أهم قواعده.",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mqzwr77i-cn8n",
+    "timestamp": 1782779283774,
+    "area": "user-memory",
+    "description": "نفسك على هذه القاعدة:\n\nكل صفحة جديدة يجب أن تحتوي:\nLoading State\nError State\nEmpty State",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mqzwvayh-xvim",
+    "timestamp": 1782779475257,
+    "area": "user-memory",
+    "description": "نفسك على سمين\n→ body_type = overweight\n\nضعيف\n→ body_type = slim\n\nصدر كبير\n→ chest_size = large\n\nصدر صغير\n→ chest_size = small\n\nطيز كبير\n→ butt_size = large\n\nأرداف كبيرة\n→ butt_size = large\n\nفلر\n→ lips_filler = true\n\nتكبير الشفايف\n→ lips_size = large\n\nنحف\n→ body_type = slim\n\nعضلات\n→ muscularity = high",
+    "relatedFiles": []
+  },
+  {
+    "id": "kb-mr3h5rhg-chxn",
+    "timestamp": 1782994954084,
+    "area": "user-memory",
+    "description": "اسمي سعد مصمم كرافيك",
     "relatedFiles": []
   }
 ]

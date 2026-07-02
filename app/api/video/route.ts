@@ -307,7 +307,11 @@ function normalizeGeminiResolution(value: unknown): VeoResolution {
   return "720p";
 }
 
-function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasReferences: boolean): 4 | 6 | 8 {
+function normalizeGeminiDuration(value: unknown, resolution: VeoResolution, hasReferences: boolean, modelRoute?: string): number {
+  if (modelRoute === "google/gemini-omni-flash") {
+    const raw = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : 5;
+    return raw >= 3 && raw <= 10 ? raw : 5;
+  }
   if (resolution === "1080p" || resolution === "4k" || hasReferences) return 8;
   const raw = typeof value === "number" ? value : typeof value === "string" ? Number.parseInt(value, 10) : 8;
   return raw === 4 || raw === 6 || raw === 8 ? raw : 8;
@@ -1421,7 +1425,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE;
+    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE || modelRoute === "google/gemini-omni-flash";
     const kieModel = isDirectGoogleVeo31ProRoute ? undefined : resolveKieVideoModel(modelRoute);
     const wavespeedRoute = wavespeedFallbackMap[modelRoute];
 
@@ -1445,6 +1449,7 @@ export async function POST(req: Request) {
       modelRoute === "google/veo3.1-lite-text-to-video" ||
       modelRoute === "google/veo3.1-fast-text-to-video" ||
       modelRoute === "google/veo3.1-text-to-video" ||
+      modelRoute === "google/gemini-omni-flash" ||
       isDirectGoogleVeo31ProRoute;
     if (isVeoModelRoute) {
       const requestedResolution =
@@ -1795,7 +1800,7 @@ export async function POST(req: Request) {
 
       const aspectRatio = payload.aspect_ratio === "9:16" || payload.aspectRatio === "9:16" ? "9:16" : "16:9";
       const resolution = normalizeGeminiResolution(payload.resolution ?? payload.quality ?? payload.mode);
-      const durationSeconds = normalizeGeminiDuration(payload.duration, resolution, hasGoogleReferences);
+      const durationSeconds = normalizeGeminiDuration(payload.duration, resolution, hasGoogleReferences, modelRoute);
       const negativePrompt =
         typeof payload.negative_prompt === "string" && payload.negative_prompt.trim()
           ? sanitizePrompt(payload.negative_prompt, 1000)
@@ -1855,8 +1860,9 @@ export async function POST(req: Request) {
 
       let opHandle: VeoOperationHandle;
       try {
+        const tier = modelRoute === "google/gemini-omni-flash" ? "omni_flash" : "pro";
         opHandle = await startVeoGeneration({
-          tier: "pro",
+          tier,
           prompt,
           aspectRatio,
           resolution,

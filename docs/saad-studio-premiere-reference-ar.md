@@ -1,5 +1,25 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## إضافة موديل Google Gemini Omni Flash للفيديو (2026-07-02)
+- تم دمج الموديل الجديد `Google Gemini Omni Flash` (المطابق لـ `gemini-omni-flash-preview` من قوقل) بصفحة الفيديو وأداة الرسم للـ Draw-to-Video.
+- الموديل يدعم نسب أبعاد متنوعة (16:9، 9:16)، دقة 720p، ويسمح بمدد مرنة تتراوح بين **3 إلى 10 ثوانٍ** مع استهلاك رصيد اقتصادي قدره **2.00 نقطة بالثانية**.
+
+## تثبيت مسار الأسئلة البسيطة في Saad Agent (2026-07-02)
+- تم تصحيح مسار استدعاء LM Studio داخل Saad Agent حتى لا تبقى الأسئلة البسيطة عالقة على `Processing request`.
+- عند استخدام LM Studio، يبدأ runtime الآن بمسار `/api/v1/chat/completions` ثم يستخدم `/api/v1/chat` كمسار بديل، ولا يستخدم `/chat/completions` غير الصحيح لمزود LM Studio.
+- تم ضبط حد زمني لاستدعاءات الموديل التفاعلية، وإذا فشل المزود يرجع الوكيل رسالة خطأ واضحة بدل إبقاء الواجهة بحالة تشغيل.
+- تم إعادة حزم `release-production-v4/win-unpacked/resources/app.asar` بعد نجاح البناء واختبار سؤال بسيط من النسخة الإنتاجية.
+
+## إضافة موديل Google Nano Banana 2 Lite للصور (2026-07-02)
+- تم دمج الموديل الجديد `Google Nano Banana 2 Lite` (المطابق لـ `gemini-3.1-flash-lite-image-preview` من قوقل) بصفحة الصور والأدوات وعملاء الـ CEP.
+- الموديل يدعم نسب أبعاد متنوعة، وبحد أقصى 14 صورة مرجعية للـ Image-to-Image وبأقل تكلفة استهلاك رصيد (0.40 نقطة).
+
+## Saad Agent deterministic routing correction (2026-07-02)
+
+- طلبات مخطط الصفحة مثل `اعطيني مخطط الصفحة` لا يجوز أن تنتج صفحات أو ملفات أو APIs وهمية. إذا لم يذكر المستخدم اسم الصفحة أو وظيفتها، يجب طلب التوضيح فقط. إذا ذُكر الموضوع، يعرض الوكيل مخططاً عاماً مضبوطاً ولا ينفذ أي تعديل بدون موافقة.
+- طلبات البحث الخارجي مثل `ابحث بالانترنت ...` يجب أن تمر عبر موافقة الإنترنت في وضع `Ask for approval`، ثم تستخدم مسار بحث حقيقي. ممنوع توليد روابط أو نتائج حديثة من معرفة النموذج فقط.
+- الردود القصيرة مثل `نعم` بعد سؤال توضيحي يجب أن تبقى ضمن نفس السياق. إذا كان التوضيح ناقصاً، يطلب الوكيل التفصيل المطلوب بدل الانتقال لموضوع جديد أو استدعاء الموديل.
+
 ## تحديث سياسة السلفة (Credit Advance Policy Update) — (2026-07-01)
 - **منع طلب السلفة في آخر شهرين**: تم تعديل آلية طلب السلفة (`creditAdvance`) للمشتركين السنويين بحيث تُعطل تلقائياً وتظهر غير متاحة (`available: false`) خلال آخر شهرين (60 يوماً) من فترة الاشتراك الفعلي المتبقية (`stripeCurrentPeriodEnd`). يمنع النظام الخلفي طلبها في هذه الفترة ويعيد رسالة خطأ واضحة باللغة العربية والإنجليزية.
 
@@ -661,3 +681,113 @@
 - If an action requires approval, the backend returns a structured approval request with action, risk, reason, command, and files. The chat UI renders an approval card with Approve, Reject, and Always allow this type in this conversation.
 - Full access does not expose secrets. `.env`, private keys, tokens, cookies, credentials, and secret storage stay blocked in every mode.
 - The correct response to a local folder request outside the active project, such as `C:\Users\PC\Pictures\Screenshots`, is not to claim generic inability. The agent must ask the user to trust/approve the folder and then inspect it through the trusted workspace runtime.
+
+## Smart Long Input Handling (2026-07-01)
+
+- صندوق إدخال المحادثة يحول النصوص الطويلة الملصوقة أو المسحوبة أو المكتوبة مباشرة إلى ملف مرفق بدل إرسالها كنص خام.
+- يدعم التصنيف الأولي لـ JSON وTypeScript وJavaScript وPython وMarkdown وlogs وconfig وshell scripts.
+- يجب الحفاظ على المحتوى الأصلي كما هو دون تلخيص أو إعادة تنسيق أو حذف العربية أو تغيير المسافات.
+- خيار `Paste as text anyway` يسمح بإرسال النص الخام عند الحاجة، وخيار `Attach as file` يسمح بتحويل النص الحالي يدويًا إلى مرفق.
+- التنفيذ يستخدم مسار المرفقات الحالي ولا يغير Backend AttachmentManager.
+
+## Saad Agent V2 Architecture Freeze (2026-07-01)
+
+- Saad Agent V2 architecture is frozen as an implementation contract. V2 must wrap and extend V1/v6.5 services rather than replacing working behavior.
+- The fixed execution path is: Conversation Intelligence -> Intent Analysis -> Agent Brain -> Decision Engine -> Execution Policy -> Planning -> Safety & Governance -> Approval -> Tool Engine -> Execution Engine -> Verification Engine -> Context Assembly -> Provider -> Response -> Self Evaluation -> Continuous Learning.
+- The first implementation phase should be a standalone `ExecutionPolicyService` because execution safety is currently real but distributed across orchestrators, IPC handlers, approval checks, and runtime services.
+- Knowledge Engine V2 must preserve V1 registry, packs, chunks, dictionaries, and hashed vector search while adding embeddings, hybrid search, reranking, Arabic/Iraqi normalization, PDF/OCR/image extraction, and safe fallbacks.
+- Future phases must run build, tests, and verification, update memory, report changed files, then stop for approval.
+## Saad Agent Execution Trace UI behavior (2026-07-01)
+
+- Saad Agent chat now renders a public `execution-trace` card for each sent prompt.
+- The card shows execution stages such as Reading request, Loading project context, Loading memory, Loading knowledge, Selecting skills, Selecting workflow, Planning, Safety check, Execution, Verification, and Learning.
+- Trace display modes are Simple, Developer, and Verbose. Verbose may show safe runtime details, but secrets and internal model chain-of-thought are never exposed.
+- The trace is a UI/event-boundary transparency feature and does not replace backend policy, approval, memory, knowledge, or orchestration enforcement.
+## Saad Agent Real Runtime Execution Trace behavior (2026-07-02)
+
+- Execution Trace in chat is created only from backend runtime events sent through `execution-trace-event`.
+- The renderer must not create synthetic pipeline cards or mark stages complete before the runtime emits them.
+- Trace updates are correlated by `taskId`; policy, approval, pre-answer review, execution, verification, and learning events for one request must remain in one card.
+- The packaged CommonJS preload bridge must expose `onExecutionTraceEvent` because packaged Electron uses `dist/desktop/preload.cjs`.
+- The trace is public execution telemetry only. It must never expose internal model chain-of-thought or secrets.
+## Saad Agent Execution Policy user-request boundary (2026-07-02)
+
+- Arabic/Iraqi engineering creation or modification requests such as `create page`, `add page`, `fix bug`, `update UI`, `اريد انشئ صفحة`, `اضف صفحة`, `اصلح هذا الخطأ`, and `عدل الواجهة` must be classified as project modification requests, not normal answers.
+- Under `Ask for approval`, project modification requests must return an approval request before model generation or file modification.
+- Execution Policy must evaluate the real user-facing request only.
+- Composer metadata such as `Composer action`, runtime provider/model labels, workspace labels, and MCP/tool labels must not trigger modification approval by themselves.
+- A greeting or casual conversation such as `اهلا` must route as `ANSWER`/conversation and must not require project modification approval.
+- If a composed prompt reaches policy code, the policy must extract the content after `User request:` before classification.
+
+## Saad Agent Casual Conversation Trace behavior (2026-07-02)
+
+- Casual greetings and short acknowledgements such as `اهلا`, `شكرا`, and `تمام` are not executable engineering tasks.
+- These requests must return a concise deterministic chat response before `TaskStateStore.initializeTask`.
+- The public `Execution Trace` card remains reserved for real engineering, approval, workspace, policy, tool, verification, and learning tasks.
+- Agent identity questions such as `منو انت`, `من انت`, and `شنو انت` must return a deterministic `Saad Studio Agent` identity response before model invocation. The runtime must not identify itself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
+
+## Saad Agent Natural Iraqi Arabic Voice behavior (2026-07-02)
+
+- Casual thank-you and acknowledgement messages such as `mamnoun`, `mumtan`, `salamt`, `shukran`, and `teslam` are conversation-only inputs.
+- These inputs must return a short deterministic reply before task-state initialization and must not render an Execution Trace card.
+- Direct model response paths that do initialize a task must follow the lifecycle order `ANALYZING -> EVIDENCE_COLLECTION -> VALIDATING -> GAP_ANALYSIS -> IMPACT_ANALYSIS -> RISK_ASSESSMENT -> SOLUTION_DESIGN -> PLANNING -> IMPLEMENTING -> VERIFYING -> COMPLETED`.
+- Saad Agent must reply in natural central Iraqi Arabic (Baghdad tone) unless the user asks for another language.
+- The tone must be friendly, smart, fast, respectful, direct, and concise unless the task needs detail.
+- Technical replies should still use Iraqi phrasing while staying precise, e.g. `المشكلة مو بالـ API، المشكلة بالـ State Management`.
+- Avoid non-Iraqi phrases such as `وش`, `ياخي`, `أبشر`, `كفو عليك`, `يخوي`, `يا زلمة`, and `يعطيك العافية`.
+- Preferred phrases include `شلون أگدر أساعدك؟`, `أكو شي ثاني تريد؟`, `مو واضح عليّ، وضحلي أكثر`, and `تمام، أسويها`.
+
+## Saad Agent Codex Runtime Integration Audit (2026-07-02)
+
+- `CODEX_INTEGRATION_AUDIT.md` records the current evidence for using Codex as a future real execution runtime behind Saad Agent.
+- The audit does not implement a bridge and does not claim Codex is integrated.
+- The recommended direction is a controlled `CodexRuntimeBridge` using the TypeScript SDK first, because the inspected SDK documentation confirms it wraps the `codex` CLI and streams structured JSONL events.
+- Saad Agent remains the authority for identity, Iraqi Arabic voice, trusted workspaces, approval mode, knowledge/memory retrieval, provider settings, and final user-facing reporting.
+- Codex, if integrated later, must operate only after Saad's Conversation Intelligence, Intent Analysis, Execution Policy, Approval Policy, Pre-Answer Review, and Context Assembly complete.
+
+## Saad Agent Broad Memory Recall and Approval Routing (2026-07-02)
+
+- User-memory recall must be phrase-family based, not one-keyword based.
+- Arabic/Iraqi variants such as `شنو تعرف عني`, `شنو حافظ عني`, `تتذكرني`, `اسمي شنو`, and `تعرفني` must route to deterministic `memory_recall` without model invocation.
+- Recall-like prompts must not be treated as memory-save just because they contain a `remember`/`تذكر` token.
+- Approval-required project modification requests must preserve an engineering intent such as `code_generation`; they must not be downgraded to `conversation`.
+- Approval-required web requests must preserve `external_research`.
+- Approval policy persistence and execution audit logging are non-critical side effects. If a local app-data write fails, the runtime must still return the user-facing decision or approval card instead of crashing.
+
+## Saad Agent Prompt Composer Responsive Layout (2026-07-02)
+
+- The prompt composer must keep a stable width and readable font size across window resizing.
+- The input text should use product-level sizing, not viewport scaling or accidental inherited tiny text.
+- Toolbar controls must not overlap the prompt text, trace controls, send button, or each other.
+- Optional/unused controls such as voice input must not remain visible when they are not implemented.
+- Attachments may appear above the input in a bounded area, but must not make the composer expand unpredictably.
+
+## Saad Agent Developer Console Audit (2026-07-02)
+
+- `DEVELOPER_CONSOLE_AUDIT.md` defines the requested Developer Console as a real telemetry surface, not placeholder UI.
+- Current confirmed foundations include backend execution trace events, approval audit logs, trusted workspace runtime, knowledge services, provider/model settings, and production diagnostics handlers.
+- Missing production pieces include unified tool-call logs, RAG trace logs, prompt envelope viewer, token usage aggregation, performance timeline, error analyzer, knowledge inspector, and an auto diagnostic runner.
+- The next correct implementation phase is backend telemetry contracts and IPC before adding visible console panels.
+
+## Saad Agent Codex Runtime Bridge (2026-07-02)
+
+- `CodexRuntimeBridge` is a real backend bridge for explicit `/codex` or `استخدم/شغل/نفذ Codex` requests only.
+- The bridge must run after Saad Agent context, memory, knowledge, trusted workspace, and approval checks.
+- Normal conversation and normal provider responses must not silently route through Codex.
+- The current machine's WindowsApps `codex.exe` is not spawnable from Node/Electron and returns `Access is denied` / `spawn EPERM`; the bridge reports this directly instead of claiming execution.
+- A spawnable Codex CLI/SDK path must be provided before Codex can become the execution heart.
+
+## Saad Agent Deterministic Memory and Training Routing (2026-07-02)
+
+- Direct memory-save requests must be handled before task trace initialization and before provider/model invocation.
+- Training-ingest requests without an attached file must return a deterministic upload-required message and must not call the active model.
+- The prompt loading UI must use neutral wording such as `Processing request...` until the backend decides whether an LLM call is actually required.
+- Identity and user-memory recall prompts such as `من انا`, `منو انا`, and `ماذا تعرف عني` are deterministic read-only memory operations. They must run before execution policy, approval writes, task trace initialization, and provider/model invocation.
+## Saad Agent Runtime Approval and Project Context Stabilization (2026-07-02)
+
+- `WAIT_FOR_APPROVAL` is a real pending runtime state. It must render as `Waiting approval`, not `Running`.
+- Backend `approvalRequest` responses must be shown as actionable runtime approval cards in chat.
+- Approval cards must preserve the original prompt, workspace path, project name, attachments, conversation id, and approval mode so the same request can be resumed with `approved: true`.
+- Rejecting an approval card must stop execution and show a concise stop message.
+- Deterministic project-context questions such as `ماهو مشروع سعد ستوديو` and `شنو مشروع سعد ستوديو` must answer from Saad Agent context without calling the active provider model.
+- Project modification requests under Ask mode must still return approval before execution or model planning.

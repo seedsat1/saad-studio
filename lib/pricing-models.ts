@@ -101,6 +101,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   { id:"veo31_gem_fast", name:"Veo 3.1 Fast (Gemini)",  notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:8.0,   waveUsd:0,     userCreditsRate:1.71,  maxDuration:8,    isActive:true  },
   { id:"veo31_gem",      name:"Veo 3.1 Pro (Gemini)",   notes:"direct API",   type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:25.0,  waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:true  },
   { id:"gemini_omni_video", name:"Gemini Omni Video",    notes:"direct Google", type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:25.0,  waveUsd:0,     userCreditsRate:5.32,  maxDuration:8,    isActive:false  },
+  { id:"gemini_omni_flash", name:"Gemini Omni Flash",    notes:"direct Google", type:"cinema", provider:"kie",       billing:"per_sec", kieCredits:20.0,  waveUsd:0,     userCreditsRate:2.0,   maxDuration:10,   isActive:true   },
   // ── IMAGE — flat via KIE ────────────────────────────────────────────────────
   { id:"nano_pro",      name:"Nano Banana Pro",         notes:"4K I2I",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:18,    waveUsd:0,     userCreditsRate:3.07,  maxDuration:null, isActive:true  },
   { id:"nano2",         name:"Nano Banana 2",           notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:0.6,  maxDuration:null, isActive:true  },
@@ -173,7 +174,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "gemini_omni_video"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "gemini_omni_video", "gemini_omni_flash"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise

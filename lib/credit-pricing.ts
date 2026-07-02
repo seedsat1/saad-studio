@@ -31,6 +31,7 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["google/veo3.1-text-to-video", 42.56],
   ["google/veo-3.1-generate-preview", 42.56],
   ["google/gemini-omni-video", 42.56],
+  ["google/gemini-omni-flash", 20.0],
   ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],

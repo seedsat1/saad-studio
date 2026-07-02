@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { WorkspaceRuntimePanel } from "./WorkspaceRuntimePanel";
+import { KnowledgeManager } from "./KnowledgeManager";
 
 type SettingsTab =
   | "general"
@@ -222,20 +224,7 @@ const tabs: Array<{ id: SettingsTab; label: string; group: string }> = [
   { id: "advanced", label: "Advanced", group: "System" },
 ];
 
-const runtimeUnwiredTabs = new Set<SettingsTab>([
-  "general",
-  "agents",
-  "tools",
-  "connectors",
-  "creative",
-  "vision",
-  "knowledge",
-  "execution",
-  "security",
-  "backups",
-  "diagnostics",
-  "advanced",
-]);
+const runtimeUnwiredTabs = new Set<SettingsTab>([]);
 
 const defaultSettings: AppSettings = {
   version: 2,
@@ -913,6 +902,9 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
                 <SettingRow title="Ignored folders" description="Folders skipped by workspace indexing and retrieval.">
                   <TextListInput value={settings.workspace.ignoredFolders} onChange={(ignoredFolders) => updateSettings({ workspace: { ...settings.workspace, ignoredFolders } })} />
                 </SettingRow>
+                <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "16px" }}>
+                  <WorkspaceRuntimePanel />
+                </div>
               </div>
             )}
 
@@ -1247,11 +1239,14 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
             )}
 
             {activeTab === "knowledge" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "calc(100vh - 120px)", overflowY: "auto" }}>
                 <SectionHeader title="Knowledge & Memory" description="Retrieval sources controlled by the Context Engine." />
                 {renderBooleanRow("knowledge", "memoryEnabled", "Engineering memory", "Use decisions, failures, successes, and task history in retrieval.")}
                 {renderBooleanRow("knowledge", "architectureIndexEnabled", "Architecture index", "Use architecture and dependency metadata in retrieval.")}
                 {renderBooleanRow("knowledge", "attachmentMetadataEnabled", "Attachment metadata", "Use safe attachment metadata in retrieval results.")}
+                <div style={{ marginTop: "16px", borderTop: "1px solid rgba(255, 255, 255, 0.1)", paddingTop: "16px" }}>
+                  <KnowledgeManager />
+                </div>
               </div>
             )}
 

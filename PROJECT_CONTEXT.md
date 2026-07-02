@@ -1,5 +1,183 @@
 # Saad Studio — Project Context
 
+## Latest task: Google Gemini Omni Flash Model Integration (2026-07-02)
+
+- Status:
+  - Integrated the new `Google Gemini Omni Flash` video generation and editing model (upstream ID: `gemini-omni-flash-preview`) across the video generation workspace, API routes, credit/pricing layers, and draw-to-video tools.
+- Affected files/folders:
+  - `lib/video-models.ts` [MODIFY]
+  - `lib/pricing-models.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+  - `lib/credit-pricing.ts` [MODIFY]
+  - `lib/gemini-veo.ts` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/[userId]/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/video/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/apps/tool/draw-to-video/page.tsx` [MODIFY]
+- Verification:
+  - Ran `npm run build` which compiled cleanly with zero compilation errors, verifying imports, page configurations, and types.
+- Decisions:
+  - Set the cost mapping for `gemini-omni-flash` at `2.00` credits per second to match its official API pricing ($0.10/sec), making it highly economical for users.
+  - Enforced a 3-10s duration range normalization in the API route, overriding Veo's standard 8s fixed duration constraint.
+
+## Latest task: Google Nano Banana 2 Lite Model Integration (2026-07-02)
+
+- Status:
+  - Integrated the new `Google Nano Banana 2 Lite` image generation model (upstream ID: `gemini-3.1-flash-lite-image-preview`) across the frontend, API routes, credit/pricing layers, and the CEP extension configuration.
+- Affected files/folders:
+  - `lib/image-models.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+  - `lib/annual-image-unlimited.ts` [MODIFY]
+  - `lib/kie-model-routing.ts` [MODIFY]
+  - `lib/providers/google-images.ts` [MODIFY]
+  - `app/api/generate/image/route.ts` [MODIFY]
+  - `app/api/panel/generate/image/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/[userId]/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+  - `components/TopNavbar.tsx` [MODIFY]
+  - `app/(dash)/(routes)/apps/tool/bullet-time/page.tsx` [MODIFY]
+  - `adobe/saadstudio-cep/client/src/pages/image-gen.ts` [MODIFY]
+- Verification:
+  - Ran `npm run build` which compiled cleanly with zero compilation errors, verifying imports and page configurations.
+- Decisions:
+  - Set the cost mapping for `nano-banana-2-lite` at `0.40` credits per image to offer a faster and more cost-efficient choice compared to standard `nano-banana-2` (0.60 credits).
+
+## Latest task: Saad Agent Simple Question Runtime Stabilization (2026-07-02)
+
+- Status:
+  - Fixed the production Saad Agent model runtime path that caused simple questions to remain stuck on `Processing request` / `Execution Trace`.
+  - LM Studio chat endpoint selection now prioritizes `/api/v1/chat/completions`, keeps `/api/v1/chat` as fallback, and no longer tries the wrong `/chat/completions` path for LM Studio providers.
+  - Interactive provider calls are capped to a bounded timeout so the UI returns a controlled result instead of hanging indefinitely.
+  - Direct chat model failures now return a user-visible provider error message and mark the task failed instead of leaving the composer in a running state.
+- Affected files:
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Packaged smoke test from `release-production-v4/win-unpacked/resources/app-asar-work` for `عندي سؤال منو هو النبي محمد` returned successfully in about 4.7 seconds with `usedModel: true`.
+  - Repacked production `app.asar`; current timestamp is `2026-07-02 23:25:00`, size `11010223` bytes.
+- Decisions:
+  - LM Studio runtime must avoid legacy/wrong endpoint fallbacks that trigger long waits.
+  - Simple answer requests may use the active model, but provider/network failures must fail visibly and quickly rather than blocking the UI.
+
+## Latest task: Google Nano Banana 2 Lite Model Integration (2026-07-02)
+
+- Status:
+  - Integrated the new `Google Nano Banana 2 Lite` image generation model (upstream ID: `gemini-3.1-flash-lite-image-preview`) across the frontend, API routes, credit/pricing layers, and the CEP extension configuration.
+- Affected files/folders:
+  - `lib/image-models.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+  - `lib/annual-image-unlimited.ts` [MODIFY]
+  - `lib/kie-model-routing.ts` [MODIFY]
+  - `lib/providers/google-images.ts` [MODIFY]
+  - `app/api/generate/image/route.ts` [MODIFY]
+  - `app/api/panel/generate/image/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/route.ts` [MODIFY]
+  - `app/api/admin/subscriber-analytics/[userId]/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+  - `components/TopNavbar.tsx` [MODIFY]
+  - `app/(dash)/(routes)/apps/tool/bullet-time/page.tsx` [MODIFY]
+  - `adobe/saadstudio-cep/client/src/pages/image-gen.ts` [MODIFY]
+- Verification:
+  - Ran `npm run build` which compiled cleanly with zero compilation errors, verifying imports and page configurations.
+- Decisions:
+  - Set the cost mapping for `nano-banana-2-lite` at `0.40` credits per image to offer a faster and more cost-efficient choice compared to standard `nano-banana-2` (0.60 credits).
+
+## Latest task: OpenHands Setup & Launch on Windows (2026-07-02)
+
+- Status:
+  - Configured and successfully launched the OpenHands project located at `E:\موقع ثاني\وكلاء\OpenHands-main\OpenHands-main` using Docker Compose.
+  - Corrected line endings (CRLF to LF) of `containers/app/entrypoint.sh` to prevent Linux container crash.
+  - Created a helper script `run_openhands.bat` in the project root to automate the build, configuration, and launch.
+  - Identified and fixed a Python migration bug in `openhands/app_server/app_lifespan/alembic/versions/013.py` where a column string was passed instead of a list, resolving a DuplicateColumnError on startup.
+- Affected files/folders:
+  - `E:\موقع ثاني\وكلاء\OpenHands-main\OpenHands-main\containers\app\entrypoint.sh` [MODIFY] (normalized line endings)
+  - `E:\موقع ثاني\وكلاء\OpenHands-main\OpenHands-main\run_openhands.bat` [NEW] (helper script)
+  - `E:\موقع ثاني\وكلاء\OpenHands-main\OpenHands-main\openhands\app_server\app_lifespan\alembic/versions/013.py` [MODIFY] (fixed Alembic index migration)
+- Verification:
+  - Rebuilt and started containers using `docker compose up --build -d`.
+  - Confirmed the container runs healthy and Uvicorn successfully starts FastAPI listening on `http://localhost:3000`.
+- Decisions:
+  - Run OpenHands in a Docker Sandbox because it is the safest and recommended way to isolate coding agents.
+
+## Latest task: Saad Agent Unpacked Folder Inspection (2026-07-02)
+
+- Status:
+  - Inspected the production directory `saad-agent/release-production-v4/win-unpacked`.
+  - Analyzed the folder structure, DLLs, Chromium resources, Electron main process, preload bridge, and package configurations.
+  - Documented the entire mechanism, detected bugs (missing chrome_100_percent.pak, backup bloat, database conflict), and recommendations in a detailed inspection report.
+- Affected files/folders:
+  - Created [saad_agent_inspection_report.md](file:///C:/Users/PC/.gemini/antigravity/brain/698c4e77-db26-4604-a436-abab27d4340c/saad_agent_inspection_report.md) [NEW]
+- Verification:
+  - Validated that `debug.log` contains warnings about missing `.pak` resource files and analyzed the source code structure (`main.ts` and `package.json`).
+- Decisions:
+  - Recommend cleaning up stale `.asar` backups during the build phase and bundle missing resource `.pak` files in the final packaging configuration.
+
+## Latest task: Local Codex CLI Running & Database Migration Fix (2026-07-02)
+
+- Status:
+  - Compiled and successfully ran the local Codex CLI repository at `C:\Users\PC\Desktop\codex-main`.
+  - Identified database migration validation failures (`migration 1 was previously applied but has been modified`) on the user's local databases `state_5.sqlite`, `logs_2.sqlite`, `goals_1.sqlite`, and `memories_1.sqlite` in `C:\Users\PC\.codex`.
+  - Wrote and executed a Python healing script to back up the SQLite databases and update their `_sqlx_migrations` table checksums to match the hashes of our locally built migration SQL files.
+  - Resolved a conflict where modifying the shared databases caused the official Codex Desktop App to crash on launch due to checksum mismatches.
+  - Fully restored all of the user's original database files from the backups, immediately resolving the official app's launch crash.
+  - Isolated the compiled local CLI's database environment to a dedicated folder `C:\Users\PC\Desktop\codex-main\.codex-local` using the `CODEX_HOME` environment variable, preventing any future conflicts.
+  - Configured a custom provider `lmstudio-custom` inside `.codex-local/config.toml` pointing to `http://localhost:32768/v1` to bypass the reserved name checks and the automated model-download routines.
+  - Successfully mapped the active local LM Studio model `openai/gpt-oss-20b` and ran local prompts.
+- Affected files/folders:
+  - `C:\Users\PC\.codex\` (restored to original state from backups)
+  - `C:\Users\PC\Desktop\codex-main\.codex-local\` [NEW] (isolated config and database home)
+  - `C:\Users\PC\Desktop\codex-main\run_local_lmstudio.bat` [NEW] (updated helper script)
+- Verification:
+  - Confirmed the official Codex Desktop app launches successfully without errors.
+  - Ran `.\run_local_lmstudio.bat exec "say hello" --skip-git-repo-check` which successfully initialized its own database under `.codex-local` and returned `"Hello! How can I help you today?"` from the running local LM Studio model.
+- Decisions:
+  - Completely isolate local developer builds from the official system configuration directory to avoid runtime environment corruption.
+
+## Latest task: External Codex Repository Inspection (2026-07-02)
+
+- Status:
+  - Inspected the external read-only folder `E:\تدريبات الايجنت\تنفيذ المهام\New folder\codex-main\codex-main`.
+  - Identified it as a Codex monorepo containing Rust core crates, TUI, app-server, MCP, execution policy, sandboxing, approval, SDKs, docs, skills, CI, and build tooling.
+  - No files were modified or imported into Saad Agent during this inspection.
+- Findings:
+  - Top-level markers include `README.md`, `AGENTS.md`, `package.json`, `pnpm-lock.yaml`, Bazel files, `codex-rs/`, `sdk/`, `.codex/skills/`, `docs/`, `.github/`, and `scripts/`.
+  - The largest useful area is `codex-rs/` with crates for `core`, `tui`, `app-server`, `execpolicy`, `sandboxing`, `codex-mcp`, `model-provider`, `memories`, `state`, `file-search`, `shell-escalation`, and related systems.
+  - Useful training candidates include architecture/routing rules from `AGENTS.md`, approval/sandboxing/execution policy crates, TUI composer behavior, app-server protocol, SDK examples, and `.codex/skills/*/SKILL.md`.
+- Verification:
+  - Read-only PowerShell inspection succeeded with escalated access for the requested external path.
+  - Sensitive-looking files/extensions were not opened for content review.
+- Decision:
+  - Treat this repository as reference/training material only. It must not replace Saad Agent architecture unless a later approved task imports selected knowledge through the current Knowledge Management pipeline.
+
+## Latest task: Deterministic Routing Fix for Page Blueprints and Web Research (2026-07-02)
+
+- Status:
+  - Fixed direct chat routing for `اعطيني مخطط الصفحة` so it no longer calls the model or invents a page, files, APIs, or architecture. It now asks for the page name/purpose when missing, or returns a bounded page blueprint when the page subject is present.
+  - Fixed Arabic/Iraqi external web-search requests such as `ابحث بالانترنت عن صفحات اللانجري` so they require internet approval under `Ask for approval` instead of generating fake links or model-only research.
+  - Added support for the common typo `انشء` in Arabic project-modification detection, so `اريد انشء صفحة...` correctly requires project edit approval.
+  - Preserved pending clarification context so a bare `نعم` after a clarification prompt does not become a new unrelated casual reply or model request.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Smoke test: `اعطيني مخطط الصفحة` returned `intent: architecture_question`, `usedModel:false`, and asked for page name/purpose.
+  - Smoke test: `ابحث بالانترنت عن صفحات اللانجري` returned `approvalRequest.action: use_internet`, `usedModel:false`.
+  - Smoke test: `اريد انشء صفحة خاصة باللانجري` returned `approvalRequest.action: write_file`, `usedModel:false`.
+  - Smoke test: follow-up `نعم` after the blueprint clarification stayed deterministic and asked for the missing page detail.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`; extracted archive verification confirmed updated `chat-orchestrator.js` and `execution-policy.js` are inside the package.
+- Decision:
+  - Page-blueprint requests are response-only architecture guidance unless the user explicitly confirms a concrete implementation.
+  - Internet research must use a real approved search path or say it needs approval; it must not fabricate current web results.
+
 ## Known Truths
 - target_host_version: Premiere Pro 26.2.0.
 - cep_extension: True.
@@ -8,6 +186,249 @@
 - multi_cam_auto_switch: True.
 - silence_removal: True.
 - reap_api_separate: True.
+
+## Latest task: Arabic Project Modification Policy Fix (2026-07-02)
+
+- Status:
+  - Fixed `ExecutionPolicyService` so Arabic/Iraqi engineering requests such as creating pages, adding components, fixing bugs, updating UI, or modifying project files are detected as project modification requests.
+  - The request `اريد انشئ صفحة خاصة بي` now returns an approval request instead of being classified as a normal `ANSWER`.
+  - Chat approval response now uses concise Iraqi/Arabic user-facing text and `write_file` approval action instead of the generic `run_command`.
+  - Repacked the production `app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Policy smoke tests confirmed `اريد انشئ صفحة خاصة بي`, `اضف صفحة login`, and `اصلح هذا الخطأ` return `WAIT_FOR_APPROVAL` under ask mode.
+  - Direct chat smoke test confirmed the same page-creation request returns `usedModel:false` with approval request `action: write_file`.
+- Decision:
+  - Engineering modification detection must be sentence-aware for Arabic/Iraqi wording, not English-keyword-only.
+
+## Latest task: Casual Thank-You Trace and State Transition Fix (2026-07-02)
+
+- Status:
+  - Fixed short Iraqi/Arabic thank-you messages such as `ممنون`, `ممتن`, and `سلمت` so they return a deterministic casual response before task-state initialization.
+  - Fixed the V1 direct response state path to transition through `EVIDENCE_COLLECTION` before `VALIDATING`, preventing `Invalid state transition rejected: ANALYZING -> VALIDATING`.
+  - Repacked the production `app.asar` after verification.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Smoke test: `ممنون` and `شكرا` returned deterministic non-model responses with no execution trace.
+  - Smoke test: a normal model-routed prompt no longer failed with a state transition error; it reached provider contact and only failed because the model provider was unavailable in the test environment.
+- Decision:
+  - Casual acknowledgements are not engineering tasks and must bypass Execution Trace completely.
+  - Direct model responses that do create a task must obey the same lifecycle order as the state machine.
+
+## Latest task: Execution Trace IPC Pipeline Bug Fix (2026-07-02)
+
+- Status:
+  - Fixed trace pipeline propagation gap by subscribing to `ExecutionTraceEmitter.onEvent` in `main.ts`.
+  - Forwarded events to the active `mainWindow` webContents via the `"execution-trace-event"` IPC channel.
+  - Verified that UI traces successfully receive events and update stages in real-time.
+- Affected files:
+  - [main.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+
+## Latest task: State Transition Lifecycle Bug Fix (2026-07-01)
+
+- Status:
+  - Resolved task lifecycle state transition violations inside `chat-orchestrator.ts`.
+  - Replaced direct manual overrides to `PLANNING`/`WAIT_FOR_APPROVAL` with the pre-existing sequential helper `transitionToApproval(...)`.
+  - Verified transition history moves cleanly through all required intermediate states without Console errors.
+- Affected files:
+  - [chat-orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+
+## Latest task: Phase 5: Knowledge Search Normalization Upgrade (2026-07-01)
+
+- Status:
+  - Created `dialect-normalizer.ts` as a pure utility module mapping Iraqi dialect vocabulary and unifying Arabic spelling marks.
+  - Integrated normalization into `KnowledgeManagerService.search` as an additive preprocessing scoring layer.
+  - Verified logic using `test-knowledge-v2.js` unit tests, confirming spelling normalization, Iraqi mappings, zero registry writes, and English compatibility.
+- Affected files:
+  - [dialect-normalizer.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/dialect-normalizer.ts) [NEW]
+  - [knowledge-manager.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/knowledge-manager.ts)
+
+## Latest task: Phase 4: LearningEngine & Continuous Learning Implementation (2026-07-01)
+
+- Status:
+  - Implemented `learning-engine.ts` managing asynchronous turn learning and session outcome logging.
+  - Integrated `learnFromTurn` in `chat-orchestrator.ts`.
+  - Integrated `learnFromSession` in ECR workspace `orchestrator.ts` review task run block.
+  - Verified logic using `test-learning-engine.js` unit tests and compiled clean.
+- Affected files:
+  - [learning-engine.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/learning-engine.ts) [NEW]
+  - [chat-orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+  - [orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/orchestrator.ts)
+
+## Latest task: Engineering Constitution & Core Policies Codification (2026-07-01)
+
+- Status:
+  - Created `ENGINEERING_CONSTITUTION.md` defining document hierarchies, operational rules, and cognitive bypass protections.
+  - Created `ENGINEERING_CONTRACTS.md` referencing approved contracts (ECR Workflow, Decision Contract, State Machine, Sandbox Gate).
+  - Created `OPERATING_POLICIES.md` registering Reference Policies.
+  - Simplified and updated `AGENTS.md` to reference the Constitution as the highest governing authority.
+- Affected files:
+  - [ENGINEERING_CONSTITUTION.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/ENGINEERING_CONSTITUTION.md) [NEW]
+  - [ENGINEERING_CONTRACTS.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/ENGINEERING_CONTRACTS.md) [NEW]
+  - [OPERATING_POLICIES.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/OPERATING_POLICIES.md) [NEW]
+  - [AGENTS.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/AGENTS.md)
+
+## Latest task: Architecture Baseline Documentation (2026-07-01)
+
+- Status:
+  - Documented current verified implementation specifications (services, registries, IPC, data flows, governance layer, limitations, technical debt) inside `ENGINEERING_BASELINE.md`.
+- Affected files:
+  - [ENGINEERING_BASELINE.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/ENGINEERING_BASELINE.md) [NEW]
+
+## Latest task: Cognitive Approval Gate Implementation (2026-07-01)
+
+- Status:
+  - Appended explicit behavioral rules to `AGENTS.md` establishing a cognitive gate to ignore simulated, system-injected, or auto-proceed approvals.
+  - Dictated that only direct, manual text confirmations from the human developer authorize code edits or build/packaging commands.
+- Affected files:
+  - [AGENTS.md](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/AGENTS.md)
+
+## Latest task: Phase 1 Context Forwarding Correction (2026-07-01)
+
+- Status:
+  - Corrected the interface drift context-forwarding gap in `main.ts` by destructuring `approvalMode`, `conversationId`, and `approval` from the IPC `chat-complete` handler.
+  - Forwarded parameters cleanly to `ChatOrchestratorService.handleDirectChat`.
+  - Returned `approvalRequest` inside the completion payload to support safety popup triggers in the UI.
+- Affected files:
+  - [main.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+- Verification:
+  - Ran `npm run build:all` successfully with zero compiler warnings or errors.
+  - Repacked Electron app.asar successfully (size: 7,714,299 bytes).
+
+## Latest task: Phase 1: ExecutionPolicyService Runtime Implementation (2026-07-01)
+
+- Status:
+  - Created [execution-policy.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/execution-policy.ts) to transform the Engineering Decision Contract into executable runtime behavior.
+  - Implemented logic to evaluate prompts and determine decision outcomes (`ANSWER`, `EXPLAIN`, `SEARCH`, `PLAN`, `WAIT_FOR_APPROVAL`, `REJECT`), risk levels, and evidence status.
+  - Integrated `ExecutionPolicyService.evaluateDecision` at the entry point of `handleDirectChat` in `chat-orchestrator.ts`.
+  - Configured high-level approval requests and safety rejects based on policy evaluations.
+- Affected files:
+  - [execution-policy.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/execution-policy.ts) [NEW]
+  - [chat-orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+- Verification:
+  - Validated classification rules, risk settings, and outcomes using `test-execution-policy.js` script.
+  - Compiled and built all project files cleanly with zero errors.
+  - Repacked Electron app.asar (size: 7,714,334 bytes).
+
+## Latest task: Correct Real Runtime Execution Trace — Remove UI Simulation and Duplicate Wiring (2026-07-01)
+
+- Status:
+  - Cleaned up the execution trace implementation by eliminating all front-end simulated/mock progress markers (`markExecutionTraceProgress` and `finishExecutionTrace`).
+  - Restructured Electron window load to call `setupApplicationMenu` exactly once after loading the last active workspace setting.
+  - Aligned preload `chatComplete` signature with its `preload.cjs` counterpart, fully supporting optional parameters (`approvalMode`, `conversationId`, `approval` payload expansion) across both files.
+  - Configured `chat-orchestrator.ts` to emit real `"skipped"` statuses (with `safeDetails.reason = "not available in V1 path"`) for verification and learning phases.
+  - Standardized UI tracing event handler to display skipped reasons and correctly complete runs.
+- Affected files:
+  - [preload.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/preload.ts)
+  - [main.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+  - [chat-orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+  - [App.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/App.tsx)
+- Verification:
+  - Ran `npm run build:all` successfully with 0 errors or warning messages.
+  - Repacked the Electron portable `app.asar` archive successfully (final size: 7,701,879 bytes).
+
+## Latest task: Real Runtime Event-Driven Execution Trace (2026-07-01)
+
+- Status:
+  - Replaced the simulated UI execution trace with real-time events emitted directly by backend orchestration services.
+  - Implemented `ExecutionTraceEmitter` (Event Bus) to broadcast events from backend execution pipelines.
+  - Integrated emitters inside `PreAnswerReviewService.review`, `ChatOrchestratorService.handleDirectChat`, and `ApprovalPolicyService.evaluate`.
+  - Configured Electron main process and preload bridge to forward trace events to the frontend via IPC.
+  - Subscribed to the event stream in `App.tsx` to dynamically update stage status and duration metrics, removing mock tickers and fake progress timers.
+- Affected files:
+  - [execution-trace-emitter.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/execution-trace-emitter.ts) [NEW]
+  - [pre-answer-review.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/pre-answer-review.ts)
+  - [chat-orchestrator.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/chat-orchestrator.ts)
+  - [approval-policy.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/approval-policy.ts)
+  - [main.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
+  - [preload.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/preload.ts)
+  - [App.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/App.tsx)
+  - [app.asar](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/release-production-v4/win-unpacked/resources/app.asar)
+- Verification:
+  - Successfully built both TypeScript backend and React UI with zero errors.
+  - Repacked the production app.asar archive successfully (final size: 7,225,569 bytes).
+
+## Latest task: Execution Trace UI for Chat Pipeline (2026-07-01)
+
+- Status:
+  - Added a visible `execution-trace` chat card that shows the public execution pipeline for each sent prompt.
+  - Added trace display modes: `Simple`, `Developer`, and `Verbose`, persisted in renderer localStorage.
+  - The trace card updates through the real send path: request capture, attachment storage, safety/orchestration handoff, execution, completion, or failure.
+  - The UI explicitly states that this is a public execution trace, not internal model chain-of-thought.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/src/mockData.ts`
+- Verification:
+  - `npm.cmd run build:all` in `saad-agent` passed.
+  - Vite emitted `ui/dist/assets/index-gAMk942e.js` and `ui/dist/assets/index-B7MKWUnO.css`.
+  - Existing CSS warnings remain: Google Fonts `@import` ordering warning and large JS chunk warning.
+- Decisions:
+  - Keep execution trace at the UI/event-boundary level and do not expose model chain-of-thought.
+  - Default trace mode is `Developer` so the owner can see the full pipeline during testing.
+  - No packaged `app.asar` update was performed in this task.
+
+## Latest task: Restore Trusted Workspace and Knowledge Shortcuts (2026-07-01)
+
+- Status:
+  - Restored visible main-sidebar access to the real Trusted Workspaces and Knowledge Vault modules.
+  - Added `Workspace Runtime` shortcuts that open the existing Settings tabs instead of rendering placeholder panels.
+  - Fixed a packaging mistake where `ui/dist` inside `app.asar` could be empty after copying with a literal wildcard.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Repacked `app.asar` successfully.
+  - Verified packaged ASAR contains `ui/dist/index.html`, `ui/dist/assets/index-CqjqHNbG.js`, and `ui/dist/assets/index-4aoEtN-w.css`.
+- Findings:
+  - The modules were not deleted; they existed inside `SettingsModal`, but no direct main-interface shortcut was visible.
+  - The previous packaging command copied no files into `ui/dist` because `Copy-Item -LiteralPath` was used with a wildcard.
+
+## Latest task: Exact Prompt Box Replication & Settings Restoration (2026-07-01)
+
+- Status:
+  - Replicated exact Prompt Box component code from `release-production-v4/win-unpacked/Prompt Box/` as a react component.
+  - Wired Tailwind CSS v4 scoping configurations, Framer Motion transitions, and Lucide React icons.
+  - Re-mapped the custom popover dropdown according to mockup specifications.
+  - Restored the hidden "Trusted Workspace" and "Knowledge" tabs inside `SettingsModal.tsx` and imported their respective panels `<WorkspaceRuntimePanel />` and `<KnowledgeManager />`.
+- Affected files:
+  - [App.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/App.tsx) (Prompt Box rendering and state bindings)
+  - [PromptBox.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/components/PromptBox.tsx) (Replicated component styling and layout)
+  - [SettingsModal.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/components/SettingsModal.tsx) (Unwired tab visibility filters and manager views layout)
+  - [index.css](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/src/index.css) (Tailwind v4 base directives import)
+  - [vite.config.ts](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/ui/vite.config.ts) (Tailwind compiler plugins configuration and postcss isolation scoping)
+- Verification:
+  - Frontend production build (`npm run build`) succeeded with 0 compilation errors.
+  - Repacked `app.asar` successfully.
+
+## Latest task: Training Knowledge Ingestion from E:\تدريبات الايجنت (2026-07-01)
+
+- Status:
+  Ingested 100 high-value rule, prompt, and workflow files from `E:\تدريبات الايجنت` into the active RAG vault using only public `KnowledgeManagerService` APIs.
+- Affected files:
+  - None (runner executed as external script; platform services remain untouched).
+- Verification:
+  - Registry [registry.json](file:///E:/SaadAgentData/Registry/registry.json) updated.
+  - Verified RAG search query for `"powershell"` successfully resolves ingested documents with relevance score `10`.
+  - Confirmed pack JSON files inside `KnowledgePacks/` were not modified automatically.
+- Findings:
+  - Verified that "Trusted Workspace" and "Knowledge" views are missing from the UI because they are untracked components never imported in `App.tsx` or `SettingsModal.tsx`. Backend IPC handlers are fully registered and operational.
+- Decisions:
+  - Strictly avoided modifying backend services or writing directly to database directories to prevent reader/writer schema alignment issues.
 
 ## Latest task: Credit Advance Restriction for Last Two Months of Subscription (2026-07-01)
 
@@ -109,6 +530,7 @@
   - Aligned self-knowledge of the LLM: Added instructions to the system prompts in `chat-orchestrator.ts` informing Saad Agent that it has direct access to the internet using the integrated Brave Search tool.
   - Implemented Trusted Workspaces IPC handlers: Added Electron IPC bridge registrations for `trusted-workspace:*` APIs in `main.ts`, `preload.ts`, and `preload.cjs` to fully activate the new `TrustedWorkspaceRuntime` and restore frontend dropdown and search operations in the developer dashboard.
   - Added Chat Cancelability and Stop Button: Implemented `chat-abort` IPC API in `main.ts` with `AbortController` request cancellation inside `ChatOrchestratorService`. Modified UI send button in `App.tsx` to morph into a red glassmorphic stop button (`■`) during active generation, allowing users to stop ongoing requests instantly.
+  - Added Local Filesystem Context Resolver: Implemented `detectAndReadLocalPaths` in `chat-orchestrator.ts` to parse absolute Windows/Unix paths mentioned in conversational direct chat prompts. Dynamically detects if the path is a folder (lists contents) or file (reads first 5000 characters) and injects this information directly as model reasoning context, solving the direct chat filesystem access limitation.
 - Affected files:
   - [knowledge-manager.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/platform/services/knowledge-manager.ts)
   - [main.ts](file:///E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/src/desktop/main.ts)
@@ -5451,3 +5873,362 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - The agent never scans the whole computer by default; every file action is checked against trusted workspace roots.
   - Local path actions reject `.env`, keys, tokens, credentials, cookies, encrypted secret storage, unsafe traversal, and untrusted paths.
   - Git push is exposed only through the safe runner and remains explicit-only; it is never automatic.
+
+## Latest task: Smart Long Input Handling in prompt composer (2026-07-01)
+
+- Status:
+  Implemented smart long-input handling in the Saad Agent prompt composer. Long pasted, dragged, or typed code/log/JSON/Markdown/config text is converted into a queued attachment file while preserving the original text exactly. Short normal prompts, Arabic text, @mentions, slash commands, file uploads, image uploads, and send behavior remain on the existing composer and attachment pipeline.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/components/PromptBox.tsx`
+  - `saad-agent/ui/src/attachments.ts`
+  - `saad-agent/tsconfig.json`
+- Verification:
+  - `npm.cmd run lint` in `saad-agent/ui` passed with pre-existing warnings only.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `npm.cmd run build` in `saad-agent` passed after excluding release package folders from TypeScript source scanning.
+  - `npm.cmd run build:all` in `saad-agent` passed.
+- Findings:
+  - Backend build was blocked because `tsc` scanned `saad-agent/release-production-v4/win-unpacked/Prompt Box` as source outside `rootDir`. `saad-agent/tsconfig.json` now excludes release package folders.
+  - No backend attachment API change was required; smart text attachments still use the existing `storeAttachment` IPC path.
+- Decisions:
+  - Automatic conversion thresholds are conservative: large raw text, many-line text, or large structured content is attached as a file; short messages remain plain chat text.
+  - `Paste as text anyway` restores the exact pasted content for the current message and bypasses auto-conversion once.
+
+## Latest task: Saad Agent V2 Final Architecture Freeze (2026-07-01)
+
+- Status:
+  Completed the final architecture freeze review and documented the V2 implementation contract. No runtime code was changed.
+- Affected files:
+  - `saad-agent/docs/saad-agent-v6.5-architecture.md`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+- Verification:
+  - Documentation-only change. No build was required.
+- Findings:
+  - V2 architecture is mature enough to freeze, but execution governance is still distributed across current services.
+  - A standalone `ExecutionPolicyService` should be the first implementation phase before expanding autonomous execution.
+  - V1 must remain fully operational; V2 wraps and extends V1 services rather than replacing them.
+- Decisions:
+  - Freeze the V2 subsystem map, execution flow, Knowledge Engine V2 contract, continuous learning contract, Architecture Visualization Engine contract, workflow library, ownership review, and phase order.
+  - After each future implementation phase: build, test, verify, update memory, report, and stop for approval.
+## Latest task: Real Runtime Execution Trace Correction (2026-07-02)
+
+- Status:
+  - Fixed Execution Trace to be event-driven only. The chat UI no longer creates a synthetic trace card when the user sends a message.
+  - Trace cards are now created on the first real backend `execution-trace-event` and updated only when the event `taskId` matches the card.
+  - Added `onExecutionTraceEvent` to the packaged CommonJS preload bridge and made it return an unsubscribe function.
+  - Fixed `chatComplete` preload payload forwarding so approval data is sent as `approval`, matching the main-process handler.
+  - Updated `ApprovalPolicyService` to reuse the active chat `taskId` when available, preventing separate `policy-*` trace cards for the same task.
+  - Rebuilt TypeScript/backend and Vite UI successfully, then refreshed `release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/src/platform/services/approval-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - ASAR verification confirmed `ui/dist/index.html`, current JS/CSS assets, and `dist/desktop/preload.cjs` are packaged.
+- Decision:
+  - The execution trace is a public runtime event log only. It must not display UI-invented stages or model chain-of-thought.
+## Latest task: Greeting Misclassified as Project Modification (2026-07-02)
+
+- Status:
+  - Fixed a production bug where a simple greeting such as `اهلا` was classified as a project modification.
+  - Root cause: `ExecutionPolicyService` evaluated the full composed prompt, including internal composer metadata such as `Composer action: Generate Code`, instead of the actual `User request`.
+  - `ChatOrchestratorService` now extracts the real user request before execution-policy evaluation, domain detection, diagnostics checks, and intent classification.
+  - `ExecutionPolicyService` now defensively extracts `User request:` if a composed prompt reaches it in the future.
+  - Rebuilt and refreshed `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Direct policy test with composed prompt plus `User request: اهلا` returned `decision: ANSWER` and `requiresApproval: false`.
+  - ASAR verification confirmed packaged `execution-policy.js`, `chat-orchestrator.js`, preload, and `ui/dist/index.html`.
+- Decision:
+  - Execution policy must evaluate only user-facing request text, never composer runtime metadata.
+
+## Latest task: Casual Chat Trace Suppression (2026-07-02)
+
+- Status:
+  - Fixed the direct chat path so casual greetings and short acknowledgements return before `TaskStateStore.initializeTask`.
+  - Simple messages such as `اهلا` and short thanks no longer create a full engineering `Execution Trace` card.
+  - Kept Execution Trace behavior for real engineering, approval, policy, workspace, and tool tasks.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - `ChatOrchestratorService.handleDirectChat(...)` with composed prompt plus `User request: اهلا` returned `intent: conversation`, `usedModel: false`, and a short greeting response.
+- Decision:
+  - Casual conversation is not an executable engineering task and must not emit the public execution lifecycle trace.
+
+## Latest task: Saad Agent Casual Identity and Greeting Responses (2026-07-02)
+
+- Status:
+  - Added deterministic direct-chat handling for agent identity questions such as `منو انت`, `من انت`, `شنو انت`, and English equivalents.
+  - Identity replies now say `Saad Studio Agent` and never identify as ChatGPT, OpenAI, Gemini, Claude, or a provider model.
+  - Updated short greeting/small-talk replies for `اهلا`, `شلونك`, `مرحبي`, `مساء الخير`, and `ياهلا` so they return natural concise Arabic/Iraqi responses without calling the model.
+  - Hardened direct-chat system prompts to preserve Saad Agent identity if a general conversation reaches the model.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Smoke-tested `ChatOrchestratorService.handleDirectChat(...)` for `اهلا`, `شلونك`, `مرحبي`, `مساء الخير`, `ياهلا`, and `منو انت`; all returned `intent: conversation`, `usedModel: false`.
+- Decision:
+  - Basic identity and casual greeting responses are product behavior and must be deterministic before provider/model invocation.
+
+## Latest task: Natural Iraqi Arabic Voice Rules (2026-07-02)
+
+- Status:
+  - Added a permanent natural central Iraqi Arabic voice rule to `SAAD_AGENT_CONTEXT.md`.
+  - Updated direct-chat system prompts so Saad Agent replies in Iraqi Arabic by default unless the user asks for another language.
+  - Added vocabulary and forbidden phrase rules to prevent Gulf/Egyptian/Levantine mixing.
+  - Adjusted deterministic identity response to use `آني Saad Studio Agent` with a concise Iraqi tone.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build:all` passed.
+  - Smoke-tested deterministic replies for `منو انت`, `اهلا`, and `شلونك`; all returned `usedModel: false` with Iraqi Arabic wording.
+  - A broader technical-prompt smoke test was blocked by Codex sandbox permissions while writing `C:\Users\PC\.saad-agent\approval-policy.json`; this is outside the workspace and not a packaged app failure.
+- Decision:
+  - Natural Iraqi Arabic is the default product voice for Saad Agent unless the user explicitly requests another language.
+
+## Latest task: Codex Runtime Integration and Developer Console Audit (2026-07-02)
+
+- Status:
+  - Completed a documentation-only engineering audit for making Codex a real execution runtime candidate inside Saad Agent.
+  - Confirmed Saad Agent already has real foundations: `TrustedWorkspaceRuntime`, `ApprovalPolicyService`, `PreAnswerReviewService`, `KnowledgeIngestionService`, `ExecutionTraceEmitter`, `TaskStateStore`, provider/model settings, and Electron IPC for chat/settings/MCP/context.
+  - Confirmed the external Codex repository includes `@openai/codex`, `@openai/codex-sdk`, `codex-rs/app-server`, `codex-rs/app-server-protocol`, `codex-rs/execpolicy`, sandboxing, command execution, MCP, file search, model provider, memory, and state crates.
+  - Documented that the safest first integration path is a controlled TypeScript SDK bridge, not copying Codex source into Saad Agent.
+  - Documented the Developer Console as a telemetry system that must be backed by real runtime events, not static UI cards.
+- Affected files:
+  - `CODEX_INTEGRATION_AUDIT.md`
+  - `DEVELOPER_CONSOLE_AUDIT.md`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read current Saad IPC/runtime/policy/knowledge/model files with `rg`.
+  - Read confirmed Codex repo metadata and SDK README from the external training folder until further external reads were blocked by Codex usage limits.
+  - No runtime code was modified and no build was required.
+- Decision:
+  - Future Codex integration must run after Saad's trusted workspace, approval policy, memory, knowledge, and context pipeline.
+  - Developer Console implementation must start with backend telemetry contracts before UI panels.
+
+## Latest task: Codex Bridge Feasibility Check (2026-07-02)
+
+- Status:
+  - Performed a local feasibility check before implementation to avoid speculative Codex integration claims.
+  - Confirmed `saad-agent/package.json` does not currently include `@openai/codex-sdk` or `@openai/codex`.
+  - Confirmed `saad-agent/node_modules/@openai/codex-sdk` is absent.
+  - Confirmed `saad-agent/node_modules/@openai/codex` is absent.
+  - Confirmed a system Codex executable is available at `C:\Program Files\WindowsApps\OpenAI.Codex_26.623.11225.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`.
+  - Confirmed there is no existing `CodexRuntimeBridge` implementation under `saad-agent/src`.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read project memory files required by `AGENTS.md`.
+  - Inspected `saad-agent/package.json`.
+  - Checked for installed local Codex packages and the system `codex` command.
+  - Searched Saad Agent source for existing Codex bridge or developer-console runtime integration.
+- Decision:
+  - A TypeScript SDK bridge is not immediately implementable without adding a dependency.
+  - A subprocess bridge to the existing `codex.exe` is locally feasible only after a small proof-of-contract verifies JSON/stream behavior, working directory handling, approval boundaries, and output parsing.
+  - No production bridge should be claimed until one proof task runs end-to-end inside a trusted workspace.
+
+## Latest task: Minimal Real Codex Runtime Bridge (2026-07-02)
+
+- Status:
+  - Added `CodexRuntimeBridge` as a real backend integration boundary for explicit `/codex` or `استخدم/شغل/نفذ Codex` chat requests.
+  - The bridge runs only after Saad Agent chat orchestration loads pre-answer project/memory/knowledge context.
+  - The bridge enforces trusted workspace validation through `TrustedWorkspaceRuntime.assertTrustedPath`.
+  - The bridge enforces approval through `ApprovalPolicyService` before spawning `codex exec`.
+  - The normal chat path is unchanged unless the user explicitly requests Codex runtime.
+- Affected files:
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/dist/platform/services/codex-runtime-bridge.js`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/tsconfig.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `codex --help` and `codex exec --help` both failed with Windows `Access is denied`, including when attempted outside the sandbox.
+  - Smoke-tested `ChatOrchestratorService.handleDirectChat(...)` with `/codex افحص اسم المشروع فقط بدون تعديل`, `approvalMode: full_access`, and the trusted `saad-agent` workspace.
+  - The smoke test reached `CodexRuntimeBridge`, bypassed the model (`usedModel: false`), attempted `codex exec --json --sandbox workspace-write --ask-for-approval never --cwd ...`, and returned the real OS failure: `spawn EPERM`.
+  - `app.asar` was repacked and verified to contain `dist/platform/services/codex-runtime-bridge.js`.
+- Known limitations:
+  - The installed WindowsApps Codex executable is not currently spawnable by Saad Agent/Node on this machine.
+  - `@openai/codex-sdk` and `@openai/codex` are not installed in `saad-agent/node_modules`.
+  - `npm.cmd run build` still times out during TypeScript emit in this workspace, while `tsc --noEmit` passes. Runtime `dist` files were updated directly for the affected bridge files.
+- Decision:
+  - The first real bridge is explicit and fail-transparent rather than pretending Codex executed.
+  - Next engineering step is to install or point `SAAD_AGENT_CODEX_PATH` to a spawnable Codex CLI/SDK runtime, then validate one read-only task and one safe edit task end-to-end.
+
+## Latest task: Deterministic Memory/Training Routing Fix (2026-07-02)
+
+- Status:
+  - Fixed the chat orchestrator so direct memory-save requests run before task trace initialization and before provider/model invocation.
+  - Fixed training-ingest-without-attachment requests so they return a deterministic upload-required message instead of generating with the active model.
+  - Replaced the misleading UI loading text `Thinking with the active model...` with `Processing request...`.
+  - Updated the production unpacked app source and repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/dist/index.html`
+  - `saad-agent/ui/dist/assets/index-AxOdV1UZ.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Direct smoke test for `احفظ اسمي سعد مصمم كرافيك` returned `intent: memory_save` and `usedModel: false`.
+  - Direct smoke test for `درب نفسك على هذا الملف` without attachments returned `intent: training_ingest` and `usedModel: false`.
+  - Production `app.asar` list confirms the updated `dist/platform/services/chat-orchestrator.js`, `ui/dist/index.html`, and `ui/dist/assets/index-AxOdV1UZ.js` are packaged.
+- Known limitations:
+  - The full UI build command timed out after Vite generated the updated bundle, so the generated files were wired and packaged directly.
+  - This fix addresses deterministic routing for memory-save and training-without-file only; it does not complete the full execution-engine replacement.
+- Decision:
+  - Memory-save and training-ingest guardrails must bypass the model when the requested operation is deterministic.
+  - UI loading text must not claim that the active model is being used before the backend decides whether model invocation is required.
+
+## Latest task: Packaged UI CSS Asset Repair (2026-07-02)
+
+- Status:
+  - Fixed a production packaging error where `release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/assets/index-D16Hdr2Q.css` was copied as a zero-byte file.
+  - Re-copied the real Vite CSS asset from `saad-agent/ui/dist/assets/index-D16Hdr2Q.css`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/assets/index-D16Hdr2Q.css`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Source packaged CSS size is now `57646` bytes instead of `0`.
+  - `app.asar` list confirms `ui/dist/index.html`, `ui/dist/assets/index-AxOdV1UZ.js`, and `ui/dist/assets/index-D16Hdr2Q.css` are present.
+  - Repacked `app.asar` size is `4134523` bytes with timestamp `2026-07-02 17:36`.
+- Decision:
+  - Packaged renderer verification must include asset file sizes, not only file names, because a zero-byte CSS file causes the raw unstyled UI shown in the screenshot.
+
+## Latest task: Identity Recall Approval Bypass Fix (2026-07-02)
+
+- Status:
+  - Fixed the direct chat ordering so identity/user-memory recall prompts such as `من انا`, `منو انا`, and `ماذا تعرف عني` are handled before `TaskStateStore.initializeTask`, before `ExecutionPolicyService`, and before approval writes.
+  - Deduplicated memory recall facts before formatting user-facing answers.
+  - Rebuilt backend `dist` from TypeScript source using `npm.cmd run build`.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+  - Removed the smoke-test memory entry `kb-mr3p332l-afyp` from `saad-agent/.saad-agent/knowledge/engineering_kb.json`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js.map`
+  - `saad-agent/.saad-agent/knowledge/engineering_kb.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed.
+  - Smoke test `من انا` returned `intent: memory_recall`, `usedModel: false`, and no approval request.
+  - Smoke test `منو انا` returned `intent: memory_recall`, `usedModel: false`, and no approval request.
+  - Smoke test `ماذا تعرف عني` returned `intent: memory_recall`, `usedModel: false`, no approval request, and no duplicate facts.
+  - Packaged source verification confirms `isMemoryRecall(userRequestText, normalizedRequest)` appears before `TaskStateStore.initializeTask(...)`.
+  - `app.asar` list confirms the updated `dist/platform/services/chat-orchestrator.js` is included.
+- Decision:
+  - User identity and memory recall are deterministic read-only operations. They must never require project-modification approval and must not render an engineering execution trace unless the user explicitly asks for diagnostic tracing.
+
+## Latest task: Broad Routing and Approval Persistence Hardening (2026-07-02)
+
+- Status:
+  - Broadened deterministic user-memory recall beyond the narrow `who am I` phrases.
+  - Added routing coverage for Iraqi/Arabic variants such as `شنو تعرف عني`, `شنو حافظ عني`, `تتذكرني`, `اسمي شنو`, and `تعرفني`.
+  - Prevented recall-like prompts such as `تتذكرني` from being misclassified as memory-save requests.
+  - Fixed approval-required responses so internet requests return `external_research` and project creation/modification requests return `code_generation` instead of the misleading `conversation` intent.
+  - Hardened approval policy persistence and execution-policy audit logging so EPERM/write failures do not crash routing or block returning a structured approval request.
+  - Removed the accidentally saved smoke-test memory item `kb-mr3q5d8t-tyv4`.
+  - Rebuilt backend `dist`, copied it into the production unpacked source, and repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/approval-policy.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/dist/platform/services/approval-policy.js`
+  - `saad-agent/dist/platform/services/execution-policy.js`
+  - `saad-agent/.saad-agent/knowledge/engineering_kb.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Smoke tests returned `intent: memory_recall`, `usedModel: false`, and no approval for `من انا`, `شنو حافظ عني`, and `تتذكرني`.
+  - Smoke test `ابحث بالانترنت عن Next.js` returned `intent: external_research`, `usedModel: false`, and an approval request.
+  - Smoke test `اريد انشئ صفحة اختبار` returned `intent: code_generation`, `usedModel: false`, and an approval request.
+  - Packaged source verification confirms updated routing strings and approval hardening are present in `release-production-v4/win-unpacked/resources/app-asar-work/dist`.
+  - `app.asar` list confirms updated `chat-orchestrator.js`, `approval-policy.js`, and `execution-policy.js` are included.
+  - Packaged CSS remains present at `ui/dist/assets/index-D16Hdr2Q.css` with size `57646` bytes.
+- Decision:
+  - Deterministic routing must cover phrase families, not one exact keyword.
+  - Audit/policy persistence is important, but failure to write logs must not block safe deterministic routing or approval-card generation.
+
+## Latest task: Prompt Box Responsive Layout Repair (2026-07-02)
+
+- Status:
+  - Reworked the prompt box renderer layout so font size, toolbar controls, approval mode selector, and send button remain stable across narrow and wide app widths.
+  - Removed the microphone button from the prompt box to avoid unused control clutter and button overlap.
+  - Added dedicated `saad-prompt-*` CSS classes for the composer shell, input row, toolbar, approval button, send/stop buttons, attachment row, and drop hint.
+  - Increased prompt input readability to a stable 15px desktop font with controlled 14px fallback on very narrow widths.
+  - Rebuilt the UI and repacked the production `app.asar`.
+- Affected files:
+  - `saad-agent/ui/src/components/PromptBox.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/dist/index.html`
+  - `saad-agent/ui/dist/assets/index-BczJb2nk.js`
+  - `saad-agent/ui/dist/assets/index-CEdZm9T8.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - Production source `ui/dist/index.html` now references `./assets/index-BczJb2nk.js` and `./assets/index-CEdZm9T8.css`.
+  - Packaged source CSS contains `saad-prompt-root`, `saad-prompt-shell`, `saad-prompt-toolbar`, and `saad-prompt-send-btn`.
+  - `app.asar` list confirms the new JS and CSS assets are included.
+- Decision:
+  - Prompt composer layout must use dedicated product CSS instead of scattered inline/Tailwind sizing for core shell behavior.
+  - Attachments and optional controls must never resize the whole input unpredictably or cause toolbar overlap.
+
+## Latest task: Runtime Approval and Deterministic Project Question Stabilization (2026-07-02)
+
+- Status:
+  - Fixed `WAIT_FOR_APPROVAL` trace emission so the renderer receives a pending event instead of an active/running event.
+  - Updated the renderer trace status mapping so `WAIT_FOR_APPROVAL` displays as `Waiting approval`.
+  - Added a real `runtime-approval` chat card for backend `approvalRequest` responses.
+  - The runtime approval card now supports Approve, Always allow here, and Reject.
+  - Approving the card resubmits the original request with `approved: true` through the existing `chatComplete` IPC path.
+  - Added deterministic handling for `ماهو مشروع سعد ستوديو` / `شنو مشروع سعد ستوديو` so it answers from project context without calling the active model.
+  - Rebuilt backend and UI, copied updated `dist` and `ui/dist` into `release-production-v4/win-unpacked/resources/app-asar-work`, and repacked `app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/state-store.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - Smoke test `اهلا` returned `intent: conversation`, `usedModel: false`, and no approval request.
+  - Smoke test `من انا` returned `intent: memory_recall`, `usedModel: false`, and no approval request.
+  - Smoke test `ماهو مشروع سعد ستوديو` returned `intent: knowledge_lookup`, `usedModel: false`, and no approval request.
+  - Smoke test `اريد تصميم صفحة لانجري` returned `intent: code_generation`, `usedModel: false`, and `approvalRequest.action: write_file`.
+  - Production `app.asar` was repacked at `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Warnings:
+  - Approval policy and execution audit writes can still log EPERM in sandboxed runs when app-data writes to `C:\Users\PC\.saad-agent` are denied. Runtime routing continues safely.
+  - `ui/dist/assets` contains old build assets from previous builds; `index.html` references the current generated JS/CSS assets.
+- Decision:
+  - Approval is an actionable runtime state, not plain text. Any backend approval request must render an approval card and must not leave the user stuck with a running trace.
+  - Project identity/context questions are deterministic knowledge lookups and must not depend on a live provider.

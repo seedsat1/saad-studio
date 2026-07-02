@@ -50,54 +50,85 @@ export class BraveAnswersService {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
 
+    const headers: Record<string, string> = {
+      "Accept": "application/json",
+      "X-Subscription-Token": apiKey,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
+    };
+
+    let finalQuery = searchQuery.replace(/["'«»“”]/g, "").trim();
+    const strippedFillers = finalQuery.replace(/(?:شنو|شنو هي|أريد|اريد|أحدث|احدث|عن|مكتبة|شكو|شنو نوع)\s+/gi, " ").replace(/[؟?]/g, "").trim();
+    if (strippedFillers.length >= 3) {
+      finalQuery = strippedFillers;
+    }
+
+    const url = new URL(baseUrl);
+    url.searchParams.set("q", finalQuery);
+
     try {
-      let finalQuery = searchQuery.replace(/["'«»“”]/g, "").trim();
-      const strippedFillers = finalQuery.replace(/(?:شنو|شنو هي|أريد|اريد|أحدث|احدث|عن|مكتبة|شكو|شنو نوع)\s+/gi, " ").replace(/[؟?]/g, "").trim();
-      if (strippedFillers.length >= 3) {
-        finalQuery = strippedFillers;
-      }
-
-      const url = new URL(baseUrl);
-      url.searchParams.set("q", finalQuery);
-
       const res = await fetch(url.toString(), {
         method: "GET",
-        headers: {
-          "Accept": "application/json",
-          "X-Subscription-Token": apiKey,
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
-        },
+        headers,
         signal: controller.signal,
       });
 
       const latencyMs = Date.now() - start;
+      const text = await res.text();
 
-      if (res.status === 401 || res.status === 403) {
-        throw new Error("فشل المصادقة: مفتاح Brave Answers API غير صالح.");
-      }
-      if (res.status === 429) {
-        throw new Error("تم تجاوز حد الطلبات المسموح لـ Brave Answers API.");
-      }
       if (!res.ok) {
-        throw new Error(`تعذر معالجة البحث عبر Brave Answers (HTTP ${res.status}: ${res.statusText})`);
+        // Print full request diagnostics on failure, as required by Section 7
+        const cleanHeaders = { ...headers };
+        if (cleanHeaders["X-Subscription-Token"]) cleanHeaders["X-Subscription-Token"] = "[REDACTED]";
+        
+        let parsedError = text;
+        try {
+          const jsonErr = JSON.parse(text);
+          parsedError = JSON.stringify(jsonErr, null, 2);
+        } catch {}
+
+        const diagnostics = `Brave API Request Failed:
+URL: ${url.origin}${url.pathname}
+Method: GET
+Query Params: q=${finalQuery}
+Headers: ${JSON.stringify(cleanHeaders, null, 2)}
+Response Status: ${res.status} ${res.statusText}
+Response Body:
+${parsedError}`;
+
+        console.error(diagnostics);
+        throw new Error(diagnostics);
       }
 
-      const data: any = await res.json();
+      const data: any = JSON.parse(text);
+      
+      // Support both schemas: /web/search (data.web.results) and /llm/context (data.grounding.generic)
       let webResults = data.web?.results || [];
+      if (webResults.length === 0 && data.grounding?.generic) {
+        webResults = data.grounding.generic.map((item: any) => ({
+          title: item.title,
+          url: item.url,
+          description: item.content || item.description
+        }));
+      }
 
       if (webResults.length === 0 && finalQuery !== searchQuery.replace(/["'«»“”]/g, "").trim()) {
         const fallbackUrl = new URL(baseUrl);
         fallbackUrl.searchParams.set("q", searchQuery.replace(/["'«»“”]/g, "").trim());
         const fallbackRes = await fetch(fallbackUrl.toString(), {
-          headers: {
-            "Accept": "application/json",
-            "X-Subscription-Token": apiKey,
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
-          }
+          headers,
+          signal: controller.signal
         });
         if (fallbackRes.ok) {
-          const fallbackData: any = await fallbackRes.json();
+          const fbText = await fallbackRes.text();
+          const fallbackData: any = JSON.parse(fbText);
           webResults = fallbackData.web?.results || [];
+          if (webResults.length === 0 && fallbackData.grounding?.generic) {
+            webResults = fallbackData.grounding.generic.map((item: any) => ({
+              title: item.title,
+              url: item.url,
+              description: item.content || item.description
+            }));
+          }
         }
       }
 

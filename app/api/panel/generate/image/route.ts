@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
     const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
     if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
-    const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "google/nano-banana"].includes(kieModelId);
+    const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "nano-banana-2-lite", "google/nano-banana"].includes(kieModelId);
 
     const input: Record<string, unknown> = {
       prompt: sanitizePrompt(prompt, 5000),

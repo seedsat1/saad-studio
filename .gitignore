@@ -67,3 +67,19 @@ adobe/New\ folder/*.msi
 .claude/
 
 .env*
+
+# Electron Agent local databases & local files
+.saad-agent/
+**/saad-agent/.saad-agent/
+**/saad-agent/dist-single/
+**/saad-agent/dist-test/
+**/saad-agent/dist-test-fast/
+**/saad-agent/saad-agent/
+**/saad-agent/scratch/
+
+# Electron app backup files
+**/app.asar.backup-*
+**/app.asar.bak*
+**/app.asar.new*
+**/resources/app-asar-work/
+*.bak

@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { SmartSpellReviewService } from "./smart-spell-review.js";
 
 export interface ValidationResult {
   passed: boolean;
@@ -9,6 +10,7 @@ export interface ValidationResult {
   buildCheck: boolean;
   ruleCheck: boolean;
   diffReview: boolean;
+  spellCheck: boolean;
   issues: string[];
   outputLogs: string;
 }
@@ -21,6 +23,7 @@ export class ValidationPipelineService {
     let buildCheck = true;
     let ruleCheck = true;
     let diffReview = true;
+    let spellCheck = true;
     let outputLogs = "";
 
     if (code.includes("<<<<<<<") || code.includes(">>>>>>>")) {
@@ -91,6 +94,15 @@ export class ValidationPipelineService {
       }
     }
 
+    // 4. Smart Naming & Spelling Review
+    const spellReport = SmartSpellReviewService.reviewContent(code, "generated-code.ts");
+    spellCheck = spellReport.passed;
+    outputLogs += `\n\n${SmartSpellReviewService.formatReport(spellReport)}`;
+
+    for (const issue of spellReport.issues) {
+      issues.push(`Spelling/Naming: ${issue.reason} in "${issue.identifierText}" -> Suggestion: "${issue.suggestedFix}" (${issue.severity})`);
+    }
+
     const passed = typeCheck && lintCheck && buildCheck && ruleCheck && diffReview;
 
     return {
@@ -100,6 +112,7 @@ export class ValidationPipelineService {
       buildCheck,
       ruleCheck,
       diffReview,
+      spellCheck,
       issues,
       outputLogs: outputLogs.trim(),
     };

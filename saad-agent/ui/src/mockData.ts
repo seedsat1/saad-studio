@@ -22,8 +22,12 @@ export interface Message {
     | "plan-approval"
     | "engineering-memory"
     | "creative-plan"
-    | "generated-asset";
+    | "generated-asset"
+    | "execution-trace"
+    | "runtime-approval";
   cardData?: any;
+  diagnostics?: any;
+  references?: string[];
 }
 
 export const MOCK_PROVIDERS = [

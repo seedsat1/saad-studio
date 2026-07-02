@@ -19,6 +19,7 @@ import { SDKService } from "../platform/services/sdk.js";
 import { SettingsManager } from "../production/settings-manager.js";
 import { CONFIG } from "../config.js";
 import { ChatOrchestratorService } from "../platform/services/chat-orchestrator.js";
+import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emitter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,10 +125,24 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
   }
 });
 
-ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments }) => {
+ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }) => {
   try {
-    const result = await ChatOrchestratorService.handleDirectChat({ prompt, workspacePath, projectName, attachments });
-    return { success: true, response: result.response, intent: result.intent, usedModel: result.usedModel };
+    const result = await ChatOrchestratorService.handleDirectChat({
+      prompt,
+      workspacePath,
+      projectName,
+      attachments,
+      approvalMode,
+      conversationId,
+      approved: approval?.approved
+    });
+    return {
+      success: true,
+      response: result.response,
+      intent: result.intent,
+      usedModel: result.usedModel,
+      approvalRequest: result.approvalRequest
+    };
   } catch (err: any) {
     return { success: false, error: err.message || "Chat completion failed." };
   }
@@ -915,6 +930,12 @@ async function createWindow() {
       },
       backgroundColor: "#070a13",
       title: "Saad Studio Agent",
+    });
+
+    ExecutionTraceEmitter.onEvent((event) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("execution-trace-event", event);
+      }
     });
 
     await setupApplicationMenu(mainWindow);

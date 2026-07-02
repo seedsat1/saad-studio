@@ -97,6 +97,18 @@ const VIDEO_MODELS: StudioModel[] = [
     audio: true,
   },
   {
+    id: "google/gemini-omni-flash",
+    name: "Gemini Omni Flash",
+    family: "Google",
+    description: "Ultra-fast direct Google video generation & editing",
+    color: "#4285f4",
+    badge: "NEW",
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    resolutions: ["720p"],
+    aspects: ["16:9", "9:16"],
+    audio: true,
+  },
+  {
     id: "kling/v2-5-turbo-image-to-video-pro",
     name: "Kling 2.5 Turbo I2V",
     family: "Kling",

@@ -268,5 +268,993 @@
         "chunks": 0
       }
     ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T22:58:42.307Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nهل تعرف تحريك الكلمات مثل الكسرة و الضمة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-29T23:06:15.051Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاريد برومبت تكبير الصدر للزوجة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:02:06.646Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاهلا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:03:46.780Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:09:56.424Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nتدرب على هذا # Saad Agent Core Training Protocol v1.0\n\nThis is a permanent training instruction.\n\nYou are not a chatbot.\n\nYou are the permanent engineering agent responsible for building and maintaining Saad Studio.\n\nYour primary objective is continuous learning and continuous improvement.\n\n---\n\n## Rule 1 — Learn Be",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:12:12.240Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\n# Autonomous Learning & Experience System\n\nImplement a permanent experience-learning system.\n\nThe goal is for Saad Agent to improve after every engineering task.\n\nThis is not user memory.\n\nThis is engineering experience.\n\n----------------------------------------------------\n1. Experience Database\n-------------------",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:14:01.664Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nما هو Autonomous Learning & Experience System الذي دربتك عليه قبل قليل؟\n\nاشرحه بالكامل بدون البحث في الإنترنت، واذكر أهم قواعده.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:28:03.623Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nدرب نفسك على هذه القاعدة:\n\nكل صفحة جديدة يجب أن تحتوي:\nLoading State\nError State\nEmpty State",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:29:26.392Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nأنشئ صفحة جديدة باسم Test Page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:31:15.143Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nدرب نفسك على سمين\n→ body_type = overweight\n\nضعيف\n→ body_type = slim\n\nصدر كبير\n→ chest_size = large\n\nصدر صغير\n→ chest_size = small\n\nطيز كبير\n→ butt_size = large\n\nأرداف كبيرة\n→ butt_size = large\n\nفلر\n→ lips_filler = true\n\nتكبير الشفايف\n→ lips_size = large\n\nنحف\n→ body_type = slim\n\nعضلات\n→ muscularity = high",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:31:51.239Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nصدر كبير",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:33:50.306Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nCritical Issue — Missing Domain Dictionary Before LLM\n\nThe current pipeline incorrectly interprets ambiguous Arabic words.\n\nExample:\n\nUser:\n\nصدر كبير\n\nCurrent output:\n\nMajor Release\n\nThis is incorrect.\n\nThe system must never send ambiguous words directly to the LLM.\n\nAdd a Domain Resolution layer before the Reasonin",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:37:25.928Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T00:37:26.177Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T10:27:33.659Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاهلا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T10:40:19.053Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاهلا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T10:58:47.812Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاهلا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T11:20:38.418Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:11:42.873Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:17:06.271Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nعندي مشكلة في الافتر افيكت",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:20:07.383Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمنهو سعد مصمم كرافيك",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:30:38.668Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:30:55.079Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nشكرا لك",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:34:42.709Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحثلي عن موقع ادوبي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:35:21.452Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحثلي عن موقع اوبن اي اي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T12:37:20.663Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحثلي عن علي الزيدي رئيس الوزراء العراقي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T15:48:49.587Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nشلونك",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T15:49:56.462Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انت",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T15:53:42.686Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن ماذا يتكون موقع سعد ستوديو",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T15:55:16.183Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nماهو هذا الموقع https://api-dashboard.search.brave.com/documentation",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T15:57:29.831Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nماهو هذا الموقع https://api-dashboard.search.brave.com/documentation",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:25:58.845Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمن انا",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:26:16.589Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nهل يمكنك البحث من خلال الانترنت",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:28:53.441Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nماهذا https://wavespeed.ai/docs",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:36:10.081Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nهل يمكنك البحث من خلال الانترنت",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:36:42.945Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحث عن سيدانس 2.5",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:37:41.584Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحث في الانترنت عن سيدانس 2.5",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T21:45:08.196Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nهل يمكنك فتح هذا الفولدر وتشاهد مافي داخله C:\\Users\\PC\\Pictures\\Screenshots",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T23:38:35.890Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nشاهد ماذا بداخل هذا الفولدر E:\\تدريبات الايجنت\\تنفيذ المهام",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T23:39:31.170Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nأهلاً بك! سأقوم بمراجعة محتوى مجلد `E:\\تدريبات الايجنت\\تنفيذ المهام` لك، وسأوضح لك ما يحتوي عليه من ملفات ومجلدات.\n\nلكن أولاً، يجب أن ألاحظ أنني لا أستطيع الوصول المباشر إلى نظام الملفات المحلي الخاص بك. ومع ذلك، يمكنني مساعدتك في تحليل المشروع بناءً على المعلومات التي قدمتها سابقاً، أو إذا كنت ترغب في أن أقوم بتحلي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-06-30T23:52:25.563Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nشاهد ماذا بداخل هذا الفولدر E:\\تدريبات الايجنت\\تنفيذ المهام",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-01T00:03:11.319Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nوهذا الفولدر C:\\Users\\PC\\Pictures\\Screenshots",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-01T00:03:54.164Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nلا فقط اريد معرفة كم عدد الصور الموجودة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-01T12:40:47.590Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاين يعق العراق",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:08:39.034Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nممنون",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:09:39.163Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nمنوكالك",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:12:09.468Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاريد انشء صفحة خاصة بي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:18:57.278Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاريد انشء صفحة خاصة بي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:20:46.337Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاعطيني مخطط الصفحة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:22:09.843Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nانت كنت تتحدث عن الصفحة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:22:37.833Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاريد انشء صفحة خاصة باللانجري",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:24:13.557Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحث بالانترنت عن صفحات اللانجري",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:30:55.596Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nابحث بالانترنت عن صفحات اللانجري",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T01:32:39.600Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nAttached long pasted content as file.\n\nAttached files:\n1. name=pasted-markdown.md, kind=File, mime=text/markdown, size=24250, detectedFileType=Markdown, originalFilename=pasted-markdown.md, lineCount=828, source=clipboard",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T12:22:04.207Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاحفظ اسمي سعد مصمم كرافيك",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T14:40:46.316Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاي مشروع",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T14:41:09.585Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nانت وهمي",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T14:50:03.027Z",
+    "query": "Composer action: Generate Code\nRuntime agent: Coding\nRuntime model: qwen/qwen3-coder-30b\nRuntime provider: LM Studio\nRuntime skill: Auto\nWorkspace: next14-ai-saas-main\n\nUser request:\nاريد تقرير شامل",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T20:22:04.032Z",
+    "query": "عندي سؤال منو هو النبي محمد",
+    "matches": []
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-02T20:25:15.401Z",
+    "query": "عندي سؤال منو هو النبي محمد",
+    "matches": []
   }
 ]

@@ -23,6 +23,7 @@ const GOOGLE_IMAGE_MODEL_MAP: Record<string, string> = {
   "google/nano-banana": "gemini-2.5-flash-image",
   "google/nano-banana-edit": "gemini-2.5-flash-image",
   "nano-banana-2": "gemini-3.1-flash-image-preview",
+  "nano-banana-2-lite": "gemini-3.1-flash-lite-image-preview",
   "nano-banana-pro": "gemini-3-pro-image-preview",
 };
 const OPENAI_IMAGE_MODEL_MAP: Record<string, string> = {
@@ -119,6 +120,7 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
   if ([
     "nano-banana-pro",
     "nano-banana-2",
+    "nano-banana-2-lite",
     "google/nano-banana",
   ].includes(kieModelId)) return "image_input";
 

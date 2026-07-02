@@ -5,19 +5,157 @@ import { SkillRegistry } from "../../skills/skill-registry.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { KnowledgeIngestionService, type PreAnswerReviewResult, type TrainingKnowledgeMatch } from "./knowledge-ingestion.js";
 import { TokenManager } from "./token-manager.js";
+import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
+import { ExecutionTraceEmitter } from "./execution-trace-emitter.js";
 
 export class PreAnswerReviewService {
-  static async review(prompt: string, workspacePath = CONFIG.PROJECT_ROOT): Promise<PreAnswerReviewResult> {
+  static async review(
+    prompt: string,
+    workspacePath = CONFIG.PROJECT_ROOT,
+    traceContext?: { taskId: string; conversationId: string }
+  ): Promise<PreAnswerReviewResult> {
     const safePrompt = EngineeringMemory.scrubSecrets(prompt || "").trim();
     await KnowledgeIngestionService.ensureTrainingFolders(workspacePath);
 
+    if (traceContext) {
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "loading_project_context",
+        status: "active",
+        label: "Loading project context",
+        sourceService: "PreAnswerReviewService"
+      });
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "loading_memory",
+        status: "active",
+        label: "Loading memory",
+        sourceService: "EngineeringMemory"
+      });
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "loading_knowledge",
+        status: "active",
+        label: "Loading knowledge",
+        sourceService: "KnowledgeIngestionService"
+      });
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "selecting_skills",
+        status: "active",
+        label: "Selecting skills",
+        sourceService: "SkillRegistry"
+      });
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "selecting_workflow",
+        status: "active",
+        label: "Selecting workflow",
+        sourceService: "IntentEngine"
+      });
+    }
+
+    const projectRulesPromise = (async () => {
+      const res = await this.loadProjectRules(workspacePath);
+      if (traceContext) {
+        ExecutionTraceEmitter.emit({
+          taskId: traceContext.taskId,
+          conversationId: traceContext.conversationId,
+          phase: "loading_project_context",
+          status: "done",
+          label: "Project context loaded",
+          safeDetails: {
+            rulesLength: res.length,
+          },
+          sourceService: "PreAnswerReviewService"
+        });
+      }
+      return res;
+    })();
+
+    const adrsPromise = this.loadDecisionContext();
+
+    const memoryPromise = (async () => {
+      const res = await EngineeringMemory.retrieveRelevantContext(safePrompt).catch(() => []);
+      if (traceContext) {
+        ExecutionTraceEmitter.emit({
+          taskId: traceContext.taskId,
+          conversationId: traceContext.conversationId,
+          phase: "loading_memory",
+          status: "done",
+          label: "Memory context loaded",
+          safeDetails: {
+            memoryMatchesCount: res.length,
+          },
+          sourceService: "EngineeringMemory"
+        });
+      }
+      return res;
+    })();
+
+    const knowledgePromise = (async () => {
+      const res = await KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 6).catch(() => []);
+      if (traceContext) {
+        ExecutionTraceEmitter.emit({
+          taskId: traceContext.taskId,
+          conversationId: traceContext.conversationId,
+          phase: "loading_knowledge",
+          status: "done",
+          label: "Knowledge context loaded",
+          safeDetails: {
+            knowledgeMatchesCount: res.length,
+          },
+          sourceService: "KnowledgeIngestionService"
+        });
+      }
+      return res;
+    })();
+
+    const skillsPromise = (async () => {
+      const res = SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5);
+      if (traceContext) {
+        ExecutionTraceEmitter.emit({
+          taskId: traceContext.taskId,
+          conversationId: traceContext.conversationId,
+          phase: "selecting_skills",
+          status: "done",
+          label: "Skills selected",
+          safeDetails: {
+            matchedSkills: res.map(m => m.skill.name),
+          },
+          sourceService: "SkillRegistry"
+        });
+      }
+      return res;
+    })();
+
     const [projectRules, adrs, memoryMatches, knowledgeMatches, skills] = await Promise.all([
-      this.loadProjectRules(workspacePath),
-      this.loadDecisionContext(),
-      EngineeringMemory.retrieveRelevantContext(safePrompt).catch(() => []),
-      KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 6).catch(() => []),
-      Promise.resolve(SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5)).catch(() => [])
+      projectRulesPromise,
+      adrsPromise,
+      memoryPromise,
+      knowledgePromise,
+      skillsPromise
     ]);
+
+    const detectedWorkflow = this.detectIntent(safePrompt);
+    if (traceContext) {
+      ExecutionTraceEmitter.emit({
+        taskId: traceContext.taskId,
+        conversationId: traceContext.conversationId,
+        phase: "selecting_workflow",
+        status: "done",
+        label: "Workflow selected",
+        safeDetails: {
+          intent: detectedWorkflow,
+        },
+        sourceService: "IntentEngine"
+      });
+    }
 
     const projectContextLoaded = Boolean(projectRules || adrs || memoryMatches.length > 0);
     const skillsLoaded = skills.map((match) => match.skill.name);
@@ -98,13 +236,11 @@ export class PreAnswerReviewService {
   }
 
   private static async loadProjectRules(workspacePath: string): Promise<string> {
-    const candidates = [
-      path.join(workspacePath, "AGENTS.md"),
-      path.join(workspacePath, "PROJECT_CONTEXT.md")
-    ];
+    const references = await TrustedWorkspaceRuntime.loadAgentReferences(workspacePath).catch(() => []);
     const snippets: string[] = [];
-    for (const filePath of candidates) {
-      const content = await fs.readFile(filePath, "utf8").catch(() => "");
+    for (const reference of references) {
+      const filePath = reference.path;
+      const content = reference.content || await fs.readFile(filePath, "utf8").catch(() => "");
       if (!content.trim()) continue;
       snippets.push(`[${path.basename(filePath)}]\n${EngineeringMemory.scrubSecrets(content).slice(0, 1200)}`);
     }

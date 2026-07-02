@@ -11,6 +11,7 @@ export interface ReasoningRequest {
   systemPrompt: string;
   userPrompt: string;
   imageUrl?: string;
+  signal?: AbortSignal | undefined;
 }
 
 export interface ReasoningResponse {
@@ -43,13 +44,13 @@ export class ReasoningEngine {
             request.userPrompt,
             modelName,
             request.imageUrl,
-            runtime
+            { ...runtime, signal: request.signal }
           )
         : await ModelClient.chatCompletion(
             request.systemPrompt,
             request.userPrompt,
             modelName,
-            runtime
+            { ...runtime, signal: request.signal }
           );
 
       let parsedJson: any = undefined;

@@ -985,7 +985,8 @@ function VideoPageInner() {
   const isVeo31Model =
     selectedModel.api_route.startsWith("google/veo3.1") ||
     selectedModel.api_route === "google/veo-3.1-generate-preview" ||
-    selectedModel.api_route === "google/gemini-omni-video";
+    selectedModel.api_route === "google/gemini-omni-video" ||
+    selectedModel.api_route === "google/gemini-omni-flash";
   const isVeo31LiteModel = selectedModel.api_route === "google/veo3.1-lite-text-to-video";
   const isVeo31FastModel = selectedModel.api_route === "google/veo3.1-fast-text-to-video";
   const hasVeo31ReferenceInput = isVeo31Model && (
@@ -995,7 +996,7 @@ function VideoPageInner() {
     referenceImages.length > 0
   );
   const isVeo31HighResolution = isVeo31Model && ["1080p", "4k"].includes((resolution ?? "").toLowerCase());
-  const isVeo31FixedEightSecond = isVeo31Model && (hasVeo31ReferenceInput || isVeo31HighResolution);
+  const isVeo31FixedEightSecond = isVeo31Model && selectedModel.api_route !== "google/gemini-omni-flash" && (hasVeo31ReferenceInput || isVeo31HighResolution);
   const durationChoices = isSoraModel ? [4, 8, 12] : isVeo31FixedEightSecond ? [8] : caps.durations;
   const resolutionChoices = isSoraModel
     ? []

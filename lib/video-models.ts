@@ -46,6 +46,21 @@ export const VIDEO_MODELS: VideoModel[] = [
     maxDuration: 8,
     description: "Direct Google video generation with image guidance",
   },
+  {
+    id: "google/gemini-omni-flash",
+    name: "Gemini Omni Flash",
+    family: "Google Gemini",
+    familyColor: "#22c55e",
+    inputType: "text-to-video",
+    accepts: ["start-frame", "end-frame", "reference-image"],
+    aspectRatios: ["16:9", "9:16"],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    resolutions: ["720p"],
+    badge: "NEW",
+    creditCost: 20.0,
+    maxDuration: 10,
+    description: "Ultra-fast direct Google video generation & editing",
+  },
   // ── KLING ──
   {
     id: "kling-3.0/video",

@@ -31,6 +31,7 @@ export const VEO_MODELS = {
   lite: "veo-3.1-lite-generate-preview",
   fast: "veo-3.1-fast-generate-preview",
   pro:  "veo-3.1-generate-preview",
+  omni_flash: "gemini-omni-flash-preview",
 } as const;
 
 export type VeoTier = keyof typeof VEO_MODELS;
@@ -39,6 +40,7 @@ export const PRICING_ID: Record<VeoTier, string> = {
   lite: "veo31_gem_lite",
   fast: "veo31_gem_fast",
   pro:  "veo31_gem",
+  omni_flash: "gemini_omni_flash",
 };
 
 export type VeoAspect = "16:9" | "9:16";

@@ -181,6 +181,7 @@ const IMAGE_MODELS = [
   { value: "google/nano-banana", label: "Nano Banana" },
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
   { value: "nano-banana-2", label: "Nano Banana 2" },
+  { value: "nano-banana-2-lite", label: "Nano Banana 2 Lite" },
 ];
 
 const GENERATION_MODES = [

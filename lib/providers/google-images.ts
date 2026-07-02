@@ -30,6 +30,7 @@ function client(): GoogleGenAI {
 const MODEL_MAP: Record<string, string> = {
   "nano-banana-pro":      "gemini-3-pro-image-preview",
   "nano-banana-2":        "gemini-3.1-flash-image-preview",
+  "nano-banana-2-lite":   "gemini-3.1-flash-lite-image-preview",
   "google/nano-banana":   "gemini-2.5-flash-image",
   "google/nano-banana-edit": "gemini-2.5-flash-image",
   "google/imagen4":       "imagen-4.0-generate-001",

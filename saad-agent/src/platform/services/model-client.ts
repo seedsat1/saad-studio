@@ -5,6 +5,7 @@ export interface ModelRuntimeOptions {
   provider?: ProviderSettings;
   model?: ModelRoleSettings;
   apiKey?: string;
+  signal?: AbortSignal | undefined;
 }
 
 interface ChatEndpointCandidate {
@@ -14,6 +15,8 @@ interface ChatEndpointCandidate {
 }
 
 export class ModelClient {
+  private static readonly MAX_INTERACTIVE_TIMEOUT_MS = 20000;
+
   private static normalizeHost(baseUrl: string): string {
     let normalized = baseUrl.trim().replace(/\/+$/, "");
     normalized = normalized.replace("http://localhost:", "http://127.0.0.1:");
@@ -57,8 +60,12 @@ export class ModelClient {
     };
 
     if (isLmStudio) {
+      add(`${origin}/api/v1/chat/completions`, false);
       add(`${origin}/api/v1/chat`, false, true);
-      add(`${origin}/v1/chat/completions`, false);
+      if (/127\.0\.0\.1:1234/i.test(origin)) {
+        add(`${origin}/v1/chat/completions`, false);
+      }
+      return candidates;
     }
 
     add(`${openAIBase}/chat/completions`, !isLmStudio);
@@ -96,19 +103,36 @@ export class ModelClient {
   }
 
   private static async fetchWithRuntime(url: string, init: RequestInit, runtime?: ModelRuntimeOptions): Promise<Response> {
-    const retryCount = runtime?.model?.retryCount ?? 0;
-    const timeoutMs = runtime?.model?.timeoutMs ?? 120000;
+    const retryCount = Math.min(runtime?.model?.retryCount ?? 0, 1);
+    const configuredTimeoutMs = runtime?.model?.timeoutMs ?? this.MAX_INTERACTIVE_TIMEOUT_MS;
+    const timeoutMs = Math.min(Math.max(configuredTimeoutMs, 1000), this.MAX_INTERACTIVE_TIMEOUT_MS);
     let lastError: any;
     for (let attempt = 0; attempt <= retryCount; attempt += 1) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      
+      const onAbort = () => controller.abort();
+      if (runtime?.signal) {
+        if (runtime.signal.aborted) {
+          throw new DOMException("The user aborted a request.", "AbortError");
+        }
+        runtime.signal.addEventListener("abort", onAbort);
+      }
+
       try {
         return await fetch(url, { ...init, signal: controller.signal });
       } catch (err) {
-        lastError = err;
+        if ((err as any)?.name === "AbortError") {
+          lastError = new Error(`Model provider request timed out after ${timeoutMs}ms at ${url}`);
+        } else {
+          lastError = err;
+        }
         if (attempt >= retryCount) break;
       } finally {
         clearTimeout(timeout);
+        if (runtime?.signal) {
+          runtime.signal.removeEventListener("abort", onAbort);
+        }
       }
     }
     throw lastError;

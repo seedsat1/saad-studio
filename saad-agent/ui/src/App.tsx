@@ -6,6 +6,7 @@ import type { Message } from "./mockData.js";
 import type { Attachment } from "./attachments.js";
 import { ContextCards } from "./components/ContextCards.js";
 import { SettingsModal } from "./components/SettingsModal.js";
+import { PromptBox } from "./components/PromptBox";
 type SettingsTab = "general" | "workspace" | "models" | "providers" | "agents" | "skills" | "tools" | "connectors" | "mcp" | "creative" | "vision" | "knowledge" | "execution" | "security" | "backups" | "diagnostics" | "advanced";
 type RuntimeModelRole = {
   role: string;
@@ -26,9 +27,158 @@ type Conversation = {
 };
 
 type MessageUpdater = Message[] | ((previous: Message[]) => Message[]);
+type ExecutionTraceMode = "simple" | "developer" | "verbose";
+type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
+type ExecutionTraceRunStatus = "running" | "waiting_approval" | "completed" | "failed";
+type ExecutionTraceStage = {
+  id: string;
+  label: string;
+  detail?: string;
+  status: ExecutionTraceStatus;
+};
+type ExecutionTraceRuntimeEvent = {
+  id?: string;
+  taskId: string;
+  conversationId: string;
+  phase: string;
+  status: ExecutionTraceStatus;
+  label?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  sourceService?: string;
+  evidence?: unknown;
+  safeDetails?: unknown;
+  error?: string;
+  confidence?: number;
+};
+type ExecutionTraceCardData = {
+  mode: ExecutionTraceMode;
+  taskId: string;
+  status: ExecutionTraceRunStatus;
+  summary?: string;
+  stages: ExecutionTraceStage[];
+  events: ExecutionTraceRuntimeEvent[];
+};
 
 const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
 const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
+const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v1";
+
+const traceModeLabels: Record<ExecutionTraceMode, string> = {
+  simple: "Simple",
+  developer: "Developer",
+  verbose: "Verbose",
+};
+
+const simpleTracePhase = (phase: string) => {
+  const normalized = phase.toLowerCase();
+  if (normalized.includes("execution") || normalized.includes("implementing")) {
+    return { id: "simple_execution", label: "Executing" };
+  }
+  if (normalized.includes("verification") || normalized.includes("verifying")) {
+    return { id: "simple_verification", label: "Verifying" };
+  }
+  if (normalized.includes("learning") || normalized === "completed") {
+    return { id: "simple_learning", label: "Finalizing" };
+  }
+  return { id: "simple_analysis", label: "Analyzing request" };
+};
+
+const stageIdentityForEvent = (event: ExecutionTraceRuntimeEvent, mode: ExecutionTraceMode) => {
+  if (mode === "simple") return simpleTracePhase(event.phase);
+  return {
+    id: event.phase,
+    label: event.label || event.phase.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
+  };
+};
+
+const scrubTraceDetails = (value: unknown): unknown => {
+  if (!value || typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.slice(0, 8).map(scrubTraceDetails);
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !/(secret|token|password|credential|cookie|api[-_]?key)/i.test(key))
+      .map(([key, item]) => [key, scrubTraceDetails(item)])
+  );
+};
+
+const detailForTraceEvent = (event: ExecutionTraceRuntimeEvent, mode: ExecutionTraceMode) => {
+  if (event.error) return `Error: ${event.error}`;
+  if (mode === "simple") return undefined;
+
+  const details = event.safeDetails as Record<string, unknown> | undefined;
+  if (details?.reason) return String(details.reason);
+  if (details?.projectName) return `Workspace: ${details.projectName}${details.workspacePath ? ` (${details.workspacePath})` : ""}`;
+  if (details?.memoryMatchesCount !== undefined) return `Memory matches: ${details.memoryMatchesCount}`;
+  if (details?.knowledgeMatchesCount !== undefined) return `Knowledge matches: ${details.knowledgeMatchesCount}`;
+  if (Array.isArray(details?.matchedSkills)) return `Matched skills: ${details.matchedSkills.join(", ") || "none"}`;
+  if (details?.intent) return `Intent: ${details.intent}`;
+  if (details?.approvalMode) return `Approval mode: ${details.approvalMode}`;
+  if (details?.responseLength) return `Response length: ${details.responseLength} chars`;
+
+  const parts = [
+    event.sourceService ? `Source: ${event.sourceService}` : "",
+    event.durationMs !== undefined ? `Duration: ${event.durationMs}ms` : "",
+    event.confidence !== undefined ? `Confidence: ${event.confidence}` : "",
+  ].filter(Boolean);
+
+  if (mode === "verbose" && event.safeDetails) {
+    try {
+      const serialized = JSON.stringify(scrubTraceDetails(event.safeDetails));
+      if (serialized && serialized !== "{}") parts.push(serialized.slice(0, 360));
+    } catch {}
+  }
+
+  return parts.join(" | ") || undefined;
+};
+
+const runStatusForTrace = (current: ExecutionTraceRunStatus, event: ExecutionTraceRuntimeEvent): ExecutionTraceRunStatus => {
+  if (event.status === "failed") return "failed";
+  if (event.status === "pending" && (event.phase === "safety_check" || event.phase === "WAIT_FOR_APPROVAL")) return "waiting_approval";
+  if ((event.phase === "learning" || event.phase.toLowerCase() === "completed") && (event.status === "done" || event.status === "skipped")) {
+    return "completed";
+  }
+  if (current === "failed") return current;
+  return "running";
+};
+
+const applyTraceEvent = (trace: ExecutionTraceCardData, event: ExecutionTraceRuntimeEvent): ExecutionTraceCardData => {
+  const identity = stageIdentityForEvent(event, trace.mode);
+  const stage: ExecutionTraceStage = {
+    id: identity.id,
+    label: identity.label,
+    status: event.status,
+    detail: detailForTraceEvent(event, trace.mode),
+  };
+  const stageIndex = trace.stages.findIndex((item) => item.id === identity.id);
+  const stages = stageIndex >= 0
+    ? trace.stages.map((item, index) => index === stageIndex ? { ...item, ...stage } : item)
+    : [...trace.stages, stage];
+
+  return {
+    ...trace,
+    status: runStatusForTrace(trace.status, event),
+    stages,
+    events: [...trace.events, event].slice(-80),
+  };
+};
+
+const createExecutionTraceDataFromEvent = (
+  mode: ExecutionTraceMode,
+  event: ExecutionTraceRuntimeEvent
+): ExecutionTraceCardData => applyTraceEvent({
+  mode,
+  taskId: event.taskId,
+  status: "running",
+  summary: "Runtime events received from backend orchestration.",
+  stages: [],
+  events: [],
+}, event);
+
+const normalizeTraceMode = (value: string | null): ExecutionTraceMode => {
+  return value === "simple" || value === "verbose" || value === "developer" ? value : "developer";
+};
 
 const createConversation = (messages: Message[] = [], title = "New Chat"): Conversation => {
   const now = Date.now();
@@ -102,6 +252,89 @@ const runtimeAgents = ["Coding", "Reviewer", "Vision", "Fast"];
 const runtimeSkills = ["Auto", "React", "TypeScript", "Next.js", "Electron", "Python", "FFmpeg"];
 void [quickActions, runtimeAgents, runtimeSkills];
 
+type LongTextSourceKind = "clipboard" | "drag_drop" | "typed_long_input";
+
+type LongTextClassification = {
+  shouldAttach: boolean;
+  filename: string;
+  detectedFileType: string;
+  mimeType: string;
+  lineCount: number;
+  sizeBytes: number;
+  reason: string;
+};
+
+const LONG_TEXT_CHAR_THRESHOLD = 8000;
+const STRUCTURED_TEXT_CHAR_THRESHOLD = 4000;
+const LONG_TEXT_LINE_THRESHOLD = 150;
+const STRUCTURED_TEXT_LINE_THRESHOLD = 80;
+
+const countTextLines = (text: string) => text.length === 0 ? 0 : text.split(/\r\n|\r|\n/).length;
+
+const classifyLongTextContent = (content: string): LongTextClassification => {
+  const trimmed = content.trim();
+  const lineCount = countTextLines(content);
+  const sizeBytes = new Blob([content]).size;
+  let filename = "pasted-text.txt";
+  let detectedFileType = "plain text";
+  let mimeType = "text/plain";
+
+  const looksJson = /^[[{]/.test(trimmed);
+  if (looksJson) {
+    try {
+      JSON.parse(trimmed);
+      filename = "pasted-json.json";
+      detectedFileType = "JSON";
+      mimeType = "application/json";
+    } catch {
+      filename = "pasted-config.txt";
+      detectedFileType = "JSON-like/config";
+    }
+  } else if (/```|^#{1,6}\s|\n#{1,6}\s|\|.*\|/.test(content)) {
+    filename = "pasted-markdown.md";
+    detectedFileType = "Markdown";
+    mimeType = "text/markdown";
+  } else if (/^\s*(import|export)\s.+from\s+["']|interface\s+\w+|type\s+\w+\s*=|:\s*(string|number|boolean|Promise<)|as const|React\./m.test(content)) {
+    filename = "pasted-script.ts";
+    detectedFileType = "TypeScript";
+    mimeType = "text/typescript";
+  } else if (/^\s*(const|let|var|function|class)\s+|=>|require\(["']|module\.exports/m.test(content)) {
+    filename = "pasted-code.js";
+    detectedFileType = "JavaScript";
+    mimeType = "text/javascript";
+  } else if (/^\s*(def|class|from|import)\s+|Traceback \(most recent call last\):/m.test(content)) {
+    filename = "pasted-code.py";
+    detectedFileType = "Python";
+    mimeType = "text/x-python";
+  } else if (/^\s*(#!\/|npm ERR!|\$ |PS [A-Z]:\\|ERROR|WARN|DEBUG|\[\d{4}-\d{2}-\d{2})/m.test(content)) {
+    filename = "pasted-log.txt";
+    detectedFileType = "log/terminal output";
+  } else if (/^\s*[\w.-]+\s*:\s+.+$/m.test(content)) {
+    filename = "pasted-config.txt";
+    detectedFileType = "YAML/config";
+  } else if (/^\s*[A-Z_][A-Z0-9_]*=.*/m.test(content)) {
+    filename = "pasted-config.txt";
+    detectedFileType = "ENV-like config";
+  } else if (/^\s*(echo|npm|pnpm|yarn|git|cd|mkdir|curl|powershell|pwsh)\s+/m.test(content)) {
+    filename = "pasted-script.sh";
+    detectedFileType = "shell script";
+    mimeType = "text/x-shellscript";
+  }
+
+  const isStructured = detectedFileType !== "plain text";
+  const shouldAttach =
+    content.length >= LONG_TEXT_CHAR_THRESHOLD ||
+    lineCount >= LONG_TEXT_LINE_THRESHOLD ||
+    (isStructured && (content.length >= STRUCTURED_TEXT_CHAR_THRESHOLD || lineCount >= STRUCTURED_TEXT_LINE_THRESHOLD)) ||
+    (detectedFileType === "log/terminal output" && lineCount >= 30);
+
+  const reason = shouldAttach
+    ? `${detectedFileType}, ${lineCount} lines, ${sizeBytes} bytes`
+    : "short text";
+
+  return { shouldAttach, filename, detectedFileType, mimeType, lineCount, sizeBytes, reason };
+};
+
 export default function App() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
@@ -117,6 +350,12 @@ export default function App() {
   const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
+  const [activeApprovalMode, setActiveApprovalMode] = useState<"ask" | "approve_for_me" | "full_access">("ask");
+  const [executionTraceMode, setExecutionTraceMode] = useState<ExecutionTraceMode>(() => {
+    if (typeof window === "undefined") return "developer";
+    return normalizeTraceMode(window.localStorage.getItem(TRACE_MODE_STORAGE_KEY));
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
   void [composerAction, setComposerAction, activeRuntimeRole, setActiveRuntimeRole, activeRuntimeSkill, setActiveRuntimeSkill, activeMcpTool, setActiveMcpTool];
   const [workspacePath, setWorkspacePath] = useState("e:/موقع ثاني/next14 ai saas");
   const [projectName, setProjectName] = useState("next14-ai-saas");
@@ -135,6 +374,9 @@ export default function App() {
       }
     >
   >({});
+  const handleStopGeneration = () => {
+    setIsGenerating(false);
+  };
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) || conversations[0];
   const messages = activeConversation?.messages || [];
 
@@ -167,6 +409,8 @@ export default function App() {
     updateConversationMessages(activeConversationId, updater);
   };
 
+
+
   useEffect(() => {
     try {
       window.localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
@@ -175,6 +419,14 @@ export default function App() {
       console.warn("Failed to save conversations", error);
     }
   }, [conversations, activeConversationId]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TRACE_MODE_STORAGE_KEY, executionTraceMode);
+    } catch (error) {
+      console.warn("Failed to save execution trace mode", error);
+    }
+  }, [executionTraceMode]);
 
   useEffect(() => {
     if ((window as any).electronAPI && (window as any).electronAPI.onMenuNavigate) {
@@ -186,6 +438,44 @@ export default function App() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (api && api.onExecutionTraceEvent) {
+      const unsubscribe = api.onExecutionTraceEvent((event: ExecutionTraceRuntimeEvent) => {
+        const { conversationId, taskId, phase } = event;
+        if (!conversationId || !taskId || !phase) return;
+
+        updateConversationMessages(conversationId, (messages) => {
+          let foundTraceCard = false;
+          const updatedMessages = messages.map((message) => {
+            if (message.cardType !== "execution-trace") return message;
+            const trace = message.cardData as ExecutionTraceCardData;
+            if (trace.taskId !== taskId) return message;
+            foundTraceCard = true;
+            return { ...message, cardData: applyTraceEvent(trace, event) };
+          });
+
+          if (foundTraceCard) return updatedMessages;
+
+          return [
+            ...updatedMessages,
+            {
+              id: `msg-trace-${taskId}`,
+              sender: "agent",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              content: "Execution Trace",
+              cardType: "execution-trace",
+              cardData: createExecutionTraceDataFromEvent(executionTraceMode, event),
+            },
+          ];
+        });
+      });
+      return () => {
+        if (typeof unsubscribe === "function") unsubscribe();
+      };
+    }
+  }, [executionTraceMode]);
 
   const loadRuntimeModels = async () => {
     const api = (window as any).electronAPI;
@@ -626,19 +916,8 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [longTextBypassValue, setLongTextBypassValue] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const folderInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    textarea.style.height = "auto";
-    const nextHeight = Math.min(textarea.scrollHeight, 280);
-    textarea.style.height = `${Math.max(24, nextHeight)}px`;
-    textarea.style.overflowY = textarea.scrollHeight > 280 ? "auto" : "hidden";
-  }, [inputValue]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -705,6 +984,211 @@ export default function App() {
     }
   };
 
+  const handleRuntimeApprovalResponse = async (messageId: string, approved: boolean, alwaysAllow = false) => {
+    const conversationId = activeConversationId;
+    if (!conversationId) return;
+
+    const approvalData = activeConversation?.messages.find((message) => message.id === messageId && message.cardType === "runtime-approval")?.cardData;
+    updateConversationMessages(conversationId, (previous) =>
+      previous.map((message) => {
+        if (message.id !== messageId || message.cardType !== "runtime-approval") return message;
+        return {
+          ...message,
+          cardData: {
+            ...message.cardData,
+            status: approved ? "approved" : "rejected",
+            alwaysAllow,
+          },
+        };
+      }),
+      { preserveTitle: true }
+    );
+
+    if (!approved) {
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `msg-agent-rejected-${Date.now()}`,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          content: "تمام، وقفت التنفيذ وما نفذت الإجراء.",
+        },
+      ]);
+      return;
+    }
+
+    if (!approvalData || !(window as any).electronAPI?.chatComplete) {
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `msg-agent-approval-error-${Date.now()}`,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          content: "ما أگدر أكمل الموافقة لأن بيانات الطلب الأصلي غير موجودة.",
+        },
+      ]);
+      return;
+    }
+
+    const loaderMsgId = `msg-agent-approved-loading-${Date.now()}`;
+    setMessages((previous) => [
+      ...previous,
+      {
+        id: loaderMsgId,
+        sender: "agent",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        content: "تمت الموافقة. أكمل التنفيذ هسه...",
+      },
+    ]);
+
+    setIsGenerating(true);
+    try {
+      const res = await (window as any).electronAPI.chatComplete(
+        approvalData.prompt,
+        approvalData.workspacePath,
+        approvalData.projectName,
+        approvalData.attachments || [],
+        approvalData.approvalMode,
+        approvalData.conversationId,
+        { approved: true, alwaysAllow }
+      );
+      setIsGenerating(false);
+      updateConversationMessages(conversationId, (previous) => previous.filter((message) => message.id !== loaderMsgId), {
+        preserveTitle: true,
+      });
+
+      const responseMessage: Message = {
+        id: `msg-agent-approved-${Date.now()}`,
+        sender: "agent",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        content: res?.success ? (res.response || "تم التنفيذ، لكن الرد فارغ.") : `فشل التنفيذ بعد الموافقة: ${res?.error || "خطأ غير معروف."}`,
+      };
+      setMessages((previous) => [...previous, responseMessage]);
+
+      if (res?.success && res.approvalRequest) {
+        const nestedApprovalMessage: Message = {
+          id: `msg-runtime-approval-${Date.now()}`,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          content: "هذا الإجراء يحتاج موافقة إضافية.",
+          cardType: "runtime-approval",
+          cardData: {
+            status: "awaiting_approval",
+            request: res.approvalRequest,
+            prompt: approvalData.prompt,
+            workspacePath: approvalData.workspacePath,
+            projectName: approvalData.projectName,
+            attachments: approvalData.attachments || [],
+            approvalMode: approvalData.approvalMode,
+            conversationId: approvalData.conversationId,
+          },
+        };
+        setMessages((previous) => [...previous, nestedApprovalMessage]);
+      }
+    } catch (error: any) {
+      setIsGenerating(false);
+      updateConversationMessages(conversationId, (previous) => previous.filter((message) => message.id !== loaderMsgId), {
+        preserveTitle: true,
+      });
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `msg-agent-approval-error-${Date.now()}`,
+          sender: "agent",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          content: `فشل التنفيذ بعد الموافقة: ${error?.message || "خطأ IPC غير معروف."}`,
+        },
+      ]);
+    }
+  };
+
+  const queueLongTextAttachment = (content: string, sourceKind: LongTextSourceKind) => {
+    const classification = classifyLongTextContent(content);
+    if (!classification.shouldAttach) {
+      return { attached: false };
+    }
+
+    const id = `att-long-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const blob = new Blob([content], { type: `${classification.mimeType};charset=utf-8` });
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const rawResult = e.target?.result as string;
+      const base64Data = rawResult.split(",")[1] || "";
+      const attachmentItem: Attachment = {
+        id,
+        type: "file",
+        name: classification.filename,
+        mimeType: classification.mimeType,
+        size: blob.size,
+        previewUrl: "",
+        source: base64Data,
+        detectedFileType: classification.detectedFileType,
+        originalFilename: classification.filename,
+        lineCount: classification.lineCount,
+        sourceKind,
+        smartLongInput: true,
+      };
+
+      setAttachments((prev) => [...prev, attachmentItem]);
+      setStatusMsg(`Long ${classification.detectedFileType} attached as file`);
+    };
+
+    reader.onerror = () => {
+      setErrorMsg("Failed to attach long pasted content.");
+    };
+
+    reader.readAsDataURL(blob);
+    return { attached: true, attachmentId: id };
+  };
+
+  const handlePasteAsTextAnyway = (content: string) => {
+    setInputValue(content);
+    setLongTextBypassValue(content);
+    setStatusMsg("Long content restored as text for this message");
+  };
+
+  const handleAttachCurrentTextAsFile = () => {
+    const content = inputValue;
+    if (!content.trim()) return false;
+
+    const id = `att-manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const classification = classifyLongTextContent(content);
+    const blob = new Blob([content], { type: `${classification.mimeType};charset=utf-8` });
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const rawResult = e.target?.result as string;
+      const base64Data = rawResult.split(",")[1] || "";
+      const attachmentItem: Attachment = {
+        id,
+        type: "file",
+        name: classification.filename,
+        mimeType: classification.mimeType,
+        size: blob.size,
+        previewUrl: "",
+        source: base64Data,
+        detectedFileType: classification.detectedFileType,
+        originalFilename: classification.filename,
+        lineCount: classification.lineCount,
+        sourceKind: "typed_long_input",
+        smartLongInput: true,
+      };
+
+      setAttachments((prev) => [...prev, attachmentItem]);
+      setInputValue("Attached current text as file.");
+      setLongTextBypassValue(null);
+      setStatusMsg(`Attached ${classification.detectedFileType} as file`);
+    };
+
+    reader.onerror = () => {
+      setErrorMsg("Failed to attach current text as file.");
+    };
+
+    reader.readAsDataURL(blob);
+    return true;
+  };
+
   // Drag and Drop handlers
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -723,23 +1207,19 @@ export default function App() {
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(e.dataTransfer.files);
+      return;
+    }
+
+    const droppedText = e.dataTransfer.getData("text/plain");
+    if (droppedText) {
+      const result = queueLongTextAttachment(droppedText, "drag_drop");
+      if (result.attached) {
+        const reference = "Attached long dropped text as file.";
+        setInputValue((current) => current.trim() ? `${current.trim()}\n${reference}` : reference);
+      }
     }
   };
 
-  // Clipboard Paste handler
-  const handlePaste = (e: React.ClipboardEvent) => {
-    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-      e.preventDefault();
-      processFiles(e.clipboardData.files);
-    }
-  };
-
-  // File Change input handler
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFiles(e.target.files);
-    }
-  };
 
   // Remove queued attachment
   const removeAttachment = (id: string) => {
@@ -875,6 +1355,23 @@ export default function App() {
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputValue.trim() && attachments.length === 0) return;
+
+    const typedLongInput = classifyLongTextContent(inputValue);
+    if (
+      inputValue.trim() &&
+      inputValue !== longTextBypassValue &&
+      typedLongInput.shouldAttach &&
+      attachments.every((attachment) => attachment.sourceKind !== "typed_long_input")
+    ) {
+      const result = queueLongTextAttachment(inputValue, "typed_long_input");
+      if (result.attached) {
+        setInputValue("Attached long typed content as file.");
+        setLongTextBypassValue(null);
+        setStatusMsg("Long typed input attached as file. Press send again.");
+        return;
+      }
+    }
+
     const targetConversationId = activeConversationId;
     const appendMessageToConversation = (message: Message) =>
       updateConversationMessages(targetConversationId, (prev) => [...prev, message]);
@@ -882,6 +1379,26 @@ export default function App() {
       updateConversationMessages(targetConversationId, (prev) => prev.filter((message) => message.id !== messageId), {
         preserveTitle: true,
       });
+    const appendRuntimeApprovalIfNeeded = (res: any, requestPrompt: string, requestAttachments: any[]) => {
+      if (!res?.success || !res.approvalRequest) return;
+      appendMessageToConversation({
+        id: `msg-runtime-approval-${Date.now()}`,
+        sender: "agent",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        content: "هذا الإجراء يحتاج موافقة قبل التنفيذ.",
+        cardType: "runtime-approval",
+        cardData: {
+          status: "awaiting_approval",
+          request: res.approvalRequest,
+          prompt: requestPrompt,
+          workspacePath,
+          projectName,
+          attachments: requestAttachments,
+          approvalMode: activeApprovalMode,
+          conversationId: targetConversationId,
+        },
+      });
+    };
     const activeModel = runtimeModels.find(model => model.role === activeRuntimeRole) || runtimeModels[0];
     const runtimeInstruction = [
       `Composer action: ${composerAction}`,
@@ -892,7 +1409,22 @@ export default function App() {
       activeMcpTool !== "None" ? `Requested MCP tool: ${activeMcpTool}` : "",
       `Workspace: ${projectName}`,
     ].filter(Boolean).join("\n");
-    const executionPrompt = `${runtimeInstruction}\n\nUser request:\n${inputValue || (attachments.length > 0 ? `Uploaded ${attachments.length} attachment(s)` : "")}`;
+    const attachmentReferenceBlock = attachments.length > 0
+      ? `\n\nAttached files:\n${attachments.map((attachment, index) => {
+          const details = [
+            `name=${attachment.name}`,
+            `kind=${getAttachmentKindLabel(attachment)}`,
+            `mime=${attachment.mimeType || "unknown"}`,
+            `size=${attachment.size}`,
+            attachment.detectedFileType ? `detectedFileType=${attachment.detectedFileType}` : "",
+            attachment.originalFilename ? `originalFilename=${attachment.originalFilename}` : "",
+            attachment.lineCount ? `lineCount=${attachment.lineCount}` : "",
+            attachment.sourceKind ? `source=${attachment.sourceKind}` : "",
+          ].filter(Boolean).join(", ");
+          return `${index + 1}. ${details}`;
+        }).join("\n")}`
+      : "";
+    const executionPrompt = `${runtimeInstruction}\n\nUser request:\n${inputValue || (attachments.length > 0 ? `Uploaded ${attachments.length} attachment(s)` : "")}${attachmentReferenceBlock}`;
 
     const userMsgId = `msg-user-${Date.now()}`;
     const userMsg: Message = {
@@ -906,6 +1438,7 @@ export default function App() {
     appendMessageToConversation(userMsg);
     setInputValue("");
     setAttachments([]);
+    setLongTextBypassValue(null);
     setStatusMsg(null);
     setErrorMsg(null);
 
@@ -917,11 +1450,12 @@ export default function App() {
       const savedAttachments: any[] = [];
       if (userMsg.attachments && userMsg.attachments.length > 0) {
         for (const att of userMsg.attachments) {
+          const attachmentSource = att.sourceKind === "drag_drop" ? "drag_drop" : att.sourceKind === "clipboard" || att.sourceKind === "typed_long_input" ? "clipboard" : "upload";
           const res = await (window as any).electronAPI.storeAttachment(
             att.name,
             att.mimeType,
             att.source,
-            "upload",
+            attachmentSource,
             workspacePath || "default-ws"
           );
           if (res && res.success) {
@@ -939,7 +1473,9 @@ export default function App() {
           content: "Saving attachment(s) into permanent training knowledge...",
         });
 
-        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments).then((res: any) => {
+        setIsGenerating(true);
+        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments, activeApprovalMode, targetConversationId).then((res: any) => {
+          setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           appendMessageToConversation({
             id: `msg-agent-${Date.now()}`,
@@ -947,7 +1483,9 @@ export default function App() {
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             content: res?.success ? (res.response || "Attachment saved.") : `Attachment save failed: ${res?.error || "Unknown error."}`,
           });
+          appendRuntimeApprovalIfNeeded(res, executionPrompt, savedAttachments);
         }).catch((err: any) => {
+          setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           appendMessageToConversation({
             id: `msg-agent-error-${Date.now()}`,
@@ -1005,12 +1543,19 @@ export default function App() {
               };
               appendMessageToConversation(warningMsg);
             }
+          }).catch((err: any) => {
+            removeMessageFromConversation(agentMsgId);
+            appendMessageToConversation({
+              id: `msg-agent-error-${Date.now()}`,
+              sender: "agent",
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: `Vision analysis failed: ${err?.message || "Unknown IPC/runtime error."}`,
+            });
           });
         }
       } else if (hasPdf) {
-        const agentMsgId = `msg-agent-${Date.now()}`;
         const pdfMsg: Message = {
-          id: agentMsgId,
+          id: `msg-agent-${Date.now()}`,
           sender: "agent",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           content: "Successfully received and stored PDF attachment metadata. Full PDF content parsing and document analysis is marked as a future capability under our multimodal roadmap.",
@@ -1022,10 +1567,12 @@ export default function App() {
           id: loaderMsgId,
           sender: "agent",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: "Thinking with the active model...",
+          content: "Processing request...",
         });
 
-        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments).then((res: any) => {
+        setIsGenerating(true);
+        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments, activeApprovalMode, targetConversationId).then((res: any) => {
+          setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           const agentMsgId = `msg-agent-${Date.now()}`;
           if (res && res.success) {
@@ -1036,6 +1583,7 @@ export default function App() {
               content: res.response || "The model returned an empty response.",
             };
             appendMessageToConversation(agentMsg);
+            appendRuntimeApprovalIfNeeded(res, executionPrompt, savedAttachments);
           } else {
             const errorAgentMsg: Message = {
               id: agentMsgId,
@@ -1046,6 +1594,7 @@ export default function App() {
             appendMessageToConversation(errorAgentMsg);
           }
         }).catch((err: any) => {
+          setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           appendMessageToConversation({
             id: `msg-agent-error-${Date.now()}`,
@@ -1125,6 +1674,38 @@ export default function App() {
     if (!msg.cardType) return null;
 
     switch (msg.cardType) {
+      case "execution-trace": {
+        const trace = msg.cardData as ExecutionTraceCardData;
+        return (
+          <div className={`engineering-card execution-trace-card trace-${trace.status}`}>
+            <div className="card-header">
+              <span className="card-title">Execution Trace</span>
+              <span className={`card-badge trace-status-${trace.status}`}>
+                {trace.status === "running" ? "Running" : trace.status === "waiting_approval" ? "Waiting approval" : trace.status}
+              </span>
+            </div>
+            {trace.summary && <div className="execution-trace-summary">{trace.summary}</div>}
+            <div className={`execution-trace-list trace-mode-${trace.mode}`}>
+              {trace.stages.map((stage, index) => (
+                <div key={stage.id} className={`execution-trace-stage ${stage.status}`}>
+                  <div className="trace-stage-rail">
+                    <span className="trace-stage-dot">{stage.status === "done" ? "✓" : stage.status === "failed" ? "!" : stage.status === "skipped" ? "-" : ""}</span>
+                    {index < trace.stages.length - 1 && <span className="trace-stage-line" />}
+                  </div>
+                  <div className="trace-stage-body">
+                    <span className="trace-stage-label">{stage.label}</span>
+                    {stage.detail && <span className="trace-stage-detail">{stage.detail}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="execution-trace-note">
+              Public execution trace only. Internal chain-of-thought is not exposed.
+            </div>
+          </div>
+        );
+      }
+
       case "project-analysis":
         return (
           <div className="engineering-card">
@@ -1232,6 +1813,46 @@ export default function App() {
             </div>
           </div>
         );
+
+      case "runtime-approval": {
+        const data = msg.cardData || {};
+        const request = data.request || {};
+        const status = data.status || "awaiting_approval";
+        return (
+          <div className="engineering-card runtime-approval-card">
+            <div className="card-header">
+              <span className="card-title">Approval Required</span>
+              <span className={`card-badge risk-${request.risk || "medium"}`}>
+                {(request.risk || "medium").toUpperCase()}
+              </span>
+            </div>
+            <p className="runtime-approval-reason">
+              {request.reason || "هذا الإجراء يحتاج موافقتك قبل التنفيذ."}
+            </p>
+            <div className="runtime-approval-meta">
+              <span>Action: {request.action || "unknown"}</span>
+              <span>Mode: {data.approvalMode || activeApprovalMode}</span>
+            </div>
+            {status === "awaiting_approval" ? (
+              <div className="approval-buttons">
+                <button className="approve-btn" onClick={() => handleRuntimeApprovalResponse(msg.id, true)}>
+                  Approve
+                </button>
+                <button className="approve-btn secondary-approve" onClick={() => handleRuntimeApprovalResponse(msg.id, true, true)}>
+                  Always allow here
+                </button>
+                <button className="reject-btn" onClick={() => handleRuntimeApprovalResponse(msg.id, false)}>
+                  Reject
+                </button>
+              </div>
+            ) : (
+              <div className={`approval-result-status ${status}`}>
+                {status === "approved" ? "Approved. Execution resumed." : "Rejected. Execution stopped."}
+              </div>
+            )}
+          </div>
+        );
+      }
 
       case "execution-logs":
         return (
@@ -1885,6 +2506,34 @@ export default function App() {
             </>
           )}
 
+          <div className="section-label">Workspace Runtime</div>
+          <div className="conversation-list" style={{ marginBottom: "16px" }}>
+            <button
+              type="button"
+              className="conversation-item sidebar-runtime-link"
+              onClick={() => {
+                setSettingsModalTab("workspace");
+                setIsSettingsModalOpen(true);
+              }}
+              title="Open real trusted workspace manager"
+            >
+              <span className="sidebar-runtime-link-title">Trusted Workspaces</span>
+              <span className="sidebar-runtime-link-subtitle">Manage safe project roots</span>
+            </button>
+            <button
+              type="button"
+              className="conversation-item sidebar-runtime-link"
+              onClick={() => {
+                setSettingsModalTab("knowledge");
+                setIsSettingsModalOpen(true);
+              }}
+              title="Open real knowledge and memory manager"
+            >
+              <span className="sidebar-runtime-link-title">Knowledge Vault</span>
+              <span className="sidebar-runtime-link-subtitle">Training, packs, memory</span>
+            </button>
+          </div>
+
           <div
             className="section-label"
             style={{ display: "none", justifyContent: "space-between", cursor: "pointer" }}
@@ -2194,99 +2843,42 @@ export default function App() {
           )}
 
 
-          <form onSubmit={handleSendMessage} className={`input-box-wrapper composer-shell ${isDragActive ? "drag-active" : ""}`}>
-            {/* Hidden File Picker */}
-            <input
-              type="file"
-              multiple
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-            <input
-              type="file"
-              multiple
-              ref={folderInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-              {...({ webkitdirectory: "true", directory: "true" } as any)}
-            />
+          <div className="trace-mode-selector" aria-label="Execution trace display mode">
+            <span className="trace-mode-label">Trace</span>
+            {(["simple", "developer", "verbose"] as ExecutionTraceMode[]).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`trace-mode-btn ${executionTraceMode === mode ? "active" : ""}`}
+                onClick={() => setExecutionTraceMode(mode)}
+                title={
+                  mode === "simple"
+                    ? "Show compact analyzing/executing status"
+                    : mode === "developer"
+                      ? "Show the main execution pipeline"
+                      : "Show pipeline details, selected runtime, and safety context"
+                }
+              >
+                {traceModeLabels[mode]}
+              </button>
+            ))}
+          </div>
 
-            {/* Click to upload button */}
-            <button
-              type="button"
-              className="attachment-btn"
-              onClick={() => fileInputRef.current?.click()}
-              title="Add files, images, PDFs, videos, or documents"
-            >
-              +
-            </button>
-
-            <button
-              type="button"
-              className="attachment-btn"
-              onClick={() => folderInputRef.current?.click()}
-              title="Add folder"
-            >
-              Dir
-            </button>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              {/* Attachment Queued Previews */}
-              {attachments.length > 0 && (
-                <div className="preview-area">
-                  {attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className={`preview-item ${att.type === "image" ? "image-only" : ""}`}
-                      title={`${att.name} (${formatAttachmentSize(att.size)})`}
-                    >
-                      {att.type === "image" ? (
-                        <img src={att.previewUrl} alt={att.name} className="preview-img" />
-                      ) : (
-                        <>
-                          <div className="preview-pdf-placeholder">PDF</div>
-                          <div className="preview-meta">
-                            <span className="preview-name">{att.name}</span>
-                            <span className="preview-size">{formatAttachmentSize(att.size)}</span>
-                          </div>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        className="remove-attachment-btn"
-                        onClick={() => removeAttachment(att.id)}
-                        title="Remove"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <textarea
-                ref={textareaRef}
-                className="input-textarea"
-                placeholder="Ask anything, @ mention context, / for actions..."
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                onPaste={handlePaste}
-                rows={1}
-              />
-            </div>
-
-
-            <button type="submit" className="send-btn">
-              <span>➔</span>
-            </button>
-          </form>
+          <PromptBox
+            value={inputValue}
+            setValue={setInputValue}
+            files={attachments as any}
+            onAddFiles={processFiles}
+            onRemoveFile={removeAttachment}
+            onLongTextInput={queueLongTextAttachment}
+            onPasteAsTextAnyway={handlePasteAsTextAnyway}
+            onAttachCurrentTextAsFile={handleAttachCurrentTextAsFile}
+            onSubmit={handleSendMessage}
+            activeApprovalMode={activeApprovalMode}
+            setActiveApprovalMode={setActiveApprovalMode}
+            isGenerating={isGenerating}
+            onStopGeneration={handleStopGeneration}
+          />
         </div>
       </main>
 

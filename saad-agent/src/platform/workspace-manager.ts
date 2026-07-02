@@ -28,6 +28,9 @@ async function getElectronApp(): Promise<any> {
 }
 
 export async function getGlobalAppDataDir(): Promise<string> {
+  if (process.env["SAAD_AGENT_SETTINGS_ROOT"]) {
+    return process.env["SAAD_AGENT_SETTINGS_ROOT"];
+  }
   const app = await getElectronApp();
   if (app) {
     try {

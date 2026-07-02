@@ -10,6 +10,7 @@ import { api } from "../lib/api";
 const MODELS = [
   { value: "nano-banana-pro", label: "Nano Banana Pro" },
   { value: "nano-banana-2", label: "Nano Banana 2" },
+  { value: "nano-banana-2-lite", label: "Nano Banana 2 Lite" },
   { value: "google/nano-banana", label: "Nano Banana" },
   { value: "gpt-image-2", label: "GPT Image 2" },
 ];

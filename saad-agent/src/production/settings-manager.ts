@@ -624,6 +624,61 @@ export class SettingsManager {
       throw new Error("API key is required for this provider.");
     }
 
+    if (provider.id === "brave-answers") {
+      const baseUrl = provider.endpointUrl || "https://api.search.brave.com/res/v1/web/search";
+      const testQuery = "Next.js latest release";
+      const url = new URL(baseUrl);
+      url.searchParams.set("q", testQuery);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const headers: Record<string, string> = {
+          "Accept": "application/json",
+          "X-Subscription-Token": apiKey || "",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
+        };
+
+        const response = await fetch(url.toString(), { method: "GET", headers, signal: controller.signal });
+        const latencyMs = Date.now() - start;
+        const text = await response.text();
+
+        if (!response.ok) {
+          const cleanHeaders = { ...headers };
+          if (cleanHeaders["X-Subscription-Token"]) cleanHeaders["X-Subscription-Token"] = "[REDACTED]";
+          
+          let parsedError = text;
+          try {
+            const jsonErr = JSON.parse(text);
+            parsedError = JSON.stringify(jsonErr, null, 2);
+          } catch {}
+
+          const diagnostics = `Brave API Request Failed:
+URL: ${url.origin}${url.pathname}
+Method: GET
+Query Params: q=${testQuery}
+Headers: ${JSON.stringify(cleanHeaders, null, 2)}
+Response Status: ${response.status} ${response.statusText}
+Response Body:
+${parsedError}`;
+
+          console.error(diagnostics);
+          throw new Error(diagnostics);
+        }
+
+        const models: DiscoveredModel[] = [
+          { id: "brave-web-search", name: "Brave Web Search" },
+          { id: "brave-llm-context", name: "Brave LLM Context" }
+        ];
+        return { models, latencyMs };
+      } catch (err: any) {
+        if (err?.name === "AbortError") throw new Error("Connection timed out");
+        throw err;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
@@ -651,9 +706,6 @@ export class SettingsManager {
         }
       }
       throw lastError || new Error("No model discovery endpoints were available.");
-    } catch (err: any) {
-      if (err?.name === "AbortError") throw new Error("Connection timed out");
-      throw err;
     } finally {
       clearTimeout(timeout);
     }

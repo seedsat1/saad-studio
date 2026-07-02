@@ -26,8 +26,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("get-resource-snapshot"),
   orchestratorCreateSession: (taskText: string) =>
     ipcRenderer.invoke("orchestrator-create-session", taskText),
-  chatComplete: (prompt: string, workspacePath?: string, projectName?: string, attachments?: any[]) =>
-    ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName, attachments }),
+  chatComplete: (prompt: string, workspacePath?: string, projectName?: string, attachments?: any[], approvalMode?: string, conversationId?: string, approval?: any) =>
+    ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }),
   orchestratorRespondToPlan: (sessionId: string, approved: boolean) =>
     ipcRenderer.invoke("orchestrator-respond-to-plan", { sessionId, approved }),
   orchestratorExecutePlan: (sessionId: string, patchContent?: string) =>
@@ -126,4 +126,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("mcp-set-tool-permission", { serverId, toolId, permission, enabled }),
   onMenuNavigate: (callback: (dest: string) => void) =>
     ipcRenderer.on("menu-navigate", (event, dest) => callback(dest)),
+  onExecutionTraceEvent: (callback: (event: any) => void) => {
+    const listener = (_event: any, data: any) => callback(data);
+    ipcRenderer.on("execution-trace-event", listener);
+    return () => ipcRenderer.removeListener("execution-trace-event", listener);
+  },
 });

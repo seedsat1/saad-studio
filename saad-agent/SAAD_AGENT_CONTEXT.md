@@ -49,6 +49,74 @@ Examples:
 - "ابحث في الإنترنت" uses the real internet/search provider or reports failure.
 - "اكتب كود" may call the model after memory/training/context review.
 
+Page blueprint requests such as `اعطيني مخطط الصفحة` must not invent a page, files, APIs, or project architecture. If the page name or purpose is missing, ask for that detail. If the page subject is present, return a bounded blueprint only and require approval before implementation.
+
+External research requests such as `ابحث بالانترنت ...` must never be answered with fabricated links or model-only current claims. Under `Ask for approval`, return an internet approval request first; after approval, use the real configured search path or report the real failure.
+
+Short follow-ups such as `نعم` must honor pending clarification or approval context. If the agent asked for missing page details, `نعم` is not enough; ask for the missing detail again instead of switching topics or calling the model.
+
+## Semantic Intent Engine V2
+
+Intent classification must be sentence-aware, not keyword-only.
+
+The Intent Engine uses:
+
+- sentence normalization
+- JSON intent rule files from `.saad-agent/intents/`
+- semantic pattern scoring
+- conversation context
+- previous intent history
+- confidence scoring
+- diagnostics
+
+Supported product intent categories include:
+
+- `memory_save`
+- `training_ingest`
+- `memory_recall`
+- `knowledge_lookup`
+- `knowledge_list`
+- `workspace_query`
+- `workspace_scan`
+- `project_navigation`
+- `code_generation`
+- `code_modification`
+- `bug_fix`
+- `code_review`
+- `architecture_question`
+- `external_research`
+- `vision_analysis`
+- `translation`
+- `conversation`
+
+Every classification must expose:
+
+- intent
+- confidence
+- matched pattern
+- reason
+- whether conversation context was used
+- selected pipeline
+- selected tools
+
+Execution Policy must treat Arabic/Iraqi engineering creation or modification requests as project modifications, not as normal answers. Examples:
+
+- `اريد انشئ صفحة خاصة بي`
+- `اضف صفحة login`
+- `اصلح هذا الخطأ`
+- `عدل الواجهة`
+- `سوي كومبوننت`
+
+Under `Ask for approval`, these requests must return an approval request before any model generation or file modification.
+
+The classifier must distinguish:
+
+- `درب نفسك على هذا الملف` -> `training_ingest`
+- `ما الذي دربتك عليه؟` -> `memory_recall`
+- `الذي دربك عليه قبل` -> knowledge recall/lookup, not memory mutation
+
+Short Iraqi follow-ups such as `مو هذا`, `كمل`, `الثاني`, `رجع`, and `غير الاسم فقط` inherit previous task context when confidence is high.
+
 ## Permanent Memory
 
 The agent has two memory layers:
@@ -193,6 +261,121 @@ The composer starts as a single-line input and grows upward only from typed text
 
 The microphone control must not appear unless real voice input is implemented.
 
+## Execution Trace UI
+
+The chat UI exposes a public execution trace for each sent prompt.
+
+Trace modes:
+
+- `Simple`: compact analyzing/executing/finalizing status.
+- `Developer`: the main pipeline stages.
+- `Verbose`: pipeline stages with safe runtime details such as workspace, approval mode, provider/model, attachment count, and selected UI path.
+
+The trace represents execution events and orchestration boundaries only.
+It must not expose internal model chain-of-thought.
+
+Casual greetings and short acknowledgements such as `اهلا`, `شكرا`, or `تمام` must return a concise deterministic chat response before task-state initialization. They must not create a full engineering execution trace card.
+
+Casual thank-you and acknowledgement messages such as `ممنون`, `ممتن`, `سلمت`, `شكرا`, and `تسلم` must be handled as conversation-only inputs before task-state initialization. They must not render an Execution Trace card.
+
+Direct model response paths that do initialize a task must obey the lifecycle order:
+
+```text
+ANALYZING -> EVIDENCE_COLLECTION -> VALIDATING -> GAP_ANALYSIS -> IMPACT_ANALYSIS -> RISK_ASSESSMENT -> SOLUTION_DESIGN -> PLANNING -> IMPLEMENTING -> VERIFYING -> COMPLETED
+```
+
+Agent identity questions such as `منو انت`, `من انت`, `شنو انت`, `who are you`, or `what are you` must be answered deterministically before model invocation. The agent must identify as `Saad Studio Agent`, not ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
+
+## Natural Iraqi Arabic Voice
+
+Always reply in natural Iraqi Arabic unless the user asks for another language.
+
+Default voice:
+
+- central Iraqi / Baghdad tone
+- friendly
+- smart
+- fast
+- respectful
+- direct
+- concise unless the task needs detail
+- no theatrical or exaggerated dialect
+
+Use natural Iraqi words such as:
+
+- شلون
+- شنو
+- ليش
+- إي
+- لا
+- يمعود, only when context fits
+- زين
+- هسه
+- تره, sparingly
+- بعد
+- يعني
+- إذا
+- مو
+- ماكو
+- هذني
+- ذني
+- هواية
+- كلش
+- باجر
+- اليوم
+- هالشي
+- هيچ
+- عوف
+- خوش
+- تمام
+
+Avoid non-Iraqi phrases such as:
+
+- وش
+- ياخي
+- مره
+- رهيب
+- أبشر
+- كفو عليك
+- يخوي
+- يا زلمة
+- يعطيك العافية
+- حبيبي, unless the user starts with that tone
+
+Preferred phrasing:
+
+- Instead of `كيف يمكنني مساعدتك؟`, say `شلون أگدر أساعدك؟`
+- Instead of `هل تحتاج شيئاً آخر؟`, say `أكو شي ثاني تريد؟`
+- Instead of `أنا لا أفهم.`, say `مو واضح عليّ، وضحلي أكثر.`
+- Instead of `سأقوم بذلك.`, say `تمام، أسويها.`
+- Instead of `هذا غير صحيح.`, say `لا، هالشي مو صحيح.`
+
+Technical replies must also stay naturally Iraqi:
+
+- `المشكلة هنا مو بالـ API. المشكلة بالـ State Management.`
+- `الكود هذا راح يشتغل، بس أكو Bug صغير.`
+- `لازم نخلي الـ state محفوظة حتى ما تضيع بعد التحديث.`
+
+Tone levels:
+
+- For formal/scientific topics: use clearer Arabic with a light Iraqi touch.
+- For normal chat: use natural Iraqi.
+- For joking: reply lightly without exaggeration.
+
+Standard developer stages:
+
+1. Reading request.
+2. Loading project context.
+3. Loading memory.
+4. Loading knowledge.
+5. Selecting skills.
+6. Selecting workflow.
+7. Planning.
+8. Safety check.
+9. Execution.
+10. Verification.
+11. Learning.
+
 ## Conversations
 
 The desktop chat supports multiple local conversation pages.
@@ -269,6 +452,31 @@ The agent must never retrieve, index, log, display, or store:
 
 Secret filtering is mandatory across memory, diagnostics, knowledge, settings, logs, and context retrieval.
 
+## Approval / Access Modes
+
+The prompt composer must expose the active Approval / Access Mode for each conversation.
+
+Modes:
+
+- `Ask for approval`: ask before edits, terminal commands, internet access, deletes, git actions, and persistent training imports.
+- `Approve for me`: auto-approve safe work such as file reading, trusted workspace search, code inspection, knowledge loading, typecheck, lint, build, and tests. Still require approval for deletes, git push/reset, npm install, unknown commands, secret access, outside-workspace modification, and external executables.
+- `Full access`: allow execution inside trusted workspaces for edits, commands, imports, builds, tests, and web access, but still block secrets by default.
+
+Backend enforcement is mandatory through `ApprovalPolicyService`. The UI selector is not a security boundary.
+
+Structured approval requests must include:
+
+- `requiresApproval`
+- `action`
+- `risk`
+- `reason`
+- `command`
+- `files`
+
+Every decision is audit-logged with timestamp, approval mode, action, approved status, files, command, and result.
+
+For user requests such as opening `C:\Users\PC\Pictures\Screenshots`, the agent must not say it has no local access by default. Correct behavior is to require the path to be inside a trusted workspace or ask for explicit approval/access-mode adjustment, then inspect through the trusted workspace runtime.
+
 ## Packaging
 
 The current packaged operation center is:
@@ -289,3 +497,104 @@ When rebuilding a packaged copy manually, ensure updated backend `dist/**`, prel
 
 PDF, Word, image, screenshot, map, and diagram files are saved as permanent training references, but deep content extraction requires real PDF/DOCX/OCR/Vision extraction. Until that exists, the agent must describe them as stored references, not fully read documents.
 
+## V2 Architecture Freeze
+
+The V2 architecture is frozen as an implementation contract.
+
+Implementation must proceed one phase at a time and must preserve V1 behavior.
+
+The fixed V2 execution path is:
+
+User Request -> Conversation Intelligence -> Intent Analysis -> Agent Brain -> Decision Engine -> Execution Policy -> Planning -> Safety & Governance -> Approval -> Tool Engine -> Execution Engine -> Verification Engine -> Context Assembly -> Provider -> Response -> Self Evaluation -> Continuous Learning.
+
+The first implementation priority after the freeze is a standalone `ExecutionPolicyService` that wraps existing approval/orchestration behavior and decides response-only, read-only, safe execution, project modification, and destructive execution categories before any tools run.
+
+Knowledge Engine V2 must preserve V1 `KnowledgeManagerService`, `KnowledgeIngestionService`, registry, packs, chunks, dictionaries, and hashed vector search while adding hybrid search, embeddings, reranking, Arabic/Iraqi normalization, and optional PDF/OCR/image extraction through fallbacks.
+
+
+## Agent Architectural Flowcharts & Diagrams
+
+### 🧠 1. Cognitive Multi-Layer RAG Engine (المنسق الذهني وطبقات المعرفة)
+
+```mermaid
+flowchart TD
+    UserPrompt["💬 User Prompt / التوجيه"] --> PromptShield["🛡️ Prompt Shield / حامي النوايا النقية"]
+    PromptShield --> CognitiveOrchestrator["🧠 Cognitive Orchestrator / المنسق الذهني"]
+
+    subgraph MindSystems ["الأنظمة الذهنية والسياقية"]
+        CognitiveOrchestrator --> IntentEngine["🎯 Intent Engine / محرك النوايا الدلالي"]
+        CognitiveOrchestrator --> GoalManager["🚀 Goal Manager / مدير الأهداف والتطور"]
+        CognitiveOrchestrator --> ConversationState["💬 Conversation State / محرك حالة الحوار"]
+        CognitiveOrchestrator --> TopicDetector["🧩 Topic Detector / كاشف تحول الموضوع"]
+    end
+
+    subgraph MemoryLayer ["أنظمة الذاكرة المعمارية والقرارات"]
+        IntentEngine --> RuleEngine["📜 Rule Engine / محرك القواعد التاسيسية"]
+        IntentEngine --> UserMemory["📇 User Memory / مدير الذاكرة الشخصية"]
+        IntentEngine --> DecisionMemory["📑 Decision Memory ADRs / ذاكرة القرارات المعمارية"]
+    end
+
+    subgraph KnowledgeLayer ["طبقة المعرفة وفهرسة المشروع"]
+        RuleEngine --> KnowledgeRAG["🎨 Knowledge RAG Pipeline / طبقة المعرفة المستقلة"]
+        UserMemory --> ProjectCodeIndex["📒 Project Code Index / فهرس الكود المصنف"]
+        DecisionMemory --> DependencyGraph["🔗 Dependency Graph / شجرة التبعيات والروابط"]
+    end
+
+    subgraph ExecutionLayer ["التخطيط والتنفيذ والمراجعة الذاتية"]
+        KnowledgeRAG --> TaskPlanner["📋 Task Memory Planner / منظم المهام المتسلسلة"]
+        ProjectCodeIndex --> EngOrchestrator["⚙️ Engineering Orchestrator / المنسق الهندسي"]
+        DependencyGraph --> ParallelExec["📊 Parallel Execution / الرسم الموازي"]
+        TaskPlanner --> ValidationPipeline["🔬 Validation Pipeline / طبقة التحقق والمراجعة"]
+        EngOrchestrator --> SelfReview["🔍 Self Review Engine / محرك النقد الذاتي"]
+    end
+
+    SelfReview --> UIOutput["🖥️ Desktop UI Output / واجهة سعد إيجنت"]
+```
+
+---
+
+### 🔄 2. 11-Step Automated Task Execution Pipeline (خط التنفيذ الآلي الـ 11 خطوة)
+
+```mermaid
+flowchart TD
+    Start["🚀 Task / طلب المستخدم"] --> Step1["1️⃣ Detect Task Type / كشف نوع المهمة"]
+    
+    subgraph StepPipeline ["11-Step Pipeline - خط التنفيذ التشغيلي الآلي"]
+        Step1 --> Step2["2️⃣ Load Related Skills Only / تحميل المهارات الخاصة بالمهمة"]
+        Step2 --> Step3["3️⃣ Load Project Rules / تحميل قواعد المشروع"]
+        Step3 --> Step4["4️⃣ Load Related ADRs / تحميل القرارات المعمارية"]
+        Step4 --> Step5["5️⃣ Load Previous Bugs / تحميل الأخطاء السابقة"]
+        Step5 --> Step6["6️⃣ Load Relevant Code Files / تحميل الملفات ذات الصلة"]
+        Step6 --> Step7["7️⃣ Build Execution Plan / بناء خطة التنفيذ"]
+        Step7 --> Step8["8️⃣ Approval Before Major Edits / طلب الموافقة للتعديلات"]
+        Step8 --> Step9["9️⃣ Apply Code Changes / تطبيق التعديلات برمجياً"]
+        Step9 --> Step10["🔟 Run Validation Pipeline / تشغيل طبقة فحص الكود"]
+        Step10 --> Step11["1️⃣1️⃣ Save Progress To Task Memory / حفظ النتائج بالذاكرة"]
+    end
+
+    Step11 --> EndOutput["🖥️ Execution Output / إنجاز المهمة"]
+```
+
+---
+
+### 🛡️ 3. v6.5 Continuous Self-Healing & Recovery Pipeline (خط التنفيذ التشغيلي والتعافي الآلي)
+
+```mermaid
+flowchart TD
+    UserReq["🚀 Task / طلب المستخدم"] --> ImpactAnalysis["1️⃣ Impact Analysis / تقدير التأثير المخاطري"]
+    
+    subgraph Pipeline65 ["v6.5 Pipeline / خط التنفيذ التشغيلي والتعافي الآلي"]
+        ImpactAnalysis --> ExpectedOutcome["2️⃣ Expected Outcome Card / بناء الخطة وتحديد النتيجة"]
+        ExpectedOutcome --> ToolSelection["3️⃣ Tool Orchestrator Selection / تحديد الأدوات الديناميكية"]
+        ToolSelection --> ExecStrategy["4️⃣ Execution Engine Strategy / استراتيجية التنفيذ"]
+        ExecStrategy --> ReviewApproval{"5️⃣ Review & Approval / المراجعة والموافقة الشفافة"}
+        ReviewApproval -- موافقة --> ApplyChanges["6️⃣ Apply Changes / تطبيق التعديلات برمجياً"]
+        ApplyChanges --> RuntimeVerification["7️⃣ Runtime Verification TS, Lint, Build / فحص التشغيل الحقيقي"]
+        
+        RuntimeVerification -- نجاح --> ExecHistory["8️⃣ Execution History DB / توثيق السجل في قواعد البيانات"]
+        RuntimeVerification -- فشل --> RecoveryEngine["9️⃣ Recovery Engine Rollback & Retry / محرك التعافي الذاتي"]
+    end
+
+    ExecHistory --> SuccessDone["🖥️ إنجاز المهمة بنجاح والتحديث التلقائي"]
+    RecoveryEngine --> FailGuidance["💬 طلب إرشادات المستخدم"]
+```

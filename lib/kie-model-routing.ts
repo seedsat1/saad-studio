@@ -3,6 +3,7 @@ import { getKieModelSyncSnapshot } from "@/lib/kie-model-sync";
 export const BASE_KIE_IMAGE_MODEL_MAP: Record<string, string> = {
   "nano-banana-pro": "nano-banana-pro",
   "nano-banana-2": "nano-banana-2",
+  "nano-banana-2-lite": "nano-banana-2-lite",
   "google/nano-banana": "google/nano-banana",
   // KIE expects this exact model id for Nano Banana edit/inpaint.
   "google/nano-banana-edit": "google/nano-banana-edit",

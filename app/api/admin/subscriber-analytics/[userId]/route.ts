@@ -48,6 +48,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "google/veo3.1-text-to-video": "veo31",
   "google/veo-3.1-generate-preview": "gemini_omni_video",
   "google/gemini-omni-video": "gemini_omni_video",
+  "google/gemini-omni-flash": "gemini_omni_flash",
   "bytedance/seedance-v2/text-to-video-fast": "seedance2f",
   "bytedance/seedance-v2/text-to-video-mini": "seedance2mini",
   "bytedance/seedance-v2/text-to-video": "seedance2",
@@ -107,6 +108,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
 
   "nano-banana-pro": "nano_pro",
   "nano-banana-2": "nano2",
+  "nano-banana-2-lite": "nano2_lite",
   "google/nano-banana": "nano",
   "google/nano-banana-edit": "nano_edit",
   "google/imagen4-fast": "imagen4f",

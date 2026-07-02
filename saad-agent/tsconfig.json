@@ -41,5 +41,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "exclude": ["ui", "dist"]
+  "exclude": ["ui", "dist", "dist-test*", "release", "release-*", "release-production-v4", "codex-main", "codex-main.zip"]
 }

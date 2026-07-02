@@ -3,6 +3,7 @@ import { ExecutionSessionManager } from "./planner.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { ProjectIntelligenceService } from "./project-intelligence.js";
 import { AgentRegistry, type Agent } from "./multi-agent.js";
+import { LearningEngine } from "./learning-engine.js";
 
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'waiting';
 
@@ -110,7 +111,9 @@ export class EngineeringOrchestrator {
         name: "Engineering Memory Logging",
         status: "pending",
         dependencies: ["tests"],
-        run: async () => {}
+        run: async () => {
+          await LearningEngine.learnFromSession(plannerSession.id);
+        }
       }
     ];
 
@@ -183,6 +186,10 @@ export class EngineeringOrchestrator {
         }
       }
       session.status = "completed";
+      const reviewTask = session.tasks.find(t => t.id === "review");
+      if (reviewTask) {
+        reviewTask.run().catch(e => console.warn("Review task execution failed:", e));
+      }
     } else {
       const buildTask = session.tasks.find(t => t.id === "build");
       const testTask = session.tasks.find(t => t.id === "tests");
@@ -202,6 +209,11 @@ export class EngineeringOrchestrator {
         if (buildTask) buildTask.status = "failed";
         if (testTask) testTask.status = "failed";
         session.status = "failed";
+        const reviewTask = session.tasks.find(t => t.id === "review");
+        if (reviewTask) {
+          reviewTask.status = "failed";
+          reviewTask.run().catch(e => console.warn("Review (failed) task run failed:", e));
+        }
       }
     }
     EventBus.publish("SessionStatusChanged", { sessionId, status: session.status });
@@ -229,7 +241,10 @@ export class EngineeringOrchestrator {
         if (buildTask) buildTask.status = "completed";
         if (testTask) testTask.status = "completed";
         const reviewTask = session.tasks.find(t => t.id === "review");
-        if (reviewTask) reviewTask.status = "completed";
+        if (reviewTask) {
+          reviewTask.status = "completed";
+          reviewTask.run().catch(e => console.warn("Review task execution failed:", e));
+        }
         session.status = "completed";
       } else if (pSession?.state === "awaiting_fix_approval") {
         if (buildTask) {
@@ -241,6 +256,11 @@ export class EngineeringOrchestrator {
         if (buildTask) buildTask.status = "failed";
         if (testTask) testTask.status = "failed";
         session.status = "failed";
+        const reviewTask = session.tasks.find(t => t.id === "review");
+        if (reviewTask) {
+          reviewTask.status = "failed";
+          reviewTask.run().catch(e => console.warn("Review (failed) task run failed:", e));
+        }
       }
     } else {
       session.status = "failed";

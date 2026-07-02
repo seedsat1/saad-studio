@@ -91,6 +91,7 @@ const IMAGE_MODEL_GROUPS = [
     models: [
       { id: "nano-banana-pro",          label: "Nano Banana Pro",  badge: "TOP" },
       { id: "nano-banana-2",            label: "Nano Banana 2",    badge: ""    },
+      { id: "nano-banana-2-lite",       label: "Nano Banana 2 Lite", badge: "NEW" },
       { id: "google/nano-banana",       label: "Nano Banana",      badge: ""    },
       { id: "google/nano-banana-edit",  label: "NB Edit",          badge: ""    },
     ],
