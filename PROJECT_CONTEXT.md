@@ -1,5 +1,31 @@
 # Saad Studio — Project Context
 
+## Latest task: Saad Agent General Question Freeze Fix (2026-07-03)
+
+- Status:
+  - Fixed a production freeze where simple general questions such as `عندي سؤال منو هو النبي محمد` entered the heavy engineering pre-answer/project context pipeline and left the renderer stuck on `Processing request`.
+  - Root cause: chat composer metadata (`Provider`, `Model`, `Workspace`) was being passed into intent/workflow and knowledge/context search paths, causing false `provider-integration` workflow selection and unnecessary workspace scans against `win-unpacked`.
+  - Direct chat now consistently extracts and uses the real `User request:` text for pre-answer review, context retrieval, knowledge search, web search, local path detection, memory recall display, and model prompt construction.
+  - Added a lightweight general-question fast path before `TaskStateStore.initializeTask`, so short non-engineering questions do not create an Execution Trace card and do not scan the active workspace.
+  - Added per-request timeout/retry overrides through `ReasoningEngine` and `ModelClient`; simple general questions use an 8s timeout and zero retries to prevent Electron from appearing frozen.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/reasoning-engine.ts`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Source smoke test: simple general question returned through the fast path without trace/project scan.
+  - Source smoke test: composer metadata plus `User request:` no longer changed the intent to provider integration.
+  - Packaged smoke test from `release-production-v4/win-unpacked/resources/app-asar-work`: `عندي سؤال منو هو النبي محمد` returned in about 818ms with `intent: conversation`, `usedModel: true`, no approval request.
+  - Packaged smoke test with composer metadata returned in about 1344ms with `intent: conversation`, `usedModel: true`, no approval request.
+  - Packaged engineering smoke test `اريد انشئ صفحة خاصة بي` still returned `approvalRequest` with `intent: code_generation`.
+  - Repacked production `app.asar`; timestamp `2026-07-03 00:19:16`, size `11015881` bytes.
+- Decisions:
+  - General non-engineering questions must not scan project files, knowledge vaults, MCP, or workspaces.
+  - Composer/runtime metadata must never influence user intent classification or knowledge retrieval.
+  - The active workspace should be a real project root, not `release-production-v4/win-unpacked`, for engineering tasks.
+
 ## Latest task: Google Gemini Omni Flash Model Integration (2026-07-02)
 
 - Status:

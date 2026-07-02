@@ -149,7 +149,9 @@ export class ChatOrchestratorService {
             "Answer directly, briefly, respectfully, and clearly. Keep the answer compact."
           ].join("\n"),
           userPrompt: userRequestText,
-          signal: input.signal
+          signal: input.signal,
+          requestTimeoutMs: 8000,
+          retryCountOverride: 0
         });
         return {
           intent: "conversation",

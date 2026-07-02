@@ -6,6 +6,8 @@ export interface ModelRuntimeOptions {
   model?: ModelRoleSettings;
   apiKey?: string;
   signal?: AbortSignal | undefined;
+  requestTimeoutMs?: number | undefined;
+  retryCountOverride?: number | undefined;
 }
 
 interface ChatEndpointCandidate {
@@ -103,8 +105,8 @@ export class ModelClient {
   }
 
   private static async fetchWithRuntime(url: string, init: RequestInit, runtime?: ModelRuntimeOptions): Promise<Response> {
-    const retryCount = Math.min(runtime?.model?.retryCount ?? 0, 1);
-    const configuredTimeoutMs = runtime?.model?.timeoutMs ?? this.MAX_INTERACTIVE_TIMEOUT_MS;
+    const retryCount = Math.min(runtime?.retryCountOverride ?? runtime?.model?.retryCount ?? 0, 1);
+    const configuredTimeoutMs = runtime?.requestTimeoutMs ?? runtime?.model?.timeoutMs ?? this.MAX_INTERACTIVE_TIMEOUT_MS;
     const timeoutMs = Math.min(Math.max(configuredTimeoutMs, 1000), this.MAX_INTERACTIVE_TIMEOUT_MS);
     let lastError: any;
     for (let attempt = 0; attempt <= retryCount; attempt += 1) {

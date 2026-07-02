@@ -12,6 +12,8 @@ export interface ReasoningRequest {
   userPrompt: string;
   imageUrl?: string;
   signal?: AbortSignal | undefined;
+  requestTimeoutMs?: number | undefined;
+  retryCountOverride?: number | undefined;
 }
 
 export interface ReasoningResponse {
@@ -44,13 +46,13 @@ export class ReasoningEngine {
             request.userPrompt,
             modelName,
             request.imageUrl,
-            { ...runtime, signal: request.signal }
+            { ...runtime, signal: request.signal, requestTimeoutMs: request.requestTimeoutMs, retryCountOverride: request.retryCountOverride }
           )
         : await ModelClient.chatCompletion(
             request.systemPrompt,
             request.userPrompt,
             modelName,
-            { ...runtime, signal: request.signal }
+            { ...runtime, signal: request.signal, requestTimeoutMs: request.requestTimeoutMs, retryCountOverride: request.retryCountOverride }
           );
 
       let parsedJson: any = undefined;

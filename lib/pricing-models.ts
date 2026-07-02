@@ -105,6 +105,7 @@ export const DEFAULT_MODELS: PricingModel[] = [
   // ── IMAGE — flat via KIE ────────────────────────────────────────────────────
   { id:"nano_pro",      name:"Nano Banana Pro",         notes:"4K I2I",       type:"image",  provider:"kie",       billing:"flat",    kieCredits:18,    waveUsd:0,     userCreditsRate:3.07,  maxDuration:null, isActive:true  },
   { id:"nano2",         name:"Nano Banana 2",           notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:3.5,   waveUsd:0,     userCreditsRate:0.6,  maxDuration:null, isActive:true  },
+  { id:"nano2_lite",    name:"Nano Banana 2 Lite",      notes:"T2I Lite",     type:"image",  provider:"kie",       billing:"flat",    kieCredits:2.5,   waveUsd:0,     userCreditsRate:0.4,  maxDuration:null, isActive:true  },
   { id:"nano",          name:"Nano Banana",             notes:"std",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:2,     waveUsd:0,     userCreditsRate:0.35,  maxDuration:null, isActive:true  },
   { id:"nano_edit",     name:"Nano Banana Edit",        notes:"edit",         type:"image",  provider:"kie",       billing:"flat",    kieCredits:4,     waveUsd:0,     userCreditsRate:0.69,  maxDuration:null, isActive:true  },
   { id:"imagen4f",      name:"Google Imagen 4 Fast",    notes:"T2I",          type:"image",  provider:"kie",       billing:"flat",    kieCredits:1.6,   waveUsd:0,     userCreditsRate:0.3,  maxDuration:null, isActive:true  },
@@ -174,7 +175,7 @@ export function calcUserCredits(model: PricingModel, durationSec: number): numbe
 }
 
 const DEFAULT_MODEL_BY_ID = new Map(DEFAULT_MODELS.map((model) => [model.id, model]));
-const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "gemini_omni_video", "gemini_omni_flash"]);
+const CODE_LOCKED_MODEL_IDS = new Set(["seedance2", "seedance2f", "seedance2mini", "gemini_omni_video", "gemini_omni_flash", "nano2_lite"]);
 
 /**
  * DB rows may be older than the code reference. Keep admin overrides that raise
