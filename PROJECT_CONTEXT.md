@@ -4,7 +4,7 @@
 
 - Status:
   - Updated Gemini Image model mapping to use Stable GA model IDs (`gemini-3.1-flash-image` and `gemini-3.1-flash-lite-image`) instead of deprecated preview IDs (`-preview`), fixing the 500 generation error.
-  - Enhanced `pollVeoOperation` in `lib/gemini-veo.ts` to parse all video output response variants (top-level `output_video` and `outputVideo` fields, legacy `outputs` arrays, `steps` arrays with both camelCase and snake_case properties, and top-level/nested `candidates` arrays with content parts).
+  - Enhanced `pollVeoOperation` in `lib/gemini-veo.ts` to parse all video output response variants (top-level `output_video` and `outputVideo` fields, legacy `outputs` arrays, `steps` arrays with both camelCase and snake_case properties, top-level/nested `candidates` arrays, and REST native `steps.content` parts matching type `video` with direct data/uri keys).
   - Added a raw response debug trace string to the client-facing error message in the GET route of `app/api/video/route.ts` to expose the exact returned JSON structure.
   - Modified the image reference page frontend in `app/(dash)/(routes)/image/page.tsx` to skip direct browser fetch and route files directly through `/api/proxy-image` for storage domains (Backblaze B2, Cloudflare R2, Supabase), completely resolving browser CORS console errors.
   - Prioritized direct S3 endpoint (`https://saadstudio-storage.s3.eu-central-003.backblazeb2.com`) in `lib/utils.ts` fallback list and updated the hardcoded `f003.backblazeb2.com` fallbacks to S3 in both `lib/media-gateway/backblaze.ts` and `lib/storage/backblaze.ts` to fix browser connection timeout errors in restricted regions.
