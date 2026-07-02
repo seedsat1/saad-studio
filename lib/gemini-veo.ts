@@ -230,8 +230,19 @@ export async function pollVeoOperation(
     if (!videoUri) {
       const steps = data.steps || [];
       for (const step of steps) {
-        const parts = step.parts || step.model_output?.parts || step.modelOutput?.parts || [];
+        // Search content parts inside model_output/output steps
+        const parts = step.parts || step.model_output?.parts || step.modelOutput?.parts || step.content || [];
         for (const part of parts) {
+          // B1. Standard parts with type === "video" and inline base64 data
+          if (part.type === "video" && part.data) {
+            videoUri = `inline:${part.data}`;
+            break;
+          }
+          if (part.type === "video" && part.uri) {
+            videoUri = part.uri;
+            break;
+          }
+          // B2. Standard media inlineData/fileData wrappers
           if (part.inlineData?.data) {
             videoUri = `inline:${part.inlineData.data}`;
             break;
