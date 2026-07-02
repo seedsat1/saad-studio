@@ -7,17 +7,22 @@
   - Enhanced `pollVeoOperation` in `lib/gemini-veo.ts` to parse all video output response variants (top-level `output_video` and `outputVideo` fields, legacy `outputs` arrays, and `steps` arrays with both camelCase and snake_case properties).
   - Added a raw response debug trace string to the client-facing error message in the GET route of `app/api/video/route.ts` to expose the exact returned JSON structure.
   - Modified the image reference page frontend in `app/(dash)/(routes)/image/page.tsx` to skip direct browser fetch and route files directly through `/api/proxy-image` for storage domains (Backblaze B2, Cloudflare R2, Supabase), completely resolving browser CORS console errors.
+  - Prioritized direct S3 endpoint (`https://saadstudio-storage.s3.eu-central-003.backblazeb2.com`) in `lib/utils.ts` fallback list and updated the hardcoded `f003.backblazeb2.com` fallbacks to S3 in both `lib/media-gateway/backblaze.ts` and `lib/storage/backblaze.ts` to fix browser connection timeout errors in restricted regions.
 - Affected files:
   - `app/api/generate/image/route.ts` [MODIFY]
   - `lib/providers/google-images.ts` [MODIFY]
   - `lib/gemini-veo.ts` [MODIFY]
   - `app/api/video/route.ts` [MODIFY]
   - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+  - `lib/utils.ts` [MODIFY]
+  - `lib/media-gateway/backblaze.ts` [MODIFY]
+  - `lib/storage/backblaze.ts` [MODIFY]
 - Verification:
   - `npm run build` compiled successfully.
 - Decisions:
   - Avoid direct client-side fetch on storage CDNs that block CORS.
   - Expose API debug payloads directly in UI error states when debugging preview endpoints.
+  - Prioritize S3 DNS endpoints over slow direct B2 file retrieval domains.
 
 ## Latest task: Saad Agent General Question Freeze Fix (2026-07-03)
 
@@ -6380,3 +6385,59 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Search routing must be sentence-family based, not single-keyword based.
   - Explicit external search with a product/model/company/topic should route to `external_research`.
   - Explicit local search phrases must stay inside trusted workspace retrieval.
+
+## Latest task: Missing IPC Handlers for Trusted Workspace and Knowledge Library (2026-07-03)
+
+- Status:
+  - Fixed production renderer errors:
+    - `No handler registered for 'trusted-workspace:list'`
+    - `No handler registered for 'knowledge:list'`
+  - Root cause: `preload.cjs` exposed Trusted Workspace and Knowledge APIs, but `desktop/main.ts` did not register the matching `ipcMain.handle(...)` channels.
+  - Added real backend IPC handlers wired to existing services:
+    - `TrustedWorkspaceRuntime`
+    - `KnowledgeManagerService`
+  - Repacked production `app.asar`.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Registered Trusted Workspace channels:
+  - `trusted-workspace:list`
+  - `trusted-workspace:add`
+  - `trusted-workspace:remove`
+  - `trusted-workspace:search`
+  - `trusted-workspace:run-command`
+  - `trusted-workspace:open-path`
+  - `trusted-workspace:reveal-path`
+  - `trusted-workspace:copy-path`
+- Registered Knowledge channels:
+  - `knowledge:list`
+  - `knowledge:search`
+  - `knowledge:import-file`
+  - `knowledge:import-folder`
+  - `knowledge:import-github`
+  - `knowledge:get-document`
+  - `knowledge:get-dictionaries`
+  - `knowledge:get-term`
+  - `knowledge:delete-document`
+  - `knowledge:get-stats`
+  - `knowledge:import-url`
+  - `knowledge:import-control`
+  - `knowledge:list-packs`
+  - `knowledge:pack-delete`
+  - `knowledge:pack-reindex`
+  - `knowledge:pack-export`
+  - `knowledge:get-config`
+  - `knowledge:save-config`
+  - `knowledge:list-workspaces`
+  - `knowledge:create-backup`
+  - `knowledge:list-backups`
+  - `knowledge:restore-backup`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Extracted the repacked `app.asar` and confirmed `dist/desktop/main.js` contains `trusted-workspace:list`, `knowledge:list`, `KnowledgeManagerService`, and `TrustedWorkspaceRuntime`.
+- Warnings:
+  - `knowledge:import-github`, `knowledge:import-url`, and `knowledge:import-control` now return explicit unsupported/no-active-task responses instead of missing-handler crashes because the current backend service does not implement real URL/GitHub import control yet.
+- Decision:
+  - Any API exposed by preload must have a matching main-process IPC handler. Missing handlers are production bugs, not acceptable placeholder behavior.

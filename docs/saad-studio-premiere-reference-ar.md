@@ -814,3 +814,11 @@
 - If the request explicitly says it is inside the project, files, code, workspace, or codebase, it must stay in workspace search and must not trigger internet research.
 - In `ask` approval mode, external research must return an actionable `use_internet` approval request before using the web.
 - The runtime must not answer external research requests from model guesses when internet access is required and not approved.
+
+## Saad Agent IPC Contract Rule (2026-07-03)
+
+- Every function exposed from the packaged preload bridge must have a matching `ipcMain.handle(...)` implementation in the Electron main process.
+- Trusted Workspace UI calls must route to `TrustedWorkspaceRuntime` handlers, not missing or placeholder IPC channels.
+- Knowledge Library UI calls must route to `KnowledgeManagerService` handlers for registry, packs, dictionaries, stats, storage config, backups, and import operations.
+- If a feature is not implemented by the backend service, the handler must return an explicit structured unsupported response instead of leaving the renderer with `No handler registered`.
+- Missing IPC handlers in production are treated as runtime wiring bugs.

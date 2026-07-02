@@ -27,7 +27,7 @@ export class BackblazeProvider implements StorageProvider {
                      "";
 
     if (!publicUrl || publicUrl.includes(".r2.dev") || publicUrl.includes("media.saadstudio.app")) {
-      publicUrl = "https://f003.backblazeb2.com/file/saadstudio-storage";
+      publicUrl = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
     }
 
     this.publicBaseUrl = publicUrl.replace(/\/+$/, "");

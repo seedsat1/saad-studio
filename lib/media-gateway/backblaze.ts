@@ -14,7 +14,7 @@ export class BackblazePublicProvider implements MediaProvider {
                      process.env.B2_PUBLIC_BASE_URL ||
                      process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
                      process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
-                     "https://f003.backblazeb2.com/file/saadstudio-storage";
+                     "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
     this.publicBaseUrl = publicUrl.replace(/\/+$/, "");
 
     this.s3Client = new S3Client({

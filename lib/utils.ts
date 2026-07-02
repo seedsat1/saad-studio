@@ -63,6 +63,9 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   const fallbacks: string[] = [];
 
+  const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
+  fallbacks.push(`${directB2Url}/${mediaPath}`);
+
   // 1. Backblaze B2 (New Storage - Friendly & S3 Direct)
   let publicBaseUrl = (
     process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
@@ -76,11 +79,8 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
     publicBaseUrl = "https://f003.backblazeb2.com/file/saadstudio-storage";
   }
 
-  fallbacks.push(`${publicBaseUrl}/${mediaPath}`);
-
-  const directB2Url = "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com";
   if (publicBaseUrl !== directB2Url) {
-    fallbacks.push(`${directB2Url}/${mediaPath}`);
+    fallbacks.push(`${publicBaseUrl}/${mediaPath}`);
   }
 
   // 2. /api/media (Emergency Fallback - Proxy)
