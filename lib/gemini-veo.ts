@@ -255,20 +255,47 @@ export async function pollVeoOperation(
 
     // C. Check legacy outputs array (if present)
     if (!videoUri) {
-      const outputs = data.outputs || [];
-      for (const output of outputs) {
-        if (output.video?.uri) {
-          videoUri = output.video.uri;
+      const outputs = Array.isArray(data.outputs) ? data.outputs : [];
+      for (const out of outputs) {
+        if (out.video?.uri) {
+          videoUri = out.video.uri;
           break;
         }
-        if (output.video?.url) {
-          videoUri = output.video.url;
+        if (out.video?.url) {
+          videoUri = out.video.url;
           break;
         }
-        if (output.video?.data) {
-          videoUri = `inline:${output.video.data}`;
+        if (out.video?.data) {
+          videoUri = `inline:${out.video.data}`;
           break;
         }
+      }
+    }
+
+    // D. Check candidates array (standard Gemini content generation format)
+    if (!videoUri) {
+      const candidates = data.candidates || data.response?.candidates || [];
+      for (const candidate of candidates) {
+        const parts = candidate.content?.parts || [];
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            videoUri = `inline:${part.inlineData.data}`;
+            break;
+          }
+          if (part.inline_data?.data) {
+            videoUri = `inline:${part.inline_data.data}`;
+            break;
+          }
+          if (part.fileData?.fileUri) {
+            videoUri = part.fileData.fileUri;
+            break;
+          }
+          if (part.file_data?.file_uri) {
+            videoUri = part.file_data.file_uri;
+            break;
+          }
+        }
+        if (videoUri) break;
       }
     }
     
