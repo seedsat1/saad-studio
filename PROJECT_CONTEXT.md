@@ -1,5 +1,24 @@
 # Saad Studio — Project Context
 
+## Latest task: Gemini Stable Image Model GA & Video Polling & CORS Fixes (2026-07-03)
+
+- Status:
+  - Updated Gemini Image model mapping to use Stable GA model IDs (`gemini-3.1-flash-image` and `gemini-3.1-flash-lite-image`) instead of deprecated preview IDs (`-preview`), fixing the 500 generation error.
+  - Enhanced `pollVeoOperation` in `lib/gemini-veo.ts` to parse all video output response variants (top-level `output_video` and `outputVideo` fields, legacy `outputs` arrays, and `steps` arrays with both camelCase and snake_case properties).
+  - Added a raw response debug trace string to the client-facing error message in the GET route of `app/api/video/route.ts` to expose the exact returned JSON structure.
+  - Modified the image reference page frontend in `app/(dash)/(routes)/image/page.tsx` to skip direct browser fetch and route files directly through `/api/proxy-image` for storage domains (Backblaze B2, Cloudflare R2, Supabase), completely resolving browser CORS console errors.
+- Affected files:
+  - `app/api/generate/image/route.ts` [MODIFY]
+  - `lib/providers/google-images.ts` [MODIFY]
+  - `lib/gemini-veo.ts` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+- Verification:
+  - `npm run build` compiled successfully.
+- Decisions:
+  - Avoid direct client-side fetch on storage CDNs that block CORS.
+  - Expose API debug payloads directly in UI error states when debugging preview endpoints.
+
 ## Latest task: Saad Agent General Question Freeze Fix (2026-07-03)
 
 - Status:
