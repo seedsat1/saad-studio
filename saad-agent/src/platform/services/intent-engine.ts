@@ -183,6 +183,7 @@ const DEFAULT_RULES: Record<string, IntentRuleFile> = {
     tools: ["ContextEngine", "SemanticSearch"],
     patterns: [
       { pattern: "^(?:اين|وين|مكان|أين).*(?:يوجد|القى|القا|مكان)?", weight: 0.92, reason: "User asks where something exists in the project." },
+      { pattern: "(?:ابحث|بحث|دور|فتش).*(?:داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)", weight: 0.97, reason: "User asks to search inside the trusted workspace." },
       { pattern: "\\b(?:where is|find in project|where does).*\\b", weight: 0.92, reason: "User asks for project location." }
     ]
   },
@@ -250,6 +251,9 @@ const DEFAULT_RULES: Record<string, IntentRuleFile> = {
       { pattern: "(?:اعطني|اعطيني|هات|اريد).*(?:روابط|مصادر|links|sources)", weight: 0.96, reason: "User asks for external links or sources." },
       { pattern: "(?:اخر|آخر|احدث|أحدث|latest|current|recent).*(?:اصدار|إصدار|نسخه|نسخة|update|version)", weight: 0.94, reason: "User asks for current external information." },
       { pattern: "\\b(?:search web|search online|latest|current|recent)\\b", weight: 0.94, reason: "User asks for external/current information." }
+    ],
+    negativePatterns: [
+      "(?:داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)"
     ]
   },
   vision_analysis: {

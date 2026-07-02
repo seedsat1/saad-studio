@@ -2371,7 +2371,8 @@ export async function GET(req: Request) {
             clearMediaUrl: true,
           }).catch(() => {});
         }
-        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "No video returned" });
+        const debugMsg = poll.rawResponse ? " - RAW: " + JSON.stringify(poll.rawResponse).substring(0, 300) : "";
+        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "No video returned" + debugMsg });
       }
 
       let downloaded;

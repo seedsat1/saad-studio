@@ -805,3 +805,12 @@
 - Repacking `resources/app.asar` alone is not enough to validate a production build. The outer Electron runtime files beside `Saad Agent.exe` must also be checked.
 - Runtime backups such as `app.asar.backup-*`, `app.asar.bak-*`, `app.asar.linkfix-*`, and `app.asar.new*` should not be deleted without explicit human approval.
 - If Chromium asset errors continue after the PAK files are restored, perform a full Electron rebuild and verify the final unpacked output before testing chat behavior.
+
+## Saad Agent External Search Routing Rule (2026-07-03)
+
+- Arabic/Iraqi search requests must be routed by sentence-family, not by one exact keyword.
+- External search phrase families include `ابحثلي`, `ابحث لي`, `ابحث`, `دورلي`, `دور لي`, `دور`, `فتشلي`, `فتش لي`, `فتش`, `جيبلي معلومات`, `جيب لي معلومات`, `هاتلي معلومات`, `هات لي معلومات`, `طلعلي معلومات`, and `طلع لي معلومات`.
+- If the request contains an external topic signal such as an English product/model name, version number, company, platform, service, model, price, docs, links, or sources, the runtime should classify it as `external_research`.
+- If the request explicitly says it is inside the project, files, code, workspace, or codebase, it must stay in workspace search and must not trigger internet research.
+- In `ask` approval mode, external research must return an actionable `use_internet` approval request before using the web.
+- The runtime must not answer external research requests from model guesses when internet access is required and not approved.

@@ -6327,3 +6327,37 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Close Codex Desktop, then delete the file from PowerShell/File Explorer, or rerun cleanup from a fresh session that has not inspected the file.
 - Decision:
   - Do not kill Codex or unrelated processes automatically. Report the exact locking process and stop before risky process termination.
+
+## Latest task: External Search Intent Family Routing (2026-07-03)
+
+- Status:
+  - Fixed the search-routing bug where Arabic/Iraqi prompts such as `ابحثلي Seedance 2.0 Mini` were classified as ordinary `ANSWER` / `general-engineering`.
+  - Broadened external research detection across the Intent Engine, Chat Orchestrator internet gate, and Execution Policy.
+  - Added phrase-family coverage for Arabic/Iraqi search requests such as `ابحثلي`, `ابحث لي`, `دورلي`, `دور لي`, `فتشلي`, `جيبلي معلومات`, `هاتلي معلومات`, and `طلعلي معلومات`.
+  - Added local-scope negative routing so requests like `ابحث داخل المشروع عن Gallery` stay in workspace search instead of internet research.
+  - Repacked production `app.asar` in `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/intent-engine.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/.saad-agent/intents/external_research.json`
+  - `saad-agent/.saad-agent/intents/workspace_query.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Intent smoke test: `ابحثلي Seedance 2.0 Mini` -> `external_research`.
+  - Intent smoke test: `دورلي عن Seedance 2.0 Mini` -> `external_research`.
+  - Intent smoke test: `فتشلي qwen3 coder latest` -> `external_research`.
+  - Intent smoke test: `جيبلي معلومات عن OpenAI Sora` -> `external_research`.
+  - Intent smoke test: `ابحث داخل المشروع عن Gallery` -> `workspace_query`.
+  - Chat orchestrator smoke test: `ابحثلي Seedance 2.0 Mini` -> `external_research`, `usedModel: false`, `approvalRequest.action: use_internet`.
+  - Extracted the repacked `app.asar` and confirmed the updated `intent-engine.js` contains the new Arabic search pattern.
+- Warnings:
+  - In the Codex sandbox, approval policy and execution audit writes to `C:\Users\PC\.saad-agent` can log EPERM. This did not block routing verification.
+  - Actual live internet results still depend on approved web access and the configured Brave/search provider.
+- Decision:
+  - Search routing must be sentence-family based, not single-keyword based.
+  - Explicit external search with a product/model/company/topic should route to `external_research`.
+  - Explicit local search phrases must stay inside trusted workspace retrieval.
