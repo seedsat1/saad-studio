@@ -1,5 +1,17 @@
 # Saad Studio — Project Context
 
+## Latest task: Google Flow Real Conversational Agent Integration (2026-07-03)
+
+- Status:
+  - Created a backend API route at `/api/google-flow/chat` (`app/api/google-flow/chat/route.ts`) powered by the real Google Gemini API (`gemini-2.5-flash` model), resolving user's question about the presence of a real conversational agent.
+  - Implemented system instructions giving Gemini authority to act as "Google Flow Agent" and autonomously return structured prefixes: `IMAGE_GEN:` or `VIDEO_GEN:` followed by refined English prompts when it determines the user wants to generate media.
+  - Updated the frontend `app/(dash)/(routes)/google-flow/page.tsx` to forward the chat history to `/api/google-flow/chat`, parse the response, and execute automated Google image or video generation workflows in real-time, inserting the final output directly into the chat feed and grid.
+- Affected files:
+  - `app/api/google-flow/chat/route.ts` [NEW]
+  - `app/(dash)/(routes)/google-flow/page.tsx` [MODIFY]
+- Verification:
+  - `npm run build` compiled successfully.
+
 ## Latest task: Saad Agent Local Image Folder Classification Routing (2026-07-03)
 
 - Status:
