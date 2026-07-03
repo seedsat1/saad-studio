@@ -6704,6 +6704,10 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Enabled active character image generations: if a character reference is active, image generation requests route to the specific character studio identity endpoint `/api/characters/[id]/generate` instead of standard text-only generations.
   - Integrated asset deletion directly into the gallery UI: added trash buttons to delete compiled characters (via `/api/characters/[id]`) and ordinary media assets (via `DELETE /api/assets`) and update the local states immediately.
   - Fully translated the Cinema Flow page UI, guides, workspace settings, models parameter drawer, and agent status messages to English.
+  - Enabled the Video Engine dropdown select component and expanded it to support all requested production models: Gemini Omni Flash, Kling 3.0 Pro, Seedance 2.0, Seedance 2.0 Mini, and Seedance 2.0 Fast.
+  - Added functional selectors for Video Duration (5s, 10s, 15s) and Video Quality (720p, 1080p, 4K) inside the parameters settings drawer.
+  - Expanded the Aspect Ratio selector to support cinematic aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4, and 21:9.
+  - Set up dynamic, precise per-second credit calculations for all video models inside the generation call, ensuring cost changes match selected duration and model rates.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx`
   - `PROJECT_CONTEXT.md`

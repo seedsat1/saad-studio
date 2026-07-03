@@ -73,6 +73,8 @@ export default function CinemaFlowPage() {
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [selectedImageModel, setSelectedImageModel] = useState("nano-banana-2-lite");
   const [selectedVideoModel, setSelectedVideoModel] = useState("google/gemini-omni-flash");
+  const [videoDuration, setVideoDuration] = useState<number>(10);
+  const [videoQuality, setVideoQuality] = useState<string>("1080p");
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   const [aspectRatio, setAspectRatio] = useState("1:1");
 
@@ -386,7 +388,25 @@ export default function CinemaFlowPage() {
 
   // Trigger Google Video Generation
   const executeVideoGeneration = async (promptText: string) => {
-    const cost = 30.0; // Standard 10 seconds Gemini Omni Flash cost
+    // Dynamic cost calculation based on model and duration
+    let rate = 2.0; // Default (Gemini Omni Flash)
+    let modelName = "Gemini Omni Flash";
+
+    if (selectedVideoModel.includes("kling")) {
+      rate = 2.5;
+      modelName = "Kling 3.0 Pro";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
+      rate = 4.5333;
+      modelName = "Seedance 2.0";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
+      rate = 2.5333;
+      modelName = "Seedance 2.0 Mini";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
+      rate = 6.0;
+      modelName = "Seedance 2.0 Fast";
+    }
+
+    const cost = Number((rate * videoDuration).toFixed(2));
     const passed = await guardGeneration("video", cost);
     if (!passed) {
       setChatMessages(prev => [...prev, {
@@ -401,7 +421,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "Running video engine (Gemini Omni Flash 10s) to generate the clip... please wait.",
+      text: `Running video engine (${modelName} ${videoDuration}s, Quality: ${videoQuality}) to generate the clip... please wait.`,
       isGenerating: true
     }]);
 
@@ -413,8 +433,9 @@ export default function CinemaFlowPage() {
           modelRoute: selectedVideoModel,
           payload: {
             prompt: promptText,
-            duration: 10,
-            aspectRatio: "16:9"
+            duration: videoDuration,
+            aspectRatio: aspectRatio,
+            resolution: videoQuality
           }
         })
       });
@@ -988,9 +1009,40 @@ export default function CinemaFlowPage() {
                   value={selectedVideoModel}
                   onChange={(e) => setSelectedVideoModel(e.target.value)}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
-                  disabled
                 >
-                  <option value="google/gemini-omni-flash">Gemini Omni Flash (10s)</option>
+                  <option value="google/gemini-omni-flash">Gemini Omni Flash</option>
+                  <option value="kwaivgi/kling-v3.0-pro/text-to-video">Kling 3.0 Pro</option>
+                  <option value="bytedance/seedance-v2/text-to-video">Seedance 2.0</option>
+                  <option value="bytedance/seedance-v2/text-to-video-mini">Seedance 2.0 Mini</option>
+                  <option value="bytedance/seedance-v2/text-to-video-fast">Seedance 2.0 Fast</option>
+                </select>
+              </div>
+
+              {/* Video Duration selection */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-500">Video Duration</span>
+                <select
+                  value={videoDuration}
+                  onChange={(e) => setVideoDuration(Number(e.target.value))}
+                  className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
+                >
+                  <option value="5">5 seconds</option>
+                  <option value="10">10 seconds</option>
+                  <option value="15">15 seconds</option>
+                </select>
+              </div>
+
+              {/* Video Quality selection */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-zinc-500">Video Quality</span>
+                <select
+                  value={videoQuality}
+                  onChange={(e) => setVideoQuality(e.target.value)}
+                  className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
+                >
+                  <option value="720p">720p (Standard)</option>
+                  <option value="1080p">1080p (High)</option>
+                  <option value="4k">4K (Ultra)</option>
                 </select>
               </div>
 
@@ -1005,6 +1057,9 @@ export default function CinemaFlowPage() {
                   <option value="1:1">1:1 (Square)</option>
                   <option value="16:9">16:9 (Landscape)</option>
                   <option value="9:16">9:16 (Portrait)</option>
+                  <option value="4:3">4:3 (Academy)</option>
+                  <option value="3:4">3:4 (Vertical Photo)</option>
+                  <option value="21:9">21:9 (Cinematic Widescreen)</option>
                 </select>
               </div>
             </motion.div>
