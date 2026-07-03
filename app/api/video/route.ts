@@ -13,7 +13,7 @@ import { getResolvedKieRoutingMaps } from "@/lib/kie-model-routing";
 import { syncKieModelCatalog } from "@/lib/kie-model-sync";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { VIDEO_PROVIDER_BUSY_MESSAGE } from "@/lib/generation-errors";
-import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, type VeoImageInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
+import { downloadVeoVideo, pollVeoOperation, startVeoGeneration, urlToImageInput, urlToVideoInput, type VeoImageInput, type VeoVideoInput, type VeoOperationHandle, type VeoResolution } from "@/lib/gemini-veo";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { fetchBytePlusTask } from "@/lib/providers/byteplus-reconcile";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
@@ -298,6 +298,11 @@ async function sourceToGoogleImageInput(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return undefined;
   if (value.startsWith("data:")) return dataUrlToImageInput(value) ?? undefined;
   return urlToImageInput(value);
+}
+
+async function sourceToGoogleVideoInput(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  return urlToVideoInput(value);
 }
 
 function normalizeGeminiResolution(value: unknown): VeoResolution {
@@ -1825,6 +1830,10 @@ export async function POST(req: Request) {
         payload.last_frame_url ??
         payload.end_image ??
         payload.last_image;
+      const startVideo =
+        payload.video_url ??
+        payload.videoUrl ??
+        payload.video;
       const referenceSources = Array.isArray(payload.reference_image_urls)
         ? payload.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0).slice(0, 3)
         : [];
@@ -1835,6 +1844,9 @@ export async function POST(req: Request) {
         : undefined;
       const resolvedEndImage = (typeof endImage === "string" && endImage.trim())
         ? await resolveProviderMediaUrl(endImage, { userId, assetType: "image" })
+        : undefined;
+      const resolvedStartVideo = (typeof startVideo === "string" && startVideo.trim())
+        ? await resolveProviderMediaUrl(startVideo, { userId, assetType: "video" })
         : undefined;
       
       const resolvedReferenceSources: string[] = [];
@@ -1850,6 +1862,9 @@ export async function POST(req: Request) {
       }
       if (resolvedEndImage) {
         await verifyPublicMediaUrl(resolvedEndImage, "google_end_image");
+      }
+      if (resolvedStartVideo) {
+        await verifyPublicMediaUrl(resolvedStartVideo, "google_start_video");
       }
       for (const url of resolvedReferenceSources) {
         await verifyPublicMediaUrl(url, "google_reference_image");
@@ -1912,12 +1927,13 @@ export async function POST(req: Request) {
         generationId,
       }).catch(() => {});
 
-      const [image, lastFrame, referenceImages] = await Promise.all([
+      const [image, lastFrame, referenceImages, video] = await Promise.all([
         sourceToGoogleImageInput(resolvedStartImage),
         sourceToGoogleImageInput(resolvedEndImage),
         resolvedReferenceSources.length
           ? Promise.all(resolvedReferenceSources.map((source) => sourceToGoogleImageInput(source))).then((items) => items.filter((item): item is VeoImageInput => Boolean(item)))
           : Promise.resolve([]),
+        sourceToGoogleVideoInput(resolvedStartVideo),
       ]);
 
       const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
@@ -1943,6 +1959,7 @@ export async function POST(req: Request) {
           lastFrame: image ? lastFrame : undefined,
           referenceImages: referenceImages.length ? referenceImages : undefined,
           previousInteractionId,
+          video,
         });
       } catch (err) {
         if (generationId && chargedUserId && chargedCredits > 0) {

@@ -132,6 +132,19 @@ export async function startVeoGeneration(
         text: params.prompt,
       });
     } else {
+      // 0. Add starting video if present (via Google Files API)
+      if (params.video) {
+        const videoUri = await uploadVideoToGoogleFiles(
+          Buffer.from(params.video.videoBytes, "base64"),
+          params.video.mimeType
+        );
+        inputList.push({
+          type: "video",
+          uri: videoUri,
+          mime_type: params.video.mimeType,
+        });
+      }
+
       // 1. Add starting frame (image) if present
       if (params.image) {
         inputList.push({
@@ -171,7 +184,9 @@ export async function startVeoGeneration(
     // 4. Determine task type
     let task = params.previousInteractionId ? "edit_video" : "text_to_video";
     if (!params.previousInteractionId) {
-      if (params.image) {
+      if (params.video) {
+        task = "edit_video";
+      } else if (params.image) {
         task = "image_to_video";
       } else if (params.referenceImages && params.referenceImages.length > 0) {
         task = "reference_to_video";
@@ -560,4 +575,25 @@ export async function generateImagenImage(
     if (!base64) throw new Error("Imagen response missing image bytes.");
     return { buffer: Buffer.from(base64, "base64"), mimeType };
   });
+}
+
+export async function uploadVideoToGoogleFiles(videoBuffer: Buffer, mimeType = "video/mp4"): Promise<string> {
+  const { Readable } = await import("stream");
+  const ai = getGenAI();
+  const stream = new Readable();
+  stream.push(videoBuffer);
+  stream.push(null);
+
+  const file = await ai.files.upload({
+    file: stream,
+    config: {
+      mimeType,
+    },
+  });
+
+  if (!file.uri) {
+    throw new Error("Failed to upload video to Google Files API (no URI returned)");
+  }
+
+  return file.uri;
 }
