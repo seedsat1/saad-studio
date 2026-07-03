@@ -6487,3 +6487,45 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - `knowledge:import-github`, `knowledge:import-url`, and `knowledge:import-control` now return explicit unsupported/no-active-task responses instead of missing-handler crashes because the current backend service does not implement real URL/GitHub import control yet.
 - Decision:
   - Any API exposed by preload must have a matching main-process IPC handler. Missing handlers are production bugs, not acceptable placeholder behavior.
+
+## Latest task: Automatic Safe Execution Approval Mode and Engineering Delegation (2026-07-03)
+
+- Status:
+  - Changed Saad Agent's default approval mode from `ask` to `approve_for_me`.
+  - Updated the prompt UI initial approval mode so new sessions start in automatic safe execution mode.
+  - Updated backend approval policy so safe file edits and Codex runtime execution inside trusted workspaces are allowed under `approve_for_me`.
+  - Preserved hard stops for secrets and sensitive paths in every approval mode.
+  - Preserved explicit approval requirements for destructive actions such as delete, `git push`, `git reset`, package installs, and unknown risky shell commands.
+  - Updated `ChatOrchestratorService` to normalize approval mode once per request and pass the effective value through execution policy, approval policy, knowledge import, internet search, and runtime execution.
+  - Added engineering workflow delegation: project modification requests classified as `PLAN` now delegate to `CodexRuntimeBridge` instead of falling back to a text-only model response.
+  - Rebuilt backend and UI, cleaned stale UI assets, and repacked production `app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/approval-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-approval-policy.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npm.cmd run build` passed in `saad-agent/ui`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - `node dist/test-approval-policy.js` passed.
+  - Execution policy smoke test:
+    - `approve_for_me` + `اريد انشئ صفحة اختبار` -> `PLAN`, `requiresApproval: false`, `workflow: engineering_workflow`.
+    - `ask` + `اريد انشئ صفحة اختبار` -> `WAIT_FOR_APPROVAL`, `requiresApproval: true`.
+    - `approve_for_me` + `ابحثلي Seedance 2.0 Mini` -> `SEARCH`, `requiresApproval: false`, `workflow: external_research`.
+  - Extracted production `app.asar` and confirmed:
+    - UI bundle default approval mode is `approve_for_me`.
+    - UI bundle no longer contains `ask` as the initial approval state.
+    - Backend approval policy default is `approve_for_me`.
+    - `codex exec` is allowed by approval policy under automatic safe mode.
+    - Chat orchestrator contains engineering delegation to `CodexRuntimeBridge`.
+    - Runtime bridge requests use `workspace-write` when approval mode allows execution.
+- Warnings:
+  - If `CodexRuntimeBridge` cannot spawn the configured Codex executable from the packaged Electron process, the agent will now return the exact runtime error instead of pretending to edit files.
+  - Actual file modification still depends on a valid trusted workspace and a callable Codex runtime executable.
+  - PowerShell Arabic smoke tests must use Unicode escapes; raw pasted Arabic through this shell can become `????` because of terminal codepage encoding.
+- Decision:
+  - Saad Agent must not default to `ask` mode because that blocks ordinary engineering assistance.
+  - `Approve for me` is the product default: safe workspace reads/searches/edits/builds/tests and runtime delegation are allowed automatically, while destructive actions and secrets remain blocked.

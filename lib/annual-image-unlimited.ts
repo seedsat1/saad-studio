@@ -29,7 +29,6 @@ export const ANNUAL_UNLIMITED_IMAGE_MODELS = [
   "gpt-image-2-text-to-image",
   "gpt-image-2-image-to-image",
   "nano-banana-2",
-  "nano-banana-2-lite",
   "nano-banana-pro",
 ] as const;
 

@@ -829,3 +829,22 @@
 - Knowledge Library UI calls must route to `KnowledgeManagerService` handlers for registry, packs, dictionaries, stats, storage config, backups, and import operations.
 - If a feature is not implemented by the backend service, the handler must return an explicit structured unsupported response instead of leaving the renderer with `No handler registered`.
 - Missing IPC handlers in production are treated as runtime wiring bugs.
+
+## Saad Agent Automatic Safe Execution Rule (2026-07-03)
+
+- The default runtime approval mode is `approve_for_me`, not `ask`.
+- `approve_for_me` allows safe actions inside trusted workspaces without repeated manual approval:
+  - workspace search
+  - file inspection
+  - safe file edits
+  - build/typecheck/lint/test commands
+  - approved runtime delegation through the Codex bridge
+  - internet search when the user explicitly asks for live research
+- Destructive or sensitive actions remain blocked or require explicit human approval:
+  - deleting files
+  - `git push`
+  - `git reset`
+  - package installation
+  - unknown shell commands
+  - secrets, credentials, tokens, cookies, private keys, and `.env` paths
+- Project modification requests should not fall back to a text-only answer path. When execution policy classifies a trusted-workspace engineering request as `PLAN`, the orchestrator must delegate to the execution runtime and report the real result or the real runtime error.

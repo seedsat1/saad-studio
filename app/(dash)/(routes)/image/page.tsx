@@ -47,7 +47,6 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "gpt-image-2-text-to-image",
   "gpt-image-2-image-to-image",
   "nano-banana-2",
-  "nano-banana-2-lite",
   "nano-banana-pro",
 ]);
 const ANNUAL_UNLIMITED_IMAGE_PLAN_IDS = new Set(["pro", "max"]);
