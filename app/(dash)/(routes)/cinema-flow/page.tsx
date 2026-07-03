@@ -307,6 +307,24 @@ export default function CinemaFlowPage() {
     }
   };
 
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename || "download";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Direct download failed, opening in new tab instead:", error);
+      window.open(url, "_blank");
+    }
+  };
+
   useEffect(() => {
     loadAssets();
     loadCharacters();
@@ -1393,16 +1411,13 @@ export default function CinemaFlowPage() {
                 </span>
 
                 <div className="flex items-center gap-2">
-                  <a
-                    href={selectedAsset.url}
-                    download="asset"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => handleDownload(selectedAsset.url, selectedAsset.prompt || "asset")}
                     className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 transition-all"
                   >
                     <Download size={13} />
                     Download File
-                  </a>
+                  </button>
                 </div>
               </div>
             </motion.div>
