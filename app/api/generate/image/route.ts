@@ -317,6 +317,13 @@ function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeTy
   });
 }
 
+function normalizeGoogleAspectRatio(aspectRatio?: string | null): string {
+  const allowed = new Set(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"]);
+  const normalized = String(aspectRatio ?? "1:1").trim();
+  if (allowed.has(normalized)) return normalized;
+  return "1:1";
+}
+
 async function generateGoogleImage(params: {
   apiKey: string;
   googleModel: string;
@@ -335,34 +342,52 @@ async function generateGoogleImage(params: {
   // "16:9", ...) via `imageConfig`. The legacy `responseFormat.image` path
   // expects protobuf enum values (ASPECT_RATIO_1_1, IMAGE_SIZE_*) and rejects
   // plain strings with a 400 — so we use the imageConfig path only.
-  const imageConfig: Record<string, string> = { aspectRatio: params.aspectRatio || "1:1" };
+  const imageConfig: Record<string, string> = { aspectRatio: normalizeGoogleAspectRatio(params.aspectRatio) };
   const imageSize = normalizeGoogleImageSize(params.googleModel, params.quality);
   if (imageSize) imageConfig.imageSize = imageSize;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": params.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          responseModalities: ["IMAGE"],
-          imageConfig,
+  const makeRequest = async (config: Record<string, string>) => {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": params.apiKey,
+          "Content-Type": "application/json",
         },
-      }),
-    },
-  );
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            responseModalalities: ["IMAGE"],
+            imageConfig: config,
+          },
+        }),
+      },
+    );
 
-  const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    const message = typeof json?.error?.message === "string" ? json.error.message : `Google image generation failed (${res.status})`;
-    throw new Error(message);
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      const message = typeof json?.error?.message === "string" ? json.error.message : `Google image generation failed (${res.status})`;
+      return { success: false, error: message };
+    }
+    return { success: true, json };
+  };
+
+  let attempt = await makeRequest(imageConfig);
+  if (!attempt.success) {
+    const errStr = String(attempt.error || "");
+    if (/image size|resolution|imageConfig/i.test(errStr) && imageSize && imageSize !== "1K") {
+      console.warn(`[generateGoogleImage] Resolution ${imageSize} failed for model ${params.googleModel}. Retrying with 1K...`);
+      const fallbackConfig = { ...imageConfig, imageSize: "1K" };
+      attempt = await makeRequest(fallbackConfig);
+    }
   }
 
+  if (!attempt.success) {
+    throw new Error(attempt.error || "Google image generation failed");
+  }
+
+  const json = attempt.json;
   const images = extractGoogleInlineImages(json);
   if (!images.length) {
     const candidates = json && typeof json === "object" && Array.isArray((json as Record<string, any>).candidates)
