@@ -29,10 +29,42 @@ export async function POST(req: NextRequest) {
     }
 
     // Format chat history for Google Gemini API
-    const contents = messages.map((m: any) => ({
-      role: m.sender === "user" ? "user" : "model",
-      parts: [{ text: m.text }],
-    }));
+    const contents = [];
+    for (const m of messages) {
+      const parts: any[] = [{ text: m.text }];
+
+      // Download and attach image reference if present
+      if (m.sender === "user" && m.assetUrl) {
+        try {
+          let targetUrl = m.assetUrl;
+          if (targetUrl.startsWith("/")) {
+            const origin = req.nextUrl.origin;
+            targetUrl = `${origin}${targetUrl}`;
+          }
+
+          const imgRes = await fetch(targetUrl);
+          if (imgRes.ok) {
+            const buffer = await imgRes.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString("base64");
+            const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+
+            parts.push({
+              inlineData: {
+                mimeType: contentType,
+                data: base64
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Failed to download chat reference image:", e);
+        }
+      }
+
+      contents.push({
+        role: m.sender === "user" ? "user" : "model",
+        parts,
+      });
+    }
 
     const systemInstruction = {
       parts: [

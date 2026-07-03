@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { normalizeMediaUrl } from "@/lib/storage";
 
 interface CharacterRecord {
   id: string;
@@ -222,6 +223,15 @@ export default function CinemaFlowPage() {
       sender: "user",
       text: text.trim(),
     };
+
+    if (activeImageReference) {
+      userMsg.assetUrl = activeImageReference.url;
+      userMsg.assetType = "image";
+    } else if (activeCharacter) {
+      userMsg.assetUrl = normalizeMediaUrl(activeCharacter.coverUrl) || undefined;
+      userMsg.assetType = "image";
+    }
+
     const updatedMessages = [...chatMessages, userMsg];
     setChatMessages(updatedMessages);
     setInputText("");
@@ -695,7 +705,7 @@ export default function CinemaFlowPage() {
                     <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
                       {character.coverUrl ? (
                         <img
-                          src={character.coverUrl}
+                          src={normalizeMediaUrl(character.coverUrl)}
                           alt={character.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
                           loading="lazy"
