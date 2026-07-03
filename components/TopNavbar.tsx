@@ -136,6 +136,7 @@ const IMAGE_MODEL_GROUPS = [
 const VIDEO_FEATURES = [
   { label: "Agent Studio",        href: "/agent-studio",    icon: Bot,          color: "text-violet-400",  description: "AI agent orchestrator & custom skills workflow", badge: "NEW" },
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
+  { label: "Cinema Edit",         href: "/video-edit",      icon: Sparkles,     color: "text-cyan-400",    description: "Iterative & stateful video editing",   badge: "NEW" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
   { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Draw to Video",       href: "/apps/tool/draw-to-video", icon: PenTool, color: "text-lime-300", description: "Draw, add, remove, replace and animate elements", badge: "NEW" },

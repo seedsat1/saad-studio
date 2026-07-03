@@ -695,7 +695,6 @@ function VideoPageInner() {
   // Prompt fields
   const [prompt,    setPrompt]    = useState("");
   const [negPrompt, setNegPrompt] = useState("");
-  const [previousTaskId, setPreviousTaskId] = useState<string | null>(null);
 
   // Output controls — reset when model changes
   const [duration,    setDuration]    = useState<number | null>(DEFAULT_MODEL.capabilities.durations[0] ?? null);
@@ -758,9 +757,6 @@ function VideoPageInner() {
   useEffect(() => {
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) setPrompt(requestedPrompt);
-
-    const requestedPrevTaskId = searchParams.get("previousTaskId");
-    if (requestedPrevTaskId) setPreviousTaskId(requestedPrevTaskId);
 
     const requestedImageUrl = searchParams.get("imageUrl");
     if (!requestedImageUrl || !/^https?:\/\//i.test(requestedImageUrl)) return;
@@ -1567,9 +1563,6 @@ function VideoPageInner() {
       }
 
       const payload: Record<string, unknown> = {};
-      if (previousTaskId) {
-        payload.previousTaskId = previousTaskId;
-      }
       const toolPrefix = TOOL_PROMPT_PREFIX[activeTool] ?? "";
 
       const filledMultiPrompts = multiPrompts.filter((s) => s.trim());
@@ -2000,7 +1993,6 @@ function VideoPageInner() {
         localStorage.setItem("ff_video_pending_jobs", JSON.stringify(list));
       } catch {}
       setIsSubmitting(false);
-      setPreviousTaskId(null);
       startPolling(data.taskId, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration });
     } catch (err) {
       setGenerationError(getSafeErrorMessage(err));
@@ -2012,7 +2004,7 @@ function VideoPageInner() {
     negPrompt, cfgScale, sound, shotType, multiPrompts, elementList,
     sceneControl, orientation, startPolling,
     klingEls, kling30MultiEnabled, kling30MultiMode, kling30CustomShots,
-    estimatedCredits, getSafeErrorMessage, guardGeneration, previousTaskId,
+    estimatedCredits, getSafeErrorMessage, guardGeneration,
   ]);
 
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
@@ -2211,32 +2203,6 @@ function VideoPageInner() {
               <span className="text-[12px] flex-1" style={{ color: "#fca5a5" }}>{generationError}</span>
               <button onClick={() => setGenerationError(null)}>
                 <X size={12} style={{ color: "#6b7280" }} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Stateful Edit Banner */}
-        <AnimatePresence>
-          {previousTaskId && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="mx-4 mb-2 flex items-center justify-between gap-2 px-3 py-2 rounded-lg"
-              style={{ background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)" }}
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles size={13} style={{ color: "#22d3ee", flexShrink: 0 }} />
-                <span className="text-[11px] font-semibold text-zinc-300">
-                  تعديل متسلسل نشط (Stateful Editing): يتم البناء على لقطة الفيديو السابقة.
-                </span>
-              </div>
-              <button
-                onClick={() => setPreviousTaskId(null)}
-                className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold px-2 py-0.5 rounded bg-cyan-950/40 ring-1 ring-cyan-800/40"
-              >
-                إلغاء التعديل
               </button>
             </motion.div>
           )}

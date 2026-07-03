@@ -1026,7 +1026,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
 
       // ── VIDEO ─────────────────────────────────────────────────────────────
       case "Stateful Video Edit":
-        router.push(`/video?previousTaskId=${encodeURIComponent(asset.providerRequestId ?? asset.id ?? "")}&model=google/gemini-omni-flash`);
+        router.push(`/video-edit?previousTaskId=${encodeURIComponent(asset.providerRequestId ?? asset.id ?? "")}`);
         onClose?.();
         break;
 
