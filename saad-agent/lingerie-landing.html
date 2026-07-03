@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لانجري | Lingerie Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#d946ef',
+                        secondary: '#f0abfc',
+                        accent: '#c026d3',
+                        dark: '#1a0a1f',
+                        light: '#fdf4ff'
+                    },
+                    fontFamily: {
+                        sans: ['Tajawal', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .gradient-bg {
+                background: linear-gradient(135deg, #1a0a1f 0%, #2d1b47 50%, #1a0a1f 100%);
+            }
+            .card-glow {
+                box-shadow: 0 0 30px rgba(217, 70, 239, 0.15);
+            }
+            .hover-glow:hover {
+                box-shadow: 0 0 40px rgba(217, 70, 239, 0.3);
+            }
+            .float-animation {
+                animation: float 6s ease-in-out infinite;
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen gradient-bg text-white font-sans">
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full top-0 z-50 bg-dark/80 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">لانجري</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8 space-x-reverse">
+                    <a href="#" class="text-white/80 hover:text-primary transition-colors">الرئيسية</a>
+                    <a href="#" class="text-white/80 hover:text-primary transition-colors">المنتجات</a>
+                    <a href="#" class="text-white/80 hover:text-primary transition-colors">التصنيفات</a>
+                    <a href="#" class="text-white/80 hover:text-primary transition-colors">العروض</a>
+                    <a href="#" class="text-white/80 hover:text-primary transition-colors">تواصل معنا</a>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="relative p-2 text-white/80 hover:text-primary transition-colors">
+                        <i class="fa fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    <button class="p-2 text-white/80 hover:text-primary transition-colors">
+                        <i class="fa fa-user text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="text-center md:text-right">
+                    <h1 class="text-[clamp(2.5rem,6vw,4rem)] font-extrabold mb-6 leading-tight">
+                        اكتشفي أناقة<br>
+                        <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">الملابس الداخلية</span>
+                    </h1>
+                    <p class="text-white/70 text-xl mb-8 max-w-lg">
+                        مجموعة فاخرة من الملابس الداخلية والملابس المنزلية وملابس النوم المصممة براحة وأناقة لا مثيل لها
+                    </p>
+                    <div class="flex flex-wrap gap-4 justify-center md:justify-start">
+                        <button class="px-8 py-4 bg-gradient-to-r from-primary to-accent rounded-xl font-bold text-lg hover:opacity-90 transition-all hover:scale-105 active:scale-95">
+                            تسوقي الآن
+                        </button>
+                        <button class="px-8 py-4 border border-primary/50 rounded-xl font-bold text-lg hover:bg-primary/10 transition-all">
+                            شاهدي المجموعات
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6 mt-12">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-primary">+500</div>
+                            <div class="text-white/60 text-sm">منتج</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-primary">+20K</div>
+                            <div class="text-white/60 text-sm">عميل سعيد</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-primary">4.9</div>
+                            <div class="text-white/60 text-sm">تقييم المتجر</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative float-animation">
+                    <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=elegant%20lingerie%20silk%20nightwear%20luxury%20feminine%20soft%20lighting%20purple%20aesthetic&image_size=square_hd" alt="لانجري" class="rounded-3xl shadow-2xl w-full max-w-md mx-auto card-glow">
+                    <div class="absolute -bottom-6 -right-6 bg-primary/90 backdrop-blur-sm rounded-2xl p-4">
+                        <div class="text-white font-bold">خصم 30%</div>
+                        <div class="text-white/80 text-sm">على جميع المنتجات</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Categories Section -->
+    <section class="py-16 px-4">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl font-bold text-center mb-12">تصنيفات المنتجات</h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-primary/50 transition-all hover-glow cursor-pointer">
+                    <div class="w-full aspect-square rounded-xl overflow-hidden mb-4">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=elegant%20lingerie%20lace%20underwear%20luxury%20feminine&image_size=square" alt="ملابس داخلية" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-lg text-center">ملابس داخلية</h3>
+                    <p class="text-white/60 text-sm text-center mt-1">128 منتج</p>
+                </div>
+
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-primary/50 transition-all hover-glow cursor-pointer">
+                    <div class="w-full aspect-square rounded-xl overflow-hidden mb-4">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=silk%20nightwear%20pajamas%20luxury%20sleepwear%20elegant&image_size=square" alt="ملابس نوم" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-lg text-center">ملابس نوم</h3>
+                    <p class="text-white/60 text-sm text-center mt-1">96 منتج</p>
+                </div>
+
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-primary/50 transition-all hover-glow cursor-pointer">
+                    <div class="w-full aspect-square rounded-xl overflow-hidden mb-4">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=home%20wear%20loungewear%20comfortable%20elegant%20soft%20fabric&image_size=square" alt="ملابس منزلية" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-lg text-center">ملابس منزلية</h3>
+                    <p class="text-white/60 text-sm text-center mt-1">74 منتج</p>
+                </div>
+
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-primary/50 transition-all hover-glow cursor-pointer">
+                    <div class="w-full aspect-square rounded-xl overflow-hidden mb-4">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=bathrobe%20luxury%20spa%20robe%20soft%20elegant%20feminine&image_size=square" alt="أرواب وعباءات" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-lg text-center">أرواب وعباءات</h3>
+                    <p class="text-white/60 text-sm text-center mt-1">52 منتج</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="py-16 px-4 bg-white/[0.02]">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-12">
+                <h2 class="text-3xl font-bold">المنتجات المميزة</h2>
+                <button class="text-primary hover:text-secondary transition-colors">
+                    عرض الكل <i class="fa fa-arrow-left mr-2"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <!-- Product 1 -->
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                    <div class="relative">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=elegant%20pink%20lingerie%20set%20luxury%20lace%20feminine&image_size=square" alt="منتج" class="w-full aspect-square object-cover">
+                        <div class="absolute top-3 left-3 bg-primary text-white text-xs px-3 py-1 rounded-full">جديد</div>
+                        <button class="absolute bottom-3 left-3 right-3 bg-white/90 text-dark font-bold py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            أضف للسلة
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold">طقم داخلي أنيق</h3>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-primary font-bold">129 ر.س</span>
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                    <div class="relative">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=silk%20nightgown%20elegant%20purple%20luxury%20sleepwear&image_size=square" alt="منتج" class="w-full aspect-square object-cover">
+                        <div class="absolute top-3 left-3 bg-red-500 text-white text-xs px-3 py-1 rounded-full">-25%</div>
+                        <button class="absolute bottom-3 left-3 right-3 bg-white/90 text-dark font-bold py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            أضف للسلة
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold">ثوب نوم حريري</h3>
+                        <div class="flex justify-between items-center mt-2">
+                            <div>
+                                <span class="text-primary font-bold">189 ر.س</span>
+                                <span class="text-white/40 text-sm line-through mr-2">249 ر.س</span>
+                            </div>
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                    <div class="relative">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=comfortable%20loungewear%20set%20soft%20elegant%20home%20wear&image_size=square" alt="منتج" class="w-full aspect-square object-cover">
+                        <button class="absolute bottom-3 left-3 right-3 bg-white/90 text-dark font-bold py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            أضف للسلة
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold">طقم منزلي مريح</h3>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-primary font-bold">159 ر.س</span>
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 4 -->
+                <div class="group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                    <div class="relative">
+                        <img src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=luxury%20bathrobe%20soft%20plush%20elegant%20spa%20robe&image_size=square" alt="منتج" class="w-full aspect-square object-cover">
+                        <button class="absolute bottom-3 left-3 right-3 bg-white/90 text-dark font-bold py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            أضف للسلة
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold">عباءة سبا فاخرة</h3>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-primary font-bold">219 ر.س</span>
+                            <div class="flex text-yellow-400 text-sm">
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 px-4">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-truck text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">شحن مجاني</h3>
+                    <p class="text-white/60">على جميع الطلبات فوق 200 ر.س</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-shield text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">ضمان الجودة</h3>
+                    <p class="text-white/60">ضمان استرجاع خلال 14 يوم</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-lock text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">دفع آمن</h3>
+                    <p class="text-white/60">جميع طرق الدفع المدعومة</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa fa-headphones text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2">دعم 24/7</h3>
+                    <p class="text-white/60">فريق الدعم متاح على مدار الساعة</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="py-16 px-4">
+        <div class="max-w-3xl mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-4">انضمي لقائمة البريد</h2>
+            <p class="text-white/60 mb-8">احصلي على أولوية العروض والخصومات الحصرية مباشرة على بريدك الإلكتروني</p>
+            <div class="flex gap-3 max-w-lg mx-auto">
+                <input type="email" placeholder="بريدك الإلكتروني" class="flex-1 px-5 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary">
+                <button class="px-8 py-4 bg-gradient-to-r from-primary to-accent rounded-xl font-bold hover:opacity-90 transition-all">
+                    اشتركي
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-4 border-t border-white/10">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <h3 class="text-2xl font-extrabold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">لانجري</h3>
+                    <p class="text-white/60">متجر الملابس الداخلية والمنزلية الأكثر أناقة في المملكة</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">روابط سريعة</h4>
+                    <ul class="space-y-2 text-white/60">
+                        <li><a href="#" class="hover:text-primary transition-colors">الرئيسية</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">المنتجات</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">العروض</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">من نحن</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">مساعدة</h4>
+                    <ul class="space-y-2 text-white/60">
+                        <li><a href="#" class="hover:text-primary transition-colors">سياسة الاسترجاع</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">شروط الاستخدام</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">الأسئلة الشائعة</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">تواصل معنا</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">تابعونا</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
+                            <i class="fa fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
+                            <i class="fa fa-snapchat"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary transition-colors">
+                            <i class="fa fa-tiktok"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-white/10 pt-8 text-center text-white/40 text-sm">
+                © 2025 لانجري. جميع الحقوق محفوظة.
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
