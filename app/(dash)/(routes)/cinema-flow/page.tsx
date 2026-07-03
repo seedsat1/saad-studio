@@ -163,68 +163,87 @@ export default function CinemaFlowPage() {
   };
 
   const handleFileSelection = async (file: File) => {
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+    const fileName = file.name.toLowerCase();
+    const isImageOrVideo = file.type.startsWith("image/") || 
+                            file.type.startsWith("video/") ||
+                            fileName.endsWith(".heic") ||
+                            fileName.endsWith(".heif") ||
+                            fileName.endsWith(".png") ||
+                            fileName.endsWith(".jpg") ||
+                            fileName.endsWith(".jpeg") ||
+                            fileName.endsWith(".webp") ||
+                            fileName.endsWith(".gif") ||
+                            fileName.endsWith(".mp4") ||
+                            fileName.endsWith(".mov") ||
+                            fileName.endsWith(".webm") ||
+                            fileName.endsWith(".m4v");
+
+    if (!isImageOrVideo) {
       alert("Please select or drop an image or video file.");
       return;
     }
 
     try {
       setUploadingFile(true);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = async () => {
-        const base64Data = reader.result as string;
-        const base64Raw = base64Data.split(",")[1];
+      const base64Raw = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          const base64Data = reader.result as string;
+          const raw = base64Data.split(",")[1];
+          resolve(raw);
+        };
+        reader.onerror = () => reject(new Error("File reading failed"));
+      });
 
-        // Upload to /api/upload/frame
-        const uploadRes = await fetch("/api/upload/frame", {
+      // Upload to /api/upload/frame
+      const uploadRes = await fetch("/api/upload/frame", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "image/png",
+          base64: base64Raw,
+        }),
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const uploadData = await uploadRes.json();
+      if (uploadData.url) {
+        // Save to database gallery using our new POST endpoint
+        const saveRes = await fetch("/api/assets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            url: uploadData.url,
             filename: file.name,
-            mimeType: file.type,
-            base64: base64Raw,
+            mimeType: file.type || "image/png",
           }),
         });
 
-        if (!uploadRes.ok) {
-          throw new Error("Failed to upload file");
-        }
-
-        const uploadData = await uploadRes.json();
-        if (uploadData.url) {
-          // Save to database gallery using our new POST endpoint
-          const saveRes = await fetch("/api/assets", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              url: uploadData.url,
-              filename: file.name,
-              mimeType: file.type,
-            }),
-          });
-
-          if (saveRes.ok) {
-            const saveData = await saveRes.json();
-            if (saveData.asset) {
-              // Add to local state
-              setAssets(prev => [saveData.asset, ...prev]);
-              // Set as active reference
-              setActiveImageReference(saveData.asset);
-              setActiveCharacter(null);
-            }
-          } else {
-            const tempAsset = {
-              id: Math.random().toString(),
-              url: uploadData.url,
-              type: file.type.startsWith("video") ? "video" : "image",
-              prompt: file.name,
-            };
-            setActiveImageReference(tempAsset);
+        if (saveRes.ok) {
+          const saveData = await saveRes.json();
+          if (saveData.asset) {
+            // Add to local state
+            setAssets(prev => [saveData.asset, ...prev]);
+            // Set as active reference
+            setActiveImageReference(saveData.asset);
             setActiveCharacter(null);
           }
+        } else {
+          const tempAsset = {
+            id: Math.random().toString(),
+            url: uploadData.url,
+            type: (file.type || "").startsWith("video") ? "video" : "image",
+            prompt: file.name,
+          };
+          setActiveImageReference(tempAsset as any);
+          setActiveCharacter(null);
         }
-      };
+      }
     } catch (err) {
       console.error("Upload failed:", err);
       alert("Failed to upload file.");
@@ -324,6 +343,7 @@ export default function CinemaFlowPage() {
       if (activeTab === "image") return asset.type === "image" && matchesSearch;
       if (activeTab === "video") return asset.type === "video" && matchesSearch;
       if (activeTab === "character") return asset.model?.toLowerCase().includes("character") && matchesSearch;
+      if (activeTab === "upload") return asset.model?.toLowerCase() === "upload" && matchesSearch;
       return matchesSearch;
     })
     .sort((a, b) => {
@@ -1245,19 +1265,34 @@ export default function CinemaFlowPage() {
           {(activeCharacter || activeImageReference) && (
             <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-white/5">
               {activeCharacter && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 border border-violet-500/30 rounded-xl text-[10px] text-violet-400">
-                  <Users size={10} />
-                  <span>Ref Character: {activeCharacter.name}</span>
-                  <button onClick={() => setActiveCharacter(null)} className="text-zinc-500 hover:text-white transition-colors">
+                <div className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-square w-16 bg-black flex items-center justify-center shadow-lg">
+                  {activeCharacter.coverUrl ? (
+                    <img src={normalizeMediaUrl(activeCharacter.coverUrl)} alt={activeCharacter.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-zinc-500"><Users size={16} /></div>
+                  )}
+                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[8px] text-center text-white truncate px-1 py-0.5 font-bold">
+                    {activeCharacter.name}
+                  </div>
+                  <button 
+                    onClick={() => setActiveCharacter(null)} 
+                    className="absolute top-1 right-1 p-1 rounded-full bg-black/70 hover:bg-black/90 text-white transition-colors"
+                  >
                     <X size={10} />
                   </button>
                 </div>
               )}
               {activeImageReference && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-[10px] text-cyan-400">
-                  <ImageIcon size={10} />
-                  <span>Ref Image: {activeImageReference.prompt ? `${activeImageReference.prompt.slice(0, 15)}...` : "Selected image"}</span>
-                  <button onClick={() => setActiveImageReference(null)} className="text-zinc-500 hover:text-white transition-colors">
+                <div className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-video w-24 bg-black flex items-center justify-center shadow-lg">
+                  {activeImageReference.type === "video" ? (
+                    <video src={activeImageReference.url} className="w-full h-full object-cover" muted />
+                  ) : (
+                    <img src={activeImageReference.url} alt="Attached reference" className="w-full h-full object-cover" />
+                  )}
+                  <button 
+                    onClick={() => setActiveImageReference(null)} 
+                    className="absolute top-1 right-1 p-1 rounded-full bg-black/70 hover:bg-black/90 text-white transition-colors"
+                  >
                     <X size={10} />
                   </button>
                 </div>
