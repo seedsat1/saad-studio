@@ -1,5 +1,19 @@
 # Saad Studio — Project Context
 
+## Latest task: Google Flow Agent Workspace Integration (2026-07-03)
+
+- Status:
+  - Created a new page at `/google-flow` (`app/(dash)/(routes)/google-flow/page.tsx`) implementing a premium, dark-mode Google Flow Creative Agent Workspace mirroring the exact structure of the user's screenshot.
+  - The page displays the user's actual generated media assets (loaded from `/api/assets`) in a search-and-filter enabled grid, divided by media types (All Media, Images, Videos, Characters).
+  - Designed an interactive chatbot panel on the right with Clerk user greetings ("Hi [User Name]") and quick creative suggestions ("Brainstorm with me", "How do I get started?", "Teach me about what you can do").
+  - Bound the agent inputs directly to Google's generation engines (`gemini-3.1-flash-lite-image`/`gemini-3.1-flash-image` via `/api/generate/image` and `gemini-omni-flash` via `/api/video`) to dynamically trigger real asset generation from chat prompts and update the center gallery in real-time.
+  - Registered "Google Flow" under `VIDEO_FEATURES` inside `components/TopNavbar.tsx` for fast navigation access.
+- Affected files:
+  - `app/(dash)/(routes)/google-flow/page.tsx` [NEW]
+  - `components/TopNavbar.tsx` [MODIFY]
+- Verification:
+  - `npm run build` compiled successfully.
+
 ## Latest task: Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
 
 - Status:
