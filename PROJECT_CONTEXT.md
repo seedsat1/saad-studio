@@ -6714,6 +6714,8 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Separated the text message bubbles from the image/video attachment cards in `cinema-flow/page.tsx` chat feed to prevent media from being framed inside the orange user bubble container background.
   - Created a database POST asset registration endpoint in `app/api/assets/route.ts` to log custom uploaded media assets into the user's gallery catalog.
   - Enabled full drag-and-drop support: users can drop image/video files from their local computer directly into the chat container (which uploads the files to `/api/upload/frame`, saves them to the gallery, and sets them as active references), and can drag characters or assets directly from the gallery list to drop them into the chat interface to bind active references.
+  - Fixed HTML5 drag-and-drop overlay issues by making the overlay container `pointer-events-none` (preventing child elements from triggering false `dragleave` cancellations) and added a ref-based `dragCounter` to track entering/leaving child nodes accurately.
+  - Connected the `+` (plus) button in the chat input to a hidden browser file picker so users can select and upload local images or videos directly to set as references.
   - Updated all orange highlights and select colors in `cinema-flow/page.tsx` (modals, dropdown buttons, input active indicators, and user chat bubbles) to match the site's brand violet/purple colors.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx`

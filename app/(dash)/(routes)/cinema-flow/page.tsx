@@ -87,6 +87,8 @@ export default function CinemaFlowPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const dragCounterRef = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch user assets on load
   const loadAssets = async () => {
@@ -160,91 +162,104 @@ export default function CinemaFlowPage() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleFileSelection = async (file: File) => {
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      alert("Please select or drop an image or video file.");
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        const base64Raw = base64Data.split(",")[1];
+
+        // Upload to /api/upload/frame
+        const uploadRes = await fetch("/api/upload/frame", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            mimeType: file.type,
+            base64: base64Raw,
+          }),
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload file");
+        }
+
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          // Save to database gallery using our new POST endpoint
+          const saveRes = await fetch("/api/assets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: uploadData.url,
+              filename: file.name,
+              mimeType: file.type,
+            }),
+          });
+
+          if (saveRes.ok) {
+            const saveData = await saveRes.json();
+            if (saveData.asset) {
+              // Add to local state
+              setAssets(prev => [saveData.asset, ...prev]);
+              // Set as active reference
+              setActiveImageReference(saveData.asset);
+              setActiveCharacter(null);
+            }
+          } else {
+            const tempAsset = {
+              id: Math.random().toString(),
+              url: uploadData.url,
+              type: file.type.startsWith("video") ? "video" : "image",
+              prompt: file.name,
+            };
+            setActiveImageReference(tempAsset);
+            setActiveCharacter(null);
+          }
+        }
+      };
+    } catch (err) {
+      console.error("Upload failed:", err);
+      alert("Failed to upload file.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
+    dragCounterRef.current++;
     setIsDraggingOver(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDraggingOver(false);
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current--;
+    if (dragCounterRef.current <= 0) {
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    dragCounterRef.current = 0;
     setIsDraggingOver(false);
 
     // 1. Check if dropped files (e.g. from local computer)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-        alert("Please drop an image or video file.");
-        return;
-      }
-
-      try {
-        setUploadingFile(true);
-        // Read file as base64
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = async () => {
-          const base64Data = reader.result as string;
-          const base64Raw = base64Data.split(",")[1];
-
-          // Upload to /api/upload/frame
-          const uploadRes = await fetch("/api/upload/frame", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: file.name,
-              mimeType: file.type,
-              base64: base64Raw,
-            }),
-          });
-
-          if (!uploadRes.ok) {
-            throw new Error("Failed to upload dropped file");
-          }
-
-          const uploadData = await uploadRes.json();
-          if (uploadData.url) {
-            // Save to database gallery using our new POST endpoint
-            const saveRes = await fetch("/api/assets", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                url: uploadData.url,
-                filename: file.name,
-                mimeType: file.type,
-              }),
-            });
-
-            if (saveRes.ok) {
-              const saveData = await saveRes.json();
-              if (saveData.asset) {
-                // Add to local state
-                setAssets(prev => [saveData.asset, ...prev]);
-                // Set as active reference
-                setActiveImageReference(saveData.asset);
-                setActiveCharacter(null);
-              }
-            } else {
-              const tempAsset = {
-                id: Math.random().toString(),
-                url: uploadData.url,
-                type: file.type.startsWith("video") ? "video" : "image",
-                prompt: file.name,
-              };
-              setActiveImageReference(tempAsset);
-              setActiveCharacter(null);
-            }
-          }
-        };
-      } catch (err) {
-        console.error("Drop upload failed:", err);
-        alert("Failed to upload dropped file.");
-      } finally {
-        setUploadingFile(false);
-      }
+      await handleFileSelection(file);
       return;
     }
 
@@ -263,6 +278,13 @@ export default function CinemaFlowPage() {
           }
         }
       } catch (_) {}
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      await handleFileSelection(file);
     }
   };
 
@@ -981,6 +1003,7 @@ export default function CinemaFlowPage() {
 
       {/* 3. Right Panel - AI Chat Agent */}
       <div
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -992,7 +1015,7 @@ export default function CinemaFlowPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-violet-500/40 m-2 rounded-xl"
+              className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-violet-500/40 m-2 rounded-xl pointer-events-none"
             >
               <div className="h-16 w-16 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-400 border border-violet-500/20 mb-4 animate-bounce">
                 {uploadingFile ? <Loader2 className="h-8 w-8 animate-spin" /> : <Paperclip className="h-8 w-8" />}
@@ -1259,7 +1282,18 @@ export default function CinemaFlowPage() {
 
             <div className="flex items-center justify-between border-t border-white/5 pt-2 px-1">
               <div className="flex items-center gap-2">
-                <button className="p-1 rounded hover:bg-white/5 text-zinc-500 hover:text-white" title="Add source">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileInputChange}
+                  accept="image/*,video/*"
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-1 rounded hover:bg-white/5 text-zinc-500 hover:text-white"
+                  title="Add source"
+                >
                   <Plus size={14} />
                 </button>
               </div>
