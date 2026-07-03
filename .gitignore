@@ -83,3 +83,5 @@ adobe/New\ folder/*.msi
 **/app.asar.new*
 **/resources/app-asar-work/
 *.bak
+
+.env*

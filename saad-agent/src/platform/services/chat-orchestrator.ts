@@ -1,4 +1,4 @@
-﻿import * as path from "path";
+import * as path from "path";
 import * as fs from "fs/promises";
 import { CONFIG } from "../../config.js";
 import { BraveAnswersService } from "./brave-answers.js";
@@ -28,6 +28,69 @@ export interface ChatOrchestrationResult {
 
 export class ChatOrchestratorService {
   static async handleDirectChat(input: {
+    prompt: string;
+    workspacePath?: string;
+    projectName?: string;
+    sessionId?: string;
+    conversationId?: string;
+    approvalMode?: ApprovalMode;
+    approved?: boolean;
+    alwaysAllow?: boolean;
+    attachments?: Attachment[];
+    signal?: AbortSignal | undefined;
+  }): Promise<ChatOrchestrationResult> {
+    const prompt = EngineeringMemory.scrubSecrets(input.prompt || "").trim();
+    const sessionId = input.sessionId || input.conversationId || "desktop-chat";
+    const userRequestText = ChatOrchestratorService.extractUserRequest(prompt);
+    const conversationState = ConversationStateEngine.getState(sessionId);
+
+    // 1. Record user message in history
+    if (!conversationState.history) {
+      conversationState.history = [];
+    }
+    const lastMsg = conversationState.history[conversationState.history.length - 1];
+    if (!lastMsg || lastMsg.role !== "user" || lastMsg.content !== userRequestText) {
+      conversationState.history.push({ role: "user", content: userRequestText });
+    }
+    if (conversationState.history.length > 10) {
+      conversationState.history = conversationState.history.slice(-10);
+    }
+
+    // 2. Execute actual chat orchestration logic
+    const result = await this.executeDirectChat(input);
+
+    // 3. Record assistant response in history
+    if (result && result.response && !result.approvalRequest) {
+      let cleanResponse = result.response;
+      // Strip === Diagnostics === block if present to avoid history pollution
+      if (cleanResponse.startsWith("=== Diagnostics ===")) {
+        const parts = cleanResponse.split("\n\n");
+        if (parts.length > 1) {
+          cleanResponse = parts.slice(1).join("\n\n");
+        }
+      }
+      // Strip Knowledge Search: block if present
+      if (cleanResponse.startsWith("Knowledge Search:")) {
+        const lines = cleanResponse.split("\n");
+        const emptyLineIdx = lines.findIndex(l => l.trim() === "");
+        if (emptyLineIdx !== -1) {
+          cleanResponse = lines.slice(emptyLineIdx + 1).join("\n");
+        }
+      }
+
+      const lastAssistantMsg = conversationState.history[conversationState.history.length - 1];
+      if (!lastAssistantMsg || lastAssistantMsg.role !== "assistant" || lastAssistantMsg.content !== cleanResponse) {
+        conversationState.history.push({ role: "assistant", content: cleanResponse });
+      }
+      if (conversationState.history.length > 10) {
+        conversationState.history = conversationState.history.slice(-10);
+      }
+    }
+
+    return result;
+  }
+
+  private static async executeDirectChat(input: {
     prompt: string;
     workspacePath?: string;
     projectName?: string;
@@ -308,7 +371,7 @@ export class ChatOrchestratorService {
     }
 
     // 3. Load Memory / Training / Knowledge (Section 1)
-    const preAnswerReview = await PreAnswerReviewService.review(userRequestText, activeWorkspace, { taskId, conversationId });
+    const preAnswerReview = await PreAnswerReviewService.review(userRequestText, activeWorkspace, { taskId, conversationId }, intent === "conversation");
 
     if (ChatOrchestratorService.isExplicitCodexRuntimeRequest(userRequestText)) {
       await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Codex bridge context collected");
@@ -508,10 +571,11 @@ export class ChatOrchestratorService {
       }
     } else {
       const isGreeting = ChatOrchestratorService.isSimpleGreeting(userRequestText);
+      const isConversational = isGreeting || intent === "conversation";
 
       // 5. Project Context + Prompt Builder + LLM (Reasoning Engine)
       let contextSummary = "No workspace context was retrieved.";
-      if (!isGreeting) {
+      if (!isConversational) {
         try {
           const context = await ContextEngine.retrieveContext(userRequestText, activeWorkspace, 4096);
           contextSummary = context?.items?.slice(0, 6).map((item) => {
@@ -522,17 +586,17 @@ export class ChatOrchestratorService {
 
       // Detect and read local paths from the user's prompt
       let localFileSystemContext = "";
-      if (!isGreeting) {
+      if (!isConversational) {
         try {
           localFileSystemContext = await ChatOrchestratorService.detectAndReadLocalPaths(userRequestText);
         } catch {}
       }
 
-      const localMatches = isGreeting ? [] : KnowledgeManagerService.search(userRequestText);
+      const localMatches = isConversational ? [] : KnowledgeManagerService.search(userRequestText);
 
       // Augment user prompt with matched knowledge rules to force model application (Section 4)
       let promptAugmentationText = "";
-      const allMatches = isGreeting ? [] : [...preAnswerReview.knowledgeMatches, ...localMatches.map(m => ({ item: { filePath: m.sourcePath, summary: m.summary, title: m.title, category: m.category }, chunks: [] }))];
+      const allMatches = isConversational ? [] : [...preAnswerReview.knowledgeMatches, ...localMatches.map(m => ({ item: { filePath: m.sourcePath, summary: m.summary, title: m.title, category: m.category }, chunks: [] }))];
       
       if (allMatches.length > 0) {
         promptAugmentationText = "\n\nCRITICAL ENFORCED RULES (You MUST strictly apply these rules to generated plans or code):\n" + 
@@ -586,37 +650,53 @@ export class ChatOrchestratorService {
 
       let response: any = null;
       try {
-        response = await ReasoningEngine.requestCompletion({
-          role: "Coding",
-          systemPrompt: isGreeting ? [
-            "You are Saad Studio Agent, the user's local AI engineering agent.",
-            "Never identify yourself as ChatGPT, Gemini, Claude, OpenAI, or any provider model.",
-            "Always reply in natural Iraqi Arabic unless the user asks for another language.",
-            "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
-            "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
-            "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
-            "Reply directly with a concise, polite, and friendly greeting.",
-            "You have direct access to search the internet via the integrated Brave Search tool when requested.",
-            "Say phrases like: شلون أگدر أساعدك؟ or أكو شي ثاني تريد؟"
-          ].join("\n") : [
-            "You are Saad Studio Agent, the user's local AI engineering agent, tailored for software development.",
-            "Never identify yourself as ChatGPT, Gemini, Claude, OpenAI, or any provider model.",
-            "Always reply in natural Iraqi Arabic unless the user asks for another language.",
-            "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
-            "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
-            "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
-            "For technical replies, keep the Iraqi tone while staying precise, e.g. المشكلة مو بالـ API، المشكلة بالـ State Management.",
-            "If the topic is formal or scientific, use a slightly more formal Arabic style with a light Iraqi touch.",
-            "Reply directly with a polite, intelligent, and conversational tone.",
-            "You have direct access to search the internet via the integrated Brave Search tool. You can search the web and summarize online sources when requested.",
-            "Explain technical concepts clearly, structure your answers with markdown headings, tables, or lists, and provide code blocks when helpful.",
-            "Never answer before the orchestrator, memory, training knowledge, and context review have run.",
-            "Obey the Mandatory Pre-Answer Review Context before using model knowledge.",
-            "Use matched trained knowledge when it applies. If it conflicts with model knowledge, prefer trained knowledge.",
-            "Do not claim that you changed files unless an execution tool actually changed files.",
-            "If a provider/model/runtime problem prevents completion, explain the exact problem."
-          ].join("\n"),
-          userPrompt: isGreeting ? userRequestText : [
+        const systemPrompt = isConversational ? [
+          "You are Saad Studio Agent, the user's local AI assistant.",
+          "Never identify yourself as ChatGPT, Gemini, Claude, OpenAI, or any provider model.",
+          "Always reply in natural Iraqi Arabic unless the user asks for another language.",
+          "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
+          "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
+          "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
+          "Maintain context using the provided conversation history. Reply directly with a concise, polite, and friendly response."
+        ].join("\n") : [
+          "You are Saad Studio Agent, the user's local AI engineering agent, tailored for software development.",
+          "Never identify yourself as ChatGPT, Gemini, Claude, OpenAI, or any provider model.",
+          "Always reply in natural Iraqi Arabic unless the user asks for another language.",
+          "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
+          "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
+          "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
+          "For technical replies, keep the Iraqi tone while staying precise, e.g. المشكلة مو بالـ API، المشكلة بالـ State Management.",
+          "If the topic is formal or scientific, use a slightly more formal Arabic style with a light Iraqi touch.",
+          "Reply directly with a polite, intelligent, and conversational tone.",
+          "You have direct access to search the internet via the integrated Brave Search tool. You can search the web and summarize online sources when requested.",
+          "Explain technical concepts clearly, structure your answers with markdown headings, tables, or lists, and provide code blocks when helpful.",
+          "Never answer before the orchestrator, memory, training knowledge, and context review have run.",
+          "Obey the Mandatory Pre-Answer Review Context before using model knowledge.",
+          "Use matched trained knowledge when it applies. If it conflicts with model knowledge, prefer trained knowledge.",
+          "Do not claim that you changed files unless an execution tool actually changed files.",
+          "If a provider/model/runtime problem prevents completion, explain the exact problem."
+        ].join("\n");
+
+        let userPrompt = "";
+        if (isConversational) {
+          const history = conversationState.history || [];
+          if (history.length > 0) {
+            const formattedHistory = history.map((msg) => {
+              const senderName = msg.role === "user" ? "User" : "Assistant";
+              return `${senderName}: ${msg.content}`;
+            }).join("\n\n");
+            userPrompt = [
+              "Conversation history:",
+              formattedHistory,
+              "",
+              "Latest user request:",
+              userRequestText
+            ].join("\n");
+          } else {
+            userPrompt = userRequestText;
+          }
+        } else {
+          userPrompt = [
             `Project: ${input.projectName || path.basename(activeWorkspace)}`,
             preAnswerReview.finalContext,
             "Retrieved workspace context:",
@@ -625,7 +705,13 @@ export class ChatOrchestratorService {
             promptAugmentationText,
             "User request:",
             userRequestText
-          ].filter(Boolean).join("\n\n"),
+          ].filter(Boolean).join("\n\n");
+        }
+
+        response = await ReasoningEngine.requestCompletion({
+          role: "Coding",
+          systemPrompt,
+          userPrompt,
           signal: input.signal
         });
 
@@ -725,17 +811,18 @@ export class ChatOrchestratorService {
     }
 
     // Check dictionary matches
+    const isConversationalDiag = ChatOrchestratorService.isSimpleGreeting(userRequestText) || intent === "conversation";
     let dictMatchesCount = 0;
     try {
       const hasDialect = DomainResolver.resolve(userRequestText).domain === "iraqi_dialect";
       const hasHumanAttr = DomainResolver.resolve(userRequestText).domain === "human_attributes";
-      if (hasDialect || hasHumanAttr) {
+      if (!isConversationalDiag && (hasDialect || hasHumanAttr)) {
         dictMatchesCount = 1;
       }
     } catch {}
 
-    const localMatches = KnowledgeManagerService.search(userRequestText);
-    const allMatches = [...preAnswerReview.knowledgeMatches, ...localMatches.map(m => ({ item: { filePath: m.sourcePath, summary: m.summary, title: m.title, category: m.category }, chunks: [] }))];
+    const localMatches = isConversationalDiag ? [] : KnowledgeManagerService.search(userRequestText);
+    const allMatches = isConversationalDiag ? [] : [...preAnswerReview.knowledgeMatches, ...localMatches.map(m => ({ item: { filePath: m.sourcePath, summary: m.summary, title: m.title, category: m.category }, chunks: [] }))];
 
     // 6. Format Diagnostics Prefix (Section 17)
     const diagnosticsPrefix = [

@@ -1,5 +1,41 @@
 # Saad Studio — Project Context
 
+## Latest task: Conversational Context & Sequence Understanding Fix (2026-07-03)
+
+- Status:
+  - Resolved the conversational context tracking issue by introducing in-memory history tracking in the chat orchestration layer.
+  - Conversational intents (e.g. follow-up inputs like "مادي") now bypass heavy engineering workspace context scanning, local path detection, and rule matches to prevent flooding the prompt with technical noise.
+  - The LLM prompt now injects the formatted thread of recent chat turns (up to 10 messages) alongside the latest user request, enabling the model to understand context-dependent follow-up inputs.
+- Affected files:
+  - `saad-agent/src/platform/services/conversation-state-engine.ts` [MODIFY]
+  - `saad-agent/src/platform/services/pre-answer-review.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - Compiled backend successfully using `npm run build`.
+  - Intent Engine unit tests (`node dist/test-intent-engine-v2.js`) passed successfully (107 cases).
+  - Packed updated dist into `app.asar` successfully.
+- Decisions:
+  - Store conversation history in-memory inside the session state wrapper to maintain privacy and conform to security constraints.
+  - Bypass project file and rules retrieval when the prompt is classified as a conversational intent.
+
+## Latest task: Dictionaries TypeError Reduce Crash Fix & app.asar Packaging (2026-07-03)
+
+- Status:
+  - Resolved a runtime TypeError crash (`Uncaught TypeError: t.reduce is not a function` at `index-BEqDis6I.js:46:12759`) inside the `KnowledgeManager` component when dictionaries contains non-array values.
+  - Added `Array.isArray(terms)` safety guards to stats calculations and mapping in `saad-agent/ui/src/components/KnowledgeManager.tsx`.
+  - Cleaned the UI build directory and rebuilt UI bundle with Vite.
+  - Cleaned stale assets from the staging unpacked resource directory and repacked the portable production `app.asar` archive.
+- Affected files:
+  - `saad-agent/ui/src/components/KnowledgeManager.tsx` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - Verified Vite built UI files successfully.
+  - Verified the new build files are included in the new `app.asar` archive (size reduced from 11MB to 4.7MB by cleaning up 20 stale asset copies).
+- Decisions:
+  - Always clean target staging directories before repacking resources to avoid bloating the packaged `.asar` file.
+  - Enforce defensive array checks on dynamic key-value dictionaries inside React components.
+
 ## Latest task: Gemini Stable Image Model GA & Video Polling & CORS Fixes (2026-07-03)
 
 - Status:

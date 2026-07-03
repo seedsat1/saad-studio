@@ -208,7 +208,7 @@ function errorMessage(err: unknown) {
 }
 
 function isMissingProviderTask(message: string) {
-  return /job not found|task not found|operation not found|not found in cache storage|expired|404|410/i.test(message);
+  return /job not found|task not found|operation not found|not found in cache storage|expired|404|410|400|bad request|403|forbidden|unauthorized|401/i.test(message);
 }
 
 function getKieKeyFromEnv(): string | null {

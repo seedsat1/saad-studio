@@ -12,10 +12,50 @@ export class PreAnswerReviewService {
   static async review(
     prompt: string,
     workspacePath = CONFIG.PROJECT_ROOT,
-    traceContext?: { taskId: string; conversationId: string }
+    traceContext?: { taskId: string; conversationId: string },
+    isConversational?: boolean
   ): Promise<PreAnswerReviewResult> {
     const safePrompt = EngineeringMemory.scrubSecrets(prompt || "").trim();
     await KnowledgeIngestionService.ensureTrainingFolders(workspacePath);
+
+    if (isConversational) {
+      if (traceContext) {
+        const phases = [
+          { phase: "loading_project_context", label: "Project context skipped (conversational mode)", service: "PreAnswerReviewService" },
+          { phase: "loading_memory", label: "Memory context skipped (conversational mode)", service: "EngineeringMemory" },
+          { phase: "loading_knowledge", label: "Knowledge context skipped (conversational mode)", service: "KnowledgeIngestionService" },
+          { phase: "selecting_skills", label: "Skills selected (none loaded in conversational mode)", service: "SkillRegistry" },
+          { phase: "selecting_workflow", label: "Workflow selected", service: "IntentEngine" }
+        ];
+        for (const p of phases) {
+          ExecutionTraceEmitter.emit({
+            taskId: traceContext.taskId,
+            conversationId: traceContext.conversationId,
+            phase: p.phase,
+            status: "active",
+            label: p.label,
+            sourceService: p.service
+          });
+          ExecutionTraceEmitter.emit({
+            taskId: traceContext.taskId,
+            conversationId: traceContext.conversationId,
+            phase: p.phase,
+            status: "done",
+            label: p.label,
+            safeDetails: p.phase === "selecting_workflow" ? { intent: "conversation" } : {},
+            sourceService: p.service
+          });
+        }
+      }
+      return {
+        diagnostics: "Conversational mode: bypassed engineering review",
+        finalContext: "",
+        knowledgeMatches: [],
+        skillsLoaded: [],
+        projectContextLoaded: false,
+        noKnowledgeNotice: null
+      };
+    }
 
     if (traceContext) {
       ExecutionTraceEmitter.emit({

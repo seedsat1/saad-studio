@@ -9,21 +9,30 @@
 
 import { GenerateVideosOperation, GoogleGenAI } from "@google/genai";
 
-const KEY =
-  process.env.GOOGLE_AI_API_KEY ||
-  process.env.GOOGLE_API_KEY ||
-  process.env.GEMINI_API_KEY ||
-  process.env.GOOGLE_GENAI_API_KEY ||
-  "";
+export function getGoogleApiKey(): string {
+  return (
+    process.env.GOOGLE_AI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    ""
+  );
+}
 
 let _client: GoogleGenAI | null = null;
+let _cachedKey: string | null = null;
+
 export function getGenAI(): GoogleGenAI {
-  if (!KEY) {
+  const key = getGoogleApiKey();
+  if (!key) {
     throw new Error(
       "Google AI API key is not configured. Set GOOGLE_AI_API_KEY, GOOGLE_API_KEY, GEMINI_API_KEY, or GOOGLE_GENAI_API_KEY.",
     );
   }
-  if (!_client) _client = new GoogleGenAI({ apiKey: KEY });
+  if (!_client || _cachedKey !== key) {
+    _client = new GoogleGenAI({ apiKey: key });
+    _cachedKey = key;
+  }
   return _client;
 }
 
@@ -110,7 +119,8 @@ export async function startVeoGeneration(
   const model = VEO_MODELS[params.tier];
 
   if (params.tier === "omni_flash") {
-    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${KEY}`;
+    const key = getGoogleApiKey();
+    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${key}`;
     
     // Support multimodal input parts if image is present
     let input: any = params.prompt;
@@ -128,7 +138,10 @@ export async function startVeoGeneration(
     
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": key,
+      },
       body: JSON.stringify({
         model: "gemini-omni-flash-preview",
         input,
@@ -194,8 +207,13 @@ export async function pollVeoOperation(
     const interactionId = handle.name.startsWith("interactions/")
       ? handle.name.replace("interactions/", "")
       : handle.name;
-    const url = `https://generativelanguage.googleapis.com/v1beta/interactions/${interactionId}?key=${KEY}`;
-    const res = await fetch(url);
+    const key = getGoogleApiKey();
+    const url = `https://generativelanguage.googleapis.com/v1beta/interactions/${interactionId}?key=${key}`;
+    const res = await fetch(url, {
+      headers: {
+        "x-goog-api-key": key,
+      },
+    });
     if (!res.ok) {
       throw new Error(`Interactions polling failed: ${res.status} ${res.statusText}`);
     }
@@ -383,15 +401,21 @@ export async function downloadVeoVideo(
     };
   }
 
-  if (!KEY) {
+  const key = getGoogleApiKey();
+  if (!key) {
     throw new Error("GOOGLE_AI_API_KEY missing — cannot download Veo output.");
   }
   // The URI returned by the SDK requires the API key appended.
   const url = videoUri.includes("?")
-    ? `${videoUri}&key=${KEY}`
-    : `${videoUri}?key=${KEY}`;
+    ? `${videoUri}&key=${key}`
+    : `${videoUri}?key=${key}`;
 
-  const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+  const res = await fetch(url, { 
+    headers: {
+      "x-goog-api-key": key,
+    },
+    signal: AbortSignal.timeout(120_000) 
+  });
   if (!res.ok) {
     throw new Error(`Veo download failed: ${res.status} ${res.statusText}`);
   }

@@ -6,6 +6,11 @@ export interface PendingClarificationState {
   timestamp: number;
 }
 
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface ConversationState {
   sessionId: string;
   activeWorkflow: string | null;
@@ -15,6 +20,7 @@ export interface ConversationState {
   lastPrompt?: string | undefined;
   lastTimestamp: number;
   pendingClarification?: PendingClarificationState | null;
+  history?: ConversationMessage[];
 }
 
 export class ConversationStateEngine {

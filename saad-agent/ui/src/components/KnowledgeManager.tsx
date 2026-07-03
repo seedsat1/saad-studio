@@ -504,9 +504,9 @@ export function KnowledgeManager() {
     totalDocs: stats?.totalDocuments || documents.length,
     totalPages: stats?.totalPages || documents.length,
     totalChunks: stats?.totalChunks || documents.reduce((acc: number, d: any) => acc + d.chunkCount, 0),
-    totalTerms: stats?.dictionaryTerms || Object.values(dictionaries).reduce((acc: number, terms: any) => acc + terms.length, 0),
-    totalExamples: Object.values(dictionaries).reduce((acc: number, terms: any) => acc + terms.reduce((k: number, t: any) => k + (t.examples?.length || 0), 0), 0),
-    totalCodeSnippets: Object.values(dictionaries).reduce((acc: number, terms: any) => acc + terms.reduce((k: number, t: any) => k + (t.codeExamples?.length || 0), 0), 0),
+    totalTerms: stats?.dictionaryTerms || Object.values(dictionaries).reduce((acc: number, terms: any) => acc + (Array.isArray(terms) ? terms.length : 0), 0),
+    totalExamples: Object.values(dictionaries).reduce((acc: number, terms: any) => acc + (Array.isArray(terms) ? terms.reduce((k: number, t: any) => k + (t.examples?.length || 0), 0) : 0), 0),
+    totalCodeSnippets: Object.values(dictionaries).reduce((acc: number, terms: any) => acc + (Array.isArray(terms) ? terms.reduce((k: number, t: any) => k + (t.codeExamples?.length || 0), 0) : 0), 0),
     storageUsed: (documents.reduce((acc: number, d: any) => acc + (d.chunkCount * 600), 0) / 1024).toFixed(1) + " KB",
     avgSearchTime: "1.4 ms",
     coverage: documents.length > 0 ? "94.5%" : "0%"
@@ -1375,6 +1375,7 @@ export function KnowledgeManager() {
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", overflowY: "auto", maxHeight: "400px", alignContent: "flex-start" }}>
                 {Object.entries(dictionaries).map(([cat, terms]) => {
                   if (selectedCategory !== "all" && cat !== selectedCategory) return null;
+                  if (!Array.isArray(terms)) return null;
                   return terms
                     .filter(t => t.term.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map(term => (
