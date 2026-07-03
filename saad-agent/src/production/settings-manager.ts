@@ -552,8 +552,14 @@ export class SettingsManager {
   }
 
   static async getProviderApiKey(provider: ProviderSettings): Promise<string | undefined> {
-    if (!provider.apiKeySecretRef) return undefined;
-    return SecretsManager.getSecret(provider.apiKeySecretRef);
+    if (provider.apiKeySecretRef) {
+      const storedSecret = SecretsManager.getSecret(provider.apiKeySecretRef);
+      if (storedSecret) return storedSecret;
+    }
+    if (provider.id === "brave-answers") {
+      return process.env["BRAVE_ANSWERS_API_KEY"] || process.env["BRAVE_SEARCH_API_KEY"] || process.env["BRAVE_API_KEY"];
+    }
+    return undefined;
   }
 
   private static normalizeProviderEndpoint(provider: ProviderSettings): string {

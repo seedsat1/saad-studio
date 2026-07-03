@@ -35,17 +35,47 @@ export class SecretsManager {
   private static ENCRYPTION_KEY = crypto.scryptSync("saad-secret-pass", "salt", 32);
   private static IV_LENGTH = 16;
   private static loaded = false;
-  private static secretsFile = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "secrets", "encrypted-secrets.json");
+  private static secretsRoot = () => process.env["SAAD_AGENT_SETTINGS_ROOT"] || path.join(CONFIG.PROJECT_ROOT, ".saad-agent");
+  private static secretsFile = () => path.join(this.secretsRoot(), "secrets", "encrypted-secrets.json");
+  private static legacySecretsFile = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "secrets", "encrypted-secrets.json");
 
   private static loadStore(): void {
     if (this.loaded) return;
     this.loaded = true;
     try {
+      const currentFile = this.secretsFile();
+      const legacyFile = this.legacySecretsFile();
+      if (currentFile !== legacyFile && !fs.existsSync(currentFile) && fs.existsSync(legacyFile)) {
+        fs.mkdirSync(path.dirname(currentFile), { recursive: true });
+        fs.copyFileSync(legacyFile, currentFile);
+      }
       const raw = fs.readFileSync(this.secretsFile(), "utf8");
       const parsed = JSON.parse(raw);
       this.store = new Map(Object.entries(parsed).map(([key, value]) => [key, String(value)]));
+      if (currentFile !== legacyFile && fs.existsSync(legacyFile)) {
+        const legacyRaw = fs.readFileSync(legacyFile, "utf8");
+        const legacyParsed = JSON.parse(legacyRaw);
+        let merged = false;
+        for (const [key, value] of Object.entries(legacyParsed)) {
+          if (!this.store.has(key)) {
+            this.store.set(key, String(value));
+            merged = true;
+          }
+        }
+        if (merged) this.persistStore();
+      }
     } catch {
       this.store = new Map();
+      const currentFile = this.secretsFile();
+      const legacyFile = this.legacySecretsFile();
+      if (currentFile !== legacyFile && fs.existsSync(legacyFile)) {
+        try {
+          const legacyRaw = fs.readFileSync(legacyFile, "utf8");
+          const legacyParsed = JSON.parse(legacyRaw);
+          this.store = new Map(Object.entries(legacyParsed).map(([key, value]) => [key, String(value)]));
+          this.persistStore();
+        } catch {}
+      }
     }
   }
 

@@ -1,5 +1,74 @@
 # Saad Studio — Project Context
 
+## Latest task: Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
+
+- Status:
+  - Fixed Brave Answers search failing with "API key missing" even when the provider key was configured in Settings.
+  - Root cause: provider Settings were loaded from the Electron app data root while `SecretsManager` still read encrypted provider secrets from the workspace `.saad-agent` path, so packaged runtime could lose the stored `provider:brave-answers:api-key` reference.
+  - `SecretsManager` now resolves encrypted secrets from `SAAD_AGENT_SETTINGS_ROOT` when present, matching `SettingsManager`, and migrates missing legacy workspace secrets into the active app-data secret store.
+  - `SettingsManager.getProviderApiKey` keeps encrypted storage as the primary source and allows Brave-specific environment variables only as a fallback when no stored secret exists.
+  - Electron main now preserves an externally supplied `SAAD_AGENT_SETTINGS_ROOT` instead of overwriting it unconditionally.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar` with the updated backend files.
+- Affected files:
+  - `saad-agent/src/platform/services/connectors.ts` [MODIFY]
+  - `saad-agent/src/production/settings-manager.ts` [MODIFY]
+  - `saad-agent/src/desktop/main.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Smoke test confirmed `SettingsManager.saveProviderSecret("brave-answers", ...)` returns the encrypted secret through `getProviderApiKey`.
+  - Smoke test confirmed Brave env fallback works when no encrypted secret reference is present.
+  - Verified updated `connectors.js`, `settings-manager.js`, and `main.js` are present inside the packaged `app.asar`.
+- Decisions:
+  - Do not store or log Brave API keys in Settings JSON, diagnostics, memory, or final reports.
+  - Encrypted provider secret storage must share the same app-data root as provider Settings in packaged Electron.
+  - Stored encrypted secrets take priority over environment variables; env is only a development/recovery fallback.
+
+## Latest task: Saad Agent Internal Static Page Executor Fallback (2026-07-03)
+
+- Status:
+  - Added a real internal workspace executor fallback for simple static page creation requests when `CodexRuntimeBridge` cannot execute the local Codex CLI.
+  - Confirmed the local WindowsApps `codex.exe` is present but not spawnable from Node/Electron on this machine (`Access is denied` / `spawn EPERM`), so the app must not stop at a generic Codex failure for simple page scaffolding tasks.
+  - The fallback handles Arabic/Iraqi page creation phrasing such as `اريد تنشئلي صفحة...` and writes actual `index.html`, `styles.css`, `script.js`, and `README.md` files inside the resolved trusted workspace.
+  - Both explicit Codex-runtime routing and normal `PLAN` / `engineering_workflow` routing now try the internal fallback after Codex runtime failure, while still reporting Codex failures for unsupported complex tasks.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar` with the updated backend files and the new executor service.
+- Affected files:
+  - `saad-agent/src/platform/services/internal-workspace-executor.ts` [NEW]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Source smoke test through `ChatOrchestratorService` created `index.html`, `styles.css`, `script.js`, and `README.md` in `.tmp-internal-executor-test`.
+  - Packaged smoke test from extracted production `app.asar` created the same files in `.tmp-packaged-internal-executor-test`.
+- Decisions:
+  - Keep the fallback intentionally limited to deterministic static page creation so it performs real safe work without pretending to replace Codex for arbitrary engineering tasks.
+  - Continue requiring a spawnable Codex CLI/SDK path for broad codebase inspection, multi-file refactors, builds, and advanced task execution.
+  - Never claim Codex execution succeeded when the CLI is blocked; use internal execution only when the local deterministic executor actually writes files.
+
+## Latest task: Saad Agent Local Path Engineering Request Routing Fix (2026-07-03)
+
+- Status:
+  - Fixed local-path engineering requests being misclassified as normal conversation/ANSWER.
+  - Requests that combine a local filesystem path (for example `C:\Users\PC\Desktop\test`) with Arabic/Iraqi execution verbs such as `سوي`, `اشتغل`, `اعمل`, `جهز`, `رتب`, `اكتب`, `انشئ`, `عدل`, or `اصلح` are now classified as `PLAN` with `engineering_workflow`.
+  - `ChatOrchestratorService` now resolves an explicit local path in the user request as the active workspace when that path exists, falling back to the current workspace if it does not exist.
+  - Repacked the production `release-production-v4/win-unpacked/resources/app.asar` with the updated backend files.
+- Affected files:
+  - `saad-agent/src/platform/services/execution-policy.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Source smoke test: `وسوي سعد اشتغل فيريم داخل هذا الفولد C:\Users\PC\Desktop\test` returned `PLAN`, `engineering_workflow`, and no approval under `approve_for_me`.
+  - Packaged smoke test from extracted `app.asar` returned the same `PLAN` / `engineering_workflow` result.
+  - Packaged smoke test for `ابحثلي Seedance 2.0 Mini` still returned `SEARCH` / `external_research`.
+- Decisions:
+  - Treat explicit local path + execution verb as an engineering request, not chat.
+  - Use the user's explicit existing folder as execution workspace so folder-targeted tasks do not answer verbally against the wrong active project.
+  - Do not claim execution if the runtime bridge fails; report the real runtime result or failure.
+
 ## Latest task: Conversational Context & Sequence Understanding Fix (2026-07-03)
 
 - Status:

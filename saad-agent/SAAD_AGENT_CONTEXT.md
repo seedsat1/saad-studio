@@ -213,6 +213,16 @@ Provider settings must persist globally under the Electron application data root
 
 API keys must be stored only through encrypted secret references. Settings JSON must store metadata and secret references only.
 
+Provider Settings and encrypted provider secrets must resolve from the same Electron app data root. In packaged runtime, `SAAD_AGENT_SETTINGS_ROOT` is the authoritative Settings/Secrets root when present. Legacy workspace `.saad-agent/secrets/` entries may be migrated into the active app-data secret store, but plaintext API keys must never be copied into Settings JSON, logs, memory, or diagnostics.
+
+For Brave Answers:
+
+- Provider id: `brave-answers`.
+- Secret reference: `provider:brave-answers:api-key`.
+- Header: `X-Subscription-Token`.
+- Endpoint: `https://api.search.brave.com/res/v1/web/search`.
+- Encrypted stored secret is the primary source. `BRAVE_ANSWERS_API_KEY`, `BRAVE_SEARCH_API_KEY`, and `BRAVE_API_KEY` are fallback-only when no stored secret exists.
+
 LM Studio is a provider, not an MCP server.
 
 For LM Studio 0.4.18:

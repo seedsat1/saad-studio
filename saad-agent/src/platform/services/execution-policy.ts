@@ -148,12 +148,19 @@ export class ExecutionPolicyService {
     const englishModification = /\b(create|write|delete|fix|implement|update|modify|add|replace|repack|run|build|generate|refactor|remove|edit)\b/i.test(lowerPrompt);
     if (englishModification) return true;
 
+    const hasLocalFilesystemPath = /[a-z]:[\\/][^\r\n]+/i.test(lowerPrompt)
+      || /(?:^|\s)(?:\.{1,2}[\\/]|~[\\/])/.test(lowerPrompt);
     const arabicAction = /(?:^|\s)(?:اريد|ابي|احتاج|سوي|سو|اعمل|اصنع|ابني|اكتب|اضف|زد|انشئ|انشء|انشا|انشاء|عدل|عدله|غير|بدل|طبق|حدث|اصلح|صلح|احذف|ارفع|غلف|شغل|نفذ)(?:\s|$)/.test(normalizedArabic);
     const engineeringTarget = /(?:صفحه|صفحات|page|component|مكون|كومبوننت|route|راوت|api|كود|ملف|فولدر|مشروع|واجهه|واجهة|زر|مودل|مزود|provider|model|settings|composer|chat|محادثه|محادثة|نافذه|نافذة)/i.test(normalizedArabic);
     const directEngineeringPhrase = /(?:انشئ|انشء|انشا|انشاء|سوي|اصنع|ابني|اضف|اكتب).*(?:صفحه|صفحات|مكون|كومبوننت|api|route|راوت|كود|ملف|واجهه|واجهة)/i.test(normalizedArabic)
       || /(?:اصلح|صلح|عدل|غير|بدل|حدث|طبق).*(?:خطا|خطأ|مشكله|مشكلة|bug|error|كود|صفحه|صفحة|واجهه|واجهة)/i.test(normalizedArabic);
 
-    return directEngineeringPhrase || (arabicAction && engineeringTarget);
+    const localPathAction = /(?:^|\s)(?:سوي|سو|سوه|اعمل|اشتغل|شغل|جهز|رتب|اكتب|انشئ|انشء|ابني|اصنع|عدل|اصلح|صلح|طبق)(?:\s|$)/.test(normalizedArabic)
+      || /\b(create|make|build|write|implement|setup|set up|fix|edit|modify|add|work)\b/i.test(lowerPrompt);
+    const folderOrPathTarget = hasLocalFilesystemPath
+      || /(?:فولد|فولدر|مجلد|مسار|باث|فريم|مشروع|folder|directory|workspace|path|frame|starter|app)/i.test(normalizedArabic);
+
+    return directEngineeringPhrase || (arabicAction && engineeringTarget) || (localPathAction && folderOrPathTarget);
   }
 
   private static isExternalResearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {

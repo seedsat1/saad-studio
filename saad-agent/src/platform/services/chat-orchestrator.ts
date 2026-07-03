@@ -18,6 +18,8 @@ import { TaskStateStore, type TaskLifecycleState } from "./state-store.js";
 import { LearningEngine } from "./learning-engine.js";
 import { ConversationStateEngine } from "./conversation-state-engine.js";
 import { CodexRuntimeBridge } from "./codex-runtime-bridge.js";
+import { InternalWorkspaceExecutor } from "./internal-workspace-executor.js";
+import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 
 export interface ChatOrchestrationResult {
   response: string;
@@ -103,11 +105,15 @@ export class ChatOrchestratorService {
     signal?: AbortSignal | undefined;
   }): Promise<ChatOrchestrationResult> {
     const prompt = EngineeringMemory.scrubSecrets(input.prompt || "").trim();
-    const activeWorkspace = input.workspacePath || CONFIG.PROJECT_ROOT;
     const sessionId = input.sessionId || input.conversationId || "desktop-chat";
     const conversationId = input.conversationId || sessionId;
     const effectiveApprovalMode = ApprovalPolicyService.normalizeMode(input.approvalMode);
     const userRequestText = ChatOrchestratorService.extractUserRequest(prompt);
+    const activeWorkspace = await ChatOrchestratorService.resolveWorkspaceFromPrompt(
+      userRequestText,
+      input.workspacePath || CONFIG.PROJECT_ROOT
+    );
+    await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
     const conversationState = ConversationStateEngine.getState(sessionId);
 
     if (!input.attachments?.length) {
@@ -417,10 +423,31 @@ export class ChatOrchestratorService {
         };
       }
 
-      await TaskStateStore.transitionTask(taskId, "VERIFYING", "Codex bridge result captured");
       if (codexResult.success) {
+        await TaskStateStore.transitionTask(taskId, "VERIFYING", "Codex bridge result captured");
         await TaskStateStore.transitionTask(taskId, "COMPLETED", "Codex runtime completed");
       } else {
+        const internalResult = await InternalWorkspaceExecutor.tryExecute({
+          taskId,
+          conversationId,
+          workspacePath: activeWorkspace,
+          prompt: userRequestText
+        });
+
+        if (internalResult.handled) {
+          if (internalResult.success) {
+            await TaskStateStore.transitionTask(taskId, "VERIFYING", "Internal executor wrote files");
+            await TaskStateStore.transitionTask(taskId, "COMPLETED", "Internal workspace execution completed");
+          } else {
+            await TaskStateStore.transitionTask(taskId, "FAILED", internalResult.error || "Internal workspace execution failed");
+          }
+          return {
+            intent,
+            usedModel: false,
+            response: internalResult.response
+          };
+        }
+
         await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
       }
 
@@ -495,10 +522,31 @@ export class ChatOrchestratorService {
         };
       }
 
-      await TaskStateStore.transitionTask(taskId, "VERIFYING", "Codex bridge result captured");
       if (codexResult.success) {
+        await TaskStateStore.transitionTask(taskId, "VERIFYING", "Codex bridge result captured");
         await TaskStateStore.transitionTask(taskId, "COMPLETED", "Codex runtime completed");
       } else {
+        const internalResult = await InternalWorkspaceExecutor.tryExecute({
+          taskId,
+          conversationId,
+          workspacePath: activeWorkspace,
+          prompt: userRequestText
+        });
+
+        if (internalResult.handled) {
+          if (internalResult.success) {
+            await TaskStateStore.transitionTask(taskId, "VERIFYING", "Internal executor wrote files");
+            await TaskStateStore.transitionTask(taskId, "COMPLETED", "Internal workspace execution completed");
+          } else {
+            await TaskStateStore.transitionTask(taskId, "FAILED", internalResult.error || "Internal workspace execution failed");
+          }
+          return {
+            intent,
+            usedModel: false,
+            response: internalResult.response
+          };
+        }
+
         await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
       }
 
@@ -1382,6 +1430,40 @@ export class ChatOrchestratorService {
       .replace(/[؟?!.،,؛:()"']/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  private static extractFirstLocalPath(prompt: string): string | null {
+    const match = prompt.match(/[a-zA-Z]:[\\/][^\r\n"'<>|]+/);
+    if (!match) return null;
+    return match[0]
+      .replace(/[`"'<>]+/g, "")
+      .replace(/[.،,؛;؟?!]+$/g, "")
+      .trim();
+  }
+
+  private static async resolveWorkspaceFromPrompt(prompt: string, fallbackWorkspace: string): Promise<string> {
+    const candidate = ChatOrchestratorService.extractFirstLocalPath(prompt);
+    if (!candidate) return fallbackWorkspace;
+
+    let current = candidate;
+    while (current.length > 3) {
+      const stat = await fs.stat(current).catch(() => null);
+      if (stat?.isDirectory()) return current;
+      if (stat?.isFile()) return path.dirname(current);
+
+      const trimmed = current.replace(/[\\/]$/, "");
+      const lastSpaceIdx = trimmed.lastIndexOf(" ");
+      if (lastSpaceIdx > 2) {
+        current = trimmed.slice(0, lastSpaceIdx).trim();
+        continue;
+      }
+
+      const parent = path.dirname(trimmed);
+      if (!parent || parent === trimmed) break;
+      current = parent;
+    }
+
+    return fallbackWorkspace;
   }
 
   static async detectAndReadLocalPaths(prompt: string): Promise<string> {

@@ -1277,7 +1277,7 @@ async function createWindow() {
 }
 
 app.on("ready", () => {
-  process.env["SAAD_AGENT_SETTINGS_ROOT"] = app.getPath("userData");
+  process.env["SAAD_AGENT_SETTINGS_ROOT"] = process.env["SAAD_AGENT_SETTINGS_ROOT"] || app.getPath("userData");
   void createWindow();
 });
 

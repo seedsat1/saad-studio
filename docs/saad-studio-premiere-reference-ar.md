@@ -1,5 +1,23 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
+- Brave Answers external search uses provider id `brave-answers` and encrypted secret reference `provider:brave-answers:api-key`.
+- In the packaged Electron runtime, provider Settings and encrypted provider secrets must resolve from the same `SAAD_AGENT_SETTINGS_ROOT` / Electron app data root.
+- Legacy workspace secrets can be migrated into the active app-data secret store, but API keys must not be written into Settings JSON, logs, diagnostics, memory, or project documentation.
+- The Brave request header remains `X-Subscription-Token`; stored encrypted secrets take priority over environment-variable fallback.
+
+## Saad Agent Internal Static Page Executor Fallback (2026-07-03)
+- If `CodexRuntimeBridge` reaches execution but the installed Codex CLI is not spawnable from Node/Electron (`Access is denied` / `spawn EPERM`), Saad Agent may use a deterministic internal fallback only for simple static page creation requests.
+- The fallback is intentionally limited: it writes real `index.html`, `styles.css`, `script.js`, and `README.md` files inside the resolved trusted workspace and reports the exact files written.
+- This fallback must not be described as full Codex replacement. Complex codebase edits, refactors, tests, and broad project execution still require a spawnable Codex CLI/SDK runtime or another real execution backend.
+- Requests such as `اريد تنشئلي صفحة خاصة... داخل C:\Users\PC\Desktop\test` should create files when the path is trusted/resolved and approval policy allows safe edits.
+
+## Saad Agent Local Path Engineering Request Routing (2026-07-03)
+- Direct chat requests that include an explicit local path and an execution verb are engineering tasks, not casual conversation.
+- Example: `وسوي سعد اشتغل فيريم داخل هذا الفولد C:\Users\PC\Desktop\test` must classify as `PLAN` / `engineering_workflow`, not `ANSWER` / `conversation`.
+- When the mentioned local path exists, `ChatOrchestratorService` uses it as the active workspace for the request. If it does not exist, the runtime falls back to the current workspace and should report the real path/workspace issue instead of giving generic manual instructions.
+- External research routing remains separate; requests like `ابحثلي Seedance 2.0 Mini` must continue to classify as `SEARCH` / `external_research`.
+
 ## إصلاح تسلسل المحادثة وفهم السياق في Saad Agent (2026-07-03)
 - تم إدماج ذاكرة تاريخ المحادثة في طبقة التنسيق المباشر (Direct Chat).
 - يقوم النظام الآن بحفظ آخر 10 رسائل (5 أدوار حوارية) في الذاكرة المؤقتة للـ Session.
