@@ -194,6 +194,7 @@ function extractGoogleInlineImages(value: unknown): Array<{ data: string; mimeTy
 
 async function generateGoogleCharacterImages(params: {
   apiKey: string;
+  googleModel: string;
   prompt: string;
   referenceUrls: string[];
   aspectRatio: string;
@@ -206,7 +207,7 @@ async function generateGoogleCharacterImages(params: {
   }
 
   const res = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GOOGLE_GEMINI_CHARACTER_MODEL_ID}:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${params.googleModel}:generateContent`,
     {
       method: "POST",
       headers: {
@@ -374,9 +375,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: precheck.message, blocked: true, reason: precheck.reason }, { status: 403 });
     }
 
-    const isGoogleGeminiCharacterModel =
-      modelId === GOOGLE_GEMINI_CHARACTER_MODEL_ID ||
-      modelId === LEGACY_GEMINI_OMNI_CHARACTER_MODEL_ID;
+    const isGoogleGeminiCharacterModel = [
+      "gemini-3-pro-image-preview",
+      "gemini-3-pro-image",
+      "gemini-3.1-flash-image",
+      "gemini-3.1-flash-lite-image",
+      "gemini-omni-character",
+      "gemini-2.5-flash-image"
+    ].includes(modelId);
 
     if (isGoogleGeminiCharacterModel) {
       const apiKey = getGoogleApiKey();
@@ -387,15 +393,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         );
       }
 
-      const creditsToCharge = await getGenerationCost(GOOGLE_GEMINI_CHARACTER_MODEL_ID, 5, 1, quality);
-      if (creditsToCharge <= 0) return NextResponse.json({ error: "No credit configuration for Gemini 3 Pro Image." }, { status: 400 });
+      const creditsToCharge = await getGenerationCost(modelId, 5, 1, quality);
+      if (creditsToCharge <= 0) return NextResponse.json({ error: "No credit configuration for the selected Gemini image model." }, { status: 400 });
 
       const charge = await spendCredits({
         userId,
         credits: creditsToCharge,
         prompt: sanitizePrompt(fullPrompt, 5000),
         assetType: "IMAGE",
-        modelUsed: GOOGLE_GEMINI_CHARACTER_MODEL_ID,
+        modelUsed: modelId,
       });
       generationId = charge.generationId;
       chargedCredits = creditsToCharge;
@@ -404,6 +410,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       const referenceUrls = Array.from(new Set([image, ...refs].filter((url) => isSafePublicHttpUrl(url)))).slice(0, 8);
       const generatedImages = await generateGoogleCharacterImages({
         apiKey,
+        googleModel: modelId,
         prompt: [
           fullPrompt,
           "Use the attached reference images as the locked character identity.",
@@ -418,11 +425,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
       if (generationId && imageUrls[0]) {
         await setGenerationMediaUrl(generationId, imageUrls[0]).catch((err) => {
-          console.error("[gemini-3-pro-image-preview] Failed to save media URL", err);
+          console.error(`[${modelId}] Failed to save media URL`, err);
         });
       }
       if (imageUrls.length > 1) {
-        await saveAdditionalGenerationUrls(userId, sanitizePrompt(fullPrompt, 5000), GOOGLE_GEMINI_CHARACTER_MODEL_ID, "IMAGE", imageUrls.slice(1)).catch(() => null);
+        await saveAdditionalGenerationUrls(userId, sanitizePrompt(fullPrompt, 5000), modelId, "IMAGE", imageUrls.slice(1)).catch(() => null);
       }
 
       return NextResponse.json({
@@ -432,7 +439,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         imageUrl: imageUrls[0] ?? null,
         mediaUrl: imageUrls[0] ?? null,
         taskId: generationId,
-        modelId: GOOGLE_GEMINI_CHARACTER_MODEL_ID,
+        modelId: modelId,
         provider: "google",
         quality,
         aspectRatio,

@@ -19,6 +19,12 @@ import {
   UserRound,
   Wand2,
   X,
+  ChevronDown,
+  BookOpen,
+  Download,
+  Link2,
+  Grid,
+  Sparkle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeMediaUrl } from "@/lib/storage";
@@ -60,7 +66,7 @@ type LocalRefImage = {
   dataUrl: string;
 };
 
-type CharacterModelId = "gemini-3-pro-image-preview";
+type CharacterModelId = "gemini-3.1-flash-image" | "gemini-3-pro-image-preview" | "gemini-3.1-flash-lite-image";
 
 const CHARACTER_MODELS: Array<{
   id: CharacterModelId;
@@ -70,11 +76,25 @@ const CHARACTER_MODELS: Array<{
   description: string;
 }> = [
   {
-    id: "gemini-3-pro-image-preview",
-    name: "Gemini 3 Pro Image",
+    id: "gemini-3.1-flash-image",
+    name: "Nano Banana 2",
     provider: "Google",
-    badge: "TOP",
-    description: "Official Google image model for multi-reference character identity generation.",
+    badge: "RECOMMENDED",
+    description: "Balanced speed and high-quality consistent character generation.",
+  },
+  {
+    id: "gemini-3-pro-image-preview",
+    name: "Nano Banana Pro",
+    provider: "Google",
+    badge: "PREMIUM",
+    description: "Highest level of detail, complex instructions, and brand consistency.",
+  },
+  {
+    id: "gemini-3.1-flash-lite-image",
+    name: "Nano Banana 2 Lite",
+    provider: "Google",
+    badge: "FAST",
+    description: "Ultra-fast and cost-effective generations.",
   },
 ];
 
@@ -82,24 +102,6 @@ const CHARACTER_ASPECT_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
 const CHARACTER_QUALITIES = ["1K", "2K", "4K"];
 const CHARACTER_STYLES = ["Auto", "Realistic", "Cinematic", "Editorial", "Anime"];
 const CHARACTER_SPEEDS = ["Quality", "Balanced", "Fast"];
-
-const CHARACTER_GUIDE_STEPS = [
-  {
-    title: "Step 1: Upload Reference Photos",
-    subtitle: "Upload 10-24 clear photos for one person only.",
-    image: "/img/character-guide/upload_photos_illustration_1779831219486.png",
-  },
-  {
-    title: "Step 2: Configure Identity Compiler",
-    subtitle: "Fill optional identity memory fields for stable results.",
-    image: "/img/character-guide/identity_compiler_illustration_1779831239877.png",
-  },
-  {
-    title: "Step 3: Test Generation & Model Tuning",
-    subtitle: "Test output variations and tune ratio, quality, and style.",
-    image: "/img/character-guide/variation_testing_illustration_1779831260604.png",
-  },
-] as const;
 
 const DEFAULT_STATES: Record<CharacterStateKey, string> = {
   neutral: "Clean identity reference, relaxed face, readable front angle, no dramatic styling changes.",
@@ -109,66 +111,67 @@ const DEFAULT_STATES: Record<CharacterStateKey, string> = {
   emotional: "Close-up acting state, eyes and facial features preserved, subtle expression changes only.",
 };
 
-const GOOD_RULES = [
+const CHARACTER_TEMPLATES = [
   {
-    title: "Same person only",
-    titleAr: "شخص واحد فقط",
-    desc: "All photos must be of the same subject.",
-    descAr: "يجب أن تكون جميع الصور لنفس الشخص فقط.",
-    image: "/img/rules/same_person_rule_1779834409055.png",
+    id: "eccentric",
+    name: "The Eccentric",
+    nameAr: "الشخصية الغريبة",
+    desc: "Unforgettable quirky humans. Magnetic scene-stealers with offbeat charm.",
+    descAr: "شخصية فريدة وغريبة الأطوار تلفت الأنظار بكاريزما غير تقليدية.",
+    avatar: "🤪",
+    gradient: "from-pink-500/20 to-rose-500/20 text-rose-300 border-rose-500/20 hover:border-rose-500/40",
+    prompt: "A character portrait of a highly eccentric person, quirky round glasses, colorful clothing, detailed facial expression, creative studio lighting."
   },
   {
-    title: "Clear face and eyes",
-    titleAr: "وجه وعيون واضحة",
-    desc: "Facial features and eyes must be clearly visible.",
-    descAr: "يجب أن تكون ملامح الوجه والعينين واضحة تمامًا.",
-    image: "/img/rules/clear_face_rule_1779834428922.png",
+    id: "professional",
+    name: "The Professional",
+    nameAr: "الشخصية المهنية",
+    desc: "Clean cut, well spoken, competent.",
+    descAr: "مظهر أنيق ومهندم، ملامح واثقة وجادة تدل على الكفاءة.",
+    avatar: "💼",
+    gradient: "from-blue-500/20 to-indigo-500/20 text-blue-300 border-blue-500/20 hover:border-blue-500/40",
+    prompt: "A professional corporate headshot of a businessperson, clean-cut styling, confident neutral expression, soft office background, natural key light."
   },
   {
-    title: "Multiple angles",
-    titleAr: "زوايا متعددة",
-    desc: "Include front, three-quarter, and profile views.",
-    descAr: "تضمين زوايا مختلفة (أمامية، جانبية، وثلاثة أرباع).",
-    image: "/img/rules/multiple_angles_rule_1779834446838.png",
+    id: "wildcard",
+    name: "The Wildcard",
+    nameAr: "الشخصية الحرة",
+    desc: "Beyond human, anything can be a character, right?",
+    descAr: "مظهر غير مألوف أو كائن من عالم آخر يتجاوز الحدود التقليدية.",
+    avatar: "🤖",
+    gradient: "from-purple-500/20 to-violet-500/20 text-violet-300 border-violet-500/20 hover:border-violet-500/40",
+    prompt: "A highly stylized creative character, futuristic neon face markings, cyberpunk fashion, cinematic purple and teal highlights."
   },
   {
-    title: "Close-up and body",
-    titleAr: "لقطات مقربة وكاملة",
-    desc: "Mix close-up portraits with full-body shots.",
-    descAr: "امزج بين الصور الشخصية المقربة ولقطات الجسم الكامل.",
-    image: "/img/rules/body_shots_rule_1779834465500.png",
-  },
-];
-
-const AVOID_RULES = [
-  {
-    title: "Group photos",
-    titleAr: "الصور الجماعية",
-    desc: "Avoid photos with multiple people in the frame.",
-    descAr: "تجنب الصور التي تحتوي على أشخاص آخرين في الإطار.",
-    image: "/img/rules/group_photos_avoid_1779834485633.png",
+    id: "familiar",
+    name: "The Familiar",
+    nameAr: "الشخصية المألوفة",
+    desc: "Grounded and authentic, a relatable anchor for your story.",
+    descAr: "ملامح دافئة وقريبة من القلب، تعبر عن البساطة والواقعية.",
+    avatar: "👤",
+    gradient: "from-emerald-500/20 to-teal-500/20 text-emerald-300 border-emerald-500/20 hover:border-emerald-500/40",
+    prompt: "A warm and friendly portrait of an everyday person, gentle smile, natural daylight, photorealistic detailed features."
   },
   {
-    title: "Heavy filters",
-    titleAr: "الفلاتر القوية",
-    desc: "Do not use heavy filters, makeup, or strong editing.",
-    descAr: "تجنب الفلاتر القوية أو التعديلات الرقمية المبالغ فيها.",
-    image: "/img/rules/heavy_filters_avoid_1779834506071.png",
+    id: "wicked",
+    name: "The Wicked",
+    nameAr: "الشخصية الحادة",
+    desc: "Powerful antagonistic figures that command the screen.",
+    descAr: "ملامح حادة وكاريزما قوية تفرض حضورها بقوة على الشاشة.",
+    avatar: "😈",
+    gradient: "from-red-500/20 to-orange-500/20 text-orange-300 border-orange-500/20 hover:border-orange-500/40",
+    prompt: "A dramatic portrait of a powerful antagonistic character, sharp eyes, low-key dark lighting, volumetric shadows, intense expression."
   },
   {
-    title: "Face coverings",
-    titleAr: "تغطية الوجه",
-    desc: "Avoid sunglasses, masks, hats, or hands covering the face.",
-    descAr: "تجنب النظارات الشمسية، الأقنعة، القبعات، أو تغطية الوجه باليد.",
-    image: "/img/rules/face_coverings_avoid_1779834523812.png",
-  },
-  {
-    title: "Duplicates",
-    titleAr: "الصور المتكررة",
-    desc: "Do not upload identical or near-identical images.",
-    descAr: "تجنب رفع صور متطابقة أو متشابهة للغاية.",
-    image: "/img/rules/duplicates_avoid_1779834542531.png",
-  },
+    id: "fantastical",
+    name: "The Fantastical",
+    nameAr: "الشخصية الخيالية",
+    desc: "Ethereal, dreamlike beings fusing the human and the mythical.",
+    descAr: "كائن خيالي أسطوري يدمج بين الملامح البشرية والجمال السحري.",
+    avatar: "🧝‍♀️",
+    gradient: "from-cyan-500/20 to-sky-500/20 text-cyan-300 border-cyan-500/20 hover:border-cyan-500/40",
+    prompt: "An ethereal portrait of a fantastical elf-like being, glowing silver hair, subtle magical particles, soft dreamlike fantasy lighting."
+  }
 ];
 
 function uid(prefix: string) {
@@ -197,10 +200,8 @@ async function uploadCharacterAsset(file: File): Promise<string> {
   if (!urlRes.ok || !urlData?.publicUrl) {
     throw new Error(urlData?.error || "Failed to upload asset.");
   }
-
   return String(urlData.publicUrl);
 }
-
 
 function splitTags(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 12);
@@ -260,91 +261,13 @@ function displayMediaUrl(url: string | null | undefined): string {
   return normalizeMediaUrl(url) || "";
 }
 
-function RuleGroup({ type, items }: { type: "good" | "avoid"; items: typeof GOOD_RULES }) {
-  const good = type === "good";
-  return (
-    <div className="rounded-2xl border border-white/10 bg-[#15171b] p-5">
-      <div className="flex items-center gap-3">
-        <div className={cn("flex h-11 w-11 items-center justify-center rounded-full", good ? "bg-emerald-400 text-black" : "bg-red-500 text-black")}>
-          {good ? <Check className="h-6 w-6" /> : <X className="h-6 w-6" />}
-        </div>
-        <div>
-          <div className="text-base font-bold text-white">{good ? "Use photos like this" : "Do not upload these"}</div>
-          <div className="text-sm text-zinc-500">{good ? "The system learns identity faster" : "These damage consistency"}</div>
-        </div>
-      </div>
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {items.map((item) => (
-          <div key={item.title} className={cn("group overflow-hidden rounded-xl border bg-black/40 transition hover:border-zinc-500/30", good ? "border-emerald-500/10" : "border-red-500/10")}>
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-950">
-              <img
-                src={item.image}
-                alt={item.title}
-                className="h-full w-full object-cover transition duration-350 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-              <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-white border border-white/5 backdrop-blur-sm">
-                <span className={cn("flex h-3.5 w-3.5 items-center justify-center rounded-full text-black font-black", good ? "bg-emerald-400" : "bg-red-500")}>
-                  {good ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />}
-                </span>
-                {item.title}
-              </div>
-            </div>
-            <div className="p-3">
-              <div className="text-xs font-black text-white">{item.titleAr}</div>
-              <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">{item.descAr}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MemoryBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">{label}</div>
-      <p className="mt-2 line-clamp-3 text-xs leading-5 text-zinc-300">{value}</p>
-    </div>
-  );
-}
-
 export default function CharacterPage() {
-  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [activeTab, setActiveTab] = useState<"create" | "vault">("create");
   const [isDragging, setIsDragging] = useState(false);
-  const [guideStep, setGuideStep] = useState(0);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [refs, setRefs] = useState<LocalRefImage[]>([]);
 
-  const handleZoneClick = useCallback((e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("img") || target.closest("article") || target.closest("a")) {
-      return;
-    }
-    fileInputRef.current?.click();
-  }, []);
-
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const onDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
-    if (!files.length) return;
-    const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
-    setRefs((prev) => [...prev, ...mapped].slice(0, 24));
-  }, [refs.length]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [faceNotes, setFaceNotes] = useState("");
@@ -357,7 +280,7 @@ export default function CharacterPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [variationPrompt, setVariationPrompt] = useState("Create a campaign-ready portrait using the saved Hero state and strict identity consistency.");
-  const [selectedModelId, setSelectedModelId] = useState<CharacterModelId>("gemini-3-pro-image-preview");
+  const [selectedModelId, setSelectedModelId] = useState<CharacterModelId>("gemini-3.1-flash-image");
   const [characterAspectRatio, setCharacterAspectRatio] = useState("1:1");
   const [characterQuality, setCharacterQuality] = useState("1K");
   const [characterStyle, setCharacterStyle] = useState("Auto");
@@ -366,6 +289,9 @@ export default function CharacterPage() {
   const [generatedUrls, setGeneratedUrls] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
 
   const canCreate = useMemo(() => refs.length > 0 && !saving, [refs.length, saving]);
   const packagePreview = useMemo(() => buildCharacterPackage({
@@ -399,16 +325,39 @@ export default function CharacterPage() {
     void loadCharacters();
   }, [loadCharacters]);
 
-  const onPickImages = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
-    event.target.value = "";
+  const handleZoneClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("img") || target.closest("article") || target.closest("a")) {
+      return;
+    }
+    fileInputRef.current?.click();
+  }, []);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const onDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
     if (!files.length) return;
     const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
     setRefs((prev) => [...prev, ...mapped].slice(0, 24));
-    window.setTimeout(() => {
-      document.getElementById("identity-setup")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      nameInputRef.current?.focus();
-    }, 120);
+  }, [refs.length]);
+
+  const onPickImages = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((file) => file.type.startsWith("image/")).slice(0, 24 - refs.length);
+    if (!files.length) return;
+    const mapped = await Promise.all(files.map(async (file) => ({ id: uid("ref"), file, dataUrl: await fileToDataUrl(file) })));
+    setRefs((prev) => [...prev, ...mapped].slice(0, 24));
   }, [refs.length]);
 
   const createCharacter = useCallback(async () => {
@@ -462,6 +411,10 @@ export default function CharacterPage() {
       setCinematicTags("Editorial, 85mm, Soft cinematic light, Premium identity");
       setRefs([]);
       setShowAdvanced(false);
+      setSelectedTemplateId(null);
+      
+      // Switch tab to vault to show their compiled character!
+      setActiveTab("vault");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create character");
     } finally {
@@ -516,408 +469,373 @@ export default function CharacterPage() {
     setTimeout(() => setCopiedId(null), 1400);
   }, []);
 
+  const handleTemplateSelect = (tpl: typeof CHARACTER_TEMPLATES[0]) => {
+    setSelectedTemplateId(tpl.id);
+    setName(tpl.name);
+    setDescription(tpl.desc);
+    setVariationPrompt(tpl.prompt);
+  };
+
+  const selectedModelName = useMemo(() => {
+    return CHARACTER_MODELS.find(m => m.id === selectedModelId)?.name || "Nano Banana 2";
+  }, [selectedModelId]);
+
   return (
-    <div className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col md:flex-row bg-[#060c18] text-white">
-      {/* Left Column: Creator & Identity Settings (35% on XL) */}
-      <div className="w-full md:w-[42%] lg:w-[36%] xl:w-[32%] h-full flex flex-col border-r border-white/10 bg-[#0a0f1d] shrink-0">
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          {/* Header Area */}
-          <div>
-            <div className="text-xs font-bold uppercase tracking-[0.16em] text-zinc-400">Characters / <span className="text-zinc-200">New Identity</span></div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white flex items-center gap-2">
-              <Fingerprint className="h-7 w-7 text-lime-300" />
-              Create Character Identity
-            </h1>
-            <p className="mt-2 text-sm text-zinc-400 leading-relaxed">
-              Upload reference photos of one subject to build a persistent, reusable identity.
-            </p>
+    <div className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col bg-[#05070f] text-white">
+      {/* Top Navigation Bar with Tabs */}
+      <div className="h-16 border-b border-white/5 bg-[#090b14]/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Fingerprint className="h-5 w-5 text-violet-400" />
+            <span className="text-sm font-semibold tracking-wide text-zinc-200">Character Studio</span>
           </div>
 
-          {/* Step 1: Upload Reference Photos */}
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Step 1: Reference Photos</h3>
-              {refs.length > 0 && (
-                <span className="text-xs font-semibold text-lime-300 bg-lime-300/10 px-2.5 py-0.5 rounded-full border border-lime-300/20">
-                  {refs.length} selected
-                </span>
-              )}
-            </div>
-            
-            <div
-              onClick={handleZoneClick}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
+          <div className="flex items-center bg-white/[0.02] border border-white/5 p-1 rounded-xl">
+            <button
+              onClick={() => setActiveTab("create")}
               className={cn(
-                "group flex min-h-[170px] cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed text-center transition p-5",
-                isDragging 
-                  ? "border-lime-300 bg-lime-300/10" 
-                  : "border-white/10 bg-black/40 hover:border-lime-300/50 hover:bg-black/60"
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5",
+                activeTab === "create" 
+                  ? "bg-violet-600/25 text-violet-300 border border-violet-500/10" 
+                  : "text-zinc-400 hover:text-zinc-200"
               )}
             >
-              {refs.length === 0 ? (
-                <>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-300/10 text-lime-300 mb-3 group-hover:scale-105 transition">
-                    <Upload className="h-6 w-6" />
-                  </div>
-                  <span className="text-base font-bold text-white">Click or drag photos here</span>
-                  <span className="mt-1.5 text-xs text-zinc-500">10-24 photos recommended</span>
-                </>
-              ) : (
-                <div className="w-full">
-                  <div className="mb-3 flex items-center justify-between text-left">
-                    <span className="text-sm font-bold text-zinc-300">Previews</span>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-lime-300 px-3 py-1.5 text-xs font-bold text-black hover:bg-lime-200"
-                    >
-                      <ImagePlus className="h-3.5 w-3.5" /> Add More
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1">
-                    {refs.map((ref) => (
-                      <div key={ref.id} className="group/thumb relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black">
-                        <img src={ref.dataUrl} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setRefs((prev) => prev.filter((item) => item.id !== ref.id));
-                          }}
-                          className="absolute right-1 top-1 rounded-full bg-black/80 p-1 text-white hover:bg-red-600/80"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <Sparkles size={13} />
+              Create Character
+            </button>
+            <button
+              onClick={() => setActiveTab("vault")}
+              className={cn(
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5",
+                activeTab === "vault" 
+                  ? "bg-violet-600/25 text-violet-300 border border-violet-500/10" 
+                  : "text-zinc-400 hover:text-zinc-200"
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
-            </div>
-          </div>
-
-          {/* Step 2: Identity Setup */}
-          <div className="space-y-4 pt-4 border-t border-white/5">
-            <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Step 2: Identity Compiler</h3>
-            
-            <div className="space-y-3.5">
-              <input 
-                ref={nameInputRef} 
-                value={name} 
-                onChange={(event) => setName(event.target.value)} 
-                placeholder="Character name (optional)" 
-                className="h-13 w-full rounded-xl border border-white/10 bg-black/40 px-4 text-base text-white placeholder-zinc-500 outline-none focus:border-lime-300/50 focus:bg-black/80 transition" 
-              />
-              
-              <textarea 
-                value={description} 
-                onChange={(event) => setDescription(event.target.value)} 
-                placeholder="Short description, role, aesthetic rules..." 
-                rows={3} 
-                className="w-full resize-none rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-base text-white placeholder-zinc-500 outline-none focus:border-lime-300/50 focus:bg-black/80 transition" 
-              />
-
-              <button 
-                type="button"
-                onClick={() => setShowAdvanced((value) => !value)} 
-                className="flex h-12 w-full items-center justify-between rounded-xl border border-white/10 bg-black/20 hover:bg-black/40 px-4 text-sm font-semibold text-zinc-300 transition"
-              >
-                <span>Advanced Identity Memory</span>
-                <span className="text-xs text-zinc-400 bg-white/5 px-2.5 py-0.5 rounded-md">{showAdvanced ? "Hide" : "Expand"}</span>
-              </button>
-
-              {showAdvanced && (
-                <div className="space-y-3 pt-1">
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Face Memory Override</span>
-                    <textarea value={faceNotes} onChange={(event) => setFaceNotes(event.target.value)} placeholder="Face shape, eye color, structure..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Body Profile Override</span>
-                    <textarea value={bodyNotes} onChange={(event) => setBodyNotes(event.target.value)} placeholder="Height, silhouette, proportions..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Outfit Memory Override</span>
-                    <textarea value={outfitNotes} onChange={(event) => setOutfitNotes(event.target.value)} placeholder="WARDROBE consistency, signature items..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Style DNA Override</span>
-                    <textarea value={styleNotes} onChange={(event) => setStyleNotes(event.target.value)} placeholder="Lighting language, grading presets..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Motion References Override</span>
-                    <textarea value={motionNotes} onChange={(event) => setMotionNotes(event.target.value)} placeholder="Animation safety boundaries, cycle limits..." rows={2} className="w-full resize-none rounded-xl border border-white/10 bg-black/50 px-3.5 py-2.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Cinematic Meta Tags</span>
-                    <input value={cinematicTags} onChange={(event) => setCinematicTags(event.target.value)} placeholder="Editorial, 85mm, Cinematic Light..." className="h-12 w-full rounded-xl border border-white/10 bg-black/50 px-3.5 text-sm outline-none focus:border-lime-300/50" />
-                  </div>
-
-                  {/* Identity Compiler Preview */}
-                  <div className="rounded-xl border border-white/5 bg-black/35 p-3.5 space-y-2.5 mt-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">
-                      <BadgeCheck className="h-4 w-4 text-lime-300" />
-                      Live Compiled Metadata
-                    </div>
-                    <div className="grid gap-2">
-                      <MemoryBlock label="Face Model" value={packagePreview.faceMemory} />
-                      <MemoryBlock label="Outfit Model" value={packagePreview.outfitMemory} />
-                      <MemoryBlock label="Stability constraints" value={packagePreview.motionReferences} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-
-
-              {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
-                  {error}
-                </div>
-              )}
-
-              <button
-                onClick={createCharacter}
-                disabled={!canCreate}
-                className={cn(
-                  "flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-black transition",
-                  canCreate 
-                    ? "bg-lime-300 text-black hover:bg-lime-200 shadow-lg shadow-lime-300/10" 
-                    : "cursor-not-allowed bg-white/5 text-zinc-600 border border-white/5",
-                )}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Compiling Character Package...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4" />
-                    Compile Identity Entity
-                  </>
-                )}
-              </button>
-            </div>
+            >
+              <Grid size={13} />
+              Character Library ({characters.length})
+            </button>
           </div>
         </div>
+
+        <button 
+          onClick={() => void loadCharacters()} 
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-3.5 text-xs font-semibold text-zinc-300 hover:bg-white/[0.05] transition"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Reload
+        </button>
       </div>
 
-      {/* Right Column: Library, Test Generator, Guides & Rules (Scrollable) */}
-      <div className="flex-1 h-full flex flex-col bg-[#060c18] overflow-hidden">
-        {/* Sub-Header Navbar */}
-        <div className="h-16 border-b border-white/10 px-6 flex items-center justify-between shrink-0 bg-[#070d1a]">
-          <div>
-            <h2 className="text-base font-semibold text-white flex items-center gap-2">
-              Character Library & Validation Tools
-            </h2>
-          </div>
-          <button 
-            onClick={() => void loadCharacters()} 
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-zinc-950 px-4 text-xs font-semibold text-zinc-300 hover:bg-zinc-900 transition"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Reload Library
-          </button>
-        </div>
-
-        {/* Scrollable Contents */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          
-          {/* Guides and Guidelines Widgets */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            
-            {/* Guide Step Slider */}
-            <div className="rounded-2xl border border-white/5 bg-[#0a0f1d] p-5 flex flex-col justify-between space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-[0.12em] text-lime-300">Interactive Guide</span>
-                <span className="text-xs text-zinc-500 font-semibold">Step {guideStep + 1} of {CHARACTER_GUIDE_STEPS.length}</span>
-              </div>
-              
-              <div className="relative aspect-[16/8] overflow-hidden rounded-xl bg-zinc-950 border border-white/5">
-                <img src={CHARACTER_GUIDE_STEPS[guideStep].image} alt="" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-black/75 p-3 border border-white/5 backdrop-blur-sm">
-                  <div className="text-sm font-bold text-white">{CHARACTER_GUIDE_STEPS[guideStep].title}</div>
-                  <div className="text-xs text-zinc-400 mt-1 leading-relaxed">{CHARACTER_GUIDE_STEPS[guideStep].subtitle}</div>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                {CHARACTER_GUIDE_STEPS.map((step, idx) => (
-                  <button
-                    key={step.title}
-                    type="button"
-                    onClick={() => setGuideStep(idx)}
-                    className={cn(
-                      "flex-1 py-2 rounded-xl border text-center text-xs font-bold transition",
-                      idx === guideStep 
-                        ? "border-lime-300 bg-lime-300/10 text-lime-200" 
-                        : "border-white/5 bg-black/40 text-zinc-400 hover:bg-white/5"
-                    )}
-                  >
-                    Step {idx + 1}
-                  </button>
-                ))}
-              </div>
+      {/* Main Workspace content */}
+      <div className="flex-1 overflow-y-auto p-8 scrollbar-none relative">
+        {activeTab === "create" ? (
+          <div className="max-w-5xl mx-auto space-y-8">
+            {/* Header Description */}
+            <div className="text-center space-y-2.5 max-w-xl mx-auto">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+                Build and reuse characters for consistent videos
+              </h1>
+              <p className="text-sm text-zinc-500 leading-relaxed">
+                Use a sample prompt below, or create from scratch. Upload reference photos to lock down identity consistency.
+              </p>
             </div>
 
-            {/* Rules Quick Checklist */}
-            <div className="rounded-2xl border border-white/5 bg-[#0a0f1d] p-5 flex flex-col justify-between space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-400">Rules & Quality Assurance</span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 flex-1 min-h-[160px] text-xs">
-                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
-                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
-                    <Check className="h-4 w-4" /> Recommended
+            {/* Template Selector Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {CHARACTER_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  onClick={() => handleTemplateSelect(tpl)}
+                  className={cn(
+                    "p-4 rounded-2xl border text-left bg-white/[0.01] transition-all hover:bg-white/[0.02] hover:-translate-y-0.5 duration-200 group flex items-start gap-4",
+                    selectedTemplateId === tpl.id 
+                      ? "border-violet-500 bg-violet-600/[0.04] shadow-md shadow-violet-500/5" 
+                      : "border-white/5"
+                  )}
+                >
+                  <div className={cn(
+                    "w-11 h-11 rounded-xl flex items-center justify-center text-lg bg-gradient-to-br border shrink-0", 
+                    tpl.gradient
+                  )}>
+                    {tpl.avatar}
                   </div>
-                  <ul className="list-disc list-inside text-zinc-300 space-y-1.5 pl-0.5">
-                    {GOOD_RULES.map(r => <li key={r.title} className="truncate" title={r.descAr}>{r.titleAr}</li>)}
-                  </ul>
-                </div>
-                
-                <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
-                  <div className="font-bold text-red-400 flex items-center gap-1.5">
-                    <X className="h-4 w-4" /> Avoid
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold text-zinc-200 flex items-center gap-1">
+                      {tpl.name}
+                      <span className="text-[10px] text-zinc-500 font-medium">({tpl.nameAr})</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 leading-relaxed">
+                      {tpl.desc}
+                    </div>
                   </div>
-                  <ul className="list-disc list-inside text-zinc-300 space-y-1.5 pl-0.5">
-                    {AVOID_RULES.map(r => <li key={r.title} className="truncate" title={r.descAr}>{r.titleAr}</li>)}
-                  </ul>
-                </div>
-              </div>
+                </button>
+              ))}
             </div>
 
-          </div>
-
-          {/* Test Generation Config Section */}
-          <div className="rounded-2xl border border-white/10 bg-[#0a0f1d] p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-lime-300" />
-              <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Identity Test Generator</h3>
-            </div>
-            
-            <div className="space-y-3.5">
-              <div className="space-y-1.5">
-                <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Validation Prompt</span>
-                <textarea 
-                  value={variationPrompt} 
-                  onChange={(event) => setVariationPrompt(event.target.value)} 
-                  rows={2} 
-                  className="w-full resize-none rounded-xl border border-white/10 bg-[#08090b] px-4 py-3 text-sm text-white outline-none focus:border-lime-300/50 transition" 
+            {/* Input Workspace Console */}
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/5 bg-[#090b14] shadow-xl p-4 space-y-4 relative">
+                {/* Textarea description */}
+                <textarea
+                  value={variationPrompt}
+                  onChange={(e) => setVariationPrompt(e.target.value)}
+                  placeholder="Describe your character..."
+                  rows={4}
+                  className="w-full bg-transparent border-0 outline-none resize-none text-sm text-zinc-200 placeholder-zinc-600 focus:ring-0 leading-relaxed pr-12"
                 />
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2 text-sm">
-                
-                {/* Selector Group 1 */}
-                <div className="rounded-xl border border-white/5 bg-black/30 p-4 space-y-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Refining AI Model</span>
-                    <select value={selectedModelId} onChange={(event) => setSelectedModelId(event.target.value as CharacterModelId)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
-                      {CHARACTER_MODELS.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Output Aspect Ratio</span>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {CHARACTER_ASPECT_RATIOS.map((ratio) => (
-                        <button
-                          key={ratio}
-                          type="button"
-                          onClick={() => setCharacterAspectRatio(ratio)}
-                          className={cn(
-                            "rounded-lg border px-3 py-1.5 text-xs font-bold transition", 
-                            characterAspectRatio === ratio 
-                              ? "border-lime-300 bg-lime-300 text-black font-black" 
-                              : "border-white/5 bg-[#08090b] text-zinc-400 hover:bg-white/5"
-                          )}
-                        >
-                          {ratio}
-                        </button>
+
+                {/* Uploaded references list (inline inside the box) */}
+                {refs.length > 0 && (
+                  <div className="border-t border-white/5 pt-3 space-y-2">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">Reference Images ({refs.length})</span>
+                    <div className="flex flex-wrap gap-2">
+                      {refs.map((ref) => (
+                        <div key={ref.id} className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/10 group bg-black shrink-0">
+                          <img src={ref.dataUrl} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setRefs(prev => prev.filter(item => item.id !== ref.id));
+                            }}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-red-400"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Selector Group 2 */}
-                <div className="rounded-xl border border-white/5 bg-black/30 p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
+                {/* Inner Action Bar */}
+                <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setVariationPrompt(p => p + ", highly detailed, cinematic style, 8k resolution, portrait")}
+                      className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-bold text-zinc-400 transition"
+                    >
+                      Format
+                    </button>
+
+                    {/* Model dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                        className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-bold text-zinc-300 flex items-center gap-1 transition"
+                      >
+                        <Sparkles size={11} className="text-violet-400" />
+                        {selectedModelName}
+                        <ChevronDown size={10} />
+                      </button>
+
+                      {modelDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-25" onClick={() => setModelDropdownOpen(false)} />
+                          <div className="absolute left-0 bottom-full mb-1.5 w-60 rounded-xl border border-white/10 bg-[#090b14] shadow-2xl p-1.5 z-30 flex flex-col gap-0.5">
+                            {CHARACTER_MODELS.map((model) => (
+                              <button
+                                key={model.id}
+                                onClick={() => {
+                                  setSelectedModelId(model.id);
+                                  setModelDropdownOpen(false);
+                                }}
+                                className={cn(
+                                  "w-full text-left p-2 rounded-lg text-xs transition flex flex-col gap-0.5",
+                                  selectedModelId === model.id ? "bg-violet-600/10 text-violet-300" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                                )}
+                              >
+                                <span className="font-bold flex items-center justify-between">
+                                  {model.name}
+                                  <span className="text-[8px] bg-white/5 px-1.5 py-0.5 rounded-md text-zinc-500 font-normal">{model.badge}</span>
+                                </span>
+                                <span className="text-[9px] text-zinc-500 leading-normal">{model.description}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Quick Config Toggle */}
+                    <button
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] text-[10px] font-bold text-zinc-400 transition"
+                    >
+                      {showAdvanced ? "Hide Controls" : "Tuning Controls"}
+                    </button>
+                  </div>
+
+                  {/* Generate Button */}
+                  <button
+                    onClick={createCharacter}
+                    disabled={!canCreate || saving}
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+                      canCreate && !saving
+                        ? "bg-violet-600 text-white hover:bg-violet-500 hover:scale-105 active:scale-95 shadow-md shadow-violet-600/10"
+                        : "bg-white/5 text-zinc-600 cursor-not-allowed border border-white/5"
+                    )}
+                  >
+                    {saving ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Wand2 size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Advanced Parameters Block */}
+              {showAdvanced && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-2xl border border-white/5 bg-white/[0.01]">
+                  <div className="space-y-3">
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Aesthetic style</span>
-                      <select value={characterStyle} onChange={(event) => setCharacterStyle(event.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Aesthetic Style</span>
+                      <select value={characterStyle} onChange={(e) => setCharacterStyle(e.target.value)} className="h-9 w-full rounded-xl border border-white/5 bg-[#08090f] px-3 text-xs text-zinc-300 outline-none focus:border-violet-500/50">
                         {CHARACTER_STYLES.map((style) => <option key={style} value={style}>{style}</option>)}
                       </select>
                     </label>
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Output Aspect Ratio</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CHARACTER_ASPECT_RATIOS.map((ratio) => (
+                          <button
+                            key={ratio}
+                            onClick={() => setCharacterAspectRatio(ratio)}
+                            className={cn(
+                              "h-8 rounded-lg border px-3 text-xs font-bold transition", 
+                              characterAspectRatio === ratio 
+                                ? "border-violet-500 bg-violet-600/10 text-violet-300" 
+                                : "border-white/5 bg-black/30 text-zinc-400 hover:bg-white/5"
+                            )}
+                          >
+                            {ratio}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Tuning Speed</span>
-                      <select value={characterRenderingSpeed} onChange={(event) => setCharacterRenderingSpeed(event.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-[#08090b] px-3 text-sm text-zinc-300 outline-none mt-1.5 focus:border-lime-300/50">
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Tuning Speed</span>
+                      <select value={characterRenderingSpeed} onChange={(e) => setCharacterRenderingSpeed(e.target.value)} className="h-9 w-full rounded-xl border border-white/5 bg-[#08090f] px-3 text-xs text-zinc-300 outline-none focus:border-violet-500/50">
                         {CHARACTER_SPEEDS.map((speed) => <option key={speed} value={speed}>{speed}</option>)}
                       </select>
                     </label>
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-400">Target Quality</span>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {CHARACTER_QUALITIES.map((quality) => (
-                        <button
-                          key={quality}
-                          type="button"
-                          onClick={() => setCharacterQuality(quality)}
-                          className={cn(
-                            "rounded-lg border px-3 py-1.5 text-xs font-bold transition", 
-                            characterQuality === quality 
-                              ? "border-lime-300 bg-lime-300 text-black font-black" 
-                              : "border-white/5 bg-[#08090b] text-zinc-400 hover:bg-white/5"
-                          )}
-                        >
-                          {quality}
-                        </button>
-                      ))}
+
+                    <div>
+                      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Resolution</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CHARACTER_QUALITIES.map((quality) => (
+                          <button
+                            key={quality}
+                            onClick={() => setCharacterQuality(quality)}
+                            className={cn(
+                              "h-8 rounded-lg border px-3 text-xs font-bold transition", 
+                              characterQuality === quality 
+                                ? "border-violet-500 bg-violet-600/10 text-violet-300" 
+                                : "border-white/5 bg-black/30 text-zinc-400 hover:bg-white/5"
+                            )}
+                          >
+                            {quality}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Creation action buttons below uploader box */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 h-12 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] text-xs font-bold transition flex items-center justify-center gap-2 text-zinc-300"
+                >
+                  <Upload size={13} />
+                  Upload Face Reference Photos (10-24 recommended)
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickImages} />
+              </div>
+            </div>
+
+            {/* Guide Step slider & Quality Checklist */}
+            <div className="grid gap-6 md:grid-cols-2 pt-6 border-t border-white/5">
+              <div className="rounded-2xl border border-white/5 bg-[#090b14] p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-violet-400">Model Capabilities</span>
+                </div>
+                <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
+                  <p>• <strong>Nano Banana 2</strong> excels at multiple reference image processing and keeping characters consistent across outputs.</p>
+                  <p>• <strong>Nano Banana Pro</strong> is optimal for complex visual textures and custom brand identities.</p>
+                  <p>• Supports uploading up to 14 reference photos to build a stable identity record.</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/5 bg-[#090b14] p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Quality Checklist</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-[11px] text-zinc-400">
+                  <div className="p-3.5 rounded-xl bg-emerald-500/[0.02] border border-emerald-500/10 space-y-1">
+                    <span className="font-bold text-emerald-400 block">Recommended</span>
+                    <p>• Close-up front facing portraits.</p>
+                    <p>• Single subject only.</p>
+                    <p>• Multiple lighting angles.</p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-red-500/[0.02] border border-red-500/10 space-y-1">
+                    <span className="font-bold text-red-400 block">Avoid</span>
+                    <p>• Duplicates & group shots.</p>
+                    <p>• Heavy filters & makeup.</p>
+                    <p>• Sunglasses & face coverings.</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Saved Characters List */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-200">Identity Vault ({characters.length})</h3>
-            
+            {error && (
+              <div className="rounded-xl border border-red-500/10 bg-red-500/[0.02] p-4 text-xs text-red-400">
+                {error}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Tab 2: Saved Character Library Vault */
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Identity Vault</h2>
+                <p className="text-xs text-zinc-500 mt-1">Manage and test your compiled characters inside Saad Studio.</p>
+              </div>
+            </div>
+
             {loading ? (
-              <div className="flex h-40 items-center justify-center text-zinc-500 border border-white/5 bg-[#0a0f1d] rounded-2xl">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin text-lime-300" /> 
+              <div className="flex h-60 items-center justify-center text-zinc-500 border border-white/5 bg-[#090b14] rounded-2xl">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin text-violet-500" /> 
                 <span className="text-sm font-medium">Querying identity records...</span>
               </div>
             ) : characters.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 text-center bg-black/10">
+              <div className="flex h-60 flex-col items-center justify-center rounded-2xl border border-dashed border-white/5 text-center bg-white/[0.01]">
                 <Camera className="mb-2 h-7 w-7 text-zinc-700 animate-pulse" />
-                <p className="text-xs font-semibold text-zinc-400">Library is empty</p>
-                <p className="mt-1 text-[10px] text-zinc-600 max-w-xs">Upload your photos in the creator panel to generate your first entity.</p>
+                <p className="text-xs font-semibold text-zinc-400">Your library is empty</p>
+                <p className="mt-1 text-[10px] text-zinc-600 max-w-xs">Return to the creator panel to generate and save your first persistent character identity.</p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {characters.map((character) => {
                   const pkg = character.metadata?.characterPackage;
                   return (
-                    <article key={character.id} className="overflow-hidden rounded-2xl border border-white/10 bg-[#0a0f1d] hover:border-white/20 transition flex flex-col justify-between">
+                    <article key={character.id} className="overflow-hidden rounded-2xl border border-white/5 bg-[#090b14] hover:border-white/10 transition flex flex-col justify-between">
                       <div className="relative aspect-[16/11] bg-zinc-950">
                         {character.coverUrl ? (
-                          <img src={displayMediaUrl(character.coverUrl)} alt={character.name} className="h-full w-full object-cover" />
+                          <img src={displayMediaUrl(character.coverUrl)} alt={character.name} className="h-full w-full object-cover animate-fade-in" />
                         ) : (
                           <div className="flex h-full items-center justify-center text-zinc-700 bg-black/40"><UserRound className="h-9 w-9" /></div>
                         )}
-                        <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-lime-300 px-2.5 py-1 text-xs font-black text-black">
+                        <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-violet-600/30 border border-violet-500/20 px-2.5 py-1 text-xs font-bold text-violet-300 backdrop-blur-md">
                           <CheckCircle2 className="h-3.5 w-3.5" /> {character.status}
                         </div>
                       </div>
@@ -925,19 +843,19 @@ export default function CharacterPage() {
                       <div className="p-4 space-y-4 flex-1 flex flex-col justify-between">
                         <div className="space-y-1">
                           <h3 className="line-clamp-1 text-sm font-bold text-white">{character.name}</h3>
-                          <p className="line-clamp-2 min-h-[36px] text-xs text-zinc-400 leading-relaxed">
+                          <p className="line-clamp-2 min-h-[36px] text-[11px] text-zinc-400 leading-relaxed">
                             {pkg?.mainIdentity || character.description || "Persistent character identity."}
                           </p>
                         </div>
                         
                         <div className="flex flex-wrap gap-1.5">
                           {(pkg?.cinematicMetadata?.length ? pkg.cinematicMetadata : ["Identity"]).slice(0, 3).map((tag) => (
-                            <span key={tag} className="rounded-full border border-white/5 bg-black/35 px-2 py-0.5 text-xs font-semibold text-zinc-400">{tag}</span>
+                            <span key={tag} className="rounded-full border border-white/5 bg-black/35 px-2 py-0.5 text-[9px] font-semibold text-zinc-400">{tag}</span>
                           ))}
                         </div>
 
                         {pkg && (
-                          <div className="rounded-lg border border-white/5 bg-black/40 p-2.5 text-xs text-zinc-400 leading-relaxed line-clamp-2 font-mono">
+                          <div className="rounded-lg border border-white/5 bg-black/40 p-2.5 text-[10px] text-zinc-500 leading-relaxed line-clamp-2 font-mono">
                             {pkg.faceMemory}
                           </div>
                         )}
@@ -946,34 +864,34 @@ export default function CharacterPage() {
                         <div className="grid grid-cols-2 gap-2 pt-3 border-t border-white/5 text-xs">
                           <button 
                             onClick={() => void copyReference(character)} 
-                            className="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-black/20 hover:bg-black/50 py-2.5 font-bold text-zinc-200 transition"
+                            className="flex items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] py-2 font-bold text-zinc-200 transition"
                           >
-                            {copiedId === character.id ? <CheckCircle2 className="h-4 w-4 text-lime-300" /> : <Copy className="h-4 w-4" />}
+                            {copiedId === character.id ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
                             {copiedId === character.id ? "Copied" : "Copy Prompt"}
                           </button>
                           
                           <a 
-                            href={`/image?characterId=${encodeURIComponent(character.id)}`} 
-                            className="flex items-center justify-center gap-2 rounded-lg bg-lime-300 hover:bg-lime-200 py-2.5 font-black text-black transition"
+                            href={`/cinema-flow?characterId=${encodeURIComponent(character.id)}`} 
+                            className="flex items-center justify-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 py-2 font-bold text-white transition shadow-md shadow-violet-600/5"
                           >
-                            <Wand2 className="h-4 w-4" /> 
+                            <Wand2 className="h-3.5 w-3.5" /> 
                             Use Identity
                           </a>
                           
                           <button 
                             onClick={() => void generateVariation(character)} 
                             disabled={generatingCharacterId === character.id} 
-                            className="flex items-center justify-center gap-2 rounded-lg border border-emerald-400/20 bg-emerald-500/10 hover:bg-emerald-500/20 py-2.5 font-semibold text-emerald-300 disabled:opacity-60 transition"
+                            className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/10 bg-violet-500/[0.05] hover:bg-violet-500/10 py-2 font-semibold text-violet-300 disabled:opacity-60 transition"
                           >
-                            {generatingCharacterId === character.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                            {generatingCharacterId === character.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                             Test State
                           </button>
                           
                           <button 
                             onClick={() => void deleteCharacter(character.id)} 
-                            className="rounded-lg border border-red-500/25 bg-red-500/5 hover:bg-red-500/15 py-2.5 text-red-400 hover:text-red-300 transition flex items-center justify-center"
+                            className="rounded-lg border border-red-500/10 bg-red-500/[0.02] hover:bg-red-500/[0.06] py-2 text-red-400 hover:text-red-300 transition flex items-center justify-center animate-fade-in"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
 
@@ -983,7 +901,7 @@ export default function CharacterPage() {
                               <button 
                                 key={url} 
                                 onClick={() => window.open(displayMediaUrl(url) || url, "_blank", "noopener,noreferrer")} 
-                                className="aspect-square overflow-hidden rounded-lg border border-white/10 bg-black hover:scale-[1.03] transition-transform duration-200"
+                                className="aspect-square overflow-hidden rounded-lg border border-white/5 bg-black hover:scale-[1.03] transition-transform duration-200"
                               >
                                 <img src={displayMediaUrl(url)} alt="" className="h-full w-full object-cover" />
                               </button>
@@ -996,17 +914,16 @@ export default function CharacterPage() {
                 })}
               </div>
             )}
-          </div>
 
-          {/* Footer Warnings */}
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-xs leading-relaxed text-amber-200/80">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-            <span>
-              <strong>Note:</strong> Character Identity nodes exist as global state resources outside standard local graph trees. Production rendering canvases and generative paths read and compile these definitions automatically on task execution.
-            </span>
+            {/* Footer Warning */}
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/10 bg-amber-500/[0.02] p-3 text-[11px] leading-relaxed text-amber-200/80">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                <strong>Note:</strong> Character Identity nodes exist as global state resources outside standard local graph trees. Production rendering canvases and generative paths read and compile these definitions automatically on task execution.
+              </span>
+            </div>
           </div>
-
-        </div>
+        )}
       </div>
     </div>
   );
