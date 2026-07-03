@@ -6695,3 +6695,21 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
 - Decision:
   - Deterministic low-risk workspace actions must not wait for a model when a local executor can complete them safely.
   - Packaged runtime verification must inspect `app.asar` contents directly, not only source files.
+
+## Latest task: Cinema Flow Character Studio Integration and English Translation (2026-07-03)
+
+- Status:
+  - Integrated the Character Studio library records with the Cinema Flow workspace gallery. When the "Characters" tab is active, the workspace lists the user's compiled character identities fetched from `/api/characters`.
+  - Added functional character reference selections: selecting a character sets it as the active generation character, while ordinary images can also be selected as style/subject references. Indicator badges appear above the chat input box to show active reference states.
+  - Enabled active character image generations: if a character reference is active, image generation requests route to the specific character studio identity endpoint `/api/characters/[id]/generate` instead of standard text-only generations.
+  - Integrated asset deletion directly into the gallery UI: added trash buttons to delete compiled characters (via `/api/characters/[id]`) and ordinary media assets (via `DELETE /api/assets`) and update the local states immediately.
+  - Fully translated the Cinema Flow page UI, guides, workspace settings, models parameter drawer, and agent status messages to English.
+- Affected files:
+  - `app/(dash)/(routes)/cinema-flow/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm run build` completed successfully.
+  - Verified git stage, commit, and push changes were successfully delivered to the remote repository.
+- Decisions:
+  - Keep internal storage keys inside the database and normalize them at user rendering boundaries.
+  - Provide inline reference deletion so the workspace remains clean and interactive.
