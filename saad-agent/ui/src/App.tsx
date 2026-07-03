@@ -350,7 +350,7 @@ export default function App() {
   const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
-  const [activeApprovalMode, setActiveApprovalMode] = useState<"ask" | "approve_for_me" | "full_access">("ask");
+  const [activeApprovalMode, setActiveApprovalMode] = useState<"ask" | "approve_for_me" | "full_access">("approve_for_me");
   const [executionTraceMode, setExecutionTraceMode] = useState<ExecutionTraceMode>(() => {
     if (typeof window === "undefined") return "developer";
     return normalizeTraceMode(window.localStorage.getItem(TRACE_MODE_STORAGE_KEY));

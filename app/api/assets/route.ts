@@ -79,6 +79,7 @@ export async function GET(req: NextRequest) {
         assetType: true,
         cost: true,
         createdAt: true,
+        providerRequestId: true,
       },
     });
 
@@ -112,6 +113,7 @@ export async function GET(req: NextRequest) {
           }),
           createdAt: row.createdAt.toISOString(),
           cost: row.cost,
+          providerRequestId: row.providerRequestId ?? undefined,
         };
       });
 

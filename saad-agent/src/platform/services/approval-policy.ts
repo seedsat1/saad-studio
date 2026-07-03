@@ -54,7 +54,7 @@ interface ApprovalStore {
   alwaysAllow: Record<string, string[]>;
 }
 
-const defaultMode: ApprovalMode = "ask";
+const defaultMode: ApprovalMode = "approve_for_me";
 const safeCommands = new Set(["npm run build", "npm run typecheck", "npm run lint", "npm test", "git status", "git diff"]);
 const gitCommands = new Set(["git status", "git diff", "git add", "git commit", "git push", "git reset"]);
 
@@ -127,6 +127,7 @@ export class ApprovalPolicyService {
     if (context.action === "use_git" && /push|reset/i.test(context.command || "")) return true;
     if (context.action === "run_command") {
       const command = context.command || "";
+      if (command === "codex exec") return false;
       if (/npm\s+install|pnpm\s+add|yarn\s+add|git\s+reset|git\s+push|rm\s|del\s|format\s|powershell|cmd\s/i.test(command)) return true;
       return !safeCommands.has(command);
     }
@@ -136,6 +137,7 @@ export class ApprovalPolicyService {
   static riskFor(context: ApprovalActionContext): ApprovalRisk {
     if (this.isDangerousAction(context)) return "high";
     if (context.action === "write_file" || context.action === "use_internet" || context.action === "import_knowledge") return "medium";
+    if (context.action === "run_command" && context.command === "codex exec") return "medium";
     if (context.action === "use_git" && !safeCommands.has(context.command || "")) return "medium";
     return "safe";
   }

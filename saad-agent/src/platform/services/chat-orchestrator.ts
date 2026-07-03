@@ -106,6 +106,7 @@ export class ChatOrchestratorService {
     const activeWorkspace = input.workspacePath || CONFIG.PROJECT_ROOT;
     const sessionId = input.sessionId || input.conversationId || "desktop-chat";
     const conversationId = input.conversationId || sessionId;
+    const effectiveApprovalMode = ApprovalPolicyService.normalizeMode(input.approvalMode);
     const userRequestText = ChatOrchestratorService.extractUserRequest(prompt);
     const conversationState = ConversationStateEngine.getState(sessionId);
 
@@ -252,7 +253,7 @@ export class ChatOrchestratorService {
       sourceService: "ChatOrchestratorService"
     });
 
-    await ApprovalPolicyService.setConversationMode(conversationId, ApprovalPolicyService.normalizeMode(input.approvalMode));
+    await ApprovalPolicyService.setConversationMode(conversationId, effectiveApprovalMode);
     if (input.alwaysAllow) {
       await ApprovalPolicyService.rememberAlwaysAllow(conversationId, "use_internet");
       await ApprovalPolicyService.rememberAlwaysAllow(conversationId, "import_knowledge");
@@ -260,7 +261,7 @@ export class ChatOrchestratorService {
     const decisionResult = await ExecutionPolicyService.evaluateDecision(
       userRequestText,
       activeWorkspace,
-      input.approvalMode,
+      effectiveApprovalMode,
       conversationId
     );
 
@@ -401,9 +402,9 @@ export class ChatOrchestratorService {
         conversationId,
         workspacePath: activeWorkspace,
         prompt: codexPrompt,
-        approvalMode: input.approvalMode,
+        approvalMode: effectiveApprovalMode,
         approved: input.approved,
-        sandboxMode: input.approvalMode === "full_access" ? "workspace-write" : "read-only"
+        sandboxMode: effectiveApprovalMode === "ask" && !input.approved ? "read-only" : "workspace-write"
       });
 
       if (codexResult.approvalRequest) {
@@ -444,6 +445,84 @@ export class ChatOrchestratorService {
       };
     }
 
+    if (decisionResult.decision === "PLAN" && decisionResult.workflow === "engineering_workflow") {
+      ConversationStateEngine.updateState(sessionId, {
+        lastIntent: intent,
+        activeWorkflow: "engineering_workflow",
+        activeTask: userRequestText
+      });
+
+      await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Codex bridge context collected");
+      await TaskStateStore.transitionTask(taskId, "VALIDATING", "Validating engineering execution request");
+      await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Checking runtime bridge availability");
+      await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Assessing trusted workspace impact");
+      await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying approval policy before runtime execution");
+      await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing execution runtime envelope");
+      await TaskStateStore.transitionTask(taskId, "PLANNING", "Delegating engineering request to Codex runtime bridge");
+
+      const codexPrompt = [
+        "You are running as the Codex execution runtime behind Saad Studio Agent.",
+        "Work only inside the provided trusted workspace.",
+        "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
+        "Use the project rules and context below before acting.",
+        "For project modifications, inspect the codebase first, edit only the required files, and run available verification.",
+        "",
+        "Saad Agent pre-answer context:",
+        preAnswerReview.finalContext,
+        "",
+        "User request:",
+        userRequestText
+      ].join("\n");
+
+      await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "Starting Codex runtime bridge");
+      const codexResult = await CodexRuntimeBridge.runTask({
+        taskId,
+        conversationId,
+        workspacePath: activeWorkspace,
+        prompt: codexPrompt,
+        approvalMode: effectiveApprovalMode,
+        approved: input.approved,
+        sandboxMode: effectiveApprovalMode === "ask" && !input.approved ? "read-only" : "workspace-write"
+      });
+
+      if (codexResult.approvalRequest) {
+        await this.transitionToApproval(taskId, "Codex runtime requires approval");
+        return {
+          intent,
+          usedModel: false,
+          response: "Codex runtime needs approval before executing this engineering task.",
+          approvalRequest: codexResult.approvalRequest
+        };
+      }
+
+      await TaskStateStore.transitionTask(taskId, "VERIFYING", "Codex bridge result captured");
+      if (codexResult.success) {
+        await TaskStateStore.transitionTask(taskId, "COMPLETED", "Codex runtime completed");
+      } else {
+        await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
+      }
+
+      const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "No output returned from Codex runtime.";
+      return {
+        intent,
+        usedModel: false,
+        response: [
+          codexResult.success ? "Codex Runtime completed and returned this result:" : "Codex Runtime failed:",
+          "",
+          codexResult.error ? `Reason:\n${codexResult.error}` : "",
+          "",
+          "Command:",
+          `${codexResult.command} ${codexResult.args.join(" ")}`,
+          "",
+          "Workspace:",
+          codexResult.cwd,
+          "",
+          "Output:",
+          output
+        ].filter(Boolean).join("\n")
+      };
+    }
+
     // 4. Determine Model Invocation
     let usedModel = true;
     let responseText = "";
@@ -453,7 +532,7 @@ export class ChatOrchestratorService {
       usedModel = false;
       if (input.attachments && input.attachments.length > 0) {
         const approval = await ApprovalPolicyService.evaluate({
-          mode: input.approvalMode,
+          mode: effectiveApprovalMode,
           conversationId,
           taskId,
           approved: input.approved,
@@ -471,7 +550,7 @@ export class ChatOrchestratorService {
           };
         }
         await ApprovalPolicyService.logAction({
-          mode: input.approvalMode,
+          mode: effectiveApprovalMode,
           conversationId,
           action: "import_knowledge",
           files: input.attachments.map((item) => item.localPath || item.filename).filter(Boolean)
@@ -531,7 +610,7 @@ export class ChatOrchestratorService {
       usedModel = false;
       try {
         const approval = await ApprovalPolicyService.evaluate({
-          mode: input.approvalMode,
+          mode: effectiveApprovalMode,
           conversationId,
           taskId,
           approved: input.approved,
@@ -548,7 +627,7 @@ export class ChatOrchestratorService {
           };
         }
         await ApprovalPolicyService.logAction({
-          mode: input.approvalMode,
+          mode: effectiveApprovalMode,
           conversationId,
           action: "use_internet"
         }, approval, true, "internet search allowed");
@@ -625,7 +704,7 @@ export class ChatOrchestratorService {
         status: "done",
         label: "Safety check passed",
         safeDetails: {
-          approvalMode: input.approvalMode || "ask"
+          approvalMode: effectiveApprovalMode
         },
         sourceService: "ApprovalPolicyService"
       });

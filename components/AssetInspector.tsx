@@ -49,6 +49,7 @@ export interface Asset {
   resolution?: string;
   duration?: string;
   date?: string;
+  providerRequestId?: string;
 }
 
 function extensionFromBlobType(type: string, fallback: string): string {
@@ -875,7 +876,24 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
   const [expanded, setExpanded] = useState(false);
   const cfg = TYPE_CONFIG[asset.type];
   const TypeIcon = cfg.Icon;
-  const actions = ASSET_ACTIONS[asset.type];
+  const isGeminiOmniFlash = asset.type === "video" && (
+    asset.model?.toLowerCase().includes("omni flash") ||
+    asset.model?.toLowerCase().includes("omni-flash")
+  );
+
+  let actions = ASSET_ACTIONS[asset.type];
+  if (isGeminiOmniFlash) {
+    actions = [
+      {
+        label: "Stateful Video Edit",
+        description: "Edit video iteratively",
+        Icon: Sparkles,
+        isPrimary: true,
+      },
+      ...actions.map(a => ({ ...a, isPrimary: false })),
+    ];
+  }
+
   const primary = actions.find((a) => a.isPrimary)!;
   const secondary = actions.filter((a) => !a.isPrimary);
   const [copied, setCopied] = useState(false);
@@ -1007,6 +1025,11 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
         break;
 
       // ── VIDEO ─────────────────────────────────────────────────────────────
+      case "Stateful Video Edit":
+        router.push(`/video?previousTaskId=${encodeURIComponent(asset.providerRequestId ?? asset.id ?? "")}&model=google/gemini-omni-flash`);
+        onClose?.();
+        break;
+
       case "Lipsync / Dubbing":
         router.push("/lipsync" + (url ? `?imageUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();

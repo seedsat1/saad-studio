@@ -38,6 +38,29 @@ async function run() {
   });
   assert(approveBuild.allowed, "Approve for me should allow npm run build.");
 
+  const approveWrite = await ApprovalPolicyService.evaluate({
+    mode: "approve_for_me",
+    conversationId,
+    action: "write_file",
+    files: ["E:/trusted/project/src/page.tsx"]
+  });
+  assert(approveWrite.allowed, "Approve for me should allow safe file edits.");
+
+  const approveCodexRuntime = await ApprovalPolicyService.evaluate({
+    mode: "approve_for_me",
+    conversationId,
+    action: "run_command",
+    command: "codex exec",
+    paths: ["E:/trusted/project"]
+  });
+  assert(approveCodexRuntime.allowed, "Approve for me should allow Codex runtime execution inside a trusted workspace.");
+
+  const defaultSearch = await ApprovalPolicyService.evaluate({
+    conversationId: `approval-default-${Date.now()}`,
+    action: "search_workspace"
+  });
+  assert(defaultSearch.allowed, "Default approval mode should allow safe workspace search.");
+
   const approveDelete = await ApprovalPolicyService.evaluate({
     mode: "approve_for_me",
     conversationId,
