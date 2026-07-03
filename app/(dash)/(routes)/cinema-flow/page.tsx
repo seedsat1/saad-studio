@@ -12,6 +12,15 @@ import {
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
 
+interface CharacterRecord {
+  id: string;
+  name: string;
+  description: string;
+  coverUrl: string | null;
+  status: string;
+  createdAt: string;
+}
+
 interface MediaAsset {
   id: string;
   type: "image" | "video" | string;
@@ -43,6 +52,12 @@ export default function CinemaFlowPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "image" | "video" | "character" | "scene" | "upload">("all");
   
+  // Characters library states
+  const [characters, setCharacters] = useState<CharacterRecord[]>([]);
+  const [loadingCharacters, setLoadingCharacters] = useState(false);
+  const [activeCharacter, setActiveCharacter] = useState<CharacterRecord | null>(null);
+  const [activeImageReference, setActiveImageReference] = useState<MediaAsset | null>(null);
+
   // Interactive controls states
   const [filterModel, setFilterModel] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
@@ -86,8 +101,63 @@ export default function CinemaFlowPage() {
     }
   };
 
+  // Fetch user characters
+  const loadCharacters = async () => {
+    try {
+      setLoadingCharacters(true);
+      const res = await fetch("/api/characters", { cache: "no-store" });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setCharacters(data);
+      }
+    } catch (err) {
+      console.error("Failed to load characters in Cinema Flow", err);
+    } finally {
+      setLoadingCharacters(false);
+    }
+  };
+
+  // Delete gallery asset
+  const handleDeleteAsset = async (id: string) => {
+    try {
+      const res = await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setAssets(prev => prev.filter(asset => asset.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error ?? "Failed to delete asset.");
+      }
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+      alert("Error deleting asset.");
+    }
+  };
+
+  // Delete character record
+  const handleDeleteCharacter = async (id: string) => {
+    try {
+      const res = await fetch(`/api/characters/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setCharacters(prev => prev.filter(c => c.id !== id));
+        if (activeCharacter?.id === id) {
+          setActiveCharacter(null);
+        }
+      } else {
+        alert("Failed to delete character.");
+      }
+    } catch (err) {
+      console.error("Error deleting character:", err);
+      alert("Error deleting character.");
+    }
+  };
+
   useEffect(() => {
     loadAssets();
+    loadCharacters();
   }, []);
 
   // Scroll to bottom of chat
@@ -206,51 +276,83 @@ export default function CinemaFlowPage() {
       setChatMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: "agent",
-        text: "عذراً، رصيدك غير كافٍ لتشغيل نموذج التوليد الحالي."
+        text: "Sorry, you don't have enough credits to run this model."
       }]);
       setIsAgentTyping(false);
       return;
     }
 
+    const modelLabel = activeCharacter 
+      ? "Gemini 3 Pro Character Identity" 
+      : (selectedImageModel === "nano-banana-2-lite" ? "Gemini 3.1 Flash Lite" : "Gemini 3.1 Flash");
+
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: `جاري تشغيل نموذج الصور (${selectedImageModel === "nano-banana-2-lite" ? "Gemini 3.1 Flash Lite" : "Gemini 3.1 Flash"}) لتوليد اللقطة... يرجى الانتظار.`,
+      text: `Running image engine (${modelLabel}) to generate the asset... please wait.`,
       isGenerating: true
     }]);
 
     try {
-      const res = await fetch("/api/generate/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: promptText,
-          modelId: selectedImageModel,
-          aspectRatio,
-          numImages: 1
-        })
-      });
+      let res;
+      let finalPrompt = promptText;
+
+      // If ordinary image reference is selected, append reference image details to prompt
+      if (activeImageReference?.url) {
+        finalPrompt = `${promptText}\n\n[Reference Image: ${activeImageReference.url}]`;
+      }
+
+      if (activeCharacter) {
+        // Route generation to Character Studio generation endpoint
+        res = await fetch(`/api/characters/${activeCharacter.id}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: finalPrompt,
+            size: "1024*1024",
+            modelId: "gemini-3-pro-image-preview",
+            aspect_ratio: aspectRatio,
+            quality: "1K",
+            style: "Auto",
+            rendering_speed: "Quality"
+          })
+        });
+      } else {
+        // Standard image generation endpoint
+        res = await fetch("/api/generate/image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: finalPrompt,
+            modelId: selectedImageModel,
+            aspectRatio,
+            numImages: 1
+          })
+        });
+      }
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.imageUrl) {
-        throw new Error(data.error ?? "فشل توليد الصورة.");
+      const imageUrl = data.imageUrl || (Array.isArray(data.imageUrls) ? data.imageUrls[0] : null);
+
+      if (!res.ok || !imageUrl) {
+        throw new Error(data.error ?? "Failed to generate image.");
       }
 
       // Add to store
       addAsset({
         type: "image",
-        url: data.imageUrl,
-        prompt: promptText,
-        model: selectedImageModel,
+        url: imageUrl,
+        prompt: finalPrompt,
+        model: activeCharacter ? "Gemini 3 Pro Character" : selectedImageModel,
       });
 
       // Update local state
       const newAsset: MediaAsset = {
         id: data.generationId || Math.random().toString(),
         type: "image",
-        url: data.imageUrl,
-        prompt: promptText,
-        model: selectedImageModel,
+        url: imageUrl,
+        prompt: finalPrompt,
+        model: activeCharacter ? `Character: ${activeCharacter.name}` : selectedImageModel,
         date: "Today"
       };
 
@@ -258,13 +360,12 @@ export default function CinemaFlowPage() {
 
       // Add success message
       setChatMessages(prev => {
-        // Remove generating indicator and replace
         const filtered = prev.filter(m => !m.isGenerating);
         return [...filtered, {
           id: Math.random().toString(),
           sender: "agent",
-          text: "رائع! تم توليد الصورة بنجاح وتحديث معرض الوسائط الوسطى.",
-          assetUrl: data.imageUrl,
+          text: "Success! The image has been generated and added to your gallery workspace.",
+          assetUrl: imageUrl,
           assetType: "image"
         }];
       });
@@ -275,7 +376,7 @@ export default function CinemaFlowPage() {
         return [...filtered, {
           id: Math.random().toString(),
           sender: "agent",
-          text: `فشل التوليد: ${err.message}`
+          text: `Generation failed: ${err.message}`
         }];
       });
     } finally {
@@ -291,7 +392,7 @@ export default function CinemaFlowPage() {
       setChatMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: "agent",
-        text: "عذراً، رصيدك غير كافٍ لتشغيل نموذج التوليد الحالي."
+        text: "Sorry, you don't have enough credits to run this model."
       }]);
       setIsAgentTyping(false);
       return;
@@ -300,7 +401,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "جاري تشغيل محرك الفيديو Gemini Omni Flash لتوليد اللقطة المطلوبة (10 ثوانٍ)...",
+      text: "Running video engine (Gemini Omni Flash 10s) to generate the clip... please wait.",
       isGenerating: true
     }]);
 
@@ -320,7 +421,7 @@ export default function CinemaFlowPage() {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.taskId) {
-        throw new Error(data.error ?? "فشل توليد الفيديو.");
+        throw new Error(data.error ?? "Failed to generate video.");
       }
 
       // Start polling
@@ -332,7 +433,7 @@ export default function CinemaFlowPage() {
         return [...filtered, {
           id: Math.random().toString(),
           sender: "agent",
-          text: `فشل التوليد: ${err.message}`
+          text: `Generation failed: ${err.message}`
         }];
       });
       setIsAgentTyping(false);
@@ -349,7 +450,7 @@ export default function CinemaFlowPage() {
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok || data.status === "failed") {
-          throw new Error(data.error ?? "فشل طلب التوليد.");
+          throw new Error(data.error ?? "Failed to generate video.");
         }
 
         if (data.status === "completed" && data.outputs?.[0]) {
@@ -380,7 +481,7 @@ export default function CinemaFlowPage() {
             return [...filtered, {
               id: Math.random().toString(),
               sender: "agent",
-              text: "تم بنجاح توليد الفيديو الإبداعي وتحديث المعرض السحابي الوسطي!",
+              text: "Success! The video has been generated and added to your gallery workspace.",
               assetUrl: data.outputs[0],
               assetType: "video"
             }];
@@ -394,7 +495,7 @@ export default function CinemaFlowPage() {
           return [...filtered, {
             id: Math.random().toString(),
             sender: "agent",
-            text: `فشل أثناء المتابعة: ${err.message}`
+            text: `Generation failed: ${err.message}`
           }];
         });
         setIsAgentTyping(false);
@@ -545,71 +646,187 @@ export default function CinemaFlowPage() {
 
         {/* Media Grid Container */}
         <div className="flex-1 overflow-y-auto p-6">
-          {loadingAssets ? (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
-              <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
-              <span className="text-xs">جاري تحميل معرض الوسائط...</span>
-            </div>
-          ) : filteredAssets.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2 text-center">
-              <ImageIcon className="h-10 w-10 text-zinc-700 stroke-[1.5]" />
-              <div>
-                <p className="text-xs font-semibold text-zinc-400">لا توجد وسائط</p>
-                <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
-                  لم نجد أي صور أو فيديوهات تطابق الفلتر الحالي. ابدأ المحادثة مع الإيجنت على اليمين لتوليد أول وسائطك!
-                </p>
+          {activeTab === "character" ? (
+            /* Character library list view */
+            loadingCharacters ? (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                <span className="text-xs">Loading characters library...</span>
               </div>
-            </div>
-          ) : (
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${gridColumns === 4 ? 'xl:grid-cols-4' : ''} gap-4`}>
-              {filteredAssets.map((asset) => (
-                <div
-                  key={asset.id}
-                  onClick={() => setSelectedAsset(asset)}
-                  className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/30 bg-[#0e0e11] cursor-pointer transition-all aspect-square flex flex-col justify-between"
-                >
-                  {/* Media Content */}
-                  <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
-                    {asset.type === "video" ? (
-                      <>
-                        <video src={asset.url} className="w-full h-full object-cover" muted />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all">
-                          <div className="rounded-full p-2 bg-black/50 text-white ring-1 ring-white/20">
-                            <Play size={16} fill="white" />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <img
-                        src={asset.url}
-                        alt={asset.prompt}
-                        className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    )}
-
-                    {/* Action hover overlay */}
-                    {showPromptsOnHover && (
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all p-3 flex flex-col justify-end">
-                        <p className="text-[10px] text-zinc-200 line-clamp-2 leading-relaxed">
-                          {asset.prompt}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Asset Footer metadata */}
-                  <div className="flex-shrink-0 p-2.5 border-t border-white/5 bg-zinc-950/60 flex items-center justify-between">
-                    <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[120px]">
-                      {asset.model || "Nano Banana"}
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-500">
-                      {asset.type}
-                    </span>
-                  </div>
+            ) : characters.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2 text-center">
+                <Users className="h-10 w-10 text-zinc-700 stroke-[1.5]" />
+                <div>
+                  <p className="text-xs font-semibold text-zinc-400">No Character Identities Found</p>
+                  <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
+                    You have not created any characters yet. Go to <a href="/character" className="text-orange-400 underline">Character Studio</a> to create persistent identities.
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${gridColumns === 4 ? 'xl:grid-cols-4' : ''} gap-4`}>
+                {characters.map((character) => (
+                  <div
+                    key={character.id}
+                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/30 bg-[#0e0e11] transition-all aspect-square flex flex-col justify-between"
+                  >
+                    {/* Character avatar */}
+                    <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
+                      {character.coverUrl ? (
+                        <img
+                          src={character.coverUrl}
+                          alt={character.name}
+                          className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-zinc-700 bg-black/40"><Users className="h-9 w-9" /></div>
+                      )}
+
+                      {/* Character actions overlay */}
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all p-3 flex flex-col justify-between">
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm(`Are you sure you want to delete ${character.name}?`)) {
+                                await handleDeleteCharacter(character.id);
+                              }
+                            }}
+                            className="p-1 rounded bg-red-500/80 hover:bg-red-500 text-white transition-all"
+                            title="Delete identity"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">
+                            {character.description || "Persistent character identity."}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCharacter(character);
+                              setActiveImageReference(null);
+                            }}
+                            className="w-full py-1 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold text-[10px] transition-all"
+                          >
+                            Use as Reference
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Character footer */}
+                    <div className="flex-shrink-0 p-2.5 border-t border-white/5 bg-zinc-950/60 flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-200 font-bold truncate">
+                        {character.name}
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-mono">
+                        {character.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            /* Standard media assets list view */
+            loadingAssets ? (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                <span className="text-xs">Loading media gallery...</span>
+              </div>
+            ) : filteredAssets.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2 text-center">
+                <ImageIcon className="h-10 w-10 text-zinc-700 stroke-[1.5]" />
+                <div>
+                  <p className="text-xs font-semibold text-zinc-400">No Media Found</p>
+                  <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
+                    No images or videos match the current filters. Start chatting with the agent on the right to generate your first asset!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${gridColumns === 4 ? 'xl:grid-cols-4' : ''} gap-4`}>
+                {filteredAssets.map((asset) => (
+                  <div
+                    key={asset.id}
+                    onClick={() => setSelectedAsset(asset)}
+                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/30 bg-[#0e0e11] cursor-pointer transition-all aspect-square flex flex-col justify-between"
+                  >
+                    {/* Media Content */}
+                    <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
+                      {asset.type === "video" ? (
+                        <>
+                          <video src={asset.url} className="w-full h-full object-cover" muted />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-all">
+                            <div className="rounded-full p-2 bg-black/50 text-white ring-1 ring-white/20">
+                              <Play size={16} fill="white" />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <img
+                          src={asset.url}
+                          alt={asset.prompt}
+                          className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
+
+                      {/* Action hover overlay with Ref & Delete buttons */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all p-3 flex flex-col justify-between">
+                        <div className="flex justify-end gap-1.5">
+                          {asset.type === "image" && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveImageReference(asset);
+                                setActiveCharacter(null);
+                              }}
+                              className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold transition-all"
+                              title="Use as character style/subject reference"
+                            >
+                              Use as Ref
+                            </button>
+                          )}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (confirm("Are you sure you want to delete this asset?")) {
+                                await handleDeleteAsset(asset.id);
+                              }
+                            }}
+                            className="p-1 rounded bg-red-500/80 hover:bg-red-500 text-white transition-all animate-fade-in"
+                            title="Delete asset"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+
+                        {showPromptsOnHover && (
+                          <p className="text-[10px] text-zinc-200 line-clamp-2 leading-relaxed mt-auto">
+                            {asset.prompt}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Asset Footer metadata */}
+                    <div className="flex-shrink-0 p-2.5 border-t border-white/5 bg-zinc-950/60 flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-400 font-mono truncate max-w-[120px]">
+                        {asset.model || "Nano Banana"}
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-zinc-500">
+                        {asset.type}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 
@@ -725,7 +942,7 @@ export default function CinemaFlowPage() {
                 <div className="flex flex-col gap-1.5 max-w-[85%] self-start items-start">
                   <div className="rounded-2xl p-3 bg-white/[0.04] border border-white/5 flex items-center gap-1.5">
                     <Loader2 size={13} className="animate-spin text-orange-400" />
-                    <span className="text-[11px] text-zinc-400">جاري الكتابة والتوليد...</span>
+                    <span className="text-[11px] text-zinc-400">Agent is typing...</span>
                   </div>
                 </div>
               )}
@@ -744,7 +961,7 @@ export default function CinemaFlowPage() {
               className="absolute bottom-[80px] left-4 right-4 bg-zinc-900 border border-white/10 rounded-2xl p-4 shadow-xl z-10 flex flex-col gap-3"
             >
               <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                <span className="text-xs font-bold text-zinc-200">إعدادات النماذج النشطة</span>
+                <span className="text-xs font-bold text-zinc-200">Active Model Settings</span>
                 <button onClick={() => setModelSettingsOpen(false)} className="text-zinc-500 hover:text-white">
                   <X size={12} />
                 </button>
@@ -752,7 +969,7 @@ export default function CinemaFlowPage() {
 
               {/* Image model selection */}
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-zinc-500">محرك الصور (Image Engine)</span>
+                <span className="text-[10px] text-zinc-500">Image Engine</span>
                 <select
                   value={selectedImageModel}
                   onChange={(e) => setSelectedImageModel(e.target.value)}
@@ -766,7 +983,7 @@ export default function CinemaFlowPage() {
 
               {/* Video model selection */}
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-zinc-500">محرك الفيديو (Video Engine)</span>
+                <span className="text-[10px] text-zinc-500">Video Engine</span>
                 <select
                   value={selectedVideoModel}
                   onChange={(e) => setSelectedVideoModel(e.target.value)}
@@ -779,15 +996,15 @@ export default function CinemaFlowPage() {
 
               {/* Aspect Ratio */}
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-zinc-500">أبعاد الصورة (Aspect Ratio)</span>
+                <span className="text-[10px] text-zinc-500">Aspect Ratio</span>
                 <select
                   value={aspectRatio}
                   onChange={(e) => setAspectRatio(e.target.value)}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
-                  <option value="1:1">1:1 (مربع)</option>
-                  <option value="16:9">16:9 (عريض)</option>
-                  <option value="9:16">9:16 (عمودي)</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="16:9">16:9 (Landscape)</option>
+                  <option value="9:16">9:16 (Portrait)</option>
                 </select>
               </div>
             </motion.div>
@@ -796,6 +1013,30 @@ export default function CinemaFlowPage() {
 
         {/* Chat input box */}
         <div className="flex-shrink-0 p-4 border-t border-white/5 bg-zinc-950/20">
+          {/* Active Reference Badges */}
+          {(activeCharacter || activeImageReference) && (
+            <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-white/5">
+              {activeCharacter && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 border border-orange-500/30 rounded-xl text-[10px] text-orange-400">
+                  <Users size={10} />
+                  <span>Ref Character: {activeCharacter.name}</span>
+                  <button onClick={() => setActiveCharacter(null)} className="text-zinc-500 hover:text-white transition-colors">
+                    <X size={10} />
+                  </button>
+                </div>
+              )}
+              {activeImageReference && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-[10px] text-cyan-400">
+                  <ImageIcon size={10} />
+                  <span>Ref Image: {activeImageReference.prompt ? `${activeImageReference.prompt.slice(0, 15)}...` : "Selected image"}</span>
+                  <button onClick={() => setActiveImageReference(null)} className="text-zinc-500 hover:text-white transition-colors">
+                    <X size={10} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="relative rounded-2xl bg-white/[0.03] border border-white/5 p-2 flex flex-col gap-1.5">
             <textarea
               rows={2}
@@ -908,7 +1149,7 @@ export default function CinemaFlowPage() {
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                   <HelpCircle className="text-orange-400" size={16} />
-                  دليل مساحة العمل — Cinema Flow
+                  Workspace Guide — Cinema Flow
                 </span>
                 <button onClick={() => setHelpModalOpen(false)} className="text-zinc-500 hover:text-white">
                   <X size={16} />
@@ -917,19 +1158,19 @@ export default function CinemaFlowPage() {
 
               <div className="text-xs text-zinc-400 leading-relaxed flex flex-col gap-3">
                 <p>
-                  مرحباً بك في <strong>Cinema Flow</strong>! هذه مساحة العمل الإبداعية المتكاملة المدعومة من نماذج ذكاء Google.
+                  Welcome to <strong>Cinema Flow</strong>! This is your ultimate AI-driven creative workspace powered by Google.
                 </p>
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
-                  <span className="font-bold text-orange-400">💡 كيف تبدأ؟</span>
-                  <span>اكتب للإيجنت في الجانب الأيمن ما تود إنشائه، وسيقوم هو بصياغة وتفعيل محركات التوليد.</span>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
+                  <span className="font-bold text-orange-400">💡 How to Start?</span>
+                  <span>Chat with the agent on the right; it will refine prompts and trigger models automatically.</span>
                 </div>
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
-                  <span className="font-bold text-orange-400">🖼️ توليد الصور (Image Generation):</span>
-                  <span>يبدأ تلقائياً عند طلب صورة أو رسمة، ويخصم 0.40 إلى 0.60 كريدت للطلب الواحد.</span>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
+                  <span className="font-bold text-orange-400">🖼️ Image Generation:</span>
+                  <span>Triggers when you ask for an image, costing 0.40 to 0.60 credits.</span>
                 </div>
-                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
-                  <span className="font-bold text-orange-400">🎬 توليد الفيديو (Video Generation):</span>
-                  <span>يبدأ عند طلب مقطع فيديو أو تحريك لقطة (مدته 10 ثوانٍ) عبر نموذج Gemini Omni Flash، وتكلفته 30.0 كريدت.</span>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
+                  <span className="font-bold text-orange-400">🎬 Video Generation:</span>
+                  <span>Triggers when you ask for a video (10s clip) via Gemini Omni Flash, costing 30.0 credits.</span>
                 </div>
               </div>
 
@@ -937,7 +1178,7 @@ export default function CinemaFlowPage() {
                 onClick={() => setHelpModalOpen(false)}
                 className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
               >
-                حسناً، فهمت ذلك
+                Got it
               </button>
             </motion.div>
           </div>
@@ -957,7 +1198,7 @@ export default function CinemaFlowPage() {
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                   <Settings className="text-orange-400" size={16} />
-                  إعدادات مساحة العمل
+                  Workspace Settings
                 </span>
                 <button onClick={() => setSettingsModalOpen(false)} className="text-zinc-500 hover:text-white">
                   <X size={16} />
@@ -967,26 +1208,26 @@ export default function CinemaFlowPage() {
               <div className="flex flex-col gap-4">
                 {/* Grid layout settings */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-zinc-400 font-bold">تخطيط المعرض (Gallery Layout)</span>
+                  <span className="text-xs text-zinc-400 font-bold">Gallery Layout</span>
                   <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                     <button 
                       onClick={() => setGridColumns(4)}
                       className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 4 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
-                      مدمج (4 أعمدة)
+                      Compact (4 columns)
                     </button>
                     <button 
                       onClick={() => setGridColumns(3)}
                       className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 3 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
-                      مريح (3 أعمدة)
+                      Comfortable (3 columns)
                     </button>
                   </div>
                 </div>
 
                 {/* Show details on hover */}
                 <div className="flex items-center justify-between py-2 border-b border-white/5">
-                  <span className="text-xs text-zinc-400">إظهار الوصف الإبداعي عند التمرير بالماوس</span>
+                  <span className="text-xs text-zinc-400">Show prompt descriptions on hover</span>
                   <input
                     type="checkbox"
                     checked={showPromptsOnHover}
@@ -1004,7 +1245,7 @@ export default function CinemaFlowPage() {
                     }}
                     className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-bold text-zinc-200 transition-all"
                   >
-                    مزامنة وتحديث مكتبة الوسائط
+                    Sync & Refresh Media Library
                   </button>
                   
                   <button
@@ -1014,7 +1255,7 @@ export default function CinemaFlowPage() {
                     }}
                     className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold text-red-400 transition-all"
                   >
-                    مسح ذاكرة محادثة الإيجنت الحالية
+                    Clear Current Agent Chat Session
                   </button>
                 </div>
               </div>
@@ -1023,7 +1264,7 @@ export default function CinemaFlowPage() {
                 onClick={() => setSettingsModalOpen(false)}
                 className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
               >
-                إغلاق
+                Close
               </button>
             </motion.div>
           </div>
