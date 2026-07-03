@@ -463,7 +463,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: `Running image engine (${modelLabel}) to generate the asset... please wait.`,
+      text: "جاري التوليد... يرجى الانتظار.",
       isGenerating: true
     }]);
 
@@ -527,7 +527,8 @@ export default function CinemaFlowPage() {
         url: imageUrl,
         prompt: finalPrompt,
         model: activeCharacter ? `Character: ${activeCharacter.name}` : selectedImageModel,
-        date: "Today"
+        date: "Today",
+        createdAt: new Date().toISOString()
       };
 
       setAssets(prev => [newAsset, ...prev]);
@@ -538,7 +539,7 @@ export default function CinemaFlowPage() {
         return [...filtered, {
           id: Math.random().toString(),
           sender: "agent",
-          text: "Success! The image has been generated and added to your gallery workspace.",
+          text: "تم التوليد بنجاح! تم حفظ الصورة في معرض أعمالك.",
           assetUrl: imageUrl,
           assetType: "image"
         }];
@@ -593,7 +594,7 @@ export default function CinemaFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: `Running video engine (${modelName} ${videoDuration}s, Quality: ${videoQuality}) to generate the clip... please wait.`,
+      text: "جاري التوليد... يرجى الانتظار.",
       isGenerating: true
     }]);
 
@@ -664,7 +665,8 @@ export default function CinemaFlowPage() {
             url: data.outputs[0],
             prompt: promptText,
             model: "Gemini Omni Flash",
-            date: "Today"
+            date: "Today",
+            createdAt: new Date().toISOString()
           };
 
           setAssets(prev => [newAsset, ...prev]);
@@ -674,7 +676,7 @@ export default function CinemaFlowPage() {
             return [...filtered, {
               id: Math.random().toString(),
               sender: "agent",
-              text: "Success! The video has been generated and added to your gallery workspace.",
+              text: "تم التوليد بنجاح! تم حفظ الفيديو في معرض أعمالك.",
               assetUrl: data.outputs[0],
               assetType: "video"
             }];
@@ -1148,12 +1150,30 @@ export default function CinemaFlowPage() {
 
                   {/* standalone attachment card (no text container background framing) */}
                   {msg.assetUrl && (
-                    <div className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg">
+                    <div 
+                      className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
+                      onClick={() => {
+                        setActiveImageReference({
+                          id: msg.id,
+                          url: msg.assetUrl!,
+                          type: msg.assetType === "video" ? "video" : "image",
+                          prompt: msg.text || "Chat generated reference",
+                          createdAt: new Date().toISOString()
+                        } as any);
+                        setActiveCharacter(null);
+                      }}
+                      title="تعيين كصورة مرجعية"
+                    >
                       {msg.assetType === "video" ? (
                         <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
                       ) : (
                         <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
                       )}
+                      {/* Hover overlay indicator */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium gap-1 pointer-events-none">
+                        <Sparkles size={12} className="text-violet-400 animate-pulse" />
+                        <span>استخدام كصورة مرجعية</span>
+                      </div>
                     </div>
                   )}
                   
