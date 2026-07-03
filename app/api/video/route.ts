@@ -2385,7 +2385,7 @@ export async function GET(req: Request) {
 
       const linkedGeneration = await prismadb.generation.findFirst({
         where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
-        select: { id: true, cost: true, mediaUrl: true },
+        select: { id: true, cost: true, mediaUrl: true, createdAt: true },
         orderBy: { createdAt: "desc" },
       }).catch(() => null);
 
@@ -2401,6 +2401,16 @@ export async function GET(req: Request) {
         console.error("[api/video GET] Gemini poll error", message);
 
         if (isMissingProviderTask(message)) {
+          const ageMs = linkedGeneration ? (Date.now() - new Date(linkedGeneration.createdAt).getTime()) : 0;
+          if (ageMs < 30000 && (message.includes("404") || /not found/i.test(message))) {
+            return NextResponse.json({
+              taskId,
+              status: "processing",
+              outputs: [],
+              error: null,
+            });
+          }
+
           if (linkedGeneration && linkedGeneration.cost > 0) {
             await refundGenerationCharge(linkedGeneration.id, userId, linkedGeneration.cost, {
               reason: "generation_refund_provider_failed",
