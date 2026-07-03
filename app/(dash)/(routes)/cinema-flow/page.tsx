@@ -82,6 +82,8 @@ export default function CinemaFlowPage() {
   // Layout states
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<MediaAsset | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -155,6 +157,112 @@ export default function CinemaFlowPage() {
     } catch (err) {
       console.error("Error deleting character:", err);
       alert("Error deleting character.");
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+
+    // 1. Check if dropped files (e.g. from local computer)
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+        alert("Please drop an image or video file.");
+        return;
+      }
+
+      try {
+        setUploadingFile(true);
+        // Read file as base64
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = async () => {
+          const base64Data = reader.result as string;
+          const base64Raw = base64Data.split(",")[1];
+
+          // Upload to /api/upload/frame
+          const uploadRes = await fetch("/api/upload/frame", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: file.name,
+              mimeType: file.type,
+              base64: base64Raw,
+            }),
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error("Failed to upload dropped file");
+          }
+
+          const uploadData = await uploadRes.json();
+          if (uploadData.url) {
+            // Save to database gallery using our new POST endpoint
+            const saveRes = await fetch("/api/assets", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                url: uploadData.url,
+                filename: file.name,
+                mimeType: file.type,
+              }),
+            });
+
+            if (saveRes.ok) {
+              const saveData = await saveRes.json();
+              if (saveData.asset) {
+                // Add to local state
+                setAssets(prev => [saveData.asset, ...prev]);
+                // Set as active reference
+                setActiveImageReference(saveData.asset);
+                setActiveCharacter(null);
+              }
+            } else {
+              const tempAsset = {
+                id: Math.random().toString(),
+                url: uploadData.url,
+                type: file.type.startsWith("video") ? "video" : "image",
+                prompt: file.name,
+              };
+              setActiveImageReference(tempAsset);
+              setActiveCharacter(null);
+            }
+          }
+        };
+      } catch (err) {
+        console.error("Drop upload failed:", err);
+        alert("Failed to upload dropped file.");
+      } finally {
+        setUploadingFile(false);
+      }
+      return;
+    }
+
+    // 2. Check if dropped serialized asset from gallery
+    const draggedAssetData = e.dataTransfer.getData("text/plain");
+    if (draggedAssetData) {
+      try {
+        const asset = JSON.parse(draggedAssetData);
+        if (asset && asset.url) {
+          if (asset.coverUrl !== undefined) {
+            setActiveCharacter(asset);
+            setActiveImageReference(null);
+          } else {
+            setActiveImageReference(asset);
+            setActiveCharacter(null);
+          }
+        }
+      } catch (_) {}
     }
   };
 
@@ -551,7 +659,7 @@ export default function CinemaFlowPage() {
           {/* Logo / Header */}
           <div className="flex items-center justify-between">
             {!isSidebarCollapsed && (
-              <span className="text-xs font-bold tracking-wider text-orange-400 flex items-center gap-1.5">
+              <span className="text-xs font-bold tracking-wider text-violet-400 flex items-center gap-1.5">
                 <Sparkles size={14} />
                 CINEMA FLOW
               </span>
@@ -575,11 +683,11 @@ export default function CinemaFlowPage() {
                     onClick={() => setActiveTab(tab.id as any)}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all"
                     style={{
-                      background: isActive ? "rgba(249,115,22,0.1)" : "transparent",
-                      color: isActive ? "#fb923c" : "#94a3b8"
+                      background: isActive ? "rgba(139,92,246,0.1)" : "transparent",
+                      color: isActive ? "#a78bfa" : "#94a3b8"
                     }}
                   >
-                    <TabIcon size={15} className={isActive ? "text-orange-400" : "text-zinc-500"} />
+                    <TabIcon size={15} className={isActive ? "text-violet-400" : "text-zinc-500"} />
                     {!isSidebarCollapsed && <span>{tab.label}</span>}
                   </button>
                 </li>
@@ -608,7 +716,7 @@ export default function CinemaFlowPage() {
               placeholder="Search assets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 focus:border-orange-500/40 text-xs focus:outline-none text-zinc-200"
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-white/[0.03] border border-white/5 focus:border-violet-500/40 text-xs focus:outline-none text-zinc-200"
             />
           </div>
 
@@ -617,7 +725,7 @@ export default function CinemaFlowPage() {
             <div className="relative">
               <button 
                 onClick={() => setFilterOpen(!filterOpen)}
-                className={`p-2 rounded-lg border text-zinc-400 hover:text-white hover:bg-white/5 transition-all ${filterOpen ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' : 'bg-white/[0.03] border-white/5'}`}
+                className={`p-2 rounded-lg border text-zinc-400 hover:text-white hover:bg-white/5 transition-all ${filterOpen ? 'bg-violet-500/20 border-violet-500/40 text-violet-400' : 'bg-white/[0.03] border-white/5'}`}
                 title="تصفية وترتيب المعرض"
               >
                 <Sliders size={14} />
@@ -629,13 +737,13 @@ export default function CinemaFlowPage() {
                   <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                     <button 
                       onClick={() => setSortOrder("newest")}
-                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "newest" ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "newest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       الأحدث أولاً
                     </button>
                     <button 
                       onClick={() => setSortOrder("oldest")}
-                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "oldest" ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "oldest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       الأقدم أولاً
                     </button>
@@ -681,7 +789,7 @@ export default function CinemaFlowPage() {
             /* Character library list view */
             loadingCharacters ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
                 <span className="text-xs">Loading characters library...</span>
               </div>
             ) : characters.length === 0 ? (
@@ -690,7 +798,7 @@ export default function CinemaFlowPage() {
                 <div>
                   <p className="text-xs font-semibold text-zinc-400">No Character Identities Found</p>
                   <p className="text-[10px] text-zinc-600 mt-1 max-w-xs">
-                    You have not created any characters yet. Go to <a href="/character" className="text-orange-400 underline">Character Studio</a> to create persistent identities.
+                    You have not created any characters yet. Go to <a href="/character" className="text-violet-400 underline">Character Studio</a> to create persistent identities.
                   </p>
                 </div>
               </div>
@@ -699,7 +807,9 @@ export default function CinemaFlowPage() {
                 {characters.map((character) => (
                   <div
                     key={character.id}
-                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/30 bg-[#0e0e11] transition-all aspect-square flex flex-col justify-between"
+                    draggable={true}
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify(character))}
+                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-violet-500/30 bg-[#0e0e11] transition-all aspect-square flex flex-col justify-between"
                   >
                     {/* Character avatar */}
                     <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
@@ -741,7 +851,7 @@ export default function CinemaFlowPage() {
                               setActiveCharacter(character);
                               setActiveImageReference(null);
                             }}
-                            className="w-full py-1 rounded bg-orange-500 hover:bg-orange-600 text-white font-bold text-[10px] transition-all"
+                            className="w-full py-1 rounded bg-violet-600 hover:bg-violet-700 text-white font-bold text-[10px] transition-all"
                           >
                             Use as Reference
                           </button>
@@ -754,7 +864,7 @@ export default function CinemaFlowPage() {
                       <span className="text-[10px] text-zinc-200 font-bold truncate">
                         {character.name}
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 font-mono">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 font-mono">
                         {character.status}
                       </span>
                     </div>
@@ -766,7 +876,7 @@ export default function CinemaFlowPage() {
             /* Standard media assets list view */
             loadingAssets ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
-                <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
                 <span className="text-xs">Loading media gallery...</span>
               </div>
             ) : filteredAssets.length === 0 ? (
@@ -785,7 +895,9 @@ export default function CinemaFlowPage() {
                   <div
                     key={asset.id}
                     onClick={() => setSelectedAsset(asset)}
-                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-orange-500/30 bg-[#0e0e11] cursor-pointer transition-all aspect-square flex flex-col justify-between"
+                    draggable={true}
+                    onDragStart={(e) => e.dataTransfer.setData("text/plain", JSON.stringify(asset))}
+                    className="group relative rounded-xl overflow-hidden border border-white/5 hover:border-violet-500/30 bg-[#0e0e11] cursor-pointer transition-all aspect-square flex flex-col justify-between"
                   >
                     {/* Media Content */}
                     <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
@@ -868,7 +980,32 @@ export default function CinemaFlowPage() {
       </div>
 
       {/* 3. Right Panel - AI Chat Agent */}
-      <div className="w-[380px] flex-shrink-0 border-l border-white/5 bg-[#0e0e11] flex flex-col overflow-hidden relative">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="w-[380px] flex-shrink-0 border-l border-white/5 bg-[#0e0e11] flex flex-col overflow-hidden relative"
+      >
+        <AnimatePresence>
+          {(isDraggingOver || uploadingFile) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-violet-500/40 m-2 rounded-xl"
+            >
+              <div className="h-16 w-16 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-400 border border-violet-500/20 mb-4 animate-bounce">
+                {uploadingFile ? <Loader2 className="h-8 w-8 animate-spin" /> : <Paperclip className="h-8 w-8" />}
+              </div>
+              <p className="text-sm font-bold text-zinc-200">
+                {uploadingFile ? "Uploading media..." : "Drop to Attach Reference"}
+              </p>
+              <p className="text-xs text-zinc-500 mt-1.5">
+                Drop your image, video, or character here to use as reference.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Chat Header */}
         <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/5">
@@ -946,7 +1083,7 @@ export default function CinemaFlowPage() {
                     <div
                       className={`rounded-2xl p-3 text-xs leading-relaxed ${
                         msg.sender === "user" 
-                          ? "bg-orange-500 text-white rounded-br-none" 
+                          ? "bg-violet-600 text-white rounded-br-none" 
                           : "bg-white/[0.04] border border-white/5 text-zinc-200 rounded-bl-none"
                       }`}
                     >
@@ -975,7 +1112,7 @@ export default function CinemaFlowPage() {
               {isAgentTyping && (
                 <div className="flex flex-col gap-1.5 max-w-[85%] self-start items-start">
                   <div className="rounded-2xl p-3 bg-white/[0.04] border border-white/5 flex items-center gap-1.5">
-                    <Loader2 size={13} className="animate-spin text-orange-400" />
+                    <Loader2 size={13} className="animate-spin text-violet-400" />
                     <span className="text-[11px] text-zinc-400">Agent is typing...</span>
                   </div>
                 </div>
@@ -1085,7 +1222,7 @@ export default function CinemaFlowPage() {
           {(activeCharacter || activeImageReference) && (
             <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-white/5">
               {activeCharacter && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/10 border border-orange-500/30 rounded-xl text-[10px] text-orange-400">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-violet-500/10 border border-violet-500/30 rounded-xl text-[10px] text-violet-400">
                   <Users size={10} />
                   <span>Ref Character: {activeCharacter.name}</span>
                   <button onClick={() => setActiveCharacter(null)} className="text-zinc-500 hover:text-white transition-colors">
@@ -1137,7 +1274,7 @@ export default function CinemaFlowPage() {
                 </button>
                 <button
                   onClick={() => sendChatMessage(inputText)}
-                  className="rounded-lg p-1 bg-orange-500 hover:bg-orange-600 text-white transition-all"
+                  className="rounded-lg p-1 bg-violet-600 hover:bg-violet-700 text-white transition-all"
                 >
                   <Send size={12} fill="white" />
                 </button>
@@ -1183,7 +1320,7 @@ export default function CinemaFlowPage() {
               {/* Modal Footer actions */}
               <div className="px-5 py-4 border-t border-white/5 bg-zinc-950/60 flex items-center justify-between">
                 <span className="text-[10px] text-zinc-400">
-                  Model: <span className="font-mono text-orange-400">{selectedAsset.model || "Nano Banana"}</span>
+                  Model: <span className="font-mono text-violet-400">{selectedAsset.model || "Nano Banana"}</span>
                 </span>
 
                 <div className="flex items-center gap-2">
@@ -1216,7 +1353,7 @@ export default function CinemaFlowPage() {
             >
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                  <HelpCircle className="text-orange-400" size={16} />
+                  <HelpCircle className="text-violet-400" size={16} />
                   Workspace Guide — Cinema Flow
                 </span>
                 <button onClick={() => setHelpModalOpen(false)} className="text-zinc-500 hover:text-white">
@@ -1229,22 +1366,22 @@ export default function CinemaFlowPage() {
                   Welcome to <strong>Cinema Flow</strong>! This is your ultimate AI-driven creative workspace powered by Google.
                 </p>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-orange-400">💡 How to Start?</span>
+                  <span className="font-bold text-violet-400">💡 How to Start?</span>
                   <span>Chat with the agent on the right; it will refine prompts and trigger models automatically.</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-orange-400">🖼️ Image Generation:</span>
+                  <span className="font-bold text-violet-400">🖼️ Image Generation:</span>
                   <span>Triggers when you ask for an image, costing 0.40 to 0.60 credits.</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px]">
-                  <span className="font-bold text-orange-400">🎬 Video Generation:</span>
+                  <span className="font-bold text-violet-400">🎬 Video Generation:</span>
                   <span>Triggers when you ask for a video (10s clip) via Gemini Omni Flash, costing 30.0 credits.</span>
                 </div>
               </div>
 
               <button
                 onClick={() => setHelpModalOpen(false)}
-                className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
+                className="w-full py-2 bg-violet-600 hover:bg-violet-700 rounded-xl text-xs font-bold text-white transition-all mt-2"
               >
                 Got it
               </button>
@@ -1265,7 +1402,7 @@ export default function CinemaFlowPage() {
             >
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                  <Settings className="text-orange-400" size={16} />
+                  <Settings className="text-violet-400" size={16} />
                   Workspace Settings
                 </span>
                 <button onClick={() => setSettingsModalOpen(false)} className="text-zinc-500 hover:text-white">
@@ -1280,13 +1417,13 @@ export default function CinemaFlowPage() {
                   <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                     <button 
                       onClick={() => setGridColumns(4)}
-                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 4 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 4 ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       Compact (4 columns)
                     </button>
                     <button 
                       onClick={() => setGridColumns(3)}
-                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 3 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 3 ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       Comfortable (3 columns)
                     </button>
@@ -1300,7 +1437,7 @@ export default function CinemaFlowPage() {
                     type="checkbox"
                     checked={showPromptsOnHover}
                     onChange={(e) => setShowPromptsOnHover(e.target.checked)}
-                    className="w-4 h-4 rounded accent-orange-500 cursor-pointer"
+                    className="w-4 h-4 rounded accent-violet-600 cursor-pointer"
                   />
                 </div>
 
@@ -1330,7 +1467,7 @@ export default function CinemaFlowPage() {
 
               <button
                 onClick={() => setSettingsModalOpen(false)}
-                className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
+                className="w-full py-2 bg-violet-600 hover:bg-violet-700 rounded-xl text-xs font-bold text-white transition-all mt-2"
               >
                 Close
               </button>

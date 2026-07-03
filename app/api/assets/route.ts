@@ -178,3 +178,51 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { url, filename, mimeType } = await req.json().catch(() => ({}));
+    if (!url) {
+      return NextResponse.json({ error: "url is required" }, { status: 400 });
+    }
+
+    const type = String(mimeType || "").startsWith("video") ? "video" : "image";
+
+    const record = await prismadb.generation.create({
+      data: {
+        userId,
+        mediaUrl: url,
+        prompt: filename || "Manually Uploaded",
+        modelUsed: "Upload",
+        assetType: type,
+        status: "COMPLETED",
+        cost: 0,
+      }
+    });
+
+    const returnedAsset = {
+      id: record.id,
+      type,
+      url,
+      prompt: record.prompt,
+      model: record.modelUsed,
+      date: record.createdAt.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      createdAt: record.createdAt.toISOString(),
+      cost: 0,
+    };
+
+    return NextResponse.json({ asset: returnedAsset, ok: true }, { status: 200 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to save asset.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
