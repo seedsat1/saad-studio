@@ -1487,7 +1487,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE;
+    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
     const kieModel = isDirectGoogleVeo31ProRoute ? undefined : resolveKieVideoModel(modelRoute);
     const wavespeedRoute = wavespeedFallbackMap[modelRoute];
 
