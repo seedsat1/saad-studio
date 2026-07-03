@@ -43,6 +43,15 @@ export default function CinemaFlowPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "image" | "video" | "character" | "scene" | "upload">("all");
   
+  // Interactive controls states
+  const [filterModel, setFilterModel] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [gridColumns, setGridColumns] = useState<3 | 4>(4);
+  const [showPromptsOnHover, setShowPromptsOnHover] = useState(true);
+
   // Chat states
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
@@ -96,17 +105,29 @@ export default function CinemaFlowPage() {
     { id: "upload", label: "Uploads", icon: Paperclip },
   ];
 
-  // Filtered assets based on activeTab and searchQuery
-  const filteredAssets = assets.filter((asset) => {
-    const matchesSearch = asset.prompt?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          asset.model?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (activeTab === "all") return matchesSearch;
-    if (activeTab === "image") return asset.type === "image" && matchesSearch;
-    if (activeTab === "video") return asset.type === "video" && matchesSearch;
-    if (activeTab === "character") return asset.model?.toLowerCase().includes("character") && matchesSearch;
-    return matchesSearch; // Fallback
-  });
+  // Filtered and sorted assets based on activeTab, searchQuery, filterModel and sortOrder
+  const filteredAssets = assets
+    .filter((asset) => {
+      const matchesSearch = asset.prompt?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            asset.model?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Filter by model engine
+      if (filterModel !== "all") {
+        const matchesModel = asset.model?.toLowerCase().includes(filterModel.toLowerCase());
+        if (!matchesModel) return false;
+      }
+
+      if (activeTab === "all") return matchesSearch;
+      if (activeTab === "image") return asset.type === "image" && matchesSearch;
+      if (activeTab === "video") return asset.type === "video" && matchesSearch;
+      if (activeTab === "character") return asset.model?.toLowerCase().includes("character") && matchesSearch;
+      return matchesSearch;
+    })
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
   // Suggestion actions
   const handleSuggestionClick = (type: "brainstorm" | "started" | "capabilities") => {
@@ -459,14 +480,64 @@ export default function CinemaFlowPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5">
-              <Sliders size={14} />
-            </button>
-            <button className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5">
+          <div className="flex items-center gap-2 relative">
+            {/* Sliders (Filter) Button */}
+            <div className="relative">
+              <button 
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={`p-2 rounded-lg border text-zinc-400 hover:text-white hover:bg-white/5 transition-all ${filterOpen ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' : 'bg-white/[0.03] border-white/5'}`}
+                title="تصفية وترتيب المعرض"
+              >
+                <Sliders size={14} />
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-white/10 rounded-xl p-3 shadow-xl z-20 flex flex-col gap-2.5">
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">الترتيب الزمني</div>
+                  <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
+                    <button 
+                      onClick={() => setSortOrder("newest")}
+                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "newest" ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      الأحدث أولاً
+                    </button>
+                    <button 
+                      onClick={() => setSortOrder("oldest")}
+                      className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "oldest" ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      الأقدم أولاً
+                    </button>
+                  </div>
+
+                  <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">تصفية حسب النموذج</div>
+                  <select
+                    value={filterModel}
+                    onChange={(e) => setFilterModel(e.target.value)}
+                    className="w-full bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200 focus:outline-none"
+                  >
+                    <option value="all">جميع النماذج</option>
+                    <option value="nano-banana">Nano Banana</option>
+                    <option value="gemini-omni-flash">Gemini Video</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Help Button */}
+            <button 
+              onClick={() => setHelpModalOpen(true)}
+              className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
+              title="دليل مساحة العمل"
+            >
               <HelpCircle size={14} />
             </button>
-            <button className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5">
+
+            {/* Settings Button */}
+            <button 
+              onClick={() => setSettingsModalOpen(true)}
+              className="p-2 rounded-lg bg-white/[0.03] border border-white/5 text-zinc-400 hover:text-white hover:bg-white/5"
+              title="إعدادات مساحة العمل"
+            >
               <Settings size={14} />
             </button>
           </div>
@@ -490,7 +561,7 @@ export default function CinemaFlowPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${gridColumns === 4 ? 'xl:grid-cols-4' : ''} gap-4`}>
               {filteredAssets.map((asset) => (
                 <div
                   key={asset.id}
@@ -518,11 +589,13 @@ export default function CinemaFlowPage() {
                     )}
 
                     {/* Action hover overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all p-3 flex flex-col justify-end">
-                      <p className="text-[10px] text-zinc-200 line-clamp-2 leading-relaxed">
-                        {asset.prompt}
-                      </p>
-                    </div>
+                    {showPromptsOnHover && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all p-3 flex flex-col justify-end">
+                        <p className="text-[10px] text-zinc-200 line-clamp-2 leading-relaxed">
+                          {asset.prompt}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Asset Footer metadata */}
@@ -817,6 +890,141 @@ export default function CinemaFlowPage() {
                   </a>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Help Modal */}
+      <AnimatePresence>
+        {helpModalOpen && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-8 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0e0e11] border border-white/10 rounded-2xl max-w-lg w-full overflow-hidden flex flex-col p-6 gap-4"
+            >
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                  <HelpCircle className="text-orange-400" size={16} />
+                  دليل مساحة العمل — Cinema Flow
+                </span>
+                <button onClick={() => setHelpModalOpen(false)} className="text-zinc-500 hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="text-xs text-zinc-400 leading-relaxed flex flex-col gap-3">
+                <p>
+                  مرحباً بك في <strong>Cinema Flow</strong>! هذه مساحة العمل الإبداعية المتكاملة المدعومة من نماذج ذكاء Google.
+                </p>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
+                  <span className="font-bold text-orange-400">💡 كيف تبدأ؟</span>
+                  <span>اكتب للإيجنت في الجانب الأيمن ما تود إنشائه، وسيقوم هو بصياغة وتفعيل محركات التوليد.</span>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
+                  <span className="font-bold text-orange-400">🖼️ توليد الصور (Image Generation):</span>
+                  <span>يبدأ تلقائياً عند طلب صورة أو رسمة، ويخصم 0.40 إلى 0.60 كريدت للطلب الواحد.</span>
+                </div>
+                <div className="bg-white/[0.02] border border-white/5 rounded-xl p-3 flex flex-col gap-2 text-[11px] text-right" dir="rtl">
+                  <span className="font-bold text-orange-400">🎬 توليد الفيديو (Video Generation):</span>
+                  <span>يبدأ عند طلب مقطع فيديو أو تحريك لقطة (مدته 10 ثوانٍ) عبر نموذج Gemini Omni Flash، وتكلفته 30.0 كريدت.</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setHelpModalOpen(false)}
+                className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
+              >
+                حسناً، فهمت ذلك
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {settingsModalOpen && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-8 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0e0e11] border border-white/10 rounded-2xl max-w-md w-full overflow-hidden flex flex-col p-6 gap-4"
+            >
+              <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                <span className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                  <Settings className="text-orange-400" size={16} />
+                  إعدادات مساحة العمل
+                </span>
+                <button onClick={() => setSettingsModalOpen(false)} className="text-zinc-500 hover:text-white">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Grid layout settings */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-zinc-400 font-bold">تخطيط المعرض (Gallery Layout)</span>
+                  <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
+                    <button 
+                      onClick={() => setGridColumns(4)}
+                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 4 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      مدمج (4 أعمدة)
+                    </button>
+                    <button 
+                      onClick={() => setGridColumns(3)}
+                      className={`flex-1 text-[11px] py-1.5 rounded-md transition-all ${gridColumns === 3 ? 'bg-orange-500 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                    >
+                      مريح (3 أعمدة)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Show details on hover */}
+                <div className="flex items-center justify-between py-2 border-b border-white/5">
+                  <span className="text-xs text-zinc-400">إظهار الوصف الإبداعي عند التمرير بالماوس</span>
+                  <input
+                    type="checkbox"
+                    checked={showPromptsOnHover}
+                    onChange={(e) => setShowPromptsOnHover(e.target.checked)}
+                    className="w-4 h-4 rounded accent-orange-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      loadAssets();
+                      setSettingsModalOpen(false);
+                    }}
+                    className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-bold text-zinc-200 transition-all"
+                  >
+                    مزامنة وتحديث مكتبة الوسائط
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setChatMessages([]);
+                      setSettingsModalOpen(false);
+                    }}
+                    className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-xs font-bold text-red-400 transition-all"
+                  >
+                    مسح ذاكرة محادثة الإيجنت الحالية
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSettingsModalOpen(false)}
+                className="w-full py-2 bg-orange-500 hover:bg-orange-600 rounded-xl text-xs font-bold text-white transition-all mt-2"
+              >
+                إغلاق
+              </button>
             </motion.div>
           </div>
         )}
