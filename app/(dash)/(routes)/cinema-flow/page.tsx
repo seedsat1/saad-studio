@@ -12,6 +12,7 @@ import {
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { normalizeMediaUrl } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 
 interface CharacterRecord {
   id: string;
