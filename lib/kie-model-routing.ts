@@ -53,6 +53,8 @@ export const BASE_VIDEO_ROUTE_TO_KIE_MODEL: Record<string, string> = {
   "bytedance/seedance-v2/text-to-video": "bytedance/seedance-2",
   "x-ai/grok-imagine-video/text-to-video": "grok-imagine/text-to-video",
   "x-ai/grok-imagine-video/edit-video": "grok-imagine/image-to-video",
+  "google/gemini-omni-flash": "gemini-omni-video",
+  "google/gemini-omni-video": "gemini-omni-video",
 };
 
 export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
@@ -72,6 +74,7 @@ export const BASE_KIE_VIDEO_MODEL_MAP: Record<string, string> = {
   "bytedance/seedance-2-fast": "bytedance/seedance-2-fast",
   "grok-imagine/text-to-video": "grok-imagine/text-to-video",
   "grok-imagine/image-to-video": "grok-imagine/image-to-video",
+  "gemini-omni-video": "gemini-omni-video",
 };
 
 export const WAVESPEED_VIDEO_FALLBACK_MAP: Record<string, string> = {

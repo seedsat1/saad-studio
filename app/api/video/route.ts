@@ -1200,6 +1200,68 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       out.background_source = "input_video";
     }
 
+  }
+
+  // ── Gemini Omni Video — KIE flat input shape ──────────────────────────────
+  if (model === "gemini-omni-video") {
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    
+    // 1. duration: REQUIRED string ("4" | "6" | "8" | "10")
+    const durRaw = typeof input.duration === "number" ? input.duration
+                 : typeof input.duration === "string" ? Number(input.duration) : 8;
+    // Map to nearest allowed enum string
+    let durStr = "8";
+    if (durRaw <= 4) durStr = "4";
+    else if (durRaw <= 6) durStr = "6";
+    else if (durRaw <= 8) durStr = "8";
+    else durStr = "10";
+    out.duration = durStr;
+
+    // 2. aspect_ratio: "16:9" | "9:16"
+    const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "16:9";
+    out.aspect_ratio = (arRaw === "9:16") ? "9:16" : "16:9";
+
+    // 3. resolution: "720p" | "1080p" | "4k"
+    const resRaw = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "720p";
+    if (["720p", "1080p", "4k"].includes(resRaw)) {
+      out.resolution = resRaw;
+    } else {
+      out.resolution = "720p";
+    }
+
+    // 4. image_urls: collect references + start/end images
+    const collectedImages: string[] = [];
+    if (referenceImages.length > 0) {
+      collectedImages.push(...referenceImages);
+    }
+    if (startImage) {
+      collectedImages.push(startImage);
+    }
+    if (endImage && endImage !== startImage) {
+      collectedImages.push(endImage);
+    }
+    if (collectedImages.length > 0) {
+      // Unique and cap at 7
+      out.image_urls = Array.from(new Set(collectedImages)).slice(0, 7);
+    }
+
+    // 5. video_list: if motion video is provided
+    if (motionVideo) {
+      out.video_list = [
+        {
+          url: motionVideo,
+          start: 0,
+          ends: 10
+        }
+      ];
+    }
+
+    // 6. seed
+    if (typeof input.seed === "number") {
+      out.seed = input.seed;
+    }
+
     return out;
   }
 
@@ -1425,7 +1487,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === LEGACY_GEMINI_OMNI_VIDEO_ROUTE || modelRoute === "google/gemini-omni-flash";
+    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE;
     const kieModel = isDirectGoogleVeo31ProRoute ? undefined : resolveKieVideoModel(modelRoute);
     const wavespeedRoute = wavespeedFallbackMap[modelRoute];
 
