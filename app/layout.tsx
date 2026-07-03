@@ -10,7 +10,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ModalProvider } from "@/components/modal-provider";
 import { AvatarProvider } from "@/lib/avatar-context";
-import WhatsAppButton from "@/components/WhatsAppButton";
+// import WhatsAppButton from "@/components/WhatsAppButton";
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 
 
@@ -293,7 +293,7 @@ export default function RootLayout({
           <Toaster />
           <ModalProvider />
           <AvatarProvider>{children}</AvatarProvider>
-          <WhatsAppButton />
+          {/* <WhatsAppButton /> */}
           <CookieConsentBanner />
         </body>
       </html>

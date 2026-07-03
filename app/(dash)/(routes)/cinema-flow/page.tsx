@@ -941,26 +941,29 @@ export default function CinemaFlowPage() {
                   key={msg.id}
                   className={`flex flex-col gap-1.5 max-w-[85%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}
                 >
-                  <div
-                    className={`rounded-2xl p-3 text-xs leading-relaxed ${
-                      msg.sender === "user" 
-                        ? "bg-orange-500 text-white rounded-br-none" 
-                        : "bg-white/[0.04] border border-white/5 text-zinc-200 rounded-bl-none"
-                    }`}
-                  >
-                    {msg.text}
+                  {/* Message Text Bubble */}
+                  {msg.text && (
+                    <div
+                      className={`rounded-2xl p-3 text-xs leading-relaxed ${
+                        msg.sender === "user" 
+                          ? "bg-orange-500 text-white rounded-br-none" 
+                          : "bg-white/[0.04] border border-white/5 text-zinc-200 rounded-bl-none"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  )}
 
-                    {/* Integrated dynamic generated media preview in chat */}
-                    {msg.assetUrl && (
-                      <div className="mt-3 rounded-lg overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative">
-                        {msg.assetType === "video" ? (
-                          <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
-                        ) : (
-                          <img src={msg.assetUrl} alt="Generated output" className="w-full h-full object-cover" />
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  {/* standalone attachment card (no text container background framing) */}
+                  {msg.assetUrl && (
+                    <div className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg">
+                      {msg.assetType === "video" ? (
+                        <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  )}
                   
                   <span className="text-[9px] text-zinc-500 px-1">
                     {msg.sender === "user" ? "You" : "Cinema Flow Agent"}

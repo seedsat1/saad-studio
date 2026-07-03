@@ -6710,9 +6710,12 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Set up dynamic, precise per-second credit calculations for all video models inside the generation call, ensuring cost changes match selected duration and model rates.
   - Added full multimodal chat support by sending attached reference images as base64 inlineData directly into Gemini parts inside `/api/cinema-flow/chat`. User messages with attachments now visually display the reference image inside the chat bubble as well.
   - Upgraded the chat assistant backend from `gemini-2.5-flash` to the newest official `gemini-3.5-flash` model. Configured the generation config payload to use `thinkingConfig` with `thinkingLevel: "MEDIUM"` and removed legacy temperature sampling parameters as recommended.
+  - Commented out the global floating `WhatsAppButton` widget in `app/layout.tsx` to hide it from all pages.
+  - Separated the text message bubbles from the image/video attachment cards in `cinema-flow/page.tsx` chat feed to prevent media from being framed inside the orange user bubble container background.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx`
   - `app/api/cinema-flow/chat/route.ts`
+  - `app/layout.tsx`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - `npm run build` completed successfully.
