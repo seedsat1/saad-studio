@@ -183,10 +183,6 @@ export async function startVeoGeneration(
     const videoConfig: any = {
       task,
     };
-
-    if (params.aspectRatio) {
-      videoConfig.aspect_ratio = params.aspectRatio;
-    }
     if (params.durationSeconds) {
       // Clamp duration to supported range 3-10
       const clampedDuration = Math.max(3, Math.min(10, Math.round(params.durationSeconds)));
