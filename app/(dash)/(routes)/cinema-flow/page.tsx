@@ -7,7 +7,7 @@ import {
   Search, Sliders, Play, Plus, HelpCircle, Settings, X, Edit,
   Send, Sparkles, AlertCircle, Loader2, Image as ImageIcon,
   Film, Trash2, Users, Layers, Download, CheckCircle, Lightbulb,
-  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight
+  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight, Grid
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -84,6 +84,7 @@ export default function CinemaFlowPage() {
   const [selectedAsset, setSelectedAsset] = useState<MediaAsset | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [mobileView, setMobileView] = useState<"chat" | "gallery">("chat");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -299,22 +300,9 @@ export default function CinemaFlowPage() {
     }
   };
 
-  const handleDownload = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = filename || "download";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error("Direct download failed, opening in new tab instead:", error);
-      window.open(url, "_blank");
-    }
+  const handleDownload = (url: string, filename: string) => {
+    const cleanFilename = filename.trim().slice(0, 80) || "saad-download";
+    window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(cleanFilename)}`;
   };
 
   useEffect(() => {
@@ -702,13 +690,13 @@ export default function CinemaFlowPage() {
 
   return (
     <div 
-      className="flex-1 flex bg-[#09090b] text-white overflow-hidden font-sans"
+      className="flex-1 flex flex-col lg:flex-row bg-[#09090b] text-white overflow-hidden font-sans"
       style={{ height: "calc(100vh - 56px)" }}
     >
       
       {/* 1. Left Sidebar - Asset Controls */}
       <div 
-        className="flex-shrink-0 border-r border-white/5 bg-[#0e0e11]/80 flex flex-col justify-between transition-all duration-300"
+        className="hidden lg:flex flex-shrink-0 border-r border-white/5 bg-[#0e0e11]/80 flex-col justify-between transition-all duration-300"
         style={{ width: isSidebarCollapsed ? 64 : 240 }}
       >
         <div className="p-4 flex flex-col gap-6">
@@ -762,7 +750,31 @@ export default function CinemaFlowPage() {
       </div>
 
       {/* 2. Center Panel - Media Grid */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#09090b]">
+      <div className={cn(
+        "flex-1 flex flex-col overflow-hidden bg-[#09090b] w-full h-full",
+        mobileView === "gallery" ? "flex" : "hidden lg:flex"
+      )}>
+        {/* Mobile top navigation switcher */}
+        <div className="lg:hidden flex-shrink-0 flex items-center justify-start gap-2 px-4 py-2.5 border-b border-white/5 bg-[#0e0e11]/60 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-[10px] font-bold shrink-0 transition-all border",
+                  isActive 
+                    ? "bg-violet-600/20 text-violet-300 border-violet-500/20 shadow-sm" 
+                    : "bg-white/[0.02] border-white/5 text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Top bar with Search & Filter */}
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-white/5">
           <div className="relative w-72">
@@ -1041,7 +1053,10 @@ export default function CinemaFlowPage() {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className="w-[380px] flex-shrink-0 border-l border-white/5 bg-[#0e0e11] flex flex-col overflow-hidden relative"
+        className={cn(
+          "w-full lg:w-[380px] flex-shrink-0 border-t lg:border-t-0 lg:border-l border-white/5 bg-[#0e0e11] flex flex-col overflow-hidden relative h-full",
+          mobileView === "chat" ? "flex" : "hidden lg:flex"
+        )}
       >
         <AnimatePresence>
           {(isDraggingOver || uploadingFile) && (
@@ -1573,6 +1588,30 @@ export default function CinemaFlowPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Responsive Bottom Navigation */}
+      <div className="lg:hidden h-14 border-t border-white/5 bg-[#0e0e11]/90 flex items-center justify-around shrink-0 z-20">
+        <button
+          onClick={() => setMobileView("chat")}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition",
+            mobileView === "chat" ? "text-violet-400 bg-white/[0.01]" : "text-zinc-500"
+          )}
+        >
+          <Sparkles size={16} />
+          <span>الدردشة والتوليد</span>
+        </button>
+        <button
+          onClick={() => setMobileView("gallery")}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 flex-1 h-full text-[10px] font-bold transition",
+            mobileView === "gallery" ? "text-violet-400 bg-white/[0.01]" : "text-zinc-500"
+          )}
+        >
+          <Grid size={16} />
+          <span>معرض الأعمال</span>
+        </button>
+      </div>
 
     </div>
   );
