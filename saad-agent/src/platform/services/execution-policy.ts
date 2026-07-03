@@ -40,7 +40,6 @@ export class ExecutionPolicyService {
     const normalizedPrompt = userFacingPrompt.trim().toLowerCase();
     const normalizedArabicPrompt = this.normalizeArabic(userFacingPrompt);
 
-    // 1. Classification & Outcomes
     let isModificationRequired = false;
     let isDangerous = false;
     let requiresApproval = false;
@@ -48,16 +47,18 @@ export class ExecutionPolicyService {
     let decision: DecisionOutcome = "ANSWER";
     let reason = "The request is informational and can be answered without modifying the project.";
     let workflow = "casual_discussion";
-    let evidenceStatus: "VERIFIED" | "NOT_VERIFIED" = workspacePath ? "VERIFIED" : "NOT_VERIFIED";
+    const evidenceStatus: "VERIFIED" | "NOT_VERIFIED" = workspacePath ? "VERIFIED" : "NOT_VERIFIED";
 
-    // Detect if prompt requests project modification. This must understand Arabic/Iraqi
-    // engineering phrasing, not only English verbs.
+    const isLocalImageClassification = this.isLocalImageClassificationRequest(
+      normalizedPrompt,
+      normalizedArabicPrompt
+    );
+
     if (this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
       isModificationRequired = true;
     }
     const isExternalResearchRequired = this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt);
 
-    // Detect dangerous/destructive directives
     if (
       normalizedPrompt.includes("rm -rf") ||
       normalizedPrompt.includes("delete database") ||
@@ -73,6 +74,17 @@ export class ExecutionPolicyService {
       riskLevel = "critical";
       reason = "Safety check failed: Dangerous command or destructive action detected.";
       workflow = "safety_rejection";
+    } else if (isLocalImageClassification) {
+      riskLevel = "medium";
+      workflow = "local_image_classification";
+      if (approvalMode === "ask") {
+        requiresApproval = true;
+        decision = "WAIT_FOR_APPROVAL";
+        reason = "Local image folder classification may inspect and organize files and requires explicit user authorization under 'ask' mode.";
+      } else {
+        decision = "PLAN";
+        reason = "Local image folder classification requested; route to local classifier workflow without using the text model.";
+      }
     } else if (isModificationRequired) {
       riskLevel = "medium";
       workflow = "engineering_workflow";
@@ -96,11 +108,10 @@ export class ExecutionPolicyService {
         reason = "External web research requested.";
       }
     } else {
-      // Informational path
-      if (normalizedPrompt.includes("explain") || normalizedPrompt.includes("why") || normalizedPrompt.includes("how")) {
+      if (/\b(explain|why|how)\b/i.test(normalizedPrompt)) {
         decision = "EXPLAIN";
         reason = "Informational request requiring explanation of codebase patterns or behavior.";
-      } else if (normalizedPrompt.includes("search") || normalizedPrompt.includes("find")) {
+      } else if (/\b(search|find)\b/i.test(normalizedPrompt)) {
         decision = "SEARCH";
         reason = "Search request scanning local directory metadata or knowledge archives.";
       } else {
@@ -117,9 +128,7 @@ export class ExecutionPolicyService {
       evidenceStatus
     };
 
-    // Log decision audit entry asynchronously
     void this.logDecision(userFacingPrompt, result, conversationId);
-
     return result;
   }
 
@@ -136,10 +145,10 @@ export class ExecutionPolicyService {
     return (input || "")
       .toLowerCase()
       .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/[إأآٱ]/g, "ا")
-      .replace(/ى/g, "ي")
-      .replace(/ة/g, "ه")
-      .replace(/[؟?!.،,؛:()"']/g, " ")
+      .replace(/[\u0625\u0623\u0622\u0671]/g, "\u0627")
+      .replace(/\u0649/g, "\u064a")
+      .replace(/\u0629/g, "\u0647")
+      .replace(/[\u061F?!.،,؛:()"']/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }
@@ -150,40 +159,51 @@ export class ExecutionPolicyService {
 
     const hasLocalFilesystemPath = /[a-z]:[\\/][^\r\n]+/i.test(lowerPrompt)
       || /(?:^|\s)(?:\.{1,2}[\\/]|~[\\/])/.test(lowerPrompt);
-    const arabicAction = /(?:^|\s)(?:اريد|ابي|احتاج|سوي|سو|اعمل|اصنع|ابني|اكتب|اضف|زد|انشئ|انشء|انشا|انشاء|عدل|عدله|غير|بدل|طبق|حدث|اصلح|صلح|احذف|ارفع|غلف|شغل|نفذ)(?:\s|$)/.test(normalizedArabic);
-    const engineeringTarget = /(?:صفحه|صفحات|page|component|مكون|كومبوننت|route|راوت|api|كود|ملف|فولدر|مشروع|واجهه|واجهة|زر|مودل|مزود|provider|model|settings|composer|chat|محادثه|محادثة|نافذه|نافذة)/i.test(normalizedArabic);
-    const directEngineeringPhrase = /(?:انشئ|انشء|انشا|انشاء|سوي|اصنع|ابني|اضف|اكتب).*(?:صفحه|صفحات|مكون|كومبوننت|api|route|راوت|كود|ملف|واجهه|واجهة)/i.test(normalizedArabic)
-      || /(?:اصلح|صلح|عدل|غير|بدل|حدث|طبق).*(?:خطا|خطأ|مشكله|مشكلة|bug|error|كود|صفحه|صفحة|واجهه|واجهة)/i.test(normalizedArabic);
-
-    const localPathAction = /(?:^|\s)(?:سوي|سو|سوه|اعمل|اشتغل|شغل|جهز|رتب|اكتب|انشئ|انشء|ابني|اصنع|عدل|اصلح|صلح|طبق)(?:\s|$)/.test(normalizedArabic)
-      || /\b(create|make|build|write|implement|setup|set up|fix|edit|modify|add|work)\b/i.test(lowerPrompt);
+    const arabicAction = /(?:^|\s)(?:\u0627\u0631\u064a\u062f|\u0627\u0628\u064a|\u0627\u062d\u062a\u0627\u062c|\u0633\u0648\u064a|\u0633\u0648|\u0627\u0639\u0645\u0644|\u0627\u0635\u0646\u0639|\u0627\u0628\u0646\u064a|\u0627\u0643\u062a\u0628|\u0627\u0636\u0641|\u0632\u062f|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0646\u0634\u0627|\u0627\u0646\u0634\u0627\u0621|\u0639\u062f\u0644|\u0639\u062f\u0644\u0647|\u063a\u064a\u0631|\u0628\u062f\u0644|\u0637\u0628\u0642|\u062d\u062f\u062b|\u0627\u0635\u0644\u062d|\u0635\u0644\u062d|\u0627\u062d\u0630\u0641|\u0627\u0631\u0641\u0639|\u063a\u0644\u0641|\u0634\u063a\u0644|\u0646\u0641\u0630|\u0627\u0646\u0638\u0631|\u0634\u0648\u0641|\u0627\u0641\u062d\u0635|\u0635\u0646\u0641|\u062a\u0635\u0646\u064a\u0641|\u0641\u0631\u0632|\u0631\u062a\u0628|\u0636\u0639|\u062d\u0637)(?:\s|$)/.test(normalizedArabic);
+    const engineeringTarget = /(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0627\u062a|page|component|\u0645\u0643\u0648\u0646|\u0643\u0648\u0645\u0628\u0648\u0646\u0646\u062a|route|\u0631\u0627\u0648\u062a|api|\u0643\u0648\u062f|\u0645\u0644\u0641|\u0641\u0648\u0644\u062f\u0631|\u0645\u0634\u0631\u0648\u0639|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0632\u0631|\u0645\u0648\u062f\u0644|\u0645\u0632\u0648\u062f|provider|model|settings|composer|chat|\u0645\u062d\u0627\u062f\u062b\u0647|\u0645\u062d\u0627\u062f\u062b\u0629|\u0646\u0627\u0641\u0630\u0647|\u0646\u0627\u0641\u0630\u0629|\u0635\u0648\u0631|\u0627\u0644\u0635\u0648\u0631|image|images|screenshot|screenshots)/i.test(normalizedArabic);
+    const directEngineeringPhrase = /(?:\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0646\u0634\u0627|\u0627\u0646\u0634\u0627\u0621|\u0633\u0648\u064a|\u0627\u0635\u0646\u0639|\u0627\u0628\u0646\u064a|\u0627\u0636\u0641|\u0627\u0643\u062a\u0628).*(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0627\u062a|\u0645\u0643\u0648\u0646|\u0643\u0648\u0645\u0628\u0648\u0646\u0646\u062a|api|route|\u0631\u0627\u0648\u062a|\u0643\u0648\u062f|\u0645\u0644\u0641|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629)/i.test(normalizedArabic)
+      || /(?:\u0627\u0635\u0644\u062d|\u0635\u0644\u062d|\u0639\u062f\u0644|\u063a\u064a\u0631|\u0628\u062f\u0644|\u062d\u062f\u062b|\u0637\u0628\u0642).*(?:\u062e\u0637\u0627|\u062e\u0637\u0623|\u0645\u0634\u0643\u0644\u0647|\u0645\u0634\u0643\u0644\u0629|bug|error|\u0643\u0648\u062f|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629)/i.test(normalizedArabic);
+    const localPathAction = /(?:^|\s)(?:\u0633\u0648\u064a|\u0633\u0648|\u0633\u0648\u0647|\u0627\u0639\u0645\u0644|\u0627\u0634\u062a\u063a\u0644|\u0634\u063a\u0644|\u062c\u0647\u0632|\u0631\u062a\u0628|\u0627\u0643\u062a\u0628|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0639\u062f\u0644|\u0627\u0635\u0644\u062d|\u0635\u0644\u062d|\u0637\u0628\u0642|\u0627\u0646\u0638\u0631|\u0634\u0648\u0641|\u0627\u0641\u062d\u0635|\u0635\u0646\u0641|\u062a\u0635\u0646\u064a\u0641|\u0641\u0631\u0632|\u0636\u0639|\u062d\u0637)(?:\s|$)/.test(normalizedArabic)
+      || /\b(create|make|build|write|implement|setup|set up|fix|edit|modify|add|work|inspect|analyze|classify|categorize|sort|organize|move)\b/i.test(lowerPrompt);
     const folderOrPathTarget = hasLocalFilesystemPath
-      || /(?:فولد|فولدر|مجلد|مسار|باث|فريم|مشروع|folder|directory|workspace|path|frame|starter|app)/i.test(normalizedArabic);
+      || /(?:\u0641\u0648\u0644\u062f|\u0641\u0648\u0644\u062f\u0631|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u0628\u0627\u062b|\u0641\u0631\u064a\u0645|\u0645\u0634\u0631\u0648\u0639|folder|directory|workspace|path|frame|starter|app)/i.test(normalizedArabic);
 
     return directEngineeringPhrase || (arabicAction && engineeringTarget) || (localPathAction && folderOrPathTarget);
+  }
+
+  private static isLocalImageClassificationRequest(lowerPrompt: string, normalizedArabic: string): boolean {
+    const hasLocalFilesystemPath = /[a-z]:[\\/][^\r\n]+/i.test(lowerPrompt)
+      || /(?:^|\s)(?:\.{1,2}[\\/]|~[\\/])/.test(lowerPrompt);
+    const imageScope = /(?:\u0635\u0648\u0631|\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0629|\u0627\u0644\u0635\u0648\u0631|screenshots?|images?)/i.test(normalizedArabic)
+      || /\b(screenshots?|images?|pictures?)\b/i.test(lowerPrompt);
+    const classifyOrInspect = /(?:\u0627\u0646\u0638\u0631|\u0634\u0648\u0641|\u0627\u0641\u062d\u0635|\u062d\u0644\u0644|\u0635\u0646\u0641|\u062a\u0635\u0646\u064a\u0641|\u0641\u0631\u0632|\u0631\u062a\u0628|\u0636\u0639|\u062d\u0637)/i.test(normalizedArabic)
+      || /\b(inspect|analyze|classify|categorize|sort|organize|move)\b/i.test(lowerPrompt);
+    const folderAction = /(?:\u0641\u0648\u0644\u062f\u0631|\u0641\u0648\u0644\u062f|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u062a\u0635\u0646\u064a\u0641|folder|directory|path|category)/i.test(normalizedArabic)
+      || /\b(folder|directory|path|category)\b/i.test(lowerPrompt);
+    return hasLocalFilesystemPath && imageScope && classifyOrInspect && folderAction;
   }
 
   private static isExternalResearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {
     if (/\b(search online|search web|web search|internet search|latest|current|recent)\b/i.test(lowerPrompt)) {
       return true;
     }
-    const localScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalizedArabic)
+    const localScope = /(\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0641\u064a \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0628\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0641\u064a \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0628\u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u062f\u0627\u062e\u0644 \u0627\u0644\u0643\u0648\u062f|\u0641\u064a \u0627\u0644\u0643\u0648\u062f|workspace|project files|local files|codebase)/i.test(normalizedArabic)
       || /\b(workspace|codebase|local files|project files)\b/i.test(lowerPrompt);
-    const explicitWeb = /(الانترنت|الإنترنت|انترنت|الويب|ويب|روابط|مصادر|لنكات|لينكات|اخبار|أخبار|وثائق|توثيق)/i.test(normalizedArabic)
+    const explicitWeb = /(\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0648\u064a\u0628|\u0648\u064a\u0628|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0627\u062e\u0628\u0627\u0631|\u0623\u062e\u0628\u0627\u0631|\u0648\u062b\u0627\u0626\u0642|\u062a\u0648\u062b\u064a\u0642)/i.test(normalizedArabic)
       || /\b(web|internet|online|links|sources|docs|documentation|news)\b/i.test(lowerPrompt);
     if (explicitWeb) return true;
 
-    const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|بحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalizedArabic)
+    const directSearchVerb = /(?:^|\s)(?:\u0627\u0628\u062d\u062b\u0644\u064a|\u0627\u0628\u062d\u062b\s+\u0644\u064a|\u0627\u0628\u062d\u062b|\u0628\u062d\u062b|\u062f\u0648\u0631\u0644\u064a|\u062f\u0648\u0631\s+\u0644\u064a|\u062f\u0648\u0631|\u0641\u062a\u0634\u0644\u064a|\u0641\u062a\u0634\s+\u0644\u064a|\u0641\u062a\u0634|\u062c\u064a\u0628\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u062c\u064a\u0628\s+\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u0647\u0627\u062a\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u0647\u0627\u062a\s+\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u0637\u0644\u0639\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u0637\u0644\u0639\s+\u0644\u064a\s+\u0645\u0639\u0644\u0648\u0645\u0627\u062a)(?:\s|$)/i.test(normalizedArabic)
       || /\b(search for|look up|research|find info about|find information about)\b/i.test(lowerPrompt);
     const externalTopicSignal = /[A-Za-z][A-Za-z0-9_.\-/]*(?:\s+\d+(?:\.\d+)*)?/i.test(lowerPrompt)
       || /\d+(?:\.\d+)+/.test(lowerPrompt)
-      || /(موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|اصدار|إصدار|نسخه|نسخة|معلومات|تفاصيل|سعر|اسعار|أسعار)/i.test(normalizedArabic);
+      || /(\u0645\u0648\u062f\u064a\u0644|\u0646\u0645\u0648\u0630\u062c|\u0634\u0631\u0643\u0629|\u0645\u0646\u062a\u062c|\u0645\u0646\u0635\u0629|\u062e\u062f\u0645\u0629|\u062a\u0642\u0646\u064a\u0629|\u0627\u0635\u062f\u0627\u0631|\u0625\u0635\u062f\u0627\u0631|\u0646\u0633\u062e\u0647|\u0646\u0633\u062e\u0629|\u0645\u0639\u0644\u0648\u0645\u0627\u062a|\u062a\u0641\u0627\u0635\u064a\u0644|\u0633\u0639\u0631|\u0627\u0633\u0639\u0627\u0631|\u0623\u0633\u0639\u0627\u0631)/i.test(normalizedArabic);
     if (directSearchVerb && externalTopicSignal && !localScope) {
       return true;
     }
 
-    const searchWords = ["ابحث", "بحث", "دور", "فتش"];
-    const internetWords = ["الانترنت", "الإنترنت", "انترنت", "الويب", "ويب"];
+    const searchWords = ["\u0627\u0628\u062d\u062b", "\u0628\u062d\u062b", "\u062f\u0648\u0631", "\u0641\u062a\u0634"];
+    const internetWords = ["\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a", "\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a", "\u0627\u0646\u062a\u0631\u0646\u062a", "\u0627\u0644\u0648\u064a\u0628", "\u0648\u064a\u0628"];
     return searchWords.some((word) => normalizedArabic.includes(this.normalizeArabic(word)))
       && internetWords.some((word) => normalizedArabic.includes(this.normalizeArabic(word)));
   }

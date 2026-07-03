@@ -1,5 +1,34 @@
 # Saad Studio — Project Context
 
+## Latest task: Saad Agent Local Image Folder Classification Routing (2026-07-03)
+
+- Status:
+  - Fixed image-folder classification prompts being routed as generic `ANSWER` requests and sent to the active text model, which caused context-length failures in LM Studio.
+  - `IntentEngine` now recognizes Arabic/Iraqi requests that inspect, classify, sort, organize, or move images/screenshots inside a local folder as `vision_analysis`.
+  - `ExecutionPolicyService` now has a dedicated `local_image_classification` workflow for local image folder classification requests. Under `approve_for_me`, it returns `PLAN` without invoking the text model; under `ask`, it requires approval because it may inspect and organize local files.
+  - `ChatOrchestratorService` now intercepts `local_image_classification` before project context expansion and before `ReasoningEngine`, so Qwen/LM Studio is not called for this request type.
+  - Added `LocalImageClassifierService` as an honest runtime availability check for a future local image classification model. If no local classifier model is installed, the agent reports the missing local classifier instead of pretending classification happened.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar` with the updated backend files.
+- Affected files:
+  - `saad-agent/src/platform/services/intent-engine.ts` [MODIFY]
+  - `saad-agent/src/platform/services/execution-policy.ts` [REWRITE]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/local-image-classifier.ts` [NEW]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `npx.cmd tsc --noEmit --pretty false` passed in `saad-agent`.
+  - Smoke test: the prompt `انظر ملفي داخل هذا الفولدر وصنف الصور الموجودة C:\Users\PC\Pictures\Screenshots وضع كل صورة في فولدر ضمن تصنيفها` classified as `vision_analysis` with confidence `0.98`.
+  - Smoke test: `ExecutionPolicyService.evaluateDecision(...)` returned `PLAN`, `workflow: local_image_classification`, and `requiresApproval: false` under `approve_for_me`.
+  - Smoke test: `ChatOrchestratorService.handleDirectChat(...)` returned `usedModel: false` and did not call the active text model.
+  - Packaged `app.asar` contains `chat-orchestrator.js`, `execution-policy.js`, and `local-image-classifier.js`.
+- Decisions:
+  - Do not use Qwen/LM Studio for local request classification or local image-folder workflow routing.
+  - Do not fake image classification. If no local classifier is installed, report the missing local model and stop before moving files.
+  - Future implementation should add a real local image classifier model/runtime, dry-run preview, and approval-aware file movement.
+- Known warning:
+  - The current `app-asar-work` staging folder still contains stale `dist/dist` entries from previous packaging passes. They do not block this fix because the correct `dist/platform/services/**` files are present, but staging cleanup requires an explicit safe cleanup step.
+
 ## Latest task: Google Flow Agent Workspace Integration (2026-07-03)
 
 - Status:

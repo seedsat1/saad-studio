@@ -262,6 +262,8 @@ const DEFAULT_RULES: Record<string, IntentRuleFile> = {
     tools: ["VisionAnalyzer"],
     patterns: [
       { pattern: "(?:حلل|افحص|شوف|انظر).*(?:الصوره|الصورة|سكرين|screenshot|image)", weight: 0.96, reason: "User asks to analyze an image." },
+      { pattern: "(?:انظر|شوف|افحص|حلل).*(?:فولدر|فولد|مجلد|مسار|folder|directory|path).*(?:صور|صوره|صورة|الصور|screenshots|images)", weight: 0.98, reason: "User asks to inspect an image folder." },
+      { pattern: "(?:صنف|تصنيف|فرز|رتب|ضع|حط).*(?:صور|صوره|صورة|الصور|screenshots|images).*(?:فولدر|فولد|مجلد|تصنيف|folder|category)", weight: 0.98, reason: "User asks to classify or organize images." },
       { pattern: "\\b(?:analyze image|inspect screenshot|vision)\\b", weight: 0.95, reason: "User asks for vision analysis." }
     ]
   },

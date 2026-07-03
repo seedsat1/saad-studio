@@ -129,45 +129,42 @@ export default function GoogleFlowPage() {
       sender: "user",
       text: text.trim(),
     };
-    setChatMessages(prev => [...prev, userMsg]);
+    const updatedMessages = [...chatMessages, userMsg];
+    setChatMessages(updatedMessages);
     setInputText("");
 
     // 2. Set Agent Typing state
     setIsAgentTyping(true);
 
     try {
-      // 3. Process text intent
-      const promptLower = text.toLowerCase();
-      const isImageRequest = promptLower.includes("ولد") || promptLower.includes("صورة") || promptLower.includes("تخيل") || promptLower.includes("image") || promptLower.includes("generate");
-      const isVideoRequest = promptLower.includes("فيديو") || promptLower.includes("مقطع") || promptLower.includes("أفلام") || promptLower.includes("video") || promptLower.includes("movie");
+      // Send chat history to backend Gemini API
+      const chatRes = await fetch("/api/google-flow/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
 
-      if (isImageRequest) {
-        // Trigger Image Generation
-        await executeImageGeneration(text);
-      } else if (isVideoRequest) {
-        // Trigger Video Generation
-        await executeVideoGeneration(text);
+      const chatData = await chatRes.json();
+      if (!chatRes.ok || !chatData.text) {
+        throw new Error(chatData.error ?? "فشل الاتصال بمساعد جوجل الذكي.");
+      }
+
+      const replyText = chatData.text;
+
+      if (replyText.startsWith("IMAGE_GEN:")) {
+        const refinedPrompt = replyText.replace("IMAGE_GEN:", "").trim();
+        await executeImageGeneration(refinedPrompt);
+      } else if (replyText.startsWith("VIDEO_GEN:")) {
+        const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
+        await executeVideoGeneration(refinedPrompt);
       } else {
-        // Standard conversational reply
-        setTimeout(() => {
-          let replyText = "";
-          if (text.includes("كيف يمكنني البدء")) {
-            replyText = `أهلاً بك يا ${firstName}! للبدء، اكتب لي ببساطة ما تود خلقه، على سبيل المثال:\n- "تخيل صورة لرائد فضاء يسبح في المحيط"\n- "ولد لي مقطع فيديو لطائر يطير في المطر"\n\nسأقوم تلقائياً باختيار أفضل نماذج Google الإبداعية لتنفيذ وتوليد وسائطك مباشرة إلى لوحة التحكم الوسطى!`;
-          } else if (text.includes("العصف الذهني")) {
-            replyText = `فكرة رائعة! دعنا نقوم بالعصف الذهني. ما رأيك في إعلان تجاري لمنتج تقني ذكي؟\nيمكننا توليد صورة لمنتج مستقبلي يطفو في هواء نيون، أو فيديو قصير من 10 ثوانٍ يظهر المنتج أثناء الاستخدام الفعلي. أخبرني بالاتجاه الذي تفضله لنبدأ فوراً!`;
-          } else if (text.includes("الأدوات الإبداعية")) {
-            replyText = `في Google Flow، نعتمد على أحدث محركات Google الذكية:\n1. **Nano Banana 2 & Pro:** لتوليد صور فنية بدقة فائقة وتناغم مذهل.\n2. **Gemini Omni Flash:** لتوليد وتعديل الفيديوهات متسلسلاً وبجودة احترافية.\n\nكل ما نولده هنا يظهر مباشرة في مكتبة الوسائط الخاصة بك.`;
-          } else {
-            replyText = `أهلاً بك يا ${firstName} في Google Flow! أنا هنا كمساعد إبداعي أعمل بنماذج Google المتطورة. هل تود أن نولد صورة فنية، أم مقطع فيديو إعلاني تفاعلي؟ صف لي رؤيتك وسأتولى الباقي.`;
-          }
-
-          setChatMessages(prev => [...prev, {
-            id: Math.random().toString(),
-            sender: "agent",
-            text: replyText
-          }]);
-          setIsAgentTyping(false);
-        }, 1500);
+        // Normal conversational reply
+        setChatMessages(prev => [...prev, {
+          id: Math.random().toString(),
+          sender: "agent",
+          text: replyText
+        }]);
+        setIsAgentTyping(false);
       }
     } catch (err: any) {
       setChatMessages(prev => [...prev, {

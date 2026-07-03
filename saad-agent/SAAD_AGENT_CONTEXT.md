@@ -26,6 +26,24 @@ Its core responsibility is to help the user work on local software projects thro
 - The app must not show fake providers, fake MCP tools, fake skills, fake tasks, fake model status, or placeholder management cards.
 - The agent must not claim an action happened unless backend code actually performed it.
 
+## Local Image Classification Routing
+
+Local image folder classification requests must be routed locally before any text-model call.
+
+Examples:
+
+- `انظر داخل C:\Users\PC\Pictures\Screenshots وصنف الصور`
+- `صنف الصور الموجودة بهذا الفولدر وضع كل صورة داخل فولدر تصنيفها`
+- `فرز screenshots حسب النوع`
+
+Correct behavior:
+
+1. Intent Engine returns `vision_analysis`.
+2. Execution Policy returns workflow `local_image_classification`.
+3. Chat Orchestrator must not call Qwen, LM Studio, or the generic `ReasoningEngine` path.
+4. If a local image classifier model/runtime is not installed, report that honestly and stop before moving files.
+5. Never pretend that images were classified or moved without a real local classifier and file-operation evidence.
+
 ## Direct Chat Rule
 
 Direct chat must never jump straight to the model for every request.

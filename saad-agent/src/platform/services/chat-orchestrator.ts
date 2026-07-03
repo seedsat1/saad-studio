@@ -20,6 +20,7 @@ import { ConversationStateEngine } from "./conversation-state-engine.js";
 import { CodexRuntimeBridge } from "./codex-runtime-bridge.js";
 import { InternalWorkspaceExecutor } from "./internal-workspace-executor.js";
 import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
+import { LocalImageClassifierService } from "./local-image-classifier.js";
 
 export interface ChatOrchestrationResult {
   response: string;
@@ -313,6 +314,63 @@ export class ChatOrchestratorService {
     await TaskStateStore.transitionTask(taskId, "ANALYZING", "Request is classified and allowed to proceed");
 
     const showDiagnostics = this.wantsDiagnostics(userRequestText);
+
+    if (decisionResult.workflow === "local_image_classification") {
+      ConversationStateEngine.updateState(sessionId, {
+        lastIntent: "vision_analysis",
+        activeWorkflow: "local_image_classification",
+        activeTask: userRequestText
+      });
+
+      ExecutionTraceEmitter.emit({
+        taskId,
+        conversationId,
+        phase: "evidence_collection",
+        status: "done",
+        label: "Local image classification routed",
+        safeDetails: {
+          modelInvocation: "blocked",
+          workflow: "local_image_classification"
+        },
+        sourceService: "ExecutionPolicyService"
+      });
+
+      await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Local image folder classification routed without LLM");
+      await TaskStateStore.transitionTask(taskId, "VALIDATING", "Checking local image classifier availability");
+
+      const classifierStatus = LocalImageClassifierService.getStatus();
+      if (!classifierStatus.available) {
+        await TaskStateStore.transitionTask(taskId, "FAILED", classifierStatus.reason || "Local image classifier is not installed");
+        return {
+          intent: "vision_analysis",
+          usedModel: false,
+          response: [
+            "صنّفت الطلب محلياً كـ Local Image Classification.",
+            "ما راح أستدعي Qwen أو LM Studio لهذا النوع من الطلبات.",
+            "",
+            "التنفيذ متوقف لأن مصنّف الصور المحلي غير مثبت داخل الحزمة.",
+            `مسار الموديل المتوقع: ${classifierStatus.modelPath}`,
+            "",
+            "الخطوة الهندسية الصحيحة:",
+            "- تثبيت/ربط موديل تصنيف صور محلي.",
+            "- تشغيل Dry Run يعرض التصنيفات المقترحة قبل نقل الصور.",
+            "- بعدها إنشاء الفولدرات ونقل الصور فقط إذا سياسة الوصول تسمح.",
+            "",
+            "بهذا التصحيح، الطلب بعد الآن ما يدخل لمسار الجواب العام ولا يرسل كونتكست طويل للموديل النصي."
+          ].join("\n")
+        };
+      }
+
+      await TaskStateStore.transitionTask(taskId, "FAILED", "Local classifier runtime is not implemented yet");
+      return {
+        intent: "vision_analysis",
+        usedModel: false,
+        response: [
+          "مصنّف الصور المحلي موجود، بس Runtime التصنيف والنقل بعده غير مربوط.",
+          "أوقفت التنفيذ حتى لا أنقل ملفات أو أخمّن تصنيفات بدون محرك فعلي."
+        ].join("\n")
+      };
+    }
 
     // 1. Domain Detection (Section 5)
     const domainResult = DomainResolver.resolve(userRequestText);

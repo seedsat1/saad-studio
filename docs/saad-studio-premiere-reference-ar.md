@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Saad Agent Local Image Folder Classification Routing (2026-07-03)
+- Local folder image classification requests must not be routed through the generic direct-answer model path.
+- Requests such as `انظر داخل C:\Users\PC\Pictures\Screenshots وصنف الصور` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
+- The Chat Orchestrator intercepts this workflow before project context expansion and before `ReasoningEngine`, so Qwen/LM Studio is not called and context-length failures are avoided.
+- If no local image classification model/runtime is installed, the agent must report the missing local classifier honestly and stop before creating folders or moving images.
+- A future implementation should install/connect a real local image classifier, produce a dry-run classification preview, then move files only when approval/access policy allows.
+
 ## Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
 - Brave Answers external search uses provider id `brave-answers` and encrypted secret reference `provider:brave-answers:api-key`.
 - In the packaged Electron runtime, provider Settings and encrypted provider secrets must resolve from the same `SAAD_AGENT_SETTINGS_ROOT` / Electron app data root.
