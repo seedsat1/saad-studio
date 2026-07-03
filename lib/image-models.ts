@@ -112,7 +112,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 14,
     imageInputField: "image_input",
-    qualityParam: ["1K", "2K"],
+    qualityParam: ["1K", "2K", "4K"],
     creditCost: 0.6,
   },
   {
