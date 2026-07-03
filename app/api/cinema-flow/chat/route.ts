@@ -84,7 +84,7 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
     };
 
     // Query Gemini
-    const model = "gemini-2.5-flash";
+    const model = "gemini-3.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const res = await fetch(url, {
@@ -94,7 +94,9 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
         contents,
         systemInstruction,
         generationConfig: {
-          temperature: 0.7,
+          thinkingConfig: {
+            thinkingLevel: "MEDIUM"
+          },
           maxOutputTokens: 800,
         },
       }),

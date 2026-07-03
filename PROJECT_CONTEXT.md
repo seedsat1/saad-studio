@@ -6708,7 +6708,8 @@ pm run build:cep) ÙˆÙ†Ù‚Ù„ Ø§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ�
   - Added functional selectors for Video Duration (5s, 10s, 15s) and Video Quality (720p, 1080p, 4K) inside the parameters settings drawer.
   - Expanded the Aspect Ratio selector to support cinematic aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4, and 21:9.
   - Set up dynamic, precise per-second credit calculations for all video models inside the generation call, ensuring cost changes match selected duration and model rates.
-  - Added full multimodal chat support by sending attached reference images as base64 inlineData directly into Gemini 2.5 Flash parts inside `/api/cinema-flow/chat`. User messages with attachments now visually display the reference image inside the chat bubble as well.
+  - Added full multimodal chat support by sending attached reference images as base64 inlineData directly into Gemini parts inside `/api/cinema-flow/chat`. User messages with attachments now visually display the reference image inside the chat bubble as well.
+  - Upgraded the chat assistant backend from `gemini-2.5-flash` to the newest official `gemini-3.5-flash` model. Configured the generation config payload to use `thinkingConfig` with `thinkingLevel: "MEDIUM"` and removed legacy temperature sampling parameters as recommended.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx`
   - `app/api/cinema-flow/chat/route.ts`
