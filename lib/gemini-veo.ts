@@ -122,32 +122,103 @@ export async function startVeoGeneration(
     const key = getGoogleApiKey();
     const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${key}`;
     
-    // Support multimodal input parts if image is present
-    let input: any = params.prompt;
+    const inputList: any[] = [];
+    let imageCounter = 1;
+    let refCounter = 0;
+    
+    let sourceDeclaration = "";
+    let guidingInstructions = "";
+
+    // 1. Add starting frame (first frame) if present
     if (params.image) {
-      input = [
-        {
-          inlineData: {
-            mimeType: params.image.mimeType,
-            data: params.image.imageBytes,
-          }
-        },
-        { text: params.prompt }
-      ];
+      inputList.push({
+        type: "image",
+        data: params.image.imageBytes,
+        mime_type: params.image.mimeType,
+      });
+      sourceDeclaration += `[# Sources <FIRST_FRAME>@Image${imageCounter}] `;
+      guidingInstructions += " Use Image1 as the starting frame.";
+      imageCounter++;
+    }
+
+    // 2. Add reference images if present
+    if (params.referenceImages && params.referenceImages.length > 0) {
+      const refBinds: string[] = [];
+      for (const refImg of params.referenceImages) {
+        inputList.push({
+          type: "image",
+          data: refImg.imageBytes,
+          mime_type: refImg.mimeType,
+        });
+        refBinds.push(`<IMAGE_REF_${refCounter}>@Image${imageCounter}`);
+        refCounter++;
+        imageCounter++;
+      }
+      sourceDeclaration += `[# References ${refBinds.join(" ")}] `;
+      guidingInstructions += " Use the given image(s) as references for video generation. The images should not be used as literal initial frames.";
+    }
+
+    // 3. Formulate the final prompt text
+    let promptText = params.prompt;
+    if (sourceDeclaration) {
+      promptText = `${sourceDeclaration.trim()} ${promptText}`;
+    }
+    if (guidingInstructions) {
+      promptText = `${promptText} ${guidingInstructions.trim()}`;
     }
     
+    inputList.push({
+      type: "text",
+      text: promptText,
+    });
+
+    // 4. Determine task type and build config
+    let task = "text_to_video";
+    if (params.image) {
+      task = "image_to_video";
+    } else if (params.referenceImages && params.referenceImages.length > 0) {
+      task = "reference_to_video";
+    }
+
+    const videoConfig: any = {
+      task,
+    };
+
+    if (params.aspectRatio) {
+      videoConfig.aspect_ratio = params.aspectRatio;
+    }
+    if (params.durationSeconds) {
+      // Clamp duration to supported range 3-10
+      const clampedDuration = Math.max(3, Math.min(10, Math.round(params.durationSeconds)));
+      videoConfig.duration_seconds = clampedDuration;
+    }
+    if (params.resolution) {
+      videoConfig.resolution = params.resolution;
+    }
+
+    const payload: any = {
+      model: "gemini-omni-flash-preview",
+      input: inputList,
+      background: true,
+      response_format: {
+        type: "video"
+      },
+      generation_config: {
+        video_config: videoConfig
+      }
+    };
+
+    if (params.aspectRatio) {
+      payload.response_format.aspect_ratio = params.aspectRatio;
+    }
+
     const response = await fetch(url, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "x-goog-api-key": key,
       },
-      body: JSON.stringify({
-        model: "gemini-omni-flash-preview",
-        input,
-        response_modalities: ["video"],
-        background: true,
-      }),
+      body: JSON.stringify(payload),
     });
     
     if (!response.ok) {
