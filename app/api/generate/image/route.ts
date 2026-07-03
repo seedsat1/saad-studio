@@ -358,7 +358,7 @@ async function generateGoogleImage(params: {
         body: JSON.stringify({
           contents: [{ parts }],
           generationConfig: {
-            responseModalalities: ["IMAGE"],
+            responseModalities: ["IMAGE"],
             imageConfig: config,
           },
         }),

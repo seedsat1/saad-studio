@@ -395,6 +395,8 @@ export default function CinemaFlowPage() {
     const updatedMessages = [...chatMessages, userMsg];
     setChatMessages(updatedMessages);
     setInputText("");
+    setActiveImageReference(null);
+    setActiveCharacter(null);
 
     // 2. Set Agent Typing state
     setIsAgentTyping(true);
