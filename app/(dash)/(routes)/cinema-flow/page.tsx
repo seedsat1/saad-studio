@@ -185,64 +185,56 @@ export default function CinemaFlowPage() {
 
     try {
       setUploadingFile(true);
-      const base64Raw = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => {
-          const base64Data = reader.result as string;
-          const raw = base64Data.split(",")[1];
-          resolve(raw);
-        };
-        reader.onerror = () => reject(new Error("File reading failed"));
-      });
 
-      // Upload to /api/upload/frame
-      const uploadRes = await fetch("/api/upload/frame", {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Upload to generic local R2 storage endpoint
+      const uploadRes = await fetch("/api/media/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type || "image/png",
-          base64: base64Raw,
-        }),
+        body: formData,
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Failed to upload file");
+        throw new Error("Failed to upload file to storage");
       }
 
       const uploadData = await uploadRes.json();
-      if (uploadData.url) {
-        // Save to database gallery using our new POST endpoint
-        const saveRes = await fetch("/api/assets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: uploadData.url,
-            filename: file.name,
-            mimeType: file.type || "image/png",
-          }),
-        });
+      const publicUrl = uploadData.publicUrl;
 
-        if (saveRes.ok) {
-          const saveData = await saveRes.json();
-          if (saveData.asset) {
-            // Add to local state
-            setAssets(prev => [saveData.asset, ...prev]);
-            // Set as active reference
-            setActiveImageReference(saveData.asset);
-            setActiveCharacter(null);
-          }
-        } else {
-          const tempAsset = {
-            id: Math.random().toString(),
-            url: uploadData.url,
-            type: (file.type || "").startsWith("video") ? "video" : "image",
-            prompt: file.name,
-          };
-          setActiveImageReference(tempAsset as any);
+      if (!publicUrl) {
+        throw new Error("Upload response did not contain publicUrl");
+      }
+
+      // Save to database gallery using our POST endpoint
+      const saveRes = await fetch("/api/assets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: publicUrl,
+          filename: file.name,
+          mimeType: file.type || "image/png",
+        }),
+      });
+
+      if (saveRes.ok) {
+        const saveData = await saveRes.json();
+        if (saveData.asset) {
+          // Add to local state
+          setAssets(prev => [saveData.asset, ...prev]);
+          // Set as active reference
+          setActiveImageReference(saveData.asset);
           setActiveCharacter(null);
         }
+      } else {
+        const tempAsset = {
+          id: Math.random().toString(),
+          url: publicUrl,
+          type: (file.type || "").startsWith("video") ? "video" : "image",
+          prompt: file.name,
+        };
+        setActiveImageReference(tempAsset as any);
+        setActiveCharacter(null);
       }
     } catch (err) {
       console.error("Upload failed:", err);
