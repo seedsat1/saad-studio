@@ -2627,6 +2627,61 @@ body {
   }
 }
 
+/* Root layout stabilizer: keep chat and composer readable on wide and narrow screens. */
+html,
+body,
+#root {
+  font-size: 16px;
+}
+
+.chat-messages {
+  align-items: center;
+  padding-left: clamp(16px, 7vw, 120px);
+  padding-right: clamp(16px, 7vw, 120px);
+}
+
+.message-wrapper {
+  max-width: min(980px, 100%);
+}
+
+.message-content-container {
+  max-width: min(900px, calc(100% - 48px));
+}
+
+.message-content {
+  font-size: 15px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+
+.execution-trace-card {
+  max-width: min(820px, 100%);
+}
+
+.input-area {
+  padding-left: clamp(16px, 7vw, 120px);
+  padding-right: clamp(16px, 7vw, 120px);
+}
+
+.saad-prompt-root {
+  width: min(760px, calc(100vw - 40px));
+}
+
+.saad-prompt-input-row textarea {
+  font-size: 15px;
+  min-height: 28px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.saad-prompt-toolbar {
+  flex-wrap: nowrap;
+}
+
+.saad-prompt-drop-hint {
+  font-size: 12px;
+}
+
 /* Execution loop styles */
 .run-preview-btn {
   width: 100%;

@@ -124,6 +124,72 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("mcp-restart-server", serverId),
   setMCPToolPermission: (serverId: string, toolId: string, permission: "always" | "ask" | "never", enabled: boolean) =>
     ipcRenderer.invoke("mcp-set-tool-permission", { serverId, toolId, permission, enabled }),
+  knowledgeImportFile: (filePath: string, category: string, tags?: string[], packName?: string) =>
+    ipcRenderer.invoke("knowledge:import-file", { filePath, category, tags, packName }),
+  knowledgeImportFolder: (folderPath: string, category: string, packName?: string) =>
+    ipcRenderer.invoke("knowledge:import-folder", { folderPath, category, packName }),
+  knowledgeImportGithub: (repoUrl: string, category: string) =>
+    ipcRenderer.invoke("knowledge:import-github", { repoUrl, category }),
+  knowledgeList: () =>
+    ipcRenderer.invoke("knowledge:list"),
+  knowledgeSearch: (query: string, category?: string, limit?: number) =>
+    ipcRenderer.invoke("knowledge:search", { query, category, limit }),
+  knowledgeGetDocument: (id: string) =>
+    ipcRenderer.invoke("knowledge:get-document", { id }),
+  knowledgeGetDictionaries: () =>
+    ipcRenderer.invoke("knowledge:get-dictionaries"),
+  knowledgeGetTerm: (id: string, category: string) =>
+    ipcRenderer.invoke("knowledge:get-term", { id, category }),
+  knowledgeDeleteDocument: (id: string) =>
+    ipcRenderer.invoke("knowledge:delete-document", { id }),
+  knowledgeGetStats: () =>
+    ipcRenderer.invoke("knowledge:get-stats"),
+  knowledgeImportUrl: (url: string, category: string, tags?: string[]) =>
+    ipcRenderer.invoke("knowledge:import-url", { url, category, tags }),
+  knowledgeImportControl: (taskId: string, action: string) =>
+    ipcRenderer.invoke("knowledge:import-control", { taskId, action }),
+  knowledgeListPacks: () =>
+    ipcRenderer.invoke("knowledge:list-packs"),
+  knowledgePackDelete: (category: string) =>
+    ipcRenderer.invoke("knowledge:pack-delete", { category }),
+  knowledgePackReindex: (category: string) =>
+    ipcRenderer.invoke("knowledge:pack-reindex", { category }),
+  knowledgePackExport: (category: string) =>
+    ipcRenderer.invoke("knowledge:pack-export", { category }),
+  knowledgeGetConfig: () =>
+    ipcRenderer.invoke("knowledge:get-config"),
+  knowledgeSaveConfig: (newConfig: any) =>
+    ipcRenderer.invoke("knowledge:save-config", { newConfig }),
+  knowledgeListWorkspaces: () =>
+    ipcRenderer.invoke("knowledge:list-workspaces"),
+  knowledgeCreateBackup: (label?: string) =>
+    ipcRenderer.invoke("knowledge:create-backup", { label }),
+  knowledgeListBackups: () =>
+    ipcRenderer.invoke("knowledge:list-backups"),
+  knowledgeRestoreBackup: (backupId: string) =>
+    ipcRenderer.invoke("knowledge:restore-backup", { backupId }),
+  onKnowledgeImportProgress: (callback: (event: any) => void) =>
+    ipcRenderer.on("knowledge:import-progress", (event, data) => callback(data)),
+  listTrustedWorkspaces: () =>
+    ipcRenderer.invoke("trusted-workspace:list"),
+  addTrustedWorkspace: (workspacePath: string, name?: string) =>
+    ipcRenderer.invoke("trusted-workspace:add", { workspacePath, name }),
+  removeTrustedWorkspace: (id: string) =>
+    ipcRenderer.invoke("trusted-workspace:remove", { id }),
+  searchWorkspace: (workspaceId: string, query: string, limit?: number, policy?: any) =>
+    ipcRenderer.invoke("trusted-workspace:search", { workspaceId, query, limit, ...(policy || {}) }),
+  runWorkspaceCommand: (workspaceId: string, command: string, args?: string[], explicitApproval?: boolean, policy?: any) =>
+    ipcRenderer.invoke("trusted-workspace:run-command", { workspaceId, command, args, explicitApproval, ...(policy || {}) }),
+  openLocalPath: (targetPath: string, policy?: any) =>
+    ipcRenderer.invoke("trusted-workspace:open-path", { targetPath, ...(policy || {}) }),
+  revealLocalPath: (targetPath: string, policy?: any) =>
+    ipcRenderer.invoke("trusted-workspace:reveal-path", { targetPath, ...(policy || {}) }),
+  copyLocalPath: (targetPath: string, policy?: any) =>
+    ipcRenderer.invoke("trusted-workspace:copy-path", { targetPath, ...(policy || {}) }),
+  rememberApproval: (conversationId: string, action: string) =>
+    ipcRenderer.invoke("approval:remember", { conversationId, action }),
+  chatAbort: (sessionId: string) =>
+    ipcRenderer.invoke("chat-abort", { sessionId }),
   onMenuNavigate: (callback: (dest: string) => void) =>
     ipcRenderer.on("menu-navigate", (event, dest) => callback(dest)),
   onExecutionTraceEvent: (callback: (event: any) => void) => {

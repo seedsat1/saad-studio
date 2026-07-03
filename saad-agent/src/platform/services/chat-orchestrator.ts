@@ -537,6 +537,37 @@ export class ChatOrchestratorService {
         activeTask: userRequestText
       });
 
+      if (InternalWorkspaceExecutor.canHandle(userRequestText)) {
+        await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Internal workspace executor candidate detected");
+        await TaskStateStore.transitionTask(taskId, "VALIDATING", "Validating trusted workspace for internal execution");
+        await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Static page request can be handled without model execution");
+        await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Preparing file write impact report");
+        await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying approval policy before internal execution");
+        await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Using deterministic static page generator");
+        await TaskStateStore.transitionTask(taskId, "PLANNING", "Internal executor selected");
+        await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "Writing static page files");
+
+        const internalResult = await InternalWorkspaceExecutor.tryExecute({
+          taskId,
+          conversationId,
+          workspacePath: activeWorkspace,
+          prompt: userRequestText
+        });
+
+        if (internalResult.success) {
+          await TaskStateStore.transitionTask(taskId, "VERIFYING", "Internal executor wrote files");
+          await TaskStateStore.transitionTask(taskId, "COMPLETED", "Internal workspace execution completed");
+        } else {
+          await TaskStateStore.transitionTask(taskId, "FAILED", internalResult.error || "Internal workspace execution failed");
+        }
+
+        return {
+          intent,
+          usedModel: false,
+          response: internalResult.response
+        };
+      }
+
       await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Codex bridge context collected");
       await TaskStateStore.transitionTask(taskId, "VALIDATING", "Validating engineering execution request");
       await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Checking runtime bridge availability");

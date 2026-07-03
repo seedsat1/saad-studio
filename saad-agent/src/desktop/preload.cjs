@@ -68,7 +68,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   knowledgeImportFolder: (folderPath, category, packName) => ipcRenderer.invoke("knowledge:import-folder", { folderPath, category, packName }),
   knowledgeImportGithub: (repoUrl, category) => ipcRenderer.invoke("knowledge:import-github", { repoUrl, category }),
   knowledgeList: () => ipcRenderer.invoke("knowledge:list"),
-  knowledgeSearch: (query, category) => ipcRenderer.invoke("knowledge:search", { query, category }),
+  knowledgeSearch: (query, category, limit) => ipcRenderer.invoke("knowledge:search", { query, category, limit }),
   knowledgeGetDocument: (id) => ipcRenderer.invoke("knowledge:get-document", { id }),
   knowledgeGetDictionaries: () => ipcRenderer.invoke("knowledge:get-dictionaries"),
   knowledgeGetTerm: (id, category) => ipcRenderer.invoke("knowledge:get-term", { id, category }),
@@ -94,7 +94,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("execution-trace-event", listener);
   },
   listTrustedWorkspaces: () => ipcRenderer.invoke("trusted-workspace:list"),
-  addTrustedWorkspace: (workspacePath) => ipcRenderer.invoke("trusted-workspace:add", { workspacePath }),
+  addTrustedWorkspace: (workspacePath, name) => ipcRenderer.invoke("trusted-workspace:add", { workspacePath, name }),
   removeTrustedWorkspace: (id) => ipcRenderer.invoke("trusted-workspace:remove", { id }),
   searchWorkspace: (workspaceId, query, limit, policy) => ipcRenderer.invoke("trusted-workspace:search", { workspaceId, query, limit, ...(policy || {}) }),
   runWorkspaceCommand: (workspaceId, command, args, explicitApproval, policy) => ipcRenderer.invoke("trusted-workspace:run-command", { workspaceId, command, args, explicitApproval, ...(policy || {}) }),

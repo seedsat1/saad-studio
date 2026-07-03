@@ -28,6 +28,7 @@ type Conversation = {
 
 type MessageUpdater = Message[] | ((previous: Message[]) => Message[]);
 type ExecutionTraceMode = "simple" | "developer" | "verbose";
+type ApprovalMode = "ask" | "approve_for_me" | "full_access";
 type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
 type ExecutionTraceRunStatus = "running" | "waiting_approval" | "completed" | "failed";
 type ExecutionTraceStage = {
@@ -64,6 +65,7 @@ type ExecutionTraceCardData = {
 const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
 const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
 const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v1";
+const APPROVAL_MODE_STORAGE_KEY = "saad-agent.approvalMode.v1";
 
 const traceModeLabels: Record<ExecutionTraceMode, string> = {
   simple: "Simple",
@@ -178,6 +180,10 @@ const createExecutionTraceDataFromEvent = (
 
 const normalizeTraceMode = (value: string | null): ExecutionTraceMode => {
   return value === "simple" || value === "verbose" || value === "developer" ? value : "developer";
+};
+
+const normalizeApprovalMode = (value: string | null): ApprovalMode => {
+  return value === "ask" || value === "approve_for_me" || value === "full_access" ? value : "approve_for_me";
 };
 
 const createConversation = (messages: Message[] = [], title = "New Chat"): Conversation => {
@@ -350,7 +356,10 @@ export default function App() {
   const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
-  const [activeApprovalMode, setActiveApprovalMode] = useState<"ask" | "approve_for_me" | "full_access">("approve_for_me");
+  const [activeApprovalMode, setActiveApprovalMode] = useState<ApprovalMode>(() => {
+    if (typeof window === "undefined") return "approve_for_me";
+    return normalizeApprovalMode(window.localStorage.getItem(APPROVAL_MODE_STORAGE_KEY));
+  });
   const [executionTraceMode, setExecutionTraceMode] = useState<ExecutionTraceMode>(() => {
     if (typeof window === "undefined") return "developer";
     return normalizeTraceMode(window.localStorage.getItem(TRACE_MODE_STORAGE_KEY));
@@ -427,6 +436,14 @@ export default function App() {
       console.warn("Failed to save execution trace mode", error);
     }
   }, [executionTraceMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(APPROVAL_MODE_STORAGE_KEY, activeApprovalMode);
+    } catch (error) {
+      console.warn("Failed to save approval mode", error);
+    }
+  }, [activeApprovalMode]);
 
   useEffect(() => {
     if ((window as any).electronAPI && (window as any).electronAPI.onMenuNavigate) {

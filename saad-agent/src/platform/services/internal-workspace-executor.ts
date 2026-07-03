@@ -18,106 +18,107 @@ export interface InternalWorkspaceExecutorResult {
   error?: string;
 }
 
-function normalizeText(value: string): string {
+const WINDOWS_PATH_PATTERN = /[a-z]:[\\/][^\r\n]+/i;
+
+function normalizeArabic(value: string): string {
   return (value || "")
     .toLowerCase()
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه")
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[\u0622\u0623\u0625\u0671]/g, "\u0627")
+    .replace(/\u0649/g, "\u064a")
+    .replace(/\u0629/g, "\u0647")
+    .replace(/[^\p{L}\p{N}:\\/.\s-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function isStaticPageRequest(prompt: string): boolean {
-  const normalized = normalizeText(prompt);
-  const hasCreateVerb = /(انش|انشاء|انشئ|انشء|نشئ|نشي|تنشئ|تنشي|سوي|سوّي|اعمل|اصنع|صمم|جهز|ابني|create|build|make|design)/i.test(normalized);
-  const hasPageTarget = /(صفحه|موقع|واجهه|واجهة|landing|page|website|html|ويب|فرونت|front)/i.test(normalized);
-  return hasCreateVerb && hasPageTarget;
+  const lower = prompt.toLowerCase();
+  const normalized = normalizeArabic(prompt);
+  const hasLocalPath = WINDOWS_PATH_PATTERN.test(prompt);
+  const createVerb = /\b(create|build|make|design|write|generate|implement|setup|set up)\b/i.test(lower)
+    || /(?:^|\s)(?:اريد|ابي|احتاج|سوي|سوه|اعمل|اصنع|صمم|ابني|اكتب|انشئ|انشاء|جهز|اشتغل)(?:\s|$)/.test(normalized);
+  const pageTarget = /\b(page|website|landing|html|frontend|interface|ui)\b/i.test(lower)
+    || /(?:صفحه|صفحات|موقع|واجهه|واجهة|ويب|فرونت|تصميم|فريم)/.test(normalized);
+
+  return createVerb && (pageTarget || hasLocalPath);
 }
 
 function inferPageTitle(prompt: string): string {
-  const normalized = normalizeText(prompt);
-  if (/موديلات|الوان|الوان اي|colors|palette|model/.test(normalized)) {
-    return "AI Color Models";
+  const normalized = normalizeArabic(prompt);
+  if (/(موبيلات|موبايلات|هواتف|phone|phones|mobile|mobiles)/i.test(prompt) || /موبيلات|موبايلات|هواتف/.test(normalized)) {
+    return "AI Mobile Showcase";
   }
-  if (/بورتفوليو|portfolio/.test(normalized)) return "Portfolio Page";
-  if (/لاندنك|landing/.test(normalized)) return "Landing Page";
-  return "Interactive Page";
+  if (/(portfolio|بورتفوليو|اعمالي|اعمال)/i.test(prompt) || /بورتفوليو|اعمالي|اعمال/.test(normalized)) {
+    return "Portfolio Page";
+  }
+  if (/(pricing|prices|اسعار|تسعير|credits|كردت|كريدت)/i.test(prompt) || /اسعار|تسعير|كردت|كريدت/.test(normalized)) {
+    return "Pricing Page";
+  }
+  if (/(gallery|صور|معرض)/i.test(prompt) || /معرض|صور/.test(normalized)) {
+    return "Gallery Page";
+  }
+  return "Interactive Landing Page";
 }
 
-function buildInteractivePage(title: string, prompt: string): Record<string, string> {
-  const isColorPage = title === "AI Color Models";
-  const heading = isColorPage ? "موديلات ألوان AI" : "صفحة تفاعلية";
-  const subtitle = isColorPage
-    ? "واجهة عملية لتجربة موديلات ألوان، توليد لوحات، ومقارنة أساليب التصميم."
-    : "واجهة ثابتة تفاعلية أنشأها Saad Agent داخل الفولدر المطلوب.";
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
+function buildStaticPage(title: string, prompt: string): Record<string, string> {
+  const safeTitle = escapeHtml(title);
+  const safePrompt = escapeHtml(prompt);
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${heading}</title>
+    <title>${safeTitle}</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app-shell">
+    <main class="page-shell">
       <section class="hero">
-        <p class="eyebrow">Saad Studio Agent</p>
-        <h1>${heading}</h1>
-        <p class="lead">${subtitle}</p>
+        <p class="eyebrow">Saad Studio</p>
+        <h1>${safeTitle}</h1>
+        <p class="lead">صفحة عملية ومتجاوبة تم إنشاؤها داخل الفولدر المطلوب. تحتوي حالات عرض واضحة ومكونات قابلة للتطوير.</p>
         <div class="hero-actions">
-          <button id="generatePalette" type="button">ولّد لوحة جديدة</button>
-          <button id="toggleTheme" type="button" class="secondary">بدّل النمط</button>
+          <a href="#content" class="primary-action">ابدأ التصفح</a>
+          <button id="themeToggle" type="button">بدّل النمط</button>
         </div>
       </section>
 
-      <section class="workspace-grid" aria-label="AI color models">
-        <article class="control-panel">
-          <h2>تحكم سريع</h2>
-          <label>
-            نوع التصميم
-            <select id="styleSelect">
-              <option value="brand">هوية بصرية</option>
-              <option value="product">منتج رقمي</option>
-              <option value="cinematic">سينمائي</option>
-              <option value="minimal">Minimal</option>
-            </select>
-          </label>
-          <label>
-            شدة التباين
-            <input id="contrastRange" type="range" min="10" max="90" value="55" />
-          </label>
-          <p id="paletteNote" class="note">اختار النمط واضغط توليد حتى تشوف نتيجة مختلفة.</p>
+      <section id="content" class="feature-grid" aria-label="Page sections">
+        <article>
+          <span>01</span>
+          <h2>Loading State</h2>
+          <p>مساحة جاهزة لحالة التحميل حتى تبقى تجربة المستخدم واضحة أثناء جلب البيانات.</p>
         </article>
-
-        <article class="preview-card">
-          <div class="preview-header">
-            <span id="activeStyle">Brand</span>
-            <strong>Live Preview</strong>
-          </div>
-          <div id="palette" class="palette"></div>
-          <div class="sample-card">
-            <span>AI Model</span>
-            <h3 id="sampleTitle">Color Intelligence</h3>
-            <p>ألوان متناسقة للاستخدام بالواجهات، الهويات، والبوسترات.</p>
-          </div>
+        <article>
+          <span>02</span>
+          <h2>Error State</h2>
+          <p>تصميم يعرض الخطأ بشكل مفهوم بدل ترك الصفحة فارغة أو مكسورة.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h2>Empty State</h2>
+          <p>حالة فارغة مرتبة تشرح للمستخدم شنو الخطوة التالية.</p>
         </article>
       </section>
 
-      <section class="models">
-        <article>
-          <h3>Brand Harmony</h3>
-          <p>يناسب الهويات البصرية النظيفة والتطبيقات التجارية.</p>
-        </article>
-        <article>
-          <h3>Neon Focus</h3>
-          <p>ألوان قوية للواجهات الحديثة ومشاريع الذكاء الاصطناعي.</p>
-        </article>
-        <article>
-          <h3>Soft Editorial</h3>
-          <p>مناسب للعروض، المقالات، وصفحات المنتجات الهادئة.</p>
-        </article>
+      <section class="preview-panel">
+        <div>
+          <p class="eyebrow">Original Request</p>
+          <p>${safePrompt}</p>
+        </div>
+        <div class="metric-card">
+          <strong>100%</strong>
+          <span>Responsive Layout</span>
+        </div>
       </section>
     </main>
     <script src="./script.js"></script>
@@ -128,262 +129,179 @@ function buildInteractivePage(title: string, prompt: string): Record<string, str
   const css = `:root {
   color-scheme: dark;
   --bg: #07111f;
-  --panel: rgba(15, 27, 45, 0.84);
-  --text: #f7fbff;
+  --panel: rgba(15, 23, 42, 0.82);
+  --panel-strong: rgba(15, 23, 42, 0.96);
+  --text: #f8fbff;
   --muted: #9fb4cc;
-  --line: rgba(122, 168, 255, 0.22);
-  --accent: #37c7ff;
-  --accent-2: #9d6cff;
+  --line: rgba(148, 163, 184, 0.2);
+  --cyan: #38d6ff;
+  --blue: #4f8cff;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
+
+html { font-size: 16px; }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: Inter, "Segoe UI", Tahoma, Arial, sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(55, 199, 255, 0.18), transparent 36rem),
-    radial-gradient(circle at bottom right, rgba(157, 108, 255, 0.2), transparent 34rem),
+    radial-gradient(circle at 10% 10%, rgba(56, 214, 255, 0.18), transparent 30rem),
+    radial-gradient(circle at 90% 0%, rgba(79, 140, 255, 0.16), transparent 28rem),
     var(--bg);
   color: var(--text);
 }
 
-.app-shell {
+body.light {
+  --bg: #eef6ff;
+  --panel: rgba(255, 255, 255, 0.78);
+  --panel-strong: #ffffff;
+  --text: #07111f;
+  --muted: #516176;
+  --line: rgba(15, 23, 42, 0.14);
+}
+
+.page-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 48px 0;
+  padding: clamp(24px, 5vw, 64px) 0;
+}
+
+.hero,
+.preview-panel,
+.feature-grid article {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.24);
 }
 
 .hero {
-  padding: 40px;
-  border: 1px solid var(--line);
   border-radius: 28px;
-  background: linear-gradient(135deg, rgba(14, 26, 44, 0.92), rgba(11, 16, 30, 0.76));
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+  padding: clamp(28px, 6vw, 64px);
 }
 
 .eyebrow {
-  margin: 0 0 12px;
-  color: var(--accent);
+  color: var(--cyan);
+  font-weight: 800;
   letter-spacing: 0.08em;
+  margin: 0 0 12px;
   text-transform: uppercase;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2.4rem, 6vw, 5.8rem);
+  font-size: clamp(2.4rem, 7vw, 6rem);
   line-height: 1;
 }
 
 .lead {
-  max-width: 720px;
-  margin: 20px 0 0;
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2vw, 1.2rem);
   line-height: 1.9;
-}
-
-.hero-actions,
-.preview-header {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-button,
-select,
-input {
-  font: inherit;
-}
-
-button,
-select {
-  border: 1px solid var(--line);
-  color: var(--text);
-  background: #0d1b2d;
-  border-radius: 14px;
-}
-
-button {
-  cursor: pointer;
-  padding: 12px 18px;
-}
-
-button:first-child {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  border-color: transparent;
-  color: #03111f;
-  font-weight: 800;
+  max-width: 740px;
 }
 
 .hero-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 28px;
 }
 
-.workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) minmax(320px, 1.2fr);
-  gap: 18px;
-  margin-top: 18px;
-}
-
-.control-panel,
-.preview-card,
-.models article {
+.primary-action,
+button {
+  border-radius: 14px;
   border: 1px solid var(--line);
-  background: var(--panel);
-  border-radius: 22px;
-  padding: 24px;
-}
-
-label {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-  color: var(--muted);
-}
-
-select {
-  width: 100%;
-  padding: 12px 14px;
-}
-
-input[type="range"] {
-  width: 100%;
-}
-
-.note {
-  color: var(--muted);
-  line-height: 1.7;
-}
-
-.preview-header {
-  justify-content: space-between;
-  color: var(--muted);
-}
-
-.palette {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin: 24px 0;
-}
-
-.swatch {
-  min-height: 110px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  display: flex;
-  align-items: end;
-  padding: 10px;
-  color: white;
+  color: var(--text);
+  font: inherit;
   font-weight: 800;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  padding: 12px 18px;
+  text-decoration: none;
 }
 
-.sample-card {
-  padding: 24px;
+.primary-action {
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  color: #03111f;
+}
+
+button {
+  background: var(--panel-strong);
+  cursor: pointer;
+}
+
+.feature-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.feature-grid article {
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(55, 199, 255, 0.16), rgba(157, 108, 255, 0.2));
+  padding: 24px;
 }
 
-.sample-card span {
-  color: var(--accent);
+.feature-grid span {
+  color: var(--cyan);
+  font-weight: 900;
 }
 
-.sample-card p {
+.feature-grid h2 {
+  margin: 14px 0 10px;
+}
+
+.feature-grid p,
+.preview-panel p {
   color: var(--muted);
   line-height: 1.8;
 }
 
-.models {
+.preview-panel {
+  align-items: center;
+  border-radius: 24px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  gap: 20px;
+  grid-template-columns: 1fr auto;
   margin-top: 18px;
+  padding: 24px;
 }
 
-.models p {
+.metric-card {
+  background: linear-gradient(135deg, rgba(56, 214, 255, 0.14), rgba(79, 140, 255, 0.16));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  min-width: 180px;
+  padding: 22px;
+  text-align: center;
+}
+
+.metric-card strong {
+  display: block;
+  font-size: 2.4rem;
+}
+
+.metric-card span {
   color: var(--muted);
-  line-height: 1.7;
 }
 
-body.light {
-  --bg: #eef6ff;
-  --panel: rgba(255, 255, 255, 0.86);
-  --text: #0a1324;
-  --muted: #506176;
-  --line: rgba(40, 90, 160, 0.2);
-}
-
-@media (max-width: 780px) {
-  .hero {
-    padding: 28px;
-  }
-
-  .workspace-grid,
-  .models {
+@media (max-width: 760px) {
+  .feature-grid,
+  .preview-panel {
     grid-template-columns: 1fr;
   }
-
-  .palette {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 `;
 
-  const js = `const paletteElement = document.getElementById("palette");
-const styleSelect = document.getElementById("styleSelect");
-const contrastRange = document.getElementById("contrastRange");
-const activeStyle = document.getElementById("activeStyle");
-const sampleTitle = document.getElementById("sampleTitle");
-const paletteNote = document.getElementById("paletteNote");
-
-const palettes = {
-  brand: ["#37C7FF", "#0B1020", "#F7FBFF", "#9D6CFF", "#00E0A4"],
-  product: ["#245BFF", "#111827", "#F59E0B", "#E5F0FF", "#10B981"],
-  cinematic: ["#0A0A0A", "#EAB308", "#7F1D1D", "#F5F5DC", "#1D4ED8"],
-  minimal: ["#111827", "#F8FAFC", "#CBD5E1", "#64748B", "#38BDF8"]
-};
-
-function renderPalette() {
-  const selected = styleSelect.value;
-  const colors = palettes[selected];
-  const contrast = Number(contrastRange.value);
-  activeStyle.textContent = selected.toUpperCase();
-  sampleTitle.textContent = selected === "brand" ? "Brand Harmony" : selected === "cinematic" ? "Cinematic Mood" : selected === "minimal" ? "Minimal System" : "Product UI";
-  paletteNote.textContent = "التباين الحالي: " + contrast + "%. اللوحة جاهزة للتجربة.";
-  paletteElement.innerHTML = "";
-  colors.forEach((color) => {
-    const swatch = document.createElement("div");
-    swatch.className = "swatch";
-    swatch.style.background = color;
-    swatch.textContent = color;
-    paletteElement.appendChild(swatch);
-  });
-}
-
-document.getElementById("generatePalette").addEventListener("click", () => {
-  const keys = Object.keys(palettes);
-  styleSelect.value = keys[Math.floor(Math.random() * keys.length)];
-  contrastRange.value = String(20 + Math.floor(Math.random() * 70));
-  renderPalette();
-});
-
-document.getElementById("toggleTheme").addEventListener("click", () => {
+  const js = `const toggle = document.getElementById("themeToggle");
+toggle?.addEventListener("click", () => {
   document.body.classList.toggle("light");
 });
-
-styleSelect.addEventListener("change", renderPalette);
-contrastRange.addEventListener("input", renderPalette);
-renderPalette();
 `;
 
-  const readme = `# ${heading}
+  const readme = `# ${title}
 
 Generated by Saad Agent internal workspace executor.
 
@@ -391,11 +309,12 @@ Original request:
 
 ${prompt}
 
-Files:
+Generated files:
 
 - index.html
 - styles.css
 - script.js
+- README.md
 `;
 
   return {
@@ -407,6 +326,10 @@ Files:
 }
 
 export class InternalWorkspaceExecutor {
+  static canHandle(prompt: string): boolean {
+    return isStaticPageRequest(prompt);
+  }
+
   static async tryExecute(request: InternalWorkspaceExecutorRequest): Promise<InternalWorkspaceExecutorResult> {
     if (!isStaticPageRequest(request.prompt)) {
       return { handled: false, success: false, response: "", files: [] };
@@ -429,13 +352,13 @@ export class InternalWorkspaceExecutor {
       });
 
       const title = inferPageTitle(request.prompt);
-      const files = buildInteractivePage(title, request.prompt);
+      const files = buildStaticPage(title, request.prompt);
       const writtenFiles: string[] = [];
 
       for (const [fileName, content] of Object.entries(files)) {
         const targetPath = path.join(workspacePath, fileName);
         const result = await TrustedWorkspaceRuntime.writeFile(targetPath, content, true);
-        writtenFiles.push(result.path.replace(/\\/g, "/"));
+        writtenFiles.push(result.path);
       }
 
       ExecutionTraceEmitter.emit({
@@ -456,12 +379,12 @@ export class InternalWorkspaceExecutor {
         success: true,
         files: writtenFiles,
         response: [
-          "تم إنشاء الصفحة فعلياً داخل الفولدر المطلوب.",
+          "تمام سعد، أنشأت الصفحة فعلياً داخل الفولدر المطلوب.",
           "",
-          "الملفات التي انكتبت:",
+          "الملفات المكتوبة:",
           ...writtenFiles.map((file) => `- ${file}`),
           "",
-          "هذا تنفيذ داخلي محدود للصفحات الثابتة لأن Codex CLI الحالي غير قابل للتشغيل من Electron على جهازك."
+          "هذا تنفيذ داخلي مباشر للصفحات الثابتة حتى ما يتوقف الشغل إذا Codex CLI غير مربوط من Electron."
         ].join("\n")
       };
     } catch (err: any) {
@@ -481,7 +404,7 @@ export class InternalWorkspaceExecutor {
         files: [],
         error,
         response: [
-          "فشل التنفيذ الداخلي لإنشاء الصفحة.",
+          "ما قدرت أنشئ الصفحة داخلياً.",
           "",
           "السبب:",
           error
