@@ -30,8 +30,8 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["google/veo3.1-fast-text-to-video", 13.68],
   ["google/veo3.1-text-to-video", 42.56],
   ["google/veo-3.1-generate-preview", 42.56],
-  ["google/gemini-omni-video", 42.56],
-  ["google/gemini-omni-flash", 20.0],
+  ["google/gemini-omni-video", 30.0],
+  ["google/gemini-omni-flash", 30.0],
   ["bytedance/seedance-v2/text-to-video-fast", 27],
   ["bytedance/seedance-v2/text-to-video", 40],
   ["x-ai/grok-imagine-video/text-to-video", 9.24],
@@ -191,6 +191,11 @@ function getVeo31Credits(modelRoute: string, payload?: VideoPayload): number {
   return parseFloat(Math.max(1, cost).toFixed(2));
 }
 
+function getGeminiOmniFlashCredits(payload?: VideoPayload): number {
+  const duration = readDuration(payload, 10);
+  return parseFloat((duration * 3.0).toFixed(2));
+}
+
 function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload?: VideoPayload): number {
   const model = VIDEO_ROUTE_REGISTRY_MAP.get(modelRoute);
   if (!model) return applySoundMultiplier(baseCost, payload);
@@ -287,6 +292,10 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   if (modelRoute === "wavespeed-ai/cinematic-video-generator") {
     const duration = readDuration(payload, 5);
     return applySoundMultiplier(parseFloat(Math.max(1, duration * 1.6).toFixed(2)), payload);
+  }
+
+  if (modelRoute === "google/gemini-omni-flash" || modelRoute === "google/gemini-omni-video") {
+    return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
   }
 
   const base = VIDEO_ROUTE_COST_MAP.get(modelRoute) ?? 20;

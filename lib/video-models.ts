@@ -57,7 +57,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     durations: [3, 4, 5, 6, 7, 8, 9, 10],
     resolutions: ["720p"],
     badge: "NEW",
-    creditCost: 20.0,
+    creditCost: 30.0,
     maxDuration: 10,
     description: "Ultra-fast direct Google video generation & editing",
   },
