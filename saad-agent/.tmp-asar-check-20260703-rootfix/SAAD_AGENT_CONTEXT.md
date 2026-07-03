@@ -161,15 +161,6 @@ The enforced training folder structure is:
   lessons/
 ```
 
-## Saad Agent Root Runtime Stabilization Rule (2026-07-03)
-
-- Packaged behavior is the source of truth for desktop testing. Any source fix must be rebuilt and verified inside `release-production-v4/win-unpacked/resources/app.asar`.
-- The preload bridge and Electron main process must stay in lockstep. Every renderer API exposed from preload must have a matching `ipcMain.handle(...)` implementation or an explicit structured unsupported response.
-- `approve_for_me` must persist across app restarts and remain the default product mode for safe actions.
-- Simple static page creation requests inside a trusted workspace may be executed by the deterministic internal workspace executor before attempting the Codex runtime bridge.
-- The internal executor is a bounded fallback for straightforward static page generation only; it must not pretend to handle broad refactors, provider integrations, or unknown engineering tasks.
-- Chat and prompt layout must use bounded widths, stable font sizes, and responsive constraints instead of viewport scaling that makes text or controls randomly shrink.
-
 The knowledge registry is:
 
 ```text

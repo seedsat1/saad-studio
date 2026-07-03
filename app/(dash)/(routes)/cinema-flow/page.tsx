@@ -384,7 +384,10 @@ export default function CinemaFlowPage() {
   };
 
   return (
-    <div className="flex-1 flex h-full bg-[#09090b] text-white overflow-hidden font-sans">
+    <div 
+      className="flex-1 flex bg-[#09090b] text-white overflow-hidden font-sans"
+      style={{ height: "calc(100vh - 56px)" }}
+    >
       
       {/* 1. Left Sidebar - Asset Controls */}
       <div 
