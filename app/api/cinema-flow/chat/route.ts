@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Format chat history for Google Gemini API
-    // Gemini roles: "user" and "model"
     const contents = messages.map((m: any) => ({
       role: m.sender === "user" ? "user" : "model",
       parts: [{ text: m.text }],
@@ -38,7 +37,7 @@ export async function POST(req: NextRequest) {
     const systemInstruction = {
       parts: [
         {
-          text: `You are Google Flow, the advanced AI Creative Agent of Saad Studio.
+          text: `You are Cinema Flow, the advanced AI Creative Agent of Saad Studio.
 Your goal is to guide the user in generating images and videos.
 
 IMPORTANT: You have autonomous capabilities to trigger real generation tools!
@@ -71,7 +70,7 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("[google-flow chat] API error:", errText);
+      console.error("[cinema-flow chat] API error:", errText);
       throw new Error(`Google API returned status ${res.status}`);
     }
 
@@ -80,7 +79,7 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
 
     return NextResponse.json({ text: candidateText.trim() });
   } catch (err: any) {
-    console.error("[google-flow chat] error:", err);
+    console.error("[cinema-flow chat] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

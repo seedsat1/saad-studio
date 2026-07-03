@@ -31,7 +31,7 @@ interface ChatMessage {
   assetType?: "image" | "video";
 }
 
-export default function GoogleFlowPage() {
+export default function CinemaFlowPage() {
   const { user } = useUser();
   const { guardGeneration } = useGenerationGate();
   const { addAsset } = useAssetStore();
@@ -71,7 +71,7 @@ export default function GoogleFlowPage() {
         setAssets(data.assets);
       }
     } catch (err) {
-      console.error("Failed to load assets in Google Flow", err);
+      console.error("Failed to load assets in Cinema Flow", err);
     } finally {
       setLoadingAssets(false);
     }
@@ -115,7 +115,7 @@ export default function GoogleFlowPage() {
     } else if (type === "started") {
       sendChatMessage("كيف يمكنني البدء في إنشاء وتعديل وسائط إبداعية هنا؟");
     } else {
-      sendChatMessage("ما هي النماذج والأدوات الإبداعية التي تدعمها في Google Flow؟");
+      sendChatMessage("ما هي النماذج والأدوات الإبداعية التي تدعمها في Cinema Flow؟");
     }
   };
 
@@ -138,7 +138,7 @@ export default function GoogleFlowPage() {
 
     try {
       // Send chat history to backend Gemini API
-      const chatRes = await fetch("/api/google-flow/chat", {
+      const chatRes = await fetch("/api/cinema-flow/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: updatedMessages }),
@@ -146,7 +146,7 @@ export default function GoogleFlowPage() {
 
       const chatData = await chatRes.json();
       if (!chatRes.ok || !chatData.text) {
-        throw new Error(chatData.error ?? "فشل الاتصال بمساعد جوجل الذكي.");
+        throw new Error(chatData.error ?? "فشل الاتصال بمساعد السينما الذكي.");
       }
 
       const replyText = chatData.text;
@@ -194,7 +194,7 @@ export default function GoogleFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: `جاري تشغيل نموذج Google Image (${selectedImageModel === "nano-banana-2-lite" ? "Gemini 3.1 Flash Lite" : "Gemini 3.1 Flash"}) لتوليد اللقطة... يرجى الانتظار.`,
+      text: `جاري تشغيل نموذج الصور (${selectedImageModel === "nano-banana-2-lite" ? "Gemini 3.1 Flash Lite" : "Gemini 3.1 Flash"}) لتوليد اللقطة... يرجى الانتظار.`,
       isGenerating: true
     }]);
 
@@ -279,7 +279,7 @@ export default function GoogleFlowPage() {
     setChatMessages(prev => [...prev, {
       id: Math.random().toString(),
       sender: "agent",
-      text: "جاري تشغيل محرك الفيديو Google Gemini Omni Flash لتوليد اللقطة المطلوبة (10 ثوانٍ)...",
+      text: "جاري تشغيل محرك الفيديو Gemini Omni Flash لتوليد اللقطة المطلوبة (10 ثوانٍ)...",
       isGenerating: true
     }]);
 
@@ -397,7 +397,7 @@ export default function GoogleFlowPage() {
             {!isSidebarCollapsed && (
               <span className="text-xs font-bold tracking-wider text-orange-400 flex items-center gap-1.5">
                 <Sparkles size={14} />
-                GOOGLE FLOW
+                CINEMA FLOW
               </span>
             )}
             <button 
@@ -539,7 +539,7 @@ export default function GoogleFlowPage() {
 
         {/* Bottom disclaimer */}
         <div className="flex-shrink-0 px-6 py-3 border-t border-white/5 text-[10px] text-zinc-600 bg-zinc-950/40">
-          Google Flow can make mistakes, so double check it
+          Cinema Flow can make mistakes, so double check it
         </div>
       </div>
 
@@ -639,7 +639,7 @@ export default function GoogleFlowPage() {
                   </div>
                   
                   <span className="text-[9px] text-zinc-500 px-1">
-                    {msg.sender === "user" ? "You" : "Google Flow Agent"}
+                    {msg.sender === "user" ? "You" : "Cinema Flow Agent"}
                   </span>
                 </div>
               ))}
@@ -694,7 +694,7 @@ export default function GoogleFlowPage() {
                 <select
                   value={selectedVideoModel}
                   onChange={(e) => setSelectedVideoModel(e.target.value)}
-                  className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none animate-none"
+                  className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                   disabled
                 >
                   <option value="google/gemini-omni-flash">Gemini Omni Flash (10s)</option>
