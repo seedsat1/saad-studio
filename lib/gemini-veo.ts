@@ -87,6 +87,8 @@ export interface StartVeoParams {
   referenceImages?: VeoImageInput[];
   /** Extend an existing clip (max 20×) */
   video?: VeoVideoInput;
+  /** Stateful video editing: parent interaction ID to edit */
+  previousInteractionId?: string;
 }
 
 export interface VeoOperationHandle {
@@ -124,47 +126,56 @@ export async function startVeoGeneration(
     
     const inputList: any[] = [];
     
-    // 1. Add starting frame (image) if present
-    if (params.image) {
+    if (params.previousInteractionId) {
       inputList.push({
-        type: "image",
-        data: params.image.imageBytes,
-        mime_type: params.image.mimeType,
+        type: "text",
+        text: params.prompt,
+      });
+    } else {
+      // 1. Add starting frame (image) if present
+      if (params.image) {
+        inputList.push({
+          type: "image",
+          data: params.image.imageBytes,
+          mime_type: params.image.mimeType,
+        });
+      }
+
+      // 2. Add reference images if present
+      if (params.referenceImages && params.referenceImages.length > 0) {
+        for (const refImg of params.referenceImages) {
+          inputList.push({
+            type: "image",
+            data: refImg.imageBytes,
+            mime_type: refImg.mimeType,
+          });
+        }
+      }
+
+      // 3. Formulate the prompt text with correct image reference tags
+      let promptText = params.prompt;
+      if (params.image) {
+        promptText = `<FIRST_FRAME> ${promptText}`;
+      }
+      if (params.referenceImages && params.referenceImages.length > 0) {
+        const refs = params.referenceImages.map((_, idx) => `<IMAGE_REF_${idx}>`).join(" and ");
+        promptText = `${refs} ${promptText}`;
+      }
+      
+      inputList.push({
+        type: "text",
+        text: promptText,
       });
     }
 
-    // 2. Add reference images if present
-    if (params.referenceImages && params.referenceImages.length > 0) {
-      for (const refImg of params.referenceImages) {
-        inputList.push({
-          type: "image",
-          data: refImg.imageBytes,
-          mime_type: refImg.mimeType,
-        });
-      }
-    }
-
-    // 3. Formulate the prompt text with correct image reference tags
-    let promptText = params.prompt;
-    if (params.image) {
-      promptText = `<FIRST_FRAME> ${promptText}`;
-    }
-    if (params.referenceImages && params.referenceImages.length > 0) {
-      const refs = params.referenceImages.map((_, idx) => `<IMAGE_REF_${idx}>`).join(" and ");
-      promptText = `${refs} ${promptText}`;
-    }
-    
-    inputList.push({
-      type: "text",
-      text: promptText,
-    });
-
     // 4. Determine task type
-    let task = "text_to_video";
-    if (params.image) {
-      task = "image_to_video";
-    } else if (params.referenceImages && params.referenceImages.length > 0) {
-      task = "reference_to_video";
+    let task = params.previousInteractionId ? "edit_video" : "text_to_video";
+    if (!params.previousInteractionId) {
+      if (params.image) {
+        task = "image_to_video";
+      } else if (params.referenceImages && params.referenceImages.length > 0) {
+        task = "reference_to_video";
+      }
     }
 
     const payload: any = {
@@ -180,6 +191,10 @@ export async function startVeoGeneration(
         }
       }
     };
+
+    if (params.previousInteractionId) {
+      payload.previous_interaction_id = params.previousInteractionId;
+    }
 
     if (params.aspectRatio) {
       payload.response_format.aspect_ratio = params.aspectRatio;

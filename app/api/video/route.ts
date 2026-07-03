@@ -1920,6 +1920,15 @@ export async function POST(req: Request) {
           : Promise.resolve([]),
       ]);
 
+      const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
+      let previousInteractionId: string | undefined;
+      if (previousTaskId && previousTaskId.startsWith("gvo:")) {
+        const decoded = decodeGeminiTask(previousTaskId);
+        if (decoded?.name) {
+          previousInteractionId = decoded.name;
+        }
+      }
+
       let opHandle: VeoOperationHandle;
       try {
         const tier = modelRoute === "google/gemini-omni-flash" ? "omni_flash" : "pro";
@@ -1933,6 +1942,7 @@ export async function POST(req: Request) {
           image,
           lastFrame: image ? lastFrame : undefined,
           referenceImages: referenceImages.length ? referenceImages : undefined,
+          previousInteractionId,
         });
       } catch (err) {
         if (generationId && chargedUserId && chargedCredits > 0) {
