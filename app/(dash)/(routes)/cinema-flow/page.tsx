@@ -513,7 +513,10 @@ export default function CinemaFlowPage() {
             prompt: finalPrompt,
             modelId: selectedImageModel,
             aspectRatio,
-            numImages: 1
+            numImages: 1,
+            ...(activeImageReferences.length > 0
+              ? { imageUrls: activeImageReferences.map((img) => img.url).filter((u): u is string => Boolean(u)) }
+              : {})
           })
         });
       }
