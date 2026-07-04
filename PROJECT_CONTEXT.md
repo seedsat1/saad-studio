@@ -12,6 +12,7 @@
   - Redesigned `/video-edit` to always render the starting video player when `videoPreview` is present (either uploaded locally or loaded from a previous stateful task ID), fetching the task's output video on page mount when `previousTaskId` is supplied in the URL search params.
   - Created a backend proxy endpoint `/api/download` (`app/api/download/route.ts`) that downloads files server-to-server and streams them back to the client with `Content-Disposition: attachment` headers, bypassing all client-side CORS blocking.
   - Updated `downloadLatest` in `public/stude/sound.html` and `stude/sound.html` to route downloads through `/api/download` to prevent CORS fetch blocks and Content Security Policy frame framing violations.
+  - Added a backward-scanning history lookup in Cinema Flow `sendChatMessage` to retrieve and carry-over user file attachments from previous chat turns when executing generation commands (like "نفذ" or "generate") where the active selection state was already cleared, preventing lost reference inputs.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
