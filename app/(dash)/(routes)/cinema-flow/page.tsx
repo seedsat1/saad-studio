@@ -418,7 +418,6 @@ export default function CinemaFlowPage() {
     // Capture all reference image URLs in a list
     const refUrls = activeImageReferences.map(img => img.url).filter((u): u is string => Boolean(u));
     const fallbackUrl = activeCharacter ? normalizeMediaUrl(activeCharacter.coverUrl) : null;
-    const finalRefUrls = refUrls.length > 0 ? refUrls : (fallbackUrl ? [fallbackUrl] : []);
 
     // 1. Add User Message
     const userMsg: ChatMessage = {
@@ -430,7 +429,7 @@ export default function CinemaFlowPage() {
     if (activeImageReferences.length > 0) {
       userMsg.assetUrl = activeImageReferences[0].url;
       userMsg.assetUrls = refUrls;
-      userMsg.assetType = activeImageReferences[0].type === "video" ? "video" : "image";
+      userMsg.assetType = activeImageReferences[0].type === "video" ? "video" : (activeImageReferences[0].type === "audio" ? "audio" : "image");
     } else if (activeCharacter) {
       userMsg.assetUrl = normalizeMediaUrl(activeCharacter.coverUrl) || undefined;
       userMsg.assetType = "image";
@@ -446,6 +445,35 @@ export default function CinemaFlowPage() {
     setIsAgentTyping(true);
 
     try {
+      // Find the latest media attachments in the user chat history if none are active in the current turn
+      let historicRefUrls: string[] = [];
+      let historicRefType: "image" | "video" | "audio" | null = null;
+      for (let i = updatedMessages.length - 1; i >= 0; i--) {
+        const msg = updatedMessages[i];
+        if (msg.sender === "user") {
+          if (msg.assetUrls && msg.assetUrls.length > 0) {
+            historicRefUrls = msg.assetUrls;
+            historicRefType = msg.assetType || "image";
+            break;
+          } else if (msg.assetUrl) {
+            historicRefUrls = [msg.assetUrl];
+            historicRefType = msg.assetType || "image";
+            break;
+          }
+        }
+      }
+
+      const finalRefUrls = refUrls.length > 0 
+        ? refUrls 
+        : (historicRefUrls.length > 0 ? historicRefUrls : (fallbackUrl ? [fallbackUrl] : []));
+
+      const videoRefUrl = activeImageReferences.find(img => img.type === "video")?.url 
+        || (historicRefType === "video" ? historicRefUrls[0] : null)
+        || null;
+
+      const audioRefUrls = activeImageReferences.filter(img => img.type === "audio").map(img => img.url).filter((u): u is string => Boolean(u))
+        || (historicRefType === "audio" ? historicRefUrls : []);
+
       // Send chat history to backend Gemini API
       const chatRes = await fetch("/api/cinema-flow/chat", {
         method: "POST",
@@ -462,10 +490,10 @@ export default function CinemaFlowPage() {
 
       if (replyText.startsWith("IMAGE_GEN:")) {
         const refinedPrompt = replyText.replace("IMAGE_GEN:", "").trim();
-        await executeImageGeneration(refinedPrompt);
+        await executeImageGeneration(refinedPrompt, finalRefUrls);
       } else if (replyText.startsWith("VIDEO_GEN:")) {
         const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
-        await executeVideoGeneration(refinedPrompt, finalRefUrls);
+        await executeVideoGeneration(refinedPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
       } else {
         // Normal conversational reply
         setChatMessages(prev => [...prev, {
@@ -486,7 +514,7 @@ export default function CinemaFlowPage() {
   };
 
   // Trigger Google Image Generation
-  const executeImageGeneration = async (promptText: string) => {
+  const executeImageGeneration = async (promptText: string, imageRefUrls?: string[] | null) => {
     // Deduct standard credits
     const cost = selectedImageModel === "nano-banana-2-lite" ? 0.40 : 0.60;
     const passed = await guardGeneration("image", cost);
@@ -515,9 +543,13 @@ export default function CinemaFlowPage() {
       let res;
       let finalPrompt = promptText;
 
+      const finalImageRefs = imageRefUrls && imageRefUrls.length > 0
+        ? imageRefUrls
+        : activeImageReferences.map(img => img.url).filter((u): u is string => Boolean(u));
+
       // If ordinary image references are selected, append reference image details to prompt
-      if (activeImageReferences.length > 0) {
-        const refsStr = activeImageReferences.map((img, idx) => `[Reference Image ${idx + 1}: ${img.url}]`).join("\n");
+      if (finalImageRefs.length > 0) {
+        const refsStr = finalImageRefs.map((url, idx) => `[Reference Image ${idx + 1}: ${url}]`).join("\n");
         finalPrompt = `${promptText}\n\n${refsStr}`;
       }
 
@@ -546,9 +578,7 @@ export default function CinemaFlowPage() {
             modelId: selectedImageModel,
             aspectRatio,
             numImages: 1,
-            ...(activeImageReferences.length > 0
-              ? { imageUrls: activeImageReferences.map((img) => img.url).filter((u): u is string => Boolean(u)) }
-              : {})
+            ...(finalImageRefs.length > 0 ? { imageUrls: finalImageRefs } : {})
           })
         });
       }
