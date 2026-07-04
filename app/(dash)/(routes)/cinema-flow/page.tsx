@@ -109,6 +109,27 @@ export default function CinemaFlowPage() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const dragCounterRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Click outside triggers to close popovers/dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Close filter popover
+      if (filterOpen && filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterOpen(false);
+      }
+      // Close model parameters drawer
+      if (modelSettingsOpen && settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        const toggleBtn = document.querySelector('[title="Parameters"]');
+        if (!toggleBtn || !toggleBtn.contains(event.target as Node)) {
+          setModelSettingsOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [filterOpen, modelSettingsOpen]);
 
   // Fetch user assets on load
   const loadAssets = async () => {
@@ -883,7 +904,7 @@ export default function CinemaFlowPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2 relative" ref={filterRef}>
             {/* Sliders (Filter) Button */}
             <div className="relative">
               <button 
@@ -899,13 +920,19 @@ export default function CinemaFlowPage() {
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">الترتيب الزمني</div>
                   <div className="flex bg-white/[0.03] rounded-lg p-0.5 border border-white/5">
                     <button 
-                      onClick={() => setSortOrder("newest")}
+                      onClick={() => {
+                        setSortOrder("newest");
+                        setFilterOpen(false);
+                      }}
                       className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "newest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       الأحدث أولاً
                     </button>
                     <button 
-                      onClick={() => setSortOrder("oldest")}
+                      onClick={() => {
+                        setSortOrder("oldest");
+                        setFilterOpen(false);
+                      }}
                       className={`flex-1 text-[10px] py-1 rounded-md transition-all ${sortOrder === "oldest" ? 'bg-violet-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
                     >
                       الأقدم أولاً
@@ -915,7 +942,10 @@ export default function CinemaFlowPage() {
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">تصفية حسب النموذج</div>
                   <select
                     value={filterModel}
-                    onChange={(e) => setFilterModel(e.target.value)}
+                    onChange={(e) => {
+                      setFilterModel(e.target.value);
+                      setFilterOpen(false);
+                    }}
                     className="w-full bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-[10px] text-zinc-200 focus:outline-none"
                   >
                     <option value="all">جميع النماذج</option>
@@ -1336,6 +1366,7 @@ export default function CinemaFlowPage() {
         <AnimatePresence>
           {modelSettingsOpen && (
             <motion.div
+              ref={settingsRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
@@ -1353,7 +1384,10 @@ export default function CinemaFlowPage() {
                 <span className="text-[10px] text-zinc-500">Image Engine</span>
                 <select
                   value={selectedImageModel}
-                  onChange={(e) => setSelectedImageModel(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedImageModel(e.target.value);
+                    setModelSettingsOpen(false);
+                  }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="nano-banana-2-lite">Nano Banana 2 Lite (Fastest)</option>
@@ -1367,7 +1401,10 @@ export default function CinemaFlowPage() {
                 <span className="text-[10px] text-zinc-500">Video Engine</span>
                 <select
                   value={selectedVideoModel}
-                  onChange={(e) => setSelectedVideoModel(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedVideoModel(e.target.value);
+                    setModelSettingsOpen(false);
+                  }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="google/gemini-omni-flash">Gemini Omni Flash</option>
@@ -1383,7 +1420,10 @@ export default function CinemaFlowPage() {
                 <span className="text-[10px] text-zinc-500">Video Duration</span>
                 <select
                   value={videoDuration}
-                  onChange={(e) => setVideoDuration(Number(e.target.value))}
+                  onChange={(e) => {
+                    setVideoDuration(Number(e.target.value));
+                    setModelSettingsOpen(false);
+                  }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="5">5 seconds</option>
@@ -1397,7 +1437,10 @@ export default function CinemaFlowPage() {
                 <span className="text-[10px] text-zinc-500">Video Quality</span>
                 <select
                   value={videoQuality}
-                  onChange={(e) => setVideoQuality(e.target.value)}
+                  onChange={(e) => {
+                    setVideoQuality(e.target.value);
+                    setModelSettingsOpen(false);
+                  }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="720p">720p (Standard)</option>
@@ -1411,7 +1454,10 @@ export default function CinemaFlowPage() {
                 <span className="text-[10px] text-zinc-500">Aspect Ratio</span>
                 <select
                   value={aspectRatio}
-                  onChange={(e) => setAspectRatio(e.target.value)}
+                  onChange={(e) => {
+                    setAspectRatio(e.target.value);
+                    setModelSettingsOpen(false);
+                  }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="1:1">1:1 (Square)</option>
