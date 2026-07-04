@@ -334,7 +334,8 @@ export default function AudioPage() {
 
   // ── Generation execution ──
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isGenerating) return;
+    const hasLyrics = verse.trim() || chorus.trim() || bridge.trim();
+    if ((!prompt.trim() && !hasLyrics) || isGenerating) return;
 
     const gate = await guardGeneration({
       requiredCredits: 20,
@@ -398,9 +399,11 @@ export default function AudioPage() {
         }
       }
 
+      const finalPrompt = prompt.trim() || `Create a beautiful song in the style of ${genre || "pop"}${mood ? ", " + mood : ""} using the provided lyrics.`;
+
       const payload = {
-        prompt: prompt.trim(),
-        model: selectedModel === "pro" ? "minimax/minimax-music-2.5" : "elevenlabs/music",
+        prompt: finalPrompt,
+        model: selectedModel === "pro" ? "minimax/music-2.5" : "elevenlabs/music",
         lyrics: customLyrics || undefined,
         style: [genre, mood].filter(Boolean).join(", "),
         force_instrumental: instrumental,
@@ -416,13 +419,14 @@ export default function AudioPage() {
       setGenStep(3);
       setGenProgress(100);
 
-      const words = prompt.trim().split(/\s+/);
+
+      const words = finalPrompt.split(/\s+/);
       const title = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 
       const newTrack: Track = {
         id: res.data.generationId || `t${Date.now()}`,
         title,
-        prompt: prompt.trim(),
+        prompt: finalPrompt,
         genre,
         mood,
         duration: dur,

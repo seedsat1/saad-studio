@@ -44,9 +44,9 @@ const MUSIC_MODEL_BASE_COST = new Map<string, number>([
   ["wavespeed-ai/song-generation", 14],
   ["wavespeed-ai/ace-step", 9],
   ["wavespeed-ai/heartmula-generate-music", 9],
-  ["minimax/minimax-music-2.5", 12],
-  ["minimax/minimax-music-02", 10],
-  ["minimax/minimax-music-v1.5", 8],
+  ["minimax/music-2.5", 12],
+  ["minimax/music-02", 10],
+  ["minimax/music-v1.5", 8],
   ["elevenlabs/elevenlabs-music", 12],
 ]);
 

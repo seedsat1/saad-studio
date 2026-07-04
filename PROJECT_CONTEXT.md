@@ -43,6 +43,7 @@
   - Replaced all generic Tailwind theme variables in `/audio` with explicit, high-fidelity dark colors matching Saad Studio's theme (e.g., `bg-[#0a0a0c]` background, `bg-[#111115]` card components, `border-zinc-800/80` borders, `text-zinc-100` foreground).
   - Fixed Content Security Policy connection block on image references in the `/audio` workspace. The page now reads local upload files directly via the offline `img.file` reference using `FileReader` instead of calling `fetch` on `blob:` URLs, completely resolving the `connect-src` policy violation.
   - Fixed HTTP 413 Payload Too Large error when uploading high-resolution reference images in the `/audio` workspace. Implemented client-side canvas-based image compression that dynamically scales reference images to a maximum of 800px width/height and exports them as compressed JPEGs (reducing payload sizes from megabytes to under 80KB), ensuring compliance with server body size limits.
+  - Fixed HTTP 400 Bad Request (Model not found) when generating with the Pro model. Corrected all Minimax model references across the codebase from the incorrect prefix format (e.g. `minimax/minimax-music-2.5`) to the correct WaveSpeed endpoint format (`minimax/music-2.5`), and updated prompt validation to allow empty prompt values when custom lyrics are entered (using chosen style as fallback prompt).
 - Affected files:
   - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
 - Verification:

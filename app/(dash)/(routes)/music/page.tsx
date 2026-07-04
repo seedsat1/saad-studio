@@ -27,9 +27,9 @@ const MUSIC_BASE_CREDITS: Record<string, number> = {
   "wavespeed-ai/song-generation": 10,
   "wavespeed-ai/ace-step": 10,
   "wavespeed-ai/heartmula-generate-music": 10,
-  "minimax/minimax-music-2.5": 10,
-  "minimax/minimax-music-02": 10,
-  "minimax/minimax-music-v1.5": 10,
+  "minimax/music-2.5": 10,
+  "minimax/music-02": 10,
+  "minimax/music-v1.5": 10,
   "elevenlabs/elevenlabs-music": 10,
 };
 
@@ -84,7 +84,7 @@ const MUSIC_MODELS = [
     defaultDuration: 30,
   },
   {
-    id: "minimax/minimax-music-2.5",
+    id: "minimax/music-2.5",
     label: "Minimax Music 2.5",
     sublabel: "Professional-grade output",
     badge: "NEW",
@@ -95,7 +95,7 @@ const MUSIC_MODELS = [
     defaultDuration: 30,
   },
   {
-    id: "minimax/minimax-music-02",
+    id: "minimax/music-02",
     label: "Minimax Music 02",
     sublabel: "Balanced quality & speed",
     badge: "",
@@ -106,7 +106,7 @@ const MUSIC_MODELS = [
     defaultDuration: 30,
   },
   {
-    id: "minimax/minimax-music-v1.5",
+    id: "minimax/music-v1.5",
     label: "Minimax Music V1.5",
     sublabel: "Stable music generation",
     badge: "",
