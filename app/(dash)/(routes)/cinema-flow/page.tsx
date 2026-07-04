@@ -1274,40 +1274,7 @@ export default function CinemaFlowPage() {
                   key={msg.id}
                   className={`flex flex-col gap-1.5 max-w-[85%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}
                 >
-                  {/* Collapsible Thinking Process Toggle (Google Style) */}
-                  {msg.sender === "agent" && msg.thinking && (
-                    <div className="w-full mt-1 mb-1">
-                      <button
-                        onClick={() => {
-                          setExpandedThinking(prev => ({
-                            ...prev,
-                            [msg.id]: !prev[msg.id]
-                          }));
-                        }}
-                        className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-[10px] font-semibold transition"
-                      >
-                        <span>{expandedThinking[msg.id] ? "Hide thinking" : "Show thinking"}</span>
-                        <ChevronRight
-                          size={11}
-                          className={cn("transition-transform duration-200", expandedThinking[msg.id] ? "rotate-90" : "rotate-0")}
-                        />
-                      </button>
-                      <AnimatePresence>
-                        {expandedThinking[msg.id] && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="border-l border-zinc-700 pl-3.5 mt-2 py-0.5 overflow-hidden"
-                          >
-                            <p className="text-[11px] text-zinc-400 font-mono whitespace-pre-line leading-relaxed">
-                              {msg.thinking}
-                            </p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
+
 
                   {/* Message Text Bubble */}
                   {msg.text && (

@@ -96,7 +96,7 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
     };
 
     // Query Gemini
-    const model = "gemini-2.5-flash";
+    const model = "gemini-3.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const res = await fetch(url, {
@@ -106,10 +106,7 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
         contents,
         systemInstruction,
         generationConfig: {
-          thinkingConfig: {
-            thinkingLevel: "MEDIUM"
-          },
-          maxOutputTokens: 1200,
+          maxOutputTokens: 800,
         },
       }),
     });
@@ -121,28 +118,9 @@ Otherwise, engage in a friendly, conversational creative brainstorming, explain 
     }
 
     const data = await res.json();
-    
-    const parts = data.candidates?.[0]?.content?.parts || [];
-    let thinkingText = "";
-    let replyText = "";
-
-    for (const part of parts) {
-      if (part.thought === true || part.type === "thought" || part.thoughtConfig) {
-        thinkingText += part.text || "";
-      } else if (part.text) {
-        replyText += part.text || "";
-      }
-    }
-
     const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    if (!replyText.trim()) {
-      replyText = candidateText;
-    }
 
-    return NextResponse.json({ 
-      text: replyText.trim(),
-      thinking: thinkingText.trim() || undefined
-    });
+    return NextResponse.json({ text: candidateText.trim() });
   } catch (err: any) {
     console.error("[cinema-flow chat] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
