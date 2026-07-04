@@ -60,6 +60,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/promo(.*)',
   '/connect-claude(.*)',
   '/smart-cli(.*)',
+  '/api/showcase(.*)',
+  '/api/explore/cms(.*)',
 ])
 
 function applySecurityHeaders(res: NextResponse, req: Request) {
