@@ -1155,6 +1155,28 @@ const TopNavbar = () => {
                   {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
                 </span>
               </div>
+
+              {/* Responsive Quick Profile Actions */}
+              <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-white/5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
+                >
+                  <User className="h-3.5 w-3.5 text-violet-400" />
+                  الملف الشخصي
+                </Link>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    signOut({ redirectUrl: "/" });
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                  تسجيل الخروج
+                </button>
+              </div>
             </div>
             {/* Scrollable nav area */}
             <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
