@@ -1,5 +1,63 @@
 # Saad Studio — Project Context
 
+## Latest task: Audio Workspace Overlay Dropdown and Dark Theme Correction (2026-07-04)
+
+- Status:
+  - Fixed page header overlaying the navigation tools dropdown in `/audio` page. Changed `sticky top-0 z-50` to `relative z-10` so it goes underneath the global header dropdown menu.
+  - Deleted the redundant bottom bar (footer) completely as requested by the user.
+  - Replaced all generic Tailwind theme variables in `/audio` with explicit, high-fidelity dark colors matching Saad Studio's theme (e.g., `bg-[#0a0a0c]` background, `bg-[#111115]` card components, `border-zinc-800/80` borders, `text-zinc-100` foreground).
+- Affected files:
+  - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
+- Verification:
+  - `npm run build` completed successfully.
+- Decisions:
+  - Lower the header z-index to `z-10` and make it non-sticky to guarantee global dropdown visibility.
+  - Use explicit dark hexes and zinc values instead of theme variables to keep the page dark regardless of global dashboard theme toggles.
+
+## Latest task: Saad Agent Local Trusted Workspace File Search Routing (2026-07-04)
+
+- Status:
+  - Fixed Arabic/Iraqi local file search requests such as "search the computer for a Word/file titled ..." being misclassified as normal conversation or direct-answer prompts.
+  - Added a dedicated `local_filesystem_search` workflow in `ExecutionPolicyService` for local filesystem/search wording that contains local scope signals such as computer, folder, file, Word, PDF, desktop, documents, downloads, or explicit paths.
+  - Added `LocalFileSearchExecutor`, which searches only configured Trusted Workspaces through `TrustedWorkspaceRuntime.search(...)` and returns real file paths and content matches without invoking Qwen/LM Studio.
+  - Preserved external research routing: product/web searches such as `Seedance 2.0 Mini` still classify as `external_research`.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar` with the updated backend service files.
+- Affected files:
+  - `saad-agent/src/platform/services/execution-policy.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/local-file-search-executor.ts` [NEW]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Smoke test: `ابحث في الكمبيوتر عن اي ملف او ورد بعنوان وصف الفيديو` classified as `SEARCH` / `local_filesystem_search` with no model call.
+  - Smoke test: `ابحثلي Seedance 2.0 Mini` still classified as `SEARCH` / `external_research`.
+  - Smoke test: local search found a real `وصف الفيديو.docx` file inside a temporary Trusted Workspace.
+  - Packaged `app.asar` contains `dist/platform/services/local-file-search-executor.js`, updated `execution-policy.js`, and updated `chat-orchestrator.js`.
+- Decisions:
+  - Do not scan the whole computer by default. Local search is limited to Trusted Workspaces to avoid secrets and private files.
+  - If the requested file is outside trusted roots, the correct product behavior is to ask the user to add that folder as a Trusted Workspace instead of pretending global filesystem access.
+- Known warning:
+  - The package staging folder still contains older duplicate `dist/dist` entries from previous package passes, but the active `dist/platform/services/**` files are now present and verified inside `app.asar`.
+
+## Latest task: Saad Agent Quiet Conversation Knowledge Review (2026-07-04)
+
+- Status:
+  - Fixed normal conversational/direct-answer prompts creating a full Execution Trace card and displaying `knowledge skipped` / `memory skipped` stages.
+  - Added a quiet answer path before task-state initialization for simple general questions and low-risk answer/explain prompts.
+  - Quiet answers now run `PreAnswerReviewService.review(...)` without trace context, so memory, training knowledge, project rules, and skills are reviewed before calling the active model.
+  - The model prompt now explicitly includes the pre-answer context and must not claim trained knowledge was used if no matching training files were found.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar` with the updated orchestrator.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Packaged staging `dist/platform/services/chat-orchestrator.js` contains `answerQuietlyWithTrainingKnowledge`, `shouldAnswerQuietly`, and the no-fake-knowledge instruction.
+- Decisions:
+  - Casual acknowledgements and identity responses remain deterministic and do not call the model.
+  - Normal direct-answer prompts should not show the engineering Execution Trace UI.
+  - Training and memory must be reviewed quietly before model answers unless the prompt is a pure deterministic greeting/acknowledgement or a tool/execution workflow.
+
 ## Latest task: Cinema Flow Multi-Image Reference and Alignment (2026-07-04)
 
 - Status:

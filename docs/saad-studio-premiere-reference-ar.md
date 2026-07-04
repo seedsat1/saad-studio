@@ -1,5 +1,18 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## إصلاح تداخل واجهة الصوت والألوان الداكنة (2026-07-04)
+- تم حل مشكلة تداخل رأس صفحة الصوت `/audio` مع قائمة الأدوات المنسدلة (Dropdown) في الهيدر الرئيسي للموقع من خلال تغيير الموضع من `sticky top-0 z-50` إلى `relative z-10` لكي تذهب تحت القائمة المنسدلة ولا تغطيها.
+- تم حذف الشريط السفلي (Footer) بالكامل بناءً على طلب المستخدم.
+- تم استبدال جميع متغيرات ثيم Tailwind الكلاسيكية بألوان داكنة صريحة وعالية الدقة مطابقة تماماً لموقع سعد ستوديو (`bg-[#0a0a0c]` للخلفية، و`bg-[#111115]` للبطاقات، و`border-zinc-800/80` للحدود، و`text-zinc-100` للنصوص) لضمان بقاء الصفحة داكنة وثابتة بغض النظر عن حالة ثيم لوحة التحكم.
+
+## Saad Agent Local Trusted Workspace File Search Routing (2026-07-04)
+- Local file search prompts such as `ابحث في الكمبيوتر عن اي ملف او ورد بعنوان وصف الفيديو` are read-only workspace search tasks, not casual conversation and not direct LLM answers.
+- `ExecutionPolicyService` classifies these requests as `SEARCH` with workflow `local_filesystem_search`.
+- `ChatOrchestratorService` routes the workflow to `LocalFileSearchExecutor`, which searches configured Trusted Workspaces through `TrustedWorkspaceRuntime.search(...)`.
+- The agent must return real matched file paths/content hits or an honest not-found message.
+- The agent must not scan the whole computer by default. Folders outside Trusted Workspaces must be added/trusted before search.
+- External web research remains separate: product/model/news requests such as `Seedance 2.0 Mini` must still route to `external_research`.
+
 ## Saad Agent Local Image Folder Classification Routing (2026-07-03)
 - Local folder image classification requests must not be routed through the generic direct-answer model path.
 - Requests such as `انظر داخل C:\Users\PC\Pictures\Screenshots وصنف الصور` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
@@ -764,6 +777,15 @@
 - These requests must return a concise deterministic chat response before `TaskStateStore.initializeTask`.
 - The public `Execution Trace` card remains reserved for real engineering, approval, workspace, policy, tool, verification, and learning tasks.
 - Agent identity questions such as `منو انت`, `من انت`, and `شنو انت` must return a deterministic `Saad Studio Agent` identity response before model invocation. The runtime must not identify itself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
+
+## Saad Agent Quiet Conversation Knowledge Review (2026-07-04)
+
+- Normal low-risk answer/explain conversation prompts must not render a full engineering `Execution Trace` card.
+- Before invoking the active model for these prompts, the orchestrator must run a quiet `PreAnswerReviewService.review(...)` pass without trace UI.
+- The quiet review must load available memory, training knowledge, project rules, and matched skills context.
+- If no trained knowledge matches the prompt, the model prompt must explicitly include `No matching trained knowledge found. Answering from model knowledge only.`
+- The agent must not claim trained knowledge was used unless matched knowledge was actually found.
+- Tool, approval, search, workspace, file, and project modification workflows still use the visible execution trace.
 
 ## Saad Agent Natural Iraqi Arabic Voice behavior (2026-07-02)
 
