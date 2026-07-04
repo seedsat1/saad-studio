@@ -1538,7 +1538,7 @@ export default function ExplorePage() {
       {/* ════════════════════════════════════════════════
           HERO BANNER
       ════════════════════════════════════════════════ */}
-      <section className="relative w-full h-[520px] pt-16 flex flex-col items-center justify-center overflow-hidden border-b border-white/5">
+      <section className="relative w-full min-h-[520px] lg:h-[560px] py-16 flex flex-col items-center justify-center border-b border-white/5">
         
         {/* Background Image with Cinematic Overlay */}
         <div className="absolute inset-0 z-0">
@@ -1630,19 +1630,21 @@ export default function ExplorePage() {
               </div>
             )}
             {/* Input Row */}
-            <div className="flex items-center gap-3">
-              <Search className="w-5 h-5 text-zinc-500 shrink-0" />
-              <input
-                type="text"
-                placeholder="Type a prompt..."
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
-                className="flex-1 bg-transparent border-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-0 text-sm md:text-base py-1"
-              />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <Search className="w-5 h-5 text-zinc-500 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Type a prompt..."
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
+                  className="flex-1 bg-transparent border-none text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-0 text-sm md:text-base py-1 min-w-0 w-full"
+                />
+              </div>
               
               {/* Media Switcher Pill */}
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 shrink-0">
+              <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 shrink-0 self-end sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setActiveMedia("image")}
