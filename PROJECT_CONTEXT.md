@@ -10,9 +10,14 @@
   - Implemented automated file size verification (max 20MB) and video duration inspection (max 10 seconds using HTML5 video metadata reader) on file select/drop inside the frontend to alert user about excessive media sizes across both Cinema Flow and Video Edit workspaces.
   - Localized all UI text labels, headings, select inputs, placeholders, and error/status strings on the Video Edit page (`/video-edit`) to English.
   - Redesigned `/video-edit` to always render the starting video player when `videoPreview` is present (either uploaded locally or loaded from a previous stateful task ID), fetching the task's output video on page mount when `previousTaskId` is supplied in the URL search params.
+  - Created a backend proxy endpoint `/api/download` (`app/api/download/route.ts`) that downloads files server-to-server and streams them back to the client with `Content-Disposition: attachment` headers, bypassing all client-side CORS blocking.
+  - Updated `downloadLatest` in `public/stude/sound.html` and `stude/sound.html` to route downloads through `/api/download` to prevent CORS fetch blocks and Content Security Policy frame framing violations.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
+  - `app/api/download/route.ts` [NEW]
+  - `public/stude/sound.html` [MODIFY]
+  - `stude/sound.html` [MODIFY]
   - `app/api/cinema-flow/chat/route.ts` [MODIFY]
 - Verification:
   - `npm run build` compiled successfully.
