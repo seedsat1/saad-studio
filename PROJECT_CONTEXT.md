@@ -14,6 +14,7 @@
   - Updated `downloadLatest` in `public/stude/sound.html` and `stude/sound.html` to route downloads through `/api/download` to prevent CORS fetch blocks and Content Security Policy frame framing violations.
   - Added a backward-scanning history lookup in Cinema Flow `sendChatMessage` to retrieve and carry-over user file attachments from previous chat turns when executing generation commands (like "نفذ" or "generate") where the active selection state was already cleared, preventing lost reference inputs.
   - Modified `checkStoryboardReferenceImageSafety` in `lib/storyboard-reference-safety.ts` to wrap both OpenAI moderation and vision safety requests in try-catch blocks. This allows image generation to proceed if the checks fail due to network/fetch issues (such as OpenAI being unable to resolve custom/local development image URLs), while still enforcing safety blocks if the API successfully returns an explicit flag.
+  - Implemented auto-closing behavior for both the filter popover and model settings drawer in Cinema Flow (`/cinema-flow`) whenever a parameter select option or sorting preference changes. Added a document click listener to dismiss these drawers automatically when clicking outside their bounding rects.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
