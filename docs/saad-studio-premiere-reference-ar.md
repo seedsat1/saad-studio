@@ -1,13 +1,22 @@
-# مرجع Saad Studio لتكامل Premiere وReap
+﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
 
-## إصلاح تداخل واجهة الصوت والألوان الداكنة (2026-07-04)
-- تم حل مشكلة تداخل رأس صفحة الصوت `/audio` مع قائمة الأدوات المنسدلة (Dropdown) في الهيدر الرئيسي للموقع من خلال تغيير الموضع من `sticky top-0 z-50` إلى `relative z-10` لكي تذهب تحت القائمة المنسدلة ولا تغطيها.
-- تم حذف الشريط السفلي (Footer) بالكامل بناءً على طلب المستخدم.
-- تم استبدال جميع متغيرات ثيم Tailwind الكلاسيكية بألوان داكنة صريحة وعالية الدقة مطابقة تماماً لموقع سعد ستوديو (`bg-[#0a0a0c]` للخلفية، و`bg-[#111115]` للبطاقات، و`border-zinc-800/80` للحدود، و`text-zinc-100` للنصوص) لضمان بقاء الصفحة داكنة وثابتة بغض النظر عن حالة ثيم لوحة التحكم.
-- تم حل مشكلة حظر سياسة حماية المحتوى (CSP) عند قراءة ملفات الصور المرفوعة، حيث أصبح الكود يقرأ ملفات الصور المحلية مباشرة باستخدام كائن `img.file` عبر `FileReader` بالكامل أوفلاين، بدلاً من عمل `fetch` لروابط الـ `blob:` التي كانت تُحظر من قبل المتصفح بموجب توجيه `connect-src`.
+## Saad Agent Image Page Creation vs Local Image Classification Routing (2026-07-04)
+- Requests that create or design a page about images, gallery, or photos are engineering page-creation tasks.
+- Example: `انشئ صفحة كلري خاصة بالصور وضع الصفحة في هذا الفولدر C:\Users\PC\Desktop\New folder (3)` must route to `engineering_workflow`, not `local_image_classification`.
+- Only requests that inspect, classify, sort, or move existing image files inside a local folder should route to `local_image_classification`.
+- Local read-only search workflows must obey task lifecycle ordering and cannot jump directly from `VALIDATING` to `VERIFYING`.
+- This correction prevents fake missing-image-classifier failures for normal page creation requests.
+
+
+## Ø¥ØµÙ„Ø§Ø­ ØªØ¯Ø§Ø®Ù„ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„ØµÙˆØª ÙˆØ§Ù„Ø£Ù„ÙˆØ§Ù† Ø§Ù„Ø¯Ø§ÙƒÙ†Ø© (2026-07-04)
+- ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© ØªØ¯Ø§Ø®Ù„ Ø±Ø£Ø³ ØµÙØ­Ø© Ø§Ù„ØµÙˆØª `/audio` Ù…Ø¹ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© (Dropdown) ÙÙŠ Ø§Ù„Ù‡ÙŠØ¯Ø± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ù„Ù„Ù…ÙˆÙ‚Ø¹ Ù…Ù† Ø®Ù„Ø§Ù„ ØªØºÙŠÙŠØ± Ø§Ù„Ù…ÙˆØ¶Ø¹ Ù…Ù† `sticky top-0 z-50` Ø¥Ù„Ù‰ `relative z-10` Ù„ÙƒÙŠ ØªØ°Ù‡Ø¨ ØªØ­Øª Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© ÙˆÙ„Ø§ ØªØºØ·ÙŠÙ‡Ø§.
+- ØªÙ… Ø­Ø°Ù Ø§Ù„Ø´Ø±ÙŠØ· Ø§Ù„Ø³ÙÙ„ÙŠ (Footer) Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø·Ù„Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….
+- ØªÙ… Ø§Ø³ØªØ¨Ø¯Ø§Ù„ Ø¬Ù…ÙŠØ¹ Ù…ØªØºÙŠØ±Ø§Øª Ø«ÙŠÙ… Tailwind Ø§Ù„ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠØ© Ø¨Ø£Ù„ÙˆØ§Ù† Ø¯Ø§ÙƒÙ†Ø© ØµØ±ÙŠØ­Ø© ÙˆØ¹Ø§Ù„ÙŠØ© Ø§Ù„Ø¯Ù‚Ø© Ù…Ø·Ø§Ø¨Ù‚Ø© ØªÙ…Ø§Ù…Ø§Ù‹ Ù„Ù…ÙˆÙ‚Ø¹ Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ (`bg-[#0a0a0c]` Ù„Ù„Ø®Ù„ÙÙŠØ©ØŒ Ùˆ`bg-[#111115]` Ù„Ù„Ø¨Ø·Ø§Ù‚Ø§ØªØŒ Ùˆ`border-zinc-800/80` Ù„Ù„Ø­Ø¯ÙˆØ¯ØŒ Ùˆ`text-zinc-100` Ù„Ù„Ù†ØµÙˆØµ) Ù„Ø¶Ù…Ø§Ù† Ø¨Ù‚Ø§Ø¡ Ø§Ù„ØµÙØ­Ø© Ø¯Ø§ÙƒÙ†Ø© ÙˆØ«Ø§Ø¨ØªØ© Ø¨ØºØ¶ Ø§Ù„Ù†Ø¸Ø± Ø¹Ù† Ø­Ø§Ù„Ø© Ø«ÙŠÙ… Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ….
+- ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© Ø­Ø¸Ø± Ø³ÙŠØ§Ø³Ø© Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ (CSP) Ø¹Ù†Ø¯ Ù‚Ø±Ø§Ø¡Ø© Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø±ÙÙˆØ¹Ø©ØŒ Ø­ÙŠØ« Ø£ØµØ¨Ø­ Ø§Ù„ÙƒÙˆØ¯ ÙŠÙ‚Ø±Ø£ Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø­Ù„ÙŠØ© Ù…Ø¨Ø§Ø´Ø±Ø© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙƒØ§Ø¦Ù† `img.file` Ø¹Ø¨Ø± `FileReader` Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø£ÙˆÙÙ„Ø§ÙŠÙ†ØŒ Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø¹Ù…Ù„ `fetch` Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ù€ `blob:` Ø§Ù„ØªÙŠ ÙƒØ§Ù†Øª ØªÙØ­Ø¸Ø± Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ù…ØªØµÙØ­ Ø¨Ù…ÙˆØ¬Ø¨ ØªÙˆØ¬ÙŠÙ‡ `connect-src`.
+- تم حل مشكلة خطأ HTTP 413 Payload Too Large عند رفع صور مرجعية عالية الدقة في واجهة الصوت، حيث تم دمج خاصية ضغط الصور محلياً في المتصفح تلقائياً لتصغير الصور إلى أقصى حجم (800 بكسل عرض/ارتفاع) وتصديرها كـ JPEG مضغوط (مما يقلل حجم البيانات المرسسة من عدة ميغابايتات إلى أقل من 80 كيلوبايت فقط)، وبما يتوافق مع حدود حجم الطلبات في خوادم Vercel.
 
 ## Saad Agent Local Trusted Workspace File Search Routing (2026-07-04)
-- Local file search prompts such as `ابحث في الكمبيوتر عن اي ملف او ورد بعنوان وصف الفيديو` are read-only workspace search tasks, not casual conversation and not direct LLM answers.
+- Local file search prompts such as `Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ÙƒÙ…Ø¨ÙŠÙˆØªØ± Ø¹Ù† Ø§ÙŠ Ù…Ù„Ù Ø§Ùˆ ÙˆØ±Ø¯ Ø¨Ø¹Ù†ÙˆØ§Ù† ÙˆØµÙ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ` are read-only workspace search tasks, not casual conversation and not direct LLM answers.
 - `ExecutionPolicyService` classifies these requests as `SEARCH` with workflow `local_filesystem_search`.
 - `ChatOrchestratorService` routes the workflow to `LocalFileSearchExecutor`, which searches configured Trusted Workspaces through `TrustedWorkspaceRuntime.search(...)`.
 - The agent must return real matched file paths/content hits or an honest not-found message.
@@ -16,7 +25,7 @@
 
 ## Saad Agent Local Image Folder Classification Routing (2026-07-03)
 - Local folder image classification requests must not be routed through the generic direct-answer model path.
-- Requests such as `انظر داخل C:\Users\PC\Pictures\Screenshots وصنف الصور` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
+- Requests such as `Ø§Ù†Ø¸Ø± Ø¯Ø§Ø®Ù„ C:\Users\PC\Pictures\Screenshots ÙˆØµÙ†Ù Ø§Ù„ØµÙˆØ±` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
 - The Chat Orchestrator intercepts this workflow before project context expansion and before `ReasoningEngine`, so Qwen/LM Studio is not called and context-length failures are avoided.
 - If no local image classification model/runtime is installed, the agent must report the missing local classifier honestly and stop before creating folders or moving images.
 - A future implementation should install/connect a real local image classifier, produce a dry-run classification preview, then move files only when approval/access policy allows.
@@ -31,52 +40,52 @@
 - If `CodexRuntimeBridge` reaches execution but the installed Codex CLI is not spawnable from Node/Electron (`Access is denied` / `spawn EPERM`), Saad Agent may use a deterministic internal fallback only for simple static page creation requests.
 - The fallback is intentionally limited: it writes real `index.html`, `styles.css`, `script.js`, and `README.md` files inside the resolved trusted workspace and reports the exact files written.
 - This fallback must not be described as full Codex replacement. Complex codebase edits, refactors, tests, and broad project execution still require a spawnable Codex CLI/SDK runtime or another real execution backend.
-- Requests such as `اريد تنشئلي صفحة خاصة... داخل C:\Users\PC\Desktop\test` should create files when the path is trusted/resolved and approval policy allows safe edits.
+- Requests such as `Ø§Ø±ÙŠØ¯ ØªÙ†Ø´Ø¦Ù„ÙŠ ØµÙØ­Ø© Ø®Ø§ØµØ©... Ø¯Ø§Ø®Ù„ C:\Users\PC\Desktop\test` should create files when the path is trusted/resolved and approval policy allows safe edits.
 
 ## Saad Agent Local Path Engineering Request Routing (2026-07-03)
 - Direct chat requests that include an explicit local path and an execution verb are engineering tasks, not casual conversation.
-- Example: `وسوي سعد اشتغل فيريم داخل هذا الفولد C:\Users\PC\Desktop\test` must classify as `PLAN` / `engineering_workflow`, not `ANSWER` / `conversation`.
+- Example: `ÙˆØ³ÙˆÙŠ Ø³Ø¹Ø¯ Ø§Ø´ØªØºÙ„ ÙÙŠØ±ÙŠÙ… Ø¯Ø§Ø®Ù„ Ù‡Ø°Ø§ Ø§Ù„ÙÙˆÙ„Ø¯ C:\Users\PC\Desktop\test` must classify as `PLAN` / `engineering_workflow`, not `ANSWER` / `conversation`.
 - When the mentioned local path exists, `ChatOrchestratorService` uses it as the active workspace for the request. If it does not exist, the runtime falls back to the current workspace and should report the real path/workspace issue instead of giving generic manual instructions.
-- External research routing remains separate; requests like `ابحثلي Seedance 2.0 Mini` must continue to classify as `SEARCH` / `external_research`.
+- External research routing remains separate; requests like `Ø§Ø¨Ø­Ø«Ù„ÙŠ Seedance 2.0 Mini` must continue to classify as `SEARCH` / `external_research`.
 
-## إصلاح تسلسل المحادثة وفهم السياق في Saad Agent (2026-07-03)
-- تم إدماج ذاكرة تاريخ المحادثة في طبقة التنسيق المباشر (Direct Chat).
-- يقوم النظام الآن بحفظ آخر 10 رسائل (5 أدوار حوارية) في الذاكرة المؤقتة للـ Session.
-- عندما يكون تصنيف النية (Intent) هو `conversation` أو ترحيباً عاماً:
-  1. يتجاوز النظام بالكامل جلب قواعد ملفات المشروع وسياقات الـ workspace والـ ADRs والمعرفة التدريبية الطويلة لتفادي إغراق الـ prompt بالتفاصيل البرمجية التي تشتت النموذج.
-  2. يقوم التنسيق بحقن تاريخ المحادثة في الـ prompt المرسل إلى النموذج مما يتيح له فهم سياق المتابعات التفاعلية مثل كلمة "مادي" رداً على الترحيب.
+## Ø¥ØµÙ„Ø§Ø­ ØªØ³Ù„Ø³Ù„ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© ÙˆÙÙ‡Ù… Ø§Ù„Ø³ÙŠØ§Ù‚ ÙÙŠ Saad Agent (2026-07-03)
+- ØªÙ… Ø¥Ø¯Ù…Ø§Ø¬ Ø°Ø§ÙƒØ±Ø© ØªØ§Ø±ÙŠØ® Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© ÙÙŠ Ø·Ø¨Ù‚Ø© Ø§Ù„ØªÙ†Ø³ÙŠÙ‚ Ø§Ù„Ù…Ø¨Ø§Ø´Ø± (Direct Chat).
+- ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ø¢Ù† Ø¨Ø­ÙØ¸ Ø¢Ø®Ø± 10 Ø±Ø³Ø§Ø¦Ù„ (5 Ø£Ø¯ÙˆØ§Ø± Ø­ÙˆØ§Ø±ÙŠØ©) ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø¤Ù‚ØªØ© Ù„Ù„Ù€ Session.
+- Ø¹Ù†Ø¯Ù…Ø§ ÙŠÙƒÙˆÙ† ØªØµÙ†ÙŠÙ Ø§Ù„Ù†ÙŠØ© (Intent) Ù‡Ùˆ `conversation` Ø£Ùˆ ØªØ±Ø­ÙŠØ¨Ø§Ù‹ Ø¹Ø§Ù…Ø§Ù‹:
+  1. ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ù†Ø¸Ø§Ù… Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¬Ù„Ø¨ Ù‚ÙˆØ§Ø¹Ø¯ Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ ÙˆØ³ÙŠØ§Ù‚Ø§Øª Ø§Ù„Ù€ workspace ÙˆØ§Ù„Ù€ ADRs ÙˆØ§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„ØªØ¯Ø±ÙŠØ¨ÙŠØ© Ø§Ù„Ø·ÙˆÙŠÙ„Ø© Ù„ØªÙØ§Ø¯ÙŠ Ø¥ØºØ±Ø§Ù‚ Ø§Ù„Ù€ prompt Ø¨Ø§Ù„ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ© Ø§Ù„ØªÙŠ ØªØ´ØªØª Ø§Ù„Ù†Ù…ÙˆØ°Ø¬.
+  2. ÙŠÙ‚ÙˆÙ… Ø§Ù„ØªÙ†Ø³ÙŠÙ‚ Ø¨Ø­Ù‚Ù† ØªØ§Ø±ÙŠØ® Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© ÙÙŠ Ø§Ù„Ù€ prompt Ø§Ù„Ù…Ø±Ø³Ù„ Ø¥Ù„Ù‰ Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ Ù…Ù…Ø§ ÙŠØªÙŠØ­ Ù„Ù‡ ÙÙ‡Ù… Ø³ÙŠØ§Ù‚ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø§Øª Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© Ù…Ø«Ù„ ÙƒÙ„Ù…Ø© "Ù…Ø§Ø¯ÙŠ" Ø±Ø¯Ø§Ù‹ Ø¹Ù„Ù‰ Ø§Ù„ØªØ±Ø­ÙŠØ¨.
 
-## إصلاح تجميد الأسئلة العامة في Saad Agent (2026-07-03)
-- تم تصحيح مسار الأسئلة العامة القصيرة مثل `عندي سؤال منو هو النبي محمد` حتى لا تدخل خط فحص المشروع والمعرفة والمهارات.
-- السبب كان أن بيانات الكومبوزر مثل `Provider` و`Model` و`Workspace` وصلت إلى التصنيف والبحث، فتم اختيار workflow غير صحيح مثل `provider-integration`.
-- يعتمد Direct Chat الآن على نص `User request:` الحقيقي في التصنيف والبحث وبناء prompt، وليس على metadata الداخلية.
-- تمت إضافة مسار خفيف للأسئلة العامة قبل إنشاء Execution Trace، مع timeout قصير وبدون retries حتى لا يظهر Electron كأنه متوقف.
-- يجب بقاء طلبات الهندسة والتعديل خارج هذا المسار، وتظل تمر عبر Execution Policy والموافقة.
+## Ø¥ØµÙ„Ø§Ø­ ØªØ¬Ù…ÙŠØ¯ Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø¹Ø§Ù…Ø© ÙÙŠ Saad Agent (2026-07-03)
+- ØªÙ… ØªØµØ­ÙŠØ­ Ù…Ø³Ø§Ø± Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ø§Ù„Ù‚ØµÙŠØ±Ø© Ù…Ø«Ù„ `Ø¹Ù†Ø¯ÙŠ Ø³Ø¤Ø§Ù„ Ù…Ù†Ùˆ Ù‡Ùˆ Ø§Ù„Ù†Ø¨ÙŠ Ù…Ø­Ù…Ø¯` Ø­ØªÙ‰ Ù„Ø§ ØªØ¯Ø®Ù„ Ø®Ø· ÙØ­Øµ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ ÙˆØ§Ù„Ù…Ø¹Ø±ÙØ© ÙˆØ§Ù„Ù…Ù‡Ø§Ø±Ø§Øª.
+- Ø§Ù„Ø³Ø¨Ø¨ ÙƒØ§Ù† Ø£Ù† Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ÙƒÙˆÙ…Ø¨ÙˆØ²Ø± Ù…Ø«Ù„ `Provider` Ùˆ`Model` Ùˆ`Workspace` ÙˆØµÙ„Øª Ø¥Ù„Ù‰ Ø§Ù„ØªØµÙ†ÙŠÙ ÙˆØ§Ù„Ø¨Ø­Ø«ØŒ ÙØªÙ… Ø§Ø®ØªÙŠØ§Ø± workflow ØºÙŠØ± ØµØ­ÙŠØ­ Ù…Ø«Ù„ `provider-integration`.
+- ÙŠØ¹ØªÙ…Ø¯ Direct Chat Ø§Ù„Ø¢Ù† Ø¹Ù„Ù‰ Ù†Øµ `User request:` Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ ÙÙŠ Ø§Ù„ØªØµÙ†ÙŠÙ ÙˆØ§Ù„Ø¨Ø­Ø« ÙˆØ¨Ù†Ø§Ø¡ promptØŒ ÙˆÙ„ÙŠØ³ Ø¹Ù„Ù‰ metadata Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ©.
+- ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ù…Ø³Ø§Ø± Ø®ÙÙŠÙ Ù„Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ù‚Ø¨Ù„ Ø¥Ù†Ø´Ø§Ø¡ Execution TraceØŒ Ù…Ø¹ timeout Ù‚ØµÙŠØ± ÙˆØ¨Ø¯ÙˆÙ† retries Ø­ØªÙ‰ Ù„Ø§ ÙŠØ¸Ù‡Ø± Electron ÙƒØ£Ù†Ù‡ Ù…ØªÙˆÙ‚Ù.
+- ÙŠØ¬Ø¨ Ø¨Ù‚Ø§Ø¡ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù‡Ù†Ø¯Ø³Ø© ÙˆØ§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø®Ø§Ø±Ø¬ Ù‡Ø°Ø§ Ø§Ù„Ù…Ø³Ø§Ø±ØŒ ÙˆØªØ¸Ù„ ØªÙ…Ø± Ø¹Ø¨Ø± Execution Policy ÙˆØ§Ù„Ù…ÙˆØ§ÙÙ‚Ø©.
 
-## إضافة موديل Google Gemini Omni Flash للفيديو (2026-07-02)
-- تم دمج الموديل الجديد `Google Gemini Omni Flash` (المطابق لـ `gemini-omni-flash-preview` من قوقل) بصفحة الفيديو وأداة الرسم للـ Draw-to-Video.
-- الموديل يدعم نسب أبعاد متنوعة (16:9، 9:16)، دقة 720p، ويسمح بمدد مرنة تتراوح بين **3 إلى 10 ثوانٍ** مع استهلاك رصيد اقتصادي قدره **2.00 نقطة بالثانية**.
+## Ø¥Ø¶Ø§ÙØ© Ù…ÙˆØ¯ÙŠÙ„ Google Gemini Omni Flash Ù„Ù„ÙÙŠØ¯ÙŠÙˆ (2026-07-02)
+- ØªÙ… Ø¯Ù…Ø¬ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙŠØ¯ `Google Gemini Omni Flash` (Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚ Ù„Ù€ `gemini-omni-flash-preview` Ù…Ù† Ù‚ÙˆÙ‚Ù„) Ø¨ØµÙØ­Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ£Ø¯Ø§Ø© Ø§Ù„Ø±Ø³Ù… Ù„Ù„Ù€ Draw-to-Video.
+- Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ ÙŠØ¯Ø¹Ù… Ù†Ø³Ø¨ Ø£Ø¨Ø¹Ø§Ø¯ Ù…ØªÙ†ÙˆØ¹Ø© (16:9ØŒ 9:16)ØŒ Ø¯Ù‚Ø© 720pØŒ ÙˆÙŠØ³Ù…Ø­ Ø¨Ù…Ø¯Ø¯ Ù…Ø±Ù†Ø© ØªØªØ±Ø§ÙˆØ­ Ø¨ÙŠÙ† **3 Ø¥Ù„Ù‰ 10 Ø«ÙˆØ§Ù†Ù** Ù…Ø¹ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø±ØµÙŠØ¯ Ø§Ù‚ØªØµØ§Ø¯ÙŠ Ù‚Ø¯Ø±Ù‡ **2.00 Ù†Ù‚Ø·Ø© Ø¨Ø§Ù„Ø«Ø§Ù†ÙŠØ©**.
 
-## تثبيت مسار الأسئلة البسيطة في Saad Agent (2026-07-02)
-- تم تصحيح مسار استدعاء LM Studio داخل Saad Agent حتى لا تبقى الأسئلة البسيطة عالقة على `Processing request`.
-- عند استخدام LM Studio، يبدأ runtime الآن بمسار `/api/v1/chat/completions` ثم يستخدم `/api/v1/chat` كمسار بديل، ولا يستخدم `/chat/completions` غير الصحيح لمزود LM Studio.
-- تم ضبط حد زمني لاستدعاءات الموديل التفاعلية، وإذا فشل المزود يرجع الوكيل رسالة خطأ واضحة بدل إبقاء الواجهة بحالة تشغيل.
-- تم إعادة حزم `release-production-v4/win-unpacked/resources/app.asar` بعد نجاح البناء واختبار سؤال بسيط من النسخة الإنتاجية.
+## ØªØ«Ø¨ÙŠØª Ù…Ø³Ø§Ø± Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø¨Ø³ÙŠØ·Ø© ÙÙŠ Saad Agent (2026-07-02)
+- ØªÙ… ØªØµØ­ÙŠØ­ Ù…Ø³Ø§Ø± Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ LM Studio Ø¯Ø§Ø®Ù„ Saad Agent Ø­ØªÙ‰ Ù„Ø§ ØªØ¨Ù‚Ù‰ Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø¨Ø³ÙŠØ·Ø© Ø¹Ø§Ù„Ù‚Ø© Ø¹Ù„Ù‰ `Processing request`.
+- Ø¹Ù†Ø¯ Ø§Ø³ØªØ®Ø¯Ø§Ù… LM StudioØŒ ÙŠØ¨Ø¯Ø£ runtime Ø§Ù„Ø¢Ù† Ø¨Ù…Ø³Ø§Ø± `/api/v1/chat/completions` Ø«Ù… ÙŠØ³ØªØ®Ø¯Ù… `/api/v1/chat` ÙƒÙ…Ø³Ø§Ø± Ø¨Ø¯ÙŠÙ„ØŒ ÙˆÙ„Ø§ ÙŠØ³ØªØ®Ø¯Ù… `/chat/completions` ØºÙŠØ± Ø§Ù„ØµØ­ÙŠØ­ Ù„Ù…Ø²ÙˆØ¯ LM Studio.
+- ØªÙ… Ø¶Ø¨Ø· Ø­Ø¯ Ø²Ù…Ù†ÙŠ Ù„Ø§Ø³ØªØ¯Ø¹Ø§Ø¡Ø§Øª Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ©ØŒ ÙˆØ¥Ø°Ø§ ÙØ´Ù„ Ø§Ù„Ù…Ø²ÙˆØ¯ ÙŠØ±Ø¬Ø¹ Ø§Ù„ÙˆÙƒÙŠÙ„ Ø±Ø³Ø§Ù„Ø© Ø®Ø·Ø£ ÙˆØ§Ø¶Ø­Ø© Ø¨Ø¯Ù„ Ø¥Ø¨Ù‚Ø§Ø¡ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ø¨Ø­Ø§Ù„Ø© ØªØ´ØºÙŠÙ„.
+- ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø­Ø²Ù… `release-production-v4/win-unpacked/resources/app.asar` Ø¨Ø¹Ø¯ Ù†Ø¬Ø§Ø­ Ø§Ù„Ø¨Ù†Ø§Ø¡ ÙˆØ§Ø®ØªØ¨Ø§Ø± Ø³Ø¤Ø§Ù„ Ø¨Ø³ÙŠØ· Ù…Ù† Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠØ©.
 
-## إضافة موديل Google Nano Banana 2 Lite للصور (2026-07-02)
-- تم دمج الموديل الجديد `Google Nano Banana 2 Lite` (المطابق لـ `gemini-3.1-flash-lite-image-preview` من قوقل) بصفحة الصور والأدوات وعملاء الـ CEP.
-- الموديل يدعم نسب أبعاد متنوعة، وبحد أقصى 14 صورة مرجعية للـ Image-to-Image وبأقل تكلفة استهلاك رصيد (0.40 نقطة).
+## Ø¥Ø¶Ø§ÙØ© Ù…ÙˆØ¯ÙŠÙ„ Google Nano Banana 2 Lite Ù„Ù„ØµÙˆØ± (2026-07-02)
+- ØªÙ… Ø¯Ù…Ø¬ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙŠØ¯ `Google Nano Banana 2 Lite` (Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚ Ù„Ù€ `gemini-3.1-flash-lite-image-preview` Ù…Ù† Ù‚ÙˆÙ‚Ù„) Ø¨ØµÙØ­Ø© Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„Ø£Ø¯ÙˆØ§Øª ÙˆØ¹Ù…Ù„Ø§Ø¡ Ø§Ù„Ù€ CEP.
+- Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ ÙŠØ¯Ø¹Ù… Ù†Ø³Ø¨ Ø£Ø¨Ø¹Ø§Ø¯ Ù…ØªÙ†ÙˆØ¹Ø©ØŒ ÙˆØ¨Ø­Ø¯ Ø£Ù‚ØµÙ‰ 14 ØµÙˆØ±Ø© Ù…Ø±Ø¬Ø¹ÙŠØ© Ù„Ù„Ù€ Image-to-Image ÙˆØ¨Ø£Ù‚Ù„ ØªÙƒÙ„ÙØ© Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø±ØµÙŠØ¯ (0.40 Ù†Ù‚Ø·Ø©).
 
 ## Saad Agent deterministic routing correction (2026-07-02)
 
-- طلبات مخطط الصفحة مثل `اعطيني مخطط الصفحة` لا يجوز أن تنتج صفحات أو ملفات أو APIs وهمية. إذا لم يذكر المستخدم اسم الصفحة أو وظيفتها، يجب طلب التوضيح فقط. إذا ذُكر الموضوع، يعرض الوكيل مخططاً عاماً مضبوطاً ولا ينفذ أي تعديل بدون موافقة.
-- طلبات البحث الخارجي مثل `ابحث بالانترنت ...` يجب أن تمر عبر موافقة الإنترنت في وضع `Ask for approval`، ثم تستخدم مسار بحث حقيقي. ممنوع توليد روابط أو نتائج حديثة من معرفة النموذج فقط.
-- الردود القصيرة مثل `نعم` بعد سؤال توضيحي يجب أن تبقى ضمن نفس السياق. إذا كان التوضيح ناقصاً، يطلب الوكيل التفصيل المطلوب بدل الانتقال لموضوع جديد أو استدعاء الموديل.
+- Ø·Ù„Ø¨Ø§Øª Ù…Ø®Ø·Ø· Ø§Ù„ØµÙØ­Ø© Ù…Ø«Ù„ `Ø§Ø¹Ø·ÙŠÙ†ÙŠ Ù…Ø®Ø·Ø· Ø§Ù„ØµÙØ­Ø©` Ù„Ø§ ÙŠØ¬ÙˆØ² Ø£Ù† ØªÙ†ØªØ¬ ØµÙØ­Ø§Øª Ø£Ùˆ Ù…Ù„ÙØ§Øª Ø£Ùˆ APIs ÙˆÙ‡Ù…ÙŠØ©. Ø¥Ø°Ø§ Ù„Ù… ÙŠØ°ÙƒØ± Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ø³Ù… Ø§Ù„ØµÙØ­Ø© Ø£Ùˆ ÙˆØ¸ÙŠÙØªÙ‡Ø§ØŒ ÙŠØ¬Ø¨ Ø·Ù„Ø¨ Ø§Ù„ØªÙˆØ¶ÙŠØ­ ÙÙ‚Ø·. Ø¥Ø°Ø§ Ø°ÙÙƒØ± Ø§Ù„Ù…ÙˆØ¶ÙˆØ¹ØŒ ÙŠØ¹Ø±Ø¶ Ø§Ù„ÙˆÙƒÙŠÙ„ Ù…Ø®Ø·Ø·Ø§Ù‹ Ø¹Ø§Ù…Ø§Ù‹ Ù…Ø¶Ø¨ÙˆØ·Ø§Ù‹ ÙˆÙ„Ø§ ÙŠÙ†ÙØ° Ø£ÙŠ ØªØ¹Ø¯ÙŠÙ„ Ø¨Ø¯ÙˆÙ† Ù…ÙˆØ§ÙÙ‚Ø©.
+- Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¨Ø­Ø« Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠ Ù…Ø«Ù„ `Ø§Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ù†ØªØ±Ù†Øª ...` ÙŠØ¬Ø¨ Ø£Ù† ØªÙ…Ø± Ø¹Ø¨Ø± Ù…ÙˆØ§ÙÙ‚Ø© Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª ÙÙŠ ÙˆØ¶Ø¹ `Ask for approval`ØŒ Ø«Ù… ØªØ³ØªØ®Ø¯Ù… Ù…Ø³Ø§Ø± Ø¨Ø­Ø« Ø­Ù‚ÙŠÙ‚ÙŠ. Ù…Ù…Ù†ÙˆØ¹ ØªÙˆÙ„ÙŠØ¯ Ø±ÙˆØ§Ø¨Ø· Ø£Ùˆ Ù†ØªØ§Ø¦Ø¬ Ø­Ø¯ÙŠØ«Ø© Ù…Ù† Ù…Ø¹Ø±ÙØ© Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ ÙÙ‚Ø·.
+- Ø§Ù„Ø±Ø¯ÙˆØ¯ Ø§Ù„Ù‚ØµÙŠØ±Ø© Ù…Ø«Ù„ `Ù†Ø¹Ù…` Ø¨Ø¹Ø¯ Ø³Ø¤Ø§Ù„ ØªÙˆØ¶ÙŠØ­ÙŠ ÙŠØ¬Ø¨ Ø£Ù† ØªØ¨Ù‚Ù‰ Ø¶Ù…Ù† Ù†ÙØ³ Ø§Ù„Ø³ÙŠØ§Ù‚. Ø¥Ø°Ø§ ÙƒØ§Ù† Ø§Ù„ØªÙˆØ¶ÙŠØ­ Ù†Ø§Ù‚ØµØ§Ù‹ØŒ ÙŠØ·Ù„Ø¨ Ø§Ù„ÙˆÙƒÙŠÙ„ Ø§Ù„ØªÙØµÙŠÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ø¨Ø¯Ù„ Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ù„Ù…ÙˆØ¶ÙˆØ¹ Ø¬Ø¯ÙŠØ¯ Ø£Ùˆ Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„.
 
-## تحديث سياسة السلفة (Credit Advance Policy Update) — (2026-07-01)
-- **منع طلب السلفة في آخر شهرين**: تم تعديل آلية طلب السلفة (`creditAdvance`) للمشتركين السنويين بحيث تُعطل تلقائياً وتظهر غير متاحة (`available: false`) خلال آخر شهرين (60 يوماً) من فترة الاشتراك الفعلي المتبقية (`stripeCurrentPeriodEnd`). يمنع النظام الخلفي طلبها في هذه الفترة ويعيد رسالة خطأ واضحة باللغة العربية والإنجليزية.
+## ØªØ­Ø¯ÙŠØ« Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø³Ù„ÙØ© (Credit Advance Policy Update) â€” (2026-07-01)
+- **Ù…Ù†Ø¹ Ø·Ù„Ø¨ Ø§Ù„Ø³Ù„ÙØ© ÙÙŠ Ø¢Ø®Ø± Ø´Ù‡Ø±ÙŠÙ†**: ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø¢Ù„ÙŠØ© Ø·Ù„Ø¨ Ø§Ù„Ø³Ù„ÙØ© (`creditAdvance`) Ù„Ù„Ù…Ø´ØªØ±ÙƒÙŠÙ† Ø§Ù„Ø³Ù†ÙˆÙŠÙŠÙ† Ø¨Ø­ÙŠØ« ØªÙØ¹Ø·Ù„ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ ÙˆØªØ¸Ù‡Ø± ØºÙŠØ± Ù…ØªØ§Ø­Ø© (`available: false`) Ø®Ù„Ø§Ù„ Ø¢Ø®Ø± Ø´Ù‡Ø±ÙŠÙ† (60 ÙŠÙˆÙ…Ø§Ù‹) Ù…Ù† ÙØªØ±Ø© Ø§Ù„Ø§Ø´ØªØ±Ø§Ùƒ Ø§Ù„ÙØ¹Ù„ÙŠ Ø§Ù„Ù…ØªØ¨Ù‚ÙŠØ© (`stripeCurrentPeriodEnd`). ÙŠÙ…Ù†Ø¹ Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ø®Ù„ÙÙŠ Ø·Ù„Ø¨Ù‡Ø§ ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„ÙØªØ±Ø© ÙˆÙŠØ¹ÙŠØ¯ Ø±Ø³Ø§Ù„Ø© Ø®Ø·Ø£ ÙˆØ§Ø¶Ø­Ø© Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© ÙˆØ§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©.
 
-## Saad Agent Engineering Knowledge Manager & Permanent Learning Library — Phase 2 & Action Updates (2026-06-30)
+## Saad Agent Engineering Knowledge Manager & Permanent Learning Library â€” Phase 2 & Action Updates (2026-06-30)
 
 - **Knowledge Pack Card Validation**: Normalizes missing metadata attributes (pages, chunks, dictionaryTerms, storageSize = 0, relations = "Not available", lastUpdated = null) to prevent NaN and Invalid Date in the interface.
 - **Knowledge Pack Reindexing**: Implemented a complete Reindex action that re-loads documents, re-calculates chunk sizes and dictionary terms, updates the database/indexes, and updates UI feedback immediately.
@@ -85,7 +94,7 @@
 - **Strict Data Summary**: topicsLearned only shows real headings/tags/terms; apiReferences only counts actual HTTP verb patterns; relationsBuilt is set to "Not available" since a backend graph database is not implemented yet.
 
 
-## RAG Vault Path Alignment & Crawler Stability — Action Updates (2026-07-01)
+## RAG Vault Path Alignment & Crawler Stability â€” Action Updates (2026-07-01)
 
 - **Path Redirection to Vault**: Aligned all RAG queries (`list`, `get-document`, `get-dictionaries`, `get-term`) and chat orchestrator lookups to resolve dynamically using `KnowledgeManagerService.getDirs().registry` and `.dictionaries` rather than hardcoding local project-level paths under `.saad-agent/knowledge/`.
 - **Compartmentalized Vault Registry**: Added a dedicated `registry` folder (`Registry/`) configuration property inside `DIRS` of `KnowledgeManagerService` to manage the RAG registry file dynamically under `E:\SaadAgentData\Registry\registry.json` with fallback migration capability.
@@ -180,343 +189,343 @@
 - `buildSynchronizationPlan()` must report media-resolution diagnostics before blocking: total video/audio clips, clips with media paths, direct/linked counts, and first unresolved clips with track/index/name/reason.
 - Waveform analysis must not start unless at least one real audio media path exists. Nested/generated clips are not directly analyzable unless a real underlying linked media path is resolved.
 
-آخر مراجعة: 2026-06-22
+Ø¢Ø®Ø± Ù…Ø±Ø§Ø¬Ø¹Ø©: 2026-06-22
 
-هذا الملف هو المرجع التشغيلي المختصر للمحادثات اللاحقة. عند التعارض، تكون الأولوية للوثائق الرسمية، ثم لاختبارات Runtime المثبتة داخل Premiere، ثم للمرجع المعماري v3.1.
+Ù‡Ø°Ø§ Ø§Ù„Ù…Ù„Ù Ù‡Ùˆ Ø§Ù„Ù…Ø±Ø¬Ø¹ Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ Ø§Ù„Ù…Ø®ØªØµØ± Ù„Ù„Ù…Ø­Ø§Ø¯Ø«Ø§Øª Ø§Ù„Ù„Ø§Ø­Ù‚Ø©. Ø¹Ù†Ø¯ Ø§Ù„ØªØ¹Ø§Ø±Ø¶ØŒ ØªÙƒÙˆÙ† Ø§Ù„Ø£ÙˆÙ„ÙˆÙŠØ© Ù„Ù„ÙˆØ«Ø§Ø¦Ù‚ Ø§Ù„Ø±Ø³Ù…ÙŠØ©ØŒ Ø«Ù… Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Runtime Ø§Ù„Ù…Ø«Ø¨ØªØ© Ø¯Ø§Ø®Ù„ PremiereØŒ Ø«Ù… Ù„Ù„Ù…Ø±Ø¬Ø¹ Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠ v3.1.
 
-المرجع المحلي الكامل v3.1 هو `C:\Users\PC\Downloads\المرجع.md`. هوية النسخة المقروءة كاملة بتاريخ 2026-06-18: `25,858` بايت، `531` سطرًا، آخر تعديل `2026-06-06 01:59:15`، وSHA-256: `9D0F1DE093A0C4D19FB6F0B85F3C038F1AFA7BDF738A8C0D5E6A03789498168D`.
+Ø§Ù„Ù…Ø±Ø¬Ø¹ Ø§Ù„Ù…Ø­Ù„ÙŠ Ø§Ù„ÙƒØ§Ù…Ù„ v3.1 Ù‡Ùˆ `C:\Users\PC\Downloads\Ø§Ù„Ù…Ø±Ø¬Ø¹.md`. Ù‡ÙˆÙŠØ© Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù…Ù‚Ø±ÙˆØ¡Ø© ÙƒØ§Ù…Ù„Ø© Ø¨ØªØ§Ø±ÙŠØ® 2026-06-18: `25,858` Ø¨Ø§ÙŠØªØŒ `531` Ø³Ø·Ø±Ù‹Ø§ØŒ Ø¢Ø®Ø± ØªØ¹Ø¯ÙŠÙ„ `2026-06-06 01:59:15`ØŒ ÙˆSHA-256: `9D0F1DE093A0C4D19FB6F0B85F3C038F1AFA7BDF738A8C0D5E6A03789498168D`.
 
-تنبيه حالة: قسم `PHASE N — NEXT TASK ONLY` داخل v3.1 يوثق مرحلة تاريخية سبقت التنفيذ الحالي. تبقى قواعده المعمارية وقواعد السلامة نافذة، بينما تُقرأ حالة الإنجاز من الكود الحالي و`PROJECT_CONTEXT.md` ونتائج Runtime. تم حذف Silence Removal من المنتج الحالي بتاريخ 2026-06-26 بناءً على طلب المستخدم.
+ØªÙ†Ø¨ÙŠÙ‡ Ø­Ø§Ù„Ø©: Ù‚Ø³Ù… `PHASE N â€” NEXT TASK ONLY` Ø¯Ø§Ø®Ù„ v3.1 ÙŠÙˆØ«Ù‚ Ù…Ø±Ø­Ù„Ø© ØªØ§Ø±ÙŠØ®ÙŠØ© Ø³Ø¨Ù‚Øª Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø­Ø§Ù„ÙŠ. ØªØ¨Ù‚Ù‰ Ù‚ÙˆØ§Ø¹Ø¯Ù‡ Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ© ÙˆÙ‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ø³Ù„Ø§Ù…Ø© Ù†Ø§ÙØ°Ø©ØŒ Ø¨ÙŠÙ†Ù…Ø§ ØªÙÙ‚Ø±Ø£ Ø­Ø§Ù„Ø© Ø§Ù„Ø¥Ù†Ø¬Ø§Ø² Ù…Ù† Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„Ø­Ø§Ù„ÙŠ Ùˆ`PROJECT_CONTEXT.md` ÙˆÙ†ØªØ§Ø¦Ø¬ Runtime. ØªÙ… Ø­Ø°Ù Silence Removal Ù…Ù† Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø­Ø§Ù„ÙŠ Ø¨ØªØ§Ø±ÙŠØ® 2026-06-26 Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ø·Ù„Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….
 
-## بيئة التشغيل والحقائق المعروفة
+## Ø¨ÙŠØ¦Ø© Ø§Ù„ØªØ´ØºÙŠÙ„ ÙˆØ§Ù„Ø­Ù‚Ø§Ø¦Ù‚ Ø§Ù„Ù…Ø¹Ø±ÙˆÙØ©
 
-- إصدار المضيف المستهدف: **Premiere Pro 26.2.0**.
-- التكامل الحالي: **CEP Extension** باستخدام ExtendScript، وليس UXP.
-- **FFmpeg مطلوب** للتحليل الصوتي خارج Premiere.
-- اكتشاف نشاط المتحدث في Multi-Cam يعتمد قياسات **RMS**.
-- أداة **Multi-Cam Auto Switch** فعّالة. أداة **Silence Removal** محذوفة من واجهة ومسار تشغيل الإضافة حالياً.
-- **Reap API** مسار منفصل عن تنفيذ المونتاج داخل Premiere.
+- Ø¥ØµØ¯Ø§Ø± Ø§Ù„Ù…Ø¶ÙŠÙ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù: **Premiere Pro 26.2.0**.
+- Ø§Ù„ØªÙƒØ§Ù…Ù„ Ø§Ù„Ø­Ø§Ù„ÙŠ: **CEP Extension** Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… ExtendScriptØŒ ÙˆÙ„ÙŠØ³ UXP.
+- **FFmpeg Ù…Ø·Ù„ÙˆØ¨** Ù„Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„ØµÙˆØªÙŠ Ø®Ø§Ø±Ø¬ Premiere.
+- Ø§ÙƒØªØ´Ø§Ù Ù†Ø´Ø§Ø· Ø§Ù„Ù…ØªØ­Ø¯Ø« ÙÙŠ Multi-Cam ÙŠØ¹ØªÙ…Ø¯ Ù‚ÙŠØ§Ø³Ø§Øª **RMS**.
+- Ø£Ø¯Ø§Ø© **Multi-Cam Auto Switch** ÙØ¹Ù‘Ø§Ù„Ø©. Ø£Ø¯Ø§Ø© **Silence Removal** Ù…Ø­Ø°ÙˆÙØ© Ù…Ù† ÙˆØ§Ø¬Ù‡Ø© ÙˆÙ…Ø³Ø§Ø± ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ø­Ø§Ù„ÙŠØ§Ù‹.
+- **Reap API** Ù…Ø³Ø§Ø± Ù…Ù†ÙØµÙ„ Ø¹Ù† ØªÙ†ÙÙŠØ° Ø§Ù„Ù…ÙˆÙ†ØªØ§Ø¬ Ø¯Ø§Ø®Ù„ Premiere.
 
-## حالة ميزة Auto Zoom الحالية
+## Ø­Ø§Ù„Ø© Ù…ÙŠØ²Ø© Auto Zoom Ø§Ù„Ø­Ø§Ù„ÙŠØ©
 - **Auto Zoom Status**:
-  * Disabled (معطلة بالكامل)
-  * Hidden from UI (مخفية من واجهة المستخدم)
-  * Removed from One Click Pipeline (تمت إزالتها كلياً من خط التحرير الموحد)
-  * Archived for future repair (مؤرشفة للإصلاح والتطوير المستقبلي)
-  * Not part of current production workflow (ليست جزءاً من سير العمل الإنتاجي الحالي)
+  * Disabled (Ù…Ø¹Ø·Ù„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„)
+  * Hidden from UI (Ù…Ø®ÙÙŠØ© Ù…Ù† ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…)
+  * Removed from One Click Pipeline (ØªÙ…Øª Ø¥Ø²Ø§Ù„ØªÙ‡Ø§ ÙƒÙ„ÙŠØ§Ù‹ Ù…Ù† Ø®Ø· Ø§Ù„ØªØ­Ø±ÙŠØ± Ø§Ù„Ù…ÙˆØ­Ø¯)
+  * Archived for future repair (Ù…Ø¤Ø±Ø´ÙØ© Ù„Ù„Ø¥ØµÙ„Ø§Ø­ ÙˆØ§Ù„ØªØ·ÙˆÙŠØ± Ø§Ù„Ù…Ø³ØªÙ‚Ø¨Ù„ÙŠ)
+  * Not part of current production workflow (Ù„ÙŠØ³Øª Ø¬Ø²Ø¡Ø§Ù‹ Ù…Ù† Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ)
 
-## فصل نطاقي العمل
+## ÙØµÙ„ Ù†Ø·Ø§Ù‚ÙŠ Ø§Ù„Ø¹Ù…Ù„
 
-- **Reap API**: خدمة خارجية لإنتاج المقاطع القصيرة، captions، reframing، dubbing، transcription والنشر الاجتماعي. ليست محرّك تبديل كاميرات الـ timeline، ولا نعتمد عليها لتحليل نشاط متحدثي Multi-Cam في الإصدار الأول.
-- **Premiere CEP (Saad Studio)**: يقرأ ويعدّل مشروع Premiere عبر ExtendScript. تحليل الصوت الحقيقي يتم خارج Premiere بواسطة FFmpeg، ثم تُحوّل نتائجه إلى قرارات timeline.
+- **Reap API**: Ø®Ø¯Ù…Ø© Ø®Ø§Ø±Ø¬ÙŠØ© Ù„Ø¥Ù†ØªØ§Ø¬ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù‚ØµÙŠØ±Ø©ØŒ captionsØŒ reframingØŒ dubbingØŒ transcription ÙˆØ§Ù„Ù†Ø´Ø± Ø§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠ. Ù„ÙŠØ³Øª Ù…Ø­Ø±Ù‘Ùƒ ØªØ¨Ø¯ÙŠÙ„ ÙƒØ§Ù…ÙŠØ±Ø§Øª Ø§Ù„Ù€ timelineØŒ ÙˆÙ„Ø§ Ù†Ø¹ØªÙ…Ø¯ Ø¹Ù„ÙŠÙ‡Ø§ Ù„ØªØ­Ù„ÙŠÙ„ Ù†Ø´Ø§Ø· Ù…ØªØ­Ø¯Ø«ÙŠ Multi-Cam ÙÙŠ Ø§Ù„Ø¥ØµØ¯Ø§Ø± Ø§Ù„Ø£ÙˆÙ„.
+- **Premiere CEP (Saad Studio)**: ÙŠÙ‚Ø±Ø£ ÙˆÙŠØ¹Ø¯Ù‘Ù„ Ù…Ø´Ø±ÙˆØ¹ Premiere Ø¹Ø¨Ø± ExtendScript. ØªØ­Ù„ÙŠÙ„ Ø§Ù„ØµÙˆØª Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ ÙŠØªÙ… Ø®Ø§Ø±Ø¬ Premiere Ø¨ÙˆØ§Ø³Ø·Ø© FFmpegØŒ Ø«Ù… ØªÙØ­ÙˆÙ‘Ù„ Ù†ØªØ§Ø¦Ø¬Ù‡ Ø¥Ù„Ù‰ Ù‚Ø±Ø§Ø±Ø§Øª timeline.
 
-## آلية Multi-Cam Auto Switch
+## Ø¢Ù„ÙŠØ© Multi-Cam Auto Switch
 
-1. قراءة الـ active sequence وتخطيط مسارات الفيديو والصوت.
-2. تعيين متحدث لكل مسار صوت وكاميرا لكل مسار فيديو، دون تثبيت Host/Guest.
-3. استخراج `ProjectItem.getMediaPath()` لكل مصدر صوت. لا تخمين عند غياب المسار أو وجود nested/mixed source غير مدعوم.
-4. تحليل المصادر بواسطة FFmpeg (`astats`/RMS)، لأن Premiere scripting لا يوفّر RMS أو waveform أو speaker activity حقيقية.
-5. تحويل زمن المصدر إلى زمن الـ timeline:
+1. Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ù€ active sequence ÙˆØªØ®Ø·ÙŠØ· Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ§Ù„ØµÙˆØª.
+2. ØªØ¹ÙŠÙŠÙ† Ù…ØªØ­Ø¯Ø« Ù„ÙƒÙ„ Ù…Ø³Ø§Ø± ØµÙˆØª ÙˆÙƒØ§Ù…ÙŠØ±Ø§ Ù„ÙƒÙ„ Ù…Ø³Ø§Ø± ÙÙŠØ¯ÙŠÙˆØŒ Ø¯ÙˆÙ† ØªØ«Ø¨ÙŠØª Host/Guest.
+3. Ø§Ø³ØªØ®Ø±Ø§Ø¬ `ProjectItem.getMediaPath()` Ù„ÙƒÙ„ Ù…ØµØ¯Ø± ØµÙˆØª. Ù„Ø§ ØªØ®Ù…ÙŠÙ† Ø¹Ù†Ø¯ ØºÙŠØ§Ø¨ Ø§Ù„Ù…Ø³Ø§Ø± Ø£Ùˆ ÙˆØ¬ÙˆØ¯ nested/mixed source ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ….
+4. ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù…ØµØ§Ø¯Ø± Ø¨ÙˆØ§Ø³Ø·Ø© FFmpeg (`astats`/RMS)ØŒ Ù„Ø£Ù† Premiere scripting Ù„Ø§ ÙŠÙˆÙÙ‘Ø± RMS Ø£Ùˆ waveform Ø£Ùˆ speaker activity Ø­Ù‚ÙŠÙ‚ÙŠØ©.
+5. ØªØ­ÙˆÙŠÙ„ Ø²Ù…Ù† Ø§Ù„Ù…ØµØ¯Ø± Ø¥Ù„Ù‰ Ø²Ù…Ù† Ø§Ù„Ù€ timeline:
    `timelineTimeSec = clip.start.seconds + (ffmpegTimeSec - clip.inPoint.seconds)`.
-6. إنشاء speaker-activity segments، ثم camera decisions مع threshold، dominance margin، hysteresis، minimum shot length، overlap/wide-shot rules.
-7. محاذاة القرارات إلى frames/ticks قبل التنفيذ.
-8. تطبيق التحرير فقط بعد Runtime Proof واضح. لا يوجد Razor/Split API موثّق نعتمد عليه.
+6. Ø¥Ù†Ø´Ø§Ø¡ speaker-activity segmentsØŒ Ø«Ù… camera decisions Ù…Ø¹ thresholdØŒ dominance marginØŒ hysteresisØŒ minimum shot lengthØŒ overlap/wide-shot rules.
+7. Ù…Ø­Ø§Ø°Ø§Ø© Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª Ø¥Ù„Ù‰ frames/ticks Ù‚Ø¨Ù„ Ø§Ù„ØªÙ†ÙÙŠØ°.
+8. ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ­Ø±ÙŠØ± ÙÙ‚Ø· Ø¨Ø¹Ø¯ Runtime Proof ÙˆØ§Ø¶Ø­. Ù„Ø§ ÙŠÙˆØ¬Ø¯ Razor/Split API Ù…ÙˆØ«Ù‘Ù‚ Ù†Ø¹ØªÙ…Ø¯ Ø¹Ù„ÙŠÙ‡.
 
-## حقائق Premiere المؤكدة
+## Ø­Ù‚Ø§Ø¦Ù‚ Premiere Ø§Ù„Ù…Ø¤ÙƒØ¯Ø©
 
-- `Sequence.clone()` ينشئ نسخة ويعيد Boolean وفق مرجع Sequence الرسمي؛ يجب العثور على النسخة الناتجة عبر فرق `sequenceID`/عدد sequences، لا التعامل مع قيمة الإرجاع ككائن Sequence.
-- `Sequence.insertClip(projectItem, time, vTrackIndex, aTrackIndex)` و`Sequence.overwriteClip(...)` موثقتان، لكن يلزم اختبار Runtime قبل الاعتماد الإنتاجي.
-- `TrackItem.disabled` يعطل المقطع كاملًا، وليس جزءًا زمنيًا داخله؛ لذلك لا يحل وحده مشكلة مقطع كاميرا طويل غير مقسّم.
-- `clip.start/end` زمن timeline، و`clip.inPoint/outPoint` زمن المصدر.
-- `sequence.timebase` هو ticks per frame، وثابت Premiere هو `254016000000` ticks/second.
-- لا نفترض دعم تبديل multicam angles برمجيًا، ولا نخلط كود UXP مع CEP.
-- JSX يجب أن يقتصر على قراءة/كتابة Premiere وإرجاع JSON؛ FFmpeg ومنطق القرارات يبقيان في طبقة TypeScript مستقلة.
+- `Sequence.clone()` ÙŠÙ†Ø´Ø¦ Ù†Ø³Ø®Ø© ÙˆÙŠØ¹ÙŠØ¯ Boolean ÙˆÙÙ‚ Ù…Ø±Ø¬Ø¹ Sequence Ø§Ù„Ø±Ø³Ù…ÙŠØ› ÙŠØ¬Ø¨ Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù†Ø§ØªØ¬Ø© Ø¹Ø¨Ø± ÙØ±Ù‚ `sequenceID`/Ø¹Ø¯Ø¯ sequencesØŒ Ù„Ø§ Ø§Ù„ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ Ù‚ÙŠÙ…Ø© Ø§Ù„Ø¥Ø±Ø¬Ø§Ø¹ ÙƒÙƒØ§Ø¦Ù† Sequence.
+- `Sequence.insertClip(projectItem, time, vTrackIndex, aTrackIndex)` Ùˆ`Sequence.overwriteClip(...)` Ù…ÙˆØ«Ù‚ØªØ§Ù†ØŒ Ù„ÙƒÙ† ÙŠÙ„Ø²Ù… Ø§Ø®ØªØ¨Ø§Ø± Runtime Ù‚Ø¨Ù„ Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠ.
+- `TrackItem.disabled` ÙŠØ¹Ø·Ù„ Ø§Ù„Ù…Ù‚Ø·Ø¹ ÙƒØ§Ù…Ù„Ù‹Ø§ØŒ ÙˆÙ„ÙŠØ³ Ø¬Ø²Ø¡Ù‹Ø§ Ø²Ù…Ù†ÙŠÙ‹Ø§ Ø¯Ø§Ø®Ù„Ù‡Ø› Ù„Ø°Ù„Ùƒ Ù„Ø§ ÙŠØ­Ù„ ÙˆØ­Ø¯Ù‡ Ù…Ø´ÙƒÙ„Ø© Ù…Ù‚Ø·Ø¹ ÙƒØ§Ù…ÙŠØ±Ø§ Ø·ÙˆÙŠÙ„ ØºÙŠØ± Ù…Ù‚Ø³Ù‘Ù….
+- `clip.start/end` Ø²Ù…Ù† timelineØŒ Ùˆ`clip.inPoint/outPoint` Ø²Ù…Ù† Ø§Ù„Ù…ØµØ¯Ø±.
+- `sequence.timebase` Ù‡Ùˆ ticks per frameØŒ ÙˆØ«Ø§Ø¨Øª Premiere Ù‡Ùˆ `254016000000` ticks/second.
+- Ù„Ø§ Ù†ÙØªØ±Ø¶ Ø¯Ø¹Ù… ØªØ¨Ø¯ÙŠÙ„ multicam angles Ø¨Ø±Ù…Ø¬ÙŠÙ‹Ø§ØŒ ÙˆÙ„Ø§ Ù†Ø®Ù„Ø· ÙƒÙˆØ¯ UXP Ù…Ø¹ CEP.
+- JSX ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙ‚ØªØµØ± Ø¹Ù„Ù‰ Ù‚Ø±Ø§Ø¡Ø©/ÙƒØªØ§Ø¨Ø© Premiere ÙˆØ¥Ø±Ø¬Ø§Ø¹ JSONØ› FFmpeg ÙˆÙ…Ù†Ø·Ù‚ Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª ÙŠØ¨Ù‚ÙŠØ§Ù† ÙÙŠ Ø·Ø¨Ù‚Ø© TypeScript Ù…Ø³ØªÙ‚Ù„Ø©.
 
-## السلوك الحالي الذي وصل إليه التطوير
+## Ø§Ù„Ø³Ù„ÙˆÙƒ Ø§Ù„Ø­Ø§Ù„ÙŠ Ø§Ù„Ø°ÙŠ ÙˆØµÙ„ Ø¥Ù„ÙŠÙ‡ Ø§Ù„ØªØ·ÙˆÙŠØ±
 
-- توجد ملاحة وأداة Multi-Cam Auto Switch داخل إضافة CEP. Silence Removal محذوفة من الواجهة الحالية.
-- Synchronize يقرن TrackItems الصوتية والمرئية بحسب مسار المصدر نفسه، لا بحسب تساوي رقم V مع رقم A، ثم يحلل waveform خارج Premiere.
-- تحليل Synchronize يمتد حتى 15 دقيقة ويستخدم بحث ارتباط خشن بدقة 1 ثانية ثم دقيق بدقة 0.1 ثانية. اتجاه lag المعتمد هو `targetStart = referenceStart - lag`.
-- توثيق Premiere يعرّف `TrackItem.move(Time)` كإزاحة نسبية، لكن Runtime في 26.2.0 أعطى `Invalid parameter` للإزاحة أو عاد دون تغيير الزمن عند تمرير موضع مطلق؛ لذلك لا يعتمد Synchronize عليه.
-- إذا نتج start سالب لمصدر صحيح، تُزاح المجموعة المتزامنة كلها للأمام. التطبيق يكتب `TrackItem.start/end` الموثقتين read/write بالقيم المطلقة مع حفظ المدة والتحقق من القيم بعد الكتابة.
-- يمنع Synchronize التطبيق إذا كانت ثقة الارتباط أقل من `0.35` أو كانت الإزاحة المطلوبة أكبر من حد الأمان `30` ثانية (SYNC_OFFSET_OUT_OF_RANGE) أو كان موضع البداية المقترح سالبًا/غير صالح، ويتحقق من `clip.start` بعد النقل بهامش 0.05 ثانية.
-- عداد `Applied` في الواجهة يحسب التسجيلات/الأزواج المتزامنة، بما فيها المرجع، ولا يعرض عدد TrackItems الصوتية والمرئية التي تحركت داخليًا. تبقى `clipsMoved` في نتيجة Runtime عدادًا تقنيًا للتشخيص.
-- تم إثبات هذا السلوك داخل Premiere Runtime بتاريخ 2026-06-18: حالة أربعة تسجيلات متزامنة عرضت `Applied: 4 clips` بنجاح.
-- تدقيق 2026-06-23 ثبّت رفع حد الثقة إلى `0.35` كمعيار قبول، وإضافة جدول معاينة ما قبل التطبيق بالواجهة لعرض الإزاحات وقيم الثقة والأسباب لضمان المعاينة الآمنة قبل تحريك التايملاين. كما تم إخراج خطوة المزامنة مؤقتاً من خط التحرير الموحد One Click (ليعمل بمسار: Duplicate -> Multi-Cam Auto Switch -> Auto Captions) حتى تمام استقرارها. وتمت ترقية دقة المزامنة عبر خوارزمية القمم المتعددة (Multi-Candidate Peaks) بدلاً من اختيار أعلى قمة مطلقة؛ حيث يتم فحص أعلى 5 قمم ترشيحية دقيقة، وتطبيق قاعدة Near/Far (أولوية للـ +/- 15 ثانية) لمنع التقاط إزاحات عشوائية بعيدة في المناخات الصامتة إلا بفارق ثقة ضخم يزيد عن 0.15.
-- التنفيذ الحالي يستخدم `createSubClip` و`overwriteClip` لإعادة بناء أجزاء مطلوبة بدل Razor غير الموجود.
-- السلوك الحالي في worktree ينظّم العناصر المولّدة في Project Panel تحت bin رئيسي باسم `Saad Studio - <Premiere Project Name>` ثم bin فرعي للأدوات النشطة مثل `Multi-Cam Auto Switch`.
-- عند تشغيل الأداة، تُنقل العناصر القديمة المعروفة من جذر المشروع إلى bin الأداة المناسب.
-- Multi-Cam يمنع إعادة Apply على sequence يحمل marker ` - Saad Auto Switch Draft`. لم يعد هناك مسار Silence Removal يعتمد على معالجة Draft الـMulti-Cam.
-- إخراج Multi-Cam على duplicate يفضّل video track فارغًا؛ عند عدم وجوده يستخدم أعلى track قابل للكتابة داخل النسخة فقط، مع warning، بدل إنشاء clone ثم الفشل وترك Draft فارغ.
-- منع التكرار دفاعي في طبقتين: Host JSX يرفض Draft، والواجهة ترفض الاسم نفسه وتقفل Apply بعد أول نتيجة حتى Analyze جديد. قبل Apply تعيد الواجهة تحميل ملف JSX لضمان استخدام النسخة المثبتة.
-- عناصر Runtime Proof تُفصل في bin مستقل ولا تُخلط بمخرجات الأدوات الإنتاجية.
+- ØªÙˆØ¬Ø¯ Ù…Ù„Ø§Ø­Ø© ÙˆØ£Ø¯Ø§Ø© Multi-Cam Auto Switch Ø¯Ø§Ø®Ù„ Ø¥Ø¶Ø§ÙØ© CEP. Silence Removal Ù…Ø­Ø°ÙˆÙØ© Ù…Ù† Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.
+- Synchronize ÙŠÙ‚Ø±Ù† TrackItems Ø§Ù„ØµÙˆØªÙŠØ© ÙˆØ§Ù„Ù…Ø±Ø¦ÙŠØ© Ø¨Ø­Ø³Ø¨ Ù…Ø³Ø§Ø± Ø§Ù„Ù…ØµØ¯Ø± Ù†ÙØ³Ù‡ØŒ Ù„Ø§ Ø¨Ø­Ø³Ø¨ ØªØ³Ø§ÙˆÙŠ Ø±Ù‚Ù… V Ù…Ø¹ Ø±Ù‚Ù… AØŒ Ø«Ù… ÙŠØ­Ù„Ù„ waveform Ø®Ø§Ø±Ø¬ Premiere.
+- ØªØ­Ù„ÙŠÙ„ Synchronize ÙŠÙ…ØªØ¯ Ø­ØªÙ‰ 15 Ø¯Ù‚ÙŠÙ‚Ø© ÙˆÙŠØ³ØªØ®Ø¯Ù… Ø¨Ø­Ø« Ø§Ø±ØªØ¨Ø§Ø· Ø®Ø´Ù† Ø¨Ø¯Ù‚Ø© 1 Ø«Ø§Ù†ÙŠØ© Ø«Ù… Ø¯Ù‚ÙŠÙ‚ Ø¨Ø¯Ù‚Ø© 0.1 Ø«Ø§Ù†ÙŠØ©. Ø§ØªØ¬Ø§Ù‡ lag Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ Ù‡Ùˆ `targetStart = referenceStart - lag`.
+- ØªÙˆØ«ÙŠÙ‚ Premiere ÙŠØ¹Ø±Ù‘Ù `TrackItem.move(Time)` ÙƒØ¥Ø²Ø§Ø­Ø© Ù†Ø³Ø¨ÙŠØ©ØŒ Ù„ÙƒÙ† Runtime ÙÙŠ 26.2.0 Ø£Ø¹Ø·Ù‰ `Invalid parameter` Ù„Ù„Ø¥Ø²Ø§Ø­Ø© Ø£Ùˆ Ø¹Ø§Ø¯ Ø¯ÙˆÙ† ØªØºÙŠÙŠØ± Ø§Ù„Ø²Ù…Ù† Ø¹Ù†Ø¯ ØªÙ…Ø±ÙŠØ± Ù…ÙˆØ¶Ø¹ Ù…Ø·Ù„Ù‚Ø› Ù„Ø°Ù„Ùƒ Ù„Ø§ ÙŠØ¹ØªÙ…Ø¯ Synchronize Ø¹Ù„ÙŠÙ‡.
+- Ø¥Ø°Ø§ Ù†ØªØ¬ start Ø³Ø§Ù„Ø¨ Ù„Ù…ØµØ¯Ø± ØµØ­ÙŠØ­ØŒ ØªÙØ²Ø§Ø­ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„Ù…ØªØ²Ø§Ù…Ù†Ø© ÙƒÙ„Ù‡Ø§ Ù„Ù„Ø£Ù…Ø§Ù…. Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ ÙŠÙƒØªØ¨ `TrackItem.start/end` Ø§Ù„Ù…ÙˆØ«Ù‚ØªÙŠÙ† read/write Ø¨Ø§Ù„Ù‚ÙŠÙ… Ø§Ù„Ù…Ø·Ù„Ù‚Ø© Ù…Ø¹ Ø­ÙØ¸ Ø§Ù„Ù…Ø¯Ø© ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ù‚ÙŠÙ… Ø¨Ø¹Ø¯ Ø§Ù„ÙƒØªØ§Ø¨Ø©.
+- ÙŠÙ…Ù†Ø¹ Synchronize Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¥Ø°Ø§ ÙƒØ§Ù†Øª Ø«Ù‚Ø© Ø§Ù„Ø§Ø±ØªØ¨Ø§Ø· Ø£Ù‚Ù„ Ù…Ù† `0.35` Ø£Ùˆ ÙƒØ§Ù†Øª Ø§Ù„Ø¥Ø²Ø§Ø­Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø£ÙƒØ¨Ø± Ù…Ù† Ø­Ø¯ Ø§Ù„Ø£Ù…Ø§Ù† `30` Ø«Ø§Ù†ÙŠØ© (SYNC_OFFSET_OUT_OF_RANGE) Ø£Ùˆ ÙƒØ§Ù† Ù…ÙˆØ¶Ø¹ Ø§Ù„Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ù…Ù‚ØªØ±Ø­ Ø³Ø§Ù„Ø¨Ù‹Ø§/ØºÙŠØ± ØµØ§Ù„Ø­ØŒ ÙˆÙŠØªØ­Ù‚Ù‚ Ù…Ù† `clip.start` Ø¨Ø¹Ø¯ Ø§Ù„Ù†Ù‚Ù„ Ø¨Ù‡Ø§Ù…Ø´ 0.05 Ø«Ø§Ù†ÙŠØ©.
+- Ø¹Ø¯Ø§Ø¯ `Applied` ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙŠØ­Ø³Ø¨ Ø§Ù„ØªØ³Ø¬ÙŠÙ„Ø§Øª/Ø§Ù„Ø£Ø²ÙˆØ§Ø¬ Ø§Ù„Ù…ØªØ²Ø§Ù…Ù†Ø©ØŒ Ø¨Ù…Ø§ ÙÙŠÙ‡Ø§ Ø§Ù„Ù…Ø±Ø¬Ø¹ØŒ ÙˆÙ„Ø§ ÙŠØ¹Ø±Ø¶ Ø¹Ø¯Ø¯ TrackItems Ø§Ù„ØµÙˆØªÙŠØ© ÙˆØ§Ù„Ù…Ø±Ø¦ÙŠØ© Ø§Ù„ØªÙŠ ØªØ­Ø±ÙƒØª Ø¯Ø§Ø®Ù„ÙŠÙ‹Ø§. ØªØ¨Ù‚Ù‰ `clipsMoved` ÙÙŠ Ù†ØªÙŠØ¬Ø© Runtime Ø¹Ø¯Ø§Ø¯Ù‹Ø§ ØªÙ‚Ù†ÙŠÙ‹Ø§ Ù„Ù„ØªØ´Ø®ÙŠØµ.
+- ØªÙ… Ø¥Ø«Ø¨Ø§Øª Ù‡Ø°Ø§ Ø§Ù„Ø³Ù„ÙˆÙƒ Ø¯Ø§Ø®Ù„ Premiere Runtime Ø¨ØªØ§Ø±ÙŠØ® 2026-06-18: Ø­Ø§Ù„Ø© Ø£Ø±Ø¨Ø¹Ø© ØªØ³Ø¬ÙŠÙ„Ø§Øª Ù…ØªØ²Ø§Ù…Ù†Ø© Ø¹Ø±Ø¶Øª `Applied: 4 clips` Ø¨Ù†Ø¬Ø§Ø­.
+- ØªØ¯Ù‚ÙŠÙ‚ 2026-06-23 Ø«Ø¨Ù‘Øª Ø±ÙØ¹ Ø­Ø¯ Ø§Ù„Ø«Ù‚Ø© Ø¥Ù„Ù‰ `0.35` ÙƒÙ…Ø¹ÙŠØ§Ø± Ù‚Ø¨ÙˆÙ„ØŒ ÙˆØ¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙˆÙ„ Ù…Ø¹Ø§ÙŠÙ†Ø© Ù…Ø§ Ù‚Ø¨Ù„ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¨Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ù„Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø²Ø§Ø­Ø§Øª ÙˆÙ‚ÙŠÙ… Ø§Ù„Ø«Ù‚Ø© ÙˆØ§Ù„Ø£Ø³Ø¨Ø§Ø¨ Ù„Ø¶Ù…Ø§Ù† Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø¢Ù…Ù†Ø© Ù‚Ø¨Ù„ ØªØ­Ø±ÙŠÙƒ Ø§Ù„ØªØ§ÙŠÙ…Ù„Ø§ÙŠÙ†. ÙƒÙ…Ø§ ØªÙ… Ø¥Ø®Ø±Ø§Ø¬ Ø®Ø·ÙˆØ© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© Ù…Ø¤Ù‚ØªØ§Ù‹ Ù…Ù† Ø®Ø· Ø§Ù„ØªØ­Ø±ÙŠØ± Ø§Ù„Ù…ÙˆØ­Ø¯ One Click (Ù„ÙŠØ¹Ù…Ù„ Ø¨Ù…Ø³Ø§Ø±: Duplicate -> Multi-Cam Auto Switch -> Auto Captions) Ø­ØªÙ‰ ØªÙ…Ø§Ù… Ø§Ø³ØªÙ‚Ø±Ø§Ø±Ù‡Ø§. ÙˆØªÙ…Øª ØªØ±Ù‚ÙŠØ© Ø¯Ù‚Ø© Ø§Ù„Ù…Ø²Ø§Ù…Ù†Ø© Ø¹Ø¨Ø± Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ© Ø§Ù„Ù‚Ù…Ù… Ø§Ù„Ù…ØªØ¹Ø¯Ø¯Ø© (Multi-Candidate Peaks) Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø§Ø®ØªÙŠØ§Ø± Ø£Ø¹Ù„Ù‰ Ù‚Ù…Ø© Ù…Ø·Ù„Ù‚Ø©Ø› Ø­ÙŠØ« ÙŠØªÙ… ÙØ­Øµ Ø£Ø¹Ù„Ù‰ 5 Ù‚Ù…Ù… ØªØ±Ø´ÙŠØ­ÙŠØ© Ø¯Ù‚ÙŠÙ‚Ø©ØŒ ÙˆØªØ·Ø¨ÙŠÙ‚ Ù‚Ø§Ø¹Ø¯Ø© Near/Far (Ø£ÙˆÙ„ÙˆÙŠØ© Ù„Ù„Ù€ +/- 15 Ø«Ø§Ù†ÙŠØ©) Ù„Ù…Ù†Ø¹ Ø§Ù„ØªÙ‚Ø§Ø· Ø¥Ø²Ø§Ø­Ø§Øª Ø¹Ø´ÙˆØ§Ø¦ÙŠØ© Ø¨Ø¹ÙŠØ¯Ø© ÙÙŠ Ø§Ù„Ù…Ù†Ø§Ø®Ø§Øª Ø§Ù„ØµØ§Ù…ØªØ© Ø¥Ù„Ø§ Ø¨ÙØ§Ø±Ù‚ Ø«Ù‚Ø© Ø¶Ø®Ù… ÙŠØ²ÙŠØ¯ Ø¹Ù† 0.15.
+- Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø­Ø§Ù„ÙŠ ÙŠØ³ØªØ®Ø¯Ù… `createSubClip` Ùˆ`overwriteClip` Ù„Ø¥Ø¹Ø§Ø¯Ø© Ø¨Ù†Ø§Ø¡ Ø£Ø¬Ø²Ø§Ø¡ Ù…Ø·Ù„ÙˆØ¨Ø© Ø¨Ø¯Ù„ Razor ØºÙŠØ± Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯.
+- Ø§Ù„Ø³Ù„ÙˆÙƒ Ø§Ù„Ø­Ø§Ù„ÙŠ ÙÙŠ worktree ÙŠÙ†Ø¸Ù‘Ù… Ø§Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…ÙˆÙ„Ù‘Ø¯Ø© ÙÙŠ Project Panel ØªØ­Øª bin Ø±Ø¦ÙŠØ³ÙŠ Ø¨Ø§Ø³Ù… `Saad Studio - <Premiere Project Name>` Ø«Ù… bin ÙØ±Ø¹ÙŠ Ù„Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù†Ø´Ø·Ø© Ù…Ø«Ù„ `Multi-Cam Auto Switch`.
+- Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯Ø§Ø©ØŒ ØªÙÙ†Ù‚Ù„ Ø§Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ø§Ù„Ù…Ø¹Ø±ÙˆÙØ© Ù…Ù† Ø¬Ø°Ø± Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø¥Ù„Ù‰ bin Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ù…Ù†Ø§Ø³Ø¨.
+- Multi-Cam ÙŠÙ…Ù†Ø¹ Ø¥Ø¹Ø§Ø¯Ø© Apply Ø¹Ù„Ù‰ sequence ÙŠØ­Ù…Ù„ marker ` - Saad Auto Switch Draft`. Ù„Ù… ÙŠØ¹Ø¯ Ù‡Ù†Ø§Ùƒ Ù…Ø³Ø§Ø± Silence Removal ÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ù…Ø¹Ø§Ù„Ø¬Ø© Draft Ø§Ù„Ù€Multi-Cam.
+- Ø¥Ø®Ø±Ø§Ø¬ Multi-Cam Ø¹Ù„Ù‰ duplicate ÙŠÙØ¶Ù‘Ù„ video track ÙØ§Ø±ØºÙ‹Ø§Ø› Ø¹Ù†Ø¯ Ø¹Ø¯Ù… ÙˆØ¬ÙˆØ¯Ù‡ ÙŠØ³ØªØ®Ø¯Ù… Ø£Ø¹Ù„Ù‰ track Ù‚Ø§Ø¨Ù„ Ù„Ù„ÙƒØªØ§Ø¨Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù†Ø³Ø®Ø© ÙÙ‚Ø·ØŒ Ù…Ø¹ warningØŒ Ø¨Ø¯Ù„ Ø¥Ù†Ø´Ø§Ø¡ clone Ø«Ù… Ø§Ù„ÙØ´Ù„ ÙˆØªØ±Ùƒ Draft ÙØ§Ø±Øº.
+- Ù…Ù†Ø¹ Ø§Ù„ØªÙƒØ±Ø§Ø± Ø¯ÙØ§Ø¹ÙŠ ÙÙŠ Ø·Ø¨Ù‚ØªÙŠÙ†: Host JSX ÙŠØ±ÙØ¶ DraftØŒ ÙˆØ§Ù„ÙˆØ§Ø¬Ù‡Ø© ØªØ±ÙØ¶ Ø§Ù„Ø§Ø³Ù… Ù†ÙØ³Ù‡ ÙˆØªÙ‚ÙÙ„ Apply Ø¨Ø¹Ø¯ Ø£ÙˆÙ„ Ù†ØªÙŠØ¬Ø© Ø­ØªÙ‰ Analyze Ø¬Ø¯ÙŠØ¯. Ù‚Ø¨Ù„ Apply ØªØ¹ÙŠØ¯ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ØªØ­Ù…ÙŠÙ„ Ù…Ù„Ù JSX Ù„Ø¶Ù…Ø§Ù† Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù…Ø«Ø¨ØªØ©.
+- Ø¹Ù†Ø§ØµØ± Runtime Proof ØªÙÙØµÙ„ ÙÙŠ bin Ù…Ø³ØªÙ‚Ù„ ÙˆÙ„Ø§ ØªÙØ®Ù„Ø· Ø¨Ù…Ø®Ø±Ø¬Ø§Øª Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠØ©.
 
-### مرجع مقتطف Synchronization المرفق
+### Ù…Ø±Ø¬Ø¹ Ù…Ù‚ØªØ·Ù Synchronization Ø§Ù„Ù…Ø±ÙÙ‚
 
-- المرفق `pasted-text.txt` المقروء بتاريخ 2026-06-18 حجمه `5,209` بايت وSHA-256 هو `37C89A2A048DA07202DD348F67432DD61418443BF24A728BBA04B7C9553993C2`.
-- يؤكد اتجاه التنفيذ الحالي: جمع مقاطع الفيديو المتاحة ثم مطابقتها بالصوت عبر `findPairedVideoClip` ومسار المصدر، حساب `suggestedTimelineStartSec = referenceStart - estimatedLagSec`، تحويل الثقة الأقل من `0.08` إلى blocker، استدعاء `normalizeSynchronizationStarts`، ورفع حد نافذة التحليل من 45 إلى 900 ثانية.
-- المرفق ناتج diff مدمج: يجمع بدائل قديمة وجديدة مكررة وتوجد فيه أقواس/تواقيع ناقصة؛ لذلك هو مرجع دلالي وليس نسخة مصدر قابلة للبناء. عند التعارض تُقدّم حالة الكود الحالي ثم Runtime Proof.
+- Ø§Ù„Ù…Ø±ÙÙ‚ `pasted-text.txt` Ø§Ù„Ù…Ù‚Ø±ÙˆØ¡ Ø¨ØªØ§Ø±ÙŠØ® 2026-06-18 Ø­Ø¬Ù…Ù‡ `5,209` Ø¨Ø§ÙŠØª ÙˆSHA-256 Ù‡Ùˆ `37C89A2A048DA07202DD348F67432DD61418443BF24A728BBA04B7C9553993C2`.
+- ÙŠØ¤ÙƒØ¯ Ø§ØªØ¬Ø§Ù‡ Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø­Ø§Ù„ÙŠ: Ø¬Ù…Ø¹ Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…ØªØ§Ø­Ø© Ø«Ù… Ù…Ø·Ø§Ø¨Ù‚ØªÙ‡Ø§ Ø¨Ø§Ù„ØµÙˆØª Ø¹Ø¨Ø± `findPairedVideoClip` ÙˆÙ…Ø³Ø§Ø± Ø§Ù„Ù…ØµØ¯Ø±ØŒ Ø­Ø³Ø§Ø¨ `suggestedTimelineStartSec = referenceStart - estimatedLagSec`ØŒ ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø«Ù‚Ø© Ø§Ù„Ø£Ù‚Ù„ Ù…Ù† `0.08` Ø¥Ù„Ù‰ blockerØŒ Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ `normalizeSynchronizationStarts`ØŒ ÙˆØ±ÙØ¹ Ø­Ø¯ Ù†Ø§ÙØ°Ø© Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ù…Ù† 45 Ø¥Ù„Ù‰ 900 Ø«Ø§Ù†ÙŠØ©.
+- Ø§Ù„Ù…Ø±ÙÙ‚ Ù†Ø§ØªØ¬ diff Ù…Ø¯Ù…Ø¬: ÙŠØ¬Ù…Ø¹ Ø¨Ø¯Ø§Ø¦Ù„ Ù‚Ø¯ÙŠÙ…Ø© ÙˆØ¬Ø¯ÙŠØ¯Ø© Ù…ÙƒØ±Ø±Ø© ÙˆØªÙˆØ¬Ø¯ ÙÙŠÙ‡ Ø£Ù‚ÙˆØ§Ø³/ØªÙˆØ§Ù‚ÙŠØ¹ Ù†Ø§Ù‚ØµØ©Ø› Ù„Ø°Ù„Ùƒ Ù‡Ùˆ Ù…Ø±Ø¬Ø¹ Ø¯Ù„Ø§Ù„ÙŠ ÙˆÙ„ÙŠØ³ Ù†Ø³Ø®Ø© Ù…ØµØ¯Ø± Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„Ø¨Ù†Ø§Ø¡. Ø¹Ù†Ø¯ Ø§Ù„ØªØ¹Ø§Ø±Ø¶ ØªÙÙ‚Ø¯Ù‘Ù… Ø­Ø§Ù„Ø© Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„Ø­Ø§Ù„ÙŠ Ø«Ù… Runtime Proof.
 
-## Reap: المعلومات المحفوظة
+## Reap: Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø©
 
 - Base URL: `https://public.reap.video/api/v1/automation/`
-- متغيرا البيئة: `REAP_API_KEY` و`REAP_API_BASE=https://public.reap.video/api/v1/automation`؛ لا تُحفظ قيمة المفتاح في المستودع أو الذاكرة.
-- المصادقة: `Authorization: Bearer YOUR_API_KEY`
-- الحد المعلن: 10 requests/minute/key.
-- دورة الرفع: طلب presigned URL من `/get-upload-url`، رفع الملف، إنشاء project، ثم webhook أو status polling.
-- يدعم clipping، captions، reframing، dubbing (80+ لغة)، transcription، والنشر/الجدولة.
-- صيغ الإدخال المعلنة: MP4 أو MOV، من دقيقتين إلى 3 ساعات، وحتى 5GB.
-- حالات المشروع: `queued`, `processing`, `completed`, `failed`, `invalid`, `expired`.
-- webhooks مفضلة على polling في الإنتاج؛ endpoint عبر HTTPS ويرد 200 خلال 5 ثوانٍ، وخمس محاولات فاشلة تعطل webhook.
-- Reap مفيد لمسار ClipCraft/short-form، لكنه لا يغيّر قواعد تنفيذ Multi-Cam داخل Premiere.
+- Ù…ØªØºÙŠØ±Ø§ Ø§Ù„Ø¨ÙŠØ¦Ø©: `REAP_API_KEY` Ùˆ`REAP_API_BASE=https://public.reap.video/api/v1/automation`Ø› Ù„Ø§ ØªÙØ­ÙØ¸ Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…ÙØªØ§Ø­ ÙÙŠ Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹ Ø£Ùˆ Ø§Ù„Ø°Ø§ÙƒØ±Ø©.
+- Ø§Ù„Ù…ØµØ§Ø¯Ù‚Ø©: `Authorization: Bearer YOUR_API_KEY`
+- Ø§Ù„Ø­Ø¯ Ø§Ù„Ù…Ø¹Ù„Ù†: 10 requests/minute/key.
+- Ø¯ÙˆØ±Ø© Ø§Ù„Ø±ÙØ¹: Ø·Ù„Ø¨ presigned URL Ù…Ù† `/get-upload-url`ØŒ Ø±ÙØ¹ Ø§Ù„Ù…Ù„ÙØŒ Ø¥Ù†Ø´Ø§Ø¡ projectØŒ Ø«Ù… webhook Ø£Ùˆ status polling.
+- ÙŠØ¯Ø¹Ù… clippingØŒ captionsØŒ reframingØŒ dubbing (80+ Ù„ØºØ©)ØŒ transcriptionØŒ ÙˆØ§Ù„Ù†Ø´Ø±/Ø§Ù„Ø¬Ø¯ÙˆÙ„Ø©.
+- ØµÙŠØº Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ù…Ø¹Ù„Ù†Ø©: MP4 Ø£Ùˆ MOVØŒ Ù…Ù† Ø¯Ù‚ÙŠÙ‚ØªÙŠÙ† Ø¥Ù„Ù‰ 3 Ø³Ø§Ø¹Ø§ØªØŒ ÙˆØ­ØªÙ‰ 5GB.
+- Ø­Ø§Ù„Ø§Øª Ø§Ù„Ù…Ø´Ø±ÙˆØ¹: `queued`, `processing`, `completed`, `failed`, `invalid`, `expired`.
+- webhooks Ù…ÙØ¶Ù„Ø© Ø¹Ù„Ù‰ polling ÙÙŠ Ø§Ù„Ø¥Ù†ØªØ§Ø¬Ø› endpoint Ø¹Ø¨Ø± HTTPS ÙˆÙŠØ±Ø¯ 200 Ø®Ù„Ø§Ù„ 5 Ø«ÙˆØ§Ù†ÙØŒ ÙˆØ®Ù…Ø³ Ù…Ø­Ø§ÙˆÙ„Ø§Øª ÙØ§Ø´Ù„Ø© ØªØ¹Ø·Ù„ webhook.
+- Reap Ù…ÙÙŠØ¯ Ù„Ù…Ø³Ø§Ø± ClipCraft/short-formØŒ Ù„ÙƒÙ†Ù‡ Ù„Ø§ ÙŠØºÙŠÙ‘Ø± Ù‚ÙˆØ§Ø¹Ø¯ ØªÙ†ÙÙŠØ° Multi-Cam Ø¯Ø§Ø®Ù„ Premiere.
 
-### حدود Reap وتوجيه مزودي الموديلات
+### Ø­Ø¯ÙˆØ¯ Reap ÙˆØªÙˆØ¬ÙŠÙ‡ Ù…Ø²ÙˆØ¯ÙŠ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„Ø§Øª
 
-- Google models تتصل بالمصدر الرسمي Google مباشرةً.
-- Seedance v2 يتصل بالمصدر الرسمي BytePlus مباشرةً.
-- OpenAI models تتصل بالمصدر الرسمي OpenAI مباشرةً.
-- بقية موديلات الفيديو تستخدم `kie.ai` كمصدر افتراضي تلقائي.
-- Reap ليس مزود توليد ولا بديلًا عن هذه المصادر؛ يقتصر على AI Clipping وAuto Reframe وCaptions وTranslation وDubbing وBrand Templates وWebhooks وSocial-ready outputs.
-- يُمنع استخدام Reap لتوليد فيديو من نص أو صورة.
+- Google models ØªØªØµÙ„ Ø¨Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ø±Ø³Ù…ÙŠ Google Ù…Ø¨Ø§Ø´Ø±Ø©Ù‹.
+- Seedance v2 ÙŠØªØµÙ„ Ø¨Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ø±Ø³Ù…ÙŠ BytePlus Ù…Ø¨Ø§Ø´Ø±Ø©Ù‹.
+- OpenAI models ØªØªØµÙ„ Ø¨Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ø±Ø³Ù…ÙŠ OpenAI Ù…Ø¨Ø§Ø´Ø±Ø©Ù‹.
+- Ø¨Ù‚ÙŠØ© Ù…ÙˆØ¯ÙŠÙ„Ø§Øª Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ØªØ³ØªØ®Ø¯Ù… `kie.ai` ÙƒÙ…ØµØ¯Ø± Ø§ÙØªØ±Ø§Ø¶ÙŠ ØªÙ„Ù‚Ø§Ø¦ÙŠ.
+- Reap Ù„ÙŠØ³ Ù…Ø²ÙˆØ¯ ØªÙˆÙ„ÙŠØ¯ ÙˆÙ„Ø§ Ø¨Ø¯ÙŠÙ„Ù‹Ø§ Ø¹Ù† Ù‡Ø°Ù‡ Ø§Ù„Ù…ØµØ§Ø¯Ø±Ø› ÙŠÙ‚ØªØµØ± Ø¹Ù„Ù‰ AI Clipping ÙˆAuto Reframe ÙˆCaptions ÙˆTranslation ÙˆDubbing ÙˆBrand Templates ÙˆWebhooks ÙˆSocial-ready outputs.
+- ÙŠÙÙ…Ù†Ø¹ Ø§Ø³ØªØ®Ø¯Ø§Ù… Reap Ù„ØªÙˆÙ„ÙŠØ¯ ÙÙŠØ¯ÙŠÙˆ Ù…Ù† Ù†Øµ Ø£Ùˆ ØµÙˆØ±Ø©.
 
-### بنية التخزين ودورة Reap
+### Ø¨Ù†ÙŠØ© Ø§Ù„ØªØ®Ø²ÙŠÙ† ÙˆØ¯ÙˆØ±Ø© Reap
 
-- Vercel للاستضافة والنشر، Clerk للمصادقة وإدارة المستخدمين، Neon قاعدة PostgreSQL الرئيسية لجميع البيانات الديناميكية، وBackblaze B2 (وقبلها Cloudflare R2 كـ legacy) لتخزين الميديا فقط.
-- Neon يحفظ المستخدمين والكريديتات والاشتراكات والسجلات وبيانات التوليد وCMS وبيانات مهام Reap وحالات webhooks وmetadata الملفات، لكنه لا يحفظ ملفات الميديا نفسها.
-- الصور والفيديوهات والمخرجات والملفات المولدة ونتائج Reap النهائية تحفظ في Backblaze B2 (وتظل الملفات القديمة مقروءة من Cloudflare R2).
-- الملفات الكبيرة تُرفع من العميل مباشرة إلى Backblaze B2 عبر Signed URLs؛ يُمنع تمريرها عبر Next.js API routes.
-- المسار المعتمد: رفع الفيديو إلى Backblaze B2 ← حفظ metadata في Neon ← إرسال رابط الفيديو إلى Reap ← استقبال webhook وتحديث الحالة ← جلب النتيجة أو حفظ رابطها ← تخزين الناتج النهائي في Backblaze B2 ← تحديث Neon بالملفات والحالة النهائية.
+- Vercel Ù„Ù„Ø§Ø³ØªØ¶Ø§ÙØ© ÙˆØ§Ù„Ù†Ø´Ø±ØŒ Clerk Ù„Ù„Ù…ØµØ§Ø¯Ù‚Ø© ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†ØŒ Neon Ù‚Ø§Ø¹Ø¯Ø© PostgreSQL Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠØ©ØŒ ÙˆBackblaze B2 (ÙˆÙ‚Ø¨Ù„Ù‡Ø§ Cloudflare R2 ÙƒÙ€ legacy) Ù„ØªØ®Ø²ÙŠÙ† Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ ÙÙ‚Ø·.
+- Neon ÙŠØ­ÙØ¸ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† ÙˆØ§Ù„ÙƒØ±ÙŠØ¯ÙŠØªØ§Øª ÙˆØ§Ù„Ø§Ø´ØªØ±Ø§ÙƒØ§Øª ÙˆØ§Ù„Ø³Ø¬Ù„Ø§Øª ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙˆÙ„ÙŠØ¯ ÙˆCMS ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ù…Ù‡Ø§Ù… Reap ÙˆØ­Ø§Ù„Ø§Øª webhooks Ùˆmetadata Ø§Ù„Ù…Ù„ÙØ§ØªØŒ Ù„ÙƒÙ†Ù‡ Ù„Ø§ ÙŠØ­ÙØ¸ Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ Ù†ÙØ³Ù‡Ø§.
+- Ø§Ù„ØµÙˆØ± ÙˆØ§Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§Øª ÙˆØ§Ù„Ù…Ø®Ø±Ø¬Ø§Øª ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙˆÙ„Ø¯Ø© ÙˆÙ†ØªØ§Ø¦Ø¬ Reap Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠØ© ØªØ­ÙØ¸ ÙÙŠ Backblaze B2 (ÙˆØªØ¸Ù„ Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ù…Ù‚Ø±ÙˆØ¡Ø© Ù…Ù† Cloudflare R2).
+- Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„ÙƒØ¨ÙŠØ±Ø© ØªÙØ±ÙØ¹ Ù…Ù† Ø§Ù„Ø¹Ù…ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±Ø© Ø¥Ù„Ù‰ Backblaze B2 Ø¹Ø¨Ø± Signed URLsØ› ÙŠÙÙ…Ù†Ø¹ ØªÙ…Ø±ÙŠØ±Ù‡Ø§ Ø¹Ø¨Ø± Next.js API routes.
+- Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø¹ØªÙ…Ø¯: Ø±ÙØ¹ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¥Ù„Ù‰ Backblaze B2 â† Ø­ÙØ¸ metadata ÙÙŠ Neon â† Ø¥Ø±Ø³Ø§Ù„ Ø±Ø§Ø¨Ø· Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¥Ù„Ù‰ Reap â† Ø§Ø³ØªÙ‚Ø¨Ø§Ù„ webhook ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø© â† Ø¬Ù„Ø¨ Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø£Ùˆ Ø­ÙØ¸ Ø±Ø§Ø¨Ø·Ù‡Ø§ â† ØªØ®Ø²ÙŠÙ† Ø§Ù„Ù†Ø§ØªØ¬ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ ÙÙŠ Backblaze B2 â† ØªØ­Ø¯ÙŠØ« Neon Ø¨Ø§Ù„Ù…Ù„ÙØ§Øª ÙˆØ§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠØ©.
 
-### آلية تسليم الميديا الاحتياطية المضمونة (Media Delivery & Resilient Fallbacks)
+### Ø¢Ù„ÙŠØ© ØªØ³Ù„ÙŠÙ… Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø§Ù„Ù…Ø¶Ù…ÙˆÙ†Ø© (Media Delivery & Resilient Fallbacks)
 
-1. **الهدف**: تجنب تمرير كافة أحمال الميديا (الصور، الفيديوهات الكبيرة، المقاطع الصوتية) عبر Vercel لتفادي حدود الحمولة وسرعة التنزيل والمهلات، والاعتماد على تسليم مباشر من Backblaze B2 أو Cloudflare R2.
-2. **سلسلة التراجع (Fallback Chain) وأوضاع تسليم ميديا المتصفح**:
-   - يتم التحكم في مسار تسليم ميديا الواجهة الأمامية للمتصفح عبر متغير البيئة `BROWSER_MEDIA_URL_MODE` الذي يدعم ثلاثة أوضاع:
-     - `b2` (الوضع الافتراضي الحالي للسرعة والأمان): البث المباشر والآمن من روابط Backblaze B2 العامة مباشرةً (`https://saadstudio-storage.s3.eu-central-003.backblazeb2.com`).
-     - `cdn`: البث عبر CDN خارجي (مثل BunnyCDN) لزيادة سرعة التوجيه الإقليمية للشرق الأوسط والعراق ويقرأ المفتاح `BROWSER_CDN_BASE_URL`.
-     - `proxy`: البث الكلاسيكي عبر خوادم البروكسي المحلية لـ Next.js `/api/media/...` (يتم تفعيله فقط كحالة طارئة أو احتياطية).
-   - تظل روابط مزودي الخدمة الذكاء الاصطناعي (`resolveProviderMediaUrl()`) مستقلة تماماً وتعتمد روابط B2 المباشرة فقط.
-   - **الخيار الاحتياطي للملفات القديمة**: النطاق الخام المباشر للـ R2 وهو `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev` (مع استبعاد `media.saadstudio.app` حالياً بسبب مشاكل الـ DNS).
-3. **تطبيق الآلية في الواجهة الأمامية للموقع**:
-   - كافة العناصر (`<img>`, `<video>`, `<audio>`) والمكونات الرئيسية (مثل `VideoCanvas` و `AudioCanvas` في `AssetInspector.tsx` ومكونات `MediaGrid.tsx` وصفحة الموسيقى `music/page.tsx`) مزودة بمعالجة `onError` لتبديل الرابط تلقائياً إلى التالي في القائمة إذا تعذر تحميل الحالي.
-   - يتوفر مراقب أخطاء عام (Global Capture Error Listener) in `app/layout.tsx` لاعتراض فشل تحميل أي عنصر وسائط وتبديله حياً لمنع تجميد واجهات المستخدم.
-4. **تطبيق الآلية في إضافة Premiere CEP**:
-   - دالة `downloadAsset` في `src/lib/api.ts` تقوم بمحاولة التحميل بشكل متكرر (Retry Loop) عبر سلسلة التراجع مع تمرير `isDownload = true` لتمكين البروكسي كخيار أخير عند الحاجة.
-   - يتم إلحاق مراقب أخطاء عام على مستوى النافذة (Global Event Listener) في `main.ts` لتبديل مصادر العناصر المولدة بصرياً في الإضافة عند الفشل.
-5. **ضوابط حماية API البروكسي**:
-   - يرفض مسار `/api/proxy-image` تماماً بروكسي ملفات الفيديو (400 Bad Request) ويفحص ذلك بامتداد الرابط ونوع الميديا، ويقصر عمله حصرياً على الصور لتأمين موارد السيرفر.
-6. **ضوابط تزويد الميديا لمزودي التوليد الخارجيين**:
-   - يلتزم مسار API الفيديو (`/api/video`) بتحويل كافة المدخلات والوسائط المرجعية لروابط مطلقة ومباشرة وعامة للـ Bucket في Backblaze B2 بشكل كامل.
-   - يرفض السيرفر تمرير البروكسي الداخلي (`/api/media`) أو روابط localhost أو base64 أو blob لمزودي الخدمة الخارجيين (BytePlus, Google, KIE, WaveSpeed).
-   - يتم التحقق من إمكانية تحميل الملف بالـ Server-side HEAD/GET request قبل خصم الكريديت أو استدعاء المزود الخارجي لتفادي الفشل وخصم الكريديت بدون فائدة.
+1. **Ø§Ù„Ù‡Ø¯Ù**: ØªØ¬Ù†Ø¨ ØªÙ…Ø±ÙŠØ± ÙƒØ§ÙØ© Ø£Ø­Ù…Ø§Ù„ Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ (Ø§Ù„ØµÙˆØ±ØŒ Ø§Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§Øª Ø§Ù„ÙƒØ¨ÙŠØ±Ø©ØŒ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠØ©) Ø¹Ø¨Ø± Vercel Ù„ØªÙØ§Ø¯ÙŠ Ø­Ø¯ÙˆØ¯ Ø§Ù„Ø­Ù…ÙˆÙ„Ø© ÙˆØ³Ø±Ø¹Ø© Ø§Ù„ØªÙ†Ø²ÙŠÙ„ ÙˆØ§Ù„Ù…Ù‡Ù„Ø§ØªØŒ ÙˆØ§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¹Ù„Ù‰ ØªØ³Ù„ÙŠÙ… Ù…Ø¨Ø§Ø´Ø± Ù…Ù† Backblaze B2 Ø£Ùˆ Cloudflare R2.
+2. **Ø³Ù„Ø³Ù„Ø© Ø§Ù„ØªØ±Ø§Ø¬Ø¹ (Fallback Chain) ÙˆØ£ÙˆØ¶Ø§Ø¹ ØªØ³Ù„ÙŠÙ… Ù…ÙŠØ¯ÙŠØ§ Ø§Ù„Ù…ØªØµÙØ­**:
+   - ÙŠØªÙ… Ø§Ù„ØªØ­ÙƒÙ… ÙÙŠ Ù…Ø³Ø§Ø± ØªØ³Ù„ÙŠÙ… Ù…ÙŠØ¯ÙŠØ§ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ø£Ù…Ø§Ù…ÙŠØ© Ù„Ù„Ù…ØªØµÙØ­ Ø¹Ø¨Ø± Ù…ØªØºÙŠØ± Ø§Ù„Ø¨ÙŠØ¦Ø© `BROWSER_MEDIA_URL_MODE` Ø§Ù„Ø°ÙŠ ÙŠØ¯Ø¹Ù… Ø«Ù„Ø§Ø«Ø© Ø£ÙˆØ¶Ø§Ø¹:
+     - `b2` (Ø§Ù„ÙˆØ¶Ø¹ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ Ù„Ù„Ø³Ø±Ø¹Ø© ÙˆØ§Ù„Ø£Ù…Ø§Ù†): Ø§Ù„Ø¨Ø« Ø§Ù„Ù…Ø¨Ø§Ø´Ø± ÙˆØ§Ù„Ø¢Ù…Ù† Ù…Ù† Ø±ÙˆØ§Ø¨Ø· Backblaze B2 Ø§Ù„Ø¹Ø§Ù…Ø© Ù…Ø¨Ø§Ø´Ø±Ø©Ù‹ (`https://saadstudio-storage.s3.eu-central-003.backblazeb2.com`).
+     - `cdn`: Ø§Ù„Ø¨Ø« Ø¹Ø¨Ø± CDN Ø®Ø§Ø±Ø¬ÙŠ (Ù…Ø«Ù„ BunnyCDN) Ù„Ø²ÙŠØ§Ø¯Ø© Ø³Ø±Ø¹Ø© Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø¥Ù‚Ù„ÙŠÙ…ÙŠØ© Ù„Ù„Ø´Ø±Ù‚ Ø§Ù„Ø£ÙˆØ³Ø· ÙˆØ§Ù„Ø¹Ø±Ø§Ù‚ ÙˆÙŠÙ‚Ø±Ø£ Ø§Ù„Ù…ÙØªØ§Ø­ `BROWSER_CDN_BASE_URL`.
+     - `proxy`: Ø§Ù„Ø¨Ø« Ø§Ù„ÙƒÙ„Ø§Ø³ÙŠÙƒÙŠ Ø¹Ø¨Ø± Ø®ÙˆØ§Ø¯Ù… Ø§Ù„Ø¨Ø±ÙˆÙƒØ³ÙŠ Ø§Ù„Ù…Ø­Ù„ÙŠØ© Ù„Ù€ Next.js `/api/media/...` (ÙŠØªÙ… ØªÙØ¹ÙŠÙ„Ù‡ ÙÙ‚Ø· ÙƒØ­Ø§Ù„Ø© Ø·Ø§Ø±Ø¦Ø© Ø£Ùˆ Ø§Ø­ØªÙŠØ§Ø·ÙŠØ©).
+   - ØªØ¸Ù„ Ø±ÙˆØ§Ø¨Ø· Ù…Ø²ÙˆØ¯ÙŠ Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ (`resolveProviderMediaUrl()`) Ù…Ø³ØªÙ‚Ù„Ø© ØªÙ…Ø§Ù…Ø§Ù‹ ÙˆØªØ¹ØªÙ…Ø¯ Ø±ÙˆØ§Ø¨Ø· B2 Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø© ÙÙ‚Ø·.
+   - **Ø§Ù„Ø®ÙŠØ§Ø± Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠ Ù„Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø©**: Ø§Ù„Ù†Ø·Ø§Ù‚ Ø§Ù„Ø®Ø§Ù… Ø§Ù„Ù…Ø¨Ø§Ø´Ø± Ù„Ù„Ù€ R2 ÙˆÙ‡Ùˆ `https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev` (Ù…Ø¹ Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ `media.saadstudio.app` Ø­Ø§Ù„ÙŠØ§Ù‹ Ø¨Ø³Ø¨Ø¨ Ù…Ø´Ø§ÙƒÙ„ Ø§Ù„Ù€ DNS).
+3. **ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø¢Ù„ÙŠØ© ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ø£Ù…Ø§Ù…ÙŠØ© Ù„Ù„Ù…ÙˆÙ‚Ø¹**:
+   - ÙƒØ§ÙØ© Ø§Ù„Ø¹Ù†Ø§ØµØ± (`<img>`, `<video>`, `<audio>`) ÙˆØ§Ù„Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© (Ù…Ø«Ù„ `VideoCanvas` Ùˆ `AudioCanvas` ÙÙŠ `AssetInspector.tsx` ÙˆÙ…ÙƒÙˆÙ†Ø§Øª `MediaGrid.tsx` ÙˆØµÙØ­Ø© Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ `music/page.tsx`) Ù…Ø²ÙˆØ¯Ø© Ø¨Ù…Ø¹Ø§Ù„Ø¬Ø© `onError` Ù„ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø§Ø¨Ø· ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¥Ù„Ù‰ Ø§Ù„ØªØ§Ù„ÙŠ ÙÙŠ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø¥Ø°Ø§ ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ.
+   - ÙŠØªÙˆÙØ± Ù…Ø±Ø§Ù‚Ø¨ Ø£Ø®Ø·Ø§Ø¡ Ø¹Ø§Ù… (Global Capture Error Listener) in `app/layout.tsx` Ù„Ø§Ø¹ØªØ±Ø§Ø¶ ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø£ÙŠ Ø¹Ù†ØµØ± ÙˆØ³Ø§Ø¦Ø· ÙˆØªØ¨Ø¯ÙŠÙ„Ù‡ Ø­ÙŠØ§Ù‹ Ù„Ù…Ù†Ø¹ ØªØ¬Ù…ÙŠØ¯ ÙˆØ§Ø¬Ù‡Ø§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù….
+4. **ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø¢Ù„ÙŠØ© ÙÙŠ Ø¥Ø¶Ø§ÙØ© Premiere CEP**:
+   - Ø¯Ø§Ù„Ø© `downloadAsset` ÙÙŠ `src/lib/api.ts` ØªÙ‚ÙˆÙ… Ø¨Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù„ØªØ­Ù…ÙŠÙ„ Ø¨Ø´ÙƒÙ„ Ù…ØªÙƒØ±Ø± (Retry Loop) Ø¹Ø¨Ø± Ø³Ù„Ø³Ù„Ø© Ø§Ù„ØªØ±Ø§Ø¬Ø¹ Ù…Ø¹ ØªÙ…Ø±ÙŠØ± `isDownload = true` Ù„ØªÙ…ÙƒÙŠÙ† Ø§Ù„Ø¨Ø±ÙˆÙƒØ³ÙŠ ÙƒØ®ÙŠØ§Ø± Ø£Ø®ÙŠØ± Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©.
+   - ÙŠØªÙ… Ø¥Ù„Ø­Ø§Ù‚ Ù…Ø±Ø§Ù‚Ø¨ Ø£Ø®Ø·Ø§Ø¡ Ø¹Ø§Ù… Ø¹Ù„Ù‰ Ù…Ø³ØªÙˆÙ‰ Ø§Ù„Ù†Ø§ÙØ°Ø© (Global Event Listener) ÙÙŠ `main.ts` Ù„ØªØ¨Ø¯ÙŠÙ„ Ù…ØµØ§Ø¯Ø± Ø§Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…ÙˆÙ„Ø¯Ø© Ø¨ØµØ±ÙŠØ§Ù‹ ÙÙŠ Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ø¹Ù†Ø¯ Ø§Ù„ÙØ´Ù„.
+5. **Ø¶ÙˆØ§Ø¨Ø· Ø­Ù…Ø§ÙŠØ© API Ø§Ù„Ø¨Ø±ÙˆÙƒØ³ÙŠ**:
+   - ÙŠØ±ÙØ¶ Ù…Ø³Ø§Ø± `/api/proxy-image` ØªÙ…Ø§Ù…Ø§Ù‹ Ø¨Ø±ÙˆÙƒØ³ÙŠ Ù…Ù„ÙØ§Øª Ø§Ù„ÙÙŠØ¯ÙŠÙˆ (400 Bad Request) ÙˆÙŠÙØ­Øµ Ø°Ù„Ùƒ Ø¨Ø§Ù…ØªØ¯Ø§Ø¯ Ø§Ù„Ø±Ø§Ø¨Ø· ÙˆÙ†ÙˆØ¹ Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ØŒ ÙˆÙŠÙ‚ØµØ± Ø¹Ù…Ù„Ù‡ Ø­ØµØ±ÙŠØ§Ù‹ Ø¹Ù„Ù‰ Ø§Ù„ØµÙˆØ± Ù„ØªØ£Ù…ÙŠÙ† Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø³ÙŠØ±ÙØ±.
+6. **Ø¶ÙˆØ§Ø¨Ø· ØªØ²ÙˆÙŠØ¯ Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ Ù„Ù…Ø²ÙˆØ¯ÙŠ Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠÙŠÙ†**:
+   - ÙŠÙ„ØªØ²Ù… Ù…Ø³Ø§Ø± API Ø§Ù„ÙÙŠØ¯ÙŠÙˆ (`/api/video`) Ø¨ØªØ­ÙˆÙŠÙ„ ÙƒØ§ÙØ© Ø§Ù„Ù…Ø¯Ø®Ù„Ø§Øª ÙˆØ§Ù„ÙˆØ³Ø§Ø¦Ø· Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠØ© Ù„Ø±ÙˆØ§Ø¨Ø· Ù…Ø·Ù„Ù‚Ø© ÙˆÙ…Ø¨Ø§Ø´Ø±Ø© ÙˆØ¹Ø§Ù…Ø© Ù„Ù„Ù€ Bucket ÙÙŠ Backblaze B2 Ø¨Ø´ÙƒÙ„ ÙƒØ§Ù…Ù„.
+   - ÙŠØ±ÙØ¶ Ø§Ù„Ø³ÙŠØ±ÙØ± ØªÙ…Ø±ÙŠØ± Ø§Ù„Ø¨Ø±ÙˆÙƒØ³ÙŠ Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ (`/api/media`) Ø£Ùˆ Ø±ÙˆØ§Ø¨Ø· localhost Ø£Ùˆ base64 Ø£Ùˆ blob Ù„Ù…Ø²ÙˆØ¯ÙŠ Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠÙŠÙ† (BytePlus, Google, KIE, WaveSpeed).
+   - ÙŠØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø¥Ù…ÙƒØ§Ù†ÙŠØ© ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù„Ù Ø¨Ø§Ù„Ù€ Server-side HEAD/GET request Ù‚Ø¨Ù„ Ø®ØµÙ… Ø§Ù„ÙƒØ±ÙŠØ¯ÙŠØª Ø£Ùˆ Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø§Ù„Ù…Ø²ÙˆØ¯ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠ Ù„ØªÙØ§Ø¯ÙŠ Ø§Ù„ÙØ´Ù„ ÙˆØ®ØµÙ… Ø§Ù„ÙƒØ±ÙŠØ¯ÙŠØª Ø¨Ø¯ÙˆÙ† ÙØ§Ø¦Ø¯Ø©.
 
-## مرجع معماري من AutoCut V4.60.2
+## Ù…Ø±Ø¬Ø¹ Ù…Ø¹Ù…Ø§Ø±ÙŠ Ù…Ù† AutoCut V4.60.2
 
-- تمت مراجعة الحزمة المحلية `C:\Users\PC\AppData\Local\AutoCut\current\resources\app.asar` قراءةً فقط. النتائج المثبتة من الحزمة نفسها:
-- هوية النسخة المتحقق منها بتاريخ 2026-06-18: الحجم `97,862,233` بايت، آخر تعديل `2026-06-02 21:38:23`، وSHA-256: `EAC5FE19B7FCFD769B6983AE0F1DA3ADFEA5A9A7124247A47302E4FFAADD94B0`. إذا تغيّرت البصمة، تُعاد المراجعة قبل اعتماد الاستنتاجات على النسخة الجديدة.
-- التطبيق غلاف Electron 35، والحزمة تحتوي 8,571 ملفًا، أغلبها dependencies. كود التطبيق المحلي الفعلي متمركز في `packages/main/dist/index.js` و`packages/preload/dist/index.mjs`.
-- التطبيق لا يضم خوارزميات المونتاج كاملة داخل `app.asar`. عند التشغيل يجلب إعدادات وروابط إصدارات، ثم ينزّل `main.cjs` لخادم host وينزّل compute scripts حسب المهمة. لذلك لا يمكن استنتاج خوارزمية Silence/Multi-Cam كاملة من هذه الحزمة وحدها.
-- المعمارية مفصولة إلى أربع طبقات:
-  1. واجهة ويب/remote frontend داخل Electron.
-  2. Electron main process للتحديثات والتنزيلات والنوافذ.
-  3. `com.autocut.hostServer` للتخاطب مع تطبيق المضيف/الإضافة.
-  4. `com.autocut.compute` للمهام الثقيلة مع API مثل `startTask`, `killTasks`, `getProgress`.
-- الاتصال بين الطبقات يتم عبر Node IPC داخل مجلد مؤقت `com.autocut/com.autocut.aea`.
-- AutoCut ينزّل نسخًا خاصة به من `ffmpeg` و`ffprobe` حسب نظام التشغيل والمعمارية، يتحقق من وجودهما/حداثتهما، ويخزنهما تحت userData. هذا يؤكد نمط: **Premiere host adapter منفصل عن compute/FFmpeg**.
-- إعدادات التشغيل تتضمن روابط مستقلة للواجهة، onboarding، compute، host server، تنزيل Premiere (`PPRO_DOWNLOAD_URL`) وتنزيل DaVinci؛ أي أن تطبيق سطح المكتب موزّع orchestrator لعدة مضيفين.
-- preload يعرّض bridge باسمَي `__autocut_preload__` و`__electron_preload__`، ويتضمن filesystem، child processes، downloads، FFmpeg setup، IPC وcookies. هذا تصميم قوي لكنه واسع الصلاحيات؛ في Saad Studio يجب إبقاء الجسر أصغر وتقييد العمليات والمدخلات قدر الإمكان.
-- الخلاصة القابلة لإعادة الاستخدام: نعتمد الفصل نفسه مفاهيميًا في Saad Studio — UI، Premiere adapter، task/compute service، FFmpeg — لكن لا ننسخ كود AutoCut أو endpoints الخاصة به.
+- ØªÙ…Øª Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø­Ø²Ù…Ø© Ø§Ù„Ù…Ø­Ù„ÙŠØ© `C:\Users\PC\AppData\Local\AutoCut\current\resources\app.asar` Ù‚Ø±Ø§Ø¡Ø©Ù‹ ÙÙ‚Ø·. Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ù…Ø«Ø¨ØªØ© Ù…Ù† Ø§Ù„Ø­Ø²Ù…Ø© Ù†ÙØ³Ù‡Ø§:
+- Ù‡ÙˆÙŠØ© Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù…ØªØ­Ù‚Ù‚ Ù…Ù†Ù‡Ø§ Ø¨ØªØ§Ø±ÙŠØ® 2026-06-18: Ø§Ù„Ø­Ø¬Ù… `97,862,233` Ø¨Ø§ÙŠØªØŒ Ø¢Ø®Ø± ØªØ¹Ø¯ÙŠÙ„ `2026-06-02 21:38:23`ØŒ ÙˆSHA-256: `EAC5FE19B7FCFD769B6983AE0F1DA3ADFEA5A9A7124247A47302E4FFAADD94B0`. Ø¥Ø°Ø§ ØªØºÙŠÙ‘Ø±Øª Ø§Ù„Ø¨ØµÙ…Ø©ØŒ ØªÙØ¹Ø§Ø¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© Ù‚Ø¨Ù„ Ø§Ø¹ØªÙ…Ø§Ø¯ Ø§Ù„Ø§Ø³ØªÙ†ØªØ§Ø¬Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©.
+- Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ ØºÙ„Ø§Ù Electron 35ØŒ ÙˆØ§Ù„Ø­Ø²Ù…Ø© ØªØ­ØªÙˆÙŠ 8,571 Ù…Ù„ÙÙ‹Ø§ØŒ Ø£ØºÙ„Ø¨Ù‡Ø§ dependencies. ÙƒÙˆØ¯ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ù…Ø­Ù„ÙŠ Ø§Ù„ÙØ¹Ù„ÙŠ Ù…ØªÙ…Ø±ÙƒØ² ÙÙŠ `packages/main/dist/index.js` Ùˆ`packages/preload/dist/index.mjs`.
+- Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù„Ø§ ÙŠØ¶Ù… Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ§Øª Ø§Ù„Ù…ÙˆÙ†ØªØ§Ø¬ ÙƒØ§Ù…Ù„Ø© Ø¯Ø§Ø®Ù„ `app.asar`. Ø¹Ù†Ø¯ Ø§Ù„ØªØ´ØºÙŠÙ„ ÙŠØ¬Ù„Ø¨ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª ÙˆØ±ÙˆØ§Ø¨Ø· Ø¥ØµØ¯Ø§Ø±Ø§ØªØŒ Ø«Ù… ÙŠÙ†Ø²Ù‘Ù„ `main.cjs` Ù„Ø®Ø§Ø¯Ù… host ÙˆÙŠÙ†Ø²Ù‘Ù„ compute scripts Ø­Ø³Ø¨ Ø§Ù„Ù…Ù‡Ù…Ø©. Ù„Ø°Ù„Ùƒ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ø³ØªÙ†ØªØ§Ø¬ Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ© Silence/Multi-Cam ÙƒØ§Ù…Ù„Ø© Ù…Ù† Ù‡Ø°Ù‡ Ø§Ù„Ø­Ø²Ù…Ø© ÙˆØ­Ø¯Ù‡Ø§.
+- Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ© Ù…ÙØµÙˆÙ„Ø© Ø¥Ù„Ù‰ Ø£Ø±Ø¨Ø¹ Ø·Ø¨Ù‚Ø§Øª:
+  1. ÙˆØ§Ø¬Ù‡Ø© ÙˆÙŠØ¨/remote frontend Ø¯Ø§Ø®Ù„ Electron.
+  2. Electron main process Ù„Ù„ØªØ­Ø¯ÙŠØ«Ø§Øª ÙˆØ§Ù„ØªÙ†Ø²ÙŠÙ„Ø§Øª ÙˆØ§Ù„Ù†ÙˆØ§ÙØ°.
+  3. `com.autocut.hostServer` Ù„Ù„ØªØ®Ø§Ø·Ø¨ Ù…Ø¹ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ù…Ø¶ÙŠÙ/Ø§Ù„Ø¥Ø¶Ø§ÙØ©.
+  4. `com.autocut.compute` Ù„Ù„Ù…Ù‡Ø§Ù… Ø§Ù„Ø«Ù‚ÙŠÙ„Ø© Ù…Ø¹ API Ù…Ø«Ù„ `startTask`, `killTasks`, `getProgress`.
+- Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨ÙŠÙ† Ø§Ù„Ø·Ø¨Ù‚Ø§Øª ÙŠØªÙ… Ø¹Ø¨Ø± Node IPC Ø¯Ø§Ø®Ù„ Ù…Ø¬Ù„Ø¯ Ù…Ø¤Ù‚Øª `com.autocut/com.autocut.aea`.
+- AutoCut ÙŠÙ†Ø²Ù‘Ù„ Ù†Ø³Ø®Ù‹Ø§ Ø®Ø§ØµØ© Ø¨Ù‡ Ù…Ù† `ffmpeg` Ùˆ`ffprobe` Ø­Ø³Ø¨ Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ ÙˆØ§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ©ØŒ ÙŠØªØ­Ù‚Ù‚ Ù…Ù† ÙˆØ¬ÙˆØ¯Ù‡Ù…Ø§/Ø­Ø¯Ø§Ø«ØªÙ‡Ù…Ø§ØŒ ÙˆÙŠØ®Ø²Ù†Ù‡Ù…Ø§ ØªØ­Øª userData. Ù‡Ø°Ø§ ÙŠØ¤ÙƒØ¯ Ù†Ù…Ø·: **Premiere host adapter Ù…Ù†ÙØµÙ„ Ø¹Ù† compute/FFmpeg**.
+- Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ ØªØªØ¶Ù…Ù† Ø±ÙˆØ§Ø¨Ø· Ù…Ø³ØªÙ‚Ù„Ø© Ù„Ù„ÙˆØ§Ø¬Ù‡Ø©ØŒ onboardingØŒ computeØŒ host serverØŒ ØªÙ†Ø²ÙŠÙ„ Premiere (`PPRO_DOWNLOAD_URL`) ÙˆØªÙ†Ø²ÙŠÙ„ DaVinciØ› Ø£ÙŠ Ø£Ù† ØªØ·Ø¨ÙŠÙ‚ Ø³Ø·Ø­ Ø§Ù„Ù…ÙƒØªØ¨ Ù…ÙˆØ²Ù‘Ø¹ orchestrator Ù„Ø¹Ø¯Ø© Ù…Ø¶ÙŠÙÙŠÙ†.
+- preload ÙŠØ¹Ø±Ù‘Ø¶ bridge Ø¨Ø§Ø³Ù…ÙŽÙŠ `__autocut_preload__` Ùˆ`__electron_preload__`ØŒ ÙˆÙŠØªØ¶Ù…Ù† filesystemØŒ child processesØŒ downloadsØŒ FFmpeg setupØŒ IPC Ùˆcookies. Ù‡Ø°Ø§ ØªØµÙ…ÙŠÙ… Ù‚ÙˆÙŠ Ù„ÙƒÙ†Ù‡ ÙˆØ§Ø³Ø¹ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§ØªØ› ÙÙŠ Saad Studio ÙŠØ¬Ø¨ Ø¥Ø¨Ù‚Ø§Ø¡ Ø§Ù„Ø¬Ø³Ø± Ø£ØµØºØ± ÙˆØªÙ‚ÙŠÙŠØ¯ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª ÙˆØ§Ù„Ù…Ø¯Ø®Ù„Ø§Øª Ù‚Ø¯Ø± Ø§Ù„Ø¥Ù…ÙƒØ§Ù†.
+- Ø§Ù„Ø®Ù„Ø§ØµØ© Ø§Ù„Ù‚Ø§Ø¨Ù„Ø© Ù„Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù…: Ù†Ø¹ØªÙ…Ø¯ Ø§Ù„ÙØµÙ„ Ù†ÙØ³Ù‡ Ù…ÙØ§Ù‡ÙŠÙ…ÙŠÙ‹Ø§ ÙÙŠ Saad Studio â€” UIØŒ Premiere adapterØŒ task/compute serviceØŒ FFmpeg â€” Ù„ÙƒÙ† Ù„Ø§ Ù†Ù†Ø³Ø® ÙƒÙˆØ¯ AutoCut Ø£Ùˆ endpoints Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù‡.
 
-## قواعد لا تُكسر
+## Ù‚ÙˆØ§Ø¹Ø¯ Ù„Ø§ ØªÙÙƒØ³Ø±
 
-- لا نخمن Premiere APIs أو media paths أو audio streams.
-- لا نقرأ audio gain ونعتبره RMS.
-- لا نخفي blockers ولا نزيّف Runtime Proof.
-- لا نستخدم Reap أو AI diarization لتحليل Multi-Cam v1.
-- لا ننفذ قرارات غير محاذاة للإطار.
-- لا نغيّر الأصل عندما يكون سير العمل المتفق عليه safe duplicate؛ أي استثناء لاحق يجب أن يكون قرارًا صريحًا ومختبرًا.
-- لا نغيّر ربط Google أو BytePlus أو OpenAI أو `kie.ai` عند إضافة Reap.
-- لا نمرر الفيديوهات الكبيرة عبر Next.js API routes، ولا نخزن ملفات الميديا داخل Neon.
+- Ù„Ø§ Ù†Ø®Ù…Ù† Premiere APIs Ø£Ùˆ media paths Ø£Ùˆ audio streams.
+- Ù„Ø§ Ù†Ù‚Ø±Ø£ audio gain ÙˆÙ†Ø¹ØªØ¨Ø±Ù‡ RMS.
+- Ù„Ø§ Ù†Ø®ÙÙŠ blockers ÙˆÙ„Ø§ Ù†Ø²ÙŠÙ‘Ù Runtime Proof.
+- Ù„Ø§ Ù†Ø³ØªØ®Ø¯Ù… Reap Ø£Ùˆ AI diarization Ù„ØªØ­Ù„ÙŠÙ„ Multi-Cam v1.
+- Ù„Ø§ Ù†Ù†ÙØ° Ù‚Ø±Ø§Ø±Ø§Øª ØºÙŠØ± Ù…Ø­Ø§Ø°Ø§Ø© Ù„Ù„Ø¥Ø·Ø§Ø±.
+- Ù„Ø§ Ù†ØºÙŠÙ‘Ø± Ø§Ù„Ø£ØµÙ„ Ø¹Ù†Ø¯Ù…Ø§ ÙŠÙƒÙˆÙ† Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„Ù…ØªÙÙ‚ Ø¹Ù„ÙŠÙ‡ safe duplicateØ› Ø£ÙŠ Ø§Ø³ØªØ«Ù†Ø§Ø¡ Ù„Ø§Ø­Ù‚ ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ù‚Ø±Ø§Ø±Ù‹Ø§ ØµØ±ÙŠØ­Ù‹Ø§ ÙˆÙ…Ø®ØªØ¨Ø±Ù‹Ø§.
+- Ù„Ø§ Ù†ØºÙŠÙ‘Ø± Ø±Ø¨Ø· Google Ø£Ùˆ BytePlus Ø£Ùˆ OpenAI Ø£Ùˆ `kie.ai` Ø¹Ù†Ø¯ Ø¥Ø¶Ø§ÙØ© Reap.
+- Ù„Ø§ Ù†Ù…Ø±Ø± Ø§Ù„ÙÙŠØ¯ÙŠÙˆÙ‡Ø§Øª Ø§Ù„ÙƒØ¨ÙŠØ±Ø© Ø¹Ø¨Ø± Next.js API routesØŒ ÙˆÙ„Ø§ Ù†Ø®Ø²Ù† Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ Ø¯Ø§Ø®Ù„ Neon.
 
-## المصادر
+## Ø§Ù„Ù…ØµØ§Ø¯Ø±
 
 - Reap Getting Started: https://docs.reap.video/help-center/getting-started
 - Reap API Introduction: https://docs.reap.video/api-reference/1_introduction
 - Reap documentation index: https://docs.reap.video/llms.txt
 - Premiere Sequence reference: https://raw.githubusercontent.com/docsforadobe/premiere-scripting-guide/master/docs/sequence/sequence.md
-- Premiere Pro Scripting Guide: https://ppro-scripting.docsforadobe.dev/ (المسار المحلي: [premiere-pro-scripting-guide.md](file:///e:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/premiere-pro-scripting-guide.md))
-- المرجع المحلي الكامل v3.1: `C:\Users\PC\Downloads\المرجع.md`
+- Premiere Pro Scripting Guide: https://ppro-scripting.docsforadobe.dev/ (Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø­Ù„ÙŠ: [premiere-pro-scripting-guide.md](file:///e:/Ù…ÙˆÙ‚Ø¹ Ø«Ø§Ù†ÙŠ/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/docs/premiere-pro-scripting-guide.md))
+- Ø§Ù„Ù…Ø±Ø¬Ø¹ Ø§Ù„Ù…Ø­Ù„ÙŠ Ø§Ù„ÙƒØ§Ù…Ù„ v3.1: `C:\Users\PC\Downloads\Ø§Ù„Ù…Ø±Ø¬Ø¹.md`
 
-## حارس تحليل Multi-Cam Draft (2026-06-19)
+## Ø­Ø§Ø±Ø³ ØªØ­Ù„ÙŠÙ„ Multi-Cam Draft (2026-06-19)
 
-- أي active sequence يحتوي اسمه `Saad Auto Switch Draft` لا يجوز إرساله إلى FFmpeg/RMS ولا إعادة Preview أو Apply عليه.
-- `Analyze Timeline` مسموح له بقراءة layout الخفيف فقط لاكتشاف الاسم، ثم يعيد blocker `ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT_SELECT_SOURCE_SEQUENCE`.
-- واجهة الإنتاج تعطل Analyze/Preview/Apply بعد اكتشاف الـDraft وتطلب اختيار source sequence مثل `Synced Sequence`. هذا يمنع التحليل الطويل والنسخ المتسلسلة، من دون حذف أي sequence قديم تلقائيًا.
+- Ø£ÙŠ active sequence ÙŠØ­ØªÙˆÙŠ Ø§Ø³Ù…Ù‡ `Saad Auto Switch Draft` Ù„Ø§ ÙŠØ¬ÙˆØ² Ø¥Ø±Ø³Ø§Ù„Ù‡ Ø¥Ù„Ù‰ FFmpeg/RMS ÙˆÙ„Ø§ Ø¥Ø¹Ø§Ø¯Ø© Preview Ø£Ùˆ Apply Ø¹Ù„ÙŠÙ‡.
+- `Analyze Timeline` Ù…Ø³Ù…ÙˆØ­ Ù„Ù‡ Ø¨Ù‚Ø±Ø§Ø¡Ø© layout Ø§Ù„Ø®ÙÙŠÙ ÙÙ‚Ø· Ù„Ø§ÙƒØªØ´Ø§Ù Ø§Ù„Ø§Ø³Ù…ØŒ Ø«Ù… ÙŠØ¹ÙŠØ¯ blocker `ACTIVE_SEQUENCE_IS_AUTO_SWITCH_DRAFT_SELECT_SOURCE_SEQUENCE`.
+- ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ø¥Ù†ØªØ§Ø¬ ØªØ¹Ø·Ù„ Analyze/Preview/Apply Ø¨Ø¹Ø¯ Ø§ÙƒØªØ´Ø§Ù Ø§Ù„Ù€Draft ÙˆØªØ·Ù„Ø¨ Ø§Ø®ØªÙŠØ§Ø± source sequence Ù…Ø«Ù„ `Synced Sequence`. Ù‡Ø°Ø§ ÙŠÙ…Ù†Ø¹ Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø·ÙˆÙŠÙ„ ÙˆØ§Ù„Ù†Ø³Ø® Ø§Ù„Ù…ØªØ³Ù„Ø³Ù„Ø©ØŒ Ù…Ù† Ø¯ÙˆÙ† Ø­Ø°Ù Ø£ÙŠ sequence Ù‚Ø¯ÙŠÙ… ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§.
 
-## مزامنة Active Sequence مع واجهة Podcast (2026-06-19)
+## Ù…Ø²Ø§Ù…Ù†Ø© Active Sequence Ù…Ø¹ ÙˆØ§Ø¬Ù‡Ø© Podcast (2026-06-19)
 
-- تبقي صفحة Podcast مراقبًا خفيفًا كل 1000ms لهوية الـActive Sequence عبر diagnostics، من دون تحليل وسائط أو FFmpeg.
-- عند تغير `sequenceId` أو الاسم تُلغى كل النتائج المخزنة الخاصة بالـSequence السابق قبل السماح بـAnalyze/Preview/Apply على الجديد؛ ويشمل ذلك Sync وMulti-Cam وإثباتات الصوت.
-- يتوقف المراقب تلقائيًا عند إزالة الصفحة من DOM، ولا يستعلم أثناء تنفيذ أداة إنتاجية لتجنب تداخل طلبات Host.
+- ØªØ¨Ù‚ÙŠ ØµÙØ­Ø© Podcast Ù…Ø±Ø§Ù‚Ø¨Ù‹Ø§ Ø®ÙÙŠÙÙ‹Ø§ ÙƒÙ„ 1000ms Ù„Ù‡ÙˆÙŠØ© Ø§Ù„Ù€Active Sequence Ø¹Ø¨Ø± diagnosticsØŒ Ù…Ù† Ø¯ÙˆÙ† ØªØ­Ù„ÙŠÙ„ ÙˆØ³Ø§Ø¦Ø· Ø£Ùˆ FFmpeg.
+- Ø¹Ù†Ø¯ ØªØºÙŠØ± `sequenceId` Ø£Ùˆ Ø§Ù„Ø§Ø³Ù… ØªÙÙ„ØºÙ‰ ÙƒÙ„ Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø§Ù„Ù…Ø®Ø²Ù†Ø© Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ù€Sequence Ø§Ù„Ø³Ø§Ø¨Ù‚ Ù‚Ø¨Ù„ Ø§Ù„Ø³Ù…Ø§Ø­ Ø¨Ù€Analyze/Preview/Apply Ø¹Ù„Ù‰ Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø› ÙˆÙŠØ´Ù…Ù„ Ø°Ù„Ùƒ Sync ÙˆMulti-Cam ÙˆØ¥Ø«Ø¨Ø§ØªØ§Øª Ø§Ù„ØµÙˆØª.
+- ÙŠØªÙˆÙ‚Ù Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ø¹Ù†Ø¯ Ø¥Ø²Ø§Ù„Ø© Ø§Ù„ØµÙØ­Ø© Ù…Ù† DOMØŒ ÙˆÙ„Ø§ ÙŠØ³ØªØ¹Ù„Ù… Ø£Ø«Ù†Ø§Ø¡ ØªÙ†ÙÙŠØ° Ø£Ø¯Ø§Ø© Ø¥Ù†ØªØ§Ø¬ÙŠØ© Ù„ØªØ¬Ù†Ø¨ ØªØ¯Ø§Ø®Ù„ Ø·Ù„Ø¨Ø§Øª Host.
 
-## توزيع أربع كاميرات في Multi-Cam (2026-06-19)
+## ØªÙˆØ²ÙŠØ¹ Ø£Ø±Ø¨Ø¹ ÙƒØ§Ù…ÙŠØ±Ø§Øª ÙÙŠ Multi-Cam (2026-06-19)
 
-- عند وجود V1 عامة وV2 مقدم وV3 ضيف وV4 ضيف ثانٍ: لا يُعامل صوت الكاميرا العامة كمتحدث؛ يُترك Ignore، وتُربط ميكروفونات الأشخاص بـV2/V3/V4، وتُربط `Wide` بـV1. الكاميرا العامة تُستخدم عند تداخل الكلام وفق الخطة الحالية؛ إذا بقيت Unmapped فلن تظهر.
+- Ø¹Ù†Ø¯ ÙˆØ¬ÙˆØ¯ V1 Ø¹Ø§Ù…Ø© ÙˆV2 Ù…Ù‚Ø¯Ù… ÙˆV3 Ø¶ÙŠÙ ÙˆV4 Ø¶ÙŠÙ Ø«Ø§Ù†Ù: Ù„Ø§ ÙŠÙØ¹Ø§Ù…Ù„ ØµÙˆØª Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ø§Ù„Ø¹Ø§Ù…Ø© ÙƒÙ…ØªØ­Ø¯Ø«Ø› ÙŠÙØªØ±Ùƒ IgnoreØŒ ÙˆØªÙØ±Ø¨Ø· Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ†Ø§Øª Ø§Ù„Ø£Ø´Ø®Ø§Øµ Ø¨Ù€V2/V3/V4ØŒ ÙˆØªÙØ±Ø¨Ø· `Wide` Ø¨Ù€V1. Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ø§Ù„Ø¹Ø§Ù…Ø© ØªÙØ³ØªØ®Ø¯Ù… Ø¹Ù†Ø¯ ØªØ¯Ø§Ø®Ù„ Ø§Ù„ÙƒÙ„Ø§Ù… ÙˆÙÙ‚ Ø§Ù„Ø®Ø·Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ©Ø› Ø¥Ø°Ø§ Ø¨Ù‚ÙŠØª Unmapped ÙÙ„Ù† ØªØ¸Ù‡Ø±.
 
-## إعادة تهيئة Camera Mapping (2026-06-19)
+## Ø¥Ø¹Ø§Ø¯Ø© ØªÙ‡ÙŠØ¦Ø© Camera Mapping (2026-06-19)
 
-- Camera Mapping حالة مرتبطة بالـSequence ولا يجوز نقلها تلقائيًا إلى Sequence آخر. عند تغير الهوية تُمسح الخرائط وحالة التدخل اليدوي.
-- بعد Analyze فقط، وإذا لم يلمس المستخدم الخرائط، يُعيّن المسار المسمى Wide كـ`wide` ولا يُعامل مسار الصوت ذي الفهرس نفسه كمتحدث. بقية الأصوات تُربط بمسار فيديو مناظر فقط إن كان فعليًا ويحمل clips؛ المسارات الزائدة تبقى Ignore.
+- Camera Mapping Ø­Ø§Ù„Ø© Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„Ù€Sequence ÙˆÙ„Ø§ ÙŠØ¬ÙˆØ² Ù†Ù‚Ù„Ù‡Ø§ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ø¥Ù„Ù‰ Sequence Ø¢Ø®Ø±. Ø¹Ù†Ø¯ ØªØºÙŠØ± Ø§Ù„Ù‡ÙˆÙŠØ© ØªÙÙ…Ø³Ø­ Ø§Ù„Ø®Ø±Ø§Ø¦Ø· ÙˆØ­Ø§Ù„Ø© Ø§Ù„ØªØ¯Ø®Ù„ Ø§Ù„ÙŠØ¯ÙˆÙŠ.
+- Ø¨Ø¹Ø¯ Analyze ÙÙ‚Ø·ØŒ ÙˆØ¥Ø°Ø§ Ù„Ù… ÙŠÙ„Ù…Ø³ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø®Ø±Ø§Ø¦Ø·ØŒ ÙŠÙØ¹ÙŠÙ‘Ù† Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø³Ù…Ù‰ Wide ÙƒÙ€`wide` ÙˆÙ„Ø§ ÙŠÙØ¹Ø§Ù…Ù„ Ù…Ø³Ø§Ø± Ø§Ù„ØµÙˆØª Ø°ÙŠ Ø§Ù„ÙÙ‡Ø±Ø³ Ù†ÙØ³Ù‡ ÙƒÙ…ØªØ­Ø¯Ø«. Ø¨Ù‚ÙŠØ© Ø§Ù„Ø£ØµÙˆØ§Øª ØªÙØ±Ø¨Ø· Ø¨Ù…Ø³Ø§Ø± ÙÙŠØ¯ÙŠÙˆ Ù…Ù†Ø§Ø¸Ø± ÙÙ‚Ø· Ø¥Ù† ÙƒØ§Ù† ÙØ¹Ù„ÙŠÙ‹Ø§ ÙˆÙŠØ­Ù…Ù„ clipsØ› Ø§Ù„Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„Ø²Ø§Ø¦Ø¯Ø© ØªØ¨Ù‚Ù‰ Ignore.
 
-## تصحيح دورة حياة Camera Mapping (2026-06-19)
+## ØªØµØ­ÙŠØ­ Ø¯ÙˆØ±Ø© Ø­ÙŠØ§Ø© Camera Mapping (2026-06-19)
 
-- لا تُمسح اختيارات Camera Mapping عند انتقال Premiere تلقائيًا من source sequence إلى الـDraft الناتج؛ مسحها يجعل كل الحقول Ignore فورًا ويمنع مراجعة الإعدادات.
-- تُبطل فقط نتائج التحليل والتنفيذ المرتبطة بهوية الـSequence. خرائط المستخدم تبقى محفوظة داخل جلسة الصفحة، ولا تُنشأ خرائط افتراضية بافتراض تطابق أرقام الصوت والفيديو.
+- Ù„Ø§ ØªÙÙ…Ø³Ø­ Ø§Ø®ØªÙŠØ§Ø±Ø§Øª Camera Mapping Ø¹Ù†Ø¯ Ø§Ù†ØªÙ‚Ø§Ù„ Premiere ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ù…Ù† source sequence Ø¥Ù„Ù‰ Ø§Ù„Ù€Draft Ø§Ù„Ù†Ø§ØªØ¬Ø› Ù…Ø³Ø­Ù‡Ø§ ÙŠØ¬Ø¹Ù„ ÙƒÙ„ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ignore ÙÙˆØ±Ù‹Ø§ ÙˆÙŠÙ…Ù†Ø¹ Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª.
+- ØªÙØ¨Ø·Ù„ ÙÙ‚Ø· Ù†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ­Ù„ÙŠÙ„ ÙˆØ§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ù‡ÙˆÙŠØ© Ø§Ù„Ù€Sequence. Ø®Ø±Ø§Ø¦Ø· Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØªØ¨Ù‚Ù‰ Ù…Ø­ÙÙˆØ¸Ø© Ø¯Ø§Ø®Ù„ Ø¬Ù„Ø³Ø© Ø§Ù„ØµÙØ­Ø©ØŒ ÙˆÙ„Ø§ ØªÙÙ†Ø´Ø£ Ø®Ø±Ø§Ø¦Ø· Ø§ÙØªØ±Ø§Ø¶ÙŠØ© Ø¨Ø§ÙØªØ±Ø§Ø¶ ØªØ·Ø§Ø¨Ù‚ Ø£Ø±Ù‚Ø§Ù… Ø§Ù„ØµÙˆØª ÙˆØ§Ù„ÙÙŠØ¯ÙŠÙˆ.
 
-## مرجع AutoSplice المفتوح المصدر (2026-06-19)
+## Ù…Ø±Ø¬Ø¹ AutoSplice Ø§Ù„Ù…ÙØªÙˆØ­ Ø§Ù„Ù…ØµØ¯Ø± (2026-06-19)
 
-- المصدر المحلي: `E:\Multi-Cam Auto Switch\autosplice-main\autosplice-main`، ترخيص MIT، ومعمارية CEP + FFmpeg/RMS + QE DOM. التوافق المعلن Premiere 22–25، لذلك لا يُفترض توافقه مع 26.2.0 بلا Runtime Proof.
-- منطق المتحدث المفيد: حساب RMS لكل إطار، اختيار الأعلى فقط عندما يتجاوز فرق الطاقة حساسية crosstalk، إبقاء قرار المتحدث خلال الغموض القصير (hysteresis)، ثم دمج القرارات الأقصر من Minimum Shot Length.
-- الكاميرا العامة في المرجع قرار مستقل عن speaker mapping: تُدرج دوريًا وفق frequency محدد، لا بوصف صوتها متحدثًا. يمكن تكييف هذا المنطق مع Wide=V1 في Saad Studio.
-- تطبيق المونتاج المرجعي يستخدم QE razor لكل الحدود ثم lift للفيديو غير النشط مع إبقاء الصوت؛ لا يُعتمد مباشرة لأنه يعدل الـactive sequence. قاعدة Saad Studio تبقى: duplicate آمن، ثم تحقق قبل/بعد.
+- Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ù…Ø­Ù„ÙŠ: `E:\Multi-Cam Auto Switch\autosplice-main\autosplice-main`ØŒ ØªØ±Ø®ÙŠØµ MITØŒ ÙˆÙ…Ø¹Ù…Ø§Ø±ÙŠØ© CEP + FFmpeg/RMS + QE DOM. Ø§Ù„ØªÙˆØ§ÙÙ‚ Ø§Ù„Ù…Ø¹Ù„Ù† Premiere 22â€“25ØŒ Ù„Ø°Ù„Ùƒ Ù„Ø§ ÙŠÙÙØªØ±Ø¶ ØªÙˆØ§ÙÙ‚Ù‡ Ù…Ø¹ 26.2.0 Ø¨Ù„Ø§ Runtime Proof.
+- Ù…Ù†Ø·Ù‚ Ø§Ù„Ù…ØªØ­Ø¯Ø« Ø§Ù„Ù…ÙÙŠØ¯: Ø­Ø³Ø§Ø¨ RMS Ù„ÙƒÙ„ Ø¥Ø·Ø§Ø±ØŒ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø£Ø¹Ù„Ù‰ ÙÙ‚Ø· Ø¹Ù†Ø¯Ù…Ø§ ÙŠØªØ¬Ø§ÙˆØ² ÙØ±Ù‚ Ø§Ù„Ø·Ø§Ù‚Ø© Ø­Ø³Ø§Ø³ÙŠØ© crosstalkØŒ Ø¥Ø¨Ù‚Ø§Ø¡ Ù‚Ø±Ø§Ø± Ø§Ù„Ù…ØªØ­Ø¯Ø« Ø®Ù„Ø§Ù„ Ø§Ù„ØºÙ…ÙˆØ¶ Ø§Ù„Ù‚ØµÙŠØ± (hysteresis)ØŒ Ø«Ù… Ø¯Ù…Ø¬ Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ø£Ù‚ØµØ± Ù…Ù† Minimum Shot Length.
+- Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ø§Ù„Ø¹Ø§Ù…Ø© ÙÙŠ Ø§Ù„Ù…Ø±Ø¬Ø¹ Ù‚Ø±Ø§Ø± Ù…Ø³ØªÙ‚Ù„ Ø¹Ù† speaker mapping: ØªÙØ¯Ø±Ø¬ Ø¯ÙˆØ±ÙŠÙ‹Ø§ ÙˆÙÙ‚ frequency Ù…Ø­Ø¯Ø¯ØŒ Ù„Ø§ Ø¨ÙˆØµÙ ØµÙˆØªÙ‡Ø§ Ù…ØªØ­Ø¯Ø«Ù‹Ø§. ÙŠÙ…ÙƒÙ† ØªÙƒÙŠÙŠÙ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù†Ø·Ù‚ Ù…Ø¹ Wide=V1 ÙÙŠ Saad Studio.
+- ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ù…ÙˆÙ†ØªØ§Ø¬ Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠ ÙŠØ³ØªØ®Ø¯Ù… QE razor Ù„ÙƒÙ„ Ø§Ù„Ø­Ø¯ÙˆØ¯ Ø«Ù… lift Ù„Ù„ÙÙŠØ¯ÙŠÙˆ ØºÙŠØ± Ø§Ù„Ù†Ø´Ø· Ù…Ø¹ Ø¥Ø¨Ù‚Ø§Ø¡ Ø§Ù„ØµÙˆØªØ› Ù„Ø§ ÙŠÙØ¹ØªÙ…Ø¯ Ù…Ø¨Ø§Ø´Ø±Ø© Ù„Ø£Ù†Ù‡ ÙŠØ¹Ø¯Ù„ Ø§Ù„Ù€active sequence. Ù‚Ø§Ø¹Ø¯Ø© Saad Studio ØªØ¨Ù‚Ù‰: duplicate Ø¢Ù…Ù†ØŒ Ø«Ù… ØªØ­Ù‚Ù‚ Ù‚Ø¨Ù„/Ø¨Ø¹Ø¯.
 
-## ضمان Minimum Shot Length (2026-06-19)
+## Ø¶Ù…Ø§Ù† Minimum Shot Length (2026-06-19)
 
-- قيمة Minimum Shot Length جزء من هوية خطة Preview؛ تغييرها يبطل الخطة السابقة ويفرض إعادة Preview قبل Apply.
-- بعد تكوين الفترات وملء الفجوات، تُزال القرارات الأقصر من الحد تكراريًا: بين كاميرتين متطابقتين تُدمج الثلاثة، وإلا تُضم الفترة القصيرة إلى الجار الأنسب. بعدها يجب ألا يبقى قرار قصير إلا إذا كانت الخطة كلها قرارًا وحيدًا أقصر من الحد.
-- توجد بوابتان: مولد الخطة يعيد `MINIMUM_SHOT_LENGTH_NOT_ENFORCED` عند خرق invariant، وHost يرفض Apply بـ`MINIMUM_SHOT_LENGTH_NOT_ENFORCED_AT_RUNTIME` إذا أدى تقاطع مصدر الفيديو إلى مقطع إخراج أقصر من القيمة المطلوبة.
+- Ù‚ÙŠÙ…Ø© Minimum Shot Length Ø¬Ø²Ø¡ Ù…Ù† Ù‡ÙˆÙŠØ© Ø®Ø·Ø© PreviewØ› ØªØºÙŠÙŠØ±Ù‡Ø§ ÙŠØ¨Ø·Ù„ Ø§Ù„Ø®Ø·Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© ÙˆÙŠÙØ±Ø¶ Ø¥Ø¹Ø§Ø¯Ø© Preview Ù‚Ø¨Ù„ Apply.
+- Ø¨Ø¹Ø¯ ØªÙƒÙˆÙŠÙ† Ø§Ù„ÙØªØ±Ø§Øª ÙˆÙ…Ù„Ø¡ Ø§Ù„ÙØ¬ÙˆØ§ØªØŒ ØªÙØ²Ø§Ù„ Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ø£Ù‚ØµØ± Ù…Ù† Ø§Ù„Ø­Ø¯ ØªÙƒØ±Ø§Ø±ÙŠÙ‹Ø§: Ø¨ÙŠÙ† ÙƒØ§Ù…ÙŠØ±ØªÙŠÙ† Ù…ØªØ·Ø§Ø¨Ù‚ØªÙŠÙ† ØªÙØ¯Ù…Ø¬ Ø§Ù„Ø«Ù„Ø§Ø«Ø©ØŒ ÙˆØ¥Ù„Ø§ ØªÙØ¶Ù… Ø§Ù„ÙØªØ±Ø© Ø§Ù„Ù‚ØµÙŠØ±Ø© Ø¥Ù„Ù‰ Ø§Ù„Ø¬Ø§Ø± Ø§Ù„Ø£Ù†Ø³Ø¨. Ø¨Ø¹Ø¯Ù‡Ø§ ÙŠØ¬Ø¨ Ø£Ù„Ø§ ÙŠØ¨Ù‚Ù‰ Ù‚Ø±Ø§Ø± Ù‚ØµÙŠØ± Ø¥Ù„Ø§ Ø¥Ø°Ø§ ÙƒØ§Ù†Øª Ø§Ù„Ø®Ø·Ø© ÙƒÙ„Ù‡Ø§ Ù‚Ø±Ø§Ø±Ù‹Ø§ ÙˆØ­ÙŠØ¯Ù‹Ø§ Ø£Ù‚ØµØ± Ù…Ù† Ø§Ù„Ø­Ø¯.
+- ØªÙˆØ¬Ø¯ Ø¨ÙˆØ§Ø¨ØªØ§Ù†: Ù…ÙˆÙ„Ø¯ Ø§Ù„Ø®Ø·Ø© ÙŠØ¹ÙŠØ¯ `MINIMUM_SHOT_LENGTH_NOT_ENFORCED` Ø¹Ù†Ø¯ Ø®Ø±Ù‚ invariantØŒ ÙˆHost ÙŠØ±ÙØ¶ Apply Ø¨Ù€`MINIMUM_SHOT_LENGTH_NOT_ENFORCED_AT_RUNTIME` Ø¥Ø°Ø§ Ø£Ø¯Ù‰ ØªÙ‚Ø§Ø·Ø¹ Ù…ØµØ¯Ø± Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¥Ù„Ù‰ Ù…Ù‚Ø·Ø¹ Ø¥Ø®Ø±Ø§Ø¬ Ø£Ù‚ØµØ± Ù…Ù† Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©.
 
-## سياسة اعتماد مراجع Podcast Automation
+## Ø³ÙŠØ§Ø³Ø© Ø§Ø¹ØªÙ…Ø§Ø¯ Ù…Ø±Ø§Ø¬Ø¹ Podcast Automation
 
-- `Auto-Editor` مرجع خوارزمي لـSilence Removal: تحليل loudness، تكوين ranges، margin/padding، ودمج المقاطع القصيرة. لا يُنسخ منه إخراج timeline؛ يبقى تنفيذ Premiere عبر duplicate وإعادة بناء المقاطع والتحقق العددي.
-- `Adobe CEP Samples` مرجع لبنية CEP والاتصال بين الواجهة وExtendScript وإدارة lifecycle، وليس مرجعًا لخوارزمية مزامنة أو قص.
-- وثائق `Create a multi-camera source sequence` تصف workflow والخيارات المتوقعة للمزامنة؛ لا تُعامل كإثبات لواجهة scripting غير مذكورة في مرجع Premiere API.
-- مراجع active-speaker/multitrack مفيدة لقواعد RMS، crosstalk margin، hysteresis، minimum shot، وإدراج wide camera. يجب التحقق من الترخيص والتوافق مع Premiere 26.2 قبل تكييف التنفيذ.
-- مشاريع MCP قد تعمل عبر واجهة خارجية أو UXP أو QE غير موثق؛ لا تُستخدم في CEP إلا بعد تحديد طبقة المضيف ومطابقة عمليات Motion Scale/Position مع Runtime Proof.
-- `One Click Podcast Edit` طبقة orchestration: تبدأ بإنشاء نسخة مكررة (Duplicate) فوراً والعمل عليها حصراً لحفظ الأصل. التتابع الحالي بعد حذف Silence Removal: Duplicate sequence → Set active → Run Synchronize on duplicate إن كان مفعلاً → Multi-Cam Auto Switch → Auto Captions ← التحقق النهائي وإعادة التسمية.
+- `Auto-Editor` Ù…Ø±Ø¬Ø¹ Ø®ÙˆØ§Ø±Ø²Ù…ÙŠ Ù„Ù€Silence Removal: ØªØ­Ù„ÙŠÙ„ loudnessØŒ ØªÙƒÙˆÙŠÙ† rangesØŒ margin/paddingØŒ ÙˆØ¯Ù…Ø¬ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù‚ØµÙŠØ±Ø©. Ù„Ø§ ÙŠÙÙ†Ø³Ø® Ù…Ù†Ù‡ Ø¥Ø®Ø±Ø§Ø¬ timelineØ› ÙŠØ¨Ù‚Ù‰ ØªÙ†ÙÙŠØ° Premiere Ø¹Ø¨Ø± duplicate ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø¨Ù†Ø§Ø¡ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ø¹Ø¯Ø¯ÙŠ.
+- `Adobe CEP Samples` Ù…Ø±Ø¬Ø¹ Ù„Ø¨Ù†ÙŠØ© CEP ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨ÙŠÙ† Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙˆExtendScript ÙˆØ¥Ø¯Ø§Ø±Ø© lifecycleØŒ ÙˆÙ„ÙŠØ³ Ù…Ø±Ø¬Ø¹Ù‹Ø§ Ù„Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ© Ù…Ø²Ø§Ù…Ù†Ø© Ø£Ùˆ Ù‚Øµ.
+- ÙˆØ«Ø§Ø¦Ù‚ `Create a multi-camera source sequence` ØªØµÙ workflow ÙˆØ§Ù„Ø®ÙŠØ§Ø±Ø§Øª Ø§Ù„Ù…ØªÙˆÙ‚Ø¹Ø© Ù„Ù„Ù…Ø²Ø§Ù…Ù†Ø©Ø› Ù„Ø§ ØªÙØ¹Ø§Ù…Ù„ ÙƒØ¥Ø«Ø¨Ø§Øª Ù„ÙˆØ§Ø¬Ù‡Ø© scripting ØºÙŠØ± Ù…Ø°ÙƒÙˆØ±Ø© ÙÙŠ Ù…Ø±Ø¬Ø¹ Premiere API.
+- Ù…Ø±Ø§Ø¬Ø¹ active-speaker/multitrack Ù…ÙÙŠØ¯Ø© Ù„Ù‚ÙˆØ§Ø¹Ø¯ RMSØŒ crosstalk marginØŒ hysteresisØŒ minimum shotØŒ ÙˆØ¥Ø¯Ø±Ø§Ø¬ wide camera. ÙŠØ¬Ø¨ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„ØªØ±Ø®ÙŠØµ ÙˆØ§Ù„ØªÙˆØ§ÙÙ‚ Ù…Ø¹ Premiere 26.2 Ù‚Ø¨Ù„ ØªÙƒÙŠÙŠÙ Ø§Ù„ØªÙ†ÙÙŠØ°.
+- Ù…Ø´Ø§Ø±ÙŠØ¹ MCP Ù‚Ø¯ ØªØ¹Ù…Ù„ Ø¹Ø¨Ø± ÙˆØ§Ø¬Ù‡Ø© Ø®Ø§Ø±Ø¬ÙŠØ© Ø£Ùˆ UXP Ø£Ùˆ QE ØºÙŠØ± Ù…ÙˆØ«Ù‚Ø› Ù„Ø§ ØªÙØ³ØªØ®Ø¯Ù… ÙÙŠ CEP Ø¥Ù„Ø§ Ø¨Ø¹Ø¯ ØªØ­Ø¯ÙŠØ¯ Ø·Ø¨Ù‚Ø© Ø§Ù„Ù…Ø¶ÙŠÙ ÙˆÙ…Ø·Ø§Ø¨Ù‚Ø© Ø¹Ù…Ù„ÙŠØ§Øª Motion Scale/Position Ù…Ø¹ Runtime Proof.
+- `One Click Podcast Edit` Ø·Ø¨Ù‚Ø© orchestration: ØªØ¨Ø¯Ø£ Ø¨Ø¥Ù†Ø´Ø§Ø¡ Ù†Ø³Ø®Ø© Ù…ÙƒØ±Ø±Ø© (Duplicate) ÙÙˆØ±Ø§Ù‹ ÙˆØ§Ù„Ø¹Ù…Ù„ Ø¹Ù„ÙŠÙ‡Ø§ Ø­ØµØ±Ø§Ù‹ Ù„Ø­ÙØ¸ Ø§Ù„Ø£ØµÙ„. Ø§Ù„ØªØªØ§Ø¨Ø¹ Ø§Ù„Ø­Ø§Ù„ÙŠ Ø¨Ø¹Ø¯ Ø­Ø°Ù Silence Removal: Duplicate sequence â†’ Set active â†’ Run Synchronize on duplicate Ø¥Ù† ÙƒØ§Ù† Ù…ÙØ¹Ù„Ø§Ù‹ â†’ Multi-Cam Auto Switch â†’ Auto Captions â† Ø§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„ØªØ³Ù…ÙŠØ©.
 
-### ترتيب One Click وفق سير العمل التحريري العام
+### ØªØ±ØªÙŠØ¨ One Click ÙˆÙÙ‚ Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„ Ø§Ù„ØªØ­Ø±ÙŠØ±ÙŠ Ø§Ù„Ø¹Ø§Ù…
 
-- يُفصل بين **Multicam setup** (تجميع المصادر المتزامنة) وبين **camera switching** (قرارات الزوايا). الترتيب الحالي للأتمتة بعد حذف Silence Removal هو: `Synchronize/setup → Multi-Cam switching → Auto Captions`.
-- إزالة الصمت لم تعد جزءاً من المنتج الحالي. الكابشنز تأتي بعد تثبيت بنية المحتوى الناتجة من Multi-Cam.
-- أي إعادة مستقبلية لـ Silence Removal تحتاج ADR جديد وRegression يثبت أنها لا تكسر مسارات الميكروفونات والكاميرات المطلوبة لتحليل المتحدث النشط.
+- ÙŠÙÙØµÙ„ Ø¨ÙŠÙ† **Multicam setup** (ØªØ¬Ù…ÙŠØ¹ Ø§Ù„Ù…ØµØ§Ø¯Ø± Ø§Ù„Ù…ØªØ²Ø§Ù…Ù†Ø©) ÙˆØ¨ÙŠÙ† **camera switching** (Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ø²ÙˆØ§ÙŠØ§). Ø§Ù„ØªØ±ØªÙŠØ¨ Ø§Ù„Ø­Ø§Ù„ÙŠ Ù„Ù„Ø£ØªÙ…ØªØ© Ø¨Ø¹Ø¯ Ø­Ø°Ù Silence Removal Ù‡Ùˆ: `Synchronize/setup â†’ Multi-Cam switching â†’ Auto Captions`.
+- Ø¥Ø²Ø§Ù„Ø© Ø§Ù„ØµÙ…Øª Ù„Ù… ØªØ¹Ø¯ Ø¬Ø²Ø¡Ø§Ù‹ Ù…Ù† Ø§Ù„Ù…Ù†ØªØ¬ Ø§Ù„Ø­Ø§Ù„ÙŠ. Ø§Ù„ÙƒØ§Ø¨Ø´Ù†Ø² ØªØ£ØªÙŠ Ø¨Ø¹Ø¯ ØªØ«Ø¨ÙŠØª Ø¨Ù†ÙŠØ© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ù†Ø§ØªØ¬Ø© Ù…Ù† Multi-Cam.
+- Ø£ÙŠ Ø¥Ø¹Ø§Ø¯Ø© Ù…Ø³ØªÙ‚Ø¨Ù„ÙŠØ© Ù„Ù€ Silence Removal ØªØ­ØªØ§Ø¬ ADR Ø¬Ø¯ÙŠØ¯ ÙˆRegression ÙŠØ«Ø¨Øª Ø£Ù†Ù‡Ø§ Ù„Ø§ ØªÙƒØ³Ø± Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„Ù…ÙŠÙƒØ±ÙˆÙÙˆÙ†Ø§Øª ÙˆØ§Ù„ÙƒØ§Ù…ÙŠØ±Ø§Øª Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù…ØªØ­Ø¯Ø« Ø§Ù„Ù†Ø´Ø·.
 
-## تنويع اللقطة العامة في Multi-Cam
+## ØªÙ†ÙˆÙŠØ¹ Ø§Ù„Ù„Ù‚Ø·Ø© Ø§Ù„Ø¹Ø§Ù…Ø© ÙÙŠ Multi-Cam
 
-- اللقطة العامة ليست محصورة في تداخل كلام متحدثين. بعد تثبيت قرارات المتحدث ودمج اللقطات القصيرة، يُقسّم أي تشغيل متصل لكاميرا متحدث يتجاوز 45 ثانية بإدخال Wide cutaway مدته 4 ثوانٍ، أو `Minimum Shot Length` إن كانت أكبر.
-- لا يُدرج cutaway إن كان سيترك ذيلًا أقصر من `Minimum Shot Length`. القرار حتمي وقابل للمعاينة، ويُطبق فقط عند تعيين Wide Camera فعليًا.
-- `wideCameraTimeSec` يُحسب من قرارات `speakerId=wide` وليس من رقم Track ثابت.
+- Ø§Ù„Ù„Ù‚Ø·Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ù„ÙŠØ³Øª Ù…Ø­ØµÙˆØ±Ø© ÙÙŠ ØªØ¯Ø§Ø®Ù„ ÙƒÙ„Ø§Ù… Ù…ØªØ­Ø¯Ø«ÙŠÙ†. Ø¨Ø¹Ø¯ ØªØ«Ø¨ÙŠØª Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ù…ØªØ­Ø¯Ø« ÙˆØ¯Ù…Ø¬ Ø§Ù„Ù„Ù‚Ø·Ø§Øª Ø§Ù„Ù‚ØµÙŠØ±Ø©ØŒ ÙŠÙÙ‚Ø³Ù‘Ù… Ø£ÙŠ ØªØ´ØºÙŠÙ„ Ù…ØªØµÙ„ Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ù…ØªØ­Ø¯Ø« ÙŠØªØ¬Ø§ÙˆØ² 45 Ø«Ø§Ù†ÙŠØ© Ø¨Ø¥Ø¯Ø®Ø§Ù„ Wide cutaway Ù…Ø¯ØªÙ‡ 4 Ø«ÙˆØ§Ù†ÙØŒ Ø£Ùˆ `Minimum Shot Length` Ø¥Ù† ÙƒØ§Ù†Øª Ø£ÙƒØ¨Ø±.
+- Ù„Ø§ ÙŠÙØ¯Ø±Ø¬ cutaway Ø¥Ù† ÙƒØ§Ù† Ø³ÙŠØªØ±Ùƒ Ø°ÙŠÙ„Ù‹Ø§ Ø£Ù‚ØµØ± Ù…Ù† `Minimum Shot Length`. Ø§Ù„Ù‚Ø±Ø§Ø± Ø­ØªÙ…ÙŠ ÙˆÙ‚Ø§Ø¨Ù„ Ù„Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©ØŒ ÙˆÙŠÙØ·Ø¨Ù‚ ÙÙ‚Ø· Ø¹Ù†Ø¯ ØªØ¹ÙŠÙŠÙ† Wide Camera ÙØ¹Ù„ÙŠÙ‹Ø§.
+- `wideCameraTimeSec` ÙŠÙØ­Ø³Ø¨ Ù…Ù† Ù‚Ø±Ø§Ø±Ø§Øª `speakerId=wide` ÙˆÙ„ÙŠØ³ Ù…Ù† Ø±Ù‚Ù… Track Ø«Ø§Ø¨Øª.
 
-## قرار وتصميم Auto Captions للبودكاست (2026-06-22)
+## Ù‚Ø±Ø§Ø± ÙˆØªØµÙ…ÙŠÙ… Auto Captions Ù„Ù„Ø¨ÙˆØ¯ÙƒØ§Ø³Øª (2026-06-22)
 
-- يتم توليد التسميات التوضيحية (Auto Captions) محلياً بالكامل باستخدام محرك Faster Whisper ونموذج Whisper (مثل medium أو large-v3) دون استخدام أي خدمات سحابية خارجية (مثل Reap).
-- يتم دعم العربية بشكل كامل RTL مع التنسيق والاستيراد التلقائي إلى تراك كابشنز مخصص (`Caption Track`) داخل Premiere Pro 26.2.0.
-- يتم إعداد وتضمين مكتبات CUDA 12 المطلوبة (مثل `cublas64_12.dll`, `cublasLt64_12.dll`, `cudart64_12.dll`) ومكتبات cuDNN 9 مباشرةً داخل مجلد runtime لـ Saad Studio (في مجلد `site-packages/ctranslate2`) لضمان التوافقية الكاملة دون الاعتماد على إصدار CUDA الخاص بالجهاز (مثل CUDA 13.1).
-- في حال تعذر تحميل أو توفر مكتبات CUDA 12 المطلوبة، يتم رفع حاجز (blocker) صريح باسم `CUDA_12_RUNTIME_MISSING` لمنع حدوث تراجع صامت إلى CPU (CPU Fallback) وضمان التشغيل الكامل على مسرّع CUDA بالبطاقة RTX 5090.
+- ÙŠØªÙ… ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØªØ³Ù…ÙŠØ§Øª Ø§Ù„ØªÙˆØ¶ÙŠØ­ÙŠØ© (Auto Captions) Ù…Ø­Ù„ÙŠØ§Ù‹ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù…Ø­Ø±Ùƒ Faster Whisper ÙˆÙ†Ù…ÙˆØ°Ø¬ Whisper (Ù…Ø«Ù„ medium Ø£Ùˆ large-v3) Ø¯ÙˆÙ† Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø£ÙŠ Ø®Ø¯Ù…Ø§Øª Ø³Ø­Ø§Ø¨ÙŠØ© Ø®Ø§Ø±Ø¬ÙŠØ© (Ù…Ø«Ù„ Reap).
+- ÙŠØªÙ… Ø¯Ø¹Ù… Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø¨Ø´ÙƒÙ„ ÙƒØ§Ù…Ù„ RTL Ù…Ø¹ Ø§Ù„ØªÙ†Ø³ÙŠÙ‚ ÙˆØ§Ù„Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¥Ù„Ù‰ ØªØ±Ø§Ùƒ ÙƒØ§Ø¨Ø´Ù†Ø² Ù…Ø®ØµØµ (`Caption Track`) Ø¯Ø§Ø®Ù„ Premiere Pro 26.2.0.
+- ÙŠØªÙ… Ø¥Ø¹Ø¯Ø§Ø¯ ÙˆØªØ¶Ù…ÙŠÙ† Ù…ÙƒØªØ¨Ø§Øª CUDA 12 Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© (Ù…Ø«Ù„ `cublas64_12.dll`, `cublasLt64_12.dll`, `cudart64_12.dll`) ÙˆÙ…ÙƒØªØ¨Ø§Øª cuDNN 9 Ù…Ø¨Ø§Ø´Ø±Ø©Ù‹ Ø¯Ø§Ø®Ù„ Ù…Ø¬Ù„Ø¯ runtime Ù„Ù€ Saad Studio (ÙÙŠ Ù…Ø¬Ù„Ø¯ `site-packages/ctranslate2`) Ù„Ø¶Ù…Ø§Ù† Ø§Ù„ØªÙˆØ§ÙÙ‚ÙŠØ© Ø§Ù„ÙƒØ§Ù…Ù„Ø© Ø¯ÙˆÙ† Ø§Ù„Ø§Ø¹ØªÙ…Ø§Ø¯ Ø¹Ù„Ù‰ Ø¥ØµØ¯Ø§Ø± CUDA Ø§Ù„Ø®Ø§Øµ Ø¨Ø§Ù„Ø¬Ù‡Ø§Ø² (Ù…Ø«Ù„ CUDA 13.1).
+- ÙÙŠ Ø­Ø§Ù„ ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø£Ùˆ ØªÙˆÙØ± Ù…ÙƒØªØ¨Ø§Øª CUDA 12 Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©ØŒ ÙŠØªÙ… Ø±ÙØ¹ Ø­Ø§Ø¬Ø² (blocker) ØµØ±ÙŠØ­ Ø¨Ø§Ø³Ù… `CUDA_12_RUNTIME_MISSING` Ù„Ù…Ù†Ø¹ Ø­Ø¯ÙˆØ« ØªØ±Ø§Ø¬Ø¹ ØµØ§Ù…Øª Ø¥Ù„Ù‰ CPU (CPU Fallback) ÙˆØ¶Ù…Ø§Ù† Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„ÙƒØ§Ù…Ù„ Ø¹Ù„Ù‰ Ù…Ø³Ø±Ù‘Ø¹ CUDA Ø¨Ø§Ù„Ø¨Ø·Ø§Ù‚Ø© RTX 5090.
 
-## Archived / Previous Auto Zoom Work (أعمال مؤرشفة / عمل Auto Zoom السابق)
+## Archived / Previous Auto Zoom Work (Ø£Ø¹Ù…Ø§Ù„ Ù…Ø¤Ø±Ø´ÙØ© / Ø¹Ù…Ù„ Auto Zoom Ø§Ù„Ø³Ø§Ø¨Ù‚)
 
 > [!NOTE]
-> هذا القسم يحتوي على الموثقات والأعمال السابقة الخاصة بميزة الزوم التلقائي (Auto Zoom) والتي تم تعطيلها وحجبها من واجهة المستخدم والـ Pipeline الحالي الإنتاجي، وأرشفتها للإصلاحات المستقبلية.
+> Ù‡Ø°Ø§ Ø§Ù„Ù‚Ø³Ù… ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ù…ÙˆØ«Ù‚Ø§Øª ÙˆØ§Ù„Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù…ÙŠØ²Ø© Ø§Ù„Ø²ÙˆÙ… Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ (Auto Zoom) ÙˆØ§Ù„ØªÙŠ ØªÙ… ØªØ¹Ø·ÙŠÙ„Ù‡Ø§ ÙˆØ­Ø¬Ø¨Ù‡Ø§ Ù…Ù† ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙˆØ§Ù„Ù€ Pipeline Ø§Ù„Ø­Ø§Ù„ÙŠ Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠØŒ ÙˆØ£Ø±Ø´ÙØªÙ‡Ø§ Ù„Ù„Ø¥ØµÙ„Ø§Ø­Ø§Øª Ø§Ù„Ù…Ø³ØªÙ‚Ø¨Ù„ÙŠØ©.
 
-### Auto Zoom Production Ready & Overlay Architecture (الحالة المؤرشفة السابقة)
-- كانت المعمارية القديمة تصف تطبيق Auto Zoom كـ Production Ready و Overlay Architecture مستقرة (Selected = Inserted = Effects)، لكن نظراً للمشاكل الحالية تم أرشفتها بالكامل ولا تُعامل كجزء من الإنتاج الفعلي.
+### Auto Zoom Production Ready & Overlay Architecture (Ø§Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø¤Ø±Ø´ÙØ© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©)
+- ÙƒØ§Ù†Øª Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ© Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© ØªØµÙ ØªØ·Ø¨ÙŠÙ‚ Auto Zoom ÙƒÙ€ Production Ready Ùˆ Overlay Architecture Ù…Ø³ØªÙ‚Ø±Ø© (Selected = Inserted = Effects)ØŒ Ù„ÙƒÙ† Ù†Ø¸Ø±Ø§Ù‹ Ù„Ù„Ù…Ø´Ø§ÙƒÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠØ© ØªÙ… Ø£Ø±Ø´ÙØªÙ‡Ø§ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ ÙˆÙ„Ø§ ØªÙØ¹Ø§Ù…Ù„ ÙƒØ¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ø¥Ù†ØªØ§Ø¬ Ø§Ù„ÙØ¹Ù„ÙŠ.
 
-### Auto Zoom وقدرات الـ Adjustment Layer
-- Auto Zoom لا يفترض أن إنشاء Adjustment Layer موجود حصرًا على QE؛ يفحص Runtime لكل من `app.project.newAdjustmentLayer` و`qe.project.newAdjustmentLayer` ويستخدم المسار المتاح فقط بعد التحقق من ProjectItem الناتج.
-- Auto Zoom الحالي يستخرج أحداثه من cuts الموجودة في مسار الفيديو المختار. غياب cuts يبقى تحذيرًا ولا يؤدي إلى توليد zooms دورية عشوائية.
-- أثبت Runtime في Premiere 26.2 غياب دالتي إنشاء Adjustment Layer على `app.project` و`qe.project`. لذلك Auto Zoom يستخدم `direct-transform` كـfallback: يضيف تأثير Transform ومفاتيح Scale قابلة للتعديل مباشرة إلى clips التي تغطي cuts المختارة. يبقى مسار Adjustment Layer اختياريًا إذا ظهر في Runtime آخر.
-- غياب cuts يمنع Apply؛ لا تُولد zooms دورية أو عشوائية على sequence خام.
-- Runtime Proof بتاريخ 2026-06-18 أثبت أن fallback `direct-transform` يظهر `Runtime: Ready` في Premiere 26.2؛ لم يُختبر تطبيق التأثير بعد لأن sequence الخام لم يحتوِ cuts.
+### Auto Zoom ÙˆÙ‚Ø¯Ø±Ø§Øª Ø§Ù„Ù€ Adjustment Layer
+- Auto Zoom Ù„Ø§ ÙŠÙØªØ±Ø¶ Ø£Ù† Ø¥Ù†Ø´Ø§Ø¡ Adjustment Layer Ù…ÙˆØ¬ÙˆØ¯ Ø­ØµØ±Ù‹Ø§ Ø¹Ù„Ù‰ QEØ› ÙŠÙØ­Øµ Runtime Ù„ÙƒÙ„ Ù…Ù† `app.project.newAdjustmentLayer` Ùˆ`qe.project.newAdjustmentLayer` ÙˆÙŠØ³ØªØ®Ø¯Ù… Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…ØªØ§Ø­ ÙÙ‚Ø· Ø¨Ø¹Ø¯ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† ProjectItem Ø§Ù„Ù†Ø§ØªØ¬.
+- Auto Zoom Ø§Ù„Ø­Ø§Ù„ÙŠ ÙŠØ³ØªØ®Ø±Ø¬ Ø£Ø­Ø¯Ø§Ø«Ù‡ Ù…Ù† cuts Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© ÙÙŠ Ù…Ø³Ø§Ø± Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ø®ØªØ§Ø±. ØºÙŠØ§Ø¨ cuts ÙŠØ¨Ù‚Ù‰ ØªØ­Ø°ÙŠØ±Ù‹Ø§ ÙˆÙ„Ø§ ÙŠØ¤Ø¯ÙŠ Ø¥Ù„Ù‰ ØªÙˆÙ„ÙŠØ¯ zooms Ø¯ÙˆØ±ÙŠØ© Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©.
+- Ø£Ø«Ø¨Øª Runtime ÙÙŠ Premiere 26.2 ØºÙŠØ§Ø¨ Ø¯Ø§Ù„ØªÙŠ Ø¥Ù†Ø´Ø§Ø¡ Adjustment Layer Ø¹Ù„Ù‰ `app.project` Ùˆ`qe.project`. Ù„Ø°Ù„Ùƒ Auto Zoom ÙŠØ³ØªØ®Ø¯Ù… `direct-transform` ÙƒÙ€fallback: ÙŠØ¶ÙŠÙ ØªØ£Ø«ÙŠØ± Transform ÙˆÙ…ÙØ§ØªÙŠØ­ Scale Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ØªØ¹Ø¯ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±Ø© Ø¥Ù„Ù‰ clips Ø§Ù„ØªÙŠ ØªØºØ·ÙŠ cuts Ø§Ù„Ù…Ø®ØªØ§Ø±Ø©. ÙŠØ¨Ù‚Ù‰ Ù…Ø³Ø§Ø± Adjustment Layer Ø§Ø®ØªÙŠØ§Ø±ÙŠÙ‹Ø§ Ø¥Ø°Ø§ Ø¸Ù‡Ø± ÙÙŠ Runtime Ø¢Ø®Ø±.
+- ØºÙŠØ§Ø¨ cuts ÙŠÙ…Ù†Ø¹ ApplyØ› Ù„Ø§ ØªÙÙˆÙ„Ø¯ zooms Ø¯ÙˆØ±ÙŠØ© Ø£Ùˆ Ø¹Ø´ÙˆØ§Ø¦ÙŠØ© Ø¹Ù„Ù‰ sequence Ø®Ø§Ù….
+- Runtime Proof Ø¨ØªØ§Ø±ÙŠØ® 2026-06-18 Ø£Ø«Ø¨Øª Ø£Ù† fallback `direct-transform` ÙŠØ¸Ù‡Ø± `Runtime: Ready` ÙÙŠ Premiere 26.2Ø› Ù„Ù… ÙŠÙØ®ØªØ¨Ø± ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ£Ø«ÙŠØ± Ø¨Ø¹Ø¯ Ù„Ø£Ù† sequence Ø§Ù„Ø®Ø§Ù… Ù„Ù… ÙŠØ­ØªÙˆÙ cuts.
 
-### مطابقة فهرس DOM track.clips في Auto Zoom QE
-- لا يجوز افتراض تطابق فهرس DOM `track.clips` مع فهرس QE `getItemAt`. Auto Zoom يطابق QE item بزمن بداية TrackItem، ثم يعيد قراءة DOM TrackItem بعد `addVideoEffect` قبل البحث عن Transform/Scale.
-- نتيجة build وحدها ليست Runtime Proof؛ يلزم إثبات `effectsApplied > 0` على duplicate sequence.
+### Ù…Ø·Ø§Ø¨Ù‚Ø© ÙÙ‡Ø±Ø³ DOM track.clips ÙÙŠ Auto Zoom QE
+- Ù„Ø§ ÙŠØ¬ÙˆØ² Ø§ÙØªØ±Ø§Ø¶ ØªØ·Ø§Ø¨Ù‚ ÙÙ‡Ø±Ø³ DOM `track.clips` Ù…Ø¹ ÙÙ‡Ø±Ø³ QE `getItemAt`. Auto Zoom ÙŠØ·Ø§Ø¨Ù‚ QE item Ø¨Ø²Ù…Ù† Ø¨Ø¯Ø§ÙŠØ© TrackItemØŒ Ø«Ù… ÙŠØ¹ÙŠØ¯ Ù‚Ø±Ø§Ø¡Ø© DOM TrackItem Ø¨Ø¹Ø¯ `addVideoEffect` Ù‚Ø¨Ù„ Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Transform/Scale.
+- Ù†ØªÙŠØ¬Ø© build ÙˆØ­Ø¯Ù‡Ø§ Ù„ÙŠØ³Øª Runtime ProofØ› ÙŠÙ„Ø²Ù… Ø¥Ø«Ø¨Ø§Øª `effectsApplied > 0` Ø¹Ù„Ù‰ duplicate sequence.
 
-### Auto Zoom في مرجع AutoSplice
-- Auto Zoom غير منفذ في المصدر الحالي. وثيقة التصميم فقط تقترح استخدام المكوّن المدمج Motion وخاصية Scale بدل إضافة Transform؛ هذا اتجاه اختبار محتمل وليس حقيقة Runtime.
+### Auto Zoom ÙÙŠ Ù…Ø±Ø¬Ø¹ AutoSplice
+- Auto Zoom ØºÙŠØ± Ù…Ù†ÙØ° ÙÙŠ Ø§Ù„Ù…ØµØ¯Ø± Ø§Ù„Ø­Ø§Ù„ÙŠ. ÙˆØ«ÙŠÙ‚Ø© Ø§Ù„ØªØµÙ…ÙŠÙ… ÙÙ‚Ø· ØªÙ‚ØªØ±Ø­ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…ÙƒÙˆÙ‘Ù† Ø§Ù„Ù…Ø¯Ù…Ø¬ Motion ÙˆØ®Ø§ØµÙŠØ© Scale Ø¨Ø¯Ù„ Ø¥Ø¶Ø§ÙØ© TransformØ› Ù‡Ø°Ø§ Ø§ØªØ¬Ø§Ù‡ Ø§Ø®ØªØ¨Ø§Ø± Ù…Ø­ØªÙ…Ù„ ÙˆÙ„ÙŠØ³ Ø­Ù‚ÙŠÙ‚Ø© Runtime.
 
-### ثبات مسار تحليل Auto Zoom
-- قيمة Analyze Track حالة صريحة في الواجهة، ويجب إسنادها إلى خاصية DOM `HTMLSelectElement.value` بعد إنشاء الخيارات؛ صفة HTML `value` وحدها لا تختار option عند إعادة الرسم.
-- التحليل يستقبل `analyzedVideoTrackIndexes` ويحصر اكتشاف cuts في المسار المختار. تحفظ النتيجة الفهارس التي حُللت، ويستخدم Apply الفهارس نفسها لضمان عدم اختلاف مسار التحليل عن مسار التنفيذ.
-- تغيير Analyze Track يلغي تحليل Auto Zoom السابق ويستلزم Analyze جديدًا قبل Apply؛ لا يجوز تطبيق نتيجة تحليل لمسار على مسار آخر.
+### Ø«Ø¨Ø§Øª Ù…Ø³Ø§Ø± ØªØ­Ù„ÙŠÙ„ Auto Zoom
+- Ù‚ÙŠÙ…Ø© Analyze Track Ø­Ø§Ù„Ø© ØµØ±ÙŠØ­Ø© ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø©ØŒ ÙˆÙŠØ¬Ø¨ Ø¥Ø³Ù†Ø§Ø¯Ù‡Ø§ Ø¥Ù„Ù‰ Ø®Ø§ØµÙŠØ© DOM `HTMLSelectElement.value` Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø®ÙŠØ§Ø±Ø§ØªØ› ØµÙØ© HTML `value` ÙˆØ­Ø¯Ù‡Ø§ Ù„Ø§ ØªØ®ØªØ§Ø± option Ø¹Ù†Ø¯ Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø±Ø³Ù….
+- Ø§Ù„ØªØ­Ù„ÙŠÙ„ ÙŠØ³ØªÙ‚Ø¨Ù„ `analyzedVideoTrackIndexes` ÙˆÙŠØ­ØµØ± Ø§ÙƒØªØ´Ø§Ù cuts ÙÙŠ Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø®ØªØ§Ø±. ØªØ­ÙØ¸ Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„ÙÙ‡Ø§Ø±Ø³ Ø§Ù„ØªÙŠ Ø­ÙÙ„Ù„ØªØŒ ÙˆÙŠØ³ØªØ®Ø¯Ù… Apply Ø§Ù„ÙÙ‡Ø§Ø±Ø³ Ù†ÙØ³Ù‡Ø§ Ù„Ø¶Ù…Ø§Ù† Ø¹Ø¯Ù… Ø§Ø®ØªÙ„Ø§Ù Ù…Ø³Ø§Ø± Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø¹Ù† Ù…Ø³Ø§Ø± Ø§Ù„ØªÙ†ÙÙŠØ°.
+- ØªØºÙŠÙŠØ± Analyze Track ÙŠÙ„ØºÙŠ ØªØ­Ù„ÙŠÙ„ Auto Zoom Ø§Ù„Ø³Ø§Ø¨Ù‚ ÙˆÙŠØ³ØªÙ„Ø²Ù… Analyze Ø¬Ø¯ÙŠØ¯Ù‹Ø§ Ù‚Ø¨Ù„ ApplyØ› Ù„Ø§ ÙŠØ¬ÙˆØ² ØªØ·Ø¨ÙŠÙ‚ Ù†ØªÙŠØ¬Ø© ØªØ­Ù„ÙŠÙ„ Ù„Ù…Ø³Ø§Ø± Ø¹Ù„Ù‰ Ù…Ø³Ø§Ø± Ø¢Ø®Ø±.
 
-### تنفيذ Auto Zoom عبر Motion Scale
-- في Premiere 26.2 المسار الأساسي هو خاصية `Scale` داخل المكوّن المدمج `Motion` على TrackItem؛ لا يحتاج هذا المسار إلى إضافة تأثير جديد عبر QE.
-- البحث يعتمد `matchName` (`ADBE Motion` و`ADBE Scale`) و`displayName` مع fallback موضعي `components[1].properties[1]` للمضيف المتوافق. يستخدم Transform عبر QE كاحتياط فقط.
-- أزمنة مفاتيح Scale هي أزمنة timeline، وتُقيد بحدي بداية ونهاية clip. لا يجوز وضع مفتاح بعد نهاية TrackItem.
-- معيار Runtime Proof هو `effectsApplied > 0` مع ظهور تغير Scale/المفاتيح داخل Effect Controls؛ اكتشاف cuts وحده لا يثبت نجاح Auto Zoom.
-- في Direct Motion يبقى `adjustmentLayersInserted=0` لأن التعديل يقع على TrackItem نفسه؛ الواجهة يجب أن تعرض `effectsApplied` بوصفه نتيجة النجاح ولا تصف الصفر كفشل.
-- Rhythm يحدد عدد أحداث الزوم بالتقريب: `round(cutCount × rhythm)` بحد أدنى حدث واحد عند وجود cuts، وتوزع الأحداث المختارة على امتداد القائمة. مثال: 3 cuts عند 60% تعطي تأثيرين.
+### ØªÙ†ÙÙŠØ° Auto Zoom Ø¹Ø¨Ø± Motion Scale
+- ÙÙŠ Premiere 26.2 Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ Ù‡Ùˆ Ø®Ø§ØµÙŠØ© `Scale` Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…ÙƒÙˆÙ‘Ù† Ø§Ù„Ù…Ø¯Ù…Ø¬ `Motion` Ø¹Ù„Ù‰ TrackItemØ› Ù„Ø§ ÙŠØ­ØªØ§Ø¬ Ù‡Ø°Ø§ Ø§Ù„Ù…Ø³Ø§Ø± Ø¥Ù„Ù‰ Ø¥Ø¶Ø§ÙØ© ØªØ£Ø«ÙŠØ± Ø¬Ø¯ÙŠØ¯ Ø¹Ø¨Ø± QE.
+- Ø§Ù„Ø¨Ø­Ø« ÙŠØ¹ØªÙ…Ø¯ `matchName` (`ADBE Motion` Ùˆ`ADBE Scale`) Ùˆ`displayName` Ù…Ø¹ fallback Ù…ÙˆØ¶Ø¹ÙŠ `components[1].properties[1]` Ù„Ù„Ù…Ø¶ÙŠÙ Ø§Ù„Ù…ØªÙˆØ§ÙÙ‚. ÙŠØ³ØªØ®Ø¯Ù… Transform Ø¹Ø¨Ø± QE ÙƒØ§Ø­ØªÙŠØ§Ø· ÙÙ‚Ø·.
+- Ø£Ø²Ù…Ù†Ø© Ù…ÙØ§ØªÙŠØ­ Scale Ù‡ÙŠ Ø£Ø²Ù…Ù†Ø© timelineØŒ ÙˆØªÙÙ‚ÙŠØ¯ Ø¨Ø­Ø¯ÙŠ Ø¨Ø¯Ø§ÙŠØ© ÙˆÙ†Ù‡Ø§ÙŠØ© clip. Ù„Ø§ ÙŠØ¬ÙˆØ² ÙˆØ¶Ø¹ Ù…ÙØªØ§Ø­ Ø¨Ø¹Ø¯ Ù†Ù‡Ø§ÙŠØ© TrackItem.
+- Ù…Ø¹ÙŠØ§Ø± Runtime Proof Ù‡Ùˆ `effectsApplied > 0` Ù…Ø¹ Ø¸Ù‡ÙˆØ± ØªØºÙŠØ± Scale/Ø§Ù„Ù…ÙØ§ØªÙŠØ­ Ø¯Ø§Ø®Ù„ Effect ControlsØ› Ø§ÙƒØªØ´Ø§Ù cuts ÙˆØ­Ø¯Ù‡ Ù„Ø§ ÙŠØ«Ø¨Øª Ù†Ø¬Ø§Ø­ Auto Zoom.
+- ÙÙŠ Direct Motion ÙŠØ¨Ù‚Ù‰ `adjustmentLayersInserted=0` Ù„Ø£Ù† Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ ÙŠÙ‚Ø¹ Ø¹Ù„Ù‰ TrackItem Ù†ÙØ³Ù‡Ø› Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªØ¹Ø±Ø¶ `effectsApplied` Ø¨ÙˆØµÙÙ‡ Ù†ØªÙŠØ¬Ø© Ø§Ù„Ù†Ø¬Ø§Ø­ ÙˆÙ„Ø§ ØªØµÙ Ø§Ù„ØµÙØ± ÙƒÙØ´Ù„.
+- Rhythm ÙŠØ­Ø¯Ø¯ Ø¹Ø¯Ø¯ Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ø²ÙˆÙ… Ø¨Ø§Ù„ØªÙ‚Ø±ÙŠØ¨: `round(cutCount Ã— rhythm)` Ø¨Ø­Ø¯ Ø£Ø¯Ù†Ù‰ Ø­Ø¯Ø« ÙˆØ§Ø­Ø¯ Ø¹Ù†Ø¯ ÙˆØ¬ÙˆØ¯ cutsØŒ ÙˆØªÙˆØ²Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù…Ø®ØªØ§Ø±Ø© Ø¹Ù„Ù‰ Ø§Ù…ØªØ¯Ø§Ø¯ Ø§Ù„Ù‚Ø§Ø¦Ù…Ø©. Ù…Ø«Ø§Ù„: 3 cuts Ø¹Ù†Ø¯ 60% ØªØ¹Ø·ÙŠ ØªØ£Ø«ÙŠØ±ÙŠÙ†.
 
-### Auto Zoom للبودكاست: Cut-Based مقابل Emphasis-Based
-- التنفيذ الحالي cut-based: يستخرج حدود TrackItems من مسار الفيديو المختار، ينتقي نسبة منها عبر Rhythm، ويكتب Motion Scale. هذا مناسب للزوم عند تغيّر اللقطة، لكنه لا يكتشف التشديد الصوتي داخل لقطة طويلة.
-- التصميم المقترح v2 emphasis-based: استخراج envelope/RMS للصوت، اكتشاف peaks البارزة نسبةً إلى baseline محلي، دمج peaks المتقاربة، تطبيق cooldown، ثم تحويل زمن الصوت إلى timeline قبل إنشاء مفاتيح Motion Scale.
-- نطاقات اختبار أولية وليست حقائق مثبتة: Scale 108–115%، دخول 8–15 frame، hold 1–3s، خروج تدريجي، وفاصل 4–6s قبل zoom جديد. يجب تثبيت default عبر fixtures ومشاهدة فعلية على 25fps ومعدلات أخرى.
-- لا يُستخدم face tracking أو Position في Scale-only v1. إعادة التأطير بالوجه ميزة مستقلة تتطلب إحداثيات موثقة، smoothing، crop safety، واختبار كتابة Position في Premiere 26.2.
-- لا يُقبل نجاح setter وحده كدليل بصري؛ التحقق يشمل عدد keyframes، قيمها وأزمنتها، واختبار playback عند event times.
+### Auto Zoom Ù„Ù„Ø¨ÙˆØ¯ÙƒØ§Ø³Øª: Cut-Based Ù…Ù‚Ø§Ø¨Ù„ Emphasis-Based
+- Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø­Ø§Ù„ÙŠ cut-based: ÙŠØ³ØªØ®Ø±Ø¬ Ø­Ø¯ÙˆØ¯ TrackItems Ù…Ù† Ù…Ø³Ø§Ø± Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„Ù…Ø®ØªØ§Ø±ØŒ ÙŠÙ†ØªÙ‚ÙŠ Ù†Ø³Ø¨Ø© Ù…Ù†Ù‡Ø§ Ø¹Ø¨Ø± RhythmØŒ ÙˆÙŠÙƒØªØ¨ Motion Scale. Ù‡Ø°Ø§ Ù…Ù†Ø§Ø³Ø¨ Ù„Ù„Ø²ÙˆÙ… Ø¹Ù†Ø¯ ØªØºÙŠÙ‘Ø± Ø§Ù„Ù„Ù‚Ø·Ø©ØŒ Ù„ÙƒÙ†Ù‡ Ù„Ø§ ÙŠÙƒØªØ´Ù Ø§Ù„ØªØ´Ø¯ÙŠØ¯ Ø§Ù„ØµÙˆØªÙŠ Ø¯Ø§Ø®Ù„ Ù„Ù‚Ø·Ø© Ø·ÙˆÙŠÙ„Ø©.
+- Ø§Ù„ØªØµÙ…ÙŠÙ… Ø§Ù„Ù…Ù‚ØªØ±Ø­ v2 emphasis-based: Ø§Ø³ØªØ®Ø±Ø§Ø¬ envelope/RMS Ù„Ù„ØµÙˆØªØŒ Ø§ÙƒØªØ´Ø§Ù peaks Ø§Ù„Ø¨Ø§Ø±Ø²Ø© Ù†Ø³Ø¨Ø©Ù‹ Ø¥Ù„Ù‰ baseline Ù…Ø­Ù„ÙŠØŒ Ø¯Ù…Ø¬ peaks Ø§Ù„Ù…ØªÙ‚Ø§Ø±Ø¨Ø©ØŒ ØªØ·Ø¨ÙŠÙ‚ cooldownØŒ Ø«Ù… ØªØ­ÙˆÙŠÙ„ Ø²Ù…Ù† Ø§Ù„ØµÙˆØª Ø¥Ù„Ù‰ timeline Ù‚Ø¨Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ù…ÙØ§ØªÙŠØ­ Motion Scale.
+- Ù†Ø·Ø§Ù‚Ø§Øª Ø§Ø®ØªØ¨Ø§Ø± Ø£ÙˆÙ„ÙŠØ© ÙˆÙ„ÙŠØ³Øª Ø­Ù‚Ø§Ø¦Ù‚ Ù…Ø«Ø¨ØªØ©: Scale 108â€“115%ØŒ Ø¯Ø®ÙˆÙ„ 8â€“15 frameØŒ hold 1â€“3sØŒ Ø®Ø±ÙˆØ¬ ØªØ¯Ø±ÙŠØ¬ÙŠØŒ ÙˆÙØ§ØµÙ„ 4â€“6s Ù‚Ø¨Ù„ zoom Ø¬Ø¯ÙŠØ¯. ÙŠØ¬Ø¨ ØªØ«Ø¨ÙŠØª default Ø¹Ø¨Ø± fixtures ÙˆÙ…Ø´Ø§Ù‡Ø¯Ø© ÙØ¹Ù„ÙŠØ© Ø¹Ù„Ù‰ 25fps ÙˆÙ…Ø¹Ø¯Ù„Ø§Øª Ø£Ø®Ø±Ù‰.
+- Ù„Ø§ ÙŠÙØ³ØªØ®Ø¯Ù… face tracking Ø£Ùˆ Position ÙÙŠ Scale-only v1. Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„ØªØ£Ø·ÙŠØ± Ø¨Ø§Ù„ÙˆØ¬Ù‡ Ù…ÙŠØ²Ø© Ù…Ø³ØªÙ‚Ù„Ø© ØªØªØ·Ù„Ø¨ Ø¥Ø­Ø¯Ø§Ø«ÙŠØ§Øª Ù…ÙˆØ«Ù‚Ø©ØŒ smoothingØŒ crop safetyØŒ ÙˆØ§Ø®ØªØ¨Ø§Ø± ÙƒØªØ§Ø¨Ø© Position ÙÙŠ Premiere 26.2.
+- Ù„Ø§ ÙŠÙÙ‚Ø¨Ù„ Ù†Ø¬Ø§Ø­ setter ÙˆØ­Ø¯Ù‡ ÙƒØ¯Ù„ÙŠÙ„ Ø¨ØµØ±ÙŠØ› Ø§Ù„ØªØ­Ù‚Ù‚ ÙŠØ´Ù…Ù„ Ø¹Ø¯Ø¯ keyframesØŒ Ù‚ÙŠÙ…Ù‡Ø§ ÙˆØ£Ø²Ù…Ù†ØªÙ‡Ø§ØŒ ÙˆØ§Ø®ØªØ¨Ø§Ø± playback Ø¹Ù†Ø¯ event times.
 
-### ما ثبت من مرجع AutoCut AutoZoom المرئي
-- واجهة AutoCut تفصل بين تواتر/كثافة الزومات، مقدار الزوم، ونمط الحركة، وتعرض ثلاثة أنماط مرئية: `Cut` و`Smooth` و`Snap-In`.
-- المنتج يعرض Preview/Processing قبل النتيجة، ويترك المادة الأصلية مع مخرجات مرئية على مسار أعلى في اللقطات المعروضة. يُعتمد من ذلك مبدآن فقط: فصل الإعدادات، ومسار تطبيق غير هدّام قدر الإمكان.
-- الفيديو التسويقي لا يكشف خوارزمية اختيار أزمنة الزوم ولا يثبت استخدام RMS أو peaks أو Adjustment Layer بعينه. لا تُعوّل هذه الأمور إلى حقائق معمارية بلا توثيق أو Runtime Proof.
-- في Premiere 26.2 يبقى Motion > Scale هو المسار المثبت حاليًا في Saad Studio. الانتقال إلى مسار علوي مولّد يحتاج إثبات أن إنشاء العنصر وكتابة تأثيراته متاحان وموثوقان في CEP/QE على الإصدار المستهدف.
+### Ù…Ø§ Ø«Ø¨Øª Ù…Ù† Ù…Ø±Ø¬Ø¹ AutoCut AutoZoom Ø§Ù„Ù…Ø±Ø¦ÙŠ
+- ÙˆØ§Ø¬Ù‡Ø© AutoCut ØªÙØµÙ„ Ø¨ÙŠÙ† ØªÙˆØ§ØªØ±/ÙƒØ«Ø§ÙØ© Ø§Ù„Ø²ÙˆÙ…Ø§ØªØŒ Ù…Ù‚Ø¯Ø§Ø± Ø§Ù„Ø²ÙˆÙ…ØŒ ÙˆÙ†Ù…Ø· Ø§Ù„Ø­Ø±ÙƒØ©ØŒ ÙˆØªØ¹Ø±Ø¶ Ø«Ù„Ø§Ø«Ø© Ø£Ù†Ù…Ø§Ø· Ù…Ø±Ø¦ÙŠØ©: `Cut` Ùˆ`Smooth` Ùˆ`Snap-In`.
+- Ø§Ù„Ù…Ù†ØªØ¬ ÙŠØ¹Ø±Ø¶ Preview/Processing Ù‚Ø¨Ù„ Ø§Ù„Ù†ØªÙŠØ¬Ø©ØŒ ÙˆÙŠØªØ±Ùƒ Ø§Ù„Ù…Ø§Ø¯Ø© Ø§Ù„Ø£ØµÙ„ÙŠØ© Ù…Ø¹ Ù…Ø®Ø±Ø¬Ø§Øª Ù…Ø±Ø¦ÙŠØ© Ø¹Ù„Ù‰ Ù…Ø³Ø§Ø± Ø£Ø¹Ù„Ù‰ ÙÙŠ Ø§Ù„Ù„Ù‚Ø·Ø§Øª Ø§Ù„Ù…Ø¹Ø±ÙˆØ¶Ø©. ÙŠÙØ¹ØªÙ…Ø¯ Ù…Ù† Ø°Ù„Ùƒ Ù…Ø¨Ø¯Ø¢Ù† ÙÙ‚Ø·: ÙØµÙ„ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§ØªØŒ ÙˆÙ…Ø³Ø§Ø± ØªØ·Ø¨ÙŠÙ‚ ØºÙŠØ± Ù‡Ø¯Ù‘Ø§Ù… Ù‚Ø¯Ø± Ø§Ù„Ø¥Ù…ÙƒØ§Ù†.
+- Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø§Ù„ØªØ³ÙˆÙŠÙ‚ÙŠ Ù„Ø§ ÙŠÙƒØ´Ù Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ© Ø§Ø®ØªÙŠØ§Ø± Ø£Ø²Ù…Ù†Ø© Ø§Ù„Ø²ÙˆÙ… ÙˆÙ„Ø§ ÙŠØ«Ø¨Øª Ø§Ø³ØªØ®Ø¯Ø§Ù… RMS Ø£Ùˆ peaks Ø£Ùˆ Adjustment Layer Ø¨Ø¹ÙŠÙ†Ù‡. Ù„Ø§ ØªÙØ¹ÙˆÙ‘Ù„ Ù‡Ø°Ù‡ Ø§Ù„Ø£Ù…ÙˆØ± Ø¥Ù„Ù‰ Ø­Ù‚Ø§Ø¦Ù‚ Ù…Ø¹Ù…Ø§Ø±ÙŠØ© Ø¨Ù„Ø§ ØªÙˆØ«ÙŠÙ‚ Ø£Ùˆ Runtime Proof.
+- ÙÙŠ Premiere 26.2 ÙŠØ¨Ù‚Ù‰ Motion > Scale Ù‡Ùˆ Ø§Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø«Ø¨Øª Ø­Ø§Ù„ÙŠÙ‹Ø§ ÙÙŠ Saad Studio. Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ø¥Ù„Ù‰ Ù…Ø³Ø§Ø± Ø¹Ù„ÙˆÙŠ Ù…ÙˆÙ„Ù‘Ø¯ ÙŠØ­ØªØ§Ø¬ Ø¥Ø«Ø¨Ø§Øª Ø£Ù† Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¹Ù†ØµØ± ÙˆÙƒØªØ§Ø¨Ø© ØªØ£Ø«ÙŠØ±Ø§ØªÙ‡ Ù…ØªØ§Ø­Ø§Ù† ÙˆÙ…ÙˆØ«ÙˆÙ‚Ø§Ù† ÙÙŠ CEP/QE Ø¹Ù„Ù‰ Ø§Ù„Ø¥ØµØ¯Ø§Ø± Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù.
 
-### قواعد تخطيط وتنفيذ Auto Zoom
-- تجربة الاستخدام الإنتاجية زر واحد: `Run Auto Zoom` ينفذ Auto-detect ثم Inspect ثم Apply. الإعدادات الأساسية ليست خطوة مطلوبة من المستخدم؛ يُعاد فرض preset محافظ عند كل تشغيل: Rhythm 60%، zoom multiplier 1.12، مدة 1.5 ثانية، وSmooth. تعرض الواجهة هذه القيم كحقول قراءة فقط.
-- عند تشغيل Auto Zoom فوق مسار `Saad Auto Switch` المولد، تُستبعد تلقائيًا حدود المقاطع التي يكون مصدرها Wide Camera. تُقرأ هوية المصدر من اسم `Saad Auto Switch Vn` وتُقارن بتعيين Wide الحالي؛ الزوم يُخصص للقطات المتحدثين ولا يوضع على اللقطة العامة.
-- لضمان بقاء الهوية بعد إعادة فتح Premiere أو تبديل الـSequence، تُوسم اللقطة العامة عند توليدها باسم `Saad Auto Switch WIDE Vn ...`. الاستبعاد الأساسي يعتمد هذا الوسم الدائم، بينما مقارنة Vn بتعيين Wide في الواجهة fallback إضافي فقط. المسودات القديمة السابقة لهذا الوسم لا تصلح لاختبار الاستبعاد.
-- أحداث النسخة cut-based تبدأ عند بدايات TrackItems الداخلية فقط؛ لا تُعامل نهاية مقطع مع فجوة كحدث مستقل. قبل تطبيق Rhythm تُستبعد الأحداث التي تتداخل نوافذها وفق `Zoom Duration`.
-- يُختار Style واحد لكل عملية Apply. تدوير عدة أنماط داخل العملية الواحدة ممنوع لأنه يجعل المعاينة والنتيجة غير قابلتين للتنبؤ.
-- `Maximum Zoom` نسبة مضاعفة لقيمة Scale الحالية، وليست قيمة مطلقة تفترض 100%. مثال: Scale أصلي 50% مع Zoom 1.3 ينتج 65% ثم يعود إلى 50%.
-- كل Style يجب أن يبقى محصورًا داخل نافذة الحدث ويعيد Scale الأصلي عند النهاية: Jump انتقال شبه فوري، Smooth دخول وخروج تدريجيان، وSnap-in انتقال أسرع. يمنع استخدام قيمة Static على المقطع كله لتنفيذ حدث زوم مؤقت.
-- يجب أن يسبق Runtime Proof اختبار fixture لمنع التداخل واستعادة القيمة، ثم تُفحص المفاتيح فعليًا في Effect Controls على duplicate نظيف.
+### Ù‚ÙˆØ§Ø¹Ø¯ ØªØ®Ø·ÙŠØ· ÙˆØªÙ†ÙÙŠØ° Auto Zoom
+- ØªØ¬Ø±Ø¨Ø© Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠØ© Ø²Ø± ÙˆØ§Ø­Ø¯: `Run Auto Zoom` ÙŠÙ†ÙØ° Auto-detect Ø«Ù… Inspect Ø«Ù… Apply. Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© Ù„ÙŠØ³Øª Ø®Ø·ÙˆØ© Ù…Ø·Ù„ÙˆØ¨Ø© Ù…Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…Ø› ÙŠÙØ¹Ø§Ø¯ ÙØ±Ø¶ preset Ù…Ø­Ø§ÙØ¸ Ø¹Ù†Ø¯ ÙƒÙ„ ØªØ´ØºÙŠÙ„: Rhythm 60%ØŒ zoom multiplier 1.12ØŒ Ù…Ø¯Ø© 1.5 Ø«Ø§Ù†ÙŠØ©ØŒ ÙˆSmooth. ØªØ¹Ø±Ø¶ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ù‡Ø°Ù‡ Ø§Ù„Ù‚ÙŠÙ… ÙƒØ­Ù‚ÙˆÙ„ Ù‚Ø±Ø§Ø¡Ø© ÙÙ‚Ø·.
+- Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Auto Zoom ÙÙˆÙ‚ Ù…Ø³Ø§Ø± `Saad Auto Switch` Ø§Ù„Ù…ÙˆÙ„Ø¯ØŒ ØªÙØ³ØªØ¨Ø¹Ø¯ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ø­Ø¯ÙˆØ¯ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„ØªÙŠ ÙŠÙƒÙˆÙ† Ù…ØµØ¯Ø±Ù‡Ø§ Wide Camera. ØªÙÙ‚Ø±Ø£ Ù‡ÙˆÙŠØ© Ø§Ù„Ù…ØµØ¯Ø± Ù…Ù† Ø§Ø³Ù… `Saad Auto Switch Vn` ÙˆØªÙÙ‚Ø§Ø±Ù† Ø¨ØªØ¹ÙŠÙŠÙ† Wide Ø§Ù„Ø­Ø§Ù„ÙŠØ› Ø§Ù„Ø²ÙˆÙ… ÙŠÙØ®ØµØµ Ù„Ù„Ù‚Ø·Ø§Øª Ø§Ù„Ù…ØªØ­Ø¯Ø«ÙŠÙ† ÙˆÙ„Ø§ ÙŠÙˆØ¶Ø¹ Ø¹Ù„Ù‰ Ø§Ù„Ù„Ù‚Ø·Ø© Ø§Ù„Ø¹Ø§Ù…Ø©.
+- Ù„Ø¶Ù…Ø§Ù† Ø¨Ù‚Ø§Ø¡ Ø§Ù„Ù‡ÙˆÙŠØ© Ø¨Ø¹Ø¯ Ø¥Ø¹Ø§Ø¯Ø© ÙØªØ­ Premiere Ø£Ùˆ ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„Ù€SequenceØŒ ØªÙÙˆØ³Ù… Ø§Ù„Ù„Ù‚Ø·Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ø¹Ù†Ø¯ ØªÙˆÙ„ÙŠØ¯Ù‡Ø§ Ø¨Ø§Ø³Ù… `Saad Auto Switch WIDE Vn ...`. Ø§Ù„Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ ÙŠØ¹ØªÙ…Ø¯ Ù‡Ø°Ø§ Ø§Ù„ÙˆØ³Ù… Ø§Ù„Ø¯Ø§Ø¦Ù…ØŒ Ø¨ÙŠÙ†Ù…Ø§ Ù…Ù‚Ø§Ø±Ù†Ø© Vn Ø¨ØªØ¹ÙŠÙŠÙ† Wide ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© fallback Ø¥Ø¶Ø§ÙÙŠ ÙÙ‚Ø·. Ø§Ù„Ù…Ø³ÙˆØ¯Ø§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ù„Ù‡Ø°Ø§ Ø§Ù„ÙˆØ³Ù… Ù„Ø§ ØªØµÙ„Ø­ Ù„Ø§Ø®ØªØ¨Ø§Ø± Ø§Ù„Ø§Ø³ØªØ¨Ø¹Ø§Ø¯.
+- Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù†Ø³Ø®Ø© cut-based ØªØ¨Ø¯Ø£ Ø¹Ù†Ø¯ Ø¨Ø¯Ø§ÙŠØ§Øª TrackItems Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ© ÙÙ‚Ø·Ø› Ù„Ø§ ØªÙØ¹Ø§Ù…Ù„ Ù†Ù‡Ø§ÙŠØ© Ù…Ù‚Ø·Ø¹ Ù…Ø¹ ÙØ¬ÙˆØ© ÙƒØ­Ø¯Ø« Ù…Ø³ØªÙ‚Ù„. Ù‚Ø¨Ù„ ØªØ·Ø¨ÙŠÙ‚ Rhythm ØªÙØ³ØªØ¨Ø¹Ø¯ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„ØªÙŠ ØªØªØ¯Ø§Ø®Ù„ Ù†ÙˆØ§ÙØ°Ù‡Ø§ ÙˆÙÙ‚ `Zoom Duration`.
+- ÙŠÙØ®ØªØ§Ø± Style ÙˆØ§Ø­Ø¯ Ù„ÙƒÙ„ Ø¹Ù…Ù„ÙŠØ© Apply. ØªØ¯ÙˆÙŠØ± Ø¹Ø¯Ø© Ø£Ù†Ù…Ø§Ø· Ø¯Ø§Ø®Ù„ Ø§Ù„Ø¹Ù…Ù„ÙŠØ© Ø§Ù„ÙˆØ§Ø­Ø¯Ø© Ù…Ù…Ù†ÙˆØ¹ Ù„Ø£Ù†Ù‡ ÙŠØ¬Ø¹Ù„ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ÙˆØ§Ù„Ù†ØªÙŠØ¬Ø© ØºÙŠØ± Ù‚Ø§Ø¨Ù„ØªÙŠÙ† Ù„Ù„ØªÙ†Ø¨Ø¤.
+- `Maximum Zoom` Ù†Ø³Ø¨Ø© Ù…Ø¶Ø§Ø¹ÙØ© Ù„Ù‚ÙŠÙ…Ø© Scale Ø§Ù„Ø­Ø§Ù„ÙŠØ©ØŒ ÙˆÙ„ÙŠØ³Øª Ù‚ÙŠÙ…Ø© Ù…Ø·Ù„Ù‚Ø© ØªÙØªØ±Ø¶ 100%. Ù…Ø«Ø§Ù„: Scale Ø£ØµÙ„ÙŠ 50% Ù…Ø¹ Zoom 1.3 ÙŠÙ†ØªØ¬ 65% Ø«Ù… ÙŠØ¹ÙˆØ¯ Ø¥Ù„Ù‰ 50%.
+- ÙƒÙ„ Style ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ¨Ù‚Ù‰ Ù…Ø­ØµÙˆØ±Ù‹Ø§ Ø¯Ø§Ø®Ù„ Ù†Ø§ÙØ°Ø© Ø§Ù„Ø­Ø¯Ø« ÙˆÙŠØ¹ÙŠØ¯ Scale Ø§Ù„Ø£ØµÙ„ÙŠ Ø¹Ù†Ø¯ Ø§Ù„Ù†Ù‡Ø§ÙŠØ©: Jump Ø§Ù†ØªÙ‚Ø§Ù„ Ø´Ø¨Ù‡ ÙÙˆØ±ÙŠØŒ Smooth Ø¯Ø®ÙˆÙ„ ÙˆØ®Ø±ÙˆØ¬ ØªØ¯Ø±ÙŠØ¬ÙŠØ§Ù†ØŒ ÙˆSnap-in Ø§Ù†ØªÙ‚Ø§Ù„ Ø£Ø³Ø±Ø¹. ÙŠÙ…Ù†Ø¹ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù‚ÙŠÙ…Ø© Static Ø¹Ù„Ù‰ Ø§Ù„Ù…Ù‚Ø·Ø¹ ÙƒÙ„Ù‡ Ù„ØªÙ†ÙÙŠØ° Ø­Ø¯Ø« Ø²ÙˆÙ… Ù…Ø¤Ù‚Øª.
+- ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ³Ø¨Ù‚ Runtime Proof Ø§Ø®ØªØ¨Ø§Ø± fixture Ù„Ù…Ù†Ø¹ Ø§Ù„ØªØ¯Ø§Ø®Ù„ ÙˆØ§Ø³ØªØ¹Ø§Ø¯Ø© Ø§Ù„Ù‚ÙŠÙ…Ø©ØŒ Ø«Ù… ØªÙÙØ­Øµ Ø§Ù„Ù…ÙØ§ØªÙŠØ­ ÙØ¹Ù„ÙŠÙ‹Ø§ ÙÙŠ Effect Controls Ø¹Ù„Ù‰ duplicate Ù†Ø¸ÙŠÙ.
 
-### مرجع PremiereGPTBeta الديناميكي
-- مجلد التثبيت ليس مصدر التنفيذ الكامل؛ الـloader يحقن حزمة بعيدة من `api.premierecopilot.com/api/snake3`، ودوال JSX الإنتاجية تُجلب حسب الاسم من endpoint `/jsx`.
-- AutoZoom فيه يفصل مرحلة القرار عن Premiere mutation: تصدير صوت + قراءة بنية Sequence → تحليل خادمي → نتيجة قرارات → جلب `AUTOZOOM_main` وتنفيذها في Premiere.
-- حقول القرار المرئية تشمل cuts وemotion وspeech وrandom وcontext، إضافة إلى rhythm وfastness وzoom amount وmotion camera وX/Y والأنماط الثلاثة. هذا يثبت شكل pipeline والـinputs، ولا يثبت خوارزمية الخادم أو طريقة keyframes الداخلية.
-- عند الاستفادة منه في Saad Studio، يُكيّف المبدأ محليًا: توليد `ZoomDecision[]` موثقة من timeline/audio، Preview قبل Apply، ثم Motion Scale/Position مثبت في Premiere 26.2. لا يُعتمد remote code injection كمعمارية للمسار الحساس.
-- فتح Effect Controls أو تحديد TrackItem يدويًا مسموح كاختبار تطوير فقط؛ لا يدخل ضمن UX النهائي. Auto Zoom الإنتاجي مسؤول عن اكتشاف الهدف وكتابة المفاتيح والتحقق منها تلقائيًا.
+### Ù…Ø±Ø¬Ø¹ PremiereGPTBeta Ø§Ù„Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠ
+- Ù…Ø¬Ù„Ø¯ Ø§Ù„ØªØ«Ø¨ÙŠØª Ù„ÙŠØ³ Ù…ØµØ¯Ø± Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„ÙƒØ§Ù…Ù„Ø› Ø§Ù„Ù€loader ÙŠØ­Ù‚Ù† Ø­Ø²Ù…Ø© Ø¨Ø¹ÙŠØ¯Ø© Ù…Ù† `api.premierecopilot.com/api/snake3`ØŒ ÙˆØ¯ÙˆØ§Ù„ JSX Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠØ© ØªÙØ¬Ù„Ø¨ Ø­Ø³Ø¨ Ø§Ù„Ø§Ø³Ù… Ù…Ù† endpoint `/jsx`.
+- AutoZoom ÙÙŠÙ‡ ÙŠÙØµÙ„ Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ù‚Ø±Ø§Ø± Ø¹Ù† Premiere mutation: ØªØµØ¯ÙŠØ± ØµÙˆØª + Ù‚Ø±Ø§Ø¡Ø© Ø¨Ù†ÙŠØ© Sequence â†’ ØªØ­Ù„ÙŠÙ„ Ø®Ø§Ø¯Ù…ÙŠ â†’ Ù†ØªÙŠØ¬Ø© Ù‚Ø±Ø§Ø±Ø§Øª â†’ Ø¬Ù„Ø¨ `AUTOZOOM_main` ÙˆØªÙ†ÙÙŠØ°Ù‡Ø§ ÙÙŠ Premiere.
+- Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù‚Ø±Ø§Ø± Ø§Ù„Ù…Ø±Ø¦ÙŠØ© ØªØ´Ù…Ù„ cuts Ùˆemotion Ùˆspeech Ùˆrandom ÙˆcontextØŒ Ø¥Ø¶Ø§ÙØ© Ø¥Ù„Ù‰ rhythm Ùˆfastness Ùˆzoom amount Ùˆmotion camera ÙˆX/Y ÙˆØ§Ù„Ø£Ù†Ù…Ø§Ø· Ø§Ù„Ø«Ù„Ø§Ø«Ø©. Ù‡Ø°Ø§ ÙŠØ«Ø¨Øª Ø´ÙƒÙ„ pipeline ÙˆØ§Ù„Ù€inputsØŒ ÙˆÙ„Ø§ ÙŠØ«Ø¨Øª Ø®ÙˆØ§Ø±Ø²Ù…ÙŠØ© Ø§Ù„Ø®Ø§Ø¯Ù… Ø£Ùˆ Ø·Ø±ÙŠÙ‚Ø© keyframes Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ©.
+- Ø¹Ù†Ø¯ Ø§Ù„Ø§Ø³ØªÙØ§Ø¯Ø© Ù…Ù†Ù‡ ÙÙŠ Saad StudioØŒ ÙŠÙÙƒÙŠÙ‘Ù Ø§Ù„Ù…Ø¨Ø¯Ø£ Ù…Ø­Ù„ÙŠÙ‹Ø§: ØªÙˆÙ„ÙŠØ¯ `ZoomDecision[]` Ù…ÙˆØ«Ù‚Ø© Ù…Ù† timeline/audioØŒ Preview Ù‚Ø¨Ù„ ApplyØŒ Ø«Ù… Motion Scale/Position Ù…Ø«Ø¨Øª ÙÙŠ Premiere 26.2. Ù„Ø§ ÙŠÙØ¹ØªÙ…Ø¯ remote code injection ÙƒÙ…Ø¹Ù…Ø§Ø±ÙŠØ© Ù„Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø­Ø³Ø§Ø³.
+- ÙØªØ­ Effect Controls Ø£Ùˆ ØªØ­Ø¯ÙŠØ¯ TrackItem ÙŠØ¯ÙˆÙŠÙ‹Ø§ Ù…Ø³Ù…ÙˆØ­ ÙƒØ§Ø®ØªØ¨Ø§Ø± ØªØ·ÙˆÙŠØ± ÙÙ‚Ø·Ø› Ù„Ø§ ÙŠØ¯Ø®Ù„ Ø¶Ù…Ù† UX Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ. Auto Zoom Ø§Ù„Ø¥Ù†ØªØ§Ø¬ÙŠ Ù…Ø³Ø¤ÙˆÙ„ Ø¹Ù† Ø§ÙƒØªØ´Ø§Ù Ø§Ù„Ù‡Ø¯Ù ÙˆÙƒØªØ§Ø¨Ø© Ø§Ù„Ù…ÙØ§ØªÙŠØ­ ÙˆØ§Ù„ØªØ­Ù‚Ù‚ Ù…Ù†Ù‡Ø§ ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§.
 
-### الاكتشاف التلقائي لمسار Auto Zoom
-- لا تعتمد الأداة على track index محفوظ في الواجهة لأن هوية/بنية الـSequence قد تتغير. Host يفحص كل مسارات الفيديو ويحسب أحداث القص من بدايات TrackItems الداخلية، ثم يختار المسار صاحب أكبر عدد من الأحداث؛ التعادل يُحسم للمسار الأعلى.
-- دورة الإنتاج زر واحد: Auto-detect → Inspect → Apply. اختيار track أو clip وفتح Effect Controls ليست خطوات للمستخدم.
-- إن لم يوجد cut داخلي على أي مسار، تتوقف الأداة برسالة `AUTO_ZOOM_TRACK_WITH_CUTS_NOT_FOUND` بدل اختيار V1 افتراضيًا أو الادعاء بالنجاح.
+### Ø§Ù„Ø§ÙƒØªØ´Ø§Ù Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù…Ø³Ø§Ø± Auto Zoom
+- Ù„Ø§ ØªØ¹ØªÙ…Ø¯ Ø§Ù„Ø£Ø¯Ø§Ø© Ø¹Ù„Ù‰ track index Ù…Ø­ÙÙˆØ¸ ÙÙŠ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø© Ù„Ø£Ù† Ù‡ÙˆÙŠØ©/Ø¨Ù†ÙŠØ© Ø§Ù„Ù€Sequence Ù‚Ø¯ ØªØªØºÙŠØ±. Host ÙŠÙØ­Øµ ÙƒÙ„ Ù…Ø³Ø§Ø±Ø§Øª Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆÙŠØ­Ø³Ø¨ Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù‚Øµ Ù…Ù† Ø¨Ø¯Ø§ÙŠØ§Øª TrackItems Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ©ØŒ Ø«Ù… ÙŠØ®ØªØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø± ØµØ§Ø­Ø¨ Ø£ÙƒØ¨Ø± Ø¹Ø¯Ø¯ Ù…Ù† Ø§Ù„Ø£Ø­Ø¯Ø§Ø«Ø› Ø§Ù„ØªØ¹Ø§Ø¯Ù„ ÙŠÙØ­Ø³Ù… Ù„Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø£Ø¹Ù„Ù‰.
+- Ø¯ÙˆØ±Ø© Ø§Ù„Ø¥Ù†ØªØ§Ø¬ Ø²Ø± ÙˆØ§Ø­Ø¯: Auto-detect â†’ Inspect â†’ Apply. Ø§Ø®ØªÙŠØ§Ø± track Ø£Ùˆ clip ÙˆÙØªØ­ Effect Controls Ù„ÙŠØ³Øª Ø®Ø·ÙˆØ§Øª Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù….
+- Ø¥Ù† Ù„Ù… ÙŠÙˆØ¬Ø¯ cut Ø¯Ø§Ø®Ù„ÙŠ Ø¹Ù„Ù‰ Ø£ÙŠ Ù…Ø³Ø§Ø±ØŒ ØªØªÙˆÙ‚Ù Ø§Ù„Ø£Ø¯Ø§Ø© Ø¨Ø±Ø³Ø§Ù„Ø© `AUTO_ZOOM_TRACK_WITH_CUTS_NOT_FOUND` Ø¨Ø¯Ù„ Ø§Ø®ØªÙŠØ§Ø± V1 Ø§ÙØªØ±Ø§Ø¶ÙŠÙ‹Ø§ Ø£Ùˆ Ø§Ù„Ø§Ø¯Ø¹Ø§Ø¡ Ø¨Ø§Ù„Ù†Ø¬Ø§Ø­.
 
-### قواعد مستفادة من JumpCut وSoundBuddy في Auto Zoom
-- لا يُنقل كود JumpCut (GPL-3.0) أو SoundBuddy Studio (AGPL-3.0) إلى Saad Studio. المسموح هو إعادة تنفيذ مبدأ عام بصورة مستقلة مع fixture وRuntime Proof.
-- زمن انتقال القصير لا يُثبت على 30fps؛ تُقرأ مدة الفريم من `Sequence.timebase`، ثم من `Sequence.getSettings().videoFrameRate`، مع fallback 25fps للمضيف المستهدف.
-- استدعاء `addKey` و`setValueAtKey` ليس إثبات نجاح. إذا كان `ComponentParam.getKeys()` متاحاً، يجب أن تحتوي القراءة اللاحقة كل الأزمنة المطلوبة ضمن سماحية 0.002 ثانية؛ وإلا يُعد الحدث فاشلاً ولا يزاد `effectsApplied`.
-- Beat tracking الموسيقي (مثل `librosa.beat.beat_track` in SoundBuddy) ليس بديلاً مثبتاً لـSpeech Emphasis. لا يُستخدم لتوقيت Zoom للبودكاست من دون نموذج/fixture صوت كلام ومعيار قبول منفصل.
+### Ù‚ÙˆØ§Ø¹Ø¯ Ù…Ø³ØªÙØ§Ø¯Ø© Ù…Ù† JumpCut ÙˆSoundBuddy ÙÙŠ Auto Zoom
+- Ù„Ø§ ÙŠÙÙ†Ù‚Ù„ ÙƒÙˆØ¯ JumpCut (GPL-3.0) Ø£Ùˆ SoundBuddy Studio (AGPL-3.0) Ø¥Ù„Ù‰ Saad Studio. Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ù‡Ùˆ Ø¥Ø¹Ø§Ø¯Ø© ØªÙ†ÙÙŠØ° Ù…Ø¨Ø¯Ø£ Ø¹Ø§Ù… Ø¨ØµÙˆØ±Ø© Ù…Ø³ØªÙ‚Ù„Ø© Ù…Ø¹ fixture ÙˆRuntime Proof.
+- Ø²Ù…Ù† Ø§Ù†ØªÙ‚Ø§Ù„ Ø§Ù„Ù‚ØµÙŠØ± Ù„Ø§ ÙŠÙØ«Ø¨Øª Ø¹Ù„Ù‰ 30fpsØ› ØªÙÙ‚Ø±Ø£ Ù…Ø¯Ø© Ø§Ù„ÙØ±ÙŠÙ… Ù…Ù† `Sequence.timebase`ØŒ Ø«Ù… Ù…Ù† `Sequence.getSettings().videoFrameRate`ØŒ Ù…Ø¹ fallback 25fps Ù„Ù„Ù…Ø¶ÙŠÙ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù.
+- Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ `addKey` Ùˆ`setValueAtKey` Ù„ÙŠØ³ Ø¥Ø«Ø¨Ø§Øª Ù†Ø¬Ø§Ø­. Ø¥Ø°Ø§ ÙƒØ§Ù† `ComponentParam.getKeys()` Ù…ØªØ§Ø­Ø§Ù‹ØŒ ÙŠØ¬Ø¨ Ø£Ù† ØªØ­ØªÙˆÙŠ Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ù„Ø§Ø­Ù‚Ø© ÙƒÙ„ Ø§Ù„Ø£Ø²Ù…Ù†Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ø¶Ù…Ù† Ø³Ù…Ø§Ø­ÙŠØ© 0.002 Ø«Ø§Ù†ÙŠØ©Ø› ÙˆØ¥Ù„Ø§ ÙŠÙØ¹Ø¯ Ø§Ù„Ø­Ø¯Ø« ÙØ§Ø´Ù„Ø§Ù‹ ÙˆÙ„Ø§ ÙŠØ²Ø§Ø¯ `effectsApplied`.
+- Beat tracking Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ (Ù…Ø«Ù„ `librosa.beat.beat_track` in SoundBuddy) Ù„ÙŠØ³ Ø¨Ø¯ÙŠÙ„Ø§Ù‹ Ù…Ø«Ø¨ØªØ§Ù‹ Ù„Ù€Speech Emphasis. Ù„Ø§ ÙŠÙØ³ØªØ®Ø¯Ù… Ù„ØªÙˆÙ‚ÙŠØª Zoom Ù„Ù„Ø¨ÙˆØ¯ÙƒØ§Ø³Øª Ù…Ù† Ø¯ÙˆÙ† Ù†Ù…ÙˆØ°Ø¬/fixture ØµÙˆØª ÙƒÙ„Ø§Ù… ÙˆÙ…Ø¹ÙŠØ§Ø± Ù‚Ø¨ÙˆÙ„ Ù…Ù†ÙØµÙ„.
 
-### إثبات قيمة Auto Zoom والمعاينة
-- `ComponentParam.getKeys()` يثبت الأزمنة فقط. عند توفر `getValueAtKey` أو `getValueAtTime` يجب مقارنة قيمة كل مفتاح بالقيمة المطلوبة؛ وجود مفاتيح كلها على Scale الأصلي ليس Zoom ناجحاً.
-- بعد تطبيق ناجح يُنقل Player Position تلقائياً إلى ذروة أول حدث Zoom. هذه معاينة آلية لا تدخل يدوي، وتمنع اختبار النتيجة عند موضع بعيد عن نافذة الزوم القصيرة.
-- رسالة النجاح تعرض أزمنة الأحداث التي طُبقت فعلياً. لا يُعرض `effectsApplied > 0` إذا فشل readback للزمن أو القيمة.
+### Ø¥Ø«Ø¨Ø§Øª Ù‚ÙŠÙ…Ø© Auto Zoom ÙˆØ§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©
+- `ComponentParam.getKeys()` ÙŠØ«Ø¨Øª Ø§Ù„Ø£Ø²Ù…Ù†Ø© ÙÙ‚Ø·. Ø¹Ù†Ø¯ ØªÙˆÙØ± `getValueAtKey` Ø£Ùˆ `getValueAtTime` ÙŠØ¬Ø¨ Ù…Ù‚Ø§Ø±Ù†Ø© Ù‚ÙŠÙ…Ø© ÙƒÙ„ Ù…ÙØªØ§Ø­ Ø¨Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©Ø› ÙˆØ¬ÙˆØ¯ Ù…ÙØ§ØªÙŠØ­ ÙƒÙ„Ù‡Ø§ Ø¹Ù„Ù‰ Scale Ø§Ù„Ø£ØµÙ„ÙŠ Ù„ÙŠØ³ Zoom Ù†Ø§Ø¬Ø­Ø§Ù‹.
+- Ø¨Ø¹Ø¯ ØªØ·Ø¨ÙŠÙ‚ Ù†Ø§Ø¬Ø­ ÙŠÙÙ†Ù‚Ù„ Player Position ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¥Ù„Ù‰ Ø°Ø±ÙˆØ© Ø£ÙˆÙ„ Ø­Ø¯Ø« Zoom. Ù‡Ø°Ù‡ Ù…Ø¹Ø§ÙŠÙ†Ø© Ø¢Ù„ÙŠØ© Ù„Ø§ ØªØ¯Ø®Ù„ ÙŠØ¯ÙˆÙŠØŒ ÙˆØªÙ…Ù†Ø¹ Ø§Ø®ØªØ¨Ø§Ø± Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø¹Ù†Ø¯ Ù…ÙˆØ¶Ø¹ Ø¨Ø¹ÙŠØ¯ Ø¹Ù† Ù†Ø§ÙØ°Ø© Ø§Ù„Ø²ÙˆÙ… Ø§Ù„Ù‚ØµÙŠØ±Ø©.
+- Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù†Ø¬Ø§Ø­ ØªØ¹Ø±Ø¶ Ø£Ø²Ù…Ù†Ø© Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„ØªÙŠ Ø·ÙØ¨Ù‚Øª ÙØ¹Ù„ÙŠØ§Ù‹. Ù„Ø§ ÙŠÙØ¹Ø±Ø¶ `effectsApplied > 0` Ø¥Ø°Ø§ ÙØ´Ù„ readback Ù„Ù„Ø²Ù…Ù† Ø£Ùˆ Ø§Ù„Ù‚ÙŠÙ…Ø©.
 
-### تحويل زمن معاينة Auto Zoom
-- أزمنة قرارات Auto Zoom ومفاتيح Motion Scale هي أزمنة Timeline. أما `Sequence.setPlayerPosition()` فيتأثر بـ`Sequence.zeroPoint`؛ لذلك لا يجوز تمرير ticks المحسوبة من زمن Timeline مباشرة عندما تكون نقطة الصفر غير صفرية.
-- موضع المعاينة يُحسب هكذا: `playerTicks = max(0, timelineTicks - zeroPointTicks)`. يطبق هذا التحويل على تحريك رأس التشغيل للمعاينة فقط، ولا يُطرح zero point من أزمنة مفاتيح Scale.
-- ظهور Scale=100 في Effect Controls خارج نافذة الزوم لا يثبت فشل الكتابة. الإثبات الصحيح يكون عند ذروة حدث مطبق وبعد نجاح readback للأزمنة والقيم.
-- نقل Player Position لا يغير المقطع المحدد في Premiere. لكي تكون المعاينة الآلية صادقة، يجب أن تحدد الأداة TrackItem صاحب الحدث بعد النقل؛ وإلا قد يعرض Effect Controls المقطع السابق عند حد القطع رغم وجود المفاتيح على المقطع التالي.
+### ØªØ­ÙˆÙŠÙ„ Ø²Ù…Ù† Ù…Ø¹Ø§ÙŠÙ†Ø© Auto Zoom
+- Ø£Ø²Ù…Ù†Ø© Ù‚Ø±Ø§Ø±Ø§Øª Auto Zoom ÙˆÙ…ÙØ§ØªÙŠØ­ Motion Scale Ù‡ÙŠ Ø£Ø²Ù…Ù†Ø© Timeline. Ø£Ù…Ø§ `Sequence.setPlayerPosition()` ÙÙŠØªØ£Ø«Ø± Ø¨Ù€`Sequence.zeroPoint`Ø› Ù„Ø°Ù„Ùƒ Ù„Ø§ ÙŠØ¬ÙˆØ² ØªÙ…Ø±ÙŠØ± ticks Ø§Ù„Ù…Ø­Ø³ÙˆØ¨Ø© Ù…Ù† Ø²Ù…Ù† Timeline Ù…Ø¨Ø§Ø´Ø±Ø© Ø¹Ù†Ø¯Ù…Ø§ ØªÙƒÙˆÙ† Ù†Ù‚Ø·Ø© Ø§Ù„ØµÙØ± ØºÙŠØ± ØµÙØ±ÙŠØ©.
+- Ù…ÙˆØ¶Ø¹ Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ÙŠÙØ­Ø³Ø¨ Ù‡ÙƒØ°Ø§: `playerTicks = max(0, timelineTicks - zeroPointTicks)`. ÙŠØ·Ø¨Ù‚ Ù‡Ø°Ø§ Ø§Ù„ØªØ­ÙˆÙŠÙ„ Ø¹Ù„Ù‰ ØªØ­Ø±ÙŠÙƒ Ø±Ø£Ø³ Ø§Ù„ØªØ´ØºÙŠÙ„ Ù„Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© ÙÙ‚Ø·ØŒ ÙˆÙ„Ø§ ÙŠÙØ·Ø±Ø­ zero point Ù…Ù† Ø£Ø²Ù…Ù†Ø© Ù…ÙØ§ØªÙŠØ­ Scale.
+- Ø¸Ù‡ÙˆØ± Scale=100 ÙÙŠ Effect Controls Ø®Ø§Ø±Ø¬ Ù†Ø§ÙØ°Ø© Ø§Ù„Ø²ÙˆÙ… Ù„Ø§ ÙŠØ«Ø¨Øª ÙØ´Ù„ Ø§Ù„ÙƒØªØ§Ø¨Ø©. Ø§Ù„Ø¥Ø«Ø¨Ø§Øª Ø§Ù„ØµØ­ÙŠØ­ ÙŠÙƒÙˆÙ† Ø¹Ù†Ø¯ Ø°Ø±ÙˆØ© Ø­Ø¯Ø« Ù…Ø·Ø¨Ù‚ ÙˆØ¨Ø¹Ø¯ Ù†Ø¬Ø§Ø­ readback Ù„Ù„Ø£Ø²Ù…Ù†Ø© ÙˆØ§Ù„Ù‚ÙŠÙ….
+- Ù†Ù‚Ù„ Player Position Ù„Ø§ ÙŠØºÙŠØ± Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„Ù…Ø­Ø¯Ø¯ ÙÙŠ Premiere. Ù„ÙƒÙŠ ØªÙƒÙˆÙ† Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø¢Ù„ÙŠØ© ØµØ§Ø¯Ù‚Ø©ØŒ ÙŠØ¬Ø¨ Ø£Ù† ØªØ­Ø¯Ø¯ Ø§Ù„Ø£Ø¯Ø§Ø© TrackItem ØµØ§Ø­Ø¨ Ø§Ù„Ø­Ø¯Ø« Ø¨Ø¹Ø¯ Ø§Ù„Ù†Ù‚Ù„Ø› ÙˆØ¥Ù„Ø§ Ù‚Ø¯ ÙŠØ¹Ø±Ø¶ Effect Controls Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„Ø³Ø§Ø¨Ù‚ Ø¹Ù†Ø¯ Ø­Ø¯ Ø§Ù„Ù‚Ø·Ø¹ Ø±ØºÙ… ÙˆØ¬ÙˆØ¯ Ø§Ù„Ù…ÙØ§ØªÙŠØ­ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØªØ§Ù„ÙŠ.
 
-### حفظ الـ Mappings والـ Fallback في Auto Zoom (2026-06-20)
-- الـ sequence watcher لا يقوم بمسح state.mappings عند الانتقال من الـ source sequence إلى الـ Draft sequence الناتج منها (e.g. Synced Sequence - Saad Auto Switch Draft).
-- في حال كان اختيار الكاميرا العامة (Wide) غير محدد (null) في الـ mappings، يقوم الـ Auto Zoom تلقائيًا باستبعاد المسار 0 (V1) كـ fallback افتراضي لحماية اللقطات العامة من الزومات العشوائية.
+### Ø­ÙØ¸ Ø§Ù„Ù€ Mappings ÙˆØ§Ù„Ù€ Fallback ÙÙŠ Auto Zoom (2026-06-20)
+- Ø§Ù„Ù€ sequence watcher Ù„Ø§ ÙŠÙ‚ÙˆÙ… Ø¨Ù…Ø³Ø­ state.mappings Ø¹Ù†Ø¯ Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ù…Ù† Ø§Ù„Ù€ source sequence Ø¥Ù„Ù‰ Ø§Ù„Ù€ Draft sequence Ø§Ù„Ù†Ø§ØªØ¬ Ù…Ù†Ù‡Ø§ (e.g. Synced Sequence - Saad Auto Switch Draft).
+- ÙÙŠ Ø­Ø§Ù„ ÙƒØ§Ù† Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ø§Ù„Ø¹Ø§Ù…Ø© (Wide) ØºÙŠØ± Ù…Ø­Ø¯Ø¯ (null) ÙÙŠ Ø§Ù„Ù€ mappingsØŒ ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù€ Auto Zoom ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ø¨Ø§Ø³ØªØ¨Ø¹Ø§Ø¯ Ø§Ù„Ù…Ø³Ø§Ø± 0 (V1) ÙƒÙ€ fallback Ø§ÙØªØ±Ø§Ø¶ÙŠ Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ù„Ù‚Ø·Ø§Øª Ø§Ù„Ø¹Ø§Ù…Ø© Ù…Ù† Ø§Ù„Ø²ÙˆÙ…Ø§Øª Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©.
 
-### دعم اللغات وإزالة الكي فريمز العشوائية للـ Playhead في Auto Zoom (2026-06-20)
-- دالة `findAutoZoomTransformComponent` تجمع الآن `matchName` و`displayName` معاً لضمان اكتشاف تأثير Transform تحت أي لغة واجهة (مثل العربية "تحويل").
-- دالة `findAutoZoomMotionScaleProperty` تطابق خاصية المقياس بالاسم الثابت `"ADBE Motion Scale"` بجانب الأسماء الافتراضية.
-- لتفادي الكي فريمز العشوائية التي يضعها Premiere تلقائياً عند موضع الـ playhead الحالي عند تشغيل الساعة `setTimeVarying(true)`، يتم استدعاء `removeKeyRange` على نطاق المقطع كاملاً لتنظيف الخصائص قبل كتابة مفاتيح الزوم الفعالة.
+### Ø¯Ø¹Ù… Ø§Ù„Ù„ØºØ§Øª ÙˆØ¥Ø²Ø§Ù„Ø© Ø§Ù„ÙƒÙŠ ÙØ±ÙŠÙ…Ø² Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠØ© Ù„Ù„Ù€ Playhead ÙÙŠ Auto Zoom (2026-06-20)
+- Ø¯Ø§Ù„Ø© `findAutoZoomTransformComponent` ØªØ¬Ù…Ø¹ Ø§Ù„Ø¢Ù† `matchName` Ùˆ`displayName` Ù…Ø¹Ø§Ù‹ Ù„Ø¶Ù…Ø§Ù† Ø§ÙƒØªØ´Ø§Ù ØªØ£Ø«ÙŠØ± Transform ØªØ­Øª Ø£ÙŠ Ù„ØºØ© ÙˆØ§Ø¬Ù‡Ø© (Ù…Ø«Ù„ Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© "ØªØ­ÙˆÙŠÙ„").
+- Ø¯Ø§Ù„Ø© `findAutoZoomMotionScaleProperty` ØªØ·Ø§Ø¨Ù‚ Ø®Ø§ØµÙŠØ© Ø§Ù„Ù…Ù‚ÙŠØ§Ø³ Ø¨Ø§Ù„Ø§Ø³Ù… Ø§Ù„Ø«Ø§Ø¨Øª `"ADBE Motion Scale"` Ø¨Ø¬Ø§Ù†Ø¨ Ø§Ù„Ø£Ø³Ù…Ø§Ø¡ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠØ©.
+- Ù„ØªÙØ§Ø¯ÙŠ Ø§Ù„ÙƒÙŠ ÙØ±ÙŠÙ…Ø² Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠØ© Ø§Ù„ØªÙŠ ÙŠØ¶Ø¹Ù‡Ø§ Premiere ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù†Ø¯ Ù…ÙˆØ¶Ø¹ Ø§Ù„Ù€ playhead Ø§Ù„Ø­Ø§Ù„ÙŠ Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø³Ø§Ø¹Ø© `setTimeVarying(true)`ØŒ ÙŠØªÙ… Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ `removeKeyRange` Ø¹Ù„Ù‰ Ù†Ø·Ø§Ù‚ Ø§Ù„Ù…Ù‚Ø·Ø¹ ÙƒØ§Ù…Ù„Ø§Ù‹ Ù„ØªÙ†Ø¸ÙŠÙ Ø§Ù„Ø®ØµØ§Ø¦Øµ Ù‚Ø¨Ù„ ÙƒØªØ§Ø¨Ø© Ù…ÙØ§ØªÙŠØ­ Ø§Ù„Ø²ÙˆÙ… Ø§Ù„ÙØ¹Ø§Ù„Ø©.
 
-### قاعدة Synchronize Duplicate-only (2026-06-26)
-- مسار Apply Sync لا يطبق الإزاحات على الـ Original Sequence نهائياً. يجب تنشيط السورس، إنشاء نسخة `Saad Sync Draft`، ثم تنشيط النسخة وتطبيق الإزاحات عليها فقط.
-- يجب الحفاظ على Timeline Scanner وAudio Analysis وPairwise Correlation وSync Graph وFine Alignment وValidation كطبقات مستقلة؛ تغيير سير التطبيق لا يعني إعادة كتابة محرك التحليل.
-- عند تحريك مقطع داخل النسخة، يجب الحفاظ على العلاقات المرتبطة بين الفيديو والصوت عبر منطق linked items في JSX وعدم تحريك العنصر نفسه أكثر من مرة.
-- بعد التطبيق، يجب إعادة فحص النسخة الناتجة وإنتاج تقرير يحتوي: اسم/معرف الأصل، اسم/معرف النسخة، عدد الإزاحات، عدد المقاطع المحركة، أكبر انحراف قبل/بعد، التحذيرات، والـ blockers.
-- إذا كانت المقاطع متزامنة مسبقاً ضمن السماحية، تنشأ نسخة أيضاً وتعود الحالة `already-synced` بدون تعديل الأصل.
-- لا تعتبر العملية ناجحة إنتاجياً إذا فشل إنشاء النسخة، أو فشل تنشيطها، أو لم يثبت التحقق النهائي أن أكبر انحراف بعد التطبيق ضمن السماحية.
+### Ù‚Ø§Ø¹Ø¯Ø© Synchronize Duplicate-only (2026-06-26)
+- Ù…Ø³Ø§Ø± Apply Sync Ù„Ø§ ÙŠØ·Ø¨Ù‚ Ø§Ù„Ø¥Ø²Ø§Ø­Ø§Øª Ø¹Ù„Ù‰ Ø§Ù„Ù€ Original Sequence Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹. ÙŠØ¬Ø¨ ØªÙ†Ø´ÙŠØ· Ø§Ù„Ø³ÙˆØ±Ø³ØŒ Ø¥Ù†Ø´Ø§Ø¡ Ù†Ø³Ø®Ø© `Saad Sync Draft`ØŒ Ø«Ù… ØªÙ†Ø´ÙŠØ· Ø§Ù„Ù†Ø³Ø®Ø© ÙˆØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø¥Ø²Ø§Ø­Ø§Øª Ø¹Ù„ÙŠÙ‡Ø§ ÙÙ‚Ø·.
+- ÙŠØ¬Ø¨ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Timeline Scanner ÙˆAudio Analysis ÙˆPairwise Correlation ÙˆSync Graph ÙˆFine Alignment ÙˆValidation ÙƒØ·Ø¨Ù‚Ø§Øª Ù…Ø³ØªÙ‚Ù„Ø©Ø› ØªØºÙŠÙŠØ± Ø³ÙŠØ± Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ù„Ø§ ÙŠØ¹Ù†ÙŠ Ø¥Ø¹Ø§Ø¯Ø© ÙƒØªØ§Ø¨Ø© Ù…Ø­Ø±Ùƒ Ø§Ù„ØªØ­Ù„ÙŠÙ„.
+- Ø¹Ù†Ø¯ ØªØ­Ø±ÙŠÙƒ Ù…Ù‚Ø·Ø¹ Ø¯Ø§Ø®Ù„ Ø§Ù„Ù†Ø³Ø®Ø©ØŒ ÙŠØ¬Ø¨ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ø¹Ù„Ø§Ù‚Ø§Øª Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨ÙŠÙ† Ø§Ù„ÙÙŠØ¯ÙŠÙˆ ÙˆØ§Ù„ØµÙˆØª Ø¹Ø¨Ø± Ù…Ù†Ø·Ù‚ linked items ÙÙŠ JSX ÙˆØ¹Ø¯Ù… ØªØ­Ø±ÙŠÙƒ Ø§Ù„Ø¹Ù†ØµØ± Ù†ÙØ³Ù‡ Ø£ÙƒØ«Ø± Ù…Ù† Ù…Ø±Ø©.
+- Ø¨Ø¹Ø¯ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ØŒ ÙŠØ¬Ø¨ Ø¥Ø¹Ø§Ø¯Ø© ÙØ­Øµ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ù†Ø§ØªØ¬Ø© ÙˆØ¥Ù†ØªØ§Ø¬ ØªÙ‚Ø±ÙŠØ± ÙŠØ­ØªÙˆÙŠ: Ø§Ø³Ù…/Ù…Ø¹Ø±Ù Ø§Ù„Ø£ØµÙ„ØŒ Ø§Ø³Ù…/Ù…Ø¹Ø±Ù Ø§Ù„Ù†Ø³Ø®Ø©ØŒ Ø¹Ø¯Ø¯ Ø§Ù„Ø¥Ø²Ø§Ø­Ø§ØªØŒ Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù…Ø­Ø±ÙƒØ©ØŒ Ø£ÙƒØ¨Ø± Ø§Ù†Ø­Ø±Ø§Ù Ù‚Ø¨Ù„/Ø¨Ø¹Ø¯ØŒ Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§ØªØŒ ÙˆØ§Ù„Ù€ blockers.
+- Ø¥Ø°Ø§ ÙƒØ§Ù†Øª Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ù…ØªØ²Ø§Ù…Ù†Ø© Ù…Ø³Ø¨Ù‚Ø§Ù‹ Ø¶Ù…Ù† Ø§Ù„Ø³Ù…Ø§Ø­ÙŠØ©ØŒ ØªÙ†Ø´Ø£ Ù†Ø³Ø®Ø© Ø£ÙŠØ¶Ø§Ù‹ ÙˆØªØ¹ÙˆØ¯ Ø§Ù„Ø­Ø§Ù„Ø© `already-synced` Ø¨Ø¯ÙˆÙ† ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø£ØµÙ„.
+- Ù„Ø§ ØªØ¹ØªØ¨Ø± Ø§Ù„Ø¹Ù…Ù„ÙŠØ© Ù†Ø§Ø¬Ø­Ø© Ø¥Ù†ØªØ§Ø¬ÙŠØ§Ù‹ Ø¥Ø°Ø§ ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù†Ø³Ø®Ø©ØŒ Ø£Ùˆ ÙØ´Ù„ ØªÙ†Ø´ÙŠØ·Ù‡Ø§ØŒ Ø£Ùˆ Ù„Ù… ÙŠØ«Ø¨Øª Ø§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ø£Ù† Ø£ÙƒØ¨Ø± Ø§Ù†Ø­Ø±Ø§Ù Ø¨Ø¹Ø¯ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¶Ù…Ù† Ø§Ù„Ø³Ù…Ø§Ø­ÙŠØ©.
 
 ## Saad Agent Settings Runtime Wiring (2026-06-28)
 
@@ -706,7 +715,7 @@
   3. Execute deterministic non-model paths when applicable.
   4. Retrieve project context.
   5. Call the model only if the request actually requires model reasoning/generation.
-- `memory_save` is an execution path. Requests such as `احفظ ...`, `تذكر ...`, `خزن ...`, `remember ...`, or `save ...` must write to Engineering Memory and return a confirmation without calling the model.
+- `memory_save` is an execution path. Requests such as `Ø§Ø­ÙØ¸ ...`, `ØªØ°ÙƒØ± ...`, `Ø®Ø²Ù† ...`, `remember ...`, or `save ...` must write to Engineering Memory and return a confirmation without calling the model.
 - `memory_recall` is an execution path. Identity and recall questions read stored user memory directly and do not ask the model to guess.
 - Explicit internet/link/latest/search requests route to `BraveAnswersService`. If Brave/provider/network/API key is unavailable, the agent must say the real search failed and must not fabricate links or current information from model knowledge.
 - Only generation, review, debugging, workspace reasoning, and general reasoning requests may call `ReasoningEngine`, and only after the memory/training/context review has built the final context.
@@ -737,11 +746,11 @@
 
 ## Smart Long Input Handling (2026-07-01)
 
-- صندوق إدخال المحادثة يحول النصوص الطويلة الملصوقة أو المسحوبة أو المكتوبة مباشرة إلى ملف مرفق بدل إرسالها كنص خام.
-- يدعم التصنيف الأولي لـ JSON وTypeScript وJavaScript وPython وMarkdown وlogs وconfig وshell scripts.
-- يجب الحفاظ على المحتوى الأصلي كما هو دون تلخيص أو إعادة تنسيق أو حذف العربية أو تغيير المسافات.
-- خيار `Paste as text anyway` يسمح بإرسال النص الخام عند الحاجة، وخيار `Attach as file` يسمح بتحويل النص الحالي يدويًا إلى مرفق.
-- التنفيذ يستخدم مسار المرفقات الحالي ولا يغير Backend AttachmentManager.
+- ØµÙ†Ø¯ÙˆÙ‚ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© ÙŠØ­ÙˆÙ„ Ø§Ù„Ù†ØµÙˆØµ Ø§Ù„Ø·ÙˆÙŠÙ„Ø© Ø§Ù„Ù…Ù„ØµÙˆÙ‚Ø© Ø£Ùˆ Ø§Ù„Ù…Ø³Ø­ÙˆØ¨Ø© Ø£Ùˆ Ø§Ù„Ù…ÙƒØªÙˆØ¨Ø© Ù…Ø¨Ø§Ø´Ø±Ø© Ø¥Ù„Ù‰ Ù…Ù„Ù Ù…Ø±ÙÙ‚ Ø¨Ø¯Ù„ Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ ÙƒÙ†Øµ Ø®Ø§Ù….
+- ÙŠØ¯Ø¹Ù… Ø§Ù„ØªØµÙ†ÙŠÙ Ø§Ù„Ø£ÙˆÙ„ÙŠ Ù„Ù€ JSON ÙˆTypeScript ÙˆJavaScript ÙˆPython ÙˆMarkdown Ùˆlogs Ùˆconfig Ùˆshell scripts.
+- ÙŠØ¬Ø¨ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø£ØµÙ„ÙŠ ÙƒÙ…Ø§ Ù‡Ùˆ Ø¯ÙˆÙ† ØªÙ„Ø®ÙŠØµ Ø£Ùˆ Ø¥Ø¹Ø§Ø¯Ø© ØªÙ†Ø³ÙŠÙ‚ Ø£Ùˆ Ø­Ø°Ù Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø£Ùˆ ØªØºÙŠÙŠØ± Ø§Ù„Ù…Ø³Ø§ÙØ§Øª.
+- Ø®ÙŠØ§Ø± `Paste as text anyway` ÙŠØ³Ù…Ø­ Ø¨Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†Øµ Ø§Ù„Ø®Ø§Ù… Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©ØŒ ÙˆØ®ÙŠØ§Ø± `Attach as file` ÙŠØ³Ù…Ø­ Ø¨ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ù†Øµ Ø§Ù„Ø­Ø§Ù„ÙŠ ÙŠØ¯ÙˆÙŠÙ‹Ø§ Ø¥Ù„Ù‰ Ù…Ø±ÙÙ‚.
+- Ø§Ù„ØªÙ†ÙÙŠØ° ÙŠØ³ØªØ®Ø¯Ù… Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø±ÙÙ‚Ø§Øª Ø§Ù„Ø­Ø§Ù„ÙŠ ÙˆÙ„Ø§ ÙŠØºÙŠØ± Backend AttachmentManager.
 
 ## Saad Agent V2 Architecture Freeze (2026-07-01)
 
@@ -765,19 +774,19 @@
 - The trace is public execution telemetry only. It must never expose internal model chain-of-thought or secrets.
 ## Saad Agent Execution Policy user-request boundary (2026-07-02)
 
-- Arabic/Iraqi engineering creation or modification requests such as `create page`, `add page`, `fix bug`, `update UI`, `اريد انشئ صفحة`, `اضف صفحة`, `اصلح هذا الخطأ`, and `عدل الواجهة` must be classified as project modification requests, not normal answers.
+- Arabic/Iraqi engineering creation or modification requests such as `create page`, `add page`, `fix bug`, `update UI`, `Ø§Ø±ÙŠØ¯ Ø§Ù†Ø´Ø¦ ØµÙØ­Ø©`, `Ø§Ø¶Ù ØµÙØ­Ø©`, `Ø§ØµÙ„Ø­ Ù‡Ø°Ø§ Ø§Ù„Ø®Ø·Ø£`, and `Ø¹Ø¯Ù„ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø©` must be classified as project modification requests, not normal answers.
 - Under `Ask for approval`, project modification requests must return an approval request before model generation or file modification.
 - Execution Policy must evaluate the real user-facing request only.
 - Composer metadata such as `Composer action`, runtime provider/model labels, workspace labels, and MCP/tool labels must not trigger modification approval by themselves.
-- A greeting or casual conversation such as `اهلا` must route as `ANSWER`/conversation and must not require project modification approval.
+- A greeting or casual conversation such as `Ø§Ù‡Ù„Ø§` must route as `ANSWER`/conversation and must not require project modification approval.
 - If a composed prompt reaches policy code, the policy must extract the content after `User request:` before classification.
 
 ## Saad Agent Casual Conversation Trace behavior (2026-07-02)
 
-- Casual greetings and short acknowledgements such as `اهلا`, `شكرا`, and `تمام` are not executable engineering tasks.
+- Casual greetings and short acknowledgements such as `Ø§Ù‡Ù„Ø§`, `Ø´ÙƒØ±Ø§`, and `ØªÙ…Ø§Ù…` are not executable engineering tasks.
 - These requests must return a concise deterministic chat response before `TaskStateStore.initializeTask`.
 - The public `Execution Trace` card remains reserved for real engineering, approval, workspace, policy, tool, verification, and learning tasks.
-- Agent identity questions such as `منو انت`, `من انت`, and `شنو انت` must return a deterministic `Saad Studio Agent` identity response before model invocation. The runtime must not identify itself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
+- Agent identity questions such as `Ù…Ù†Ùˆ Ø§Ù†Øª`, `Ù…Ù† Ø§Ù†Øª`, and `Ø´Ù†Ùˆ Ø§Ù†Øª` must return a deterministic `Saad Studio Agent` identity response before model invocation. The runtime must not identify itself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
 
 ## Saad Agent Quiet Conversation Knowledge Review (2026-07-04)
 
@@ -795,9 +804,9 @@
 - Direct model response paths that do initialize a task must follow the lifecycle order `ANALYZING -> EVIDENCE_COLLECTION -> VALIDATING -> GAP_ANALYSIS -> IMPACT_ANALYSIS -> RISK_ASSESSMENT -> SOLUTION_DESIGN -> PLANNING -> IMPLEMENTING -> VERIFYING -> COMPLETED`.
 - Saad Agent must reply in natural central Iraqi Arabic (Baghdad tone) unless the user asks for another language.
 - The tone must be friendly, smart, fast, respectful, direct, and concise unless the task needs detail.
-- Technical replies should still use Iraqi phrasing while staying precise, e.g. `المشكلة مو بالـ API، المشكلة بالـ State Management`.
-- Avoid non-Iraqi phrases such as `وش`, `ياخي`, `أبشر`, `كفو عليك`, `يخوي`, `يا زلمة`, and `يعطيك العافية`.
-- Preferred phrases include `شلون أگدر أساعدك؟`, `أكو شي ثاني تريد؟`, `مو واضح عليّ، وضحلي أكثر`, and `تمام، أسويها`.
+- Technical replies should still use Iraqi phrasing while staying precise, e.g. `Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ù…Ùˆ Ø¨Ø§Ù„Ù€ APIØŒ Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ø¨Ø§Ù„Ù€ State Management`.
+- Avoid non-Iraqi phrases such as `ÙˆØ´`, `ÙŠØ§Ø®ÙŠ`, `Ø£Ø¨Ø´Ø±`, `ÙƒÙÙˆ Ø¹Ù„ÙŠÙƒ`, `ÙŠØ®ÙˆÙŠ`, `ÙŠØ§ Ø²Ù„Ù…Ø©`, and `ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©`.
+- Preferred phrases include `Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯ÙƒØŸ`, `Ø£ÙƒÙˆ Ø´ÙŠ Ø«Ø§Ù†ÙŠ ØªØ±ÙŠØ¯ØŸ`, `Ù…Ùˆ ÙˆØ§Ø¶Ø­ Ø¹Ù„ÙŠÙ‘ØŒ ÙˆØ¶Ø­Ù„ÙŠ Ø£ÙƒØ«Ø±`, and `ØªÙ…Ø§Ù…ØŒ Ø£Ø³ÙˆÙŠÙ‡Ø§`.
 
 ## Saad Agent Codex Runtime Integration Audit (2026-07-02)
 
@@ -810,8 +819,8 @@
 ## Saad Agent Broad Memory Recall and Approval Routing (2026-07-02)
 
 - User-memory recall must be phrase-family based, not one-keyword based.
-- Arabic/Iraqi variants such as `شنو تعرف عني`, `شنو حافظ عني`, `تتذكرني`, `اسمي شنو`, and `تعرفني` must route to deterministic `memory_recall` without model invocation.
-- Recall-like prompts must not be treated as memory-save just because they contain a `remember`/`تذكر` token.
+- Arabic/Iraqi variants such as `Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ`, `Ø´Ù†Ùˆ Ø­Ø§ÙØ¸ Ø¹Ù†ÙŠ`, `ØªØªØ°ÙƒØ±Ù†ÙŠ`, `Ø§Ø³Ù…ÙŠ Ø´Ù†Ùˆ`, and `ØªØ¹Ø±ÙÙ†ÙŠ` must route to deterministic `memory_recall` without model invocation.
+- Recall-like prompts must not be treated as memory-save just because they contain a `remember`/`ØªØ°ÙƒØ±` token.
 - Approval-required project modification requests must preserve an engineering intent such as `code_generation`; they must not be downgraded to `conversation`.
 - Approval-required web requests must preserve `external_research`.
 - Approval policy persistence and execution audit logging are non-critical side effects. If a local app-data write fails, the runtime must still return the user-facing decision or approval card instead of crashing.
@@ -833,7 +842,7 @@
 
 ## Saad Agent Codex Runtime Bridge (2026-07-02)
 
-- `CodexRuntimeBridge` is a real backend bridge for explicit `/codex` or `استخدم/شغل/نفذ Codex` requests only.
+- `CodexRuntimeBridge` is a real backend bridge for explicit `/codex` or `Ø§Ø³ØªØ®Ø¯Ù…/Ø´ØºÙ„/Ù†ÙØ° Codex` requests only.
 - The bridge must run after Saad Agent context, memory, knowledge, trusted workspace, and approval checks.
 - Normal conversation and normal provider responses must not silently route through Codex.
 - The current machine's WindowsApps `codex.exe` is not spawnable from Node/Electron and returns `Access is denied` / `spawn EPERM`; the bridge reports this directly instead of claiming execution.
@@ -844,14 +853,14 @@
 - Direct memory-save requests must be handled before task trace initialization and before provider/model invocation.
 - Training-ingest requests without an attached file must return a deterministic upload-required message and must not call the active model.
 - The prompt loading UI must use neutral wording such as `Processing request...` until the backend decides whether an LLM call is actually required.
-- Identity and user-memory recall prompts such as `من انا`, `منو انا`, and `ماذا تعرف عني` are deterministic read-only memory operations. They must run before execution policy, approval writes, task trace initialization, and provider/model invocation.
+- Identity and user-memory recall prompts such as `Ù…Ù† Ø§Ù†Ø§`, `Ù…Ù†Ùˆ Ø§Ù†Ø§`, and `Ù…Ø§Ø°Ø§ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ` are deterministic read-only memory operations. They must run before execution policy, approval writes, task trace initialization, and provider/model invocation.
 ## Saad Agent Runtime Approval and Project Context Stabilization (2026-07-02)
 
 - `WAIT_FOR_APPROVAL` is a real pending runtime state. It must render as `Waiting approval`, not `Running`.
 - Backend `approvalRequest` responses must be shown as actionable runtime approval cards in chat.
 - Approval cards must preserve the original prompt, workspace path, project name, attachments, conversation id, and approval mode so the same request can be resumed with `approved: true`.
 - Rejecting an approval card must stop execution and show a concise stop message.
-- Deterministic project-context questions such as `ماهو مشروع سعد ستوديو` and `شنو مشروع سعد ستوديو` must answer from Saad Agent context without calling the active provider model.
+- Deterministic project-context questions such as `Ù…Ø§Ù‡Ùˆ Ù…Ø´Ø±ÙˆØ¹ Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ` and `Ø´Ù†Ùˆ Ù…Ø´Ø±ÙˆØ¹ Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ` must answer from Saad Agent context without calling the active provider model.
 - Project modification requests under Ask mode must still return approval before execution or model planning.
 ## Saad Agent Production Package Asset Rule (2026-07-03)
 
@@ -864,7 +873,7 @@
 ## Saad Agent External Search Routing Rule (2026-07-03)
 
 - Arabic/Iraqi search requests must be routed by sentence-family, not by one exact keyword.
-- External search phrase families include `ابحثلي`, `ابحث لي`, `ابحث`, `دورلي`, `دور لي`, `دور`, `فتشلي`, `فتش لي`, `فتش`, `جيبلي معلومات`, `جيب لي معلومات`, `هاتلي معلومات`, `هات لي معلومات`, `طلعلي معلومات`, and `طلع لي معلومات`.
+- External search phrase families include `Ø§Ø¨Ø­Ø«Ù„ÙŠ`, `Ø§Ø¨Ø­Ø« Ù„ÙŠ`, `Ø§Ø¨Ø­Ø«`, `Ø¯ÙˆØ±Ù„ÙŠ`, `Ø¯ÙˆØ± Ù„ÙŠ`, `Ø¯ÙˆØ±`, `ÙØªØ´Ù„ÙŠ`, `ÙØªØ´ Ù„ÙŠ`, `ÙØªØ´`, `Ø¬ÙŠØ¨Ù„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`, `Ø¬ÙŠØ¨ Ù„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`, `Ù‡Ø§ØªÙ„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`, `Ù‡Ø§Øª Ù„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`, `Ø·Ù„Ø¹Ù„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`, and `Ø·Ù„Ø¹ Ù„ÙŠ Ù…Ø¹Ù„ÙˆÙ…Ø§Øª`.
 - If the request contains an external topic signal such as an English product/model name, version number, company, platform, service, model, price, docs, links, or sources, the runtime should classify it as `external_research`.
 - If the request explicitly says it is inside the project, files, code, workspace, or codebase, it must stay in workspace search and must not trigger internet research.
 - In `ask` approval mode, external research must return an actionable `use_internet` approval request before using the web.

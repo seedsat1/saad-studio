@@ -206,6 +206,62 @@ function RangeSlider({ value, onChange, min, max }: { value: number; onChange: (
   );
 }
 
+function compressImage(file: File, maxW = 800, maxH = 800, quality = 0.75): Promise<{ data: string; mimeType: string }> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxW || height > maxH) {
+          if (width > height) {
+            height = Math.round((height * maxW) / width);
+            width = maxW;
+          } else {
+            width = Math.round((width * maxH) / height);
+            height = maxH;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve({
+            data: event.target?.result as string,
+            mimeType: file.type
+          });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve({
+          data: dataUrl,
+          mimeType: "image/jpeg"
+        });
+      };
+      img.onerror = () => {
+        resolve({
+          data: event.target?.result as string,
+          mimeType: file.type
+        });
+      };
+    };
+    reader.onerror = () => {
+      resolve({
+        data: "",
+        mimeType: file.type
+      });
+    };
+  });
+}
+
 export default function AudioPage() {
   const proModal = useProModal();
   const { toast } = useToast();
@@ -329,18 +385,15 @@ export default function AudioPage() {
       for (const img of images) {
         if (img.file) {
           try {
-            const base64Data = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(img.file);
-            });
-            imagePayloads.push({
-              data: base64Data,
-              mimeType: img.file.type
-            });
+            const compressed = await compressImage(img.file);
+            if (compressed.data) {
+              imagePayloads.push({
+                data: compressed.data,
+                mimeType: compressed.mimeType
+              });
+            }
           } catch (e) {
-            console.error("Failed to read image ref file", e);
+            console.error("Failed to compress image reference", e);
           }
         }
       }
