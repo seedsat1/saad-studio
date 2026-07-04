@@ -1,146 +1,285 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 import {
-  Music,
-  Sliders,
-  Wand2,
-  Loader2,
-  Play,
-  Pause,
-  Download,
-  Volume2,
-  Image as ImageIcon,
-  X,
-  FileAudio,
-  Sparkles,
-  Info
+  Music2, Upload, Play, Pause, Volume2, VolumeX, Download, Share2, Copy,
+  ChevronDown, ChevronUp, ChevronRight, Sparkles, X, Settings2, RefreshCw,
+  Check, MoreHorizontal, Zap, Plus, Heart, List, RotateCcw, Clock,
+  Star, AlignLeft, Sliders
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
-import Heading from "@/components/heading";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 
-interface UploadedImage {
-  data: string; // base64
-  file: File;
-  preview: string;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Track {
+  id: string;
+  title: string;
+  prompt: string;
+  genre: string;
+  mood: string;
+  duration: number;
+  model: string;
+  timestamp: Date;
+  waveform: number[];
+  liked: boolean;
+  audioUrl?: string;
+  lyrics?: string;
 }
 
-const MUSIC_MODELS = [
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const GENRE_CHIPS = ["Cinematic", "Lo-Fi", "EDM", "Pop", "Jazz", "Arabic", "Ambient", "Synthwave", "Gaming"];
+const GENRES = ["Cinematic", "Lo-Fi", "EDM", "Pop", "Jazz", "Arabic", "Ambient", "Synthwave", "Gaming", "Classical", "R&B", "Rock", "Hip-Hop", "Country"];
+const MOODS = ["Uplifting", "Melancholic", "Energetic", "Peaceful", "Epic", "Dark", "Romantic", "Mysterious", "Playful", "Tense"];
+const LANGUAGES = ["English", "Spanish", "French", "Arabic", "Japanese", "Korean", "Portuguese", "German", "Italian", "Hindi"];
+const GEN_STEPS = ["Preparing", "Composing", "Rendering", "Finalizing"];
+
+const EXAMPLE_PROMPTS = [
   {
-    id: "elevenlabs/music",
-    label: "AI Song Generator",
-    sublabel: "High-fidelity stereo music with custom lyrics",
-    badge: "FAST",
-    avatar: "⚡",
-    maxDuration: 120,
-    hasLyrics: true,
+    title: "Epic Cinematic Score",
+    prompt: "An epic orchestral piece with soaring strings, thunderous percussion and a heroic brass melody that builds to a powerful climax",
+    genre: "Cinematic",
+    mood: "Epic",
   },
   {
-    id: "minimax/minimax-music-2.5",
-    label: "Minimax Music",
-    sublabel: "Full songs with verses, choruses, & bridges",
-    badge: "PRO",
-    avatar: "🏆",
-    maxDuration: 180,
-    hasLyrics: true,
-  }
+    title: "Chill Lo-Fi Study",
+    prompt: "Relaxing lo-fi hip hop with warm vinyl crackle, mellow piano chords, soft drums and a cozy coffee shop atmosphere",
+    genre: "Lo-Fi",
+    mood: "Peaceful",
+  },
+  {
+    title: "Festival EDM Drop",
+    prompt: "High energy festival EDM with pulsing synth bass, euphoric lead synths, a massive tension buildup and a punishing drop",
+    genre: "EDM",
+    mood: "Energetic",
+  },
+  {
+    title: "Midnight Jazz Club",
+    prompt: "Smooth late-night jazz with a sultry saxophone, walking bass lines, brushed snare drums and warm piano chord voicings",
+    genre: "Jazz",
+    mood: "Melancholic",
+  },
 ];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function generateWaveform(bars = 80): number[] {
+  return Array.from({ length: bars }, () => 0.15 + Math.random() * 0.85);
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function timeAgo(date: Date): string {
+  const diff = Date.now() - date.getTime();
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+const SAMPLE_HISTORY: Track[] = [
+  {
+    id: "h1",
+    title: "Midnight Rain",
+    prompt: "Melancholic piano with soft rain sounds and ambient reverb pads floating in the background",
+    genre: "Ambient",
+    mood: "Melancholic",
+    duration: 185,
+    model: "Minimax Music",
+    timestamp: new Date(Date.now() - 1800000),
+    waveform: generateWaveform(),
+    liked: true,
+  },
+  {
+    id: "h2",
+    title: "Urban Pulse",
+    prompt: "Gritty synthwave with neon-soaked arpeggios and driving analog 80s drums through a tape compressor",
+    genre: "Synthwave",
+    mood: "Energetic",
+    duration: 210,
+    model: "AI Song Generator",
+    timestamp: new Date(Date.now() - 7200000),
+    waveform: generateWaveform(),
+    liked: false,
+  },
+  {
+    id: "h3",
+    title: "Desert Wind",
+    prompt: "Traditional Arabic maqam melodies blended with modern electronic production and deep sub bass",
+    genre: "Arabic",
+    mood: "Mysterious",
+    duration: 195,
+    model: "Minimax Music",
+    timestamp: new Date(Date.now() - 86400000),
+    waveform: generateWaveform(),
+    liked: false,
+  },
+];
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function MiniWaveform({ waveform, progress = 0, height = 28 }: { waveform: number[]; progress?: number; height?: number }) {
+  const bars = waveform.slice(0, 36);
+  return (
+    <div className="flex items-end gap-[2px]" style={{ height }}>
+      {bars.map((h, i) => {
+        const played = i / bars.length < progress;
+        return (
+          <div
+            key={i}
+            className="rounded-full flex-shrink-0 transition-colors duration-150"
+            style={{ width: 2.5, height: `${h * height}px`, backgroundColor: played ? "#7c3aed" : "#27272a" }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2",
+        checked ? "bg-primary" : "bg-zinc-800"
+      )}
+      style={checked ? { "--tw-ring-color": "#7c3aed" } as React.CSSProperties : {}}
+    >
+      <span
+        className={cn(
+          "inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200",
+          checked ? "translate-x-6" : "translate-x-1"
+        )}
+      />
+    </button>
+  );
+}
+
+function AppSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none rounded-xl bg-muted border border-border px-3 py-2.5 pr-8 text-sm font-medium text-foreground focus:outline-none cursor-pointer"
+      >
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    </div>
+  );
+}
+
+function RangeSlider({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="relative h-5 flex items-center">
+      <div className="relative w-full h-1.5 bg-muted rounded-full">
+        <div
+          className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
+          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #5b21b6, #a855f7)" }}
+        />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white shadow border-2 border-primary pointer-events-none"
+          style={{ left: `calc(${pct}% - 8px)` }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={e => onChange(Number(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function AudioPage() {
   const proModal = useProModal();
   const { toast } = useToast();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
-  // Tab State: "sound-studio" | "create-song"
-  const [activeTab, setActiveTab] = useState<"sound-studio" | "create-song">("sound-studio");
+  // Suite Tab
+  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song">("create-song");
 
-  // Lyria State
-  const [selectedModel, setSelectedModel] = useState(MUSIC_MODELS[0]);
+  // App state
   const [prompt, setPrompt] = useState("");
-  const [lyrics, setLyrics] = useState("");
-  const [style, setStyle] = useState("");
-  const [forceInstrumental, setForceInstrumental] = useState(false);
-  const [outputFormat, setOutputFormat] = useState<"mp3" | "wav">("mp3");
-  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [activeTab, setActiveTab] = useState<"prompt" | "lyrics">("prompt");
+
+  // Images
+  const [images, setImages] = useState<{ name: string; url: string; file: File }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Settings
+  const [selectedModel, setSelectedModel] = useState<"clip" | "pro">("pro");
+  const [genre, setGenre] = useState("Cinematic");
+  const [mood, setMood] = useState("Epic");
+  const [bpm, setBpm] = useState(120);
+  const [dur, setDur] = useState(120);
+  const [language, setLanguage] = useState("English");
+  const [instrumental, setInstrumental] = useState(false);
+  const [genLyrics, setGenLyrics] = useState(false);
+  const [outputFmt, setOutputFmt] = useState<"mp3" | "wav">("mp3");
+  const [creativity, setCreativity] = useState(70);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // Lyrics
+  const [verse, setVerse] = useState("");
+  const [chorus, setChorus] = useState("");
+  const [bridge, setBridge] = useState("");
+
+  // Generation
   const [isGenerating, setIsGenerating] = useState(false);
-  
-  // Player State
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [generatedLyrics, setGeneratedLyrics] = useState<string | null>(null);
+  const [genStep, setGenStep] = useState(0);
+  const [genProgress, setGenProgress] = useState(0);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+
+  // Player
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [volume, setVolume] = useState(80);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showLyricsPanel, setShowLyricsPanel] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Clean up previews on unmount
+  // History & clipboard
+  const [history, setHistory] = useState<Track[]>(SAMPLE_HISTORY);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+
+  // Sync play/pause with audio ref
   useEffect(() => {
-    return () => {
-      images.forEach((img) => URL.revokeObjectURL(img.preview));
-    };
-  }, [images]);
-
-  // Audio Playback Sync
-  const togglePlay = () => {
-    if (!audioRef.current || !audioUrl) return;
+    if (!audioRef.current) return;
     if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
+      audioRef.current.play().catch(() => setIsPlaying(false));
     } else {
-      audioRef.current.play().catch(() => {});
-      setIsPlaying(true);
+      audioRef.current.pause();
     }
-  };
+  }, [isPlaying, currentTrack?.audioUrl]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+  // Volume & mute sync
+  useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = isMuted ? 0 : volume / 100;
+  }, [volume, isMuted]);
 
-    if (images.length + files.length > 10) {
-      toast({ title: "Maximum 10 images allowed", variant: "destructive" });
-      return;
-    }
-
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages((prev) => [
-          ...prev,
-          {
-            data: reader.result as string,
-            file,
-            preview: URL.createObjectURL(file),
-          },
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => {
-      const updated = [...prev];
-      URL.revokeObjectURL(updated[index].preview);
-      updated.splice(index, 1);
-      return updated;
-    });
-  };
-
-  const handleDownload = () => {
-    if (!audioUrl) return;
-    const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = `saadstudio_music_${Date.now()}.${outputFormat}`;
-    a.click();
-  };
-
-  const onGenerate = async () => {
-    if (!prompt.trim()) {
-      toast({ title: "Please enter a prompt", variant: "destructive" });
-      return;
-    }
+  // ── Generation execution ──
+  const handleGenerate = useCallback(async () => {
+    if (!prompt.trim() || isGenerating) return;
 
     const gate = await guardGeneration({
       requiredCredits: 20,
@@ -157,31 +296,99 @@ export default function AudioPage() {
       return;
     }
 
+    setIsGenerating(true);
+    setGenStep(0);
+    setGenProgress(0);
+    setCurrentTrack(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+
+    // Progress simulation
+    const simulationInterval = setInterval(() => {
+      setGenProgress(p => {
+        if (p < 85) return p + Math.random() * 6;
+        if (p < 95) return p + Math.random() * 1.5;
+        return p;
+      });
+    }, 400);
+
+    const stepInterval = setInterval(() => {
+      setGenStep(s => (s < 3 ? s + 1 : s));
+    }, 3000);
+
     try {
-      setIsGenerating(true);
-      setAudioUrl(null);
-      setGeneratedLyrics(null);
-      setIsPlaying(false);
+      let customLyrics = "";
+      if (activeTab === "lyrics") {
+        customLyrics = [
+          verse.trim() ? `[Verse]\n${verse.trim()}` : "",
+          chorus.trim() ? `[Chorus]\n${chorus.trim()}` : "",
+          bridge.trim() ? `[Bridge]\n${bridge.trim()}` : "",
+        ].filter(Boolean).join("\n\n");
+      }
+
+      const imagePayloads = [];
+      for (const img of images) {
+        if (img.url) {
+          try {
+            const blobRes = await fetch(img.url);
+            const blob = await blobRes.blob();
+            const base64Data = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            imagePayloads.push({
+              data: base64Data,
+              mimeType: blob.type
+            });
+          } catch (e) {
+            console.error("Failed to read image ref blob", e);
+          }
+        }
+      }
 
       const payload = {
-        prompt,
-        model: selectedModel.id,
-        lyrics: lyrics.trim() || undefined,
-        style: style.trim() || undefined,
-        force_instrumental: forceInstrumental,
-        output_format: outputFormat,
-        images: images.map(img => ({
-          data: img.data,
-          mimeType: img.file.type
-        }))
+        prompt: prompt.trim(),
+        model: selectedModel === "pro" ? "minimax/minimax-music-2.5" : "elevenlabs/music",
+        lyrics: customLyrics || undefined,
+        style: [genre, mood].filter(Boolean).join(", "),
+        force_instrumental: instrumental,
+        output_format: outputFmt === "wav" ? "wav" : "mp3",
+        images: imagePayloads,
+        duration: dur
       };
 
       const res = await axios.post("/api/music", payload);
-      setAudioUrl(res.data.audioUrl);
-      if (res.data.lyrics) {
-        setGeneratedLyrics(res.data.lyrics);
-      }
+
+      clearInterval(simulationInterval);
+      clearInterval(stepInterval);
+      setGenStep(3);
+      setGenProgress(100);
+
+      const words = prompt.trim().split(/\s+/);
+      const title = words.slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+
+      const newTrack: Track = {
+        id: res.data.generationId || `t${Date.now()}`,
+        title,
+        prompt: prompt.trim(),
+        genre,
+        mood,
+        duration: dur,
+        model: selectedModel === "pro" ? "Minimax Music" : "AI Song Generator",
+        timestamp: new Date(),
+        waveform: generateWaveform(),
+        liked: false,
+        audioUrl: res.data.audioUrl,
+        lyrics: res.data.lyrics || customLyrics,
+      };
+
+      setCurrentTrack(newTrack);
+      setHistory(prev => [newTrack, ...prev]);
+      setSelectedHistoryId(newTrack.id);
     } catch (error: any) {
+      clearInterval(simulationInterval);
+      clearInterval(stepInterval);
       if (error?.response?.status === 403) {
         proModal.onOpen();
       } else {
@@ -194,22 +401,55 @@ export default function AudioPage() {
     } finally {
       setIsGenerating(false);
     }
+  }, [prompt, genre, mood, dur, selectedModel, instrumental, outputFmt, activeTab, verse, chorus, bridge, images, isGenerating]);
+
+  // ── Image drop ──
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files)
+      .filter(f => ["image/png", "image/jpeg", "image/webp"].includes(f.type))
+      .slice(0, 10 - images.length);
+    setImages(prev => [...prev, ...files.map(f => ({ name: f.name, url: URL.createObjectURL(f), file: f }))].slice(0, 10));
+  }, [images]);
+
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 10 - images.length);
+    setImages(prev => [...prev, ...files.map(f => ({ name: f.name, url: URL.createObjectURL(f), file: f }))].slice(0, 10));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [images]);
+
+  const copyText = useCallback(async (text: string, key: string) => {
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  }, []);
+
+  const handleDownloadTrack = (track: Track) => {
+    if (!track.audioUrl) return;
+    const a = document.createElement("a");
+    a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}`;
+    a.download = `${track.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
+    a.click();
   };
 
-  const loadLyricsTemplate = () => {
-    setLyrics(`[Verse 1]
-Walking through the neon glow,
-city lights reflect below,
-every shadow tells a story.
-
-[Chorus]
-We are the echoes in the night,
-burning brighter than the light,
-hold on tight, don't let me go.`);
-  };
+  const progress = currentTrack ? currentTime / currentTrack.duration : 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-black">
+      {/* Real HTML5 Audio Player */}
+      {currentTrack?.audioUrl && (
+        <audio
+          ref={audioRef}
+          src={currentTrack.audioUrl}
+          onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
+          onEnded={() => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+          }}
+        />
+      )}
+
       {/* Tab Navigation */}
       <div className="flex items-center justify-between border-b border-white/10 bg-zinc-950 px-4 py-2">
         <div className="flex items-center gap-2">
@@ -218,10 +458,10 @@ hold on tight, don't let me go.`);
         </div>
         <div className="flex bg-white/5 rounded-xl p-1 gap-1 border border-white/10">
           <button
-            onClick={() => setActiveTab("sound-studio")}
+            onClick={() => setSuiteTab("sound-studio")}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
-              activeTab === "sound-studio"
+              suiteTab === "sound-studio"
                 ? "bg-violet-600 text-white shadow-lg"
                 : "text-zinc-400 hover:text-white"
             )}
@@ -230,10 +470,10 @@ hold on tight, don't let me go.`);
             Sound Studio
           </button>
           <button
-            onClick={() => setActiveTab("create-song")}
+            onClick={() => setSuiteTab("create-song")}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
-              activeTab === "create-song"
+              suiteTab === "create-song"
                 ? "bg-violet-600 text-white shadow-lg"
                 : "text-zinc-400 hover:text-white"
             )}
@@ -245,9 +485,8 @@ hold on tight, don't let me go.`);
         <div className="w-10 sm:w-20" /> {/* Spacer */}
       </div>
 
-      {/* Main Tab Panels */}
       <div className="flex-1">
-        {activeTab === "sound-studio" ? (
+        {suiteTab === "sound-studio" ? (
           <iframe
             src="/stude/sound.html?embed=1"
             className="w-full border-0"
@@ -256,273 +495,749 @@ hold on tight, don't let me go.`);
             allow="microphone *; autoplay *"
           />
         ) : (
-          <div className="max-w-7xl mx-auto px-4 py-6 md:px-8 space-y-6">
-            <Heading
-              title="Create Your Song"
-              description="Compose high-fidelity stereo music using text prompts, custom lyrics, and visual inspiration."
-              icon={Music}
-              iconColor="text-violet-500"
-              bgColor="bg-violet-500/10"
-            />
+          <div className="min-h-screen bg-background" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Input Panel (Col span 7) */}
-              <div className="lg:col-span-7 space-y-6 bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 md:p-6 backdrop-blur-xl">
-                {/* Model Selector */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Model Selection</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {MUSIC_MODELS.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => setSelectedModel(model)}
-                        className={cn(
-                          "flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all hover:bg-white/[0.04]",
-                          selectedModel.id === model.id
-                            ? "border-violet-500 bg-violet-500/10 text-white"
-                            : "border-white/[0.08] bg-black/20 text-zinc-400"
-                        )}
-                      >
-                        <span className="text-2xl shrink-0">{model.avatar}</span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm truncate">{model.label}</span>
-                            <span className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded",
-                              model.badge === "PRO" ? "bg-violet-500/20 text-violet-400" : "bg-emerald-500/20 text-emerald-400"
-                            )}>
-                              {model.badge}
-                            </span>
-                          </div>
-                          <span className="block text-[10px] text-zinc-500 truncate">{model.sublabel}</span>
-                        </div>
-                      </button>
-                    ))}
+            {/* ══ HEADER ════════════════════════════════════════════════════════════ */}
+            <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+              <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                  >
+                    <Music2 className="h-4 w-4 text-white" />
                   </div>
+                  <span className="font-semibold text-foreground text-[15px] hidden sm:block">Saad Studio</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                  <span className="text-[15px] text-foreground font-medium">Create Your Song</span>
                 </div>
 
-                {/* Prompt Box */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Music Description</label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe the track... (e.g. A slow lo-fi hip hop beat with Rhodes piano chords, upright bass, and vinyl crackle. Instrumental only.)"
-                    rows={3}
-                    className="w-full rounded-xl border border-white/[0.08] bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-violet-500/50 transition-colors"
-                  />
-                </div>
-
-                {/* Multimodal Images */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Visual Inspiration</label>
-                    <span className="text-[10px] text-zinc-500">{images.length}/10 Images</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-primary text-xs font-semibold">
+                    <Zap className="h-3.5 w-3.5" />
+                    <span className="hidden sm:block">Powered by</span> AI Audio
                   </div>
-                  
-                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                    {images.map((img, i) => (
-                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-white/10 group bg-black/40">
-                        <img src={img.preview} alt="Visual inspiration preview" className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => removeImage(i)}
-                          className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="h-4 w-4 text-red-500" />
-                        </button>
-                      </div>
-                    ))}
-                    {images.length < 10 && (
-                      <label className="aspect-square rounded-lg border border-dashed border-white/20 hover:border-violet-500/50 bg-black/20 hover:bg-white/[0.02] flex flex-col items-center justify-center cursor-pointer transition-colors">
-                        <ImageIcon className="h-4 w-4 text-zinc-500" />
-                        <span className="text-[9px] text-zinc-500 mt-1">Upload</span>
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+                  <button
+                    className="h-9 w-9 rounded-full bg-muted flex items-center justify-center hover:bg-secondary transition-colors"
+                    title="Reset"
+                    onClick={() => { setPrompt(""); setCurrentTrack(null); setImages([]); setIsPlaying(false); setCurrentTime(0); }}
+                  >
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <div
+                    className="h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-bold select-none"
+                    style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                  >
+                    U
                   </div>
                 </div>
-
-                {/* Optional Custom Lyrics */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Custom Lyrics</label>
-                    <button
-                      onClick={loadLyricsTemplate}
-                      className="text-[10px] text-violet-400 hover:text-violet-300 font-medium transition-colors"
-                    >
-                      Use Template
-                    </button>
-                  </div>
-                  <textarea
-                    value={lyrics}
-                    onChange={(e) => setLyrics(e.target.value)}
-                    placeholder="Enter custom lyrics with structural section tags e.g. [Verse], [Chorus]..."
-                    rows={4}
-                    className="w-full rounded-xl border border-white/[0.08] bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-violet-500/50 transition-colors"
-                  />
-                </div>
-
-                {/* Additional Settings Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Style Genre tags */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mood / Style Tags</label>
-                    <input
-                      value={style}
-                      onChange={(e) => setStyle(e.target.value)}
-                      placeholder="e.g. ambient, dreamy, guitar pop"
-                      className="w-full rounded-xl border border-white/[0.08] bg-black/40 px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
-                    />
-                  </div>
-
-                  {/* Settings Toggle / Format Selector */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Instrumental / Format</label>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setForceInstrumental(!forceInstrumental)}
-                        className={cn(
-                          "flex-1 py-2 px-3 text-xs font-semibold rounded-xl border transition-colors",
-                          forceInstrumental
-                            ? "border-violet-500/50 bg-violet-500/10 text-violet-300"
-                            : "border-white/[0.08] bg-black/20 text-zinc-400"
-                        )}
-                      >
-                        Instrumental
-                      </button>
-                      
-                      {selectedModel.id.includes("pro") ? (
-                        <select
-                          value={outputFormat}
-                          onChange={(e: any) => setOutputFormat(e.target.value)}
-                          className="py-2 px-3 text-xs font-semibold rounded-xl border border-white/[0.08] bg-black/20 text-zinc-400 focus:outline-none focus:border-violet-500/50 cursor-pointer"
-                        >
-                          <option value="mp3">MP3</option>
-                          <option value="wav">WAV</option>
-                        </select>
-                      ) : (
-                        <div className="py-2 px-3 text-xs font-semibold rounded-xl border border-white/[0.04] bg-black/10 text-zinc-600 select-none">
-                          MP3 (Locked)
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Generate Trigger */}
-                <button
-                  onClick={onGenerate}
-                  disabled={isGenerating || !prompt.trim()}
-                  className={cn(
-                    "w-full flex items-center justify-center gap-2 rounded-xl py-3 font-bold text-sm transition-all mt-4",
-                    isGenerating || !prompt.trim()
-                      ? "bg-violet-600/20 text-violet-500/50 cursor-not-allowed border border-violet-500/10"
-                      : "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/20"
-                  )}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Synthesizing audio arrangement…
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="h-4 w-4" />
-                      Compose Song · 20 cr
-                    </>
-                  )}
-                </button>
               </div>
+            </header>
 
-              {/* Output Panel (Col span 5) */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 backdrop-blur-xl space-y-4">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Audio Workspace</h3>
-                  
-                  {isGenerating && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-                      <Loader2 className="h-10 w-10 text-violet-500 animate-spin" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-white">AI Song Generator is composing...</p>
-                        <p className="text-xs text-zinc-500 max-w-[280px]">Structuring song parts, synthesizing vocals, and arranging stereo channels.</p>
-                      </div>
-                    </div>
-                  )}
+            {/* ══ MAIN ══════════════════════════════════════════════════════════════ */}
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_352px] gap-6">
 
-                  {!isGenerating && !audioUrl && (
-                    <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/10 rounded-xl bg-black/10">
-                      <FileAudio className="h-12 w-12 text-zinc-600 mb-3" />
-                      <p className="text-sm font-medium text-zinc-500">Your generated music will appear here</p>
-                    </div>
-                  )}
+                {/* ╔══ LEFT COLUMN ═══════════════════════════════════════════════════╗ */}
+                <div className="space-y-5 min-w-0">
 
-                  {audioUrl && !isGenerating && (
-                    <div className="space-y-4">
-                      {/* Audio Tag */}
-                      <audio
-                        ref={audioRef}
-                        src={audioUrl}
-                        onEnded={() => setIsPlaying(false)}
-                        className="hidden"
-                      />
+                  {/* ── Page intro ─────────────────────────────────────────────────── */}
+                  <div>
+                    <h1 className="text-2xl font-bold text-foreground tracking-tight">Create Your Song</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create studio-quality music from text prompts or images using state-of-the-art AI.
+                    </p>
+                  </div>
 
-                      {/* Custom Audio Control Container */}
-                      <div className="flex items-center gap-4 bg-black/40 border border-white/10 rounded-xl p-4">
+                  {/* ── Prompt / Lyrics editor ─────────────────────────────────────── */}
+                  <div className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden">
+                    {/* Tab strip */}
+                    <div className="flex items-center gap-1 p-3 pb-0 border-b border-border bg-muted/30">
+                      {[
+                        { id: "prompt", icon: <Sparkles className="h-3.5 w-3.5" />, label: "Prompt" },
+                        { id: "lyrics", icon: <AlignLeft className="h-3.5 w-3.5" />, label: "Custom Lyrics" },
+                      ].map(tab => (
                         <button
-                          onClick={togglePlay}
-                          className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-600 text-white hover:bg-violet-500 transition-colors shadow-md shrink-0"
-                        >
-                          {isPlaying ? (
-                            <Pause className="h-5 w-5 fill-white text-white" />
-                          ) : (
-                            <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id as "prompt" | "lyrics")}
+                          className={cn(
+                            "flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-sm font-medium transition-colors -mb-px",
+                            activeTab === tab.id
+                              ? "bg-card text-primary border border-b-card border-border"
+                              : "text-muted-foreground hover:text-foreground"
                           )}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-white truncate">AI Song Arrangement</p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">Ready to stream/download</p>
-                        </div>
-                        <button
-                          onClick={handleDownload}
-                          className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-                          title="Download Audio"
+                          style={activeTab === tab.id ? { borderBottom: "2px solid var(--card)" } : {}}
                         >
-                          <Download className="h-4 w-4" />
+                          {tab.icon} {tab.label}
                         </button>
-                      </div>
+                      ))}
+                    </div>
 
-                      {/* Generated Lyrics / Song Structure */}
-                      {generatedLyrics && (
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                            <Info className="h-3 w-3" /> Song Lyrics & Structure
-                          </label>
-                          <div className="rounded-xl border border-white/10 bg-black/40 p-4 max-h-[300px] overflow-y-auto">
-                            <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">
-                              {generatedLyrics}
-                            </pre>
+                    <AnimatePresence mode="wait">
+                      {activeTab === "prompt" ? (
+                        <motion.div
+                          key="prompt-tab"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <textarea
+                            value={prompt}
+                            onChange={e => setPrompt(e.target.value.slice(0, 500))}
+                            placeholder="Describe your music... e.g. An uplifting orchestral piece with soaring violins, building percussion and a triumphant brass finale"
+                            rows={6}
+                            className="w-full px-5 py-4 text-[15px] text-foreground placeholder:text-muted-foreground bg-transparent resize-none focus:outline-none leading-relaxed"
+                          />
+                          <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-muted/20">
+                            <span className={cn(
+                              "text-xs tabular-nums",
+                              prompt.length > 450 ? "text-amber-500" : "text-muted-foreground"
+                            )}>
+                              {prompt.length} / 500
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {prompt && (
+                                <>
+                                  <button
+                                    onClick={() => copyText(prompt, "main-prompt")}
+                                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                  >
+                                    {copied === "main-prompt" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                                    {copied === "main-prompt" ? "Copied" : "Copy"}
+                                  </button>
+                                  <button
+                                    onClick={() => setPrompt("")}
+                                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                  >
+                                    <X className="h-3 w-3" /> Clear
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="lyrics-tab"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.15 }}
+                          className="p-5 space-y-4"
+                        >
+                          {[
+                            { label: "Verse", value: verse, onChange: setVerse, placeholder: "Write your verse lyrics here..." },
+                            { label: "Chorus", value: chorus, onChange: setChorus, placeholder: "Write your chorus lyrics here — this is the hook..." },
+                            { label: "Bridge", value: bridge, onChange: setBridge, placeholder: "Write your bridge lyrics here..." },
+                          ].map(section => (
+                            <div key={section.label}>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="text-[10px] font-bold text-primary uppercase tracking-widest">{section.label}</label>
+                                <span className="text-[10px] text-muted-foreground">{section.value.length} chars</span>
+                              </div>
+                              <textarea
+                                value={section.value}
+                                onChange={e => section.onChange(e.target.value)}
+                                placeholder={section.placeholder}
+                                rows={3}
+                                className="w-full px-4 py-3 bg-muted rounded-xl text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 leading-relaxed"
+                                style={{ "--tw-ring-color": "#7c3aed" } as React.CSSProperties}
+                              />
+                            </div>
+                          ))}
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              onClick={() => copyText([verse, chorus, bridge].filter(Boolean).join("\n\n"), "all-lyrics")}
+                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                            >
+                              {copied === "all-lyrics" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                              {copied === "all-lyrics" ? "Copied!" : "Copy All Lyrics"}
+                            </button>
+                            <button
+                              onClick={() => { setVerse(""); setChorus(""); setBridge(""); }}
+                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border border-border"
+                            >
+                              <X className="h-3 w-3" /> Clear All
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* ── Genre chips ────────────────────────────────────────────────── */}
+                  <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">Style Suggestions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {GENRE_CHIPS.map(chip => (
+                        <button
+                          key={chip}
+                          onClick={() => {
+                            setGenre(chip);
+                            if (!prompt.toLowerCase().includes(chip.toLowerCase())) {
+                              setPrompt(p => p ? `${p}, ${chip.toLowerCase()} style` : `${chip.toLowerCase()} style music`);
+                            }
+                          }}
+                          className={cn(
+                            "px-4 py-2 rounded-full text-sm font-medium border transition-all duration-150",
+                            genre === chip
+                              ? "border-primary bg-secondary text-primary shadow-sm"
+                              : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-secondary/50"
+                          )}
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Image upload ───────────────────────────────────────────────── */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                        Image Reference <span className="normal-case font-normal text-[10px]">(optional · max 10)</span>
+                      </p>
+                      {images.length > 0 && (
+                        <button
+                          onClick={() => setImages([])}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+
+                    <div
+                      onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleDrop}
+                      onClick={() => images.length < 10 && fileInputRef.current?.click()}
+                      className={cn(
+                        "rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer",
+                        isDragging
+                          ? "border-primary bg-secondary scale-[1.01]"
+                          : "border-border hover:border-primary/40 hover:bg-secondary/30",
+                        images.length > 0 ? "p-4" : "p-8 flex flex-col items-center justify-center"
+                      )}
+                    >
+                      {images.length === 0 ? (
+                        <div className="text-center pointer-events-none">
+                          <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+                            <Upload className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground mb-1">Drop images here or click to upload</p>
+                          <p className="text-xs text-muted-foreground">PNG, JPG, WEBP — up to 10 images</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-3" onClick={e => e.stopPropagation()}>
+                          {images.map((img, i) => (
+                            <div key={i} className="relative group">
+                              <img src={img.url} alt={img.name} className="h-20 w-20 object-cover rounded-xl" />
+                              <button
+                                onClick={e => { e.stopPropagation(); setImages(prev => prev.filter((_, j) => j !== i)); }}
+                                className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-foreground text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                          {images.length < 10 && (
+                            <div className="h-20 w-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors" onClick={() => fileInputRef.current?.click()}>
+                              <Plus className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
+                    <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={handleFileSelect} />
+                  </div>
+
+                  {/* ── Generate button ────────────────────────────────────────────── */}
+                  <button
+                    onClick={handleGenerate}
+                    disabled={!prompt.trim() || isGenerating}
+                    className="w-full h-14 rounded-2xl text-white font-bold text-base transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:scale-[1.015] active:scale-[0.985] focus:outline-none"
+                    style={{ background: "linear-gradient(135deg, #4c1d95 0%, #7c3aed 45%, #a855f7 100%)" }}
+                  >
+                    <span className="flex items-center justify-center gap-2.5">
+                      {isGenerating ? (
+                        <><RefreshCw className="h-5 w-5 animate-spin" /> Generating Your Track...</>
+                      ) : (
+                        <><Sparkles className="h-5 w-5" /> Generate Music · 20 cr</>
+                      )}
+                    </span>
+                  </button>
+
+                  {/* ── Generation progress ────────────────────────────────────────── */}
+                  <AnimatePresence>
+                    {isGenerating && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 14, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        transition={{ duration: 0.25, ease: "easeOut" }}
+                        className="bg-card rounded-3xl border border-border p-6 shadow-sm overflow-hidden"
+                      >
+                        <div
+                          className="absolute inset-0 opacity-5 pointer-events-none"
+                          style={{ background: "radial-gradient(ellipse at 50% 0%, #7c3aed, transparent 70%)" }}
+                        />
+
+                        <div className="flex items-center justify-between mb-5">
+                          <div className="flex items-center gap-3">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                              className="h-10 w-10 rounded-2xl flex items-center justify-center"
+                              style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                            >
+                              <Music2 className="h-5 w-5 text-white" />
+                            </motion.div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{GEN_STEPS[genStep]}</p>
+                              <p className="text-xs text-muted-foreground">AI is crafting your music...</p>
+                            </div>
+                          </div>
+                          <span className="text-lg font-bold text-primary tabular-nums">{Math.round(genProgress)}%</span>
+                        </div>
+
+                        <div className="h-2 bg-muted rounded-full overflow-hidden mb-5">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{ background: "linear-gradient(90deg, #4c1d95, #a855f7)" }}
+                            animate={{ width: `${genProgress}%` }}
+                            transition={{ duration: 0.3, ease: "easeOut" }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          {GEN_STEPS.map((step, i) => {
+                            const isDone = i < genStep;
+                            const isActive = i === genStep;
+                            return (
+                              <div key={step} className="flex flex-col items-center gap-1.5">
+                                <div
+                                  className={cn(
+                                    "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
+                                    isDone
+                                      ? "bg-primary text-white"
+                                      : isActive
+                                      ? "bg-secondary text-primary ring-2 ring-primary ring-offset-1"
+                                      : "bg-muted text-muted-foreground"
+                                  )}
+                                >
+                                  {isDone ? <Check className="h-4 w-4" /> : i + 1}
+                                </div>
+                                <span className={cn(
+                                  "text-[10px] font-semibold text-center leading-tight",
+                                  isActive ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"
+                                )}>
+                                  {step}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* ── Audio Player ───────────────────────────────────────────────── */}
+                  <AnimatePresence>
+                    {currentTrack && !isGenerating && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden"
+                      >
+                        <div className="p-5 pb-4">
+                          {/* Track info */}
+                          <div className="flex items-start justify-between mb-5">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                                style={{ background: "linear-gradient(135deg, #4c1d95, #a855f7)" }}
+                              >
+                                <Music2 className="h-6 w-6 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-base font-bold text-foreground">{currentTrack.title}</h3>
+                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                  <span className="text-xs text-muted-foreground">{currentTrack.model}</span>
+                                  <span className="h-1 w-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-secondary text-primary font-medium">{currentTrack.genre}</span>
+                                  <span className="h-1 w-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                                  <span className="text-xs text-muted-foreground">{formatTime(currentTrack.duration)}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                              <button
+                                onClick={() => {
+                                  setCurrentTrack(prev => prev ? { ...prev, liked: !prev.liked } : null);
+                                  setHistory(prev => prev.map(t => t.id === currentTrack.id ? { ...t, liked: !t.liked } : t));
+                                }}
+                                className={cn(
+                                  "h-9 w-9 rounded-xl flex items-center justify-center transition-colors hover:bg-muted",
+                                  currentTrack.liked ? "text-red-500" : "text-muted-foreground"
+                                )}
+                              >
+                                <Heart className={cn("h-4 w-4", currentTrack.liked ? "fill-current" : "")} />
+                              </button>
+                              <button
+                                onClick={() => setShowLyricsPanel(p => !p)}
+                                className={cn(
+                                  "h-9 w-9 rounded-xl flex items-center justify-center transition-colors",
+                                  showLyricsPanel ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-muted"
+                                )}
+                              >
+                                <List className="h-4 w-4" />
+                              </button>
+                              <button className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Waveform visualization */}
+                          <div
+                            className="relative cursor-pointer rounded-2xl bg-muted/40 overflow-hidden mb-1"
+                            style={{ height: 72 }}
+                            onClick={e => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const pct = (e.clientX - rect.left) / rect.width;
+                              const newTime = pct * currentTrack.duration;
+                              setCurrentTime(newTime);
+                              if (audioRef.current) {
+                                audioRef.current.currentTime = newTime;
+                              }
+                            }}
+                          >
+                            <div className="absolute inset-0 flex items-end justify-between gap-[1.5px] px-2 py-2">
+                              {currentTrack.waveform.map((h, i) => {
+                                const barProgress = i / currentTrack.waveform.length;
+                                const played = barProgress < progress;
+                                const isHead = Math.abs(barProgress - progress) < 0.012;
+                                return (
+                                  <div
+                                    key={i}
+                                    className="flex-1 rounded-full transition-colors duration-75"
+                                    style={{
+                                      height: `${h * 88}%`,
+                                      backgroundColor: isHead
+                                        ? "#c084fc"
+                                        : played
+                                        ? "#7c3aed"
+                                        : "#27272a",
+                                      opacity: played ? 1 : 0.55,
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            {/* Playhead */}
+                            <div
+                              className="absolute top-0 bottom-0 w-0.5 bg-primary rounded-full pointer-events-none transition-all"
+                              style={{ left: `${progress * 100}%` }}
+                            />
+                          </div>
+
+                          {/* Timeline */}
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 px-1">
+                            <span className="tabular-nums font-medium">{formatTime(currentTime)}</span>
+                            <span className="tabular-nums">{formatTime(currentTrack.duration)}</span>
+                          </div>
+
+                          {/* Transport controls */}
+                          <div className="flex items-center justify-between gap-3">
+                            {/* Volume */}
+                            <div className="flex items-center gap-2 w-32">
+                              <button
+                                onClick={() => setIsMuted(p => !p)}
+                                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+                              >
+                                {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                              </button>
+                              <RangeSlider
+                                value={isMuted ? 0 : volume}
+                                onChange={v => { setVolume(v); setIsMuted(false); }}
+                                min={0}
+                                max={100}
+                              />
+                            </div>
+
+                            {/* Play / skip */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setCurrentTime(0);
+                                  if (audioRef.current) audioRef.current.currentTime = 0;
+                                }}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setIsPlaying(p => !p)}
+                                className="h-12 w-12 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+                                style={{ background: "linear-gradient(135deg, #4c1d95, #a855f7)" }}
+                              >
+                                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const end = currentTrack.duration - 0.1;
+                                  setCurrentTime(end);
+                                  if (audioRef.current) audioRef.current.currentTime = end;
+                                }}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => copyText(currentTrack.prompt, "player-prompt")}
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                title="Copy prompt"
+                              >
+                                {copied === "player-prompt" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                              </button>
+                              <button
+                                className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                                title="Share"
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDownloadTrack(currentTrack)}
+                                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold text-white transition-colors hover:opacity-90"
+                                style={{ background: "linear-gradient(135deg, #4c1d95, #7c3aed)" }}
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                {outputFmt.toUpperCase()}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Export strip */}
+                          <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mr-1">Export</span>
+                            {["MP3", "WAV"].map(fmt => (
+                              <button
+                                key={fmt}
+                                onClick={() => {
+                                  const a = document.createElement("a");
+                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}`;
+                                  a.download = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${fmt.toLowerCase()}`;
+                                  a.click();
+                                }}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-border bg-muted hover:bg-secondary hover:border-primary/40 hover:text-primary transition-colors"
+                              >
+                                <Download className="h-3 w-3" /> {fmt}
+                              </button>
+                            ))}
+                            <button
+                              onClick={() => copyText(currentTrack.prompt, "export-prompt")}
+                              className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-border bg-muted hover:bg-secondary transition-colors"
+                            >
+                              {copied === "export-prompt" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                              {copied === "export-prompt" ? "Copied!" : "Copy Prompt"}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* SynthID watermark disclaimer */}
-                <div className="flex gap-3 bg-zinc-950/40 border border-white/[0.04] rounded-xl p-3.5 text-[10px] text-zinc-500">
-                  <Info className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    Music generations include an imperceptible audio watermark for safety and identification. Music edits are single-turn process.
-                  </p>
+                {/* ╔══ RIGHT COLUMN: SETTINGS & HISTORY ═══════════════════════════════╗ */}
+                <div className="space-y-6">
+                  {/* Settings Box */}
+                  <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-border flex items-center gap-2 bg-muted/20">
+                      <Settings2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-bold text-foreground">Settings</span>
+                    </div>
+
+                    <div className="p-5 space-y-5">
+                      {/* Model */}
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Model</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: "clip" as const, name: "Fast", full: "AI Song Generator", desc: "ElevenLabs · stereo" },
+                            { id: "pro" as const, name: "Pro", full: "Minimax Music", desc: "Minimax 2.5 · lyrics" },
+                          ].map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => setSelectedModel(m.id)}
+                              className={cn(
+                                "p-3 rounded-2xl border text-left transition-all duration-150",
+                                selectedModel === m.id
+                                  ? "border-primary bg-secondary shadow-sm"
+                                  : "border-border hover:border-primary/30 hover:bg-muted/50"
+                              )}
+                            >
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-bold text-foreground">{m.name}</span>
+                                {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-primary" />}
+                              </div>
+                              <span className="text-[10px] text-muted-foreground leading-snug block">{m.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Genre */}
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Genre</label>
+                        <AppSelect value={genre} onChange={setGenre} options={GENRES} />
+                      </div>
+
+                      {/* Mood */}
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Mood</label>
+                        <AppSelect value={mood} onChange={setMood} options={MOODS} />
+                      </div>
+
+                      {/* BPM */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">BPM</label>
+                          <span className="text-sm font-bold text-foreground tabular-nums">{bpm}</span>
+                        </div>
+                        <RangeSlider value={bpm} onChange={setBpm} min={60} max={200} />
+                      </div>
+
+                      {/* Duration */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Duration</label>
+                          <span className="text-sm font-bold text-foreground tabular-nums">{formatTime(dur)}</span>
+                        </div>
+                        <RangeSlider value={dur} onChange={setDur} min={30} max={300} />
+                      </div>
+
+                      {/* Toggles */}
+                      <div className="space-y-4 pt-2">
+                        {[
+                          { label: "Instrumental Only", desc: "No vocals", value: instrumental, onChange: setInstrumental },
+                        ].map(t => (
+                          <div key={t.label} className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-foreground">{t.label}</p>
+                              <p className="text-[11px] text-muted-foreground">{t.desc}</p>
+                            </div>
+                            <Toggle checked={t.value} onChange={t.onChange} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Generation History Box */}
+                  <div className="bg-card rounded-3xl border border-border shadow-sm p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        Generation History
+                        <span className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium">{history.length}</span>
+                      </h2>
+                      <button
+                        onClick={() => setHistory([])}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+                      {history.map(track => (
+                        <motion.div
+                          key={track.id}
+                          layout
+                          className={cn(
+                            "bg-card rounded-2xl border transition-all duration-200 p-4 cursor-pointer group",
+                            selectedHistoryId === track.id
+                              ? "border-primary/40 shadow-sm bg-secondary/20"
+                              : "border-border hover:border-primary/25 hover:shadow-sm"
+                          )}
+                          onClick={() => {
+                            setSelectedHistoryId(track.id);
+                            setCurrentTrack(track);
+                            setIsPlaying(false);
+                            setCurrentTime(0);
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ background: "linear-gradient(135deg, #161327, #c084fc)" }}
+                            >
+                              <Music2 className="h-4.5 w-4.5 text-primary" style={{ height: 18, width: 18 }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <p className="text-sm font-semibold text-foreground truncate">{track.title}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-medium flex-shrink-0">{track.genre}</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">{track.prompt}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={e => { e.stopPropagation(); setHistory(prev => prev.map(t => t.id === track.id ? { ...t, liked: !t.liked } : t)); }}
+                                className={cn(
+                                  "h-7 w-7 rounded-lg flex items-center justify-center transition-colors",
+                                  track.liked ? "text-red-500" : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-red-400"
+                                )}
+                              >
+                                <Heart className={cn("h-3.5 w-3.5", track.liked ? "fill-current" : "")} />
+                              </button>
+                              {track.audioUrl && (
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleDownloadTrack(track); }}
+                                  className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-all"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* ══ FOOTER ════════════════════════════════════════════════════════════ */}
+            <footer className="mt-16 border-t border-border bg-card/50">
+              <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-5 w-5 rounded-md flex items-center justify-center"
+                    style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                  >
+                    <Music2 className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">© 2026 Saad Studio. All rights reserved.</span>
+                </div>
+                <nav className="flex items-center gap-5">
+                  {["API", "Docs", "Privacy", "Terms"].map(link => (
+                    <a key={link} href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium">
+                      {link}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </footer>
           </div>
         )}
       </div>
