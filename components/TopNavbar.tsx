@@ -1137,47 +1137,70 @@ const TopNavbar = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="mx-4 mt-4 mb-2 rounded-xl bg-white/5 p-3.5 ring-1 ring-white/10">
-              <div className="flex items-center gap-3">
-                {mobilePhoto ? (
-                  <img src={mobilePhoto} alt="Avatar" className="h-10 w-10 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${mobileGradient} text-sm font-bold text-white shrink-0`}>{mobileInitials}</div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{mobileName}</p>
-                  <p className="text-xs text-zinc-400 truncate">{mobileEmail}</p>
+            {isSignedIn ? (
+              <div className="mx-4 mt-4 mb-2 rounded-xl bg-white/5 p-3.5 ring-1 ring-white/10">
+                <div className="flex items-center gap-3">
+                  {mobilePhoto ? (
+                    <img src={mobilePhoto} alt="Avatar" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br ${mobileGradient} text-sm font-bold text-white shrink-0`}>{mobileInitials}</div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{mobileName}</p>
+                    <p className="text-xs text-zinc-400 truncate">{mobileEmail}</p>
+                  </div>
+                </div>
+                <div className="mt-2.5 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-1.5 ring-1 ring-amber-500/20">
+                  <span className="text-xs text-amber-200 flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Credits</span>
+                  <span className="text-sm font-bold text-amber-400">
+                    {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
+                  </span>
+                </div>
+
+                {/* Responsive Quick Profile Actions */}
+                <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-center gap-1.5 rounded-lg bg-white/5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
+                  >
+                    <User className="h-3.5 w-3.5 text-violet-400" />
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      signOut({ redirectUrl: "/" });
+                    }}
+                    className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Logout
+                  </button>
                 </div>
               </div>
-              <div className="mt-2.5 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-1.5 ring-1 ring-amber-500/20">
-                <span className="text-xs text-amber-200 flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Credits</span>
-                <span className="text-sm font-bold text-amber-400">
-                  {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
-                </span>
-              </div>
-
-              {/* Responsive Quick Profile Actions */}
-              <div className="mt-3.5 grid grid-cols-2 gap-2 border-t border-white/5 pt-3">
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-white/5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
-                >
-                  <User className="h-3.5 w-3.5 text-violet-400" />
-                  الملف الشخصي
-                </Link>
+            ) : (
+              <div className="mx-4 mt-4 mb-2 p-1 flex flex-col gap-2">
                 <button
                   onClick={() => {
                     setMobileOpen(false);
-                    signOut({ redirectUrl: "/" });
+                    onOpen("login");
                   }}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20"
+                  className="flex w-full items-center justify-center rounded-lg bg-white/5 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
                 >
-                  <LogOut className="h-3.5 w-3.5" />
-                  تسجيل الخروج
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    onOpen("signup");
+                  }}
+                  className="flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all shadow-lg"
+                >
+                  Sign Up Free
                 </button>
               </div>
-            </div>
+            )}
             {/* Scrollable nav area */}
             <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
 
@@ -1443,14 +1466,18 @@ const TopNavbar = () => {
               <Link href="/pricing" className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all">
                 <Zap className="h-4 w-4" /> Upgrade to Pro
               </Link>
-              <Link href="/settings" className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white transition-colors">
-                <Settings className="h-4 w-4" /> Settings
-              </Link>
-              <button
-                onClick={() => signOut({ redirectUrl: "/" })}
-                className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                <LogOut className="h-4 w-4" /> Logout
-              </button>
+              {isSignedIn && (
+                <>
+                  <Link href="/settings" className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white transition-colors">
+                    <Settings className="h-4 w-4" /> Settings
+                  </Link>
+                  <button
+                    onClick={() => signOut({ redirectUrl: "/" })}
+                    className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                    <LogOut className="h-4 w-4" /> Logout
+                  </button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
