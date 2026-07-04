@@ -7,7 +7,7 @@ import {
   Search, Sliders, Play, Plus, HelpCircle, Settings, X, Edit,
   Send, Sparkles, AlertCircle, Loader2, Image as ImageIcon,
   Film, Trash2, Users, Layers, Download, CheckCircle, Lightbulb,
-  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight, Grid
+  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight, Grid, Music
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
@@ -184,8 +184,9 @@ export default function CinemaFlowPage() {
 
   const handleFileSelection = async (file: File) => {
     const fileName = file.name.toLowerCase();
-    const isImageOrVideo = file.type.startsWith("image/") || 
+    const isImageOrVideoOrAudio = file.type.startsWith("image/") || 
                             file.type.startsWith("video/") ||
+                            file.type.startsWith("audio/") ||
                             fileName.endsWith(".heic") ||
                             fileName.endsWith(".heif") ||
                             fileName.endsWith(".png") ||
@@ -196,11 +197,42 @@ export default function CinemaFlowPage() {
                             fileName.endsWith(".mp4") ||
                             fileName.endsWith(".mov") ||
                             fileName.endsWith(".webm") ||
-                            fileName.endsWith(".m4v");
+                            fileName.endsWith(".m4v") ||
+                            fileName.endsWith(".mp3") ||
+                            fileName.endsWith(".wav");
 
-    if (!isImageOrVideo) {
-      alert("Please select or drop an image or video file.");
+    if (!isImageOrVideoOrAudio) {
+      alert("Please select or drop an image, video or audio file.");
       return;
+    }
+
+    // 1. Size constraint check (e.g., max 20MB for video files to prevent memory/timeout failures)
+    if (file.type.startsWith("video/") && file.size > 20 * 1024 * 1024) {
+      alert("حجم الفيديو المرفوع كبير جداً. الحد الأقصى المسموح به هو 20 ميجابايت لضمان المعالجة السريعة.");
+      return;
+    }
+
+    // 2. Asynchronous duration constraint check for videos (max 10 seconds)
+    if (file.type.startsWith("video/")) {
+      try {
+        const duration: number = await new Promise((resolve, reject) => {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          video.src = URL.createObjectURL(file);
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(video.src);
+            resolve(video.duration);
+          };
+          video.onerror = () => reject(new Error("Failed to load video metadata."));
+        });
+
+        if (duration > 10.5) {
+          alert("مدة الفيديو المرفوع أطول من اللازم. الحد الأقصى المسموح به هو 10 ثوانٍ لضمان استقرار التوليد.");
+          return;
+        }
+      } catch (err) {
+        console.warn("Unable to inspect video duration metadata:", err);
+      }
     }
 
     try {
@@ -249,7 +281,7 @@ export default function CinemaFlowPage() {
         const tempAsset = {
           id: Math.random().toString(),
           url: publicUrl,
-          type: (file.type || "").startsWith("video") ? "video" : "image",
+          type: (file.type || "").startsWith("video") ? "video" : ((file.type || "").startsWith("audio") ? "audio" : "image"),
           prompt: file.name,
         };
         addActiveImageReference(tempAsset as any);
