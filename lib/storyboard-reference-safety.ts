@@ -80,17 +80,27 @@ export async function checkStoryboardReferenceImageSafety(imageUrl: string): Pro
     ? Math.max(0, Math.min(1, thresholdRaw))
     : 0.98;
 
-  const moderationBlocked = await checkReferenceImageWithModerationSafety({
-    imageUrl,
-    apiKey,
-    model,
-    sexualThreshold,
-  });
-  if (moderationBlocked) {
-    throw new UnsafeReferenceImageError();
+  try {
+    const moderationBlocked = await checkReferenceImageWithModerationSafety({
+      imageUrl,
+      apiKey,
+      model,
+      sexualThreshold,
+    });
+    if (moderationBlocked) {
+      throw new UnsafeReferenceImageError();
+    }
+  } catch (err) {
+    if (err instanceof UnsafeReferenceImageError) throw err;
+    console.warn("[Safety Check] Moderation check failed/skipped:", err);
   }
 
-  await checkReferenceImageWithVisionSafety(imageUrl, apiKey);
+  try {
+    await checkReferenceImageWithVisionSafety(imageUrl, apiKey);
+  } catch (err) {
+    if (err instanceof UnsafeReferenceImageError) throw err;
+    console.warn("[Safety Check] Vision check failed/skipped:", err);
+  }
 }
 
 async function checkReferenceImageWithModerationSafety(input: {
