@@ -10,7 +10,7 @@
   - Implemented automated file size verification (max 20MB) and video duration inspection (max 10 seconds using HTML5 video metadata reader) on file select/drop inside the frontend to alert user about excessive media sizes across both Cinema Flow and Video Edit workspaces.
   - Localized all UI text labels, headings, select inputs, placeholders, and error/status strings on the Video Edit page (`/video-edit`) to English.
   - Redesigned `/video-edit` to always render the starting video player when `videoPreview` is present (either uploaded locally or loaded from a previous stateful task ID), fetching the task's output video on page mount when `previousTaskId` is supplied in the URL search params.
-  - Created a backend proxy endpoint `/api/download` (`app/api/download/route.ts`) that downloads files server-to-server and streams them back to the client with `Content-Disposition: attachment` headers, bypassing all client-side CORS blocking.
+  - Created a backend proxy endpoint `/api/download` (`app/api/download/route.ts`) that downloads files server-to-server and streams them back to the client with `Content-Disposition: attachment` headers, bypassing all client-side CORS blocking. Enhanced it to automatically parse file extensions (like `.mp4`, `.mov`, `.jpg`, `.png`, `.webp`, `.mp3`) from the URL pathname or content-type headers, sanitizing filename characters to prevent extension-less system file downloads.
   - Updated `downloadLatest` in `public/stude/sound.html` and `stude/sound.html` to route downloads through `/api/download` to prevent CORS fetch blocks and Content Security Policy frame framing violations.
   - Added a backward-scanning history lookup in Cinema Flow `sendChatMessage` to retrieve and carry-over user file attachments from previous chat turns when executing generation commands (like "نفذ" or "generate") where the active selection state was already cleared, preventing lost reference inputs.
   - Modified `checkStoryboardReferenceImageSafety` in `lib/storyboard-reference-safety.ts` to wrap both OpenAI moderation and vision safety requests in try-catch blocks. This allows image generation to proceed if the checks fail due to network/fetch issues (such as OpenAI being unable to resolve custom/local development image URLs), while still enforcing safety blocks if the API successfully returns an explicit flag.
@@ -19,7 +19,7 @@
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
   - `lib/storyboard-reference-safety.ts` [MODIFY]
-  - `app/api/download/route.ts` [NEW]
+  - `app/api/download/route.ts` [MODIFY]
   - `public/stude/sound.html` [MODIFY]
   - `stude/sound.html` [MODIFY]
   - `app/api/cinema-flow/chat/route.ts` [MODIFY]
