@@ -17,8 +17,10 @@
   - Implemented auto-closing behavior for both the filter popover and model settings drawer in Cinema Flow (`/cinema-flow`) whenever a parameter select option or sorting preference changes. Added a document click listener to dismiss these drawers automatically when clicking outside their bounding rects.
   - Replaced the simple custom modal overlay in Cinema Flow (`/cinema-flow`) with the shared `AssetInspector` component, unifying the image, video, and audio detailed inspection UI, action sidebars, and metadata viewer with the rest of the application (such as Image and Video Studios).
   - Modified the audio workspace page (`/audio`) to replace the old layout with the new high-fidelity custom SPA component structure (imported from the user's downloads folder). Restyled all colors to match Saad Studio's dark theme, fully integrated the actual generation API (dispatching to `/api/music` with active credit guards), and wired the custom waveform player to a real HTML5 audio reference for fully interactive playback, timeline scrubbing, volume controls, and track history.
+  - Upgraded the Cinema Flow chat interface and backend api (`app/api/cinema-flow/chat/route.ts`) to query `gemini-2.5-flash` with thinking levels enabled. Designed a collapsible "Show thinking" reasoning block toggle (with vertical indent indicator) and a feedback button toolbar (ThumbsUp, ThumbsDown, Copy, Flag) directly matching Google AI Studio's layout. Added a Google-style radio list of five starter options on session initialize to instantly trigger relevant chat actions when clicked.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
+  - `app/api/cinema-flow/chat/route.ts` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
   - `lib/storyboard-reference-safety.ts` [MODIFY]
