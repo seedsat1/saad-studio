@@ -16,9 +16,11 @@
   - Modified `checkStoryboardReferenceImageSafety` in `lib/storyboard-reference-safety.ts` to wrap both OpenAI moderation and vision safety requests in try-catch blocks. This allows image generation to proceed if the checks fail due to network/fetch issues (such as OpenAI being unable to resolve custom/local development image URLs), while still enforcing safety blocks if the API successfully returns an explicit flag.
   - Implemented auto-closing behavior for both the filter popover and model settings drawer in Cinema Flow (`/cinema-flow`) whenever a parameter select option or sorting preference changes. Added a document click listener to dismiss these drawers automatically when clicking outside their bounding rects.
   - Replaced the simple custom modal overlay in Cinema Flow (`/cinema-flow`) with the shared `AssetInspector` component, unifying the image, video, and audio detailed inspection UI, action sidebars, and metadata viewer with the rest of the application (such as Image and Video Studios).
+  - Modified the audio workspace page (`/audio`) to replace the private/restricted Google Lyria research model options (which were failing with 404 errors) with functional ElevenLabs and Minimax music generation models. Renamed the page header and tab from "Google Lyria 3 Music" to "Create Your Song" and aligned the credit cost validations.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
   - `lib/storyboard-reference-safety.ts` [MODIFY]
   - `app/api/download/route.ts` [MODIFY]
   - `public/stude/sound.html` [MODIFY]
