@@ -30,19 +30,19 @@ interface UploadedImage {
   preview: string;
 }
 
-const LYRIA_MODELS = [
+const MUSIC_MODELS = [
   {
-    id: "google/lyria-3-clip/music",
-    label: "Lyria 3 Clip",
-    sublabel: "30-second clips, loops, and previews",
+    id: "elevenlabs/music",
+    label: "AI Song Generator",
+    sublabel: "High-fidelity stereo music with custom lyrics",
     badge: "FAST",
     avatar: "⚡",
-    maxDuration: 30,
+    maxDuration: 120,
     hasLyrics: true,
   },
   {
-    id: "google/lyria-3-pro/music",
-    label: "Lyria 3 Pro",
+    id: "minimax/minimax-music-2.5",
+    label: "Minimax Music",
     sublabel: "Full songs with verses, choruses, & bridges",
     badge: "PRO",
     avatar: "🏆",
@@ -56,11 +56,11 @@ export default function AudioPage() {
   const { toast } = useToast();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
-  // Tab State: "sound-studio" | "lyria-music"
-  const [activeTab, setActiveTab] = useState<"sound-studio" | "lyria-music">("sound-studio");
+  // Tab State: "sound-studio" | "create-song"
+  const [activeTab, setActiveTab] = useState<"sound-studio" | "create-song">("sound-studio");
 
   // Lyria State
-  const [selectedModel, setSelectedModel] = useState(LYRIA_MODELS[0]);
+  const [selectedModel, setSelectedModel] = useState(MUSIC_MODELS[0]);
   const [prompt, setPrompt] = useState("");
   const [lyrics, setLyrics] = useState("");
   const [style, setStyle] = useState("");
@@ -132,7 +132,7 @@ export default function AudioPage() {
     if (!audioUrl) return;
     const a = document.createElement("a");
     a.href = audioUrl;
-    a.download = `saadstudio_lyria_${Date.now()}.${outputFormat}`;
+    a.download = `saadstudio_music_${Date.now()}.${outputFormat}`;
     a.click();
   };
 
@@ -143,7 +143,7 @@ export default function AudioPage() {
     }
 
     const gate = await guardGeneration({
-      requiredCredits: 10,
+      requiredCredits: 20,
       action: "music:generate",
     });
     if (!gate.ok) {
@@ -230,16 +230,16 @@ hold on tight, don't let me go.`);
             Sound Studio
           </button>
           <button
-            onClick={() => setActiveTab("lyria-music")}
+            onClick={() => setActiveTab("create-song")}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
-              activeTab === "lyria-music"
+              activeTab === "create-song"
                 ? "bg-violet-600 text-white shadow-lg"
                 : "text-zinc-400 hover:text-white"
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Lyria 3 Music
+            Create Your Song
           </button>
         </div>
         <div className="w-10 sm:w-20" /> {/* Spacer */}
@@ -258,8 +258,8 @@ hold on tight, don't let me go.`);
         ) : (
           <div className="max-w-7xl mx-auto px-4 py-6 md:px-8 space-y-6">
             <Heading
-              title="Google Lyria 3 Music"
-              description="Compose high-fidelity stereo audio using multimodal text, custom lyrics, and visual references."
+              title="Create Your Song"
+              description="Compose high-fidelity stereo music using text prompts, custom lyrics, and visual inspiration."
               icon={Music}
               iconColor="text-violet-500"
               bgColor="bg-violet-500/10"
@@ -272,7 +272,7 @@ hold on tight, don't let me go.`);
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Model Selection</label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {LYRIA_MODELS.map((model) => (
+                    {MUSIC_MODELS.map((model) => (
                       <button
                         key={model.id}
                         onClick={() => setSelectedModel(model)}
@@ -434,7 +434,7 @@ hold on tight, don't let me go.`);
                   ) : (
                     <>
                       <Wand2 className="h-4 w-4" />
-                      Compose Song · 10 cr
+                      Compose Song · 20 cr
                     </>
                   )}
                 </button>
@@ -449,7 +449,7 @@ hold on tight, don't let me go.`);
                     <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
                       <Loader2 className="h-10 w-10 text-violet-500 animate-spin" />
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-white">Google Lyria 3 is composing...</p>
+                        <p className="text-sm font-semibold text-white">AI Song Generator is composing...</p>
                         <p className="text-xs text-zinc-500 max-w-[280px]">Structuring song parts, synthesizing vocals, and arranging stereo channels.</p>
                       </div>
                     </div>
@@ -485,7 +485,7 @@ hold on tight, don't let me go.`);
                           )}
                         </button>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-white truncate">Lyria Arrangement</p>
+                          <p className="text-xs font-bold text-white truncate">AI Song Arrangement</p>
                           <p className="text-[10px] text-zinc-500 mt-0.5">Ready to stream/download</p>
                         </div>
                         <button
@@ -518,7 +518,7 @@ hold on tight, don't let me go.`);
                 <div className="flex gap-3 bg-zinc-950/40 border border-white/[0.04] rounded-xl p-3.5 text-[10px] text-zinc-500">
                   <Info className="h-4 w-4 text-zinc-400 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    Lyria 3 generations include an imperceptible SynthID audio watermark for safety and identification. Music edits are single-turn process.
+                    Music generations include an imperceptible audio watermark for safety and identification. Music edits are single-turn process.
                   </p>
                 </div>
               </div>
