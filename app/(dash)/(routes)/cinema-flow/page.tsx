@@ -366,6 +366,9 @@ export default function CinemaFlowPage() {
   const sendChatMessage = async (text: string) => {
     if (!text.trim()) return;
 
+    // Capture reference image/character URL before clearing active state
+    const refUrl = activeImageReference?.url || (activeCharacter ? normalizeMediaUrl(activeCharacter.coverUrl) : null);
+
     // 1. Add User Message
     const userMsg: ChatMessage = {
       id: Math.random().toString(),
@@ -410,7 +413,7 @@ export default function CinemaFlowPage() {
         await executeImageGeneration(refinedPrompt);
       } else if (replyText.startsWith("VIDEO_GEN:")) {
         const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
-        await executeVideoGeneration(refinedPrompt);
+        await executeVideoGeneration(refinedPrompt, refUrl);
       } else {
         // Normal conversational reply
         setChatMessages(prev => [...prev, {
@@ -549,7 +552,7 @@ export default function CinemaFlowPage() {
   };
 
   // Trigger Google Video Generation
-  const executeVideoGeneration = async (promptText: string) => {
+  const executeVideoGeneration = async (promptText: string, imageRefUrl?: string | null) => {
     // Dynamic cost calculation based on model and duration
     let rate = 2.0; // Default (Gemini Omni Flash)
     let modelName = "Gemini Omni Flash";
@@ -597,7 +600,8 @@ export default function CinemaFlowPage() {
             prompt: promptText,
             duration: videoDuration,
             aspectRatio: aspectRatio,
-            resolution: videoQuality
+            resolution: videoQuality,
+            ...(imageRefUrl ? { image_url: imageRefUrl } : {})
           }
         })
       });
