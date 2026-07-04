@@ -78,7 +78,34 @@ function VideoEditPageContent() {
   }, [videoPreview]);
 
   // Handle file drop/select
-  const handleVideoSelect = (file: File) => {
+  const handleVideoSelect = async (file: File) => {
+    // 1. Size constraint check (e.g., max 20MB for video files to prevent memory/timeout failures)
+    if (file.size > 20 * 1024 * 1024) {
+      alert("حجم الفيديو المرفوع كبير جداً. الحد الأقصى المسموح به هو 20 ميجابايت لضمان المعالجة السريعة.");
+      return;
+    }
+
+    // 2. Asynchronous duration constraint check for videos (max 10 seconds)
+    try {
+      const duration: number = await new Promise((resolve, reject) => {
+        const video = document.createElement("video");
+        video.preload = "metadata";
+        video.src = URL.createObjectURL(file);
+        video.onloadedmetadata = () => {
+          URL.revokeObjectURL(video.src);
+          resolve(video.duration);
+        };
+        video.onerror = () => reject(new Error("Failed to load video metadata."));
+      });
+
+      if (duration > 10.5) {
+        alert("مدة الفيديو المرفوع أطول من اللازم. الحد الأقصى المسموح به هو 10 ثوانٍ لضمان استقرار التوليد.");
+        return;
+      }
+    } catch (err) {
+      console.warn("Unable to inspect video duration metadata:", err);
+    }
+
     if (videoPreview) URL.revokeObjectURL(videoPreview);
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
