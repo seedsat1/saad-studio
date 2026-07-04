@@ -8,6 +8,8 @@
   - Added support for multiple file selection (via the `multiple` attribute on the file input) and concurrent uploading/processing for both file select and drag-and-drop actions.
   - Updated the backend `/api/cinema-flow/chat` to retrieve and download all reference images inside the Gemini contents array.
   - Implemented automated file size verification (max 20MB) and video duration inspection (max 10 seconds using HTML5 video metadata reader) on file select/drop inside the frontend to alert user about excessive media sizes across both Cinema Flow and Video Edit workspaces.
+  - Localized all UI text labels, headings, select inputs, placeholders, and error/status strings on the Video Edit page (`/video-edit`) to English.
+  - Redesigned `/video-edit` to always render the starting video player when `videoPreview` is present (either uploaded locally or loaded from a previous stateful task ID), fetching the task's output video on page mount when `previousTaskId` is supplied in the URL search params.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
