@@ -1,158 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { getFallbackUrls } from "@/lib/utils";
-
-const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
-const STORAGE_KEY_PATTERN = /^(images|videos|audio|thumbnails|media)\/[^?#]+$/i;
-
-function isSafeExternalHost(hostname: string): boolean {
-  const h = hostname.toLowerCase();
-
-  if (h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "[::1]") return false;
-  if (h === "169.254.169.254" || h.startsWith("169.254.")) return false;
-  if (h.startsWith("10.") || h.startsWith("192.168.")) return false;
-
-  const parts = h.split(".");
-  if (parts.length === 4 && parts[0] === "172") {
-    const second = Number(parts[1]);
-    if (second >= 16 && second <= 31) return false;
-  }
-
-  if (h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".localhost")) return false;
-
-  return true;
-}
-
-function sanitizeFilename(filename: string): string {
-  return filename
-    .replace(/[\\/:*?"<>|\r\n]+/g, "-")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120) || "saad-download";
-}
-
-function isSafeStorageKey(key: string): boolean {
-  if (!STORAGE_KEY_PATTERN.test(key)) return false;
-  if (key.includes("\\") || key.includes("\0")) return false;
-  return key.split("/").every((part) => part.length > 0 && part !== "." && part !== "..");
-}
-
-function encodeStorageKey(key: string): string {
-  return key.split("/").map((part) => encodeURIComponent(part)).join("/");
-}
-
-function resolveDownloadSource(rawUrl: string): { sourceUrl: string; parsed?: URL } | null {
-  const trimmed = rawUrl.trim();
-  if (!trimmed) return null;
-
-  if (trimmed.startsWith("/api/media/")) {
-    const key = trimmed.slice("/api/media/".length);
-    if (!isSafeStorageKey(key)) return null;
-    return { sourceUrl: `/api/media/${encodeStorageKey(key)}` };
-  }
-
-  if (isSafeStorageKey(trimmed)) {
-    return { sourceUrl: `/api/media/${encodeStorageKey(trimmed)}` };
-  }
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    return null;
-  }
-
-  if (!ALLOWED_SCHEMES.has(parsed.protocol)) return null;
-  if (!isSafeExternalHost(parsed.hostname)) return null;
-
-  return { sourceUrl: trimmed, parsed };
-}
-
-function inferExtension(contentType: string, sourceUrl: string): string {
-  const pathExt = new URL(sourceUrl, "https://download.saadstudio.local").pathname.split(".").pop()?.toLowerCase();
-  if (pathExt && /^[a-z0-9]{2,5}$/.test(pathExt)) return pathExt;
-  if (contentType.includes("mp4")) return "mp4";
-  if (contentType.includes("webm")) return "webm";
-  if (contentType.includes("quicktime")) return "mov";
-  if (contentType.includes("png")) return "png";
-  if (contentType.includes("webp")) return "webp";
-  if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
-  return "bin";
-}
+import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  const { searchParams } = new URL(req.url);
+  const targetUrl = searchParams.get("url");
+  const filename = searchParams.get("filename") || "download.mp3";
 
-  const rawUrl = req.nextUrl.searchParams.get("url");
-  if (!rawUrl) {
-    return new NextResponse("Missing url parameter", { status: 400 });
-  }
-
-  const source = resolveDownloadSource(rawUrl);
-  if (!source) {
-    return new NextResponse("Invalid URL", { status: 400 });
+  if (!targetUrl) {
+    return new Response("Missing url parameter", { status: 400 });
   }
 
   try {
-    const urls = getFallbackUrls(source.sourceUrl, true);
-    let upstream: Response | null = null;
-    let lastError: any = null;
-
-    for (const url of urls) {
-      try {
-        console.log("[api/download] Attempting fetch from:", url);
-        const fetchUrl = url.startsWith("/")
-          ? `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${url}`
-          : url;
-
-        upstream = await fetch(fetchUrl, {
-          signal: AbortSignal.timeout(30_000),
-          headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; SaadStudioDownload/1.0)",
-          },
-        });
-
-        if (upstream.ok) {
-          break;
-        } else {
-          console.warn(`[api/download] Failed to fetch from ${url}: Status ${upstream.status}`);
-        }
-      } catch (err) {
-        lastError = err;
-        console.warn(`[api/download] Error fetching from ${url}:`, err);
-      }
+    // Validate target URL format
+    const parsed = new URL(targetUrl);
+    if (!parsed.protocol.startsWith("http")) {
+      return new Response("Invalid protocol", { status: 400 });
     }
 
-    if (!upstream || !upstream.ok) {
-      return new NextResponse(
-        `Failed to fetch upstream file after trying all fallbacks. Last error: ${lastError?.message || "status " + upstream?.status}`,
-        { status: upstream?.status || 502 }
-      );
+    const res = await fetch(targetUrl);
+    if (!res.ok) {
+      return new Response(`Failed to fetch file: ${res.statusText}`, { status: res.status });
     }
 
-    const contentType = upstream.headers.get("content-type") || "application/octet-stream";
-    const buffer = Buffer.from(await upstream.arrayBuffer());
-    const requestedFilename = sanitizeFilename(req.nextUrl.searchParams.get("filename") || "saad-download");
-    const extension = inferExtension(contentType, source.sourceUrl);
-    const filename = /\.[a-z0-9]{2,5}$/i.test(requestedFilename)
-      ? requestedFilename
-      : `${requestedFilename}.${extension}`;
+    const headers = new Headers();
+    // Force browser to download the file directly
+    headers.set("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+    headers.set("Content-Type", res.headers.get("Content-Type") || "application/octet-stream");
+    
+    // Explicitly allow same-origin requests
+    headers.set("Access-Control-Allow-Origin", "*");
 
-    return new NextResponse(buffer, {
+    return new Response(res.body, {
       status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": String(buffer.byteLength),
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "private, max-age=0, no-store",
-      },
+      headers,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Download fetch failed";
-    console.error("[api/download] Error fetching", rawUrl, message);
-    return new NextResponse("Download error", { status: 502 });
+  } catch (err: any) {
+    console.error("[api/download] Proxy error", err);
+    return new Response(`Download error: ${err.message}`, { status: 500 });
   }
 }
