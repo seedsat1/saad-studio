@@ -1530,33 +1530,6 @@ export default function ExplorePage() {
 
   return (
     <main className="w-full min-h-screen bg-[#02050e] text-white relative pb-20 overflow-x-hidden">
-      
-      {/* Smart Agent Routing Overlay */}
-      <AnimatePresence>
-        {isRouting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#02050e]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center"
-          >
-            <div className="relative mb-6">
-              {/* Outer rotating neon glow border */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-600 to-cyan-500 blur-md opacity-70 animate-pulse scale-105" />
-              <div className="relative w-20 h-20 rounded-full bg-[#090b14] border border-white/10 flex items-center justify-center text-violet-400">
-                <Loader2 size={36} className="animate-spin text-violet-400" />
-              </div>
-            </div>
-            
-            <h2 className="text-xl font-bold tracking-wide text-zinc-100 max-w-md leading-relaxed">
-              {routingMessage}
-            </h2>
-            <p className="text-xs text-zinc-500 mt-2.5">
-              مساعد التوجيه الذكي — استوديو سعد
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Ambient colorful glow spots */}
       <div className="absolute top-0 left-[-10%] w-[50%] h-[600px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
