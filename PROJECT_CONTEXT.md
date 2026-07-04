@@ -1,5 +1,19 @@
 # Saad Studio — Project Context
 
+## Latest task: Cinema Flow Multi-Image Reference and Alignment (2026-07-04)
+
+- Status:
+  - Fixed the Cinema Flow chat agent ignoring reference images when generating videos. The frontend now captures active reference images and correctly passes them in the `/api/video` POST payload.
+  - Extended Cinema Flow to support multiple active reference images (up to 4, mapping to 1 starting frame + 3 reference images) inside the chat attachments bar, aligning with Google Veo prompt specifications (`<FIRST_FRAME>`, `<IMAGE_REF_0>`).
+  - Added support for multiple file selection (via the `multiple` attribute on the file input) and concurrent uploading/processing for both file select and drag-and-drop actions.
+  - Updated the backend `/api/cinema-flow/chat` to retrieve and download all reference images inside the Gemini contents array.
+- Affected files:
+  - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
+  - `app/api/cinema-flow/chat/route.ts` [MODIFY]
+- Verification:
+  - `npm run build` compiled successfully.
+  - Git commit pushed successfully to remote repository.
+
 ## Latest task: Google Flow Real Conversational Agent Integration (2026-07-03)
 
 - Status:
