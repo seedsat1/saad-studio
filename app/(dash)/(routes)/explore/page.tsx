@@ -1267,8 +1267,21 @@ export default function ExplorePage() {
   const [activeMedia, setActiveMedia] = useState<"image" | "video">("image");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [selectedStyle, setSelectedStyle] = useState("Dynamic");
-  const [isRouting, setIsRouting] = useState(false);
-  const [routingMessage, setRoutingMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<Array<{ sender: "user" | "agent"; text: string }>>([]);
+  const [isAgentTyping, setIsAgentTyping] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [heroTextIndex, setHeroTextIndex] = useState(0);
+  const heroTexts = ["YOURS TO CREATE", "ASK ME AND I'LL GIVE YOU WHAT YOU WANT"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroTextIndex((prev) => (prev + 1) % heroTexts.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Dropdown states
   const [showAspectDropdown, setShowAspectDropdown] = useState(false);
@@ -1351,46 +1364,89 @@ export default function ExplorePage() {
     setAutoplayKey((prev) => (prev === key ? prev : key));
   }, []);
 
+  const handleCancelRedirect = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setCountdown(null);
+    setPendingUrl(null);
+    setChatHistory((prev) => [
+      ...prev,
+      { sender: "agent", text: "تم إلغاء التوجيه. يمكنك الاستمرار في التحدث معي أو طلب أي أداة تريد استخدامها!" }
+    ]);
+  };
+
   const handleGenerate = async () => {
     if (!promptText.trim()) return;
 
-    setIsRouting(true);
-    setRoutingMessage("جاري تحليل طلبك لتوجيهك للموديل أو الأداة المناسبة...");
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setCountdown(null);
+    setPendingUrl(null);
+
+    const userMessage = promptText.trim();
+    setPromptText("");
+    setChatHistory((prev) => [...prev, { sender: "user", text: userMessage }]);
+    setIsAgentTyping(true);
 
     try {
       const res = await fetch("/api/explore", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: promptText }),
+        body: JSON.stringify({
+          prompt: userMessage,
+          history: chatHistory,
+        }),
       });
       const data = await res.json().catch(() => null);
+      setIsAgentTyping(false);
 
-      if (res.ok && data?.path) {
-        if (data.explanationAr) {
-          setRoutingMessage(data.explanationAr);
+      if (res.ok && data?.response) {
+        setChatHistory((prev) => [...prev, { sender: "agent", text: data.response }]);
+
+        if (data.action === "redirect" && data.path) {
+          const url = new URL(data.path, window.location.origin);
+          if (data.query) {
+            Object.entries(data.query).forEach(([key, val]) => {
+              if (val) url.searchParams.set(key, String(val));
+            });
+          }
+
+          const targetUrl = url.pathname + url.search;
+          setPendingUrl(targetUrl);
+
+          let count = 4;
+          setCountdown(count);
+
+          timerRef.current = setInterval(() => {
+            count -= 1;
+            if (count <= 0) {
+              clearInterval(timerRef.current!);
+              timerRef.current = null;
+              router.push(targetUrl);
+            } else {
+              setCountdown(count);
+            }
+          }, 1000);
         }
-
-        // Construct redirect URL
-        const url = new URL(data.path, window.location.origin);
-        if (data.query) {
-          Object.entries(data.query).forEach(([key, val]) => {
-            if (val) url.searchParams.set(key, String(val));
-          });
-        }
-
-        setTimeout(() => {
-          router.push(url.pathname + url.search);
-          setIsRouting(false);
-        }, 900);
       } else {
         throw new Error("Routing failed");
       }
     } catch (err) {
-      const targetUrl = activeMedia === "video"
-        ? `/video?prompt=${encodeURIComponent(promptText)}`
-        : `/image?tool=create&prompt=${encodeURIComponent(promptText)}&aspect=${aspectRatio}&preset=${selectedStyle.toLowerCase()}`;
-      router.push(targetUrl);
-      setIsRouting(false);
+      setIsAgentTyping(false);
+      setChatHistory((prev) => [
+        ...prev,
+        { sender: "agent", text: "عذراً، واجهت مشكلة في الاتصال بمساعد التوجيه. سأقوم بتوجيهك تلقائياً للأداة الافتراضية." }
+      ]);
+      const fallbackUrl = activeMedia === "video"
+        ? `/video?prompt=${encodeURIComponent(userMessage)}`
+        : `/image?tool=create&prompt=${encodeURIComponent(userMessage)}&aspect=${aspectRatio}&preset=${selectedStyle.toLowerCase()}`;
+      setTimeout(() => {
+        router.push(fallbackUrl);
+      }, 2000);
     }
   };
 
@@ -1530,8 +1586,18 @@ export default function ExplorePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-4xl md:text-6xl font-black tracking-widest text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] mb-6">
-              YOURS TO CREATE
+            <h1 className="text-3xl md:text-5xl font-black tracking-widest text-white uppercase drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)] mb-6 min-h-[4.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={heroTextIndex}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {heroTexts[heroTextIndex]}
+                </motion.span>
+              </AnimatePresence>
             </h1>
           </motion.div>
 
@@ -1540,8 +1606,56 @@ export default function ExplorePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="w-full max-w-4xl bg-black/60 border border-white/10 rounded-2xl p-3 shadow-[0_12px_45px_rgba(0,0,0,0.8)] backdrop-blur-xl hover:border-white/20 transition-all duration-300"
+            className="w-full max-w-4xl bg-black/60 border border-white/10 rounded-2xl p-4 shadow-[0_12px_45px_rgba(0,0,0,0.8)] backdrop-blur-xl hover:border-white/20 transition-all duration-300 flex flex-col gap-3.5 text-right"
           >
+            {/* ── Conversational Messages Feed (Nested Inside Prompt Box) ── */}
+            {chatHistory.length > 0 && (
+              <div className="flex flex-col gap-3 pb-3.5 border-b border-white/5 max-h-[220px] overflow-y-auto pr-1 scrollbar-none">
+                <div className="flex items-center justify-between text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
+                  <button
+                    type="button"
+                    onClick={() => setChatHistory([])}
+                    className="hover:text-zinc-300 transition"
+                  >
+                    Clear History (مسح المحادثة)
+                  </button>
+                  <span>مساعد الاستكشاف الذكي</span>
+                </div>
+
+                <div className="flex flex-col gap-2.5">
+                  {chatHistory.map((msg, index) => {
+                    const isUser = msg.sender === "user";
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex items-start gap-2.5 text-xs max-w-[85%] rounded-xl p-3 leading-relaxed",
+                          isUser
+                            ? "self-end bg-zinc-800/40 text-zinc-200 rounded-tr-none border border-white/[0.02]"
+                            : "self-start bg-violet-600/[0.03] text-violet-200 border border-violet-500/10 rounded-tl-none"
+                        )}
+                      >
+                        {!isUser && (
+                          <div className="w-5 h-5 rounded bg-violet-600/10 border border-violet-500/25 flex items-center justify-center shrink-0 text-violet-300 font-bold text-[9px]">
+                            AI
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {isAgentTyping && (
+                    <div className="self-start flex items-center gap-2 bg-violet-600/[0.01] border border-violet-500/5 rounded-xl rounded-tl-none p-3 text-zinc-500 text-xs">
+                      <Loader2 size={12} className="animate-spin text-violet-500 shrink-0" />
+                      <span>جاري التفكير والكتابة...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {/* Input Row */}
             <div className="flex items-center gap-3">
               <Search className="w-5 h-5 text-zinc-500 shrink-0" />
@@ -1675,6 +1789,29 @@ export default function ExplorePage() {
               </button>
 
             </div>
+
+            {/* Countdown widget inside prompt box */}
+            {countdown !== null && pendingUrl && (
+              <div className="border-t border-white/5 pt-3.5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-violet-600/[0.02] p-3.5 rounded-xl border border-violet-500/10 mt-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full border-2 border-violet-500/30 border-t-violet-500 animate-spin flex items-center justify-center text-[10px] font-bold text-violet-300">
+                    {countdown}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-zinc-200 block">توجيه ذكي وشيك</span>
+                    <span className="text-[10px] text-zinc-500 mt-0.5">سيتم نقلك للأداة المطلوبة خلال {countdown} ثوانٍ.</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCancelRedirect}
+                  className="px-3.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-[11px] font-bold text-red-400 transition"
+                >
+                  إلغاء التوجيه
+                </button>
+              </div>
+            )}
           </motion.div>
 
           {/* ── Quick Circles Tools Row ── */}
