@@ -13,6 +13,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { AssetInspector } from "@/components/AssetInspector";
 
 interface CharacterRecord {
   id: string;
@@ -1571,56 +1572,38 @@ export default function CinemaFlowPage() {
 
       </div>
 
-      {/* Asset Preview Modal overlay */}
+      {/* Asset Preview Modal overlay using consolidated AssetInspector */}
       <AnimatePresence>
         {selectedAsset && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-8 z-50">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/80 p-4 flex items-center justify-center"
+            onClick={() => setSelectedAsset(null)}
+          >
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0e0e11] border border-white/10 rounded-2xl max-w-3xl w-full overflow-hidden flex flex-col"
+              initial={{ scale: 0.96, y: 12 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 12 }}
+              className="w-full max-w-5xl h-[82vh] overflow-hidden rounded-2xl bg-[#0e0e11] border border-white/10 shadow-2xl relative"
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-                <span className="text-xs font-bold text-zinc-200 truncate max-w-md">
-                  {selectedAsset.prompt}
-                </span>
-                <button 
-                  onClick={() => setSelectedAsset(null)}
-                  className="p-1 rounded hover:bg-white/5 text-zinc-500 hover:text-white"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Modal Media content */}
-              <div className="flex-1 bg-black overflow-hidden flex items-center justify-center aspect-video max-h-[500px]">
-                {selectedAsset.type === "video" ? (
-                  <video src={selectedAsset.url} controls autoPlay loop className="w-full h-full object-contain" />
-                ) : (
-                  <img src={selectedAsset.url} alt={selectedAsset.prompt} className="w-full h-full object-contain" />
-                )}
-              </div>
-
-              {/* Modal Footer actions */}
-              <div className="px-5 py-4 border-t border-white/5 bg-zinc-950/60 flex items-center justify-between">
-                <span className="text-[10px] text-zinc-400">
-                  Model: <span className="font-mono text-violet-400">{selectedAsset.model || "Nano Banana"}</span>
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleDownload(selectedAsset.url, selectedAsset.prompt || "asset")}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-zinc-300 transition-all"
-                  >
-                    <Download size={13} />
-                    Download File
-                  </button>
-                </div>
-              </div>
+              <AssetInspector
+                asset={{
+                  id: selectedAsset.id,
+                  type: (selectedAsset.type === "video" || selectedAsset.type === "audio" || selectedAsset.type === "3d" || selectedAsset.type === "image")
+                    ? selectedAsset.type as any
+                    : "image",
+                  url: selectedAsset.url,
+                  prompt: selectedAsset.prompt,
+                  model: selectedAsset.model,
+                  date: selectedAsset.date || selectedAsset.createdAt
+                }}
+                onClose={() => setSelectedAsset(null)}
+              />
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
