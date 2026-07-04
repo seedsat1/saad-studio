@@ -7,6 +7,7 @@
   - Extended Cinema Flow to support multiple active reference images (up to 4, mapping to 1 starting frame + 3 reference images) inside the chat attachments bar, aligning with Google Veo prompt specifications (`<FIRST_FRAME>`, `<IMAGE_REF_0>`).
   - Added support for multiple file selection (via the `multiple` attribute on the file input) and concurrent uploading/processing for both file select and drag-and-drop actions.
   - Updated the backend `/api/cinema-flow/chat` to retrieve and download all reference images inside the Gemini contents array.
+  - Implemented automated file size verification (max 20MB) and video duration inspection (max 10 seconds using HTML5 video metadata reader) on file select/drop inside the frontend to alert user about excessive media sizes.
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/api/cinema-flow/chat/route.ts` [MODIFY]
