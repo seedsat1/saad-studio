@@ -6,6 +6,8 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
 import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { getGoogleApiKey } from "@/lib/gemini-veo";
 
 const WAVESPEED_MUSIC_PREFIXES = ["wavespeed-ai/", "minimax/", "elevenlabs/", "google/lyria"];
 const IDEMPOTENCY_ROUTE = "generate:music";
@@ -105,80 +107,216 @@ export async function POST(req: Request) {
       generationId,
     }).catch(() => {});
 
-    const apiKey = process.env.WAVESPEED_API_KEY;
-    if (!apiKey) {
-      throw new Error("WaveSpeed API key not configured");
-    }
+    let audioUrl: string | null = null;
+    let responseJson: any = null;
 
-    const payload: Record<string, unknown> = { prompt: sanitizePrompt(prompt, 3000) };
-    if (model === "elevenlabs/music") {
-      const safeSeconds = duration && Number.isFinite(duration) && duration > 0 ? Math.min(duration, 300) : 30;
-      payload.music_length_ms = Math.max(5000, safeSeconds * 1000);
-      payload.force_instrumental = Boolean(force_instrumental);
-      payload.output_format = output_format || "mp3_standard";
-      if (style?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(style, 200)}`;
-      if (lyrics?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(lyrics, 2500)}`;
-    } else {
-      if (lyrics?.trim()) payload.lyrics = sanitizePrompt(lyrics, 2500);
-      if (style?.trim()) payload.tags = sanitizePrompt(style, 200);
-      if (duration && Number.isFinite(duration) && duration > 0 && duration <= 300) payload.duration = duration;
-    }
+    if (model.startsWith("google/lyria")) {
+      const googleKey = getGoogleApiKey();
+      const googleModelId = model.includes("pro") ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
+      const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${googleKey}`;
 
-    const externalRes = await fetchWithTimeout(
-      `https://api.wavespeed.ai/api/v3/${model}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
+      const inputList: any[] = [];
+      let fullPrompt = sanitizePrompt(prompt, 3000);
+      if (lyrics?.trim()) {
+        fullPrompt += `\n\nUse the following lyrics:\n${sanitizePrompt(lyrics, 2500)}`;
+      }
+      if (style?.trim()) {
+        fullPrompt += `\n\nStyle/Mood/Instruments: ${sanitizePrompt(style, 200)}`;
+      }
+      if (force_instrumental) {
+        fullPrompt += `\n\nInstrumental only, no vocals.`;
+      }
+
+      inputList.push({
+        type: "text",
+        text: fullPrompt
+      });
+
+      // Parse optional multimodal base64 images from body if present
+      if (body.images && Array.isArray(body.images)) {
+        for (const img of body.images) {
+          if (img.data && img.mimeType) {
+            inputList.push({
+              type: "image",
+              mime_type: img.mimeType,
+              data: img.data.includes("base64,") ? img.data.split("base64,")[1] : img.data
+            });
+          }
+        }
+      }
+
+      const googlePayload: any = {
+        model: googleModelId,
+        input: inputList,
+      };
+
+      if (output_format === "wav" && googleModelId === "lyria-3-pro-preview") {
+        googlePayload.response_format = { type: "audio" };
+      }
+
+      const googleRes = await fetchWithTimeout(
+        url,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(googlePayload),
         },
-        body: JSON.stringify(payload),
-      },
-      35_000,
-    );
+        55_000
+      );
 
-    if (!externalRes.ok) {
-      const detail = await readErrorBody(externalRes);
-      console.error("[MUSIC_WAVESPEED_ERROR]", externalRes.status, detail);
-      if (chargedCredits > 0 && chargedUserId && generationId) {
-        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+      if (!googleRes.ok) {
+        const detail = await readErrorBody(googleRes);
+        console.error("[MUSIC_LYRIA_ERROR]", googleRes.status, detail);
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+        }
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: googleRes.status,
+          responseJson: { error: `Lyria music generation failed: ${detail}` },
+        }).catch(() => {});
+        return new NextResponse(`Lyria music generation failed: ${detail}`, { status: googleRes.status });
       }
-      await completeIdempotency({
-        userId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-        responseStatus: externalRes.status,
-        responseJson: { error: `Music generation failed: ${detail}` },
-      }).catch(() => {});
-      return new NextResponse(`Music generation failed: ${detail}`, { status: externalRes.status });
-    }
 
-    const data = await externalRes.json();
+      const googleData = await googleRes.json();
+      let audioBase64: string | null = null;
+      const lyricsArr: string[] = [];
 
-    const audioUrl: string | null =
-      data?.data?.outputs?.[0] ?? data?.outputs?.[0] ?? data?.data?.audio ?? data?.audio ?? null;
-
-    if (!audioUrl) {
-      console.error("[MUSIC_NO_URL]", JSON.stringify(data));
-      if (chargedCredits > 0 && chargedUserId && generationId) {
-        await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+      if (googleData.steps && Array.isArray(googleData.steps)) {
+        for (const step of googleData.steps) {
+          if (step.type === "model_output" && step.content && Array.isArray(step.content)) {
+            for (const block of step.content) {
+              if (block.type === "audio" && block.data) {
+                audioBase64 = block.data;
+              } else if (block.type === "text" && block.text) {
+                lyricsArr.push(block.text);
+              }
+            }
+          }
+        }
       }
-      await completeIdempotency({
-        userId,
-        route: IDEMPOTENCY_ROUTE,
-        key: idempotencyKey,
-        generationId,
-        responseStatus: 502,
-        responseJson: { error: "No audio URL in provider response" },
-      }).catch(() => {});
-      return new NextResponse("No audio URL in provider response", { status: 502 });
+
+      if (!audioBase64) {
+        console.error("[MUSIC_LYRIA_NO_AUDIO]", JSON.stringify(googleData));
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+        }
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson: { error: "No audio generated by Lyria model" },
+        }).catch(() => {});
+        return new NextResponse("No audio generated by Lyria model", { status: 502 });
+      }
+
+      const format = output_format === "wav" && googleModelId === "lyria-3-pro-preview" ? "wav" : "mp3";
+      const mimeType = format === "wav" ? "audio/wav" : "audio/mpeg";
+      const buffer = Buffer.from(audioBase64, "base64");
+
+      const uploadedUrl = await uploadBufferToStorage({
+        buffer,
+        contentType: mimeType,
+        bucket: "media",
+        path: `music/lyria-${Date.now()}.${format}`,
+      });
+
+      if (!uploadedUrl) {
+        throw new Error("Failed to upload Lyria audio output to storage");
+      }
+
+      audioUrl = uploadedUrl;
+      const generatedLyricsText = lyricsArr.join("\n");
+
+      if (generationId) {
+        await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
+      }
+      responseJson = { generationId, audioUrl, lyrics: generatedLyricsText };
+
+    } else {
+      const apiKey = process.env.WAVESPEED_API_KEY;
+      if (!apiKey) {
+        throw new Error("WaveSpeed API key not configured");
+      }
+
+      const payload: Record<string, unknown> = { prompt: sanitizePrompt(prompt, 3000) };
+      if (model === "elevenlabs/music") {
+        const safeSeconds = duration && Number.isFinite(duration) && duration > 0 ? Math.min(duration, 300) : 30;
+        payload.music_length_ms = Math.max(5000, safeSeconds * 1000);
+        payload.force_instrumental = Boolean(force_instrumental);
+        payload.output_format = output_format || "mp3_standard";
+        if (style?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(style, 200)}`;
+        if (lyrics?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(lyrics, 2500)}`;
+      } else {
+        if (lyrics?.trim()) payload.lyrics = sanitizePrompt(lyrics, 2500);
+        if (style?.trim()) payload.tags = sanitizePrompt(style, 200);
+        if (duration && Number.isFinite(duration) && duration > 0 && duration <= 300) payload.duration = duration;
+      }
+
+      const externalRes = await fetchWithTimeout(
+        `https://api.wavespeed.ai/api/v3/${model}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+        35_000,
+      );
+
+      if (!externalRes.ok) {
+        const detail = await readErrorBody(externalRes);
+        console.error("[MUSIC_WAVESPEED_ERROR]", externalRes.status, detail);
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+        }
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: externalRes.status,
+          responseJson: { error: `Music generation failed: ${detail}` },
+        }).catch(() => {});
+        return new NextResponse(`Music generation failed: ${detail}`, { status: externalRes.status });
+      }
+
+      const data = await externalRes.json();
+      const waveUrl: string | null =
+        data?.data?.outputs?.[0] ?? data?.outputs?.[0] ?? data?.data?.audio ?? data?.audio ?? null;
+
+      if (!waveUrl) {
+        console.error("[MUSIC_NO_URL]", JSON.stringify(data));
+        if (chargedCredits > 0 && chargedUserId && generationId) {
+          await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+        }
+        await completeIdempotency({
+          userId,
+          route: IDEMPOTENCY_ROUTE,
+          key: idempotencyKey,
+          generationId,
+          responseStatus: 502,
+          responseJson: { error: "No audio URL in provider response" },
+        }).catch(() => {});
+        return new NextResponse("No audio URL in provider response", { status: 502 });
+      }
+
+      audioUrl = waveUrl;
+      if (generationId) {
+        await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
+      }
+      responseJson = { generationId, audioUrl };
     }
 
-    if (generationId) {
-      await setGenerationMediaUrl(generationId, audioUrl).catch(() => {});
-    }
-    const responseJson = { generationId, audioUrl };
     await completeIdempotency({
       userId,
       route: IDEMPOTENCY_ROUTE,
