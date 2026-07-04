@@ -327,21 +327,20 @@ export default function AudioPage() {
 
       const imagePayloads = [];
       for (const img of images) {
-        if (img.url) {
+        if (img.file) {
           try {
-            const blobRes = await fetch(img.url);
-            const blob = await blobRes.blob();
-            const base64Data = await new Promise<string>((resolve) => {
+            const base64Data = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
+              reader.onerror = reject;
+              reader.readAsDataURL(img.file);
             });
             imagePayloads.push({
               data: base64Data,
-              mimeType: blob.type
+              mimeType: img.file.type
             });
           } catch (e) {
-            console.error("Failed to read image ref blob", e);
+            console.error("Failed to read image ref file", e);
           }
         }
       }

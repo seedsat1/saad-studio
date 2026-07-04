@@ -6,6 +6,7 @@
   - Fixed page header overlaying the navigation tools dropdown in `/audio` page. Changed `sticky top-0 z-50` to `relative z-10` so it goes underneath the global header dropdown menu.
   - Deleted the redundant bottom bar (footer) completely as requested by the user.
   - Replaced all generic Tailwind theme variables in `/audio` with explicit, high-fidelity dark colors matching Saad Studio's theme (e.g., `bg-[#0a0a0c]` background, `bg-[#111115]` card components, `border-zinc-800/80` borders, `text-zinc-100` foreground).
+  - Fixed Content Security Policy connection block on image references in the `/audio` workspace. The page now reads local upload files directly via the offline `img.file` reference using `FileReader` instead of calling `fetch` on `blob:` URLs, completely resolving the `connect-src` policy violation.
 - Affected files:
   - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
 - Verification:
