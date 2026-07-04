@@ -7,10 +7,12 @@ import {
   Search, Sliders, Play, Plus, HelpCircle, Settings, X, Edit,
   Send, Sparkles, AlertCircle, Loader2, Image as ImageIcon,
   Film, Trash2, Users, Layers, Download, CheckCircle, Lightbulb,
-  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight, Grid, Music
+  Sprout, BookOpen, Paperclip, ChevronLeft, ChevronRight, Grid, Music,
+  ThumbsUp, ThumbsDown, Copy, Flag
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { useToast } from "@/components/ui/use-toast";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { AssetInspector } from "@/components/AssetInspector";
@@ -48,6 +50,7 @@ export default function CinemaFlowPage() {
   const { user } = useUser();
   const { guardGeneration } = useGenerationGate();
   const { addAsset } = useAssetStore();
+  const { toast } = useToast();
   const firstName = user?.firstName ?? "Ellen";
 
   // Gallery states
@@ -90,6 +93,7 @@ export default function CinemaFlowPage() {
 
   // Chat states
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [expandedThinking, setExpandedThinking] = useState<Record<string, boolean>>({});
   const [inputText, setInputText] = useState("");
   const [isAgentTyping, setIsAgentTyping] = useState(false);
   const [selectedImageModel, setSelectedImageModel] = useState("nano-banana-2-lite");
@@ -423,8 +427,18 @@ export default function CinemaFlowPage() {
     });
 
   // Suggestion actions
-  const handleSuggestionClick = (type: "brainstorm" | "started" | "capabilities") => {
-    if (type === "brainstorm") {
+  const handleSuggestionClick = (type: string) => {
+    if (type === "option1") {
+      sendChatMessage("أريد وصف صورة أو فيديو لتقوم بإنشائهما لي");
+    } else if (type === "option2") {
+      sendChatMessage("ساعدني في العصف الذهني للشخصيات، المواقع، وبناء عالم إبداعي");
+    } else if (type === "option3") {
+      sendChatMessage("أريد إنشاء قصة مشهداً بمشهد وتخطيطها (Storyboard)");
+    } else if (type === "option4") {
+      sendChatMessage("كيف يمكنني تنظيم مشروعي في مجموعات إبداعية؟");
+    } else if (type === "option5") {
+      sendChatMessage("أريد التعرف على المزيد حول ميزات Cinema Flow");
+    } else if (type === "brainstorm") {
       sendChatMessage("ساعدني في العصف الذهني لفكرة إعلان مبتكر وجذاب!");
     } else if (type === "started") {
       sendChatMessage("كيف يمكنني البدء في إنشاء وتعديل وسائط إبداعية هنا؟");
@@ -521,7 +535,8 @@ export default function CinemaFlowPage() {
         setChatMessages(prev => [...prev, {
           id: Math.random().toString(),
           sender: "agent",
-          text: replyText
+          text: replyText,
+          thinking: chatData.thinking
         }]);
         setIsAgentTyping(false);
       }
@@ -1218,53 +1233,37 @@ export default function CinemaFlowPage() {
         {/* Message feed or Welcome state */}
         <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
           {chatMessages.length === 0 ? (
-            /* Welcome / Initial suggestions screen */
-            <div className="flex-1 flex flex-col justify-center gap-6 py-10">
+            /* Welcome / Initial suggestions screen in Google style */
+            <div className="flex-1 flex flex-col justify-center gap-5 py-6">
               <div>
-                <h2 className="text-lg font-bold text-zinc-100">Hi {firstName}</h2>
-                <p className="text-sm font-medium text-zinc-500 mt-1">What would you like to do?</p>
+                <h2 className="text-base font-bold text-zinc-100">أهلاً {firstName}</h2>
+                <p className="text-xs font-medium text-zinc-400 mt-1.5 leading-relaxed">
+                  أنا مساعدك الإبداعي. يمكنني مساعدتك في العصف الذهني، توليد الصور والفيديوهات، وتنظيم مساحتك الإبداعية. من أين نود أن نبدأ؟
+                </p>
               </div>
 
-              {/* Suggestions Cards */}
-              <div className="flex flex-col gap-2.5">
-                <button 
-                  onClick={() => handleSuggestionClick("brainstorm")}
-                  className="w-full flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] text-left transition-all group"
-                >
-                  <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 border border-amber-500/20 group-hover:scale-105 transition-all">
-                    <Lightbulb size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-zinc-200 leading-tight">Brainstorm with me</p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">خطط لأفكار وسيناريوهات إبداعية</p>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => handleSuggestionClick("started")}
-                  className="w-full flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] text-left transition-all group"
-                >
-                  <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 group-hover:scale-105 transition-all">
-                    <Sprout size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-zinc-200 leading-tight">How do I get started?</p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">تعرف على خطوات التوليد البسيطة</p>
-                  </div>
-                </button>
-
-                <button 
-                  onClick={() => handleSuggestionClick("capabilities")}
-                  className="w-full flex items-center gap-4 p-3.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] text-left transition-all group"
-                >
-                  <div className="h-9 w-9 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20 group-hover:scale-105 transition-all">
-                    <BookOpen size={16} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-zinc-200 leading-tight">Teach me about what you can do</p>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">استكشف النماذج والقدرات المتاحة</p>
-                  </div>
-                </button>
+              {/* Interactive choice options list exactly matching Google's style */}
+              <div className="flex flex-col gap-2 mt-2">
+                {[
+                  { id: "option1" as const, text: "وصف صورة أو فيديو وسأقوم بإنشائهما لك" },
+                  { id: "option2" as const, text: "العصف الذهني للشخصيات، المواقع، أو بناء عالم" },
+                  { id: "option3" as const, text: "إنشاء قصة مشهداً بمشهد وتخطيطها (Storyboard)" },
+                  { id: "option4" as const, text: "تنظيم مشروعك في مجموعات" },
+                  { id: "option5" as const, text: "تعرف على المزيد حول ميزات Flow" },
+                ].map((opt) => (
+                  <button 
+                    key={opt.id}
+                    onClick={() => handleSuggestionClick(opt.id)}
+                    className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] text-right transition-all group"
+                  >
+                    <div className="h-4 w-4 rounded-full border-2 border-zinc-600 group-hover:border-violet-500 transition-colors flex-shrink-0 flex items-center justify-center">
+                      <div className="h-1.5 w-1.5 rounded-full bg-transparent group-hover:bg-violet-500 transition-colors" />
+                    </div>
+                    <span className="text-xs font-semibold text-zinc-200 group-hover:text-violet-400 transition-colors leading-tight flex-1">
+                      {opt.text}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
@@ -1275,6 +1274,41 @@ export default function CinemaFlowPage() {
                   key={msg.id}
                   className={`flex flex-col gap-1.5 max-w-[85%] ${msg.sender === "user" ? "self-end items-end" : "self-start items-start"}`}
                 >
+                  {/* Collapsible Thinking Process Toggle (Google Style) */}
+                  {msg.sender === "agent" && msg.thinking && (
+                    <div className="w-full mt-1 mb-1">
+                      <button
+                        onClick={() => {
+                          setExpandedThinking(prev => ({
+                            ...prev,
+                            [msg.id]: !prev[msg.id]
+                          }));
+                        }}
+                        className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-[10px] font-semibold transition"
+                      >
+                        <span>{expandedThinking[msg.id] ? "Hide thinking" : "Show thinking"}</span>
+                        <ChevronRight
+                          size={11}
+                          className={cn("transition-transform duration-200", expandedThinking[msg.id] ? "rotate-90" : "rotate-0")}
+                        />
+                      </button>
+                      <AnimatePresence>
+                        {expandedThinking[msg.id] && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="border-l border-zinc-700 pl-3.5 mt-2 py-0.5 overflow-hidden"
+                          >
+                            <p className="text-[11px] text-zinc-400 font-mono whitespace-pre-line leading-relaxed">
+                              {msg.thinking}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
                   {/* Message Text Bubble */}
                   {msg.text && (
                     <div
@@ -1285,6 +1319,49 @@ export default function CinemaFlowPage() {
                       }`}
                     >
                       {msg.text}
+                    </div>
+                  )}
+
+                  {/* Feedback Action Buttons (Only for Agent messages) */}
+                  {msg.sender === "agent" && msg.text && !msg.text.includes("جاري التوليد") && (
+                    <div className="flex items-center gap-2.5 mt-0.5 px-1">
+                      <button 
+                        onClick={() => {
+                          toast({ description: "شكراً لتقييمك الإيجابي!" });
+                        }}
+                        className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
+                        title="أعجبني"
+                      >
+                        <ThumbsUp size={12} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          toast({ description: "شكراً لتقييمك، سنعمل على تحسين الإجابات!" });
+                        }}
+                        className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
+                        title="لم يعجبني"
+                      >
+                        <ThumbsDown size={12} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(msg.text);
+                          toast({ description: "تم نسخ النص بنجاح!" });
+                        }}
+                        className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
+                        title="نسخ الإجابة"
+                      >
+                        <Copy size={12} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          toast({ description: "تم الإبلاغ بنجاح لتصحيح الرد." });
+                        }}
+                        className="p-1 rounded text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition"
+                        title="إبلاغ"
+                      >
+                        <Flag size={12} />
+                      </button>
                     </div>
                   )}
 
