@@ -33,10 +33,22 @@ export async function POST(req: NextRequest) {
     for (const m of messages) {
       const parts: any[] = [{ text: m.text }];
 
-      // Download and attach image reference if present
-      if (m.sender === "user" && m.assetUrl) {
+      // Download and attach reference images if present
+      const urlsToFetch: string[] = [];
+      if (m.sender === "user") {
+        if (m.assetUrl) urlsToFetch.push(m.assetUrl);
+        if (m.assetUrls && Array.isArray(m.assetUrls)) {
+          for (const url of m.assetUrls) {
+            if (url && !urlsToFetch.includes(url)) {
+              urlsToFetch.push(url);
+            }
+          }
+        }
+      }
+
+      for (const url of urlsToFetch) {
         try {
-          let targetUrl = m.assetUrl;
+          let targetUrl = url;
           if (targetUrl.startsWith("/")) {
             const origin = req.nextUrl.origin;
             targetUrl = `${origin}${targetUrl}`;

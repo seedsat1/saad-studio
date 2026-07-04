@@ -40,6 +40,7 @@ interface ChatMessage {
   isGenerating?: boolean;
   assetUrl?: string;
   assetType?: "image" | "video";
+  assetUrls?: string[];
 }
 
 export default function CinemaFlowPage() {
@@ -58,7 +59,24 @@ export default function CinemaFlowPage() {
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
   const [loadingCharacters, setLoadingCharacters] = useState(false);
   const [activeCharacter, setActiveCharacter] = useState<CharacterRecord | null>(null);
-  const [activeImageReference, setActiveImageReference] = useState<MediaAsset | null>(null);
+  const [activeImageReferences, setActiveImageReferences] = useState<MediaAsset[]>([]);
+
+  // Helpers to manage multiple image references
+  const addActiveImageReference = (asset: MediaAsset) => {
+    setActiveImageReferences((prev) => {
+      // Max 4 references (1 start frame + 3 reference images)
+      if (prev.length >= 4) {
+        return prev;
+      }
+      if (prev.some((img) => img.url === asset.url)) return prev;
+      return [...prev, asset];
+    });
+    setActiveCharacter(null);
+  };
+
+  const removeActiveImageReference = (index: number) => {
+    setActiveImageReferences((prev) => prev.filter((_, idx) => idx !== index));
+  };
 
   // Interactive controls states
   const [filterModel, setFilterModel] = useState<string>("all");
@@ -225,8 +243,7 @@ export default function CinemaFlowPage() {
           // Add to local state
           setAssets(prev => [saveData.asset, ...prev]);
           // Set as active reference
-          setActiveImageReference(saveData.asset);
-          setActiveCharacter(null);
+          addActiveImageReference(saveData.asset);
         }
       } else {
         const tempAsset = {
@@ -235,8 +252,7 @@ export default function CinemaFlowPage() {
           type: (file.type || "").startsWith("video") ? "video" : "image",
           prompt: file.name,
         };
-        setActiveImageReference(tempAsset as any);
-        setActiveCharacter(null);
+        addActiveImageReference(tempAsset as any);
       }
     } catch (err) {
       console.error("Upload failed:", err);
@@ -271,8 +287,9 @@ export default function CinemaFlowPage() {
 
     // 1. Check if dropped files (e.g. from local computer)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      await handleFileSelection(file);
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        await handleFileSelection(e.dataTransfer.files[i]);
+      }
       return;
     }
 
@@ -284,10 +301,9 @@ export default function CinemaFlowPage() {
         if (asset && asset.url) {
           if (asset.coverUrl !== undefined) {
             setActiveCharacter(asset);
-            setActiveImageReference(null);
+            setActiveImageReferences([]);
           } else {
-            setActiveImageReference(asset);
-            setActiveCharacter(null);
+            addActiveImageReference(asset);
           }
         }
       } catch (_) {}
@@ -296,8 +312,9 @@ export default function CinemaFlowPage() {
 
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      await handleFileSelection(file);
+      for (let i = 0; i < e.target.files.length; i++) {
+        await handleFileSelection(e.target.files[i]);
+      }
     }
   };
 
@@ -366,8 +383,10 @@ export default function CinemaFlowPage() {
   const sendChatMessage = async (text: string) => {
     if (!text.trim()) return;
 
-    // Capture reference image/character URL before clearing active state
-    const refUrl = activeImageReference?.url || (activeCharacter ? normalizeMediaUrl(activeCharacter.coverUrl) : null);
+    // Capture all reference image URLs in a list
+    const refUrls = activeImageReferences.map(img => img.url).filter((u): u is string => Boolean(u));
+    const fallbackUrl = activeCharacter ? normalizeMediaUrl(activeCharacter.coverUrl) : null;
+    const finalRefUrls = refUrls.length > 0 ? refUrls : (fallbackUrl ? [fallbackUrl] : []);
 
     // 1. Add User Message
     const userMsg: ChatMessage = {
@@ -376,9 +395,10 @@ export default function CinemaFlowPage() {
       text: text.trim(),
     };
 
-    if (activeImageReference) {
-      userMsg.assetUrl = activeImageReference.url;
-      userMsg.assetType = "image";
+    if (activeImageReferences.length > 0) {
+      userMsg.assetUrl = activeImageReferences[0].url;
+      userMsg.assetUrls = refUrls;
+      userMsg.assetType = activeImageReferences[0].type === "video" ? "video" : "image";
     } else if (activeCharacter) {
       userMsg.assetUrl = normalizeMediaUrl(activeCharacter.coverUrl) || undefined;
       userMsg.assetType = "image";
@@ -387,7 +407,7 @@ export default function CinemaFlowPage() {
     const updatedMessages = [...chatMessages, userMsg];
     setChatMessages(updatedMessages);
     setInputText("");
-    setActiveImageReference(null);
+    setActiveImageReferences([]);
     setActiveCharacter(null);
 
     // 2. Set Agent Typing state
@@ -413,7 +433,7 @@ export default function CinemaFlowPage() {
         await executeImageGeneration(refinedPrompt);
       } else if (replyText.startsWith("VIDEO_GEN:")) {
         const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
-        await executeVideoGeneration(refinedPrompt, refUrl);
+        await executeVideoGeneration(refinedPrompt, finalRefUrls);
       } else {
         // Normal conversational reply
         setChatMessages(prev => [...prev, {
@@ -463,9 +483,10 @@ export default function CinemaFlowPage() {
       let res;
       let finalPrompt = promptText;
 
-      // If ordinary image reference is selected, append reference image details to prompt
-      if (activeImageReference?.url) {
-        finalPrompt = `${promptText}\n\n[Reference Image: ${activeImageReference.url}]`;
+      // If ordinary image references are selected, append reference image details to prompt
+      if (activeImageReferences.length > 0) {
+        const refsStr = activeImageReferences.map((img, idx) => `[Reference Image ${idx + 1}: ${img.url}]`).join("\n");
+        finalPrompt = `${promptText}\n\n${refsStr}`;
       }
 
       if (activeCharacter) {
@@ -552,7 +573,7 @@ export default function CinemaFlowPage() {
   };
 
   // Trigger Google Video Generation
-  const executeVideoGeneration = async (promptText: string, imageRefUrl?: string | null) => {
+  const executeVideoGeneration = async (promptText: string, imageRefUrls?: string[] | null) => {
     // Dynamic cost calculation based on model and duration
     let rate = 2.0; // Default (Gemini Omni Flash)
     let modelName = "Gemini Omni Flash";
@@ -590,6 +611,9 @@ export default function CinemaFlowPage() {
       isGenerating: true
     }]);
 
+    const firstImage = imageRefUrls && imageRefUrls.length > 0 ? imageRefUrls[0] : null;
+    const extraReferenceUrls = imageRefUrls && imageRefUrls.length > 1 ? imageRefUrls.slice(1) : [];
+
     try {
       const res = await fetch("/api/video", {
         method: "POST",
@@ -601,7 +625,8 @@ export default function CinemaFlowPage() {
             duration: videoDuration,
             aspectRatio: aspectRatio,
             resolution: videoQuality,
-            ...(imageRefUrl ? { image_url: imageRefUrl } : {})
+            ...(firstImage ? { image_url: firstImage } : {}),
+            ...(extraReferenceUrls.length > 0 ? { reference_image_urls: extraReferenceUrls } : {})
           }
         })
       });
@@ -922,7 +947,7 @@ export default function CinemaFlowPage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveCharacter(character);
-                              setActiveImageReference(null);
+                              setActiveImageReferences([]);
                             }}
                             className="w-full py-1 rounded bg-violet-600 hover:bg-violet-700 text-white font-bold text-[10px] transition-all"
                           >
@@ -999,8 +1024,7 @@ export default function CinemaFlowPage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setActiveImageReference(asset);
-                                setActiveCharacter(null);
+                                addActiveImageReference(asset);
                               }}
                               className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold transition-all"
                               title="Use as character style/subject reference"
@@ -1169,32 +1193,58 @@ export default function CinemaFlowPage() {
                   )}
 
                   {/* standalone attachment card (no text container background framing) */}
-                  {msg.assetUrl && (
-                    <div 
-                      className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
-                      onClick={() => {
-                        setActiveImageReference({
-                          id: msg.id,
-                          url: msg.assetUrl!,
-                          type: msg.assetType === "video" ? "video" : "image",
-                          prompt: msg.text || "Chat generated reference",
-                          createdAt: new Date().toISOString()
-                        } as any);
-                        setActiveCharacter(null);
-                      }}
-                      title="تعيين كصورة مرجعية"
-                    >
-                      {msg.assetType === "video" ? (
-                        <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
-                      ) : (
-                        <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
-                      )}
-                      {/* Hover overlay indicator */}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium gap-1 pointer-events-none">
-                        <Sparkles size={12} className="text-violet-400 animate-pulse" />
-                        <span>استخدام كصورة مرجعية</span>
-                      </div>
+                  {msg.assetUrls && msg.assetUrls.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mt-2 max-w-full">
+                      {msg.assetUrls.map((url, idx) => (
+                        <div 
+                          key={idx}
+                          className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-36 shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
+                          onClick={() => {
+                            addActiveImageReference({
+                              id: `${msg.id}-${idx}`,
+                              url: url,
+                              type: "image",
+                              prompt: msg.text || "Chat generated reference",
+                              createdAt: new Date().toISOString()
+                            } as any);
+                          }}
+                          title="تعيين كصورة مرجعية"
+                        >
+                          <img src={url} alt="Chat attachment reference" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[9px] font-medium gap-0.5 pointer-events-none">
+                            <Sparkles size={10} className="text-violet-400 animate-pulse" />
+                            <span>استخدام</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  ) : (
+                    msg.assetUrl && (
+                      <div 
+                        className="rounded-xl overflow-hidden border border-white/10 aspect-video bg-black flex items-center justify-center relative w-72 max-w-full shadow-lg cursor-pointer hover:border-violet-500/50 transition group"
+                        onClick={() => {
+                          addActiveImageReference({
+                            id: msg.id,
+                            url: msg.assetUrl!,
+                            type: msg.assetType === "video" ? "video" : "image",
+                            prompt: msg.text || "Chat generated reference",
+                            createdAt: new Date().toISOString()
+                          } as any);
+                        }}
+                        title="تعيين كصورة مرجعية"
+                      >
+                        {msg.assetType === "video" ? (
+                          <video src={msg.assetUrl} controls className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={msg.assetUrl} alt="Chat attachment" className="w-full h-full object-cover" />
+                        )}
+                        {/* Hover overlay indicator */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[11px] font-medium gap-1 pointer-events-none">
+                          <Sparkles size={12} className="text-violet-400 animate-pulse" />
+                          <span>استخدام كصورة مرجعية</span>
+                        </div>
+                      </div>
+                    )
                   )}
                   
                   <span className="text-[9px] text-zinc-500 px-1">
@@ -1314,7 +1364,7 @@ export default function CinemaFlowPage() {
         {/* Chat input box */}
         <div className="flex-shrink-0 p-4 border-t border-white/5 bg-zinc-950/20">
           {/* Active Reference Badges */}
-          {(activeCharacter || activeImageReference) && (
+          {(activeCharacter || activeImageReferences.length > 0) && (
             <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-white/5">
               {activeCharacter && (
                 <div className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-square w-16 bg-black flex items-center justify-center shadow-lg">
@@ -1334,21 +1384,24 @@ export default function CinemaFlowPage() {
                   </button>
                 </div>
               )}
-              {activeImageReference && (
-                <div className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-video w-24 bg-black flex items-center justify-center shadow-lg">
-                  {activeImageReference.type === "video" ? (
-                    <video src={activeImageReference.url} className="w-full h-full object-cover" muted />
+              {activeImageReferences.map((imgRef, index) => (
+                <div key={imgRef.id || index} className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-video w-24 bg-black flex items-center justify-center shadow-lg">
+                  {imgRef.type === "video" ? (
+                    <video src={imgRef.url} className="w-full h-full object-cover" muted />
                   ) : (
-                    <img src={activeImageReference.url} alt="Attached reference" className="w-full h-full object-cover" />
+                    <img src={imgRef.url} alt="Attached reference" className="w-full h-full object-cover" />
                   )}
                   <button 
-                    onClick={() => setActiveImageReference(null)} 
+                    onClick={() => removeActiveImageReference(index)} 
                     className="absolute top-1 right-1 p-1 rounded-full bg-black/70 hover:bg-black/90 text-white transition-colors"
                   >
                     <X size={10} />
                   </button>
+                  <div className="absolute bottom-0 inset-x-0 bg-black/60 text-[7px] text-center text-white truncate px-1 py-0.5 font-semibold">
+                    {index === 0 ? "Start Frame" : `Ref Image ${index}`}
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
 
@@ -1374,6 +1427,7 @@ export default function CinemaFlowPage() {
                   ref={fileInputRef}
                   onChange={handleFileInputChange}
                   accept="image/*,video/*"
+                  multiple
                   className="hidden"
                 />
                 <button
