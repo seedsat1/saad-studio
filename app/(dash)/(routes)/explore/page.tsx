@@ -27,6 +27,7 @@ import {
   Copy,
   Check,
   Search,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
@@ -1266,6 +1267,8 @@ export default function ExplorePage() {
   const [activeMedia, setActiveMedia] = useState<"image" | "video">("image");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [selectedStyle, setSelectedStyle] = useState("Dynamic");
+  const [isRouting, setIsRouting] = useState(false);
+  const [routingMessage, setRoutingMessage] = useState("");
 
   // Dropdown states
   const [showAspectDropdown, setShowAspectDropdown] = useState(false);
@@ -1348,11 +1351,47 @@ export default function ExplorePage() {
     setAutoplayKey((prev) => (prev === key ? prev : key));
   }, []);
 
-  const handleGenerate = () => {
-    const targetUrl = activeMedia === "video"
-      ? `/video?prompt=${encodeURIComponent(promptText)}`
-      : `/image?tool=create&prompt=${encodeURIComponent(promptText)}&aspect=${aspectRatio}&preset=${selectedStyle.toLowerCase()}`;
-    router.push(targetUrl);
+  const handleGenerate = async () => {
+    if (!promptText.trim()) return;
+
+    setIsRouting(true);
+    setRoutingMessage("جاري تحليل طلبك لتوجيهك للموديل أو الأداة المناسبة...");
+
+    try {
+      const res = await fetch("/api/explore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: promptText }),
+      });
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.path) {
+        if (data.explanationAr) {
+          setRoutingMessage(data.explanationAr);
+        }
+
+        // Construct redirect URL
+        const url = new URL(data.path, window.location.origin);
+        if (data.query) {
+          Object.entries(data.query).forEach(([key, val]) => {
+            if (val) url.searchParams.set(key, String(val));
+          });
+        }
+
+        setTimeout(() => {
+          router.push(url.pathname + url.search);
+          setIsRouting(false);
+        }, 900);
+      } else {
+        throw new Error("Routing failed");
+      }
+    } catch (err) {
+      const targetUrl = activeMedia === "video"
+        ? `/video?prompt=${encodeURIComponent(promptText)}`
+        : `/image?tool=create&prompt=${encodeURIComponent(promptText)}&aspect=${aspectRatio}&preset=${selectedStyle.toLowerCase()}`;
+      router.push(targetUrl);
+      setIsRouting(false);
+    }
   };
 
   const handleCopyPrompt = (id: string, text: string) => {
@@ -1436,6 +1475,33 @@ export default function ExplorePage() {
   return (
     <main className="w-full min-h-screen bg-[#02050e] text-white relative pb-20 overflow-x-hidden">
       
+      {/* Smart Agent Routing Overlay */}
+      <AnimatePresence>
+        {isRouting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#02050e]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center"
+          >
+            <div className="relative mb-6">
+              {/* Outer rotating neon glow border */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-violet-600 to-cyan-500 blur-md opacity-70 animate-pulse scale-105" />
+              <div className="relative w-20 h-20 rounded-full bg-[#090b14] border border-white/10 flex items-center justify-center text-violet-400">
+                <Loader2 size={36} className="animate-spin text-violet-400" />
+              </div>
+            </div>
+            
+            <h2 className="text-xl font-bold tracking-wide text-zinc-100 max-w-md leading-relaxed">
+              {routingMessage}
+            </h2>
+            <p className="text-xs text-zinc-500 mt-2.5">
+              مساعد التوجيه الذكي — استوديو سعد
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Ambient colorful glow spots */}
       <div className="absolute top-0 left-[-10%] w-[50%] h-[600px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.12),transparent_70%)] pointer-events-none" />
       <div className="absolute top-[-100px] right-[-10%] w-[40%] h-[700px] bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.08),transparent_70%)] pointer-events-none" />
