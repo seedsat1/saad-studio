@@ -1,5 +1,14 @@
 # Saad Studio — Project Context
 
+## Latest task: Restore original prompt preservation behavior in Cinema Flow chat (2026-07-05)
+
+- Status:
+  - Reverted Cinema Flow AI agent instructions in `app/api/cinema-flow/chat/route.ts` to prioritize using the user's detailed description directly as the generator prompt. This prevents the agent from simplifying or rewriting detailed custom scripts/instructions into short generic phrases, ensuring highly customized and complex generations (such as character persistence, step-by-step UI actions, and specific languages) are preserved exactly.
+- Affected files:
+  - `app/api/cinema-flow/chat/route.ts` [MODIFY]
+- Verification:
+  - Next.js production build (`npm run build`) completed successfully with no compilation errors.
+
 ## Latest task: Resolve download failure on relative storage URLs (2026-07-05)
 
 - Status:
