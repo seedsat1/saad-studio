@@ -866,7 +866,7 @@ export default function CinemaFlowPage() {
       }
 
       // Start polling for video, then stitch voiceover
-      startPollingVideoWithVoiceover(videoData.taskId, ttsPromise, videoPrompt);
+      startPollingVideoWithVoiceover(videoData.taskId, ttsPromise, videoPrompt, modelName);
 
     } catch (err: any) {
       setChatMessages(prev => {
@@ -882,7 +882,7 @@ export default function CinemaFlowPage() {
   };
 
   // Poll video status with voiceover stitching
-  const startPollingVideoWithVoiceover = (taskId: string, ttsPromise: Promise<string>, promptText: string) => {
+  const startPollingVideoWithVoiceover = (taskId: string, ttsPromise: Promise<string>, promptText: string, modelName: string) => {
     if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
 
     const check = async () => {
@@ -921,7 +921,7 @@ export default function CinemaFlowPage() {
             type: "video",
             url: finalUrl,
             prompt: promptText,
-            model: "Gemini Omni Flash (with Voiceover)",
+            model: `${modelName} (with Voiceover)`,
             duration: "10s",
             providerRequestId: taskId
           });
@@ -931,7 +931,7 @@ export default function CinemaFlowPage() {
             type: "video",
             url: finalUrl,
             prompt: promptText,
-            model: "Gemini Omni Flash (with Voiceover)",
+            model: `${modelName} (with Voiceover)`,
             date: "Today",
             createdAt: new Date().toISOString()
           };
