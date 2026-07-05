@@ -52,7 +52,15 @@ export function isSafePublicGenerationMessage(message: unknown): message is stri
     message.includes("frame") ||
     message.includes("Frame") ||
     message.includes("extension") ||
-    message.includes("Extension")
+    message.includes("Extension") ||
+    message.includes("Lyria") ||
+    message.includes("lyria") ||
+    message.includes("blocked") ||
+    message.includes("Blocked") ||
+    message.includes("policy") ||
+    message.includes("Policy") ||
+    message.includes("sensitive") ||
+    message.includes("Sensitive")
   );
 }
 

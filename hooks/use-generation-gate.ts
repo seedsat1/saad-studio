@@ -101,12 +101,27 @@ export function useGenerationGate() {
   );
 
   const getSafeErrorMessage = useCallback((error: unknown) => {
-    const message =
-      error instanceof Error
-        ? error.message
-        : typeof error === "string"
-          ? error
-          : undefined;
+    let message: string | undefined = undefined;
+    if (error && typeof error === "object") {
+      const axiosError = error as any;
+      if (axiosError.response?.data) {
+        const data = axiosError.response.data;
+        if (typeof data === "string") {
+          message = data;
+        } else if (data && typeof data === "object") {
+          message = data.error || data.message;
+        }
+      }
+    }
+
+    if (!message) {
+      message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : undefined;
+    }
 
     return toSafePublicGenerationMessage(message);
   }, []);

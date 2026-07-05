@@ -1,5 +1,19 @@
 # Saad Studio — Project Context
 
+## Latest task: Improve Axios error extraction and whitelist safety policy violations (2026-07-05)
+
+- Status:
+  - Fixed a `400 (Bad Request)` error response display bug on the client player.
+  - Updated `getSafeErrorMessage` in `hooks/use-generation-gate.ts` to extract the actual error message from the Axios response body (`error.response.data.error` or `error.response.data` as string) instead of falling back to the generic `Request failed with status code 400` message.
+  - Whitelisted safety filter, policy violation, and Lyria-related keywords (`Lyria`, `lyria`, `blocked`, `Blocked`, `policy`, `Policy`, `sensitive`, `Sensitive`) in `isSafePublicGenerationMessage` in `lib/generation-errors.ts` to allow specific Google Lyria safety blocks to be displayed to the user.
+- Affected files:
+  - `hooks/use-generation-gate.ts` [MODIFY]
+  - `lib/generation-errors.ts` [MODIFY]
+- Verification:
+  - Verified compilation using `npx tsc --noEmit`.
+- Decision:
+  - Ensure client-side error helpers parse actual response payloads from Axios rather than standard JS error properties to expose helpful API rejection details.
+
 ## Latest task: Cinema Flow Automatic Voiceover Generation and Audio-Video Stitching (2026-07-05)
 
 - Status:
