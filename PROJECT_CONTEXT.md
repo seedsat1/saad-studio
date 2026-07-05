@@ -95,6 +95,7 @@
   - Fixed HTTP 400 Bad Request (Model not found) when generating with the Pro model. Corrected all Minimax model references across the codebase from the incorrect prefix format (e.g. `minimax/minimax-music-2.5`) to the correct WaveSpeed endpoint format (`minimax/music-2.5`), and updated prompt validation to allow empty prompt values when custom lyrics are entered (using chosen style as fallback prompt).
   - Fixed HTTP 502 Bad Gateway during Minimax music generation. Since Minimax generates music asynchronously (returning a prediction ID initially instead of the immediate audio file URL), the backend has been updated to include a polling loop that queries WaveSpeed's prediction results for up to 3 minutes, and added `maxDuration = 180` to the Next.js API route to prevent Vercel execution timeouts.
   - Fixed HTTP 400 Bad Request when generating with Minimax Pro without writing custom lyrics. Since Minimax requires a non-empty `lyrics` field in its API schema (unlike ElevenLabs), the backend has been updated to automatically set a fallback `[Instrumental]` placeholder value when the `lyrics` property is empty or undefined, satisfying validation constraints.
+  - Replaced all music generation model options on both the `/audio` workspace page and the `/music` studio page with Google Lyria models (`google/lyria-3-pro/music` and `google/lyria-3-clip/music`), enforcing Google as the exclusive music generation provider.
 - Affected files:
   - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
 - Verification:

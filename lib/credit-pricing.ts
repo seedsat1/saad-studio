@@ -48,6 +48,8 @@ const MUSIC_MODEL_BASE_COST = new Map<string, number>([
   ["minimax/music-02", 10],
   ["minimax/music-v1.5", 8],
   ["elevenlabs/elevenlabs-music", 12],
+  ["google/lyria-3-pro/music", 15],
+  ["google/lyria-3-clip/music", 10],
 ]);
 
 const THREE_D_COST_MAP = new Map<string, number>([

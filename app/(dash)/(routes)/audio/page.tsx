@@ -403,7 +403,7 @@ export default function AudioPage() {
 
       const payload = {
         prompt: finalPrompt,
-        model: selectedModel === "pro" ? "minimax/music-2.5" : "elevenlabs/music",
+        model: selectedModel === "pro" ? "google/lyria-3-pro/music" : "google/lyria-3-clip/music",
         lyrics: customLyrics || undefined,
         style: [genre, mood].filter(Boolean).join(", "),
         force_instrumental: instrumental,
@@ -430,7 +430,7 @@ export default function AudioPage() {
         genre,
         mood,
         duration: dur,
-        model: selectedModel === "pro" ? "Minimax Music" : "AI Song Generator",
+        model: selectedModel === "pro" ? "Google Lyria Pro" : "Google Lyria",
         timestamp: new Date(),
         waveform: generateWaveform(),
         liked: false,
@@ -1125,8 +1125,8 @@ export default function AudioPage() {
                         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">Model</label>
                         <div className="grid grid-cols-2 gap-2">
                           {[
-                            { id: "clip" as const, name: "Fast", full: "AI Song Generator", desc: "ElevenLabs · stereo" },
-                            { id: "pro" as const, name: "Pro", full: "Minimax Music", desc: "Minimax 2.5 · lyrics" },
+                            { id: "clip" as const, name: "Fast", full: "Google Lyria", desc: "Google · Fast Preview" },
+                            { id: "pro" as const, name: "Pro", full: "Google Lyria Pro", desc: "Google · Pro Preview" },
                           ].map(m => (
                             <button
                               key={m.id}
