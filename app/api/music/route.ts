@@ -10,6 +10,7 @@ import { getClientIp, isAllowedOrigin, sanitizePrompt } from "@/lib/security";
 import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, getIdempotencyKey, hashRequestBody } from "@/lib/idempotency";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { getGoogleApiKey } from "@/lib/gemini-veo";
+import { GoogleGenAI } from "@google/genai";
 
 const WAVESPEED_MUSIC_PREFIXES = ["wavespeed-ai/", "minimax/", "elevenlabs/", "google/lyria"];
 const IDEMPOTENCY_ROUTE = "generate:music";
@@ -131,7 +132,6 @@ export async function POST(req: Request) {
 
       try {
         const googleModelId = model.includes("pro") ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
-        const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${googleKey}`;
 
         const inputList: any[] = [];
         let fullPrompt = sanitizePrompt(prompt, 3000);
@@ -163,50 +163,23 @@ export async function POST(req: Request) {
           }
         }
 
-        const googlePayload: any = {
+        const params: any = {
           model: googleModelId,
           input: inputList,
         };
 
         if (output_format === "wav" && googleModelId === "lyria-3-pro-preview") {
-          googlePayload.response_format = { type: "audio" };
+          params.response_format = { type: "audio" };
         }
 
-        const googleRes = await fetchWithTimeout(
-          url,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(googlePayload),
-          },
-          55_000
-        );
+        const genAI = new GoogleGenAI({ apiKey: googleKey });
+        const interaction = await genAI.interactions.create(params);
 
-        if (!googleRes.ok) {
-          const detail = await readErrorBody(googleRes);
-          console.error("[MUSIC_LYRIA_ERROR]", googleRes.status, detail);
-          if (chargedCredits > 0 && chargedUserId && generationId) {
-            await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
-          }
-          await completeIdempotency({
-            userId,
-            route: IDEMPOTENCY_ROUTE,
-            key: idempotencyKey,
-            generationId,
-            responseStatus: googleRes.status,
-            responseJson: { error: `Lyria music generation failed: ${detail}` },
-          }).catch(() => {});
-          return new NextResponse(`Lyria music generation failed: ${detail}`, { status: googleRes.status });
-        }
-
-        const googleData = await googleRes.json();
         let audioBase64: string | null = null;
         const lyricsArr: string[] = [];
 
-        if (googleData.steps && Array.isArray(googleData.steps)) {
-          for (const step of googleData.steps) {
+        if (interaction.steps && Array.isArray(interaction.steps)) {
+          for (const step of interaction.steps) {
             if (step.type === "model_output" && step.content && Array.isArray(step.content)) {
               for (const block of step.content) {
                 if (block.type === "audio" && block.data) {
@@ -220,7 +193,7 @@ export async function POST(req: Request) {
         }
 
         if (!audioBase64) {
-          console.error("[MUSIC_LYRIA_NO_AUDIO]", JSON.stringify(googleData));
+          console.error("[MUSIC_LYRIA_NO_AUDIO]", JSON.stringify(interaction));
           if (chargedCredits > 0 && chargedUserId && generationId) {
             await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
           }
@@ -258,20 +231,21 @@ export async function POST(req: Request) {
         }
         responseJson = { generationId, audioUrl, lyrics: generatedLyricsText };
       } catch (err: any) {
-        console.error("[MUSIC_LYRIA_INTERNAL_ERROR]", err);
+        console.error("[MUSIC_LYRIA_ERROR]", err);
         if (chargedCredits > 0 && chargedUserId && generationId) {
           await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
         }
         const errMsg = err?.message || String(err);
+        const errStatus = err?.status || 500;
         await completeIdempotency({
           userId,
           route: IDEMPOTENCY_ROUTE,
           key: idempotencyKey,
           generationId,
-          responseStatus: 500,
-          responseJson: { error: `Lyria internal error: ${errMsg}` },
+          responseStatus: errStatus,
+          responseJson: { error: `Lyria music generation failed: ${errMsg}` },
         }).catch(() => {});
-        return new NextResponse(`Google Lyria API request failed: ${errMsg}`, { status: 500 });
+        return new NextResponse(`Google Lyria API request failed: ${errMsg}`, { status: errStatus });
       }
     } else {
       const apiKey = process.env.WAVESPEED_API_KEY;
