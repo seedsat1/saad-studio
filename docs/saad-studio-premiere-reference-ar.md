@@ -1,4 +1,9 @@
-﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+
+## Ø¥ØµÙ„Ø§Ø­ Ø®Ø·Ø£ Ø±Ù Ø¹ Ø§Ù„ØµÙˆØª Ù„ØªÙˆÙ„ÙŠØ¯ Google Lyria (2026-07-05)
+- ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© Ø®Ø·Ø£ HTTP 500 (Internal Server Error) Ø¹Ù†Ø¯ ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù…ÙˆØ¯ÙŠÙ„Ø§Øª Google Lyria.
+- ØªØ¨ÙŠÙ† Ø£Ù† Ø¯Ø§Ù„Ø© `uploadBufferToStorage` ÙƒØ§Ù†Øª ØªÙ Ø³ØªØ¯Ø¹Ù‰ Ø¨Ù…ØªØºÙŠØ±Ø§Øª Ø®Ø§Ø·Ø¦Ø© (`bucket` Ùˆ `path`) Ù…Ù…Ø§ ØªØ³Ø¨Ø¨ Ù ÙŠ Ù Ù´Ù„ Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ù„Ù„ÙˆØ³Ø§Ø¦Ø· Ù†ØªÙŠØ¬Ø© ØªÙ…Ø±ÙŠØ± `assetType` Ø¨Ù‚ÙŠÙ…Ø© `undefined` ÙˆØ§Ù„Ø°ÙŠ Ø£Ø¯Ù‰ Ù„Ø®Ø·Ø£ `TypeError`.
+- ØªÙ… ØªØµØ­ÙŠØ­ Ù…Ø¹Ø§Ù…Ù„Ø§Øª Ø§Ù„Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ù„ØªÙ…Ø±ÙŠØ± `userId` Ùˆ `assetType: "AUDIO"` Ùˆ `generationId` Ùˆ `fileName` Ø¨Ø´ÙƒÙ„ Ø³Ù„ÙŠÙ…ØŒ ÙˆØªØ£ÙƒÙŠØ¯ Ø§Ù„ØªÙˆØ§Ù Ù‚ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ø§Ù„ÙƒØ§Ù…Ù„ Ù…Ø¹ ØªÙˆÙ‚ÙŠØ¹ Ø§Ù„Ø¯Ø§Ù„Ø©.
 
 ## Saad Agent Image Page Creation vs Local Image Classification Routing (2026-07-04)
 - Requests that create or design a page about images, gallery, or photos are engineering page-creation tasks.
@@ -764,6 +769,8 @@
 - ÙŠØ¬Ø¨ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø£ØµÙ„ÙŠ ÙƒÙ…Ø§ Ù‡Ùˆ Ø¯ÙˆÙ† ØªÙ„Ø®ÙŠØµ Ø£Ùˆ Ø¥Ø¹Ø§Ø¯Ø© ØªÙ†Ø³ÙŠÙ‚ Ø£Ùˆ Ø­Ø°Ù Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø£Ùˆ ØªØºÙŠÙŠØ± Ø§Ù„Ù…Ø³Ø§ÙØ§Øª.
 - Ø®ÙŠØ§Ø± `Paste as text anyway` ÙŠØ³Ù…Ø­ Ø¨Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ù†Øµ Ø§Ù„Ø®Ø§Ù… Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©ØŒ ÙˆØ®ÙŠØ§Ø± `Attach as file` ÙŠØ³Ù…Ø­ Ø¨ØªØ­ÙˆÙŠÙ„ Ø§Ù„Ù†Øµ Ø§Ù„Ø­Ø§Ù„ÙŠ ÙŠØ¯ÙˆÙŠÙ‹Ø§ Ø¥Ù„Ù‰ Ù…Ø±ÙÙ‚.
 - Ø§Ù„ØªÙ†ÙÙŠØ° ÙŠØ³ØªØ®Ø¯Ù… Ù…Ø³Ø§Ø± Ø§Ù„Ù…Ø±ÙÙ‚Ø§Øª Ø§Ù„Ø­Ø§Ù„ÙŠ ÙˆÙ„Ø§ ÙŠØºÙŠØ± Backend AttachmentManager.
+- 2026-07-05: Direct chat must read safe readable attachment content before answering attachment-aware questions. Markdown, TXT, JSON, YAML, XML, HTML, CSS, JS/TS, Python, shell, and OpenAPI-like text attachments are injected as bounded primary evidence. Binary or unsupported attachments remain metadata-only until a real extractor exists.
+- 2026-07-05: If a page-creation request includes a readable requirements/OpenAPI attachment, the attachment is treated as page requirements, not as a command to execute the provider API. The internal static page executor may build a provider-agnostic generation-console page from extracted title/endpoint/method/summary evidence when the target workspace is trusted. This must work for any readable API specification and must not be hardcoded to one provider or model name.
 
 ## Saad Agent V2 Architecture Freeze (2026-07-01)
 

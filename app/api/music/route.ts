@@ -216,8 +216,10 @@ export async function POST(req: Request) {
         const uploadedUrl = await uploadBufferToStorage({
           buffer,
           contentType: mimeType,
-          bucket: "media",
-          path: `music/lyria-${Date.now()}.${format}`,
+          userId,
+          assetType: "AUDIO",
+          generationId: generationId || `lyria-${Date.now()}`,
+          fileName: `lyria-${Date.now()}.${format}`,
         });
 
         if (!uploadedUrl) {
