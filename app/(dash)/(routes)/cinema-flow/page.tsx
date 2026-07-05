@@ -514,7 +514,11 @@ export default function CinemaFlowPage() {
       const chatRes = await fetch("/api/cinema-flow/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          selectedVideoModel,
+          selectedImageModel
+        }),
       });
 
       const chatData = await chatRes.json();
