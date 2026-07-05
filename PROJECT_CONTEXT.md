@@ -1,5 +1,16 @@
 # Saad Studio — Project Context
 
+## Latest task: Cinema Flow Automatic Voiceover Generation and Audio-Video Stitching (2026-07-05)
+
+- Status:
+  - Implemented automatic voiceover generation and video-audio stitching in `/cinema-flow`. When the user requests a voice/voiceover, the Gemini agent emits a `VIDEO_WITH_VOICEOVER_GEN` trigger, generating the ElevenLabs TTS voiceover script and using a new `/api/media/stitch` endpoint (powered by FFmpeg) to merge them on completion.
+- Affected files:
+  - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
+  - `app/api/cinema-flow/chat/route.ts` [MODIFY]
+  - `app/api/media/stitch/route.ts` [NEW]
+- Verification:
+  - Next.js production build (`npm run build`) completed successfully with no compilation errors.
+
 ## Latest task: Saad Agent Settings training source link import (2026-07-05)
 
 - Status:
