@@ -7,6 +7,12 @@
 - Local read-only search workflows must obey task lifecycle ordering and cannot jump directly from `VALIDATING` to `VERIFYING`.
 - This correction prevents fake missing-image-classifier failures for normal page creation requests.
 
+## Saad Agent Internal Executor Encoding Fix (2026-07-05)
+- `InternalWorkspaceExecutor` must not return mojibake chat output after creating static page files.
+- Generated static page templates now use ASCII-safe English copy to avoid corrupted text in `index.html`.
+- Arabic user-facing executor responses must be stored as Unicode escape literals in source so packaged Electron output remains readable.
+- Verification requires a source scan for mojibake markers and a packaged `app.asar` rebuild.
+
 
 ## Ø¥ØµÙ„Ø§Ø­ ØªØ¯Ø§Ø®Ù„ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„ØµÙˆØª ÙˆØ§Ù„Ø£Ù„ÙˆØ§Ù† Ø§Ù„Ø¯Ø§ÙƒÙ†Ø© (2026-07-04)
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© ØªØ¯Ø§Ø®Ù„ Ø±Ø£Ø³ ØµÙØ­Ø© Ø§Ù„ØµÙˆØª `/audio` Ù…Ø¹ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© (Dropdown) ÙÙŠ Ø§Ù„Ù‡ÙŠØ¯Ø± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ù„Ù„Ù…ÙˆÙ‚Ø¹ Ù…Ù† Ø®Ù„Ø§Ù„ ØªØºÙŠÙŠØ± Ø§Ù„Ù…ÙˆØ¶Ø¹ Ù…Ù† `sticky top-0 z-50` Ø¥Ù„Ù‰ `relative z-10` Ù„ÙƒÙŠ ØªØ°Ù‡Ø¨ ØªØ­Øª Ø§Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ù†Ø³Ø¯Ù„Ø© ÙˆÙ„Ø§ ØªØºØ·ÙŠÙ‡Ø§.
@@ -15,6 +21,7 @@
 - ØªÙ… Ø­Ù„ Ù…Ø´ÙƒÙ„Ø© Ø­Ø¸Ø± Ø³ÙŠØ§Ø³Ø© Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ù…Ø­ØªÙˆÙ‰ (CSP) Ø¹Ù†Ø¯ Ù‚Ø±Ø§Ø¡Ø© Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø±ÙÙˆØ¹Ø©ØŒ Ø­ÙŠØ« Ø£ØµØ¨Ø­ Ø§Ù„ÙƒÙˆØ¯ ÙŠÙ‚Ø±Ø£ Ù…Ù„ÙØ§Øª Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø­Ù„ÙŠØ© Ù…Ø¨Ø§Ø´Ø±Ø© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙƒØ§Ø¦Ù† `img.file` Ø¹Ø¨Ø± `FileReader` Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø£ÙˆÙÙ„Ø§ÙŠÙ†ØŒ Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø¹Ù…Ù„ `fetch` Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ù€ `blob:` Ø§Ù„ØªÙŠ ÙƒØ§Ù†Øª ØªÙØ­Ø¸Ø± Ù…Ù† Ù‚Ø¨Ù„ Ø§Ù„Ù…ØªØµÙØ­ Ø¨Ù…ÙˆØ¬Ø¨ ØªÙˆØ¬ÙŠÙ‡ `connect-src`.
 - تم حل مشكلة خطأ HTTP 413 Payload Too Large عند رفع صور مرجعية عالية الدقة في واجهة الصوت، حيث تم دمج خاصية ضغط الصور محلياً في المتصفح تلقائياً لتصغير الصور إلى أقصى حجم (800 بكسل عرض/ارتفاع) وتصديرها كـ JPEG مضغوط (مما يقلل حجم البيانات المرسسة من عدة ميغابايتات إلى أقل من 80 كيلوبايت فقط)، وبما يتوافق مع حدود حجم الطلبات في خوادم Vercel.
 - تم حل مشكلة خطأ HTTP 400 Bad Request (Model not found) عند التوليد باستخدام الموديل Pro. تبين أن اسم الموديل الصحيح في خوادم WaveSpeed هو `minimax/music-2.5` وليس `minimax/minimax-music-2.5`، وعليه تم تصحيح مسميات الموديل في واجهة المستخدم وجداول التسعير والتحليل البرمجي بأكمله، مع تحديث التحقق من الحقول ليسمح بالتوليد بمجرد وجود كلمات الأغنية بدون الحاجة لكتابة Prompt مكرر (حيث يتم إنشاء وصف تلقائي مستند إلى تصنيف ونوع الموسيقى).
+- تم حل مشكلة خطأ HTTP 502 Bad Gateway عند توليد الموسيقى باستخدام موديل Minimax Pro. نظراً لأن الموديل يعمل بشكل غير متزامن (Asynchronous) ويُرجع معرّف معالجة (Prediction ID) في البداية بدلاً من رابط الصوت النهائي، تم تحديث كود الخلفية لإضافة حلقة فحص متكرر (Polling Loop) تنتظر اكتمال الأغنية لمدة تصل إلى 3 دقائق، مع زيادة وقت تشغيل الدالة (Function Duration) على خوادم Vercel إلى 180 ثانية لتجنب انتهاء المهلة (Timeout).
 
 ## Saad Agent Local Trusted Workspace File Search Routing (2026-07-04)
 - Local file search prompts such as `Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ÙƒÙ…Ø¨ÙŠÙˆØªØ± Ø¹Ù† Ø§ÙŠ Ù…Ù„Ù Ø§Ùˆ ÙˆØ±Ø¯ Ø¨Ø¹Ù†ÙˆØ§Ù† ÙˆØµÙ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ` are read-only workspace search tasks, not casual conversation and not direct LLM answers.
@@ -40,6 +47,8 @@
 ## Saad Agent Internal Static Page Executor Fallback (2026-07-03)
 - If `CodexRuntimeBridge` reaches execution but the installed Codex CLI is not spawnable from Node/Electron (`Access is denied` / `spawn EPERM`), Saad Agent may use a deterministic internal fallback only for simple static page creation requests.
 - The fallback is intentionally limited: it writes real `index.html`, `styles.css`, `script.js`, and `README.md` files inside the resolved trusted workspace and reports the exact files written.
+- The fallback must refuse packaged Electron runtime paths such as `release-production-v4/win-unpacked`; those folders are application distribution output, not user project workspaces.
+- The fallback must refuse attachment-dependent requests because it does not read attached file content. It must not generate a generic page while claiming that an attached map, Markdown file, or specification was used.
 - This fallback must not be described as full Codex replacement. Complex codebase edits, refactors, tests, and broad project execution still require a spawnable Codex CLI/SDK runtime or another real execution backend.
 - Requests such as `Ø§Ø±ÙŠØ¯ ØªÙ†Ø´Ø¦Ù„ÙŠ ØµÙØ­Ø© Ø®Ø§ØµØ©... Ø¯Ø§Ø®Ù„ C:\Users\PC\Desktop\test` should create files when the path is trusted/resolved and approval policy allows safe edits.
 
@@ -915,3 +924,4 @@
 - Straightforward static page generation can be completed by a deterministic internal workspace executor before trying the external Codex runtime bridge.
 - The internal executor writes real files inside the trusted workspace and reports exact paths; it remains intentionally bounded and is not a replacement for full engineering refactors.
 - Chat and prompt composer layout now uses bounded responsive constraints to avoid tiny text, uncontrolled wide trace cards, and prompt-box overlap while resizing.
+- 2026-07-05: Saad Agent packaged UI now defaults execution tracing to Simple mode. The full Execution Trace card is no longer created for ordinary running or successful chat tasks in Simple mode. Failure and approval-required tasks still surface the trace card. Developer and Verbose remain diagnostic opt-in modes.

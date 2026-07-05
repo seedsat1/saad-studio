@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getGenerationCost } from "@/lib/pricing";
+
+export const maxDuration = 180; // 3 minutes timeout for polling minimax music generation
 import { InsufficientCreditsError, precheckGenerationPolicy, rollbackGenerationCharge, setGenerationMediaUrl, spendCredits } from "@/lib/credit-ledger";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { fetchWithTimeout, readErrorBody } from "@/lib/http";
@@ -291,8 +293,21 @@ export async function POST(req: Request) {
       }
 
       const data = await externalRes.json();
-      const waveUrl: string | null =
+      let waveUrl: string | null =
         data?.data?.outputs?.[0] ?? data?.outputs?.[0] ?? data?.data?.audio ?? data?.audio ?? null;
+
+      if (!waveUrl && data?.data?.id) {
+        try {
+          const pollResult = await pollWaveSpeed(data.data.id, apiKey);
+          if (pollResult.status === "completed") {
+            waveUrl = pollResult.outputs?.[0] ?? null;
+          } else {
+            console.error("[MUSIC_POLLING_FAILED]", pollResult.error);
+          }
+        } catch (pollErr) {
+          console.error("[MUSIC_POLLING_ERROR]", pollErr);
+        }
+      }
 
       if (!waveUrl) {
         console.error("[MUSIC_NO_URL]", JSON.stringify(data));
@@ -367,4 +382,27 @@ export async function POST(req: Request) {
     }
     return new NextResponse("Internal Error", { status: 500 });
   }
+}
+
+async function pollWaveSpeed(
+  predictionId: string,
+  apiKey: string,
+  maxAttempts = 60,
+  intervalMs = 4000,
+): Promise<{ status: string; outputs?: string[]; error?: string }> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+
+    const res = await fetch(`https://api.wavespeed.ai/api/v3/predictions/${predictionId}/result`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+
+    if (!res.ok) throw new Error(`WaveSpeed polling failed: ${res.status}`);
+
+    const json = await res.json();
+    const data = json.data;
+    if (data.status === "completed" || data.status === "failed") return data;
+  }
+
+  throw new Error("Audio generation timed out.");
 }
