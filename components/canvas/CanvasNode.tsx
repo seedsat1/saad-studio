@@ -1037,12 +1037,12 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {/* Output image */}
           {data.outputImageUrl && data.status === "done" && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.outputImageUrl} alt="output" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            <img src={data.outputImageUrl} alt="output" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
           )}
 
           {/* Output video */}
           {data.outputVideoUrl && data.status === "done" && (
-            <video src={data.outputVideoUrl} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} controls muted playsInline />
+            <video src={data.outputVideoUrl} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} controls muted playsInline />
           )}
 
           {/* Output audio */}
@@ -1115,7 +1115,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {data.nodeType === "upload-image" && data.settings.imageUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={data.settings.imageUrl} alt="input" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <img src={data.settings.imageUrl} alt="input" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
               <button className="nodrag" onClick={e => { SP(e); updateNodeSettings(id, { imageUrl: "" }); }}
                 style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "4px 12px", color: "#94a3b8", fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
                 Clear
@@ -1168,7 +1168,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
           {(data.nodeType === "add-reference" || data.nodeType === "assets" || data.nodeType === "stock") && data.settings.imageUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={data.settings.imageUrl} alt="reference" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <img src={data.settings.imageUrl} alt="reference" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
               <button className="nodrag" onClick={e => { SP(e); updateNodeSettings(id, { imageUrl: "" }); }}
                 style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.75)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "4px 12px", color: "#94a3b8", fontSize: 10.5, cursor: "pointer", fontFamily: "inherit" }}>
                 Clear

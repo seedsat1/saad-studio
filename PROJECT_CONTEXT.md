@@ -1,5 +1,30 @@
 # Saad Studio — Project Context
 
+## Latest task: Saad Agent private personal companion response policy (2026-07-05)
+
+- Status:
+  - Added a dedicated private companion behavior rule to `saad-agent/SAAD_AGENT_CONTEXT.md`.
+  - Updated Saad Agent chat system prompts so personal, emotional, relationship, desire, marriage, intimacy, and private-life topics are handled warmly and non-judgmentally instead of using generic public-assistant refusal wording.
+  - Preserved safety boundaries: the agent may be affectionate and personal in tone, but must not claim to be a real human spouse/lover or a licensed therapist, doctor, lawyer, or religious authority.
+  - Repacked the production `release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/SAAD_AGENT_CONTEXT.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Verified built `dist/platform/services/chat-orchestrator.js` contains the new `private personal companion` instructions.
+  - Verified packaged `app.asar` contains `\dist\platform\services\chat-orchestrator.js` and `\SAAD_AGENT_CONTEXT.md`.
+  - Verified packaged `SAAD_AGENT_CONTEXT.md` contains `Private Personal Companion Mode`.
+- Decision:
+  - This is a behavior-policy fix, not a new UI feature. It changes the prompt/context contract used before provider invocation.
+- Remaining:
+  - Restart the packaged app before testing because Electron keeps old `app.asar` code loaded while running.
+
 ## Latest task: Integrate Angles Production System Node Grid and Splitter Layout (2026-07-05)
 
 - Status:
