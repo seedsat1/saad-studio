@@ -7,7 +7,7 @@ import {
   Music2, Upload, Play, Pause, Volume2, VolumeX, Download, Share2, Copy,
   ChevronDown, ChevronUp, ChevronRight, Sparkles, X, Settings2, RefreshCw,
   Check, MoreHorizontal, Zap, Plus, Heart, List, RotateCcw, Clock,
-  Star, AlignLeft, Sliders
+  Star, AlignLeft, Sliders, Trash2
 } from "lucide-react";
 import { cn, getFallbackUrls } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
@@ -152,7 +152,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2",
-        checked ? "bg-violet-600" : "bg-zinc-800"
+        checked ? "bg-cyan-600" : "bg-slate-800"
       )}
     >
       <span
@@ -187,10 +187,10 @@ function RangeSlider({ value, onChange, min, max }: { value: number; onChange: (
       <div className="relative w-full h-1.5 bg-zinc-900 rounded-full">
         <div
           className="absolute left-0 top-0 h-full rounded-full pointer-events-none"
-          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #5b21b6, #a855f7)" }}
+          style={{ width: `${pct}%`, background: "linear-gradient(90deg, #0369a1, #06b6d4)" }}
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white shadow border-2 border-violet-500 pointer-events-none"
+          className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white shadow border-2 border-cyan-500 pointer-events-none"
           style={{ left: `calc(${pct}% - 8px)` }}
         />
         <input
@@ -268,7 +268,45 @@ export default function AudioPage() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   // Suite Tab
-  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song">("create-song");
+  const [suiteTab, setSuiteTab] = useState<"sound-studio" | "create-song" | "library">("create-song");
+
+  // Load library assets
+  const [libraryAssets, setLibraryAssets] = useState<any[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
+
+  const loadLibrary = useCallback(async () => {
+    try {
+      setLoadingLibrary(true);
+      const res = await fetch("/api/assets?type=audio");
+      const data = await res.json();
+      if (data && Array.isArray(data.assets)) {
+        setLibraryAssets(data.assets);
+        // Also map to Track interface to sync with history
+        const mappedTracks: Track[] = data.assets.map((a: any) => ({
+          id: a.id,
+          title: a.prompt ? a.prompt.split(/\s+/).slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "Generated Track",
+          prompt: a.prompt || "",
+          genre: "",
+          mood: "",
+          duration: a.duration || 60,
+          model: a.model || "Google Lyria",
+          timestamp: new Date(a.createdAt),
+          waveform: generateWaveform(),
+          liked: false,
+          audioUrl: a.url,
+        }));
+        setHistory(mappedTracks);
+      }
+    } catch (err) {
+      console.error("Failed to load library:", err);
+    } finally {
+      setLoadingLibrary(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLibrary();
+  }, [loadLibrary]);
 
   // App state
   const [prompt, setPrompt] = useState("");
@@ -471,6 +509,17 @@ export default function AudioPage() {
       setCurrentTrack(newTrack);
       setHistory(prev => [newTrack, ...prev]);
       setSelectedHistoryId(newTrack.id);
+      // Prepend to libraryAssets
+      setLibraryAssets(prev => [
+        {
+          id: newTrack.id,
+          prompt: newTrack.prompt,
+          url: newTrack.audioUrl,
+          createdAt: newTrack.timestamp.toISOString(),
+          model: newTrack.model,
+        },
+        ...prev
+      ]);
     } catch (error: any) {
       clearInterval(simulationInterval);
       clearInterval(stepInterval);
@@ -537,9 +586,9 @@ export default function AudioPage() {
       )}
 
       {/* Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-zinc-950 px-4 py-2">
+      <div className="flex items-center justify-between border-b border-[#0d1b2e] bg-[#03070c] px-4 py-2">
         <div className="flex items-center gap-2">
-          <Volume2 className="h-5 w-5 text-violet-500" />
+          <Volume2 className="h-5 w-5 text-cyan-500" />
           <span className="text-sm font-bold text-white uppercase tracking-wider hidden sm:block">Audio Suite</span>
         </div>
         <div className="flex bg-white/5 rounded-xl p-1 gap-1 border border-white/10">
@@ -548,7 +597,7 @@ export default function AudioPage() {
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
               suiteTab === "sound-studio"
-                ? "bg-violet-600 text-white shadow-lg"
+                ? "bg-cyan-600 text-white shadow-lg"
                 : "text-zinc-400 hover:text-white"
             )}
           >
@@ -560,12 +609,24 @@ export default function AudioPage() {
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
               suiteTab === "create-song"
-                ? "bg-violet-600 text-white shadow-lg"
+                ? "bg-cyan-600 text-white shadow-lg"
                 : "text-zinc-400 hover:text-white"
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
             Create Your Song
+          </button>
+          <button
+            onClick={() => setSuiteTab("library")}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all",
+              suiteTab === "library"
+                ? "bg-cyan-600 text-white shadow-lg"
+                : "text-zinc-400 hover:text-white"
+            )}
+          >
+            <List className="h-3.5 w-3.5" />
+            Production Library
           </button>
         </div>
         <div className="w-10 sm:w-20" /> {/* Spacer */}
@@ -580,16 +641,180 @@ export default function AudioPage() {
             title="Audio Studio"
             allow="microphone *; autoplay *"
           />
+        ) : suiteTab === "library" ? (
+          <div className="min-h-screen bg-[#060b13] text-slate-100 p-6" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+            <div className="max-w-[1400px] mx-auto space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">Production Library</h1>
+                  <p className="text-sm text-slate-400 mt-1">Manage and listen to all your generated audio tracks</p>
+                </div>
+                <button
+                  onClick={loadLibrary}
+                  disabled={loadingLibrary}
+                  className="flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white transition-colors"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5", loadingLibrary ? "animate-spin" : "")} />
+                  Refresh
+                </button>
+              </div>
+
+              {loadingLibrary ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <RefreshCw className="h-8 w-8 text-cyan-500 animate-spin" />
+                  <p className="text-sm text-slate-400">Loading library assets...</p>
+                </div>
+              ) : libraryAssets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[#1e2d3d] rounded-3xl bg-[#090f1b]/50 gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-[#0d1b2e] flex items-center justify-center text-cyan-400">
+                    <Music2 className="h-6 w-6" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-white">No audio assets found</p>
+                    <p className="text-xs text-slate-400 mt-1">Generate your first track in the "Create Your Song" tab</p>
+                  </div>
+                  <button
+                    onClick={() => setSuiteTab("create-song")}
+                    className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors shadow-lg"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create Now
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {libraryAssets.map((asset) => {
+                    const isCurrent = currentTrack?.id === asset.id;
+                    const trackTitle = asset.prompt ? asset.prompt.split(/\s+/).slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "Generated Track";
+                    
+                    return (
+                      <div
+                        key={asset.id}
+                        className={cn(
+                          "group relative rounded-2xl border bg-[#090f1b] p-4 transition-all duration-300 hover:border-[#1e2d3d] hover:shadow-lg flex flex-col justify-between h-[180px]",
+                          isCurrent ? "border-cyan-500/50 shadow-cyan-950/20" : "border-[#0c1824]"
+                        )}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm text-white truncate group-hover:text-cyan-400 transition-colors">
+                                {trackTitle}
+                              </h3>
+                              <p className="text-[10px] text-slate-400 mt-0.5">{asset.model || "Google Lyria"}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to delete this track?")) {
+                                    try {
+                                      const res = await fetch("/api/assets", {
+                                        method: "DELETE",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ id: asset.id }),
+                                      });
+                                      if (res.ok) {
+                                        setLibraryAssets((prev) => prev.filter((a) => a.id !== asset.id));
+                                        setHistory((prev) => prev.filter((t) => t.id !== asset.id));
+                                        if (isCurrent) {
+                                          setCurrentTrack(null);
+                                          setIsPlaying(false);
+                                        }
+                                      }
+                                    } catch (err) {
+                                      console.error("Failed to delete asset:", err);
+                                    }
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                            {asset.prompt}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4">
+                          <span className="text-[10px] text-slate-500 font-medium">
+                            {new Date(asset.createdAt).toLocaleDateString()}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                const targetTrack: Track = {
+                                  id: asset.id,
+                                  title: trackTitle,
+                                  prompt: asset.prompt || "",
+                                  genre: "",
+                                  mood: "",
+                                  duration: asset.duration || 60,
+                                  model: asset.model || "Google Lyria",
+                                  timestamp: new Date(asset.createdAt),
+                                  waveform: generateWaveform(),
+                                  liked: false,
+                                  audioUrl: asset.url,
+                                };
+                                if (isCurrent) {
+                                  setIsPlaying(!isPlaying);
+                                } else {
+                                  setCurrentTrack(targetTrack);
+                                  setIsPlaying(true);
+                                }
+                              }}
+                              className={cn(
+                                "h-8 w-8 rounded-xl flex items-center justify-center text-white transition-all shadow-md",
+                                isCurrent && isPlaying
+                                  ? "bg-cyan-600 hover:bg-cyan-500"
+                                  : "bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white"
+                              )}
+                            >
+                              {isCurrent && isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-current ml-0.5" />}
+                            </button>
+                            <button
+                              onClick={() => {
+                                const targetTrack: Track = {
+                                  id: asset.id,
+                                  title: trackTitle,
+                                  prompt: asset.prompt || "",
+                                  genre: "",
+                                  mood: "",
+                                  duration: asset.duration || 60,
+                                  model: asset.model || "Google Lyria",
+                                  timestamp: new Date(asset.createdAt),
+                                  waveform: generateWaveform(),
+                                  liked: false,
+                                  audioUrl: asset.url,
+                                };
+                                handleDownloadTrack(targetTrack);
+                              }}
+                              className="h-8 w-8 rounded-xl bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white flex items-center justify-center transition-all shadow-md"
+                              title="Download"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
-          <div className="min-h-screen bg-[#0a0a0c] text-zinc-100" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
+          <div className="min-h-screen bg-[#060b13] text-zinc-100" style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
 
             {/* ══ HEADER ════════════════════════════════════════════════════════════ */}
-            <header className="relative z-10 bg-[#0a0a0c] border-b border-zinc-800/80">
+            <header className="relative z-10 bg-[#060b13] border-b border-[#0d1b2e]">
               <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div
                     className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                    style={{ background: "linear-gradient(135deg, #0369a1, #06b6d4)" }}
                   >
                     <Music2 className="h-4 w-4 text-white" />
                   </div>
@@ -599,20 +824,20 @@ export default function AudioPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-950/20 text-violet-400 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-950/20 text-cyan-400 text-xs font-semibold">
                     <Zap className="h-3.5 w-3.5" />
                     <span className="hidden sm:block">Powered by</span> AI Audio
                   </div>
                   <button
-                    className="h-9 w-9 rounded-full bg-zinc-900 flex items-center justify-center hover:bg-zinc-800 transition-colors"
+                    className="h-9 w-9 rounded-full bg-[#0d1b2e] border border-[#1e2d3d] flex items-center justify-center hover:bg-slate-800 transition-colors"
                     title="Reset"
                     onClick={() => { setPrompt(""); setCurrentTrack(null); setImages([]); setIsPlaying(false); setCurrentTime(0); }}
                   >
-                    <RotateCcw className="h-4 w-4 text-zinc-400" />
+                    <RotateCcw className="h-4 w-4 text-slate-400" />
                   </button>
                   <div
                     className="h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-bold select-none"
-                    style={{ background: "linear-gradient(135deg, #5b21b6, #a855f7)" }}
+                    style={{ background: "linear-gradient(135deg, #0369a1, #06b6d4)" }}
                   >
                     U
                   </div>
@@ -636,9 +861,9 @@ export default function AudioPage() {
                   </div>
 
                   {/* ── Prompt / Lyrics editor ─────────────────────────────────────── */}
-                  <div className="bg-[#111115] rounded-3xl shadow-sm border border-zinc-800/80 overflow-hidden">
+                  <div className="bg-[#090f1b] rounded-3xl shadow-sm border border-[#0d1b2e] overflow-hidden">
                     {/* Tab strip */}
-                    <div className="flex items-center gap-1 p-3 pb-0 border-b border-zinc-800/80 bg-zinc-900/30">
+                    <div className="flex items-center gap-1 p-3 pb-0 border-b border-[#0d1b2e] bg-[#03070c]/30">
                       {[
                         { id: "prompt", icon: <Sparkles className="h-3.5 w-3.5" />, label: "Prompt" },
                         { id: "lyrics", icon: <AlignLeft className="h-3.5 w-3.5" />, label: "Custom Lyrics" },
@@ -649,7 +874,7 @@ export default function AudioPage() {
                           className={cn(
                             "flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl text-sm font-medium transition-colors -mb-px",
                             activeTab === tab.id
-                              ? "bg-[#111115] text-violet-400 border border-b-[#111115] border-zinc-800/80"
+                              ? "bg-[#090f1b] text-cyan-400 border border-b-[#090f1b] border-[#0d1b2e]"
                               : "text-zinc-400 hover:text-zinc-250"
                           )}
                         >
@@ -718,7 +943,7 @@ export default function AudioPage() {
                           ].map(section => (
                             <div key={section.label}>
                               <div className="flex items-center justify-between mb-1.5">
-                                <label className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">{section.label}</label>
+                                <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">{section.label}</label>
                                 <span className="text-[10px] text-zinc-500">{section.value.length} chars</span>
                               </div>
                               <textarea
@@ -767,8 +992,8 @@ export default function AudioPage() {
                           className={cn(
                             "px-4 py-2 rounded-full text-sm font-medium border transition-all duration-150",
                             genre === chip
-                              ? "border-violet-500 bg-violet-950/20 text-violet-400 shadow-sm"
-                              : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-violet-500/40 hover:text-violet-400 hover:bg-violet-950/10"
+                              ? "border-cyan-500 bg-cyan-950/20 text-cyan-400 shadow-sm"
+                              : "border-[#0d1b2e] bg-[#090f1b] text-zinc-400 hover:border-cyan-500/40 hover:text-cyan-400 hover:bg-cyan-950/10"
                           )}
                         >
                           {chip}
@@ -801,8 +1026,8 @@ export default function AudioPage() {
                       className={cn(
                         "rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer",
                         isDragging
-                          ? "border-violet-500 bg-violet-950/20 scale-[1.01]"
-                          : "border-zinc-800 hover:border-violet-500/40 hover:bg-violet-950/10",
+                          ? "border-cyan-500 bg-cyan-950/20 scale-[1.01]"
+                          : "border-[#0d1b2e] hover:border-cyan-500/40 hover:bg-cyan-950/10",
                         images.length > 0 ? "p-4" : "p-8 flex flex-col items-center justify-center"
                       )}
                     >
@@ -884,7 +1109,7 @@ export default function AudioPage() {
                               <p className="text-xs text-zinc-400">AI is crafting your music...</p>
                             </div>
                           </div>
-                          <span className="text-lg font-bold text-violet-400 tabular-nums">{Math.round(genProgress)}%</span>
+                          <span className="text-lg font-bold text-cyan-400 tabular-nums">{Math.round(genProgress)}%</span>
                         </div>
 
                         <div className="h-2 bg-zinc-900 rounded-full overflow-hidden mb-5">
@@ -906,9 +1131,9 @@ export default function AudioPage() {
                                   className={cn(
                                     "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
                                     isDone
-                                      ? "bg-violet-600 text-white"
+                                      ? "bg-cyan-600 text-white"
                                       : isActive
-                                      ? "bg-violet-950/20 text-violet-400 ring-2 ring-violet-500 ring-offset-1 ring-offset-zinc-950"
+                                      ? "bg-cyan-950/20 text-cyan-400 ring-2 ring-cyan-500 ring-offset-1 ring-offset-zinc-950"
                                       : "bg-zinc-900 text-zinc-500"
                                   )}
                                 >
@@ -916,7 +1141,7 @@ export default function AudioPage() {
                                 </div>
                                 <span className={cn(
                                   "text-[10px] font-semibold text-center leading-tight",
-                                  isActive ? "text-violet-400" : isDone ? "text-zinc-200" : "text-zinc-500"
+                                  isActive ? "text-cyan-400" : isDone ? "text-zinc-200" : "text-zinc-500"
                                 )}>
                                   {step}
                                 </span>
@@ -944,7 +1169,7 @@ export default function AudioPage() {
                             <div className="flex items-center gap-3">
                               <div
                                 className="h-12 w-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                                style={{ background: "linear-gradient(135deg, #4c1d95, #a855f7)" }}
+                                style={{ background: "linear-gradient(135deg, #0369a1, #06b6d4)" }}
                               >
                                 <Music2 className="h-6 w-6 text-white" />
                               </div>
@@ -953,7 +1178,7 @@ export default function AudioPage() {
                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                   <span className="text-xs text-zinc-400">{currentTrack.model}</span>
                                   <span className="h-1 w-1 rounded-full bg-zinc-700 flex-shrink-0" />
-                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-violet-950/20 text-violet-400 font-medium">{currentTrack.genre}</span>
+                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-cyan-950/20 text-cyan-400 font-medium">{currentTrack.genre}</span>
                                   <span className="h-1 w-1 rounded-full bg-zinc-700 flex-shrink-0" />
                                   <span className="text-xs text-zinc-400">{formatTime(currentTrack.duration)}</span>
                                 </div>
@@ -976,7 +1201,7 @@ export default function AudioPage() {
                                 onClick={() => setShowLyricsPanel(p => !p)}
                                 className={cn(
                                   "h-9 w-9 rounded-xl flex items-center justify-center transition-colors",
-                                  showLyricsPanel ? "bg-violet-950/20 text-violet-400" : "text-zinc-400 hover:bg-zinc-800"
+                                  showLyricsPanel ? "bg-cyan-950/20 text-cyan-400" : "text-zinc-400 hover:bg-zinc-800"
                                 )}
                               >
                                 <List className="h-4 w-4" />
@@ -1025,7 +1250,7 @@ export default function AudioPage() {
                             </div>
                             {/* Playhead */}
                             <div
-                              className="absolute top-0 bottom-0 w-0.5 bg-violet-500 rounded-full pointer-events-none transition-all"
+                              className="absolute top-0 bottom-0 w-0.5 bg-cyan-500 rounded-full pointer-events-none transition-all"
                               style={{ left: `${progress * 100}%` }}
                             />
                           </div>
@@ -1068,7 +1293,7 @@ export default function AudioPage() {
                               <button
                                 onClick={() => setIsPlaying(p => !p)}
                                 className="h-12 w-12 rounded-full text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-                                style={{ background: "linear-gradient(135deg, #4c1d95, #7c3aed)" }}
+                                style={{ background: "linear-gradient(135deg, #0369a1, #0891b2)" }}
                               >
                                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-0.5" />}
                               </button>
@@ -1100,9 +1325,14 @@ export default function AudioPage() {
                                 <Share2 className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => handleDownloadTrack(currentTrack)}
-                                className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold text-white transition-colors hover:opacity-90"
-                                style={{ background: "linear-gradient(135deg, #4c1d95, #7c3aed)" }}
+                                onClick={() => {
+                                  const a = document.createElement("a");
+                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}`;
+                                  a.download = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
+                                  a.click();
+                                }}
+                                className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-md"
+                                style={{ background: "linear-gradient(135deg, #0369a1, #0891b2)" }}
                               >
                                 <Download className="h-3.5 w-3.5" />
                                 {outputFmt.toUpperCase()}
@@ -1112,7 +1342,7 @@ export default function AudioPage() {
 
                           {/* Export strip */}
                           <div className="mt-4 pt-4 border-t border-zinc-800/80 flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mr-1">Export</span>
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-1">Export</span>
                             {["MP3", "WAV"].map(fmt => (
                               <button
                                 key={fmt}
@@ -1122,7 +1352,7 @@ export default function AudioPage() {
                                   a.download = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${fmt.toLowerCase()}`;
                                   a.click();
                                 }}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-zinc-800 bg-zinc-900 hover:bg-violet-950/20 hover:border-violet-500/40 hover:text-violet-400 transition-colors"
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-100 transition-colors"
                               >
                                 <Download className="h-3 w-3" /> {fmt}
                               </button>
@@ -1144,8 +1374,8 @@ export default function AudioPage() {
                 {/* ╔══ RIGHT COLUMN: SETTINGS & HISTORY ═══════════════════════════════╗ */}
                 <div className="space-y-6">
                   {/* Settings Box */}
-                  <div className="bg-[#111115] rounded-3xl border border-zinc-800/80 shadow-sm overflow-hidden">
-                    <div className="px-5 py-4 border-b border-zinc-800/80 flex items-center gap-2 bg-zinc-900/20">
+                  <div className="bg-[#090f1b] rounded-3xl border border-[#0d1b2e] shadow-sm overflow-hidden">
+                    <div className="px-5 py-4 border-b border-[#0d1b2e] flex items-center gap-2 bg-[#03070c]/20">
                       <Settings2 className="h-4 w-4 text-zinc-400" />
                       <span className="text-sm font-bold text-zinc-100">Settings</span>
                     </div>
@@ -1153,7 +1383,7 @@ export default function AudioPage() {
                     <div className="p-5 space-y-5">
                       {/* Model */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">Model</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Model</label>
                         <div className="grid grid-cols-2 gap-2">
                           {[
                             { id: "clip" as const, name: "Fast", full: "Google Lyria", desc: "Google · Fast Preview" },
@@ -1165,13 +1395,13 @@ export default function AudioPage() {
                               className={cn(
                                 "p-3 rounded-2xl border text-left transition-all duration-150",
                                 selectedModel === m.id
-                                  ? "border-violet-500 bg-violet-950/20 shadow-sm"
-                                  : "border-zinc-800 hover:border-violet-500/30 hover:bg-zinc-900/50"
+                                  ? "border-cyan-500 bg-cyan-950/20 shadow-sm"
+                                  : "border-[#0d1b2e] hover:border-cyan-500/30 hover:bg-[#090f1b]/50"
                               )}
                             >
                               <div className="flex items-center justify-between mb-0.5">
                                 <span className="text-xs font-bold text-zinc-100">{m.name}</span>
-                                {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-violet-500" />}
+                                {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-cyan-500" />}
                               </div>
                               <span className="text-[10px] text-zinc-400 leading-snug block">{m.desc}</span>
                             </button>
@@ -1227,7 +1457,7 @@ export default function AudioPage() {
                   </div>
 
                   {/* Generation History Box */}
-                  <div className="bg-[#111115] rounded-3xl border border-zinc-800/80 shadow-sm p-5 space-y-4">
+                  <div className="bg-[#090f1b] rounded-3xl border border-[#0d1b2e] shadow-sm p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-zinc-400" />
@@ -1248,10 +1478,10 @@ export default function AudioPage() {
                           key={track.id}
                           layout
                           className={cn(
-                            "bg-[#111115] rounded-2xl border transition-all duration-200 p-4 cursor-pointer group",
+                            "bg-[#090f1b] rounded-2xl border transition-all duration-200 p-4 cursor-pointer group",
                             selectedHistoryId === track.id
-                              ? "border-violet-500/40 shadow-sm bg-violet-950/20"
-                              : "border-zinc-800 hover:border-violet-500/25 hover:shadow-sm"
+                              ? "border-cyan-500/40 shadow-sm bg-cyan-950/20"
+                              : "border-[#0d1b2e] hover:border-cyan-500/25 hover:shadow-sm"
                           )}
                           onClick={() => {
                             setSelectedHistoryId(track.id);
@@ -1263,9 +1493,9 @@ export default function AudioPage() {
                           <div className="flex items-center gap-3">
                             <div
                               className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                              style={{ background: "linear-gradient(135deg, #161327, #c084fc)" }}
+                              style={{ background: "linear-gradient(135deg, #03070c, #0ea5e9)" }}
                             >
-                              <Music2 className="h-4.5 w-4.5 text-violet-400" style={{ height: 18, width: 18 }} />
+                              <Music2 className="h-4.5 w-4.5 text-cyan-400" style={{ height: 18, width: 18 }} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
