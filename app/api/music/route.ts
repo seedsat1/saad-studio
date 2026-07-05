@@ -12,6 +12,53 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { getGoogleApiKey } from "@/lib/gemini-veo";
 import { GoogleGenAI } from "@google/genai";
 import prismadb from "@/lib/prismadb";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
+
+const execFileAsync = promisify(execFile);
+
+async function trimAudioBuffer(buffer: any, duration: number, format: "mp3" | "wav"): Promise<any> {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "audio-trim-"));
+  const inputPath = path.join(tmpDir, `input.${format}`);
+  const outputPath = path.join(tmpDir, `output.${format}`);
+  
+  try {
+    fs.writeFileSync(inputPath, buffer);
+    const ffmpegPath = await getFfmpegPath();
+    
+    // We want a 3-second fade-out ending at the requested duration
+    const fadeDuration = duration > 10 ? 3 : 1;
+    const fadeStart = Math.max(0, duration - fadeDuration);
+    const audioFilter = `afade=t=out:st=${fadeStart}:d=${fadeDuration}`;
+    
+    const args = [
+      "-hide_banner",
+      "-y",
+      "-i", inputPath,
+      "-af", audioFilter,
+      "-t", String(duration),
+      outputPath
+    ];
+    
+    await execFileAsync(ffmpegPath, args, { timeout: 30_000 });
+    
+    if (!fs.existsSync(outputPath)) {
+      throw new Error("FFmpeg failed to output trimmed audio file.");
+    }
+    
+    return fs.readFileSync(outputPath);
+  } finally {
+    try {
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    } catch {}
+  }
+}
 
 const WAVESPEED_MUSIC_PREFIXES = ["wavespeed-ai/", "minimax/", "elevenlabs/", "google/lyria"];
 const IDEMPOTENCY_ROUTE = "generate:music";
@@ -145,6 +192,9 @@ export async function POST(req: Request) {
         if (force_instrumental) {
           fullPrompt += `\n\nInstrumental only, no vocals.`;
         }
+        if (duration && Number.isFinite(duration) && duration > 0) {
+          fullPrompt += `\n\n[Duration Constraint]: Generate exactly ${duration} seconds of audio. The music must resolve and end at around ${duration} seconds.`;
+        }
 
         inputList.push({
           type: "text",
@@ -211,7 +261,16 @@ export async function POST(req: Request) {
 
         const format = output_format === "wav" && googleModelId === "lyria-3-pro-preview" ? "wav" : "mp3";
         const mimeType = format === "wav" ? "audio/wav" : "audio/mpeg";
-        const buffer = Buffer.from(audioBase64, "base64");
+        let buffer = Buffer.from(audioBase64, "base64");
+
+        if (duration && Number.isFinite(duration) && duration > 0) {
+          try {
+            console.log(`[MUSIC_LYRIA_TRIM] Trimming audio output to ${duration} seconds`);
+            buffer = (await trimAudioBuffer(buffer, duration, format)) as any;
+          } catch (trimErr) {
+            console.error("[MUSIC_LYRIA_TRIM_FAILED] FFmpeg trim failed, using raw buffer", trimErr);
+          }
+        }
 
         const uploadedUrl = await uploadBufferToStorage({
           buffer,

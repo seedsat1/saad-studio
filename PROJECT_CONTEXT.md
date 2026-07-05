@@ -1,5 +1,17 @@
 # Saad Studio — Project Context
 
+## Latest task: Enforce requested audio generation duration using FFmpeg trimming and Lyria prompts (2026-07-06)
+
+- Status:
+  - Fixed a discrepancy where Google Lyria Pro generates a full segment of 2-3 minutes regardless of the user's shorter requested duration slider (e.g. 59 seconds).
+  - Updated `app/api/music/route.ts` to append the requested duration constraint both as prompt guidance instructions to Google Lyria, and as a post-generation process using `ffmpeg` to trim the audio buffer to the exact requested duration with a smooth 3-second fade-out.
+- Affected files:
+  - `app/api/music/route.ts` [MODIFY]
+- Verification:
+  - Verified compilation via `npx tsc --noEmit`.
+- Decision:
+  - Provide a deterministic duration guarantee by post-processing generated audio buffers through FFmpeg before uploading them to storage.
+
 ## Latest task: Add Production Library tab, fetch generated audio files, and align colors to Video theme (2026-07-06)
 
 - Status:
