@@ -1,5 +1,17 @@
 # Saad Studio — Project Context
 
+## Latest task: Resolve download failure on relative storage URLs (2026-07-05)
+
+- Status:
+  - Fixed a download failure where Chrome download manager showed "Failed - Unknown server error".
+  - Updated `/api/download` route in `app/api/download/route.ts` to support relative storage paths (e.g. `audio/user_...`) by importing `getFallbackUrls` and attempting to fetch the file from all resolved fallback URLs sequentially.
+- Affected files:
+  - `app/api/download/route.ts` [MODIFY]
+- Verification:
+  - Verified compilation using `npx tsc --noEmit`.
+- Decision:
+  - Always resolve relative URLs through the fallback pipeline on the server-side proxy route before attempting fetch.
+
 ## Latest task: Improve Axios error extraction and whitelist safety policy violations (2026-07-05)
 
 - Status:

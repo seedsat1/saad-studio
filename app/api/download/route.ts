@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { getFallbackUrls } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -10,16 +11,31 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Validate target URL format
-    const parsed = new URL(targetUrl);
-    if (!parsed.protocol.startsWith("http")) {
-      return new Response("Invalid protocol", { status: 400 });
+    const urlsToTry = (targetUrl.startsWith("http://") || targetUrl.startsWith("https://"))
+      ? [targetUrl]
+      : getFallbackUrls(targetUrl);
+
+    let res: Response | null = null;
+    let finalTargetUrl = targetUrl;
+
+    for (const url of urlsToTry) {
+      try {
+        const response = await fetch(url, { method: "GET" });
+        if (response.ok) {
+          res = response;
+          finalTargetUrl = url;
+          break;
+        }
+      } catch (err) {
+        console.warn(`[DOWNLOAD_ROUTE] Failed to fetch from ${url}:`, err);
+      }
     }
 
-    const res = await fetch(targetUrl);
-    if (!res.ok) {
-      return new Response(`Failed to fetch file: ${res.statusText}`, { status: res.status });
+    if (!res) {
+      return new Response("Failed to fetch file from any storage location", { status: 404 });
     }
+
+    const parsed = new URL(finalTargetUrl);
 
     // Try to guess the extension from the URL path first
     let ext = "";
