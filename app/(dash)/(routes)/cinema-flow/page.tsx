@@ -42,7 +42,7 @@ interface ChatMessage {
   text: string;
   isGenerating?: boolean;
   assetUrl?: string;
-  assetType?: "image" | "video";
+  assetType?: "image" | "video" | "audio";
   assetUrls?: string[];
 }
 
@@ -554,8 +554,8 @@ export default function CinemaFlowPage() {
   const executeImageGeneration = async (promptText: string, imageRefUrls?: string[] | null) => {
     // Deduct standard credits
     const cost = selectedImageModel === "nano-banana-2-lite" ? 0.40 : 0.60;
-    const passed = await guardGeneration("image", cost);
-    if (!passed) {
+    const gate = await guardGeneration({ requiredCredits: cost, action: "image:generate" });
+    if (!gate.ok) {
       setChatMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: "agent",
@@ -675,7 +675,12 @@ export default function CinemaFlowPage() {
   };
 
   // Trigger Google Video Generation
-  const executeVideoGeneration = async (promptText: string, imageRefUrls?: string[] | null) => {
+  const executeVideoGeneration = async (
+    promptText: string,
+    imageRefUrls?: string[] | null,
+    videoRefUrl?: string | null,
+    audioRefUrls?: string[] | null
+  ) => {
     // Dynamic cost calculation based on model and duration
     let rate = 2.0; // Default (Gemini Omni Flash)
     let modelName = "Gemini Omni Flash";
@@ -695,8 +700,8 @@ export default function CinemaFlowPage() {
     }
 
     const cost = Number((rate * videoDuration).toFixed(2));
-    const passed = await guardGeneration("video", cost);
-    if (!passed) {
+    const gate = await guardGeneration({ requiredCredits: cost, action: "video:generate" });
+    if (!gate.ok) {
       setChatMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: "agent",
@@ -728,7 +733,9 @@ export default function CinemaFlowPage() {
             aspectRatio: aspectRatio,
             resolution: videoQuality,
             ...(firstImage ? { image_url: firstImage } : {}),
-            ...(extraReferenceUrls.length > 0 ? { reference_image_urls: extraReferenceUrls } : {})
+            ...(extraReferenceUrls.length > 0 ? { reference_image_urls: extraReferenceUrls } : {}),
+            ...(videoRefUrl ? { video_url: videoRefUrl } : {}),
+            ...(audioRefUrls && audioRefUrls.length > 0 ? { audio_urls: audioRefUrls } : {})
           }
         })
       });
@@ -1024,7 +1031,7 @@ export default function CinemaFlowPage() {
                     <div className="flex-1 overflow-hidden relative bg-black flex items-center justify-center">
                       {character.coverUrl ? (
                         <img
-                          src={normalizeMediaUrl(character.coverUrl)}
+                          src={normalizeMediaUrl(character.coverUrl) || undefined}
                           alt={character.name}
                           className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
                           loading="lazy"
@@ -1525,7 +1532,7 @@ export default function CinemaFlowPage() {
               {activeCharacter && (
                 <div className="relative group/ref rounded-xl overflow-hidden border border-white/10 aspect-square w-16 bg-black flex items-center justify-center shadow-lg">
                   {activeCharacter.coverUrl ? (
-                    <img src={normalizeMediaUrl(activeCharacter.coverUrl)} alt={activeCharacter.name} className="w-full h-full object-cover" />
+                    <img src={normalizeMediaUrl(activeCharacter.coverUrl) || undefined} alt={activeCharacter.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="text-zinc-500"><Users size={16} /></div>
                   )}

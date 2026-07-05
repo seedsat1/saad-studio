@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
-import { getRegistry, saveRegistry } from "@/app/api/voice-sample/route";
+import { getRegistry, saveRegistry } from "@/lib/voice-registry";
 
 export const runtime = "nodejs";
 

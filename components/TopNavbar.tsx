@@ -782,12 +782,12 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
     </div>
   );
 };
-
 const TopNavbar = () => {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { onOpen } = useAuthModal();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);

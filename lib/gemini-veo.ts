@@ -578,14 +578,11 @@ export async function generateImagenImage(
 }
 
 export async function uploadVideoToGoogleFiles(videoBuffer: Buffer, mimeType = "video/mp4"): Promise<string> {
-  const { Readable } = await import("stream");
   const ai = getGenAI();
-  const stream = new Readable();
-  stream.push(videoBuffer);
-  stream.push(null);
+  const fileBlob = new Blob([new Uint8Array(videoBuffer)], { type: mimeType });
 
   const file = await ai.files.upload({
-    file: stream,
+    file: fileBlob,
     config: {
       mimeType,
     },

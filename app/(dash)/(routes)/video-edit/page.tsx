@@ -10,7 +10,6 @@ import {
   AlertCircle, Loader2, Upload, CheckCircle2, Download, Eraser
 } from "lucide-react";
 import { useAssetStore } from "@/hooks/use-asset-store";
-import { getSafeErrorMessage } from "@/lib/generation-errors";
 
 function normalizeGenerationError(raw: string | null | undefined): string {
   if (!raw) return "Ffailed to edit video. Please try again.";
@@ -168,8 +167,8 @@ function VideoEditPageContent() {
 
     try {
       // 1. Guard check
-      const pass = await guardGeneration("video", creditsCost);
-      if (!pass) {
+      const gate = await guardGeneration({ requiredCredits: creditsCost, action: "video:edit" });
+      if (!gate.ok) {
         setIsSubmitting(false);
         setActiveTaskStatus(null);
         return;

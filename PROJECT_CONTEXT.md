@@ -1,5 +1,27 @@
 # Saad Studio — Project Context
 
+## Latest task: Fix Next.js compilation/build errors for Vercel production deployment (2026-07-05)
+
+- Status:
+  - Resolved all TypeScript compilation errors blocking Next.js build and Vercel deployment.
+  - Extracted helper functions `getRegistry` and `saveRegistry` from `app/api/voice-sample/route.ts` into a new shared utility `lib/voice-registry.ts` to prevent Next.js named export errors, and updated imports in routes.
+  - Removed invalid named export import of `getSafeErrorMessage` in `app/(dash)/(routes)/video-edit/page.tsx` and corrected `guardGeneration` call parameters and checks.
+  - Defined `onOpen` from `useAuthModal` inside the main `TopNavbar` component to fix mobile login/signup button compilation errors.
+  - Wrapped `Buffer` inside a `Uint8Array` in `lib/gemini-veo.ts` to solve `BlobPart` type mismatch error in file uploads.
+  - Fixed multiple type mismatches in `app/(dash)/(routes)/cinema-flow/page.tsx` by adding `"audio"` to `ChatMessage` assetType and correcting `guardGeneration` arguments.
+- Affected files:
+  - `app/api/voice-sample/route.ts` [MODIFY]
+  - `app/api/admin/voice-samples/route.ts` [MODIFY]
+  - `lib/voice-registry.ts` [NEW]
+  - `lib/gemini-veo.ts` [MODIFY]
+  - `components/TopNavbar.tsx` [MODIFY]
+  - `app/(dash)/(routes)/video-edit/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
+- Verification:
+  - Verified 100% successful compilation of the entire project using `npx tsc --noEmit`.
+- Decision:
+  - Keep Next.js route files free of non-route named exports to avoid generated types compilation errors.
+
 ## Latest task: Fix Audio Suite frontend fallback for relative storage URLs (2026-07-05)
 
 - Status:
