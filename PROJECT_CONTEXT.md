@@ -1,5 +1,34 @@
 # Saad Studio — Project Context
 
+## Latest task: Saad Agent Settings training source link import (2026-07-05)
+
+- Status:
+  - Replaced the placeholder URL import path with a real Settings-driven training source link import.
+  - The Knowledge Manager Import tab now lets the user paste a trusted URL, preview its inferred type, and save it as a local training reference.
+  - Links are auto-categorized into the existing `.saad-agent/training/` folders; UI/design references such as Figma, Material, Apple HIG, Fluent, WCAG, Carbon, Atlassian, and Polaris route to `ui-references`.
+  - The import creates a small Markdown reference file and then runs the existing `KnowledgeIngestionService.ingestTrainingKnowledge(...)` pipeline so the registry/indexing path stays unchanged.
+  - The implementation does not claim full website crawling. It stores the link as a training source reference unless a real crawler is implemented later.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/ui/src/components/KnowledgeManager.tsx`
+  - `saad-agent/dist/desktop/main.js`
+  - `saad-agent/dist/desktop/preload.cjs`
+  - `saad-agent/ui/dist/`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/desktop/main.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build:ui` in `saad-agent` passed with existing bundle/CSS warnings only.
+  - Verified packaged work tree contains `training-link-reference`, `knowledge:import-url`, `Training Source Link`, and `Save Link`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+- Decision:
+  - Keep using the current Knowledge Manager, vault, training folders, registry, and ingestion service. No new storage architecture was introduced.
+- Remaining:
+  - Restart the packaged Electron app before testing because the running process keeps the old `app.asar` loaded.
+  - A future real crawler can be added separately if the user wants the agent to fetch and parse full website content.
+
 ## Latest task: Saad Agent private personal companion response policy (2026-07-05)
 
 - Status:

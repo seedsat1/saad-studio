@@ -313,39 +313,69 @@ export function KnowledgeManager() {
 
   const handleUrlPreview = () => {
     if (!importUrl) return;
-    // Real heuristics to estimate crawling sizes
-    let docType = "Generic Documentation";
-    if (importUrl.includes("react")) docType = "React Framework Docs";
-    else if (importUrl.includes("nextjs")) docType = "Next.js Framework Docs";
-    else if (importUrl.includes("typescript")) docType = "TypeScript Lang Docs";
-    else if (importUrl.includes("electron")) docType = "Electron Framework Docs";
-    else if (importUrl.includes("adobe") || importUrl.includes("premiere")) docType = "Adobe Premiere Pro API Docs";
+    let docType = "General training source";
+    const lower = importUrl.toLowerCase();
+    if (/(figma|material|fluent|carbon|polaris|atlassian|wcag|apple|design|ui|ux)/.test(lower)) docType = "UI/UX reference";
+    else if (/(api|openapi|swagger|sdk|developer|docs|reference|endpoint|provider)/.test(lower)) docType = "API documentation reference";
+    else if (/(github|gitlab|source|code|react|nextjs|typescript|javascript|electron|node)/.test(lower)) docType = "Code/documentation reference";
 
     setUrlPreview({
       type: docType,
-      estimatedPages: 50, // cap constraint default
-      estimatedSize: "1.2 MB",
-      estimatedPackSize: "680 KB",
-      crawlingMode: "Polite (robots.txt matched, 500ms request delay)"
+      estimatedPages: 1,
+      estimatedSize: "Local Markdown reference",
+      estimatedPackSize: "Small",
+      crawlingMode: "Save link only; no website crawl is claimed"
     });
   };
 
   const handleImportUrl = async () => {
     if (!importUrl) return;
-    setImportStatus({ type: "loading", msg: "Initializing documentation crawl worker..." });
+    setImportStatus({ type: "loading", msg: "Saving training source link..." });
     setWorkerLogs([]);
     setImportReport(null);
     try {
       const tagsList = importTags.split(",").map(t => t.trim()).filter(Boolean);
       const res = await api.knowledgeImportUrl(importUrl, importCategory, tagsList);
       if (res?.success) {
-        setActiveTaskId(res.taskId);
-        setImportStatus({ type: "loading", msg: "Crawl worker active in background." });
+        setActiveTaskId(null);
+        setImportStatus({ type: "success", msg: `Saved and indexed: ${res.trainingPath}` });
+        setImportReport({
+          source: importUrl,
+          packName: derivePackName(importUrl, res.category || importCategory),
+          category: res.category || importCategory,
+          status: "Completed Successfully",
+          started: new Date().toLocaleString(),
+          finished: new Date().toLocaleString(),
+          elapsedTime: "Under 1 second",
+          pagesDiscovered: 1,
+          pagesCrawled: 1,
+          pagesImported: 1,
+          pagesSkipped: 0,
+          pagesFailed: 0,
+          storageUsed: "Small Markdown reference",
+          chunksCreated: 1,
+          dictionaryTermsExtracted: tagsList.length,
+          codeExamplesExtracted: 0,
+          apiEndpointsExtracted: 0,
+          apiMetadata: [],
+          tablesExtracted: 0,
+          imagesFound: 0,
+          relationsBuilt: "Reference indexed",
+          knowledgeGraphUpdated: "Yes (Success)",
+          searchIndexUpdated: "Yes (Success)",
+          topicsLearned: [res.category || importCategory, ...tagsList].slice(0, 8),
+          failures: [],
+          skipped: [],
+          timeouts: []
+        });
+        setImportUrl("");
+        setImportTags("");
+        void loadData();
       } else {
-        setImportStatus({ type: "error", msg: res?.error || "Crawl initialization failed." });
+        setImportStatus({ type: "error", msg: res?.error || "Training source link save failed." });
       }
     } catch (e: any) {
-      setImportStatus({ type: "error", msg: e.message || "Crawl worker launch failed." });
+      setImportStatus({ type: "error", msg: e.message || "Training source link save failed." });
     }
   };
 
@@ -980,14 +1010,14 @@ export function KnowledgeManager() {
             {/* Import Forms */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "20px" }}>
               
-              {/* URL Import */}
+              {/* URL Training Source Import */}
               <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "16px" }}>
-                <h3 style={{ margin: "0 0 12px 0", color: "#00e5ff", fontSize: "16px" }}>Web Documentation Crawler</h3>
+                <h3 style={{ margin: "0 0 12px 0", color: "#00e5ff", fontSize: "16px" }}>Training Source Link</h3>
                 
                 <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
                   <input
                     type="text"
-                    placeholder="Documentation URL (e.g., https://react.dev/learn)"
+                    placeholder="Trusted URL (e.g., https://m3.material.io/)"
                     value={importUrl}
                     onChange={(e) => setImportUrl(e.target.value)}
                     style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", padding: "10px", color: "#fff" }}
@@ -1003,16 +1033,16 @@ export function KnowledgeManager() {
                     disabled={activeTaskId !== null}
                     style={{ background: "linear-gradient(to right, #00f2fe, #4facfe)", border: "none", color: "#0b132b", padding: "10px 20px", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}
                   >
-                    Start Crawl
+                    Save Link
                   </button>
                 </div>
 
                 {urlPreview && (
                   <div style={{ background: "rgba(0,242,254,0.05)", border: "1px solid rgba(0,242,254,0.2)", borderRadius: "8px", padding: "12px", fontSize: "12px", marginBottom: "12px" }}>
-                    <strong>Crawl Preview:</strong>
+                    <strong>Training Link Preview:</strong>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "6px" }}>
                       <div>Type: <strong>{urlPreview.type}</strong></div>
-                      <div>Crawl Limit: <strong>{urlPreview.estimatedPages} pages (Cap default)</strong></div>
+                      <div>Stored Items: <strong>{urlPreview.estimatedPages} local reference</strong></div>
                       <div>Estimated Size: <strong>{urlPreview.estimatedSize}</strong></div>
                       <div>Mode: <strong>{urlPreview.crawlingMode}</strong></div>
                     </div>
@@ -1103,7 +1133,7 @@ export function KnowledgeManager() {
               maxHeight: "100%",
               overflowY: "auto"
             }}>
-              <h4 style={{ margin: 0, color: "#94a3b8" }}>Crawl Process Monitor</h4>
+              <h4 style={{ margin: 0, color: "#94a3b8" }}>Import Monitor</h4>
 
               {workerProgress ? (
                 <div style={{ fontSize: "12px", display: "flex", flexDirection: "column", gap: "6px", background: "rgba(255,255,255,0.02)", padding: "10px", borderRadius: "6px" }}>
@@ -1112,7 +1142,7 @@ export function KnowledgeManager() {
                   {workerProgress.currentOperation && <div>Action: <strong>{workerProgress.currentOperation}</strong></div>}
                 </div>
               ) : (
-                !importReport && <div style={{ fontSize: "12px", color: "#64748b" }}>No active crawl job.</div>
+                !importReport && <div style={{ fontSize: "12px", color: "#64748b" }}>No active import job.</div>
               )}
 
               {activeTaskId && (

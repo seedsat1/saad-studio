@@ -21,6 +21,7 @@ import { CONFIG } from "../config.js";
 import { ChatOrchestratorService } from "../platform/services/chat-orchestrator.js";
 import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emitter.js";
 import { KnowledgeManagerService } from "../platform/services/knowledge-manager.js";
+import { KnowledgeIngestionService, type TrainingKnowledgeCategory } from "../platform/services/knowledge-ingestion.js";
 import { TrustedWorkspaceRuntime } from "../platform/services/trusted-workspace-runtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +49,77 @@ function readKnowledgeRegistry(): any[] {
     } catch {}
   }
   return [];
+}
+
+function inferTrainingCategoryForUrl(url: string, requestedCategory?: string): TrainingKnowledgeCategory {
+  const value = `${url} ${requestedCategory || ""}`.toLowerCase();
+  if (/(figma|material|fluent|carbon|polaris|atlassian|wcag|apple|human-interface|design|ui|ux|accessibility)/i.test(value)) {
+    return "ui-references";
+  }
+  if (/(api|openapi|swagger|sdk|developer|docs|reference|endpoint|provider)/i.test(value)) {
+    return "api-docs";
+  }
+  if (/(github|gitlab|source|code|react|nextjs|typescript|javascript|electron|node)/i.test(value)) {
+    return "code-examples";
+  }
+  if (/(architecture|project|workflow|rules|standards)/i.test(value)) {
+    return "project-docs";
+  }
+  return "lessons";
+}
+
+function safeUrlTrainingFileName(url: string): string {
+  let source = "training-link";
+  try {
+    const parsed = new URL(url);
+    source = `${parsed.hostname.replace(/^www\./, "")}${parsed.pathname || ""}`;
+  } catch {
+    source = url;
+  }
+  const cleaned = source
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return `${cleaned || "training-link"}.md`;
+}
+
+function buildTrainingLinkMarkdown(url: string, category: TrainingKnowledgeCategory, tags: string[]): string {
+  const now = new Date().toISOString();
+  const tagLine = Array.from(new Set([category, "trusted-source", ...tags].filter(Boolean))).join(", ");
+  return [
+    "# Training Source Link",
+    "",
+    `Source URL: ${url}`,
+    `Training category: ${category}`,
+    `Tags: ${tagLine}`,
+    `Added: ${now}`,
+    "",
+    "## Purpose",
+    "This file stores a trusted source link for Saad Agent training and retrieval.",
+    "",
+    "## Storage Rule",
+    "This is a source reference. It proves the link was saved and indexed, but it does not claim the website content was crawled or fully read.",
+    "",
+    "## Agent Usage",
+    "- Use this source as a reference pointer when the task matches the category or tags.",
+    "- If live content is required, use the approved web/search/crawler path before making current claims.",
+    "- Do not copy any external design system blindly; extract principles and adapt them to Saad Studio needs.",
+    ""
+  ].join("\n");
+}
+
+function nextAvailableSync(basePath: string): string {
+  if (!fs.existsSync(basePath)) return basePath;
+  const parsed = path.parse(basePath);
+  let counter = 1;
+  let candidate = path.join(parsed.dir, `${parsed.name}-${counter}${parsed.ext}`);
+  while (fs.existsSync(candidate)) {
+    counter += 1;
+    candidate = path.join(parsed.dir, `${parsed.name}-${counter}${parsed.ext}`);
+  }
+  return candidate;
 }
 
 ipcMain.handle("switch-workspace", async (event, workspacePath) => {
@@ -837,8 +909,42 @@ ipcMain.handle("knowledge:get-stats", async () => {
   }
 });
 
-ipcMain.handle("knowledge:import-url", async () => {
-  return { success: false, error: "URL knowledge import is not implemented in this build." };
+ipcMain.handle("knowledge:import-url", async (event, { url, category, tags }) => {
+  try {
+    const rawUrl = String(url || "").trim();
+    if (!/^https?:\/\/\S+$/i.test(rawUrl)) {
+      return { success: false, error: "Enter a valid http/https URL." };
+    }
+
+    const workspacePath = CONFIG.PROJECT_ROOT;
+    if (!workspacePath || !fs.existsSync(workspacePath) || !fs.statSync(workspacePath).isDirectory()) {
+      return { success: false, error: "No active workspace is available for training source storage." };
+    }
+
+    const trainingCategory = inferTrainingCategoryForUrl(rawUrl, category);
+    const safeTags = Array.isArray(tags)
+      ? tags.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 12)
+      : [];
+    const trainingDir = path.join(workspacePath, ".saad-agent", "training", trainingCategory);
+    fs.mkdirSync(trainingDir, { recursive: true });
+    const filePath = nextAvailableSync(path.join(trainingDir, safeUrlTrainingFileName(rawUrl)));
+    const markdown = buildTrainingLinkMarkdown(rawUrl, trainingCategory, safeTags);
+    fs.writeFileSync(filePath, markdown, "utf8");
+
+    const registry = await KnowledgeIngestionService.ingestTrainingKnowledge(workspacePath);
+    const rel = path.relative(workspacePath, filePath).replace(/\\/g, "/");
+    return {
+      success: true,
+      mode: "training-link-reference",
+      url: rawUrl,
+      category: trainingCategory,
+      trainingPath: rel,
+      registryItems: registry.items.length,
+      message: "Training source link saved and indexed as a local reference."
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || "URL training source save failed." };
+  }
 });
 
 ipcMain.handle("knowledge:import-control", async () => {
