@@ -532,7 +532,11 @@ export default function CinemaFlowPage() {
         const parts = payloadStr.split("|");
         const videoPrompt = parts[0].trim();
         const voiceoverText = parts.slice(1).join("|").trim();
-        await executeVideoWithVoiceoverGeneration(videoPrompt, voiceoverText, finalRefUrls, videoRefUrl, audioRefUrls);
+        if (voiceoverText) {
+          await executeVideoWithVoiceoverGeneration(videoPrompt, voiceoverText, finalRefUrls, videoRefUrl, audioRefUrls);
+        } else {
+          await executeVideoGeneration(videoPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
+        }
       } else if (replyText.startsWith("VIDEO_GEN:")) {
         const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
         await executeVideoGeneration(refinedPrompt, finalRefUrls, videoRefUrl, audioRefUrls);

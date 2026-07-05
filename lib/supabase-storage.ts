@@ -168,7 +168,22 @@ export async function uploadBufferToStorage(params: {
       });
 
     if (error) {
-      console.error("[supabase-storage] buffer upload error:", error.message);
+      console.error(`[supabase-storage] buffer upload error for bucket ${bucket}:`, error.message);
+      if (bucket !== "media") {
+        console.log("[supabase-storage] Attempting fallback upload to 'media' bucket...");
+        const fallbackResult = await supabase.storage
+          .from("media")
+          .upload(path, buf, {
+            contentType,
+            upsert: true,
+            cacheControl: "2592000",
+          });
+        if (!fallbackResult.error) {
+          console.log("[supabase-storage] Fallback upload to 'media' bucket succeeded!");
+          return `media/${path}`;
+        }
+        console.error("[supabase-storage] Fallback upload to 'media' bucket failed:", fallbackResult.error.message);
+      }
       return null;
     }
 
