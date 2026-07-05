@@ -11,6 +11,7 @@ import { attachIdempotencyGeneration, beginIdempotency, completeIdempotency, get
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { getGoogleApiKey } from "@/lib/gemini-veo";
 import { GoogleGenAI } from "@google/genai";
+import prismadb from "@/lib/prismadb";
 
 const WAVESPEED_MUSIC_PREFIXES = ["wavespeed-ai/", "minimax/", "elevenlabs/", "google/lyria"];
 const IDEMPOTENCY_ROUTE = "generate:music";
@@ -232,10 +233,14 @@ export async function POST(req: Request) {
         responseJson = { generationId, audioUrl, lyrics: generatedLyricsText };
       } catch (err: any) {
         console.error("[MUSIC_LYRIA_ERROR]", err);
+        const errMsg = err?.message || String(err);
         if (chargedCredits > 0 && chargedUserId && generationId) {
           await rollbackGenerationCharge(generationId, chargedUserId, chargedCredits).catch(() => {});
+          await prismadb.generation.update({
+            where: { id: generationId },
+            data: { outputUrl: `ERROR: ${errMsg.slice(0, 1000)}` }
+          }).catch(() => {});
         }
-        const errMsg = err?.message || String(err);
         const errStatus = err?.status || 500;
         await completeIdempotency({
           userId,
