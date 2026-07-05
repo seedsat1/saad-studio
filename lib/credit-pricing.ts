@@ -227,6 +227,9 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
   if (modelId === "bytedance/seedance-2") return getSeedance2Credits(payload, "hq");
   if (modelId === "bytedance/seedance-2-fast") return getSeedance2Credits(payload, "fast");
+  if (modelId === "google/gemini-omni-flash" || modelId === "google/gemini-omni-video") {
+    return applySoundMultiplier(getGeminiOmniFlashCredits(payload), payload);
+  }
 
   const base = VIDEO_MODEL_ID_COST_MAP.get(modelId) ?? 0;
   if (!base) return 0;

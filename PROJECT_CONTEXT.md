@@ -1,5 +1,23 @@
 # Saad Studio — Project Context
 
+## Latest task: Update Gemini Omni Flash pricing to 30 credits for 10 seconds (2026-07-06)
+
+- Status:
+  - Updated model pricing for `google/gemini-omni-flash` so that 10 seconds of video generation costs 30 credits.
+  - Adjusted `userCreditsRate` from `2.0` to `3.0` per second in `lib/pricing-models.ts`.
+  - Updated custom model credit calculations in `lib/credit-pricing.ts` under `getVideoCreditsByModelId` to route `google/gemini-omni-flash` queries to the custom calculation.
+  - Modified client-side rate configurations in `app/(dash)/(routes)/cinema-flow/page.tsx` from `2.0` to `3.0`.
+  - Updated Arabic pricing documentation in `docs/saad-studio-premiere-reference-ar.md` to match.
+- Affected files:
+  - `lib/pricing-models.ts` [MODIFY]
+  - `lib/credit-pricing.ts` [MODIFY]
+  - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
+  - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+- Verification:
+  - Checked TypeScript compilation using `npx tsc --noEmit` which completed successfully.
+- Decision:
+  - Directly align custom backend, config-based, and frontend pricing paths to ensure consistency in credit consumption displays.
+
 ## Latest task: Restore original prompt preservation behavior in Cinema Flow chat (2026-07-05)
 
 - Status:

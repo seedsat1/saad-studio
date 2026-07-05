@@ -696,7 +696,7 @@ export default function CinemaFlowPage() {
     audioRefUrls?: string[] | null
   ) => {
     // Dynamic cost calculation based on model and duration
-    let rate = 2.0; // Default (Gemini Omni Flash)
+    let rate = 3.0; // Default (Gemini Omni Flash)
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
@@ -784,7 +784,7 @@ export default function CinemaFlowPage() {
     audioRefUrls?: string[] | null
   ) => {
     // Dynamic cost calculation based on model and duration
-    let rate = 2.0; // Default (Gemini Omni Flash)
+    let rate = 3.0; // Default (Gemini Omni Flash)
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
