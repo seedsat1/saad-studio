@@ -20,7 +20,7 @@ const DIRECT_UPLOAD_ORIGINS = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ];
-const DIRECT_UPLOAD_METHODS = ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"];
+const DIRECT_UPLOAD_METHODS = ["GET", "HEAD", "PUT", "POST", "DELETE"];
 const DIRECT_UPLOAD_HEADERS = ["*"];
 const DIRECT_UPLOAD_EXPOSE_HEADERS = ["ETag", "Content-Length"];
 

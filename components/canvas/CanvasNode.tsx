@@ -668,6 +668,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const [openChip, setOpenChip] = useState<"model" | "ar" | "dur" | "res" | "add" | null>(null);
   const [count,    setCount]    = useState(1);
   const [uploadingAsset, setUploadingAsset] = useState(false);
+  const [isEditingList, setIsEditingList] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const assetFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -693,16 +694,22 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const showRun    = cfg.creditCost > 0 || data.nodeType === "export";
   const hasOutput  = cfg.hasImageOutput || cfg.hasVideoOutput || cfg.hasTextOutput;
 
+  const isRouter = data.nodeType === "connector" && data.label.toLowerCase().includes("router");
+  const items = data.nodeType === "list" && data.settings.noteText
+    ? data.settings.noteText.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean)
+    : [];
+
   const inSlots  = (["image", "video", "prompt"] as const).filter(s =>
     (s === "image"  && cfg.hasImageInput)  ||
     (s === "video"  && cfg.hasVideoInput)  ||
     (s === "prompt" && cfg.hasPromptInput)
   );
-  const outSlots = (["image", "video", "prompt"] as const).filter(s =>
-    (s === "image"  && cfg.hasImageOutput) ||
-    (s === "video"  && cfg.hasVideoOutput) ||
-    (s === "prompt" && cfg.hasTextOutput)
-  );
+  const outSlots = (["image", "video", "prompt"] as const).filter(s => {
+    if (data.nodeType === "list" || isRouter) return false;
+    return (s === "image"  && cfg.hasImageOutput) ||
+           (s === "video"  && cfg.hasVideoOutput) ||
+           (s === "prompt" && cfg.hasTextOutput);
+  });
 
   const slotTop = (i: number, t: number) =>
     t === 1 ? "50%" : `${((i + 1) / (t + 1)) * 100}%`;
@@ -857,38 +864,78 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
         />
         <div
           style={{
-            height: 42,
+            height: isRouter ? 360 : 42,
             borderRadius: 8,
             border: selected ? `1.5px solid rgba(${rgb},0.75)` : `1px solid rgba(${rgb},0.28)`,
             background: "rgba(18,18,22,0.96)",
             boxShadow: selected ? `0 0 0 3px rgba(${rgb},0.08), 0 12px 32px rgba(0,0,0,0.75)` : "0 8px 24px rgba(0,0,0,0.65)",
             display: "flex",
-            alignItems: "center",
+            flexDirection: isRouter ? "column" : "row",
+            alignItems: isRouter ? "stretch" : "center",
             gap: 8,
-            padding: "0 12px",
+            padding: isRouter ? "12px 0" : "0 12px",
           }}
         >
-          <NodeTypeIcon type="connector" size={13} color={cfg.accentColor} />
-          <span style={{ color: "#c8d6ea", fontSize: 12, fontWeight: 700 }}>{data.label.replace(/ #\d+$/, "")}</span>
-          <span style={{ marginLeft: "auto", color: "#556b83", fontSize: 18, lineHeight: 1 }}>...</span>
-          <button className="nodrag" onClick={onDelete}
-            style={{ background: "transparent", border: "none", color: "#334155", cursor: "pointer", padding: 2 }}
-            title="Delete connector"
-          >
-            <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
-              <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          </button>
+          {isRouter ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px 8px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                <NodeTypeIcon type="connector" size={13} color={cfg.accentColor} />
+                <span style={{ color: "#c8d6ea", fontSize: 11, fontWeight: 700 }}>Image Router</span>
+                <button className="nodrag" onClick={onDelete}
+                  style={{ background: "transparent", border: "none", color: "#334155", cursor: "pointer", padding: 2, marginLeft: "auto" }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                    <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-around", padding: "8px 0" }}>
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div key={i} style={{ height: 28, display: "flex", alignItems: "center", padding: "0 12px", position: "relative" }}>
+                    <span style={{ color: "#556b83", fontSize: 10 }}>route {i + 1}</span>
+                    <Handle
+                      id={`image-${i}`}
+                      type="source"
+                      position={Position.Right}
+                      style={{
+                        width: 10, height: 10, borderRadius: "50%",
+                        background: "#10b981",
+                        border: "2px solid rgba(255,255,255,0.8)",
+                        right: -5, top: "50%", transform: "translateY(-50%)",
+                        cursor: "crosshair", zIndex: 100,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <NodeTypeIcon type="connector" size={13} color={cfg.accentColor} />
+              <span style={{ color: "#c8d6ea", fontSize: 12, fontWeight: 700 }}>{data.label.replace(/ #\d+$/, "")}</span>
+              <span style={{ marginLeft: "auto", color: "#556b83", fontSize: 18, lineHeight: 1 }}>...</span>
+              <button className="nodrag" onClick={onDelete}
+                style={{ background: "transparent", border: "none", color: "#334155", cursor: "pointer", padding: 2 }}
+                title="Delete connector"
+              >
+                <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </>
+          )}
         </div>
-        <Handle id="image" type="source" position={Position.Right}
-          style={{
-            width: 18, height: 18, borderRadius: "50%",
-            background: "rgba(8,14,26,0.98)",
-            border: `1.5px solid rgba(${rgb},0.58)`,
-            right: -9, top: "50%", transform: "translateY(-50%)",
-            boxShadow: `0 0 14px rgba(${rgb},0.22)`,
-          }}
-        />
+        {!isRouter && (
+          <Handle id="image" type="source" position={Position.Right}
+            style={{
+              width: 18, height: 18, borderRadius: "50%",
+              background: "rgba(8,14,26,0.98)",
+              border: `1.5px solid rgba(${rgb},0.58)`,
+              right: -9, top: "50%", transform: "translateY(-50%)",
+              boxShadow: `0 0 14px rgba(${rgb},0.22)`,
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1148,7 +1195,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
 
           {/* List node */}
           {data.nodeType === "list" && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", background: "rgba(9,16,28,0.97)" }}>
               {!(data.settings.noteText ?? "").trim() ? (
                 /* Empty state */
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
@@ -1177,19 +1224,33 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                 /* Content state */
                 <>
                   <div style={{ padding: "10px 14px 7px", display: "flex", alignItems: "center", gap: 6, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span style={{ color: "#3a5068", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>List</span>
-                    <span style={{ marginLeft: "auto", color: "#1e2f42", fontSize: 9.5 }}>
-                      {(data.settings.noteText ?? "").split("\n").filter((l: string) => l.trim()).length} items
+                    <span style={{ color: "#6b8aaa", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>List Parser</span>
+                    <span style={{ marginLeft: "auto", color: "#6b8aaa", fontSize: 9.5 }}>
+                      {items.length} items
                     </span>
+                    <button className="nodrag" onClick={e => { SP(e); setIsEditingList(!isEditingList); }}
+                      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#7a9ab8", fontSize: 9.5, padding: "2px 8px", borderRadius: 5, cursor: "pointer", fontFamily: "inherit" }}>
+                      {isEditingList ? "Save" : "Edit"}
+                    </button>
                   </div>
-                  <div style={{ flex: 1, padding: "10px 14px" }}>
-                    <textarea className="nodrag nowheel"
-                      value={data.settings.noteText ?? ""}
-                      onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
-                      onMouseDown={SP}
-                      style={{ width: "100%", height: "100%", resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 2, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
-                    />
-                  </div>
+                  {isEditingList ? (
+                    <div style={{ flex: 1, padding: "10px 14px" }}>
+                      <textarea className="nodrag nowheel"
+                        value={data.settings.noteText ?? ""}
+                        onChange={e => { SP(e); updateNodeSettings(id, { noteText: e.target.value }); }}
+                        onMouseDown={SP}
+                        style={{ width: "100%", height: "100%", resize: "none", background: "transparent", border: "none", padding: 0, color: "#94a3b8", fontSize: 12.5, lineHeight: 2, outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+                      {items.map((item, i) => (
+                        <div key={i} style={{ height: 32, display: "flex", alignItems: "center", padding: "0 12px", borderBottom: "1px solid rgba(255,255,255,0.02)", position: "relative" }}>
+                          <span style={{ color: "#c8d6ea", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1473,6 +1534,46 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
       {/* ── Output handles ── */}
       {outSlots.map((slot, i) => (
         <OutputHandle key={slot} slot={slot} topPct={slotTop(i, outSlots.length)} />
+      ))}
+
+      {/* ── Custom List Handles ── */}
+      {data.nodeType === "list" && items.map((_, i) => (
+        <Handle
+          key={i}
+          id={`prompt-${i}`}
+          type="source"
+          position={Position.Right}
+          style={{
+            width: 12, height: 12, borderRadius: "50%",
+            background: "#8b5cf6",
+            border: "2.5px solid rgba(5,10,22,0.9)",
+            boxShadow: "0 0 8px rgba(139,92,246,0.6)",
+            right: -6,
+            top: `${38 + 16 + (i * 32)}px`, // Align with row centers: header is 38px + center of 32px height row is 16px
+            transform: "translateY(-50%)",
+            cursor: "crosshair", zIndex: 100,
+          }}
+        />
+      ))}
+
+      {/* ── Custom Router Handles ── */}
+      {isRouter && Array.from({ length: 10 }).map((_, i) => (
+        <Handle
+          key={i}
+          id={`image-${i}`}
+          type="source"
+          position={Position.Right}
+          style={{
+            width: 12, height: 12, borderRadius: "50%",
+            background: "#10b981",
+            border: "2.5px solid rgba(5,10,22,0.9)",
+            boxShadow: "0 0 8px rgba(16,185,129,0.6)",
+            right: -6,
+            top: `${38 + 14 + (i * 28)}px`, // Align with router route rows: header is 38px + center of 28px height row is 14px
+            transform: "translateY(-50%)",
+            cursor: "crosshair", zIndex: 100,
+          }}
+        />
       ))}
 
       {/* ── Add after button ── */}

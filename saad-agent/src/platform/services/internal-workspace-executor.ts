@@ -8,6 +8,9 @@ export interface InternalWorkspaceExecutorRequest {
   conversationId: string;
   workspacePath: string;
   prompt: string;
+  attachmentCount?: number;
+  attachmentNames?: string[];
+  readableAttachmentContext?: string;
 }
 
 export interface InternalWorkspaceExecutorResult {
@@ -19,6 +22,39 @@ export interface InternalWorkspaceExecutorResult {
 }
 
 const WINDOWS_PATH_PATTERN = /[a-z]:[\\/][^\r\n]+/i;
+const PACKAGED_RUNTIME_MARKERS = [
+  "/release-production-v4/win-unpacked",
+  "/win-unpacked/resources",
+  "/resources/app-asar-work"
+];
+
+function normalizePathForPolicy(value: string): string {
+  return path.resolve(value || ".").replace(/\\/g, "/").toLowerCase();
+}
+
+function isPackagedRuntimeWorkspace(value: string): boolean {
+  const normalized = normalizePathForPolicy(value);
+  const baseName = path.basename(normalized);
+  return baseName === "win-unpacked" || PACKAGED_RUNTIME_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+function buildBlockedResponse(reason: string, details: string[] = []): InternalWorkspaceExecutorResult {
+  return {
+    handled: true,
+    success: false,
+    files: [],
+    error: reason,
+    response: [
+      "\u0648\u0642\u0641\u062a \u0627\u0644\u062a\u0646\u0641\u064a\u0630 \u0642\u0628\u0644 \u0623\u064a \u0643\u062a\u0627\u0628\u0629 \u0645\u0644\u0641\u0627\u062a.",
+      "",
+      "\u0627\u0644\u0633\u0628\u0628:",
+      reason,
+      ...(details.length ? ["", "\u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644:", ...details.map((detail) => `- ${detail}`)] : []),
+      "",
+      "\u0647\u0630\u0627 \u0627\u0644\u0645\u0646\u0639 \u0645\u062a\u0639\u0645\u062f \u062d\u062a\u0649 \u0645\u0627 \u0623\u062f\u0639\u064a \u0623\u0646\u064a \u0642\u0631\u0623\u062a \u0645\u0631\u0641\u0642 \u0623\u0648 \u0623\u0643\u062a\u0628 \u062f\u0627\u062e\u0644 \u0641\u0648\u0644\u062f\u0631 \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062a\u0637\u0628\u064a\u0642."
+    ].join("\n")
+  };
+}
 
 function normalizeArabic(value: string): string {
   return (value || "")
@@ -36,31 +72,81 @@ function isStaticPageRequest(prompt: string): boolean {
   const lower = prompt.toLowerCase();
   const normalized = normalizeArabic(prompt);
   const hasLocalPath = WINDOWS_PATH_PATTERN.test(prompt);
+  const hasReadableApiSpec = /(?:openapi|paths:|operationId:|summary:|\/[A-Za-z0-9_{}./:-]+:\s*(?:\r?\n|\s{2,}(?:get|post|put|patch|delete):))/i.test(prompt);
   const createVerb = /\b(create|build|make|design|write|generate|implement|setup|set up)\b/i.test(lower)
-    || /(?:^|\s)(?:اريد|ابي|احتاج|سوي|سوه|اعمل|اصنع|صمم|ابني|اكتب|انشئ|انشاء|جهز|اشتغل)(?:\s|$)/.test(normalized);
-  const pageTarget = /\b(page|website|landing|html|frontend|interface|ui)\b/i.test(lower)
-    || /(?:صفحه|صفحات|موقع|واجهه|واجهة|ويب|فرونت|تصميم|فريم)/.test(normalized);
+    || /(?:^|\s)(?:\u0627\u0631\u064a\u062f|\u0627\u0628\u064a|\u0627\u062d\u062a\u0627\u062c|\u0633\u0648\u064a|\u0633\u0648\u0647|\u0627\u0639\u0645\u0644|\u0627\u0635\u0646\u0639|\u0635\u0645\u0645|\u0627\u0628\u0646\u064a|\u0627\u0643\u062a\u0628|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0646\u0634\u0627|\u0627\u0646\u0634\u0627\u0621|\u062c\u0647\u0632|\u0627\u0634\u062a\u063a\u0644)(?:\s|$)/.test(normalized);
+  const pageTarget = /\b(page|website|landing|html|frontend|interface|ui|gallery)\b/i.test(lower)
+    || /(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0635\u0641\u062d\u0627\u062a|\u0645\u0648\u0642\u0639|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0648\u064a\u0628|\u0641\u0631\u0648\u0646\u062a|\u062a\u0635\u0645\u064a\u0645|\u062a\u0648\u0644\u064a\u062f|\u0627\u0644\u062a\u0648\u0644\u064a\u062f|\u0641\u0631\u064a\u0645|\u0645\u0639\u0631\u0636)/.test(normalized);
 
-  return createVerb && (pageTarget || hasLocalPath);
+  return createVerb && (pageTarget || hasLocalPath || hasReadableApiSpec);
+}
+
+function inferSpecTitle(prompt: string): string {
+  const markdownTitle = extractFirstMatch(prompt, /^#\s+(.+)$/m, "");
+  if (markdownTitle) {
+    return markdownTitle.replace(/\s+openapi\s+specification\s*$/i, "").trim();
+  }
+
+  const yamlTitle = extractFirstMatch(prompt, /^\s*title:\s*["']?([^"'\r\n]+)["']?\s*$/mi, "");
+  if (yamlTitle) {
+    return yamlTitle.trim();
+  }
+
+  const operationId = extractFirstMatch(prompt, /^\s*operationId:\s*["']?([^"'\r\n]+)["']?\s*$/mi, "");
+  if (operationId) {
+    return operationId
+      .replace(/[-_]+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .trim();
+  }
+
+  return "";
 }
 
 function inferPageTitle(prompt: string): string {
+  const specTitle = inferSpecTitle(prompt);
+  if (specTitle && /(?:openapi|paths:|operationId:|summary:|\/[a-z0-9_{}./:-]+:)/i.test(prompt)) {
+    return `${specTitle} Generation Console`;
+  }
+
   const normalized = normalizeArabic(prompt);
-  if (/(موبيلات|موبايلات|هواتف|phone|phones|mobile|mobiles)/i.test(prompt) || /موبيلات|موبايلات|هواتف/.test(normalized)) {
+  if (/(phone|phones|mobile|mobiles)/i.test(prompt) || /(?:\u0645\u0648\u0628\u064a\u0644\u0627\u062a|\u0645\u0648\u0628\u0627\u064a\u0644\u0627\u062a|\u0647\u0648\u0627\u062a\u0641)/.test(normalized)) {
     return "AI Mobile Showcase";
   }
-  if (/(portfolio|بورتفوليو|اعمالي|اعمال)/i.test(prompt) || /بورتفوليو|اعمالي|اعمال/.test(normalized)) {
+  if (/portfolio/i.test(prompt) || /(?:\u0628\u0648\u0631\u062a\u0641\u0648\u0644\u064a\u0648|\u0627\u0639\u0645\u0627\u0644\u064a|\u0627\u0639\u0645\u0627\u0644)/.test(normalized)) {
     return "Portfolio Page";
   }
-  if (/(pricing|prices|اسعار|تسعير|credits|كردت|كريدت)/i.test(prompt) || /اسعار|تسعير|كردت|كريدت/.test(normalized)) {
+  if (/(pricing|prices|credits)/i.test(prompt) || /(?:\u0627\u0633\u0639\u0627\u0631|\u062a\u0633\u0639\u064a\u0631|\u0643\u0631\u062f\u062a|\u0643\u0631\u064a\u062f\u062a)/.test(normalized)) {
     return "Pricing Page";
   }
-  if (/(gallery|صور|معرض)/i.test(prompt) || /معرض|صور/.test(normalized)) {
+  if (/gallery/i.test(prompt) || /(?:\u0645\u0639\u0631\u0636|\u0635\u0648\u0631|\u0627\u0644\u0635\u0648\u0631)/.test(normalized)) {
     return "Gallery Page";
   }
   return "Interactive Landing Page";
 }
 
+function extractFirstMatch(value: string, pattern: RegExp, fallback = ""): string {
+  const match = value.match(pattern);
+  return match?.[1]?.trim() || fallback;
+}
+
+function extractEndpointSpec(prompt: string): { title: string; endpoint: string; method: string; summary: string } {
+  const title = inferSpecTitle(prompt) || inferPageTitle(prompt);
+  const endpoint = extractFirstMatch(
+    prompt,
+    /^\s{0,8}(\/[A-Za-z0-9_{}./:-]+):\s*$/m,
+    "/api/v1/generate"
+  );
+  const endpointIndex = prompt.indexOf(`${endpoint}:`);
+  const endpointBlock = endpointIndex >= 0 ? prompt.slice(endpointIndex, endpointIndex + 1600) : prompt;
+  const method = extractFirstMatch(endpointBlock, /^\s{2,10}(get|post|put|patch|delete):\s*$/mi, "post").toUpperCase();
+  const summary = extractFirstMatch(
+    endpointBlock,
+    /^\s*summary:\s*["']?([^"'\r\n]+)["']?\s*$/mi,
+    extractFirstMatch(prompt, /^\s*description:\s*["']?([^"'\r\n]+)["']?\s*$/mi, title)
+  );
+  return { title, endpoint, method, summary };
+}
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -70,10 +156,14 @@ function escapeHtml(value: string): string {
 }
 
 function buildStaticPage(title: string, prompt: string): Record<string, string> {
+  const spec = extractEndpointSpec(prompt);
   const safeTitle = escapeHtml(title);
   const safePrompt = escapeHtml(prompt);
+  const safeEndpoint = escapeHtml(spec.endpoint);
+  const safeMethod = escapeHtml(spec.method);
+  const safeSummary = escapeHtml(spec.summary);
   const html = `<!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -85,28 +175,72 @@ function buildStaticPage(title: string, prompt: string): Record<string, string> 
       <section class="hero">
         <p class="eyebrow">Saad Studio</p>
         <h1>${safeTitle}</h1>
-        <p class="lead">صفحة عملية ومتجاوبة تم إنشاؤها داخل الفولدر المطلوب. تحتوي حالات عرض واضحة ومكونات قابلة للتطوير.</p>
+        <p class="lead">A responsive generation interface built from the supplied requirements. It treats attached API/OpenAPI text as page requirements, not as a request to execute generation immediately.</p>
         <div class="hero-actions">
-          <a href="#content" class="primary-action">ابدأ التصفح</a>
-          <button id="themeToggle" type="button">بدّل النمط</button>
+          <a href="#generator" class="primary-action">Open Generator</a>
+          <button id="themeToggle" type="button">Toggle Theme</button>
         </div>
+      </section>
+
+      <section id="generator" class="generator-panel" aria-label="Generation console">
+        <div class="panel-heading">
+          <p class="eyebrow">${safeMethod} ${safeEndpoint}</p>
+          <h2>${safeSummary}</h2>
+          <p>Configure a request payload locally, then copy it into your real backend integration when provider credentials are available.</p>
+        </div>
+        <form id="generationForm" class="generation-form">
+          <label>
+            Prompt
+            <textarea id="promptInput" rows="5" placeholder="Describe the video you want to generate..."></textarea>
+          </label>
+          <label>
+            Negative Prompt
+            <textarea id="negativePromptInput" rows="3" placeholder="Optional exclusions..."></textarea>
+          </label>
+          <div class="form-grid">
+            <label>
+              Aspect Ratio
+              <select id="aspectRatioInput">
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="1:1">1:1</option>
+              </select>
+            </label>
+            <label>
+              Mode
+              <select id="modeInput">
+                <option value="std">Standard</option>
+                <option value="pro">Pro</option>
+              </select>
+            </label>
+            <label>
+              Duration
+              <select id="durationInput">
+                <option value="5">5 seconds</option>
+                <option value="10">10 seconds</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit">Build Request Payload</button>
+        </form>
+        <pre id="payloadPreview" class="payload-preview" aria-live="polite">Submit the form to preview the request payload.</pre>
       </section>
 
       <section id="content" class="feature-grid" aria-label="Page sections">
         <article>
           <span>01</span>
-          <h2>Loading State</h2>
-          <p>مساحة جاهزة لحالة التحميل حتى تبقى تجربة المستخدم واضحة أثناء جلب البيانات.</p>
+          <h2>Loading</h2>
+          <p>Use while the provider is preparing a generation job or waiting for backend response.</p>
         </article>
         <article>
           <span>02</span>
-          <h2>Error State</h2>
-          <p>تصميم يعرض الخطأ بشكل مفهوم بدل ترك الصفحة فارغة أو مكسورة.</p>
+          <h2>Error</h2>
+          <p>Show API, validation, or provider failures clearly without hiding technical detail.</p>
         </article>
         <article>
           <span>03</span>
-          <h2>Empty State</h2>
-          <p>حالة فارغة مرتبة تشرح للمستخدم شنو الخطوة التالية.</p>
+          <h2>Empty</h2>
+          <p>Show before the first generation payload is created or when no results exist yet.</p>
         </article>
       </section>
 
@@ -180,6 +314,71 @@ body.light {
 .hero {
   border-radius: 28px;
   padding: clamp(28px, 6vw, 64px);
+}
+
+.generator-panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 24px;
+  display: grid;
+  gap: 22px;
+  margin-top: 18px;
+  padding: 24px;
+}
+
+.panel-heading h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+}
+
+.panel-heading p {
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.generation-form {
+  display: grid;
+  gap: 16px;
+}
+
+label {
+  color: var(--muted);
+  display: grid;
+  font-weight: 800;
+  gap: 8px;
+}
+
+textarea,
+select {
+  background: rgba(3, 10, 22, 0.68);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  font: inherit;
+  min-width: 0;
+  padding: 12px 14px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.payload-preview {
+  background: rgba(3, 10, 22, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: #d9f6ff;
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 18px;
+  white-space: pre-wrap;
 }
 
 .eyebrow {
@@ -299,6 +498,26 @@ button {
 toggle?.addEventListener("click", () => {
   document.body.classList.toggle("light");
 });
+
+const form = document.getElementById("generationForm");
+const preview = document.getElementById("payloadPreview");
+form?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const payload = {
+    endpoint: "${spec.endpoint}",
+    method: "${spec.method}",
+    body: {
+      prompt: document.getElementById("promptInput")?.value || "",
+      negative_prompt: document.getElementById("negativePromptInput")?.value || "",
+      aspect_ratio: document.getElementById("aspectRatioInput")?.value || "16:9",
+      mode: document.getElementById("modeInput")?.value || "std",
+      duration: Number(document.getElementById("durationInput")?.value || 5)
+    }
+  };
+  if (preview) {
+    preview.textContent = JSON.stringify(payload, null, 2);
+  }
+});
 `;
 
   const readme = `# ${title}
@@ -331,8 +550,32 @@ export class InternalWorkspaceExecutor {
   }
 
   static async tryExecute(request: InternalWorkspaceExecutorRequest): Promise<InternalWorkspaceExecutorResult> {
-    if (!isStaticPageRequest(request.prompt)) {
+    const promptForRouting = request.readableAttachmentContext?.trim()
+      ? [request.prompt, request.readableAttachmentContext].join("\n\n")
+      : request.prompt;
+
+    if (!isStaticPageRequest(promptForRouting)) {
       return { handled: false, success: false, response: "", files: [] };
+    }
+
+    if ((request.attachmentCount || 0) > 0 && !request.readableAttachmentContext?.trim()) {
+      return buildBlockedResponse(
+        "\u0627\u0644\u0637\u0644\u0628 \u064a\u0639\u062a\u0645\u062f \u0639\u0644\u0649 \u0645\u0631\u0641\u0642\u0627\u062a\u060c \u0648\u0627\u0644\u0645\u0646\u0641\u0630 \u0627\u0644\u062f\u0627\u062e\u0644\u064a \u0627\u0644\u0633\u0631\u064a\u0639 \u0644\u0627 \u064a\u0642\u0631\u0623 \u0645\u062d\u062a\u0648\u0649 \u0627\u0644\u0645\u0631\u0641\u0642\u0627\u062a.",
+        [
+          "\u0645\u0645\u0646\u0648\u0639 \u0625\u0646\u0634\u0627\u0621 \u0635\u0641\u062d\u0629 \u0639\u0627\u0645\u0629 \u0625\u0630\u0627 \u0643\u0627\u0646 \u0627\u0644\u0637\u0644\u0628 \u064a\u062d\u062a\u0627\u062c \u0645\u062d\u062a\u0648\u0649 \u0627\u0644\u0645\u0631\u0641\u0642.",
+          "\u0644\u0627\u0632\u0645 \u064a\u0646\u0641\u0630\u0647 \u0645\u0633\u0627\u0631 \u0647\u0646\u062f\u0633\u064a \u064a\u0642\u0631\u0623 \u0627\u0644\u0645\u0631\u0641\u0642 \u0623\u0648 \u064a\u0631\u0641\u0636 \u0628\u0648\u0636\u0648\u062d."
+        ]
+      );
+    }
+
+    if (isPackagedRuntimeWorkspace(request.workspacePath)) {
+      return buildBlockedResponse(
+        "\u0627\u0644\u0645\u0633\u0627\u0631 \u0627\u0644\u0646\u0634\u0637 \u0647\u0648 \u0641\u0648\u0644\u062f\u0631 \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062a\u0637\u0628\u064a\u0642 packaged runtime\u060c \u0645\u0648 \u0641\u0648\u0644\u062f\u0631 \u0645\u0634\u0631\u0648\u0639.",
+        [
+          `Workspace: ${request.workspacePath}`,
+          "\u0627\u062e\u062a\u0631 \u0641\u0648\u0644\u062f\u0631 \u0645\u0634\u0631\u0648\u0639 \u062d\u0642\u064a\u0642\u064a \u0623\u0648 \u0645\u0633\u0627\u0631 \u0645\u062e\u0635\u0635 \u0644\u0644\u0635\u0641\u062d\u0629 \u062e\u0627\u0631\u062c win-unpacked."
+        ]
+      );
     }
 
     const startedAt = Date.now();
@@ -351,8 +594,11 @@ export class InternalWorkspaceExecutor {
         sourceService: "InternalWorkspaceExecutor"
       });
 
-      const title = inferPageTitle(request.prompt);
-      const files = buildStaticPage(title, request.prompt);
+      const executionPrompt = request.readableAttachmentContext?.trim()
+        ? [request.prompt, request.readableAttachmentContext].join("\n\n")
+        : request.prompt;
+      const title = inferPageTitle(executionPrompt);
+      const files = buildStaticPage(title, executionPrompt);
       const writtenFiles: string[] = [];
 
       for (const [fileName, content] of Object.entries(files)) {
@@ -379,12 +625,10 @@ export class InternalWorkspaceExecutor {
         success: true,
         files: writtenFiles,
         response: [
-          "تمام سعد، أنشأت الصفحة فعلياً داخل الفولدر المطلوب.",
+          "\u062a\u0645\u0627\u0645 \u0633\u0639\u062f\u060c \u0623\u0646\u0634\u0623\u062a \u0627\u0644\u0635\u0641\u062d\u0629 \u0641\u0639\u0644\u064a\u0627\u064b \u062f\u0627\u062e\u0644 \u0627\u0644\u0641\u0648\u0644\u062f\u0631 \u0627\u0644\u0645\u0637\u0644\u0648\u0628.",
           "",
-          "الملفات المكتوبة:",
-          ...writtenFiles.map((file) => `- ${file}`),
-          "",
-          "هذا تنفيذ داخلي مباشر للصفحات الثابتة حتى ما يتوقف الشغل إذا Codex CLI غير مربوط من Electron."
+          "\u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u0645\u0643\u062a\u0648\u0628\u0629:",
+          ...writtenFiles.map((file) => `- ${file}`)
         ].join("\n")
       };
     } catch (err: any) {
@@ -404,12 +648,13 @@ export class InternalWorkspaceExecutor {
         files: [],
         error,
         response: [
-          "ما قدرت أنشئ الصفحة داخلياً.",
+          "\u0645\u0627 \u0642\u062f\u0631\u062a \u0623\u0646\u0634\u0626 \u0627\u0644\u0635\u0641\u062d\u0629 \u062f\u0627\u062e\u0644\u064a\u0627\u064b.",
           "",
-          "السبب:",
+          "\u0627\u0644\u0633\u0628\u0628:",
           error
         ].join("\n")
       };
     }
   }
 }
+

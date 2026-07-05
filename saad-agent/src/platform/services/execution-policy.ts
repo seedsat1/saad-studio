@@ -53,6 +53,10 @@ export class ExecutionPolicyService {
       normalizedPrompt,
       normalizedArabicPrompt
     );
+    const isLocalFilesystemSearch = this.isLocalFilesystemSearchRequest(
+      normalizedPrompt,
+      normalizedArabicPrompt
+    );
 
     if (this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
       isModificationRequired = true;
@@ -85,6 +89,12 @@ export class ExecutionPolicyService {
         decision = "PLAN";
         reason = "Local image folder classification requested; route to local classifier workflow without using the text model.";
       }
+    } else if (isLocalFilesystemSearch) {
+      riskLevel = "low";
+      workflow = "local_filesystem_search";
+      decision = "SEARCH";
+      requiresApproval = false;
+      reason = "Local trusted-workspace file search requested; use the filesystem search runtime without invoking the model.";
     } else if (isModificationRequired) {
       riskLevel = "medium";
       workflow = "engineering_workflow";
@@ -174,6 +184,12 @@ export class ExecutionPolicyService {
   private static isLocalImageClassificationRequest(lowerPrompt: string, normalizedArabic: string): boolean {
     const hasLocalFilesystemPath = /[a-z]:[\\/][^\r\n]+/i.test(lowerPrompt)
       || /(?:^|\s)(?:\.{1,2}[\\/]|~[\\/])/.test(lowerPrompt);
+    const pageCreationTarget = /(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0635\u0641\u062d\u0627\u062a|\u0645\u0639\u0631\u0636|gallery|page|website|landing|html|ui|interface)/i.test(normalizedArabic)
+      || /\b(gallery|page|website|landing|html|ui|interface)\b/i.test(lowerPrompt);
+    const pageCreationAction = /(?:\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0646\u0634\u0627|\u0627\u0646\u0634\u0627\u0621|\u0633\u0648\u064a|\u0633\u0648|\u0627\u0639\u0645\u0644|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0635\u0645\u0645|\u0627\u0643\u062a\u0628|\u062c\u0647\u0632)/i.test(normalizedArabic)
+      || /\b(create|make|build|design|write|generate|implement|setup|set up)\b/i.test(lowerPrompt);
+    if (pageCreationTarget && pageCreationAction) return false;
+
     const imageScope = /(?:\u0635\u0648\u0631|\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0629|\u0627\u0644\u0635\u0648\u0631|screenshots?|images?)/i.test(normalizedArabic)
       || /\b(screenshots?|images?|pictures?)\b/i.test(lowerPrompt);
     const classifyOrInspect = /(?:\u0627\u0646\u0638\u0631|\u0634\u0648\u0641|\u0627\u0641\u062d\u0635|\u062d\u0644\u0644|\u0635\u0646\u0641|\u062a\u0635\u0646\u064a\u0641|\u0641\u0631\u0632|\u0631\u062a\u0628|\u0636\u0639|\u062d\u0637)/i.test(normalizedArabic)
@@ -181,6 +197,17 @@ export class ExecutionPolicyService {
     const folderAction = /(?:\u0641\u0648\u0644\u062f\u0631|\u0641\u0648\u0644\u062f|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u062a\u0635\u0646\u064a\u0641|folder|directory|path|category)/i.test(normalizedArabic)
       || /\b(folder|directory|path|category)\b/i.test(lowerPrompt);
     return hasLocalFilesystemPath && imageScope && classifyOrInspect && folderAction;
+  }
+
+  private static isLocalFilesystemSearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {
+    const hasSearchVerb = /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u0627\u0628\u062d\u062b\s+\u0644\u064a|\u062f\u0648\u0631|\u062f\u0648\u0631\u0644\u064a|\u062f\u0648\u0631\s+\u0644\u064a|\u0641\u062a\u0634|\u0641\u062a\u0634\u0644\u064a|\u0641\u062a\u0634\s+\u0644\u064a|\u0627\u0637\u0644\u0639|\u0637\u0644\u0639|\u0634\u0648\u0641)(?:\s|$)/i.test(normalizedArabic)
+      || /\b(find|search|locate|look for)\b/i.test(lowerPrompt);
+    const hasLocalScope = /(?:\u0643\u0645\u0628\u064a\u0648\u062a\u0631|\u0627\u0644\u062d\u0627\u0633\u0648\u0628|\u0627\u0644\u062c\u0647\u0627\u0632|\u0642\u0631\u0635|\u062f\u0631\u0627\u064a\u0641|\u0641\u0648\u0644\u062f\u0631|\u0641\u0648\u0644\u062f|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u0645\u0644\u0641|\u0645\u0644\u0641\u0627\u062a|\u0648\u0648\u0631\u062f|\u0648\u0631\u062f|\u0628\u064a\s+\u062f\u064a\s+\u0627\u0641|\u0635\u0648\u0631|screenshots?|desktop|documents|downloads|docx?|pdf)/i.test(normalizedArabic)
+      || /[a-z]:[\\/]/i.test(lowerPrompt)
+      || /\b(local|computer|folder|directory|file|files|word|docx|pdf|desktop|documents|downloads)\b/i.test(lowerPrompt);
+    const explicitWeb = /(?:\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0648\u064a\u0628|\u0627\u0644\u0648\u064a\u0628|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0627\u062e\u0628\u0627\u0631|\u0623\u062e\u0628\u0627\u0631)/i.test(normalizedArabic)
+      || /\b(internet|web|online|latest|current|links|sources|news)\b/i.test(lowerPrompt);
+    return hasSearchVerb && hasLocalScope && !explicitWeb;
   }
 
   private static isExternalResearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {

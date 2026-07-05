@@ -81,8 +81,8 @@ function makeEdge(
   id: string,
   source: string,
   target: string,
-  sourceHandle: "prompt" | "image" | "video",
-  targetHandle: "prompt" | "image" | "video",
+  sourceHandle: string,
+  targetHandle: string,
   style: Edge["style"],
 ): Edge {
   return { id, source, target, sourceHandle, targetHandle, type: "default", style };
@@ -1003,6 +1003,181 @@ function createConsistentCharacterFashionAdWorkflow(rawBrief = "Consistent Chara
   return { nodes, edges };
 }
 
+function createAnglesProductionWorkflow(rawBrief = "Angles Production System") {
+  const brief = rawBrief.trim() || "Angles Production System";
+
+  const nodes: Node<CanvasNodeData>[] = [
+    // --- Angles input ---
+    makeNode("angles-prompt", "text-prompt", { x: -800, y: 100 }, {
+      prompt: `Describe 10 distinct camera angles for the scene, each highlighting different elements and objects from the image and capturing the mood and feel. Keep every description under 30 words. Separate each with a semicolon at the end of each prompt. No numbering or prefixes.`,
+    }, {
+      label: "Angles Prompt",
+      description: "Text prompt directing LLM to generate 10 camera angles",
+    }),
+    makeNode("angles-image-upload", "upload-image", { x: -800, y: 400 }, { imageUrl: "" }, {
+      label: "Main Image Upload",
+      description: "Upload primary product or reference image",
+    }),
+    makeNode("angles-llm-brain", "assistant", { x: -450, y: 250 }, {
+      prompt: "",
+    }, {
+      label: "Angles LLM Node",
+      description: "Generates semicolon-separated angle list using image + prompt",
+    }),
+
+    // --- Angles split-out ---
+    makeNode("angles-split-json", "list", { x: -50, y: 100 }, {
+      noteText: [
+        "Angle 1: Extreme close-up on the glass texture.",
+        "Angle 2: Low angle looking up from the table.",
+        "Angle 3: Top, clean bird's eye view.",
+        "Angle 4: Low, shallow focus shot of ginger fruit.",
+        "Angle 5: Mid-shot showing splash details.",
+        "Angle 6: Eye level camera focusing on lime wedges.",
+        "Angle 7: High angle looking down at glass rim.",
+        "Angle 8: Close-up on pouring liquid.",
+        "Angle 9: Side profile highlighting bottle shape.",
+        "Angle 10: Dynamic wide action angle.",
+      ].join("\n"),
+    }, {
+      label: "Angles Split Json",
+      description: "Splits generated text into 10 separate angle prompts",
+    }),
+    makeNode("angles-image-router", "connector", { x: -50, y: 550 }, {}, {
+      label: "Image Router",
+      description: "Routes the input image to all 10 generation nodes",
+    }),
+
+    // --- Angles output (Row 1) ---
+    makeNode("gpt-angle-1", "text-to-image", { x: 350, y: 50 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 1",
+      description: "Generates image for Angle 1",
+    }),
+    makeNode("gpt-angle-2", "text-to-image", { x: 750, y: 50 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 2",
+      description: "Generates image for Angle 2",
+    }),
+    makeNode("gpt-angle-3", "text-to-image", { x: 1150, y: 50 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 3",
+      description: "Generates image for Angle 3",
+    }),
+    makeNode("gpt-angle-4", "text-to-image", { x: 1550, y: 50 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 4",
+      description: "Generates image for Angle 4",
+    }),
+    makeNode("gpt-angle-5", "text-to-image", { x: 1950, y: 50 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 5",
+      description: "Generates image for Angle 5",
+    }),
+
+    // --- Angles output (Row 2) ---
+    makeNode("gpt-angle-6", "text-to-image", { x: 350, y: 480 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 6",
+      description: "Generates image for Angle 6",
+    }),
+    makeNode("gpt-angle-7", "text-to-image", { x: 750, y: 480 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 7",
+      description: "Generates image for Angle 7",
+    }),
+    makeNode("gpt-angle-8", "text-to-image", { x: 1150, y: 480 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 8",
+      description: "Generates image for Angle 8",
+    }),
+    makeNode("gpt-angle-9", "text-to-image", { x: 1550, y: 480 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 9",
+      description: "Generates image for Angle 9",
+    }),
+    makeNode("gpt-angle-10", "text-to-image", { x: 1950, y: 480 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Model 2 - Angle 10",
+      description: "Generates image for Angle 10",
+    }),
+
+    // --- Refinement (Far top-right) ---
+    makeNode("refinement-prompt", "text-prompt", { x: 1250, y: -300 }, {
+      prompt: "Mix the background and remove the details",
+    }, {
+      label: "Prompt",
+      description: "Refinement prompt to adjust background",
+    }),
+    makeNode("gpt-image-sdxl", "text-to-image", { x: 1650, y: -300 }, {
+      modelId: "nano-banana-pro",
+      aspectRatio: "1:1",
+      quality: "1K",
+    }, {
+      label: "ChatGPT Image SD XL",
+      description: "Final refined generation node",
+    }),
+  ];
+
+  const edges: Edge[] = [
+    // Inputs to LLM
+    makeEdge("e-prompt-to-llm", "angles-prompt", "angles-llm-brain", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("e-image-to-llm", "angles-image-upload", "angles-llm-brain", "image", "image", imageEdgeStyle),
+
+    // LLM to Splitter
+    makeEdge("e-llm-to-splitter", "angles-llm-brain", "angles-split-json", "prompt", "prompt", promptEdgeStyle),
+
+    // Image to Router
+    makeEdge("e-image-to-router", "angles-image-upload", "angles-image-router", "image", "image", imageEdgeStyle),
+
+    // Splitter to Angle nodes (prompt inputs)
+    ...Array.from({ length: 10 }).map((_, i) =>
+      makeEdge(`e-split-to-angle-${i+1}`, "angles-split-json", `gpt-angle-${i+1}`, `prompt-${i}`, "prompt", promptEdgeStyle)
+    ),
+
+    // Router to Angle nodes (image inputs)
+    ...Array.from({ length: 10 }).map((_, i) =>
+      makeEdge(`e-router-to-angle-${i+1}`, "angles-image-router", `gpt-angle-${i+1}`, `image-${i}`, "image", imageEdgeStyle)
+    ),
+
+    // Refinement prompt and Angle 3 image to SD XL
+    makeEdge("e-refine-prompt", "refinement-prompt", "gpt-image-sdxl", "prompt", "prompt", promptEdgeStyle),
+    makeEdge("e-angle3-to-sdxl", "gpt-angle-3", "gpt-image-sdxl", "image", "image", imageEdgeStyle),
+  ];
+
+  return { nodes, edges };
+}
+
 const DEFAULT_WORKFLOW = createCommercialWorkflow();
 const INITIAL_NODES: Node<CanvasNodeData>[] = DEFAULT_WORKFLOW.nodes;
 const INITIAL_EDGES: Edge[] = DEFAULT_WORKFLOW.edges;
@@ -1880,14 +2055,31 @@ function AICanvasInner() {
           const src = allNodes.find(n => n.id === edge.source);
           if (!src) continue;
           const sd = src.data;
-          if (sd.nodeType === "text-prompt" && sd.settings.prompt) inputPrompts.push(sd.settings.prompt);
-          else if (sd.outputText) inputPrompts.push(sd.outputText);
-          else if ((sd.nodeType === "list" || sd.nodeType === "sticky-note") && sd.settings.noteText) inputPrompts.push(sd.settings.noteText);
-          else if (["upload-image", "add-reference", "assets", "stock"].includes(sd.nodeType) && sd.settings.imageUrl) {
+          if (sd.nodeType === "text-prompt" && sd.settings.prompt) {
+            inputPrompts.push(sd.settings.prompt);
+          } else if (sd.nodeType === "list" && sd.settings.noteText) {
+            if (edge.sourceHandle && edge.sourceHandle.startsWith("prompt-")) {
+              const idx = parseInt(edge.sourceHandle.split("-")[1], 10);
+              const listItems = sd.settings.noteText.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
+              if (listItems[idx]) {
+                inputPrompts.push(listItems[idx]);
+              } else {
+                inputPrompts.push(sd.settings.noteText);
+              }
+            } else {
+              inputPrompts.push(sd.settings.noteText);
+            }
+          } else if (sd.outputText) {
+            inputPrompts.push(sd.outputText);
+          } else if (sd.nodeType === "sticky-note" && sd.settings.noteText) {
+            inputPrompts.push(sd.settings.noteText);
+          } else if (["upload-image", "add-reference", "assets", "stock"].includes(sd.nodeType) && sd.settings.imageUrl) {
             inputImageUrls.push(sd.settings.imageUrl);
+          } else if (sd.outputImageUrl) {
+            inputImageUrls.push(sd.outputImageUrl);
+          } else if (sd.outputVideoUrl) {
+            inputVideoUrl = sd.outputVideoUrl;
           }
-          else if (sd.outputImageUrl) inputImageUrls.push(sd.outputImageUrl);
-          else if (sd.outputVideoUrl) inputVideoUrl = sd.outputVideoUrl;
         }
 
         const prompt = [...inputPrompts, s.prompt].filter(Boolean).join("\n\n");
@@ -2011,11 +2203,26 @@ function AICanvasInner() {
           }
           case "assistant": {
             if (!prompt) throw new Error("Prompt required. Connect a Text node or set prompt in settings.");
-            outputText = [
-              "Production direction captured locally.",
-              "",
-              prompt,
-            ].join("\n");
+            const response = await fetch("/api/conversation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are a professional creative video director assistant. Break down the scene or prompt into detailed creative camera angles/prompts as requested. Format each angle prompt on a new line or separate them with semicolons."
+                  },
+                  { role: "user", content: prompt }
+                ]
+              }),
+            });
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({})) as Record<string, string>;
+              throw new Error(err.message || err.error || `HTTP ${response.status}`);
+            }
+            const d = await response.json() as { content?: string };
+            outputText = d.content;
+            if (!outputText) throw new Error("No response returned from the assistant API.");
             break;
           }
           case "voiceover":
@@ -2183,7 +2390,17 @@ function AICanvasInner() {
             }
             break;
           }
-          case "list":
+          case "list": {
+            if (prompt) {
+              const listItems = prompt.split(/[;\n]/).map(item => item.trim()).filter(Boolean);
+              const noteText = listItems.join("\n");
+              patchNode(nodeId, { settings: { ...s, noteText } });
+              addActivity({ nodeId, nodeLabel: data.label, level: "success", message: `Parsed ${listItems.length} items from input.` });
+            } else {
+              addActivity({ nodeId, nodeLabel: data.label, level: "info", message: `${data.label} is a utility node.` });
+            }
+            break;
+          }
           case "sticky-note":
           case "add-reference":
           case "assets":
@@ -2282,7 +2499,7 @@ function AICanvasInner() {
     }
   }, [executeNode, addActivity]);
 
-  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template" | "fashion" | "consistency") => {
+  const openCanvasWorkspace = useCallback((mode: "blank" | "saved" | "template" | "fashion" | "consistency" | "angles") => {
     const name = canvasNameInput.trim() || "My Canvas";
     setCanvasName(name);
     setHasOpenedCanvas(true);
@@ -2321,6 +2538,18 @@ function AICanvasInner() {
 
     if (mode === "consistency") {
       const workflow = createConsistentCharacterFashionAdWorkflow(name || "Consistent Character Fashion Ad");
+      setNodes(workflow.nodes);
+      setEdges(workflow.edges);
+      assets.forEach(routeAssetToWorkflow);
+      try {
+        localStorage.setItem(CANVAS_WORKSPACE_KEY, JSON.stringify({ name, nodes: workflow.nodes, edges: workflow.edges }));
+      } catch {}
+      setTimeout(() => fitView({ padding: 0.18, duration: 450 }), 80);
+      return;
+    }
+
+    if (mode === "angles") {
+      const workflow = createAnglesProductionWorkflow(name || "Angles Production System");
       setNodes(workflow.nodes);
       setEdges(workflow.edges);
       assets.forEach(routeAssetToWorkflow);
@@ -2779,6 +3008,24 @@ function AICanvasInner() {
                 }}
               >
                 Consistent Character Ad Template
+              </button>
+              <button
+                type="button"
+                onClick={() => openCanvasWorkspace("angles")}
+                style={{
+                  height: 44,
+                  borderRadius: 13,
+                  border: "1px solid rgba(139,92,246,0.28)",
+                  background: "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(99,102,241,0.12))",
+                  color: "#ddd6fe",
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Angles Production Template
               </button>
             </div>
 

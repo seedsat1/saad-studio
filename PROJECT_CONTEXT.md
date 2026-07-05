@@ -1,5 +1,93 @@
 # Saad Studio — Project Context
 
+## Latest task: Integrate Angles Production System Node Grid and Splitter Layout (2026-07-05)
+
+- Status:
+  - Integrated the complete "Angles Production System" workflow layout into the Canvas React Flow editor (/original-series).
+  - Modified `components/canvas/CanvasNode.tsx` to support a custom `isRouter` mode for `connector` nodes, displaying a taller vertical card with 10 output handles mapped to `route 1` through `route 10` with green handle dots.
+  - Upgraded `list` nodes in `components/canvas/CanvasNode.tsx` to render in-card rows representing items with custom purple output handle dots (`prompt-0` to `prompt-9`) positioned exactly at the vertical centers of the rows, plus an "Edit/Save" toggle for raw note text editing.
+  - Loosened `makeEdge` helper parameter types in `app/(dash)/(routes)/original-series/page.tsx` to allow custom handle strings.
+  - Enhanced `executeNode` in `app/(dash)/(routes)/original-series/page.tsx` to support:
+    - `"assistant"` nodes calling the real OpenAI completion backend route `/api/conversation` to generate dynamic camera angles.
+    - `"list"` nodes capturing incoming texts, parsing them dynamically on semicolon/newlines, and populating row items automatically.
+    - Downstream generation nodes connected to specific list item handles reading the exact item string index instead of the raw concatenated string.
+  - Implemented `createAnglesProductionWorkflow` template generator and added it to the workspace initialization logic and template welcome launcher screen.
+- Affected files:
+  - `components/canvas/CanvasNode.tsx` [MODIFY]
+  - `app/(dash)/(routes)/original-series/page.tsx` [MODIFY]
+- Verification:
+  - Validated 100% clean TypeScript compilation of the entire workspace with `npx tsc --noEmit`.
+- Decision:
+  - Leverage dynamic handle IDs (`prompt-i`, `image-i`) inside React Flow to route separate items and images to down-stream generation nodes without breaking standard schema validations.
+- Remaining:
+  - Verify layout visual representation on client browser load.
+
+## Latest task: Saad Agent trained-knowledge fallback on model timeout (2026-07-05)
+
+- Status:
+  - Fixed Saad Agent chat orchestration so a model/provider timeout no longer discards retrieved training knowledge.
+  - When pre-answer review finds matching trained knowledge and the active model fails or times out, Saad Agent now returns a compact evidence-based fallback from the matched training items instead of only showing the LM Studio/Qwen provider error.
+  - If no matching trained knowledge exists, the agent still reports the provider failure honestly and does not invent an answer.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` from `app-asar-work`.
+  - Verified the packaged asar contains `\dist\platform\services\chat-orchestrator.js`.
+  - Verified the packaged work tree contains the new fallback text: `ما راح أخلي الطلب يضيع لأن الموديل تأخر.`
+- Decision:
+  - Keep the fallback limited to retrieved training evidence. This prevents fake answers while still making the agent useful when LM Studio is slow or unreachable.
+- Remaining:
+  - Restart the packaged app before testing because Electron keeps the old `app.asar` code loaded while running.
+
+## Latest task: Saad Agent Markdown Training Guides Import (2026-07-05)
+
+- Status:
+  - Imported four Markdown training guides from `saad-agent/release-production-v4/win-unpacked` into the approved training knowledge folder `.saad-agent/training/lessons/`.
+  - Ran the existing `KnowledgeIngestionService.ingestTrainingKnowledge(process.cwd())` pipeline instead of creating a new training architecture.
+  - The knowledge registry now reports 7 total training items.
+- Imported files:
+  - `.saad-agent/training/lessons/anal-guide.md` [NEW/MODIFY]
+  - `.saad-agent/training/lessons/intimate-guide.md` [NEW/MODIFY]
+  - `.saad-agent/training/lessons/swinging-guide.md` [NEW/MODIFY]
+  - `.saad-agent/training/lessons/training-guide.md` [NEW/MODIFY]
+- Verification:
+  - `anal-guide.md`: 6388 bytes, 112 lines, 0 secret hits, indexed with 3 chunks.
+  - `intimate-guide.md`: 6432 bytes, 101 lines, 0 secret hits, indexed with 3 chunks.
+  - `swinging-guide.md`: 7089 bytes, 81 lines, 0 secret hits, indexed with 3 chunks.
+  - `training-guide.md`: 6585 bytes, 95 lines, 0 secret hits, indexed with 3 chunks.
+  - Imported registry entries returned `indexedStatus: indexed` and `embeddingStatus: indexed`.
+- Affected files:
+  - `.saad-agent/training/lessons/anal-guide.md`
+  - `.saad-agent/training/lessons/intimate-guide.md`
+  - `.saad-agent/training/lessons/swinging-guide.md`
+  - `.saad-agent/training/lessons/training-guide.md`
+  - `.saad-agent/knowledge/registry.json`
+  - `.saad-agent/knowledge/vector-index.json`
+  - `.saad-agent/knowledge/ingestion-log.json`
+  - `PROJECT_CONTEXT.md`
+- Decisions:
+  - These guides are stored under `lessons/` because they are broad user-authored training/reference material, not API docs or source-code examples.
+  - This is retrieval training through the current Knowledge Engine, not model fine-tuning.
+- Remaining:
+  - Saad Agent must have the workspace root `next14-ai-saas-main` active/trusted to retrieve this training reliably. The packaged `win-unpacked` folder is a runtime folder and should not be used as the training workspace.
+
+## Latest task: Fix Backblaze B2 S3 CORS preflight PUT block (2026-07-05)
+
+- Status:
+  - Fixed a CORS preflight blocking error (No 'Access-Control-Allow-Origin' header present) when uploading generated assets directly to the Backblaze B2 bucket from `https://www.saadstudio.app`.
+  - Updated the setup script `scripts/set-r2-cors.mjs` to automatically read either Backblaze B2 (`B2_*`) or Cloudflare R2 (`R2_*`) environment variables, load credentials from `.env.production` / `.env.local` / `.env`, and apply the correct CORS configuration (supporting `OPTIONS` preflight, `PUT`, `GET`, etc.) to the active bucket.
+- Affected files:
+  - `scripts/set-r2-cors.mjs` [MODIFY]
+- Verification:
+  - Executed `npm run set-r2-cors` to configure the bucket CORS policy.
+- Decision:
+  - Unify bucket CORS setup commands under `npm run set-r2-cors` to support both Cloudflare R2 and Backblaze B2, avoiding duplicate scripts while ensuring that client-side uploads are never blocked by browser CORS policies.
+
 ## Latest task: Fix Next.js compilation/build errors for Vercel production deployment (2026-07-05)
 
 - Status:
@@ -1545,4 +1633,4 @@
 
 ## Latest task: Saad Agent Phase 20 Production Platform & Engineering Standards (2026-06-28)
 
-- Status:
+- Status:

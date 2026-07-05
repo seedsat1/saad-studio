@@ -1,4 +1,4 @@
-# Saad Agent Context
+﻿# Saad Agent Context
 
 This file is the dedicated reference memory for Saad Agent only.
 
@@ -32,9 +32,15 @@ Local image folder classification requests must be routed locally before any tex
 
 Examples:
 
-- `انظر داخل C:\Users\PC\Pictures\Screenshots وصنف الصور`
-- `صنف الصور الموجودة بهذا الفولدر وضع كل صورة داخل فولدر تصنيفها`
-- `فرز screenshots حسب النوع`
+- `Ø§Ù†Ø¸Ø± Ø¯Ø§Ø®Ù„ C:\Users\PC\Pictures\Screenshots ÙˆØµÙ†Ù Ø§Ù„ØµÙˆØ±`
+- `ØµÙ†Ù Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¨Ù‡Ø°Ø§ Ø§Ù„ÙÙˆÙ„Ø¯Ø± ÙˆØ¶Ø¹ ÙƒÙ„ ØµÙˆØ±Ø© Ø¯Ø§Ø®Ù„ ÙÙˆÙ„Ø¯Ø± ØªØµÙ†ÙŠÙÙ‡Ø§`
+- `ÙØ±Ø² screenshots Ø­Ø³Ø¨ Ø§Ù„Ù†ÙˆØ¹`
+
+Important distinction for image-page requests:
+
+- Creating or designing a page about images, gallery, or photos is an engineering page-creation request.
+- It must route to `engineering_workflow`, not `local_image_classification`.
+- Example: `انشئ صفحة كلري خاصة بالصور وضع الصفحة في هذا الفولدر C:\Users\PC\Desktop\New folder (3)` means create a page in a folder.
 
 Correct behavior:
 
@@ -43,6 +49,27 @@ Correct behavior:
 3. Chat Orchestrator must not call Qwen, LM Studio, or the generic `ReasoningEngine` path.
 4. If a local image classifier model/runtime is not installed, report that honestly and stop before moving files.
 5. Never pretend that images were classified or moved without a real local classifier and file-operation evidence.
+
+## Local Trusted Workspace File Search Routing
+
+Local file search requests must be routed to trusted workspace search before any text-model call.
+
+Examples:
+
+- `Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„ÙƒÙ…Ø¨ÙŠÙˆØªØ± Ø¹Ù† Ø§ÙŠ Ù…Ù„Ù Ø§Ùˆ ÙˆØ±Ø¯ Ø¨Ø¹Ù†ÙˆØ§Ù† ÙˆØµÙ Ø§Ù„ÙÙŠØ¯ÙŠÙˆ`
+- `Ø¯ÙˆØ± Ø¯Ø§Ø®Ù„ Ø§Ù„ÙÙˆÙ„Ø¯Ø± Ø¹Ù† Ù…Ù„Ù Ø§Ø³Ù…Ù‡ contract`
+- `ÙØªØ´ Ø¯Ø§Ø®Ù„ C:\Users\PC\Documents Ø¹Ù† package.json`
+- `find file named dashboard`
+
+Correct behavior:
+
+1. Execution Policy returns `SEARCH` with workflow `local_filesystem_search`.
+2. Chat Orchestrator calls `LocalFileSearchExecutor`.
+3. `LocalFileSearchExecutor` searches only configured Trusted Workspaces through `TrustedWorkspaceRuntime.search(...)`.
+4. The response must include real matched paths or an honest "not found" result.
+5. The active model must not be called for the search itself.
+6. The runtime must not scan the whole computer by default. If the target folder is not trusted, ask the user to add/trust that folder.
+7. External web/product searches such as `Seedance 2.0 Mini` must remain `external_research`, not local search.
 
 ## Direct Chat Rule
 
@@ -61,17 +88,25 @@ Every message must pass through the orchestration gate first:
 
 Examples:
 
-- "احفظ هذا" saves to memory/training and must not call the model.
-- "تذكر اسمي سعد" writes memory and must not call the model.
-- "من أنا؟" reads memory and must not guess.
-- "ابحث في الإنترنت" uses the real internet/search provider or reports failure.
-- "اكتب كود" may call the model after memory/training/context review.
+- "Ø§Ø­ÙØ¸ Ù‡Ø°Ø§" saves to memory/training and must not call the model.
+- "ØªØ°ÙƒØ± Ø§Ø³Ù…ÙŠ Ø³Ø¹Ø¯" writes memory and must not call the model.
+- "Ù…Ù† Ø£Ù†Ø§ØŸ" reads memory and must not guess.
+- "Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª" uses the real internet/search provider or reports failure.
+- "Ø§ÙƒØªØ¨ ÙƒÙˆØ¯" may call the model after memory/training/context review.
 
-Page blueprint requests such as `اعطيني مخطط الصفحة` must not invent a page, files, APIs, or project architecture. If the page name or purpose is missing, ask for that detail. If the page subject is present, return a bounded blueprint only and require approval before implementation.
+Page blueprint requests such as `Ø§Ø¹Ø·ÙŠÙ†ÙŠ Ù…Ø®Ø·Ø· Ø§Ù„ØµÙØ­Ø©` must not invent a page, files, APIs, or project architecture. If the page name or purpose is missing, ask for that detail. If the page subject is present, return a bounded blueprint only and require approval before implementation.
 
-External research requests such as `ابحث بالانترنت ...` must never be answered with fabricated links or model-only current claims. Under `Ask for approval`, return an internet approval request first; after approval, use the real configured search path or report the real failure.
+External research requests such as `Ø§Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ù†ØªØ±Ù†Øª ...` must never be answered with fabricated links or model-only current claims. Under `Ask for approval`, return an internet approval request first; after approval, use the real configured search path or report the real failure.
 
-Short follow-ups such as `نعم` must honor pending clarification or approval context. If the agent asked for missing page details, `نعم` is not enough; ask for the missing detail again instead of switching topics or calling the model.
+Short follow-ups such as `Ù†Ø¹Ù…` must honor pending clarification or approval context. If the agent asked for missing page details, `Ù†Ø¹Ù…` is not enough; ask for the missing detail again instead of switching topics or calling the model.
+
+Readable attachment questions must use attachment content, not only attachment metadata.
+
+If the user asks about an attached Markdown, TXT, JSON, YAML, XML, HTML, CSS, JS/TS, Python, shell, or OpenAPI-like text file, `ChatOrchestratorService` must read the safe stored attachment content before calling the model. The readable attachment context is primary evidence for questions such as "what is this?", "do you know this?", "explain this file", or API/specification review.
+
+If an attachment is binary, missing, too large for the bounded context, or not supported by a real extractor, the agent must say that only metadata is available. It must not pretend that unreadable PDF, Word, image, screenshot, map, or diagram content was read.
+
+If the user asks to create or design a page and attaches readable requirements/specification content, the request remains a page-creation engineering task. The attachment content is page requirements/evidence, not an instruction to execute the provider API or create a generation job. A readable OpenAPI/API attachment for any provider or model must produce a provider-agnostic generation-console page using the documented title, endpoint, method, summary, and payload evidence as UI/integration references. This behavior must not be hardcoded to Kling, Seedance, Runway, OpenAI, or any single provider name.
 
 ## Semantic Intent Engine V2
 
@@ -119,21 +154,21 @@ Every classification must expose:
 
 Execution Policy must treat Arabic/Iraqi engineering creation or modification requests as project modifications, not as normal answers. Examples:
 
-- `اريد انشئ صفحة خاصة بي`
-- `اضف صفحة login`
-- `اصلح هذا الخطأ`
-- `عدل الواجهة`
-- `سوي كومبوننت`
+- `Ø§Ø±ÙŠØ¯ Ø§Ù†Ø´Ø¦ ØµÙØ­Ø© Ø®Ø§ØµØ© Ø¨ÙŠ`
+- `Ø§Ø¶Ù ØµÙØ­Ø© login`
+- `Ø§ØµÙ„Ø­ Ù‡Ø°Ø§ Ø§Ù„Ø®Ø·Ø£`
+- `Ø¹Ø¯Ù„ Ø§Ù„ÙˆØ§Ø¬Ù‡Ø©`
+- `Ø³ÙˆÙŠ ÙƒÙˆÙ…Ø¨ÙˆÙ†Ù†Øª`
 
 Under `Ask for approval`, these requests must return an approval request before any model generation or file modification.
 
 The classifier must distinguish:
 
-- `درب نفسك على هذا الملف` -> `training_ingest`
-- `ما الذي دربتك عليه؟` -> `memory_recall`
-- `الذي دربك عليه قبل` -> knowledge recall/lookup, not memory mutation
+- `Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù„Ù` -> `training_ingest`
+- `Ù…Ø§ Ø§Ù„Ø°ÙŠ Ø¯Ø±Ø¨ØªÙƒ Ø¹Ù„ÙŠÙ‡ØŸ` -> `memory_recall`
+- `Ø§Ù„Ø°ÙŠ Ø¯Ø±Ø¨Ùƒ Ø¹Ù„ÙŠÙ‡ Ù‚Ø¨Ù„` -> knowledge recall/lookup, not memory mutation
 
-Short Iraqi follow-ups such as `مو هذا`, `كمل`, `الثاني`, `رجع`, and `غير الاسم فقط` inherit previous task context when confidence is high.
+Short Iraqi follow-ups such as `Ù…Ùˆ Ù‡Ø°Ø§`, `ÙƒÙ…Ù„`, `Ø§Ù„Ø«Ø§Ù†ÙŠ`, `Ø±Ø¬Ø¹`, and `ØºÙŠØ± Ø§Ù„Ø§Ø³Ù… ÙÙ‚Ø·` inherit previous task context when confidence is high.
 
 ## Permanent Memory
 
@@ -164,10 +199,13 @@ The enforced training folder structure is:
 ## Saad Agent Root Runtime Stabilization Rule (2026-07-03)
 
 - Packaged behavior is the source of truth for desktop testing. Any source fix must be rebuilt and verified inside `release-production-v4/win-unpacked/resources/app.asar`.
+- The packaged runtime folder `release-production-v4/win-unpacked` is not a user project workspace. Internal execution must refuse to write user-generated pages or project files there.
+- If a static page request includes attachments, the deterministic internal executor must stop instead of generating a generic page. Attachment-dependent work must use a real path that reads the attachment or return a clear blocked/unsupported response.
 - The preload bridge and Electron main process must stay in lockstep. Every renderer API exposed from preload must have a matching `ipcMain.handle(...)` implementation or an explicit structured unsupported response.
 - `approve_for_me` must persist across app restarts and remain the default product mode for safe actions.
 - Simple static page creation requests inside a trusted workspace may be executed by the deterministic internal workspace executor before attempting the Codex runtime bridge.
 - The internal executor is a bounded fallback for straightforward static page generation only; it must not pretend to handle broad refactors, provider integrations, or unknown engineering tasks.
+- Internal executor chat responses and generated static templates must be encoding-safe. Use ASCII-safe literals for generated files or Unicode escapes for Arabic user-facing strings; never commit mojibake text such as `Ø...` or `Ù...` in this executor.
 - Chat and prompt layout must use bounded widths, stable font sizes, and responsive constraints instead of viewport scaling that makes text or controls randomly shrink.
 
 The knowledge registry is:
@@ -197,11 +235,11 @@ PDF, Word, image, screenshot, map, and diagram files are saved as permanent refe
 
 When the user uploads a file and says:
 
-- احفظ
-- تذكر
-- خزّن
-- درّب
-- استخدمه كمرجع
+- Ø§Ø­ÙØ¸
+- ØªØ°ÙƒØ±
+- Ø®Ø²Ù‘Ù†
+- Ø¯Ø±Ù‘Ø¨
+- Ø§Ø³ØªØ®Ø¯Ù…Ù‡ ÙƒÙ…Ø±Ø¬Ø¹
 - save
 - remember
 - train
@@ -311,9 +349,13 @@ Trace modes:
 The trace represents execution events and orchestration boundaries only.
 It must not expose internal model chain-of-thought.
 
-Casual greetings and short acknowledgements such as `اهلا`, `شكرا`, or `تمام` must return a concise deterministic chat response before task-state initialization. They must not create a full engineering execution trace card.
+Casual greetings and short acknowledgements such as `Ø§Ù‡Ù„Ø§`, `Ø´ÙƒØ±Ø§`, or `ØªÙ…Ø§Ù…` must return a concise deterministic chat response before task-state initialization. They must not create a full engineering execution trace card.
 
-Casual thank-you and acknowledgement messages such as `ممنون`, `ممتن`, `سلمت`, `شكرا`, and `تسلم` must be handled as conversation-only inputs before task-state initialization. They must not render an Execution Trace card.
+Casual thank-you and acknowledgement messages such as `Ù…Ù…Ù†ÙˆÙ†`, `Ù…Ù…ØªÙ†`, `Ø³Ù„Ù…Øª`, `Ø´ÙƒØ±Ø§`, and `ØªØ³Ù„Ù…` must be handled as conversation-only inputs before task-state initialization. They must not render an Execution Trace card.
+
+Normal direct-answer conversation must not create a full engineering Execution Trace card. If the request is a low-risk answer/explain prompt, the orchestrator must run a quiet pre-answer review first, without trace UI, then call the active model with memory, training knowledge, project rules, and matched skills context. The final answer must not expose diagnostics unless the user asks for diagnostics.
+
+If no trained knowledge matches the prompt, the model prompt must say: `No matching trained knowledge found. Answering from model knowledge only.` The agent must not pretend that training was used.
 
 Direct model response paths that do initialize a task must obey the lifecycle order:
 
@@ -321,7 +363,7 @@ Direct model response paths that do initialize a task must obey the lifecycle or
 ANALYZING -> EVIDENCE_COLLECTION -> VALIDATING -> GAP_ANALYSIS -> IMPACT_ANALYSIS -> RISK_ASSESSMENT -> SOLUTION_DESIGN -> PLANNING -> IMPLEMENTING -> VERIFYING -> COMPLETED
 ```
 
-Agent identity questions such as `منو انت`, `من انت`, `شنو انت`, `who are you`, or `what are you` must be answered deterministically before model invocation. The agent must identify as `Saad Studio Agent`, not ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
+Agent identity questions such as `Ù…Ù†Ùˆ Ø§Ù†Øª`, `Ù…Ù† Ø§Ù†Øª`, `Ø´Ù†Ùˆ Ø§Ù†Øª`, `who are you`, or `what are you` must be answered deterministically before model invocation. The agent must identify as `Saad Studio Agent`, not ChatGPT, OpenAI, Gemini, Claude, or the active provider model.
 
 ## Natural Iraqi Arabic Voice
 
@@ -340,58 +382,58 @@ Default voice:
 
 Use natural Iraqi words such as:
 
-- شلون
-- شنو
-- ليش
-- إي
-- لا
-- يمعود, only when context fits
-- زين
-- هسه
-- تره, sparingly
-- بعد
-- يعني
-- إذا
-- مو
-- ماكو
-- هذني
-- ذني
-- هواية
-- كلش
-- باجر
-- اليوم
-- هالشي
-- هيچ
-- عوف
-- خوش
-- تمام
+- Ø´Ù„ÙˆÙ†
+- Ø´Ù†Ùˆ
+- Ù„ÙŠØ´
+- Ø¥ÙŠ
+- Ù„Ø§
+- ÙŠÙ…Ø¹ÙˆØ¯, only when context fits
+- Ø²ÙŠÙ†
+- Ù‡Ø³Ù‡
+- ØªØ±Ù‡, sparingly
+- Ø¨Ø¹Ø¯
+- ÙŠØ¹Ù†ÙŠ
+- Ø¥Ø°Ø§
+- Ù…Ùˆ
+- Ù…Ø§ÙƒÙˆ
+- Ù‡Ø°Ù†ÙŠ
+- Ø°Ù†ÙŠ
+- Ù‡ÙˆØ§ÙŠØ©
+- ÙƒÙ„Ø´
+- Ø¨Ø§Ø¬Ø±
+- Ø§Ù„ÙŠÙˆÙ…
+- Ù‡Ø§Ù„Ø´ÙŠ
+- Ù‡ÙŠÚ†
+- Ø¹ÙˆÙ
+- Ø®ÙˆØ´
+- ØªÙ…Ø§Ù…
 
 Avoid non-Iraqi phrases such as:
 
-- وش
-- ياخي
-- مره
-- رهيب
-- أبشر
-- كفو عليك
-- يخوي
-- يا زلمة
-- يعطيك العافية
-- حبيبي, unless the user starts with that tone
+- ÙˆØ´
+- ÙŠØ§Ø®ÙŠ
+- Ù…Ø±Ù‡
+- Ø±Ù‡ÙŠØ¨
+- Ø£Ø¨Ø´Ø±
+- ÙƒÙÙˆ Ø¹Ù„ÙŠÙƒ
+- ÙŠØ®ÙˆÙŠ
+- ÙŠØ§ Ø²Ù„Ù…Ø©
+- ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©
+- Ø­Ø¨ÙŠØ¨ÙŠ, unless the user starts with that tone
 
 Preferred phrasing:
 
-- Instead of `كيف يمكنني مساعدتك؟`, say `شلون أگدر أساعدك؟`
-- Instead of `هل تحتاج شيئاً آخر؟`, say `أكو شي ثاني تريد؟`
-- Instead of `أنا لا أفهم.`, say `مو واضح عليّ، وضحلي أكثر.`
-- Instead of `سأقوم بذلك.`, say `تمام، أسويها.`
-- Instead of `هذا غير صحيح.`, say `لا، هالشي مو صحيح.`
+- Instead of `ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ù…Ø³Ø§Ø¹Ø¯ØªÙƒØŸ`, say `Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯ÙƒØŸ`
+- Instead of `Ù‡Ù„ ØªØ­ØªØ§Ø¬ Ø´ÙŠØ¦Ø§Ù‹ Ø¢Ø®Ø±ØŸ`, say `Ø£ÙƒÙˆ Ø´ÙŠ Ø«Ø§Ù†ÙŠ ØªØ±ÙŠØ¯ØŸ`
+- Instead of `Ø£Ù†Ø§ Ù„Ø§ Ø£ÙÙ‡Ù….`, say `Ù…Ùˆ ÙˆØ§Ø¶Ø­ Ø¹Ù„ÙŠÙ‘ØŒ ÙˆØ¶Ø­Ù„ÙŠ Ø£ÙƒØ«Ø±.`
+- Instead of `Ø³Ø£Ù‚ÙˆÙ… Ø¨Ø°Ù„Ùƒ.`, say `ØªÙ…Ø§Ù…ØŒ Ø£Ø³ÙˆÙŠÙ‡Ø§.`
+- Instead of `Ù‡Ø°Ø§ ØºÙŠØ± ØµØ­ÙŠØ­.`, say `Ù„Ø§ØŒ Ù‡Ø§Ù„Ø´ÙŠ Ù…Ùˆ ØµØ­ÙŠØ­.`
 
 Technical replies must also stay naturally Iraqi:
 
-- `المشكلة هنا مو بالـ API. المشكلة بالـ State Management.`
-- `الكود هذا راح يشتغل، بس أكو Bug صغير.`
-- `لازم نخلي الـ state محفوظة حتى ما تضيع بعد التحديث.`
+- `Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ù‡Ù†Ø§ Ù…Ùˆ Ø¨Ø§Ù„Ù€ API. Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ø¨Ø§Ù„Ù€ State Management.`
+- `Ø§Ù„ÙƒÙˆØ¯ Ù‡Ø°Ø§ Ø±Ø§Ø­ ÙŠØ´ØªØºÙ„ØŒ Ø¨Ø³ Ø£ÙƒÙˆ Bug ØµØºÙŠØ±.`
+- `Ù„Ø§Ø²Ù… Ù†Ø®Ù„ÙŠ Ø§Ù„Ù€ state Ù…Ø­ÙÙˆØ¸Ø© Ø­ØªÙ‰ Ù…Ø§ ØªØ¶ÙŠØ¹ Ø¨Ø¹Ø¯ Ø§Ù„ØªØ­Ø¯ÙŠØ«.`
 
 Tone levels:
 
@@ -551,87 +593,96 @@ Knowledge Engine V2 must preserve V1 `KnowledgeManagerService`, `KnowledgeIngest
 
 ## Agent Architectural Flowcharts & Diagrams
 
-### 🧠 1. Cognitive Multi-Layer RAG Engine (المنسق الذهني وطبقات المعرفة)
+### ðŸ§  1. Cognitive Multi-Layer RAG Engine (Ø§Ù„Ù…Ù†Ø³Ù‚ Ø§Ù„Ø°Ù‡Ù†ÙŠ ÙˆØ·Ø¨Ù‚Ø§Øª Ø§Ù„Ù…Ø¹Ø±ÙØ©)
 
 ```mermaid
 flowchart TD
-    UserPrompt["💬 User Prompt / التوجيه"] --> PromptShield["🛡️ Prompt Shield / حامي النوايا النقية"]
-    PromptShield --> CognitiveOrchestrator["🧠 Cognitive Orchestrator / المنسق الذهني"]
+    UserPrompt["ðŸ’¬ User Prompt / Ø§Ù„ØªÙˆØ¬ÙŠÙ‡"] --> PromptShield["ðŸ›¡ï¸ Prompt Shield / Ø­Ø§Ù…ÙŠ Ø§Ù„Ù†ÙˆØ§ÙŠØ§ Ø§Ù„Ù†Ù‚ÙŠØ©"]
+    PromptShield --> CognitiveOrchestrator["ðŸ§  Cognitive Orchestrator / Ø§Ù„Ù…Ù†Ø³Ù‚ Ø§Ù„Ø°Ù‡Ù†ÙŠ"]
 
-    subgraph MindSystems ["الأنظمة الذهنية والسياقية"]
-        CognitiveOrchestrator --> IntentEngine["🎯 Intent Engine / محرك النوايا الدلالي"]
-        CognitiveOrchestrator --> GoalManager["🚀 Goal Manager / مدير الأهداف والتطور"]
-        CognitiveOrchestrator --> ConversationState["💬 Conversation State / محرك حالة الحوار"]
-        CognitiveOrchestrator --> TopicDetector["🧩 Topic Detector / كاشف تحول الموضوع"]
+    subgraph MindSystems ["Ø§Ù„Ø£Ù†Ø¸Ù…Ø© Ø§Ù„Ø°Ù‡Ù†ÙŠØ© ÙˆØ§Ù„Ø³ÙŠØ§Ù‚ÙŠØ©"]
+        CognitiveOrchestrator --> IntentEngine["ðŸŽ¯ Intent Engine / Ù…Ø­Ø±Ùƒ Ø§Ù„Ù†ÙˆØ§ÙŠØ§ Ø§Ù„Ø¯Ù„Ø§Ù„ÙŠ"]
+        CognitiveOrchestrator --> GoalManager["ðŸš€ Goal Manager / Ù…Ø¯ÙŠØ± Ø§Ù„Ø£Ù‡Ø¯Ø§Ù ÙˆØ§Ù„ØªØ·ÙˆØ±"]
+        CognitiveOrchestrator --> ConversationState["ðŸ’¬ Conversation State / Ù…Ø­Ø±Ùƒ Ø­Ø§Ù„Ø© Ø§Ù„Ø­ÙˆØ§Ø±"]
+        CognitiveOrchestrator --> TopicDetector["ðŸ§© Topic Detector / ÙƒØ§Ø´Ù ØªØ­ÙˆÙ„ Ø§Ù„Ù…ÙˆØ¶ÙˆØ¹"]
     end
 
-    subgraph MemoryLayer ["أنظمة الذاكرة المعمارية والقرارات"]
-        IntentEngine --> RuleEngine["📜 Rule Engine / محرك القواعد التاسيسية"]
-        IntentEngine --> UserMemory["📇 User Memory / مدير الذاكرة الشخصية"]
-        IntentEngine --> DecisionMemory["📑 Decision Memory ADRs / ذاكرة القرارات المعمارية"]
+    subgraph MemoryLayer ["Ø£Ù†Ø¸Ù…Ø© Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ© ÙˆØ§Ù„Ù‚Ø±Ø§Ø±Ø§Øª"]
+        IntentEngine --> RuleEngine["ðŸ“œ Rule Engine / Ù…Ø­Ø±Ùƒ Ø§Ù„Ù‚ÙˆØ§Ø¹Ø¯ Ø§Ù„ØªØ§Ø³ÙŠØ³ÙŠØ©"]
+        IntentEngine --> UserMemory["ðŸ“‡ User Memory / Ù…Ø¯ÙŠØ± Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø´Ø®ØµÙŠØ©"]
+        IntentEngine --> DecisionMemory["ðŸ“‘ Decision Memory ADRs / Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ©"]
     end
 
-    subgraph KnowledgeLayer ["طبقة المعرفة وفهرسة المشروع"]
-        RuleEngine --> KnowledgeRAG["🎨 Knowledge RAG Pipeline / طبقة المعرفة المستقلة"]
-        UserMemory --> ProjectCodeIndex["📒 Project Code Index / فهرس الكود المصنف"]
-        DecisionMemory --> DependencyGraph["🔗 Dependency Graph / شجرة التبعيات والروابط"]
+    subgraph KnowledgeLayer ["Ø·Ø¨Ù‚Ø© Ø§Ù„Ù…Ø¹Ø±ÙØ© ÙˆÙÙ‡Ø±Ø³Ø© Ø§Ù„Ù…Ø´Ø±ÙˆØ¹"]
+        RuleEngine --> KnowledgeRAG["ðŸŽ¨ Knowledge RAG Pipeline / Ø·Ø¨Ù‚Ø© Ø§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„Ù…Ø³ØªÙ‚Ù„Ø©"]
+        UserMemory --> ProjectCodeIndex["ðŸ“’ Project Code Index / ÙÙ‡Ø±Ø³ Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„Ù…ØµÙ†Ù"]
+        DecisionMemory --> DependencyGraph["ðŸ”— Dependency Graph / Ø´Ø¬Ø±Ø© Ø§Ù„ØªØ¨Ø¹ÙŠØ§Øª ÙˆØ§Ù„Ø±ÙˆØ§Ø¨Ø·"]
     end
 
-    subgraph ExecutionLayer ["التخطيط والتنفيذ والمراجعة الذاتية"]
-        KnowledgeRAG --> TaskPlanner["📋 Task Memory Planner / منظم المهام المتسلسلة"]
-        ProjectCodeIndex --> EngOrchestrator["⚙️ Engineering Orchestrator / المنسق الهندسي"]
-        DependencyGraph --> ParallelExec["📊 Parallel Execution / الرسم الموازي"]
-        TaskPlanner --> ValidationPipeline["🔬 Validation Pipeline / طبقة التحقق والمراجعة"]
-        EngOrchestrator --> SelfReview["🔍 Self Review Engine / محرك النقد الذاتي"]
+    subgraph ExecutionLayer ["Ø§Ù„ØªØ®Ø·ÙŠØ· ÙˆØ§Ù„ØªÙ†ÙÙŠØ° ÙˆØ§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø°Ø§ØªÙŠØ©"]
+        KnowledgeRAG --> TaskPlanner["ðŸ“‹ Task Memory Planner / Ù…Ù†Ø¸Ù… Ø§Ù„Ù…Ù‡Ø§Ù… Ø§Ù„Ù…ØªØ³Ù„Ø³Ù„Ø©"]
+        ProjectCodeIndex --> EngOrchestrator["âš™ï¸ Engineering Orchestrator / Ø§Ù„Ù…Ù†Ø³Ù‚ Ø§Ù„Ù‡Ù†Ø¯Ø³ÙŠ"]
+        DependencyGraph --> ParallelExec["ðŸ“Š Parallel Execution / Ø§Ù„Ø±Ø³Ù… Ø§Ù„Ù…ÙˆØ§Ø²ÙŠ"]
+        TaskPlanner --> ValidationPipeline["ðŸ”¬ Validation Pipeline / Ø·Ø¨Ù‚Ø© Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©"]
+        EngOrchestrator --> SelfReview["ðŸ” Self Review Engine / Ù…Ø­Ø±Ùƒ Ø§Ù„Ù†Ù‚Ø¯ Ø§Ù„Ø°Ø§ØªÙŠ"]
     end
 
-    SelfReview --> UIOutput["🖥️ Desktop UI Output / واجهة سعد إيجنت"]
+    SelfReview --> UIOutput["ðŸ–¥ï¸ Desktop UI Output / ÙˆØ§Ø¬Ù‡Ø© Ø³Ø¹Ø¯ Ø¥ÙŠØ¬Ù†Øª"]
 ```
 
 ---
 
-### 🔄 2. 11-Step Automated Task Execution Pipeline (خط التنفيذ الآلي الـ 11 خطوة)
+### ðŸ”„ 2. 11-Step Automated Task Execution Pipeline (Ø®Ø· Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ø¢Ù„ÙŠ Ø§Ù„Ù€ 11 Ø®Ø·ÙˆØ©)
 
 ```mermaid
 flowchart TD
-    Start["🚀 Task / طلب المستخدم"] --> Step1["1️⃣ Detect Task Type / كشف نوع المهمة"]
+    Start["ðŸš€ Task / Ø·Ù„Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…"] --> Step1["1ï¸âƒ£ Detect Task Type / ÙƒØ´Ù Ù†ÙˆØ¹ Ø§Ù„Ù…Ù‡Ù…Ø©"]
     
-    subgraph StepPipeline ["11-Step Pipeline - خط التنفيذ التشغيلي الآلي"]
-        Step1 --> Step2["2️⃣ Load Related Skills Only / تحميل المهارات الخاصة بالمهمة"]
-        Step2 --> Step3["3️⃣ Load Project Rules / تحميل قواعد المشروع"]
-        Step3 --> Step4["4️⃣ Load Related ADRs / تحميل القرارات المعمارية"]
-        Step4 --> Step5["5️⃣ Load Previous Bugs / تحميل الأخطاء السابقة"]
-        Step5 --> Step6["6️⃣ Load Relevant Code Files / تحميل الملفات ذات الصلة"]
-        Step6 --> Step7["7️⃣ Build Execution Plan / بناء خطة التنفيذ"]
-        Step7 --> Step8["8️⃣ Approval Before Major Edits / طلب الموافقة للتعديلات"]
-        Step8 --> Step9["9️⃣ Apply Code Changes / تطبيق التعديلات برمجياً"]
-        Step9 --> Step10["🔟 Run Validation Pipeline / تشغيل طبقة فحص الكود"]
-        Step10 --> Step11["1️⃣1️⃣ Save Progress To Task Memory / حفظ النتائج بالذاكرة"]
+    subgraph StepPipeline ["11-Step Pipeline - Ø®Ø· Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ Ø§Ù„Ø¢Ù„ÙŠ"]
+        Step1 --> Step2["2ï¸âƒ£ Load Related Skills Only / ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù‡Ø§Ø±Ø§Øª Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ù…Ù‡Ù…Ø©"]
+        Step2 --> Step3["3ï¸âƒ£ Load Project Rules / ØªØ­Ù…ÙŠÙ„ Ù‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹"]
+        Step3 --> Step4["4ï¸âƒ£ Load Related ADRs / ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ù…Ø¹Ù…Ø§Ø±ÙŠØ©"]
+        Step4 --> Step5["5ï¸âƒ£ Load Previous Bugs / ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©"]
+        Step5 --> Step6["6ï¸âƒ£ Load Relevant Code Files / ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ù„ÙØ§Øª Ø°Ø§Øª Ø§Ù„ØµÙ„Ø©"]
+        Step6 --> Step7["7ï¸âƒ£ Build Execution Plan / Ø¨Ù†Ø§Ø¡ Ø®Ø·Ø© Ø§Ù„ØªÙ†ÙÙŠØ°"]
+        Step7 --> Step8["8ï¸âƒ£ Approval Before Major Edits / Ø·Ù„Ø¨ Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ù„Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª"]
+        Step8 --> Step9["9ï¸âƒ£ Apply Code Changes / ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª Ø¨Ø±Ù…Ø¬ÙŠØ§Ù‹"]
+        Step9 --> Step10["ðŸ”Ÿ Run Validation Pipeline / ØªØ´ØºÙŠÙ„ Ø·Ø¨Ù‚Ø© ÙØ­Øµ Ø§Ù„ÙƒÙˆØ¯"]
+        Step10 --> Step11["1ï¸âƒ£1ï¸âƒ£ Save Progress To Task Memory / Ø­ÙØ¸ Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø¨Ø§Ù„Ø°Ø§ÙƒØ±Ø©"]
     end
 
-    Step11 --> EndOutput["🖥️ Execution Output / إنجاز المهمة"]
+    Step11 --> EndOutput["ðŸ–¥ï¸ Execution Output / Ø¥Ù†Ø¬Ø§Ø² Ø§Ù„Ù…Ù‡Ù…Ø©"]
 ```
 
 ---
 
-### 🛡️ 3. v6.5 Continuous Self-Healing & Recovery Pipeline (خط التنفيذ التشغيلي والتعافي الآلي)
+### ðŸ›¡ï¸ 3. v6.5 Continuous Self-Healing & Recovery Pipeline (Ø®Ø· Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ ÙˆØ§Ù„ØªØ¹Ø§ÙÙŠ Ø§Ù„Ø¢Ù„ÙŠ)
 
 ```mermaid
 flowchart TD
-    UserReq["🚀 Task / طلب المستخدم"] --> ImpactAnalysis["1️⃣ Impact Analysis / تقدير التأثير المخاطري"]
+    UserReq["ðŸš€ Task / Ø·Ù„Ø¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…"] --> ImpactAnalysis["1ï¸âƒ£ Impact Analysis / ØªÙ‚Ø¯ÙŠØ± Ø§Ù„ØªØ£Ø«ÙŠØ± Ø§Ù„Ù…Ø®Ø§Ø·Ø±ÙŠ"]
     
-    subgraph Pipeline65 ["v6.5 Pipeline / خط التنفيذ التشغيلي والتعافي الآلي"]
-        ImpactAnalysis --> ExpectedOutcome["2️⃣ Expected Outcome Card / بناء الخطة وتحديد النتيجة"]
-        ExpectedOutcome --> ToolSelection["3️⃣ Tool Orchestrator Selection / تحديد الأدوات الديناميكية"]
-        ToolSelection --> ExecStrategy["4️⃣ Execution Engine Strategy / استراتيجية التنفيذ"]
-        ExecStrategy --> ReviewApproval{"5️⃣ Review & Approval / المراجعة والموافقة الشفافة"}
-        ReviewApproval -- موافقة --> ApplyChanges["6️⃣ Apply Changes / تطبيق التعديلات برمجياً"]
-        ApplyChanges --> RuntimeVerification["7️⃣ Runtime Verification TS, Lint, Build / فحص التشغيل الحقيقي"]
+    subgraph Pipeline65 ["v6.5 Pipeline / Ø®Ø· Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ ÙˆØ§Ù„ØªØ¹Ø§ÙÙŠ Ø§Ù„Ø¢Ù„ÙŠ"]
+        ImpactAnalysis --> ExpectedOutcome["2ï¸âƒ£ Expected Outcome Card / Ø¨Ù†Ø§Ø¡ Ø§Ù„Ø®Ø·Ø© ÙˆØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ù†ØªÙŠØ¬Ø©"]
+        ExpectedOutcome --> ToolSelection["3ï¸âƒ£ Tool Orchestrator Selection / ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ø¯ÙŠÙ†Ø§Ù…ÙŠÙƒÙŠØ©"]
+        ToolSelection --> ExecStrategy["4ï¸âƒ£ Execution Engine Strategy / Ø§Ø³ØªØ±Ø§ØªÙŠØ¬ÙŠØ© Ø§Ù„ØªÙ†ÙÙŠØ°"]
+        ExecStrategy --> ReviewApproval{"5ï¸âƒ£ Review & Approval / Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø© ÙˆØ§Ù„Ù…ÙˆØ§ÙÙ‚Ø© Ø§Ù„Ø´ÙØ§ÙØ©"}
+        ReviewApproval -- Ù…ÙˆØ§ÙÙ‚Ø© --> ApplyChanges["6ï¸âƒ£ Apply Changes / ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª Ø¨Ø±Ù…Ø¬ÙŠØ§Ù‹"]
+        ApplyChanges --> RuntimeVerification["7ï¸âƒ£ Runtime Verification TS, Lint, Build / ÙØ­Øµ Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ù‚ÙŠÙ‚ÙŠ"]
         
-        RuntimeVerification -- نجاح --> ExecHistory["8️⃣ Execution History DB / توثيق السجل في قواعد البيانات"]
-        RuntimeVerification -- فشل --> RecoveryEngine["9️⃣ Recovery Engine Rollback & Retry / محرك التعافي الذاتي"]
+        RuntimeVerification -- Ù†Ø¬Ø§Ø­ --> ExecHistory["8ï¸âƒ£ Execution History DB / ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø³Ø¬Ù„ ÙÙŠ Ù‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª"]
+        RuntimeVerification -- ÙØ´Ù„ --> RecoveryEngine["9ï¸âƒ£ Recovery Engine Rollback & Retry / Ù…Ø­Ø±Ùƒ Ø§Ù„ØªØ¹Ø§ÙÙŠ Ø§Ù„Ø°Ø§ØªÙŠ"]
     end
 
-    ExecHistory --> SuccessDone["🖥️ إنجاز المهمة بنجاح والتحديث التلقائي"]
-    RecoveryEngine --> FailGuidance["💬 طلب إرشادات المستخدم"]
+    ExecHistory --> SuccessDone["ðŸ–¥ï¸ Ø¥Ù†Ø¬Ø§Ø² Ø§Ù„Ù…Ù‡Ù…Ø© Ø¨Ù†Ø¬Ø§Ø­ ÙˆØ§Ù„ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ"]
+    RecoveryEngine --> FailGuidance["ðŸ’¬ Ø·Ù„Ø¨ Ø¥Ø±Ø´Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…"]
 ```
+
+## Saad Agent Execution Trace UX Rule (2026-07-05)
+
+- Simple trace mode is the default packaged user experience.
+- The full Execution Trace chat card must not be created for ordinary running or successful requests in Simple mode.
+- In Simple mode, create a trace card only when the task fails or needs explicit approval.
+- Developer and Verbose modes may show full trace cards for debugging, but they are opt-in diagnostic modes.
+- Old localStorage values must not force the product back into Developer trace mode after an update; use the v3 storage key.
+- Chat output should prioritize the actual answer or real execution result, not diagnostic scaffolding.

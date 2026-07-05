@@ -64,7 +64,7 @@ type ExecutionTraceCardData = {
 
 const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
 const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
-const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v1";
+const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v3";
 const APPROVAL_MODE_STORAGE_KEY = "saad-agent.approvalMode.v1";
 
 const traceModeLabels: Record<ExecutionTraceMode, string> = {
@@ -145,6 +145,14 @@ const runStatusForTrace = (current: ExecutionTraceRunStatus, event: ExecutionTra
   return "running";
 };
 
+const shouldCreateTraceCardForEvent = (mode: ExecutionTraceMode, event: ExecutionTraceRuntimeEvent) => {
+  if (mode !== "simple") return true;
+  if (event.status === "failed") return true;
+  if (event.phase === "WAIT_FOR_APPROVAL") return true;
+  if (event.status === "pending" && (event.phase === "safety_check" || event.phase === "WAIT_FOR_APPROVAL")) return true;
+  return false;
+};
+
 const applyTraceEvent = (trace: ExecutionTraceCardData, event: ExecutionTraceRuntimeEvent): ExecutionTraceCardData => {
   const identity = stageIdentityForEvent(event, trace.mode);
   const stage: ExecutionTraceStage = {
@@ -179,7 +187,7 @@ const createExecutionTraceDataFromEvent = (
 }, event);
 
 const normalizeTraceMode = (value: string | null): ExecutionTraceMode => {
-  return value === "simple" || value === "verbose" || value === "developer" ? value : "developer";
+  return value === "simple" || value === "verbose" || value === "developer" ? value : "simple";
 };
 
 const normalizeApprovalMode = (value: string | null): ApprovalMode => {
@@ -361,7 +369,7 @@ export default function App() {
     return normalizeApprovalMode(window.localStorage.getItem(APPROVAL_MODE_STORAGE_KEY));
   });
   const [executionTraceMode, setExecutionTraceMode] = useState<ExecutionTraceMode>(() => {
-    if (typeof window === "undefined") return "developer";
+    if (typeof window === "undefined") return "simple";
     return normalizeTraceMode(window.localStorage.getItem(TRACE_MODE_STORAGE_KEY));
   });
   const [isGenerating, setIsGenerating] = useState(false);
@@ -474,6 +482,7 @@ export default function App() {
           });
 
           if (foundTraceCard) return updatedMessages;
+          if (!shouldCreateTraceCardForEvent(executionTraceMode, event)) return updatedMessages;
 
           return [
             ...updatedMessages,
@@ -1259,6 +1268,7 @@ export default function App() {
   };
 
   const getAttachmentKindLabel = (attachment: Attachment) => {
+    if (attachment.detectedFileType) return attachment.detectedFileType;
     if (attachment.type === "image") return "Image";
     if (attachment.type === "pdf") return "PDF";
     if (attachment.type === "folder") return "Folder";
@@ -2818,10 +2828,10 @@ export default function App() {
                         />
                       ) : (
                         <div key={att.id} className="sent-attachment-pdf" title={`${att.name} (${(att.size / 1024).toFixed(1)} KB)`}>
-                          <span className="sent-pdf-icon">📄</span>
+                          <span className="sent-pdf-icon">{att.type === "pdf" ? "PDF" : "TXT"}</span>
                           <div className="sent-pdf-info">
                             <span className="sent-pdf-name">{att.name}</span>
-                            <span className="sent-pdf-size">{formatAttachmentSize(att.size)}</span>
+                            <span className="sent-pdf-size">{getAttachmentKindLabel(att)} - {formatAttachmentSize(att.size)}</span>
                           </div>
                         </div>
                       )

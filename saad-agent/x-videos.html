@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتبة الفيديوهات | E:\X</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+        * { font-family: 'Tajawal', sans-serif; }
+        .video-card:hover video { filter: brightness(1.2); }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    
+    <div class="container mx-auto px-4 py-12">
+        <h1 class="text-4xl font-extrabold text-center mb-4 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+            🎥 مكتبة الفيديوهات E:\X
+        </h1>
+        <p class="text-center text-white/60 mb-12">تم العثور على 72 فيديو في المجلد</p>
+
+        <!-- Videos Grid -->
+        <div id="videosGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <!-- Videos will be loaded here -->
+        </div>
+
+        <!-- Video Player Modal -->
+        <div id="videoModal" class="fixed inset-0 bg-black/95 z-50 hidden flex items-center justify-center p-4">
+            <div class="relative w-full max-w-6xl">
+                <button onclick="closeModal()" class="absolute -top-12 right-0 text-white text-3xl hover:text-pink-400">
+                    <i class="fa fa-times"></i>
+                </button>
+                <video id="videoPlayer" class="w-full rounded-xl" controls autoplay></video>
+                <div class="flex justify-between items-center mt-4">
+                    <h3 id="videoTitle" class="text-xl font-bold"></h3>
+                    <a id="downloadBtn" class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold hover:opacity-90">
+                        <i class="fa fa-download ml-2"></i> تحميل الفيديو
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const videosGrid = document.getElementById('videosGrid');
+        const videoModal = document.getElementById('videoModal');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoTitle = document.getElementById('videoTitle');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Videos list from E:\X
+        const videos = [
+            { name: "WhatsApp Video 2026-02-10 at 6.39.00 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.00 PM.mp4", size: 3.7 },
+            { name: "WhatsApp Video 2026-02-10 at 6.39.09 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.09 PM.mp4", size: 0.95 },
+            { name: "WhatsApp Video 2026-02-10 at 6.39.26 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.26 PM.mp4", size: 3.95 },
+            { name: "WhatsApp Video 2026-02-10 at 6.39.37 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.37 PM.mp4", size: 2.17 },
+            { name: "WhatsApp Video 2026-02-10 at 6.39.45 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.45 PM.mp4", size: 1.02 },
+            { name: "WhatsApp Video 2026-02-10 at 6.39.53 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.39.53 PM.mp4", size: 0.78 },
+            { name: "WhatsApp Video 2026-02-10 at 6.40.07 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.40.07 PM.mp4", size: 3.22 },
+            { name: "WhatsApp Video 2026-02-10 at 6.40.20 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.40.20 PM.mp4", size: 1.57 },
+            { name: "WhatsApp Video 2026-02-10 at 6.40.28 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.40.28 PM.mp4", size: 0.78 },
+            { name: "WhatsApp Video 2026-02-10 at 6.40.39 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.40.39 PM.mp4", size: 0.54 },
+            { name: "WhatsApp Video 2026-02-10 at 6.41.19 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.41.19 PM.mp4", size: 1.75 },
+            { name: "WhatsApp Video 2026-02-10 at 6.41.26 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.41.26 PM.mp4", size: 1.19 },
+            { name: "WhatsApp Video 2026-02-10 at 6.41.37 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.41.37 PM.mp4", size: 1.23 },
+            { name: "WhatsApp Video 2026-02-10 at 6.41.50 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.41.50 PM.mp4", size: 2.73 },
+            { name: "WhatsApp Video 2026-02-10 at 6.42.00 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.42.00 PM.mp4", size: 1.73 },
+            { name: "WhatsApp Video 2026-02-10 at 6.42.33 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.42.33 PM.mp4", size: 0.77 },
+            { name: "WhatsApp Video 2026-02-10 at 6.42.42 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.42.42 PM.mp4", size: 1.77 },
+            { name: "WhatsApp Video 2026-02-10 at 6.42.54 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.42.54 PM.mp4", size: 3.02 },
+            { name: "WhatsApp Video 2026-02-10 at 6.43.52 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.43.52 PM.mp4", size: 1.54 },
+            { name: "WhatsApp Video 2026-02-10 at 6.44.05 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.44.05 PM.mp4", size: 2.93 },
+            { name: "WhatsApp Video 2026-02-10 at 6.44.20 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.44.20 PM.mp4", size: 3.93 },
+            { name: "WhatsApp Video 2026-02-10 at 6.44.33 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.44.33 PM.mp4", size: 2.08 },
+            { name: "WhatsApp Video 2026-02-10 at 6.44.40 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.44.40 PM.mp4", size: 1.58 },
+            { name: "WhatsApp Video 2026-02-10 at 6.44.53 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.44.53 PM.mp4", size: 2.27 },
+            { name: "WhatsApp Video 2026-02-10 at 6.45.30 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.45.30 PM.mp4", size: 3.19 },
+            { name: "WhatsApp Video 2026-02-10 at 6.45.41 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.45.41 PM.mp4", size: 2.15 },
+            { name: "WhatsApp Video 2026-02-10 at 6.46.35 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.46.35 PM.mp4", size: 1.09 },
+            { name: "WhatsApp Video 2026-02-10 at 6.46.48 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.46.48 PM.mp4", size: 2.56 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.01 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.01 PM.mp4", size: 1.62 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.11 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.11 PM.mp4", size: 3.09 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.24 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.24 PM.mp4", size: 3.47 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.34 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.34 PM.mp4", size: 1.24 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.43 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.43 PM.mp4", size: 2.05 },
+            { name: "WhatsApp Video 2026-02-10 at 6.47.54 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.47.54 PM.mp4", size: 2.22 },
+            { name: "WhatsApp Video 2026-02-10 at 6.48.11 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.48.11 PM.mp4", size: 4.05 },
+            { name: "WhatsApp Video 2026-02-10 at 6.48.22 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.48.22 PM.mp4", size: 2.05 },
+            { name: "WhatsApp Video 2026-02-10 at 6.48.28 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.48.28 PM.mp4", size: 0.77 },
+            { name: "WhatsApp Video 2026-02-10 at 6.48.39 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.48.39 PM.mp4", size: 2.77 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.08 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.08 PM.mp4", size: 0.81 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.17 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.17 PM.mp4", size: 0.58 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.28 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.28 PM.mp4", size: 2.2 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.34 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.34 PM.mp4", size: 1.05 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.42 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.42 PM.mp4", size: 0.61 },
+            { name: "WhatsApp Video 2026-02-10 at 6.49.50 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.49.50 PM.mp4", size: 0.72 },
+            { name: "WhatsApp Video 2026-02-10 at 6.50.00 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.50.00 PM.mp4", size: 2.02 },
+            { name: "WhatsApp Video 2026-02-10 at 6.50.13 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.50.13 PM.mp4", size: 2.78 },
+            { name: "WhatsApp Video 2026-02-10 at 6.50.31 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.50.31 PM.mp4", size: 3.78 },
+            { name: "WhatsApp Video 2026-02-10 at 6.50.40 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.50.40 PM.mp4", size: 0.93 },
+            { name: "WhatsApp Video 2026-02-10 at 6.51.15 PM.mp4", path: "E:\\X\\WhatsApp Video 2026-02-10 at 6.51.15 PM.mp4", size: 3.2 },
+            { name: "ام زينب البغدادية - تحرر عراقي.mp4", path: "E:\\X\\ام زينب البغدادية on X- 'تحرر #عراقي جايب فحل ل زوجته https---t.co-ZxgngvMx2b' - X.mp4", size: 3.09 },
+            { name: "ام زينب البغدادية - حصريات عراقي نار.mp4", path: "E:\\X\\ام زينب البغدادية on X- 'حصريات عراقي نار 🔥 #سكس #عراق_24 https---t.co-bb1KX7uvix' - X.mp4", size: 4.31 },
+            { name: "نزوه - المتعه بجد يوم مش هيتنسي.mp4", path: "E:\\X\\🔱🐗نزوه ♠️🔞 on X- 'بدون كلمه الكل فاهم المتعه بجد يوم ممش هيتنسي https---t.co-yc8zPUnvkE' - X.mp4", size: 1.54 },
+            { name: "نزوه - قصة حياة زوجة.mp4", path: "E:\\X\\🔱🐗نزوه ♠️🔞 on X- 'قصة حياة زوجة https---t.co-bHfDVMjpuul' - X.mp4", size: 4.44 },
+            { name: "نزوه - لما ترجعي من بره.mp4", path: "E:\\X\\🔱🐗نزوه ♠️🔞 on X- 'لما ترجعي من بره وتوريله اتاخرتي ليهه https---t.co-AsZYX3xBez' - X.mp4", size: 10.26 },
+        ];
+
+        // Render all videos
+        videos.forEach((video, index) => {
+            const card = document.createElement('div');
+            card.className = 'video-card group bg-white/5 backdrop-blur-sm rounded-xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all cursor-pointer';
+            
+            card.innerHTML = `
+                <div class="relative aspect-video">
+                    <div class="absolute inset-0 bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
+                        <div class="w-12 h-12 bg-pink-500/80 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i class="fa fa-play text-white text-xl mr-[-2px]"></i>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        ${video.size} ميجابايت
+                    </div>
+                </div>
+                <div class="p-3">
+                    <h3 class="font-medium text-sm truncate">${video.name}</h3>
+                </div>
+            `;
+
+            card.addEventListener('click', () => openVideo(video));
+            videosGrid.appendChild(card);
+        });
+
+        function openVideo(video) {
+            videoPlayer.src = video.path;
+            videoTitle.textContent = video.name;
+            downloadBtn.href = video.path;
+            downloadBtn.download = video.name;
+            videoModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            videoPlayer.pause();
+            videoModal.classList.add('hidden');
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') closeModal();
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مكتبة الفيديوهات | E:\X</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+        * { font-family: 'Tajawal', sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+    
+    <div class="container mx-auto px-4 py-12">
+        <h1 class="text-4xl font-extrabold text-center mb-12 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+            🎥 مكتبة الفيديوهات
+        </h1>
+
+        <!-- Upload & Scan -->
+        <div class="max-w-2xl mx-auto mb-12 text-center">
+            <div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-8">
+                <input type="file" id="folderInput" webkitdirectory multiple class="hidden">
+                <button onclick="document.getElementById('folderInput').click()" class="px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl font-bold text-lg hover:opacity-90 transition-all">
+                    <i class="fa fa-folder-open ml-2"></i> اختيار مجلد الفيديوهات
+                </button>
+                <p class="text-white/60 mt-4 text-sm">اختر مجلد الفيديوهات لتحميل جميع الفيديوهات الموجودة فيه مباشرة</p>
+            </div>
+        </div>
+
+        <!-- Videos Grid -->
+        <div id="videosGrid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- Videos will be loaded here -->
+        </div>
+
+        <!-- Video Player Modal -->
+        <div id="videoModal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4">
+            <div class="relative w-full max-w-5xl">
+                <button onclick="closeModal()" class="absolute -top-12 right-0 text-white text-3xl hover:text-pink-400">
+                    <i class="fa fa-times"></i>
+                </button>
+                <video id="videoPlayer" class="w-full rounded-xl" controls></video>
+                <div class="flex justify-between items-center mt-4">
+                    <h3 id="videoTitle" class="text-xl font-bold"></h3>
+                    <a id="downloadBtn" class="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg font-bold hover:opacity-90">
+                        <i class="fa fa-download ml-2"></i> تحميل الفيديو
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const videosGrid = document.getElementById('videosGrid');
+        const videoModal = document.getElementById('videoModal');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoTitle = document.getElementById('videoTitle');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const folderInput = document.getElementById('folderInput');
+
+        // Supported video formats
+        const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
+
+        folderInput.addEventListener('change', (e) => {
+            videosGrid.innerHTML = '';
+            const files = Array.from(e.target.files);
+            
+            const videoFiles = files.filter(file => {
+                const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+                return videoExtensions.includes(ext);
+            });
+
+            if(videoFiles.length === 0) {
+                videosGrid.innerHTML = '<div class="col-span-full text-center text-white/60 py-20">لم يتم العثور على فيديوهات في هذا المجلد</div>';
+                return;
+            }
+
+            videoFiles.forEach((file, index) => {
+                const url = URL.createObjectURL(file);
+                const card = document.createElement('div');
+                card.className = 'group bg-white/5 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all cursor-pointer';
+                
+                card.innerHTML = `
+                    <div class="relative aspect-video">
+                        <video muted preload="metadata" class="w-full h-full object-cover">
+                            <source src="${url}" type="${file.type}">
+                        </video>
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="w-16 h-16 bg-pink-500/90 rounded-full flex items-center justify-center">
+                                <i class="fa fa-play text-white text-2xl mr-[-2px]"></i>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded" id="duration-${index}">
+                            جاري التحميل...
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold truncate">${file.name}</h3>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-pink-400 text-sm">${(file.size / 1024 / 1024).toFixed(2)} ميجابايت</span>
+                            <button class="text-white/60 hover:text-pink-400 transition-colors" onclick="event.stopPropagation(); downloadVideo('${url}', '${file.name}')">
+                                <i class="fa fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                card.addEventListener('click', () => openVideo(url, file.name));
+                
+                // Load duration
+                setTimeout(() => {
+                    const video = card.querySelector('video');
+                    video.addEventListener('loadedmetadata', () => {
+                        const mins = Math.floor(video.duration / 60);
+                        const secs = Math.floor(video.duration % 60);
+                        document.getElementById(`duration-${index}`).textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    });
+                }, 100);
+
+                videosGrid.appendChild(card);
+            });
+        });
+
+        function openVideo(url, title) {
+            videoPlayer.src = url;
+            videoTitle.textContent = title;
+            downloadBtn.href = url;
+            downloadBtn.download = title;
+            videoModal.classList.remove('hidden');
+            videoPlayer.play();
+        }
+
+        function closeModal() {
+            videoPlayer.pause();
+            videoModal.classList.add('hidden');
+        }
+
+        function downloadVideo(url, title) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = title;
+            a.click();
+        }
+
+        // Close modal on escape
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'Escape') closeModal();
+        });
+    </script>
+
+</body>
+</html>

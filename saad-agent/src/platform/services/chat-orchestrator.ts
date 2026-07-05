@@ -12,15 +12,39 @@ import { KnowledgeIngestionService } from "./knowledge-ingestion.js";
 import { DomainResolver } from "./domain-resolver.js";
 import { KnowledgeManagerService } from "./knowledge-manager.js";
 import { ApprovalPolicyService, type ApprovalMode, type ApprovalRequest } from "./approval-policy.js";
-import { ExecutionPolicyService } from "./execution-policy.js";
+import { ExecutionPolicyService, type ExecutionDecisionResult } from "./execution-policy.js";
 import { ExecutionTraceEmitter } from "./execution-trace-emitter.js";
 import { TaskStateStore, type TaskLifecycleState } from "./state-store.js";
 import { LearningEngine } from "./learning-engine.js";
 import { ConversationStateEngine } from "./conversation-state-engine.js";
 import { CodexRuntimeBridge } from "./codex-runtime-bridge.js";
 import { InternalWorkspaceExecutor } from "./internal-workspace-executor.js";
+import { LocalFileSearchExecutor } from "./local-file-search-executor.js";
 import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 import { LocalImageClassifierService } from "./local-image-classifier.js";
+
+const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
+const READABLE_ATTACHMENT_EXTENSIONS = new Set([
+  ".txt",
+  ".md",
+  ".markdown",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".toml",
+  ".xml",
+  ".html",
+  ".css",
+  ".js",
+  ".jsx",
+  ".ts",
+  ".tsx",
+  ".py",
+  ".sh",
+  ".ps1",
+  ".env.example",
+  ".openapi"
+]);
 
 export interface ChatOrchestrationResult {
   response: string;
@@ -115,6 +139,10 @@ export class ChatOrchestratorService {
       input.workspacePath || CONFIG.PROJECT_ROOT
     );
     await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
+    const readableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(input.attachments);
+    const reviewRequestText = readableAttachmentContext
+      ? [userRequestText, readableAttachmentContext].join("\n\n")
+      : userRequestText;
     const conversationState = ConversationStateEngine.getState(sessionId);
 
     if (!input.attachments?.length) {
@@ -206,6 +234,28 @@ export class ChatOrchestratorService {
         usedModel: false,
         response: ChatOrchestratorService.formatCasualAcknowledgement(userRequestText)
       };
+    }
+
+    if (!input.attachments?.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+      return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
+        userRequestText,
+        activeWorkspace,
+        input.signal
+      );
+    }
+
+    const quietDecision = await ExecutionPolicyService.evaluateDecision(
+      userRequestText,
+      activeWorkspace,
+      effectiveApprovalMode,
+      conversationId
+    );
+    if (!input.attachments?.length && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
+      return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
+        userRequestText,
+        activeWorkspace,
+        input.signal
+      );
     }
 
     if (!input.attachments?.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
@@ -372,6 +422,42 @@ export class ChatOrchestratorService {
       };
     }
 
+    if (decisionResult.workflow === "local_filesystem_search") {
+      ConversationStateEngine.updateState(sessionId, {
+        lastIntent: "workspace_query",
+        activeWorkflow: "local_filesystem_search",
+        activeTask: userRequestText
+      });
+
+      await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Collecting trusted workspace search evidence");
+      const searchResult = await LocalFileSearchExecutor.run({
+        taskId,
+        conversationId,
+        prompt: userRequestText,
+        workspacePath: activeWorkspace,
+        limit: 36
+      });
+      await TaskStateStore.transitionTask(
+        taskId,
+        "VALIDATING",
+        `Trusted workspace search completed with ${searchResult.groups.reduce((sum, group) => sum + group.results.length, 0)} matches`
+      );
+      await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Local search gaps checked");
+      await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Local search response impact assessed");
+      await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Local search is read-only");
+      await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing trusted workspace search response");
+      await TaskStateStore.transitionTask(taskId, "PLANNING", "No file modification planned");
+      await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "Formatting local search results");
+      await TaskStateStore.transitionTask(taskId, "VERIFYING", "Local search response prepared");
+      await TaskStateStore.transitionTask(taskId, "COMPLETED", "Local trusted workspace search completed");
+
+      return {
+        intent: "workspace_query",
+        usedModel: false,
+        response: searchResult.response
+      };
+    }
+
     // 1. Domain Detection (Section 5)
     const domainResult = DomainResolver.resolve(userRequestText);
     if (domainResult.isResolved && domainResult.skipLLM) {
@@ -436,7 +522,7 @@ export class ChatOrchestratorService {
     }
 
     // 3. Load Memory / Training / Knowledge (Section 1)
-    const preAnswerReview = await PreAnswerReviewService.review(userRequestText, activeWorkspace, { taskId, conversationId }, intent === "conversation");
+    const preAnswerReview = await PreAnswerReviewService.review(reviewRequestText, activeWorkspace, { taskId, conversationId }, intent === "conversation");
 
     if (ChatOrchestratorService.isExplicitCodexRuntimeRequest(userRequestText)) {
       await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Codex bridge context collected");
@@ -457,7 +543,8 @@ export class ChatOrchestratorService {
         preAnswerReview.finalContext,
         "",
         "User request:",
-        userRequestText.replace(/^\/codex\s*/i, "").trim()
+        userRequestText.replace(/^\/codex\s*/i, "").trim(),
+        readableAttachmentContext ? ["", readableAttachmentContext].join("\n") : ""
       ].join("\n");
 
       await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "Starting Codex runtime bridge");
@@ -489,7 +576,10 @@ export class ChatOrchestratorService {
           taskId,
           conversationId,
           workspacePath: activeWorkspace,
-          prompt: userRequestText
+          prompt: userRequestText,
+          attachmentCount: input.attachments?.length || 0,
+          attachmentNames: input.attachments?.map((item) => item.filename) || [],
+          readableAttachmentContext
         });
 
         if (internalResult.handled) {
@@ -551,7 +641,10 @@ export class ChatOrchestratorService {
           taskId,
           conversationId,
           workspacePath: activeWorkspace,
-          prompt: userRequestText
+          prompt: userRequestText,
+          attachmentCount: input.attachments?.length || 0,
+          attachmentNames: input.attachments?.map((item) => item.filename) || [],
+          readableAttachmentContext
         });
 
         if (internalResult.success) {
@@ -587,7 +680,8 @@ export class ChatOrchestratorService {
         preAnswerReview.finalContext,
         "",
         "User request:",
-        userRequestText
+        userRequestText,
+        readableAttachmentContext ? ["", readableAttachmentContext].join("\n") : ""
       ].join("\n");
 
       await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "Starting Codex runtime bridge");
@@ -619,7 +713,10 @@ export class ChatOrchestratorService {
           taskId,
           conversationId,
           workspacePath: activeWorkspace,
-          prompt: userRequestText
+          prompt: userRequestText,
+          attachmentCount: input.attachments?.length || 0,
+          attachmentNames: input.attachments?.map((item) => item.filename) || [],
+          readableAttachmentContext
         });
 
         if (internalResult.handled) {
@@ -906,10 +1003,13 @@ export class ChatOrchestratorService {
               formattedHistory,
               "",
               "Latest user request:",
-              userRequestText
+              userRequestText,
+              readableAttachmentContext ? ["", readableAttachmentContext].join("\n") : ""
             ].join("\n");
           } else {
-            userPrompt = userRequestText;
+            userPrompt = readableAttachmentContext
+              ? [userRequestText, readableAttachmentContext].join("\n\n")
+              : userRequestText;
           }
         } else {
           userPrompt = [
@@ -918,6 +1018,7 @@ export class ChatOrchestratorService {
             "Retrieved workspace context:",
             contextSummary,
             localFileSystemContext ? `Retrieved Local Filesystem Data:\n${localFileSystemContext}` : "",
+            readableAttachmentContext,
             promptAugmentationText,
             "User request:",
             userRequestText
@@ -980,16 +1081,13 @@ export class ChatOrchestratorService {
           sourceService: "ReasoningEngine"
         });
         await TaskStateStore.transitionTask(taskId, "FAILED", errorMessage);
+        const fallbackResponse = ChatOrchestratorService.formatTrainingKnowledgeFallbackResponse(
+          userRequestText,
+          allMatches,
+          errorMessage
+        );
         response = {
-          rawResponse: [
-            "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
-            "",
-            `السبب: ${errorMessage}`,
-            "",
-            "راجع إعدادات المزود والموديل، خصوصاً Endpoint الخاص بـ LM Studio. لازم يكون مثل:",
-            "`http://127.0.0.1:32768`",
-            "والاستدعاء الداخلي يستخدم `/api/v1/chat` أو `/api/v1/chat/completions`."
-          ].join("\n")
+          rawResponse: fallbackResponse || ChatOrchestratorService.formatModelFailureResponse(errorMessage)
         };
       }
       
@@ -1306,6 +1404,129 @@ export class ChatOrchestratorService {
     return allowedTriggers || explicitLinksOrSources || directExternalSearch;
   }
 
+  private static shouldAnswerQuietly(decision: ExecutionDecisionResult, prompt: string): boolean {
+    if (decision.requiresApproval) return false;
+    if (!["ANSWER", "EXPLAIN"].includes(decision.decision)) return false;
+    if ([
+      "engineering_workflow",
+      "external_research",
+      "local_filesystem_search",
+      "local_image_classification",
+      "safety_rejection"
+    ].includes(decision.workflow)) {
+      return false;
+    }
+    if (this.isCasualAcknowledgement(prompt) || this.isAgentIdentityQuestion(prompt)) return false;
+    return true;
+  }
+
+  private static async answerQuietlyWithTrainingKnowledge(
+    userRequestText: string,
+    activeWorkspace: string,
+    signal?: AbortSignal
+  ): Promise<ChatOrchestrationResult> {
+    let preAnswerReview: Awaited<ReturnType<typeof PreAnswerReviewService.review>> | null = null;
+    try {
+      preAnswerReview = await PreAnswerReviewService.review(
+        userRequestText,
+        activeWorkspace,
+        undefined,
+        false
+      );
+      const trainingNotice = preAnswerReview.knowledgeMatches.length
+        ? `Matched trained knowledge files: ${preAnswerReview.knowledgeMatches.length}`
+        : "No matching trained knowledge found. Answering from model knowledge only.";
+      const response = await ReasoningEngine.requestCompletion({
+        role: "Coding",
+        systemPrompt: [
+          "You are Saad Studio Agent, the user's local AI engineering assistant.",
+          "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
+          "Always reply in natural Iraqi Arabic unless the user asks for another language.",
+          "Answer naturally and briefly unless the user asks for detail.",
+          "Before answering, use the provided memory, training knowledge, project rules, and skills context.",
+          "If no matching trained knowledge is present, do not pretend that training was used.",
+          "Do not print execution diagnostics or an execution trace in the final answer.",
+          "",
+          trainingNotice,
+          "",
+          preAnswerReview.finalContext
+        ].join("\n"),
+        userPrompt: userRequestText,
+        signal,
+        requestTimeoutMs: 12000,
+        retryCountOverride: 0
+      });
+      return {
+        intent: "conversation",
+        usedModel: true,
+        response: response.rawResponse
+      };
+    } catch (err: any) {
+      const errorMessage = err?.message || "Unknown model provider error";
+      const fallbackResponse = ChatOrchestratorService.formatTrainingKnowledgeFallbackResponse(
+        userRequestText,
+        preAnswerReview?.knowledgeMatches || [],
+        errorMessage
+      );
+      return {
+        intent: "conversation",
+        usedModel: Boolean(!fallbackResponse),
+        response: fallbackResponse || ChatOrchestratorService.formatModelFailureResponse(errorMessage)
+      };
+    }
+  }
+
+  private static formatModelFailureResponse(errorMessage: string): string {
+    return [
+      "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
+      "",
+      `السبب: ${errorMessage}`,
+      "",
+      "راجع إعدادات المزود والموديل، خصوصاً Endpoint الخاص بـ LM Studio. لازم يكون مثل:",
+      "`http://127.0.0.1:32768`",
+      "والاستدعاء الداخلي يستخدم `/api/v1/chat` أو `/api/v1/chat/completions`."
+    ].join("\n");
+  }
+
+  private static formatTrainingKnowledgeFallbackResponse(
+    userRequestText: string,
+    matches: Array<{ item: any; chunks?: Array<{ content: string }> }>,
+    errorMessage: string
+  ): string | null {
+    const usableMatches = matches.filter((match) => match?.item).slice(0, 4);
+    if (!usableMatches.length) return null;
+
+    const sources = usableMatches.map((match, index) => {
+      const title = match.item.title || match.item.fileName || path.basename(match.item.filePath || `source-${index + 1}`);
+      const summary = String(match.item.summary || "").trim();
+      const chunkText = (match.chunks || [])
+        .slice(0, 2)
+        .map((chunk) => String(chunk.content || "").trim())
+        .filter(Boolean)
+        .join("\n")
+        .slice(0, 900);
+      return [
+        `${index + 1}. ${title}`,
+        summary ? `   Summary: ${summary}` : "",
+        chunkText ? `   Matched content: ${chunkText}` : ""
+      ].filter(Boolean).join("\n");
+    }).join("\n\n");
+
+    return [
+      "ما راح أخلي الطلب يضيع لأن الموديل تأخر.",
+      "لقيت تدريب مطابق، فأرجع لك خلاصة مبنية على المعرفة المخزونة بدل جواب تخميني من الموديل.",
+      "",
+      `سؤالك: ${userRequestText}`,
+      "",
+      "المراجع المطابقة:",
+      sources,
+      "",
+      "ملاحظة تقنية:",
+      `LM Studio فشل أو تأخر: ${errorMessage}`,
+      "حتى تحصل جواب مصاغ بالكامل، شغّل/خفف الموديل أو غيّر الموديل السريع. بس التدريب نفسه موجود وقابل للاسترجاع."
+    ].join("\n");
+  }
+
   private static isSimpleGreeting(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     const greetings = [
@@ -1507,6 +1728,73 @@ export class ChatOrchestratorService {
       .filter((line) => line && !/^(Composer action|Runtime agent|Runtime model|Runtime provider|Runtime skill|Requested MCP tool|Workspace)\s*:/i.test(line))
       .join("\n")
       .trim();
+  }
+
+  private static isReadableAttachment(attachment: Attachment): boolean {
+    const mimeType = (attachment.mimeType || "").toLowerCase();
+    const fileName = (attachment.filename || attachment.localPath || "").toLowerCase();
+    const ext = path.extname(fileName);
+    if (mimeType.startsWith("text/")) return true;
+    if (mimeType.includes("json") || mimeType.includes("yaml") || mimeType.includes("xml") || mimeType.includes("markdown")) return true;
+    return READABLE_ATTACHMENT_EXTENSIONS.has(ext);
+  }
+
+  private static async buildReadableAttachmentContext(attachments?: Attachment[]): Promise<string> {
+    if (!attachments?.length) return "";
+    const blocks: string[] = [];
+    for (const attachment of attachments) {
+      const sourcePath = attachment.localPath;
+      const safeName = EngineeringMemory.scrubSecrets(attachment.filename || path.basename(sourcePath || "attachment"));
+      if (!sourcePath || !this.isReadableAttachment(attachment)) {
+        blocks.push([
+          `Attachment: ${safeName}`,
+          `Status: metadata-only`,
+          `Reason: attachment is not a supported readable text file in the current runtime.`
+        ].join("\n"));
+        continue;
+      }
+      const stat = await fs.stat(sourcePath).catch(() => null);
+      if (!stat?.isFile()) {
+        blocks.push([
+          `Attachment: ${safeName}`,
+          `Status: unavailable`,
+          `Reason: stored attachment file was not found.`
+        ].join("\n"));
+        continue;
+      }
+      if (stat.size > MAX_READABLE_ATTACHMENT_BYTES) {
+        const rawPartial = await fs.readFile(sourcePath, "utf8").catch(() => "");
+        const safePartial = EngineeringMemory.scrubSecrets(rawPartial.slice(0, MAX_READABLE_ATTACHMENT_BYTES));
+        blocks.push([
+          `Attachment: ${safeName}`,
+          `Mime: ${attachment.mimeType || "unknown"}`,
+          `Size: ${stat.size} bytes`,
+          `Status: read-partial`,
+          `Content truncated to ${MAX_READABLE_ATTACHMENT_BYTES} bytes for model context safety.`,
+          "",
+          safePartial
+        ].join("\n"));
+        continue;
+      }
+      const raw = await fs.readFile(sourcePath, "utf8").catch(() => "");
+      const safeContent = EngineeringMemory.scrubSecrets(raw);
+      blocks.push([
+        `Attachment: ${safeName}`,
+        `Mime: ${attachment.mimeType || "unknown"}`,
+        `Size: ${stat.size} bytes`,
+        `Status: read`,
+        "",
+        safeContent
+      ].join("\n"));
+    }
+    if (!blocks.length) return "";
+    return [
+      "Readable attachment context:",
+      "Use this content as primary evidence when the user asks about the attachment.",
+      "Do not pretend unreadable attachments were read.",
+      "",
+      blocks.map((block, index) => `--- Attachment ${index + 1} ---\n${block}`).join("\n\n")
+    ].join("\n");
   }
 
   private static normalizeArabic(input: string): string {
