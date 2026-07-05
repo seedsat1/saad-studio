@@ -20,6 +20,7 @@
   - Implemented automatic voiceover generation and video-audio stitching in `/cinema-flow`. When the user requests a voice/voiceover, the Gemini agent emits a `VIDEO_WITH_VOICEOVER_GEN` trigger, generating the ElevenLabs TTS voiceover script and using a new `/api/media/stitch` endpoint (powered by FFmpeg) to merge them on completion.
   - Resolved audio upload failures in production (e.g. music/voiceover) by implementing an automatic fallback to the `'media'` bucket in `lib/supabase-storage.ts` if the target `'audio'` bucket is missing or unconfigured in Supabase storage.
   - Added safety checks in the frontend `/cinema-flow` parser to prevent blank voiceover script crashes, falling back to silent video generation if the agent does not output a script or if the separator is missing.
+  - Implemented dynamic, model-aware language prompt generation: if the user selects a Google model (`google/gemini-omni-flash`), the agent writes the visual prompt in the user's language (Arabic or English) to utilize native Arabic capabilities. If they select Kling or Seedance, the agent automatically enforces English prompts (since those engines only support English).
 - Affected files:
   - `app/(dash)/(routes)/cinema-flow/page.tsx` [MODIFY]
   - `app/api/cinema-flow/chat/route.ts` [MODIFY]
