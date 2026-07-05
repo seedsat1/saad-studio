@@ -19,6 +19,21 @@
   - `win-unpacked` is an application runtime folder, not a user project workspace.
   - Static fallback must never claim success when it ignored required attachment content.
 
+## Latest task: Saad Agent Readable Attachment Context Wiring (2026-07-05)
+
+- Status:
+  - Fixed direct chat answers with text-like attachments so the backend reads safe readable attachment content before answering.
+  - Added bounded readable attachment context for Markdown, TXT, JSON, YAML, XML, HTML, CSS, JS/TS, Python, shell, and OpenAPI-like text files.
+  - Non-readable attachments remain metadata-only and must not be claimed as fully read.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Smoke test: the Kling 3.0 pasted Markdown attachment context contains `Kling 3.0` and `/api/v1/jobs/createTask`.
+- Decision:
+  - Attachment-aware questions such as "هل تعرف ماهذا؟" must use the actual readable attachment content, not filename/size metadata guesses.
+
 ## Latest task: Saad Agent Internal Executor Encoding Fix (2026-07-05)
 
 - Status:
@@ -79,6 +94,7 @@
   - Fixed HTTP 413 Payload Too Large error when uploading high-resolution reference images in the `/audio` workspace. Implemented client-side canvas-based image compression that dynamically scales reference images to a maximum of 800px width/height and exports them as compressed JPEGs (reducing payload sizes from megabytes to under 80KB), ensuring compliance with server body size limits.
   - Fixed HTTP 400 Bad Request (Model not found) when generating with the Pro model. Corrected all Minimax model references across the codebase from the incorrect prefix format (e.g. `minimax/minimax-music-2.5`) to the correct WaveSpeed endpoint format (`minimax/music-2.5`), and updated prompt validation to allow empty prompt values when custom lyrics are entered (using chosen style as fallback prompt).
   - Fixed HTTP 502 Bad Gateway during Minimax music generation. Since Minimax generates music asynchronously (returning a prediction ID initially instead of the immediate audio file URL), the backend has been updated to include a polling loop that queries WaveSpeed's prediction results for up to 3 minutes, and added `maxDuration = 180` to the Next.js API route to prevent Vercel execution timeouts.
+  - Fixed HTTP 400 Bad Request when generating with Minimax Pro without writing custom lyrics. Since Minimax requires a non-empty `lyrics` field in its API schema (unlike ElevenLabs), the backend has been updated to automatically set a fallback `[Instrumental]` placeholder value when the `lyrics` property is empty or undefined, satisfying validation constraints.
 - Affected files:
   - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
 - Verification:

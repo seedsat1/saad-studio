@@ -257,7 +257,12 @@ export async function POST(req: Request) {
         if (style?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(style, 200)}`;
         if (lyrics?.trim()) payload.prompt = `${payload.prompt} ${sanitizePrompt(lyrics, 2500)}`;
       } else {
-        if (lyrics?.trim()) payload.lyrics = sanitizePrompt(lyrics, 2500);
+        if (model.startsWith("minimax/")) {
+          const finalLyrics = lyrics?.trim() || "[Instrumental]";
+          payload.lyrics = sanitizePrompt(finalLyrics, 2500);
+        } else {
+          if (lyrics?.trim()) payload.lyrics = sanitizePrompt(lyrics, 2500);
+        }
         if (style?.trim()) payload.tags = sanitizePrompt(style, 200);
         if (duration && Number.isFinite(duration) && duration > 0 && duration <= 300) payload.duration = duration;
       }
