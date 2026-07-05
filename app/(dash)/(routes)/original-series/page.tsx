@@ -2083,6 +2083,9 @@ function AICanvasInner() {
         }
 
         const prompt = [...inputPrompts, s.prompt].filter(Boolean).join("\n\n");
+        if (inputPrompts.length > 0) {
+          patchNode(nodeId, { settings: { ...s, prompt } });
+        }
         if (s.imageUrl) inputImageUrls.push(s.imageUrl);
         inputImageUrl = inputImageUrls[0];
         const imageUrl = inputImageUrl;
@@ -2392,7 +2395,8 @@ function AICanvasInner() {
           }
           case "list": {
             if (prompt) {
-              const listItems = prompt.split(/[;\n]/).map(item => item.trim()).filter(Boolean);
+              const delimiter = s.splitChar || "\n";
+              const listItems = prompt.split(delimiter).map(item => item.trim()).filter(Boolean);
               const noteText = listItems.join("\n");
               patchNode(nodeId, { settings: { ...s, noteText } });
               addActivity({ nodeId, nodeLabel: data.label, level: "success", message: `Parsed ${listItems.length} items from input.` });

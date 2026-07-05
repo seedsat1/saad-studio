@@ -695,8 +695,9 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
   const hasOutput  = cfg.hasImageOutput || cfg.hasVideoOutput || cfg.hasTextOutput;
 
   const isRouter = data.nodeType === "connector" && data.label.toLowerCase().includes("router");
+  const delimiter = data.settings.splitChar || "\n";
   const items = data.nodeType === "list" && data.settings.noteText
-    ? data.settings.noteText.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean)
+    ? data.settings.noteText.split(delimiter).map((l: string) => l.trim()).filter(Boolean)
     : [];
 
   const inSlots  = (["image", "video", "prompt"] as const).filter(s =>
@@ -1233,6 +1234,28 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
                       {isEditingList ? "Save" : "Edit"}
                     </button>
                   </div>
+                  <div className="nodrag" style={{ padding: "6px 14px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <span style={{ color: "#556b83", fontSize: 11 }}>Split text by:</span>
+                    <input
+                      type="text"
+                      className="nowheel"
+                      value={data.settings.splitChar ?? "\n"}
+                      onChange={e => { SP(e); updateNodeSettings(id, { splitChar: e.target.value }); }}
+                      onMouseDown={SP}
+                      style={{
+                        width: 44,
+                        height: 22,
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        borderRadius: 5,
+                        color: "#fde68a",
+                        textAlign: "center",
+                        fontSize: 12,
+                        outline: "none",
+                        fontFamily: "monospace"
+                      }}
+                    />
+                  </div>
                   {isEditingList ? (
                     <div style={{ flex: 1, padding: "10px 14px" }}>
                       <textarea className="nodrag nowheel"
@@ -1549,7 +1572,7 @@ function CanvasNodeInner({ id, data, selected }: NodeProps<Node<CanvasNodeData>>
             border: "2.5px solid rgba(5,10,22,0.9)",
             boxShadow: "0 0 8px rgba(139,92,246,0.6)",
             right: -6,
-            top: `${38 + 16 + (i * 32)}px`, // Align with row centers: header is 38px + center of 32px height row is 16px
+            top: `${38 + 34 + 16 + (i * 32)}px`, // Align with row centers: header is 38px + delimiter bar is 34px + center of 32px row is 16px
             transform: "translateY(-50%)",
             cursor: "crosshair", zIndex: 100,
           }}

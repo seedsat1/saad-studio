@@ -41,6 +41,7 @@ export interface CanvasNodeSettings {
   videoUrl?: string;
   ttsVoice?: string;
   noteText?: string;
+  splitChar?: string;
 }
 
 export interface CanvasNodeData extends Record<string, unknown> {
@@ -406,11 +407,11 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     creditCost: 0,
     hasImageInput: false,
     hasVideoInput: false,
-    hasPromptInput: false,
+    hasPromptInput: true,
     hasImageOutput: false,
     hasVideoOutput: false,
     hasTextOutput: true,
-    defaultSettings: { noteText: '' },
+    defaultSettings: { noteText: '', splitChar: '\n' },
   },
   connector: {
     label: 'Connector',
