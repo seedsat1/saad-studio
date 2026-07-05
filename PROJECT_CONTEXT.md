@@ -1,4 +1,16 @@
-# Saad Studio Ã¢â‚¬â€ Project Context
+# Saad Studio — Project Context
+
+## Latest task: Fix Audio Suite frontend fallback for relative storage URLs (2026-07-05)
+
+- Status:
+  - Fixed a `404 (Not Found)` error when playing generated audio tracks on the Audio Suite page (`/audio`).
+  - Added robust fallback logic in `app/(dash)/(routes)/audio/page.tsx` utilizing the `getFallbackUrls` utility. If loading the raw relative storage path (e.g. `audio/user_...`) fails, the player automatically falls back to direct S3/B2 friendly URLs, CDN URLs, and backend API proxies.
+- Affected files:
+  - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
+- Verification:
+  - Checked TypeScript compilation using `npx tsc --noEmit`.
+- Decision:
+  - Front-end media players must always consume media URLs via `getFallbackUrls` or `normalizeMediaUrl` to prevent broken relative URL resolution on the browser side.
 
 ## Latest task: Fix Google Lyria Music Generation upload signature error (2026-07-05)
 

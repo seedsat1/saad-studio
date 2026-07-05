@@ -9,7 +9,7 @@ import {
   Check, MoreHorizontal, Zap, Plus, Heart, List, RotateCcw, Clock,
   Star, AlignLeft, Sliders
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getFallbackUrls } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
@@ -316,6 +316,17 @@ export default function AudioPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
 
+  const [currentAudioSrc, setCurrentAudioSrc] = useState<string>("");
+
+  useEffect(() => {
+    if (!currentTrack?.audioUrl) {
+      setCurrentAudioSrc("");
+      return;
+    }
+    const list = getFallbackUrls(currentTrack.audioUrl);
+    setCurrentAudioSrc(list[0] || "");
+  }, [currentTrack?.audioUrl]);
+
   // Sync play/pause with audio ref
   useEffect(() => {
     if (!audioRef.current) return;
@@ -324,13 +335,32 @@ export default function AudioPage() {
     } else {
       audioRef.current.pause();
     }
-  }, [isPlaying, currentTrack?.audioUrl]);
+  }, [isPlaying, currentAudioSrc]);
 
   // Volume & mute sync
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = isMuted ? 0 : volume / 100;
   }, [volume, isMuted]);
+
+  const handleAudioError = () => {
+    if (!currentTrack?.audioUrl) return;
+    const list = getFallbackUrls(currentTrack.audioUrl);
+    const nextIndex = list.indexOf(currentAudioSrc) + 1;
+    if (nextIndex > 0 && nextIndex < list.length) {
+      const nextSrc = list[nextIndex];
+      setCurrentAudioSrc(nextSrc);
+      setTimeout(() => {
+        const a = audioRef.current;
+        if (a) {
+          a.load();
+          if (isPlaying) {
+            a.play().catch(() => {});
+          }
+        }
+      }, 50);
+    }
+  };
 
   // ── Generation execution ──
   const handleGenerate = useCallback(async () => {
@@ -496,12 +526,13 @@ export default function AudioPage() {
       {currentTrack?.audioUrl && (
         <audio
           ref={audioRef}
-          src={currentTrack.audioUrl}
+          src={currentAudioSrc}
           onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => {
             setIsPlaying(false);
             setCurrentTime(0);
           }}
+          onError={handleAudioError}
         />
       )}
 
