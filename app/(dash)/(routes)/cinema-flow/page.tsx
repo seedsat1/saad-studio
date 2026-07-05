@@ -527,6 +527,12 @@ export default function CinemaFlowPage() {
       if (replyText.startsWith("IMAGE_GEN:")) {
         const refinedPrompt = replyText.replace("IMAGE_GEN:", "").trim();
         await executeImageGeneration(refinedPrompt, finalRefUrls);
+      } else if (replyText.startsWith("VIDEO_WITH_VOICEOVER_GEN:")) {
+        const payloadStr = replyText.replace("VIDEO_WITH_VOICEOVER_GEN:", "").trim();
+        const parts = payloadStr.split("|");
+        const videoPrompt = parts[0].trim();
+        const voiceoverText = parts.slice(1).join("|").trim();
+        await executeVideoWithVoiceoverGeneration(videoPrompt, voiceoverText, finalRefUrls, videoRefUrl, audioRefUrls);
       } else if (replyText.startsWith("VIDEO_GEN:")) {
         const refinedPrompt = replyText.replace("VIDEO_GEN:", "").trim();
         await executeVideoGeneration(refinedPrompt, finalRefUrls, videoRefUrl, audioRefUrls);
@@ -759,6 +765,202 @@ export default function CinemaFlowPage() {
       });
       setIsAgentTyping(false);
     }
+  };
+
+  // Trigger Video Generation with Voiceover
+  const executeVideoWithVoiceoverGeneration = async (
+    videoPrompt: string,
+    voiceoverText: string,
+    imageRefUrls?: string[] | null,
+    videoRefUrl?: string | null,
+    audioRefUrls?: string[] | null
+  ) => {
+    // Dynamic cost calculation based on model and duration
+    let rate = 2.0; // Default (Gemini Omni Flash)
+    let modelName = "Gemini Omni Flash";
+
+    if (selectedVideoModel.includes("kling")) {
+      rate = 2.5;
+      modelName = "Kling 3.0 Pro";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
+      rate = 4.5333;
+      modelName = "Seedance 2.0";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
+      rate = 2.5333;
+      modelName = "Seedance 2.0 Mini";
+    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
+      rate = 6.0;
+      modelName = "Seedance 2.0 Fast";
+    }
+
+    const videoCost = Number((rate * videoDuration).toFixed(2));
+    const ttsCost = 3.0; // ElevenLabs TTS cost
+    const totalCost = videoCost + ttsCost;
+
+    const gate = await guardGeneration({ requiredCredits: totalCost, action: "video:generate" });
+    if (!gate.ok) {
+      setChatMessages(prev => [...prev, {
+        id: Math.random().toString(),
+        sender: "agent",
+        text: "Sorry, you don't have enough credits to run this model."
+      }]);
+      setIsAgentTyping(false);
+      return;
+    }
+
+    setChatMessages(prev => [...prev, {
+      id: Math.random().toString(),
+      sender: "agent",
+      text: "جاري توليد الفيديو والتعليق الصوتي... يرجى الانتظار.",
+      isGenerating: true
+    }]);
+
+    const firstImage = imageRefUrls && imageRefUrls.length > 0 ? imageRefUrls[0] : null;
+    const extraReferenceUrls = imageRefUrls && imageRefUrls.length > 1 ? imageRefUrls.slice(1) : [];
+
+    try {
+      // Step A: Trigger ElevenLabs TTS Voiceover generation in parallel
+      const ttsPromise = fetch("/api/generate/audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "tts",
+          text: voiceoverText,
+          voice: "Aria", // Multilingual high quality voice
+          model: "elevenlabs/multilingual-v2"
+        })
+      }).then(async r => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || !d.audioUrl) {
+          throw new Error(d.error ?? "Failed to generate voiceover audio.");
+        }
+        return d.audioUrl as string;
+      });
+
+      // Step B: Trigger Video Generation
+      const videoRes = await fetch("/api/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modelRoute: selectedVideoModel,
+          payload: {
+            prompt: videoPrompt,
+            duration: videoDuration,
+            aspectRatio: aspectRatio,
+            resolution: videoQuality,
+            ...(firstImage ? { image_url: firstImage } : {}),
+            ...(extraReferenceUrls.length > 0 ? { reference_image_urls: extraReferenceUrls } : {}),
+            ...(videoRefUrl ? { video_url: videoRefUrl } : {}),
+            ...(audioRefUrls && audioRefUrls.length > 0 ? { audio_urls: audioRefUrls } : {})
+          }
+        })
+      });
+
+      const videoData = await videoRes.json().catch(() => ({}));
+      if (!videoRes.ok || !videoData.taskId) {
+        throw new Error(videoData.error ?? "Failed to generate video.");
+      }
+
+      // Start polling for video, then stitch voiceover
+      startPollingVideoWithVoiceover(videoData.taskId, ttsPromise, videoPrompt);
+
+    } catch (err: any) {
+      setChatMessages(prev => {
+        const filtered = prev.filter(m => !m.isGenerating);
+        return [...filtered, {
+          id: Math.random().toString(),
+          sender: "agent",
+          text: `Generation failed: ${err.message}`
+        }];
+      });
+      setIsAgentTyping(false);
+    }
+  };
+
+  // Poll video status with voiceover stitching
+  const startPollingVideoWithVoiceover = (taskId: string, ttsPromise: Promise<string>, promptText: string) => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+    const check = async () => {
+      try {
+        const res = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`);
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || data.status === "failed") {
+          throw new Error(data.error ?? "Failed to generate video.");
+        }
+
+        if (data.status === "completed" && data.outputs?.[0]) {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+          const voiceoverUrl = await ttsPromise;
+          const silentVideoUrl = data.outputs[0];
+
+          // Stitch video and audio together
+          const stitchRes = await fetch("/api/media/stitch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoUrl: silentVideoUrl,
+              audioUrl: voiceoverUrl
+            })
+          });
+
+          const stitchData = await stitchRes.json().catch(() => ({}));
+          if (!stitchRes.ok || !stitchData.url) {
+            throw new Error(stitchData.error ?? "Failed to stitch voiceover with video.");
+          }
+
+          const finalUrl = stitchData.url;
+
+          addAsset({
+            type: "video",
+            url: finalUrl,
+            prompt: promptText,
+            model: "Gemini Omni Flash (with Voiceover)",
+            duration: "10s",
+            providerRequestId: taskId
+          });
+
+          const newAsset: MediaAsset = {
+            id: taskId,
+            type: "video",
+            url: finalUrl,
+            prompt: promptText,
+            model: "Gemini Omni Flash (with Voiceover)",
+            date: "Today",
+            createdAt: new Date().toISOString()
+          };
+
+          setAssets(prev => [newAsset, ...prev]);
+
+          setChatMessages(prev => {
+            const filtered = prev.filter(m => !m.isGenerating);
+            return [...filtered, {
+              id: Math.random().toString(),
+              sender: "agent",
+              text: "تم التوليد ودمج التعليق الصوتي بنجاح! تم حفظ الفيديو في معرض أعمالك.",
+              assetUrl: finalUrl,
+              assetType: "video"
+            }];
+          });
+          setIsAgentTyping(false);
+        }
+      } catch (err: any) {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        setChatMessages(prev => {
+          const filtered = prev.filter(m => !m.isGenerating);
+          return [...filtered, {
+            id: Math.random().toString(),
+            sender: "agent",
+            text: `Generation failed: ${err.message}`
+          }];
+        });
+        setIsAgentTyping(false);
+      }
+    };
+
+    pollIntervalRef.current = setInterval(check, 4000);
   };
 
   // Poll video status
