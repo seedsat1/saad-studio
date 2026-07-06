@@ -139,13 +139,15 @@ export class ChatOrchestratorService {
       input.workspacePath || CONFIG.PROJECT_ROOT
     );
     await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
-    const readableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(input.attachments);
+    const normalizedAttachments = ChatOrchestratorService.normalizeRuntimeAttachments(input.attachments);
+    input.attachments = normalizedAttachments;
+    const readableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(normalizedAttachments);
     const reviewRequestText = readableAttachmentContext
       ? [userRequestText, readableAttachmentContext].join("\n\n")
       : userRequestText;
     const conversationState = ConversationStateEngine.getState(sessionId);
 
-    if (!input.attachments?.length) {
+    if (!normalizedAttachments.length) {
       const normalizedRequest = ChatOrchestratorService.normalizeArabic(userRequestText);
       if (ChatOrchestratorService.isTrainingIngestRequest(userRequestText, normalizedRequest)) {
         return {
@@ -236,10 +238,11 @@ export class ChatOrchestratorService {
       };
     }
 
-    if (!input.attachments?.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+    if (!normalizedAttachments.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
         userRequestText,
         activeWorkspace,
+        ConversationStateEngine.getState(sessionId).history || [],
         input.signal
       );
     }
@@ -250,16 +253,20 @@ export class ChatOrchestratorService {
       effectiveApprovalMode,
       conversationId
     );
-    if (!input.attachments?.length && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
+    if (!normalizedAttachments.length && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
         userRequestText,
         activeWorkspace,
+        ConversationStateEngine.getState(sessionId).history || [],
         input.signal
       );
     }
 
-    if (!input.attachments?.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+    if (!normalizedAttachments.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       try {
+        const historyBlock = ChatOrchestratorService.formatConversationHistory(
+          ConversationStateEngine.getState(sessionId).history || []
+        );
         const response = await ReasoningEngine.requestCompletion({
           role: "Coding",
           systemPrompt: [
@@ -271,9 +278,14 @@ export class ChatOrchestratorService {
             "Do not refuse just because a topic is personal or intimate. Ask a short clarifying question only when the request is genuinely unclear or unsafe.",
             "Do not lecture, moralize, or say you cannot discuss family/private topics. Stay supportive while avoiding claims that you are a real human spouse or lover.",
             "This is a simple general question. Do not inspect project files, workspace context, tools, MCP, or training knowledge.",
+            "Use the provided conversation history when it exists.",
             "Answer directly, briefly, respectfully, and clearly. Keep the answer compact."
           ].join("\n"),
-          userPrompt: userRequestText,
+          userPrompt: [
+            historyBlock,
+            "Latest user request:",
+            userRequestText
+          ].filter(Boolean).join("\n\n"),
           signal: input.signal,
           requestTimeoutMs: 8000,
           retryCountOverride: 0
@@ -766,16 +778,18 @@ export class ChatOrchestratorService {
     let responseText = "";
 
     // Bypass LLM for non-LLM actions (Section 1: احفظ / درب نفسك / خزن / تذكر)
-    if (intent === "memory_save" || intent === "training_ingest") {
+    const shouldImportAttachmentsFirst = normalizedAttachments.length > 0
+      && ChatOrchestratorService.shouldImportAttachmentsBeforeAnswer(userRequestText);
+    if (intent === "memory_save" || intent === "training_ingest" || shouldImportAttachmentsFirst) {
       usedModel = false;
-      if (input.attachments && input.attachments.length > 0) {
+      if (normalizedAttachments.length > 0) {
         const approval = await ApprovalPolicyService.evaluate({
           mode: effectiveApprovalMode,
           conversationId,
           taskId,
           approved: input.approved,
           action: "import_knowledge",
-          files: input.attachments.map((item) => item.localPath || item.filename).filter(Boolean),
+          files: normalizedAttachments.map((item) => item.localPath || item.filename).filter(Boolean),
           reason: "Saving attachments as permanent training knowledge writes files into the knowledge vault."
         });
         if (approval.request) {
@@ -791,9 +805,9 @@ export class ChatOrchestratorService {
           mode: effectiveApprovalMode,
           conversationId,
           action: "import_knowledge",
-          files: input.attachments.map((item) => item.localPath || item.filename).filter(Boolean)
+          files: normalizedAttachments.map((item) => item.localPath || item.filename).filter(Boolean)
         }, approval, true, "attachment training import allowed");
-        const imported = await KnowledgeIngestionService.importAttachmentsAsTraining(activeWorkspace, input.attachments);
+        const imported = await KnowledgeIngestionService.importAttachmentsAsTraining(activeWorkspace, normalizedAttachments);
         const importedLines = imported.length
           ? imported.map((item) => `- ${item.fileName} -> ${item.trainingPath} (${item.category})`)
           : ["لم أتمكن من حفظ أي مرفق. تأكد أن الملف موجود وليس ملفًا حساسًا أو محذوفًا."];
@@ -1022,8 +1036,10 @@ export class ChatOrchestratorService {
               : userRequestText;
           }
         } else {
+          const historyBlock = ChatOrchestratorService.formatConversationHistory(conversationState.history || []);
           userPrompt = [
             `Project: ${input.projectName || path.basename(activeWorkspace)}`,
+            historyBlock,
             preAnswerReview.finalContext,
             "Retrieved workspace context:",
             contextSummary,
@@ -1433,6 +1449,7 @@ export class ChatOrchestratorService {
   private static async answerQuietlyWithTrainingKnowledge(
     userRequestText: string,
     activeWorkspace: string,
+    history: Array<{ role: "user" | "assistant"; content: string }> = [],
     signal?: AbortSignal
   ): Promise<ChatOrchestrationResult> {
     let preAnswerReview: Awaited<ReturnType<typeof PreAnswerReviewService.review>> | null = null;
@@ -1446,6 +1463,7 @@ export class ChatOrchestratorService {
       const trainingNotice = preAnswerReview.knowledgeMatches.length
         ? `Matched trained knowledge files: ${preAnswerReview.knowledgeMatches.length}`
         : "No matching trained knowledge found. Answering from model knowledge only.";
+      const historyBlock = ChatOrchestratorService.formatConversationHistory(history);
       const response = await ReasoningEngine.requestCompletion({
         role: "Coding",
         systemPrompt: [
@@ -1465,7 +1483,11 @@ export class ChatOrchestratorService {
           "",
           preAnswerReview.finalContext
         ].join("\n"),
-        userPrompt: userRequestText,
+        userPrompt: [
+          historyBlock,
+          "Latest user request:",
+          userRequestText
+        ].filter(Boolean).join("\n\n"),
         signal,
         requestTimeoutMs: 12000,
         retryCountOverride: 0
@@ -1742,6 +1764,111 @@ export class ChatOrchestratorService {
       .filter((line) => line && !/^(Composer action|Runtime agent|Runtime model|Runtime provider|Runtime skill|Requested MCP tool|Workspace)\s*:/i.test(line))
       .join("\n")
       .trim();
+  }
+
+  private static normalizeRuntimeAttachments(attachments?: Attachment[]): Attachment[] {
+    if (!Array.isArray(attachments)) return [];
+    return attachments.map((attachment, index) => {
+      const raw = (attachment || {}) as any;
+      const localPath = String(raw.localPath || raw.path || raw.previewPath || "").trim();
+      const fallbackName = localPath ? path.basename(localPath) : `attachment-${Date.now()}-${index + 1}.txt`;
+      const filename = this.safeRuntimeAttachmentFileName(
+        raw.filename || raw.name || raw.originalFilename || fallbackName,
+        raw.mimeType || raw.type
+      );
+      const mimeType = String(raw.mimeType || raw.type || this.inferRuntimeMimeType(filename) || "application/octet-stream");
+      return {
+        id: String(raw.id || `att-${Date.now()}-${index + 1}`),
+        filename,
+        mimeType,
+        size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : 0,
+        localPath,
+        previewPath: String(raw.previewPath || localPath),
+        source: raw.source === "clipboard" || raw.source === "drag_drop" ? raw.source : "upload",
+        timestamp: Number.isFinite(Number(raw.timestamp)) ? Number(raw.timestamp) : Date.now(),
+        workspaceId: String(raw.workspaceId || "default-workspace")
+      };
+    });
+  }
+
+  private static safeRuntimeAttachmentFileName(filename: string, mimeType?: string): string {
+    const fallbackExt = this.extensionFromRuntimeMimeType(mimeType);
+    const candidate = String(filename || "").trim() || `attachment-${Date.now()}${fallbackExt}`;
+    const safeBase = path.basename(candidate).replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_").trim();
+    return safeBase || `attachment-${Date.now()}${fallbackExt}`;
+  }
+
+  private static extensionFromRuntimeMimeType(mimeType?: string): string {
+    const value = String(mimeType || "").toLowerCase();
+    if (value.includes("markdown")) return ".md";
+    if (value.startsWith("text/")) return ".txt";
+    if (value.includes("json")) return ".json";
+    if (value.includes("yaml")) return ".yaml";
+    if (value.includes("pdf")) return ".pdf";
+    return ".bin";
+  }
+
+  private static inferRuntimeMimeType(filename: string): string {
+    const ext = path.extname(filename || "").toLowerCase();
+    if (ext === ".md" || ext === ".markdown") return "text/markdown";
+    if (ext === ".txt") return "text/plain";
+    if (ext === ".json") return "application/json";
+    if (ext === ".yaml" || ext === ".yml") return "application/yaml";
+    if (ext === ".toml") return "application/toml";
+    if (ext === ".xml") return "application/xml";
+    if (ext === ".html") return "text/html";
+    if (ext === ".css") return "text/css";
+    if (ext === ".js" || ext === ".jsx") return "text/javascript";
+    if (ext === ".ts" || ext === ".tsx") return "text/typescript";
+    if (ext === ".py") return "text/x-python";
+    if (ext === ".sh" || ext === ".ps1") return "text/plain";
+    if (ext === ".pdf") return "application/pdf";
+    return "application/octet-stream";
+  }
+
+  private static formatConversationHistory(history: Array<{ role: "user" | "assistant"; content: string }>): string {
+    const lines = (history || [])
+      .slice(-10)
+      .map((message) => {
+        const role = message.role === "assistant" ? "Assistant" : "User";
+        const content = EngineeringMemory.scrubSecrets(String(message.content || ""))
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 1200);
+        return content ? `${role}: ${content}` : "";
+      })
+      .filter(Boolean);
+    if (!lines.length) return "";
+    return ["Conversation history:", ...lines].join("\n");
+  }
+
+  private static shouldImportAttachmentsBeforeAnswer(prompt: string): boolean {
+    const lower = String(prompt || "").toLowerCase();
+    const normalized = this.normalizeArabic(prompt || "");
+    const englishSignal = /\b(save|store|remember|memorize|train|training|learn from|reference|memory|read|classify|categorize|index|ingest|search)\b/i.test(lower);
+    const arabicSignals = [
+      "\u0627\u062d\u0641\u0638",
+      "\u062d\u0641\u0638",
+      "\u062e\u0632\u0646",
+      "\u062e\u0632\u0651\u0646",
+      "\u062a\u0630\u0643\u0631",
+      "\u0630\u0627\u0643\u0631\u0629",
+      "\u0630\u0627\u0643\u0631\u0647",
+      "\u062f\u0631\u0628",
+      "\u062a\u062f\u0631\u064a\u0628",
+      "\u0645\u0631\u062c\u0639",
+      "\u0645\u0631\u0627\u062c\u0639",
+      "\u0627\u0642\u0631\u0623",
+      "\u0627\u0642\u0631\u0627",
+      "\u0631\u0627\u062c\u0639",
+      "\u0635\u0646\u0641",
+      "\u0627\u0628\u062d\u062b",
+      "\u0628\u062d\u062b",
+      "\u062a\u0639\u0644\u0645",
+      "\u0627\u062f\u062e\u0644\u0647\u0627",
+      "\u0636\u0645\u0646 \u0627\u062e\u062a\u0635\u0627\u0635\u0647\u0627"
+    ];
+    return englishSignal || arabicSignals.some((signal) => normalized.includes(signal));
   }
 
   private static isReadableAttachment(attachment: Attachment): boolean {

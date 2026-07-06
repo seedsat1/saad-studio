@@ -80,7 +80,7 @@ export interface TrainingAttachmentImportResult {
 
 export class KnowledgeIngestionService {
   private static readonly MAX_FILES = 350;
-  private static readonly MAX_FILE_BYTES = 512 * 1024;
+  private static readonly MAX_FILE_BYTES = 8 * 1024 * 1024;
   private static readonly MAX_CHUNKS = 900;
   private static readonly CHUNK_TOKENS = 450;
   private static readonly VECTOR_DIMENSIONS = 256;
@@ -273,7 +273,8 @@ export class KnowledgeIngestionService {
   ): Promise<TrainingAttachmentImportResult[]> {
     await this.ensureTrainingFolders(workspacePath);
     const imported: TrainingAttachmentImportResult[] = [];
-    for (const attachment of attachments) {
+    for (const rawAttachment of attachments) {
+      const attachment = this.normalizeAttachment(rawAttachment);
       const sourcePath = attachment.localPath;
       if (!sourcePath || SemanticSearch.isSensitiveFile(sourcePath)) continue;
       const stat = await fs.stat(sourcePath).catch(() => null);
@@ -467,6 +468,44 @@ export class KnowledgeIngestionService {
     if ([".ts", ".tsx", ".js", ".jsx", ".py", ".css", ".html"].includes(ext)) return "code-examples";
     if ([".md", ".txt"].includes(ext)) return "lessons";
     return "project-docs";
+  }
+
+  private static normalizeAttachment(attachment: Attachment): Attachment {
+    const anyAttachment = attachment as any;
+    const localPath = String(anyAttachment.localPath || anyAttachment.path || anyAttachment.previewPath || "").trim();
+    const fileName = String(
+      anyAttachment.filename ||
+      anyAttachment.name ||
+      anyAttachment.originalFilename ||
+      path.basename(localPath || "")
+    ).trim();
+    const safeFileName = this.safeTrainingFileName(fileName || `attachment-${Date.now()}.txt`);
+    const mimeType = String(anyAttachment.mimeType || anyAttachment.type || this.inferMimeTypeFromFileName(safeFileName));
+    return {
+      id: String(anyAttachment.id || `att-${Date.now()}`),
+      filename: safeFileName,
+      mimeType,
+      size: Number.isFinite(Number(anyAttachment.size)) ? Number(anyAttachment.size) : 0,
+      localPath,
+      previewPath: String(anyAttachment.previewPath || localPath),
+      source: anyAttachment.source === "clipboard" || anyAttachment.source === "drag_drop" ? anyAttachment.source : "upload",
+      timestamp: Number.isFinite(Number(anyAttachment.timestamp)) ? Number(anyAttachment.timestamp) : Date.now(),
+      workspaceId: String(anyAttachment.workspaceId || "default-workspace")
+    };
+  }
+
+  private static inferMimeTypeFromFileName(fileName: string): string {
+    const ext = path.extname(fileName || "").toLowerCase();
+    if (ext === ".md" || ext === ".markdown") return "text/markdown";
+    if (ext === ".txt") return "text/plain";
+    if (ext === ".json") return "application/json";
+    if (ext === ".yaml" || ext === ".yml") return "application/yaml";
+    if (ext === ".html") return "text/html";
+    if (ext === ".css") return "text/css";
+    if (ext === ".js" || ext === ".jsx") return "text/javascript";
+    if (ext === ".ts" || ext === ".tsx") return "text/typescript";
+    if (ext === ".pdf") return "application/pdf";
+    return "application/octet-stream";
   }
 
   private static safeTrainingFileName(fileName: string): string {
