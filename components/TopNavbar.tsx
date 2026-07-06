@@ -147,6 +147,10 @@ const VIDEO_FEATURES = [
   { label: "Lipsync Studio",      href: "/lipsync",          icon: Mic2,         color: "text-rose-400",    description: "Audio-driven facial animation",          badge: "" },
   { label: "ClipCraft Studio",    href: "/clipcraft-studio", icon: Sparkles,     color: "text-emerald-400", description: "Auto captions, reframe, AI dubbing, & translation", badge: "NEW" },
   { label: "Video Upscale",       href: "/video?tool=video-upscale",    icon: Aperture,     color: "text-blue-400",    description: "Enhance resolution to 4K/8K",            badge: "" },
+  { label: "AI Canvas",           href: "/original-series", icon: Monitor,      color: "text-purple-400",  description: "Build complete creative workflows from one visual workspace", badge: "NEW" },
+  { label: "3D Studio",           href: "/3d",              icon: Box,          color: "text-indigo-400",  description: "Generate and edit premium 3D models with AI", badge: "NEW" },
+  { label: "Assist",              href: "/assist",          icon: Bot,          color: "text-green-400",   description: "Your AI co-pilot, chatbot, and agent assistant", badge: "NEW" },
+  { label: "Smart CLI",           href: "/smart-cli",       icon: Plug,         color: "text-violet-400",  description: "AI terminal and hosted MCP connector for Claude", badge: "NEW" },
 ];
 
 const VIDEO_MODEL_GROUPS = [
