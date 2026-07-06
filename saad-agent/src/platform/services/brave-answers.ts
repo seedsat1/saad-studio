@@ -8,6 +8,22 @@ export interface BraveAnswersResult {
   cacheHit: boolean;
 }
 
+export type BraveAnswersErrorCode =
+  | "provider_disabled"
+  | "api_key_missing"
+  | "timeout"
+  | "request_failed";
+
+export class BraveAnswersError extends Error {
+  code: BraveAnswersErrorCode;
+
+  constructor(code: BraveAnswersErrorCode, message: string) {
+    super(message);
+    this.name = "BraveAnswersError";
+    this.code = code;
+  }
+}
+
 export class BraveAnswersService {
   private static cache = new Map<string, { result: BraveAnswersResult; timestamp: number }>();
   private static CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -23,6 +39,11 @@ export class BraveAnswersService {
     return keywords.some((k) => p.includes(k));
   }
 
+  static isConfigurationError(error: any): boolean {
+    return error instanceof BraveAnswersError
+      && (error.code === "provider_disabled" || error.code === "api_key_missing");
+  }
+
   static async query(searchQuery: string): Promise<BraveAnswersResult> {
     const cleanQuery = searchQuery.trim().toLowerCase();
     const now = Date.now();
@@ -36,12 +57,18 @@ export class BraveAnswersService {
     const provider = settings.providers.find((p) => p.id === "brave-answers");
 
     if (!provider || !provider.enabled) {
-      throw new Error("مزود Brave Answers غير مفعّل في الإعدادات.");
+      throw new BraveAnswersError(
+        "provider_disabled",
+        "Brave Answers provider is disabled or missing in Settings."
+      );
     }
 
     const apiKey = await SettingsManager.getProviderApiKey(provider);
     if (!apiKey) {
-      throw new Error("مفتاح API الخاص بـ Brave Answers مفقود. قم بإدخال المفتاح في صفحة الإعدادات.");
+      throw new BraveAnswersError(
+        "api_key_missing",
+        "Brave Answers API key is missing. Add it in Settings > Providers > Brave Answers."
+      );
     }
 
     const baseUrl = provider.endpointUrl || "https://api.search.brave.com/res/v1/web/search";
@@ -57,7 +84,10 @@ export class BraveAnswersService {
     };
 
     let finalQuery = searchQuery.replace(/["'«»“”]/g, "").trim();
-    const strippedFillers = finalQuery.replace(/(?:شنو|شنو هي|أريد|اريد|أحدث|احدث|عن|مكتبة|شكو|شنو نوع)\s+/gi, " ").replace(/[؟?]/g, "").trim();
+    const strippedFillers = finalQuery
+      .replace(/(?:شنو|شنو هي|أريد|اريد|أحدث|احدث|عن|مكتبة|شكو|شنو نوع)\s+/gi, " ")
+      .replace(/[؟?]/g, "")
+      .trim();
     if (strippedFillers.length >= 3) {
       finalQuery = strippedFillers;
     }
@@ -76,10 +106,9 @@ export class BraveAnswersService {
       const text = await res.text();
 
       if (!res.ok) {
-        // Print full request diagnostics on failure, as required by Section 7
         const cleanHeaders = { ...headers };
         if (cleanHeaders["X-Subscription-Token"]) cleanHeaders["X-Subscription-Token"] = "[REDACTED]";
-        
+
         let parsedError = text;
         try {
           const jsonErr = JSON.parse(text);
@@ -96,12 +125,11 @@ Response Body:
 ${parsedError}`;
 
         console.error(diagnostics);
-        throw new Error(diagnostics);
+        throw new BraveAnswersError("request_failed", diagnostics);
       }
 
       const data: any = JSON.parse(text);
-      
-      // Support both schemas: /web/search (data.web.results) and /llm/context (data.grounding.generic)
+
       let webResults = data.web?.results || [];
       if (webResults.length === 0 && data.grounding?.generic) {
         webResults = data.grounding.generic.map((item: any) => ({
@@ -138,12 +166,9 @@ ${parsedError}`;
         snippet: String(item.description || item.snippet || ""),
       }));
 
-      let answersText = "";
-      if (sources.length > 0) {
-        answersText = sources.map((s: any, idx: number) => `[${idx + 1}] ${s.title}: ${s.snippet}`).join("\n\n");
-      } else {
-        answersText = "لم يتم العثور على نتائج مباشرة للبحث المطلوب.";
-      }
+      const answersText = sources.length > 0
+        ? sources.map((s: any, idx: number) => `[${idx + 1}] ${s.title}: ${s.snippet}`).join("\n\n")
+        : "لم يتم العثور على نتائج مباشرة للبحث المطلوب.";
 
       const result: BraveAnswersResult = {
         query: searchQuery,
@@ -157,7 +182,7 @@ ${parsedError}`;
       return result;
     } catch (err: any) {
       if (err?.name === "AbortError") {
-        throw new Error("انتهت مهلة الاتصال بشركة Brave Answers.");
+        throw new BraveAnswersError("timeout", "Brave Answers request timed out.");
       }
       throw err;
     } finally {
@@ -170,6 +195,6 @@ ${parsedError}`;
     const list = sources
       .map((s, idx) => `${idx + 1}. **[${s.title}](${s.url})**\n   _${s.snippet}_`)
       .join("\n");
-    return `\n\n### 📚 المصادر والتوثيق (Sources & Documentation)\n${list}`;
+    return `\n\n### المصادر والتوثيق (Sources & Documentation)\n${list}`;
   }
 }

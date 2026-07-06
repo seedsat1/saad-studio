@@ -228,7 +228,7 @@ function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload
 export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload): number {
   if (modelId === "kling-v3-turbo") {
     const duration = readDuration(payload, 5);
-    return applySoundMultiplier(parseFloat((duration * 1.8).toFixed(2)), payload);
+    return applySoundMultiplier(parseFloat((duration * (5 / 3)).toFixed(2)), payload);
   }
   if (modelId === "kling-3.0/video") return applySoundMultiplier(getKling3Credits(payload), payload);
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
@@ -264,7 +264,7 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
   if (modelRoute.includes("kling/v3-turbo")) {
     const duration = readDuration(payload, 5);
-    return applySoundMultiplier(parseFloat((duration * 1.8).toFixed(2)), payload);
+    return applySoundMultiplier(parseFloat((duration * (5 / 3)).toFixed(2)), payload);
   }
   if (modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video") {
     return applySoundMultiplier(getKling3Credits(payload), payload);

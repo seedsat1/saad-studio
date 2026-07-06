@@ -103,7 +103,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     resolutions: ["720p", "1080p"],
     badge: "FAST",
-    creditCost: 9.0,
+    creditCost: 8.33,
     maxDuration: 15,
     description: "Kling V3 Turbo auto-routing model",
   },
