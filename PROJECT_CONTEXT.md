@@ -9,6 +9,9 @@
   - Animated glowing connection strokes with Framer Motion to simulate active data pipeline flows.
   - Removed old slide parameters, `HeroCarousel`, and `getYouTubeId` functions to prevent code duplication.
   - Kept the visual bottom navbar (footer) customized to match the user's reference mockup.
+  - Removed the white "Open ->" button overlays from card views (`StudioPathways` and `TopChoiceGrid`).
+  - Completely deleted the `CoreToolsRow`, `TopChoiceGrid`, and `PricingPreview` layout sections and cleaned up their associated memo states and unused components to keep the landing page clean and code lean.
+  - Enlarged the compliance and company description text block (`StartupVerification`) at the bottom of the page (font sizes to `text-sm sm:text-base` and headings to `text-lg sm:text-xl`) to maximize readability.
 - Affected files:
   - `app/(landing)/page.tsx` [MODIFY]
   - `components/Footer.tsx` [MODIFY]
@@ -20,6 +23,7 @@
   - Keep node visual interactive paths responsive, collapsing into clean layout grids on smaller mobile screens.
   - Maintain zero code duplication by pruning old carousel logic completely.
   - Ensure the brand's production capacities (image, video, cinema, audio) are instantly recognizable to new subscribers.
+  - Clear out redundant blocks (like Pricing and Core Tools rows) to focus the landing layout entirely on the creative studio nodes flow.
 
 ## Latest task: Fix Saad Agent Knowledge Documents display contract and crawler error clarity (2026-07-06)
 

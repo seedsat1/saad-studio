@@ -866,10 +866,7 @@ const HOME_DEFAULT_SECTION_ORDER = [
   "studioPathways",
   "statsCounter",
   "productionWorkflow",
-  "coreTools",
-  "topChoice",
   "apps",
-  "pricingPreview",
   "models",
   "startupVerification",
 ];
@@ -878,29 +875,28 @@ const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
   studioPathways: { after: "heroSlides" },
   statsCounter: { after: "studioPathways" },
   productionWorkflow: { after: "statsCounter" },
-  pricingPreview: { after: "apps" },
   startupVerification: { after: "models" },
 };
 
 function StartupVerification() {
   return (
     <FadeIn delay={0.05}>
-      <section className="border-t border-white/[0.06] pt-12 pb-16 text-zinc-500 text-xs">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
-          <p className="font-bold uppercase tracking-wider text-zinc-400">Compliance & Company Overview</p>
-          <p className="leading-relaxed">
+      <section className="border-t border-white/[0.06] pt-12 pb-16 text-zinc-400 text-sm sm:text-base">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <p className="font-extrabold uppercase tracking-wider text-zinc-200 text-lg sm:text-xl">Compliance & Company Overview</p>
+          <p className="leading-relaxed text-zinc-400 text-sm sm:text-base">
             Saad Studio is a software-as-a-service creative production platform. The product combines multiple AI models and focused studio workflows so users can generate images, create videos, build consistent characters, edit media, produce audio, and manage creative projects from one browser-based workspace. This website includes public product information, company details, contact information, pricing, privacy, and terms for program review.
           </p>
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-zinc-400 font-semibold">
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-zinc-300 text-xs sm:text-sm font-semibold">
             <span>Company: Saad Studio</span>
             <span>Contact: support@saadstudio.app | 009647755815500</span>
             <span>Type: AI Creative Production SaaS</span>
           </div>
-          <div className="flex justify-center gap-4 text-[11px] mt-2">
-            <Link href="/about" className="hover:text-white transition">About</Link>
-            <Link href="/contact" className="hover:text-white transition">Contact</Link>
-            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition">Terms</Link>
+          <div className="flex justify-center gap-6 text-xs sm:text-sm mt-4">
+            <Link href="/about" className="hover:text-white text-zinc-500 hover:underline transition">About</Link>
+            <Link href="/contact" className="hover:text-white text-zinc-500 hover:underline transition">Contact</Link>
+            <Link href="/privacy" className="hover:text-white text-zinc-500 hover:underline transition">Privacy</Link>
+            <Link href="/terms" className="hover:text-white text-zinc-500 hover:underline transition">Terms</Link>
           </div>
         </div>
       </section>
@@ -934,10 +930,6 @@ function StudioPathways({ items = STUDIO_PATHWAYS }: { items?: typeof STUDIO_PAT
                     </div>
                     <h3 className="text-2xl font-bold text-white tracking-tight">{item.title}</h3>
                     <p className="mt-2.5 max-w-sm text-sm leading-6 text-zinc-300">{item.description}</p>
-                    <span className="mt-4 inline-flex w-fit items-center gap-2 rounded-xl bg-white px-4.5 py-2 text-xs font-bold text-slate-950 transition hover:bg-zinc-100 shadow-md">
-                      Open
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
                   </div>
                 </motion.div>
               </Link>
@@ -1050,10 +1042,6 @@ function ModelSpotlightRail({ items = MODEL_SPOTLIGHTS }: { items?: typeof MODEL
                     {item.badge}
                   </span>
                   <h3 className="mt-3 text-2xl font-black text-white">{item.title}</h3>
-                  <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-950 transition group-hover:scale-[1.04]">
-                    Open
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </span>
                 </div>
               </motion.div>
             </Link>
@@ -1064,84 +1052,7 @@ function ModelSpotlightRail({ items = MODEL_SPOTLIGHTS }: { items?: typeof MODEL
   );
 }
 
-// ─── 2. Core Tools Horizontal Scroll ──────────────────────────────────────────
-function CoreToolsRow({
-  cards = CORE_TOOLS,
-  title = "Core Studio Tools",
-  cta = "View All",
-  ctaHref = "/apps",
-}: {
-  cards?: ToolCard[];
-  title?: string;
-  cta?: string;
-  ctaHref?: string;
-}) {
-  const rowRef = useRef<HTMLDivElement>(null);
-  const scroll = (dir: number) => rowRef.current?.scrollBy({ left: dir * 300, behavior: "smooth" });
 
-  return (
-    <FadeIn>
-      <section className="relative">
-        <SectionHeading title={title} cta={cta} ctaHref={ctaHref} />
-        <div className="relative">
-          <button
-            onClick={() => scroll(-1)}
-            className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/90 ring-1 ring-white/15 text-white/60 hover:text-white hover:ring-white/30 transition-all shadow-xl"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div
-            ref={rowRef}
-            className="flex gap-3 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {cards.map((card, i) => (
-              <motion.div
-                key={card.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.4 }}
-                className="shrink-0"
-              >
-                <ToolCardItem card={card} wide />
-              </motion.div>
-            ))}
-          </div>
-          <button
-            onClick={() => scroll(1)}
-            className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden md:flex h-9 w-9 items-center justify-center rounded-full bg-slate-900/90 ring-1 ring-white/15 text-white/60 hover:text-white hover:ring-white/30 transition-all shadow-xl"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </section>
-    </FadeIn>
-  );
-}
-
-// ─── 3. Top Choice Grid ───────────────────────────────────────────────────────
-function TopChoiceGrid({ cards = TOP_CHOICE }: { cards?: ToolCard[] }) {
-  return (
-    <FadeIn delay={0.05}>
-      <section>
-        <SectionHeading title="Top Choice" cta="Explore More" ctaHref="/apps" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-          {cards.map((card, i) => (
-            <motion.div
-              key={card.id}
-              initial={{ opacity: 0, scale: 0.93 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.07, duration: 0.35 }}
-            >
-              <ToolCardItem card={card} />
-            </motion.div>
-          ))}
-        </div>
-      </section>
-    </FadeIn>
-  );
-}
 
 // ─── 4. Apps Infinite Marquee ─────────────────────────────────────────────────
 function AppsMarquee({ apps = APPS_MARQUEE }: { apps?: { title: string; icon?: React.ElementType; color: string }[] }) {
@@ -1182,119 +1093,7 @@ function AppsMarquee({ apps = APPS_MARQUEE }: { apps?: { title: string; icon?: R
 
 // ─── 5. AI Models Trust Strip ─────────────────────────────────────────────────
 
-// ─── Pricing Preview Section ──────────────────────────────────────────────────
-const PRICING_CARDS = [
-  {
-    name: "Try",
-    price: "$5/mo",
-    line1: "70 credits — quick taste",
-    line2: "Try the full studio for a fiver",
-    cta: "Try for $5",
-    ctaHref: "/payment?type=plan&id=try",
-    highlighted: false,
-    badge: null,
-  },
-  {
-    name: "Pro",
-    price: "$70/mo",
-    line1: "1,800 credits",
-    line2: "All models + Commercial rights",
-    cta: "Get Pro",
-    ctaHref: "/pricing",
-    highlighted: true,
-    badge: "Most Popular",
-  },
-  {
-    name: "Max",
-    price: "$99/mo",
-    line1: "2,700 credits",
-    line2: "Team features + API access",
-    cta: "Get Max",
-    ctaHref: "/pricing",
-    highlighted: false,
-    badge: null,
-  },
-];
 
-function TiltPricingCard({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className="[perspective:1000px]">
-      <div
-        data-tilt
-        data-tilt-max="15"
-        data-tilt-speed="400"
-        data-tilt-perspective="1000"
-        data-tilt-scale="1.02"
-        data-tilt-glare="true"
-        data-tilt-max-glare="0.12"
-        className={className}
-        style={{ transformStyle: "preserve-3d", transform: "perspective(1000px)" }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function PricingPreview() {
-  return (
-    <FadeIn>
-      <section className="text-center">
-        <h2 className="text-3xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
-        <p className="mt-2.5 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {PRICING_CARDS.map((card) => (
-            <TiltPricingCard
-              key={card.name}
-              className={cn(
-                "relative flex flex-col items-center rounded-3xl border px-6 py-9",
-                card.highlighted
-                  ? "border-cyan-500/25 bg-cyan-950/10 shadow-2xl shadow-cyan-950/15"
-                  : "border-white/[0.04] bg-zinc-950/20 backdrop-blur-md shadow-xl"
-              )}
-            >
-              {card.badge && (
-                <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-black uppercase tracking-[0.16em] px-3.5 py-1 rounded-full shadow-lg shadow-cyan-500/10"
-                  style={{ transform: "translate3d(-50%, 0, 44px)" }}
-                >
-                  {card.badge}
-                </span>
-              )}
-              <h3 className="text-xl font-bold text-white" style={{ transform: "translateZ(46px)" }}>{card.name}</h3>
-              {card.price && (
-                <p className="mt-2 text-3xl font-black text-cyan-400" style={{ transform: "translateZ(52px)", fontFamily: "'Outfit', sans-serif" }}>
-                  {card.price}
-                </p>
-              )}
-              <p className="mt-4 text-sm font-semibold text-zinc-200" style={{ transform: "translateZ(34px)" }}>{card.line1}</p>
-              <p className="mt-1 text-xs text-zinc-500" style={{ transform: "translateZ(28px)" }}>{card.line2}</p>
-              <Link href={card.ctaHref} className="w-full">
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-xs font-bold text-white py-3 shadow-lg shadow-cyan-500/10 transition-all duration-300"
-                  style={{ transform: "translateZ(58px)" }}
-                >
-                  {card.cta}
-                </motion.button>
-              </Link>
-            </TiltPricingCard>
-          ))}
-        </div>
-        <Link href="/pricing" className="inline-flex items-center gap-1 mt-6 text-sm text-zinc-400 hover:text-white transition-colors">
-          See all plans <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
-      </section>
-    </FadeIn>
-  );
-}
 
 // ─── 5b. AI Models Trust Strip ────────────────────────────────────────────────
 function ModelsTrustStrip({ models = AI_MODELS }: { models?: { name: string; tag: string; color: string; ring?: string }[] }) {
@@ -1477,118 +1276,6 @@ export default function ExplorePage() {
   const promoContent = usePromoContent();
   const { data: cms } = useCmsData<HomeCmsData>("home");
 
-  type PublicPageContent = { textContent?: string | null } | null;
-
-  const [coreToolsContent, setCoreToolsContent] = useState<PublicPageContent>(null);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
-    console.log("[Home] cms-home coreTools length", cms?.coreTools?.length ?? 0);
-  }, [cms?.coreTools?.length]);
-
-  useEffect(() => {
-    fetch("/api/content?slug=home&sectionName=coreTools")
-      .then((r) => r.json())
-      .then((d) => setCoreToolsContent(d))
-      .catch(() => {});
-  }, []);
-
-  const coreToolsSectionText = useMemo(() => safeParseJsonObject(coreToolsContent?.textContent), [coreToolsContent?.textContent]);
-
-  const coreToolsTitle =
-    typeof coreToolsSectionText.title === "string" && coreToolsSectionText.title.trim()
-      ? coreToolsSectionText.title.trim()
-      : "Core Studio Tools";
-  const coreToolsCta =
-    (typeof coreToolsSectionText.cta === "string" && coreToolsSectionText.cta.trim()
-      ? coreToolsSectionText.cta.trim()
-      : null) ??
-    (typeof coreToolsSectionText.ctaText === "string" && coreToolsSectionText.ctaText.trim()
-      ? coreToolsSectionText.ctaText.trim()
-      : "View All");
-  const coreToolsCtaHref =
-    (typeof coreToolsSectionText.ctaHref === "string" && coreToolsSectionText.ctaHref.trim()
-      ? coreToolsSectionText.ctaHref.trim()
-      : null) ??
-    (typeof coreToolsSectionText.ctaLink === "string" && coreToolsSectionText.ctaLink.trim()
-      ? coreToolsSectionText.ctaLink.trim()
-      : "/apps");
-
-  // ── Core Tools: CMS layout (cms-home) → promo → hardcoded defaults ─────────
-  const homeCoreCards = useMemo<ToolCard[]>(() => {
-    if (cms?.coreTools && cms.coreTools.length > 0) {
-      return cms.coreTools.map((c, idx) => {
-        const fallback = CORE_TOOLS[idx % CORE_TOOLS.length];
-        return {
-          ...fallback,
-          id: c.id || fallback.id,
-          title: c.title || fallback.title,
-          description: c.description || fallback.description,
-          image: c.image || fallback.image,
-          href: c.href || fallback.href,
-          badge: (c.badge as Badge) || fallback.badge,
-        };
-      });
-    }
-
-    return CORE_TOOLS.map((c) => {
-      const slotId = CORE_TOOL_SLOT_MAP[c.id];
-      if (!slotId) return c;
-      let updated = { ...c };
-      const custom = promo[slotId];
-      if (custom?.url) updated.image = custom.url;
-      const text = promoContent[slotId];
-      if (text) {
-        if (text.title) updated.title = text.title;
-        if (text.subtitle) updated.description = text.subtitle;
-      }
-      return updated;
-    });
-  }, [promo, promoContent, cms]);
-
-  // ── Top Choice: CMS → layout blocks → promo → defaults ─────────────────────
-  const homeTopCards = useMemo<ToolCard[]>(() => {
-    if (cms?.topChoice && cms.topChoice.length > 0) {
-      return cms.topChoice.map((c, idx) => {
-        const fallback = TOP_CHOICE[idx % TOP_CHOICE.length];
-        return {
-          ...fallback,
-          id: c.id || fallback.id,
-          title: c.title || fallback.title,
-          description: c.description || fallback.description,
-          image: c.image || fallback.image,
-          href: c.href || fallback.href,
-          badge: (c.badge as Badge) || fallback.badge,
-        };
-      });
-    }
-
-    const gridBlocks = blocks.filter((b) => b.type === "DISCOVER_GRID");
-    const base = gridBlocks.length === 0 ? TOP_CHOICE : gridBlocks.map((b, idx) => {
-      const fallback = TOP_CHOICE[idx % TOP_CHOICE.length];
-      return {
-        ...fallback,
-        id: b.id || `discover-${idx}`,
-        title: b.title || fallback.title,
-        description: b.subtitle || fallback.description,
-        image: b.mediaUrl || fallback.image,
-      };
-    });
-    return base.map((c) => {
-      const slotId = TOP_CHOICE_SLOT_MAP[c.id];
-      if (!slotId) return c;
-      let updated = { ...c };
-      const custom = promo[slotId];
-      if (custom?.url) updated.image = custom.url;
-      const text = promoContent[slotId];
-      if (text) {
-        if (text.title) updated.title = text.title;
-        if (text.subtitle) updated.description = text.subtitle;
-      }
-      return updated;
-    });
-  }, [blocks, promo, promoContent, cms]);
-
   // ── Apps & Models & Ad Cards: CMS → hardcoded defaults ───────────────────────
   const homeApps = useMemo(() => {
     if (cms?.apps && cms.apps.length > 0) return cms.apps;
@@ -1697,11 +1384,8 @@ export default function ExplorePage() {
     statsCounter: <StatsCounter key="stats" stats={homeStats} />,
     modelSpotlights: <ModelSpotlightRail key="modelSpotlights" items={homeModelSpotlights} />,
     productionWorkflow: <ProductionWorkflow key="productionWorkflow" steps={homeWorkflowSteps} />,
-    coreTools: <CoreToolsRow key="core" cards={homeCoreCards} title={coreToolsTitle} cta={coreToolsCta} ctaHref={coreToolsCtaHref} />,
-    topChoice: <TopChoiceGrid key="top" cards={homeTopCards} />,
     adCards: <AdCardsRow key="ads" cards={homeAdCards} />,
     apps: <AppsMarquee key="apps" apps={homeApps} />,
-    pricingPreview: <PricingPreview key="pricing" />,
     models: <ModelsTrustStrip key="models" models={homeModels} />,
   };
 
