@@ -56,7 +56,7 @@ const ALLOWED_FOOTER_LINKS = new Set([
 const DEFAULT_SECTIONS: FooterSection[] = [
   {
     _id: "create",
-    title: "Create",
+    title: "AI Tools",
     links: [
       { label: "Image Generation", href: "/image" },
       { label: "Video Generation", href: "/video" },
@@ -69,12 +69,12 @@ const DEFAULT_SECTIONS: FooterSection[] = [
     _id: "company",
     title: "Company",
     links: [
-      { label: "About", href: "/about" },
+      { label: "About Us", href: "/about" },
       { label: "Contact", href: "/contact" },
       { label: "Pricing", href: "/pricing" },
       { label: "Privacy Policy", href: "/privacy" },
-      { label: "Cookie Policy", href: "/cookies" },
       { label: "Terms & Conditions", href: "/terms" },
+      { label: "Cookie Policy", href: "/cookies" },
     ],
   },
 ];
@@ -113,7 +113,7 @@ const Footer = () => {
   const { data: cms } = useCmsData<DiscoverCms>("discover");
   const footer = cms?.footer;
   const brandName = footer?.brandName || "Saad Studio";
-  const tagline = footer?.tagline || "Cloud-based AI creative production software for image, video, audio, and cinematic workflows.";
+  const tagline = footer?.tagline || "The world's most powerful AI creative studio.";
   const email = footer?.email || "support@saadstudio.app";
   const phone = "009647755815500";
   const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png";
@@ -163,8 +163,8 @@ const Footer = () => {
       })
     : [];
   const socials = cmsSocials.length ? cmsSocials : SOCIALS;
-  const newsletterHeading = footer?.newsletterHeading || "Stay in the loop";
-  const newsletterSubtitle = footer?.newsletterSubtitle || "";
+  const newsletterHeading = footer?.newsletterHeading || "Stay in the loop ✨";
+  const newsletterSubtitle = footer?.newsletterSubtitle || "New models & drops. No spam.";
 
   return (
     <footer className="relative mt-auto overflow-hidden border-t border-white/10 bg-slate-950" dir="ltr">
@@ -231,7 +231,7 @@ const Footer = () => {
                 placeholder="your@email.com"
                 className="h-11 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-400/50"
               />
-              <button className="h-11 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-6 text-sm font-bold text-white transition-colors hover:from-violet-500 hover:to-indigo-500">
+              <button className="h-11 rounded-xl bg-indigo-600 px-6 text-sm font-bold text-white transition-all hover:bg-indigo-500 shadow-md shadow-indigo-600/10">
                 Subscribe
               </button>
             </div>

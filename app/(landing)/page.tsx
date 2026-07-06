@@ -368,10 +368,10 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
       <motion.div
         onHoverStart={() => setHovered(true)}
         onHoverEnd={() => setHovered(false)}
-        whileHover={{ scale: 1.025 }}
-        transition={{ duration: 0.2 }}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.3 }}
         className={cn(
-          "group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/60 cursor-pointer select-none",
+          "group relative overflow-hidden rounded-3xl border border-white/[0.04] bg-zinc-950/30 backdrop-blur-sm hover:bg-zinc-950/50 hover:border-white/[0.12] transition-all duration-300 cursor-pointer select-none shadow-xl shadow-black/20",
           wide ? "w-[280px] aspect-[16/9]" : "aspect-[4/3]"
         )}
       >
@@ -380,7 +380,7 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
         <div className={cn(
           "absolute inset-0 bg-gradient-to-br transition-opacity duration-300",
           card.gradient,
-          hovered ? "opacity-60" : "opacity-75"
+          hovered ? "opacity-40" : "opacity-60"
         )} />
 
         {/* Top-right play icon on hover */}
@@ -391,7 +391,7 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.6, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25 backdrop-blur-sm"
+              className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20 backdrop-blur-md"
             >
               <Play className="h-4 w-4 fill-white text-white ml-0.5" />
             </motion.div>
@@ -399,23 +399,23 @@ function ToolCardItem({ card, wide = false }: { card: ToolCard; wide?: boolean }
         </AnimatePresence>
 
         {/* Content */}
-        <div className="absolute inset-0 flex flex-col justify-end p-4">
+        <div className="absolute inset-0 flex flex-col justify-end p-5">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 rounded-xl bg-black/40 p-2 ring-1 ring-white/10 backdrop-blur-sm">
+            <div className="flex items-center gap-2 rounded-xl bg-black/50 p-2 ring-1 ring-white/10 backdrop-blur-md">
               <Icon className={cn("h-4 w-4 shrink-0", card.accentColor)} />
             </div>
             <BadgeChip badge={card.badge} />
           </div>
-          <div className="mt-2">
-            <p className="font-semibold text-white text-sm leading-tight">{card.title}</p>
-            <p className="mt-0.5 text-[11px] text-zinc-400 line-clamp-1">{card.description}</p>
+          <div className="mt-2.5">
+            <p className="font-bold text-white text-sm leading-tight tracking-tight">{card.title}</p>
+            <p className="mt-1 text-[11px] text-zinc-400 line-clamp-1 leading-normal">{card.description}</p>
           </div>
         </div>
 
         {/* Hover border glow */}
         <motion.div
           animate={hovered ? { opacity: 1 } : { opacity: 0 }}
-          className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-white/20 transition-opacity"
+          className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/20 transition-opacity"
         />
       </motion.div>
     </Link>
@@ -844,94 +844,45 @@ const WORKFLOW_STEPS = [
 
 const HOME_DEFAULT_SECTION_ORDER = [
   "heroSlides",
-  "startupVerification",
   "studioPathways",
-  "showcaseWall",
   "statsCounter",
-  "modelSpotlights",
   "productionWorkflow",
   "coreTools",
   "topChoice",
-  "adCards",
   "apps",
   "pricingPreview",
   "models",
+  "startupVerification",
 ];
 
 const HOME_INJECTED_SECTIONS: Record<string, { after: string }> = {
-  startupVerification: { after: "heroSlides" },
-  studioPathways: { after: "startupVerification" },
-  showcaseWall: { after: "studioPathways" },
-  statsCounter: { after: "showcaseWall" },
-  modelSpotlights: { after: "statsCounter" },
-  productionWorkflow: { after: "modelSpotlights" },
+  studioPathways: { after: "heroSlides" },
+  statsCounter: { after: "studioPathways" },
+  productionWorkflow: { after: "statsCounter" },
   pricingPreview: { after: "apps" },
+  startupVerification: { after: "models" },
 };
 
 function StartupVerification() {
-  const points = [
-    { title: "Product", text: "A browser-based AI creative production SaaS for image, video, audio, and cinematic scene workflows.", icon: Sparkles },
-    { title: "Customers", text: "Built for creators, agencies, small businesses, ecommerce teams, and media teams shipping visual content.", icon: Bot },
-    { title: "Public review", text: "Company, product, policies, and contact information are available through the footer and verification pages.", icon: ShieldCheck },
-  ];
-
   return (
     <FadeIn delay={0.05}>
-      <section className="grid gap-5 rounded-2xl border border-cyan-400/20 bg-slate-900/70 p-5 shadow-2xl shadow-black/20 lg:grid-cols-[1.1fr_0.9fr] lg:p-7">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300">Company Overview</p>
-          <h2 className="mt-3 max-w-3xl text-3xl font-black tracking-tight text-white md:text-4xl">
-            Saad Studio helps teams create production-ready visual content with AI.
-          </h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
+      <section className="border-t border-white/[0.06] pt-12 pb-16 text-zinc-500 text-xs">
+        <div className="max-w-4xl mx-auto text-center space-y-4">
+          <p className="font-bold uppercase tracking-wider text-zinc-400">Compliance & Company Overview</p>
+          <p className="leading-relaxed">
             Saad Studio is a software-as-a-service creative production platform. The product combines multiple AI models and focused studio workflows so users can generate images, create videos, build consistent characters, edit media, produce audio, and manage creative projects from one browser-based workspace. This website includes public product information, company details, contact information, pricing, privacy, and terms for program review.
           </p>
-          <dl className="mt-5 grid max-w-3xl gap-3 text-sm sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-              <dt className="text-slate-500">Company</dt>
-              <dd className="mt-1 font-bold text-white">Saad Studio</dd>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-              <dt className="text-slate-500">Contact</dt>
-              <dd className="mt-1 font-bold text-white">support@saadstudio.app</dd>
-              <dd className="mt-1 font-bold text-white">009647755815500</dd>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-              <dt className="text-slate-500">Product type</dt>
-              <dd className="mt-1 font-bold text-white">AI creative production SaaS</dd>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-              <dt className="text-slate-500">Review links</dt>
-              <dd className="mt-1 font-bold text-white">About, Contact, Pricing, Privacy, Terms</dd>
-            </div>
-          </dl>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/about" className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-100">
-              About Saad Studio <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
-              Contact
-            </Link>
-            <Link href="/privacy" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
-              Privacy
-            </Link>
-            <Link href="/terms" className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10">
-              Terms
-            </Link>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-zinc-400 font-semibold">
+            <span>Company: Saad Studio</span>
+            <span>Contact: support@saadstudio.app | 009647755815500</span>
+            <span>Type: AI Creative Production SaaS</span>
           </div>
-        </div>
-        <div className="grid gap-3">
-          {points.map((point) => (
-            <div key={point.title} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 ring-1 ring-cyan-400/25">
-                <point.icon className="h-5 w-5 text-cyan-300" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">{point.title}</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-400">{point.text}</p>
-              </div>
-            </div>
-          ))}
+          <div className="flex justify-center gap-4 text-[11px] mt-2">
+            <Link href="/about" className="hover:text-white transition">About</Link>
+            <Link href="/contact" className="hover:text-white transition">Contact</Link>
+            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition">Terms</Link>
+          </div>
         </div>
       </section>
     </FadeIn>
@@ -954,17 +905,17 @@ function StudioPathways({ items = STUDIO_PATHWAYS }: { items?: typeof STUDIO_PAT
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.05, duration: 0.35 }}
                   whileHover={{ y: -4 }}
-                  className="group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-xl shadow-black/20"
+                  className="group relative min-h-[240px] overflow-hidden rounded-3xl border border-white/[0.04] bg-zinc-950/20 hover:border-white/[0.12] transition-all duration-500 shadow-2xl shadow-black/40"
                 >
-                  <MediaFill src={item.image} alt={item.title} className="opacity-70 transition duration-700 group-hover:scale-[1.05] group-hover:opacity-90" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/5" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-5">
-                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-black/45 backdrop-blur">
+                  <MediaFill src={item.image} alt={item.title} className="opacity-60 transition duration-700 group-hover:scale-[1.04] group-hover:opacity-85" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/5" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-6">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/50 backdrop-blur-md">
                       <IconComp className={cn("h-5 w-5", item.accent)} />
                     </div>
-                    <h3 className="text-2xl font-black text-white">{item.title}</h3>
-                    <p className="mt-2 max-w-sm text-sm leading-6 text-zinc-300">{item.description}</p>
-                    <span className="mt-4 inline-flex w-fit items-center gap-2 rounded-lg bg-white px-3 py-2 text-xs font-black text-slate-950">
+                    <h3 className="text-2xl font-bold text-white tracking-tight">{item.title}</h3>
+                    <p className="mt-2.5 max-w-sm text-sm leading-6 text-zinc-300">{item.description}</p>
+                    <span className="mt-4 inline-flex w-fit items-center gap-2 rounded-xl bg-white px-4.5 py-2 text-xs font-bold text-slate-950 transition hover:bg-zinc-100 shadow-md">
                       Open
                       <ArrowRight className="h-3.5 w-3.5" />
                     </span>
@@ -1276,40 +1227,40 @@ function PricingPreview() {
   return (
     <FadeIn>
       <section className="text-center">
-        <h2 className="text-2xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
-        <p className="mt-2 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+        <h2 className="text-3xl font-bold text-white tracking-tight">Simple, credit-based pricing</h2>
+        <p className="mt-2.5 text-sm text-zinc-400">One credit balance. All AI models. No hidden fees.</p>
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {PRICING_CARDS.map((card) => (
             <TiltPricingCard
               key={card.name}
               className={cn(
-                "relative flex flex-col items-center rounded-xl border px-6 py-8",
+                "relative flex flex-col items-center rounded-3xl border px-6 py-9",
                 card.highlighted
-                  ? "border-cyan-400 bg-white/[0.06]"
-                  : "border-white/[0.05] bg-white/[0.03]"
+                  ? "border-cyan-500/25 bg-cyan-950/10 shadow-2xl shadow-cyan-950/15"
+                  : "border-white/[0.04] bg-zinc-950/20 backdrop-blur-md shadow-xl"
               )}
             >
               {card.badge && (
                 <span
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-400 text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[9px] font-black uppercase tracking-[0.16em] px-3.5 py-1 rounded-full shadow-lg shadow-cyan-500/10"
                   style={{ transform: "translate3d(-50%, 0, 44px)" }}
                 >
                   {card.badge}
                 </span>
               )}
-              <h3 className="text-lg font-bold text-white" style={{ transform: "translateZ(46px)" }}>{card.name}</h3>
+              <h3 className="text-xl font-bold text-white" style={{ transform: "translateZ(46px)" }}>{card.name}</h3>
               {card.price && (
-                <p className="mt-1 text-2xl font-bold text-cyan-400" style={{ transform: "translateZ(52px)" }}>
+                <p className="mt-2 text-3xl font-black text-cyan-400" style={{ transform: "translateZ(52px)", fontFamily: "'Outfit', sans-serif" }}>
                   {card.price}
                 </p>
               )}
-              <p className="mt-3 text-sm text-zinc-300" style={{ transform: "translateZ(34px)" }}>{card.line1}</p>
-              <p className="text-sm text-zinc-500" style={{ transform: "translateZ(28px)" }}>{card.line2}</p>
-              <Link href={card.ctaHref}>
+              <p className="mt-4 text-sm font-semibold text-zinc-200" style={{ transform: "translateZ(34px)" }}>{card.line1}</p>
+              <p className="mt-1 text-xs text-zinc-500" style={{ transform: "translateZ(28px)" }}>{card.line2}</p>
+              <Link href={card.ctaHref} className="w-full">
                 <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="mt-5 rounded-lg bg-lime-400 px-6 py-2.5 text-sm font-bold text-black hover:bg-lime-300 transition-colors"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-xs font-bold text-white py-3 shadow-lg shadow-cyan-500/10 transition-all duration-300"
                   style={{ transform: "translateZ(58px)" }}
                 >
                   {card.cta}

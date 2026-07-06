@@ -9,7 +9,79 @@ const GOOGLE_GEMINI_TTS_VOICES = new Set([
   "Vindemiatrix", "Sadachbia", "Sadaltager", "Sulafat",
 ]);
 
-import { getRegistry } from "@/lib/voice-registry";
+import { getRegistry, saveRegistry } from "@/lib/voice-registry";
+import { uploadBufferToStorage } from "@/lib/supabase-storage";
+
+function pcmToWav(pcm: Buffer, sampleRate = 24000, channels = 1, bitsPerSample = 16): Buffer {
+  const byteRate = (sampleRate * channels * bitsPerSample) / 8;
+  const blockAlign = (channels * bitsPerSample) / 8;
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+function extractGeminiAudio(value: unknown): { data: string; mimeType: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const rec = value as Record<string, unknown>;
+  const candidates = Array.isArray(rec.candidates) ? rec.candidates : [];
+  for (const candidate of candidates) {
+    const content = (candidate as Record<string, unknown>)?.content as Record<string, unknown> | undefined;
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+    for (const part of parts) {
+      const inlineData = (part as Record<string, unknown>)?.inlineData as Record<string, unknown> | undefined;
+      const data = inlineData?.data;
+      if (typeof data !== "string" || !data) continue;
+      const mimeType = typeof inlineData?.mimeType === "string" ? inlineData.mimeType : "audio/L16;rate=24000";
+      return { data, mimeType };
+    }
+  }
+  return null;
+}
+
+const GOOGLE_GEMINI_TTS_VOICE_DETAILS: Record<string, { arabicName: string; gender: "أنثوي" | "رجالي" }> = {
+  Zephyr: { arabicName: "زيفير", gender: "أنثوي" },
+  Puck: { arabicName: "باك", gender: "رجالي" },
+  Charon: { arabicName: "كارون", gender: "رجالي" },
+  Kore: { arabicName: "كوري", gender: "أنثوي" },
+  Fenrir: { arabicName: "فينرير", gender: "رجالي" },
+  Leda: { arabicName: "ليدا", gender: "أنثوي" },
+  Orus: { arabicName: "اوروس", gender: "رجالي" },
+  Aoede: { arabicName: "آويدي", gender: "أنثوي" },
+  Callirrhoe: { arabicName: "كاليِروي", gender: "أنثوي" },
+  Autonoe: { arabicName: "أوتونوي", gender: "أنثوي" },
+  Enceladus: { arabicName: "إنسيلادوس", gender: "رجالي" },
+  Iapetus: { arabicName: "يابيتوس", gender: "رجالي" },
+  Umbriel: { arabicName: "أومبريل", gender: "رجالي" },
+  Algieba: { arabicName: "ألكيبا", gender: "رجالي" },
+  Despina: { arabicName: "ديسبينا", gender: "أنثوي" },
+  Erinome: { arabicName: "إيرينومي", gender: "أنثوي" },
+  Algenib: { arabicName: "ألكينيب", gender: "رجالي" },
+  Rasalgethi: { arabicName: "راسالجيثي", gender: "رجالي" },
+  Laomedeia: { arabicName: "لاوميديا", gender: "أنثوي" },
+  Achernar: { arabicName: "أشيرنار", gender: "أنثوي" },
+  Alnilam: { arabicName: "ألنيلام", gender: "رجالي" },
+  Schedar: { arabicName: "شيدار", gender: "أنثوي" },
+  Gacrux: { arabicName: "جاكروكس", gender: "أنثوي" },
+  Pulcherrima: { arabicName: "بولشيريما", gender: "أنثوي" },
+  Achird: { arabicName: "أشيرد", gender: "رجالي" },
+  Zubenelgenubi: { arabicName: "زوبينالجانوبي", gender: "رجالي" },
+  Vindemiatrix: { arabicName: "فينديمياتريكس", gender: "أنثوي" },
+  Sadachbia: { arabicName: "ساداشبيا", gender: "رجالي" },
+  Sadaltager: { arabicName: "سادالتاجر", gender: "رجالي" },
+  Sulafat: { arabicName: "سولافات", gender: "أنثوي" },
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,7 +101,69 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL(targetUrl, req.url));
     }
 
-    // 2. Strict rule: Fallback to Sulafat's pre-rendered URL to avoid on-the-fly paid calls
+    // 2. Try to generate on the fly using Google API key
+    const apiKey =
+      process.env.GOOGLE_AI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GENAI_API_KEY;
+
+    if (apiKey) {
+      const details = GOOGLE_GEMINI_TTS_VOICE_DETAILS[exactVoice] || { arabicName: exactVoice, gender: "أنثوي" };
+      const prompt = `مرحباً، أنا ${details.arabicName}، صوت ${details.gender} من سعد ستوديو.`;
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseModalities: ["AUDIO"],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: exactVoice },
+                },
+              },
+            },
+          }),
+        }
+      );
+
+      if (res.ok) {
+        const json = await res.json().catch(() => null);
+        const audio = extractGeminiAudio(json);
+        if (audio) {
+          const raw = Buffer.from(audio.data, "base64");
+          const buffer = audio.mimeType.toLowerCase().includes("wav") ? raw : pcmToWav(raw);
+
+          const uploadedUrl = await uploadBufferToStorage({
+            buffer,
+            contentType: "audio/wav",
+            userId: "admin_previews",
+            assetType: "audio",
+            generationId: `voice_sample_${exactVoice.toLowerCase()}`,
+            fileName: `sample_${exactVoice.toLowerCase()}.wav`,
+          });
+
+          if (uploadedUrl) {
+            registry[exactVoice] = uploadedUrl;
+            saveRegistry(registry);
+
+            const targetUrl = (uploadedUrl.startsWith("http") || uploadedUrl.startsWith("/"))
+              ? uploadedUrl
+              : `/api/media/${uploadedUrl}`;
+            return NextResponse.redirect(new URL(targetUrl, req.url));
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to Sulafat's pre-rendered URL
     const fallbackUrl = registry["Sulafat"] || Object.values(registry)[0];
     if (fallbackUrl) {
       const targetUrl = (fallbackUrl.startsWith("http") || fallbackUrl.startsWith("/"))

@@ -51,8 +51,62 @@ function readKnowledgeRegistry(): any[] {
   return [];
 }
 
+function prettifyKnowledgeFileName(fileName: string): string {
+  const withoutExtension = fileName.replace(/\.[^.]+$/, "");
+  const withoutDomain = withoutExtension.replace(/^[a-z0-9-]+\.(com|net|org|info|io)-/i, "");
+  return withoutDomain
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function deriveKnowledgeTitle(item: any): string {
+  const explicitTitle = String(item?.title || item?.originalTitle || "").trim();
+  if (explicitTitle) return explicitTitle;
+
+  const summary = String(item?.summary || "").trim();
+  const headingMatch = summary.match(/^#\s+(.+?)(?:\s+Source URL:|\s+Training category:|$)/i);
+  const heading = String(headingMatch?.[1] || "").trim();
+  if (heading && !/^training source link$/i.test(heading)) {
+    return heading;
+  }
+
+  const fileName = String(item?.originalFileName || item?.fileName || path.basename(String(item?.filePath || ""))).trim();
+  return fileName ? prettifyKnowledgeFileName(fileName) : "Untitled";
+}
+
+function normalizeKnowledgeDocument(item: any): any {
+  const fileName = String(item?.originalFileName || item?.fileName || path.basename(String(item?.filePath || "")) || "knowledge-document").trim();
+  const sourcePath = String(item?.sourcePath || item?.filePath || item?.path || "").trim();
+  const addedDate = item?.importedAt || item?.addedDate || item?.importDate || item?.createdAt || item?.updatedAt || new Date().toISOString();
+  const fileType = item?.fileType || item?.type || path.extname(fileName).replace(/^\./, "") || "unknown";
+
+  return {
+    ...item,
+    id: item?.id || item?.documentId || `knowledge:${fileName}`,
+    documentId: item?.documentId || item?.id || `knowledge:${fileName}`,
+    title: deriveKnowledgeTitle(item),
+    originalFileName: fileName,
+    sourcePath,
+    sourceType: item?.sourceType || (sourcePath.startsWith("http") ? "url" : "training"),
+    fileType,
+    language: item?.language || "unknown",
+    summary: item?.summary || "",
+    tags: Array.isArray(item?.tags) ? item.tags : [],
+    technicalTerms: Array.isArray(item?.technicalTerms) ? item.technicalTerms : [],
+    chunkCount: Number.isFinite(Number(item?.chunkCount)) ? Number(item.chunkCount) : 0,
+    indexedStatus: item?.indexedStatus || item?.status || "indexed",
+    importedAt: new Date(addedDate).toString() === "Invalid Date" ? new Date().toISOString() : new Date(addedDate).toISOString(),
+    usageCount: Number.isFinite(Number(item?.usageCount)) ? Number(item.usageCount) : 0
+  };
+}
+
 function inferTrainingCategoryForUrl(url: string, requestedCategory?: string): TrainingKnowledgeCategory {
   const value = `${url} ${requestedCategory || ""}`.toLowerCase();
+  if (/(hotwife|cuckold|swinging|femdom|story|stories|lover|submission|relationship|psychology|intimacy|narrative)/i.test(value)) {
+    return "lessons";
+  }
   if (/(figma|material|fluent|carbon|polaris|atlassian|wcag|apple|human-interface|design|ui|ux|accessibility)/i.test(value)) {
     return "ui-references";
   }
@@ -66,6 +120,14 @@ function inferTrainingCategoryForUrl(url: string, requestedCategory?: string): T
     return "project-docs";
   }
   return "lessons";
+}
+
+function inferTrainingSubfolderForUrl(url: string, requestedCategory?: string): string | null {
+  const value = `${url} ${requestedCategory || ""}`.toLowerCase();
+  if (/(hotwife|cuckold|swinging|femdom|story|stories|lover|submission|relationship|psychology|intimacy|narrative)/i.test(value)) {
+    return "stories";
+  }
+  return null;
 }
 
 function safeUrlTrainingFileName(url: string): string {
@@ -83,6 +145,124 @@ function safeUrlTrainingFileName(url: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
   return `${cleaned || "training-link"}.md`;
+}
+
+function decodeHtmlEntities(value: string): string {
+  const named: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: "\"",
+    apos: "'",
+    nbsp: " "
+  };
+  return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity) => {
+    const key = String(entity).toLowerCase();
+    if (key.startsWith("#x")) {
+      const code = Number.parseInt(key.slice(2), 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    if (key.startsWith("#")) {
+      const code = Number.parseInt(key.slice(1), 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    }
+    return named[key] || match;
+  });
+}
+
+function extractMetaContent(html: string, property: string): string {
+  const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`, "i");
+  const match = html.match(pattern);
+  return match ? decodeHtmlEntities(match[1] || "").trim() : "";
+}
+
+function extractReadableHtml(html: string): { title: string; text: string; description: string } {
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const ogTitle = extractMetaContent(html, "og:title");
+  const description = extractMetaContent(html, "description") || extractMetaContent(html, "og:description");
+  const title = decodeHtmlEntities((ogTitle || titleMatch?.[1] || "Untitled").replace(/\s+/g, " ").trim());
+  const articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  const mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  let source = articleMatch?.[1] || mainMatch?.[1] || bodyMatch?.[1] || html;
+  source = source
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/(p|div|section|article|h[1-6]|li|blockquote|br)>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+  const text = decodeHtmlEntities(source)
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { title, text, description: decodeHtmlEntities(description) };
+}
+
+function describeTrainingFetchError(url: string, err: any): string {
+  let host = "the requested host";
+  try {
+    host = new URL(url).hostname;
+  } catch {}
+
+  const cause = err?.cause || err;
+  const code = String(cause?.code || cause?.name || err?.name || "").trim();
+  const message = String(cause?.message || err?.message || "").trim();
+
+  if (code === "ENOTFOUND" || /ENOTFOUND|getaddrinfo/i.test(message)) {
+    return `DNS lookup failed for ${host}. The crawler could not resolve this domain, so no full page text was saved. Check the URL, DNS/VPN/network, or use a reachable source.`;
+  }
+  if (code === "ETIMEDOUT" || code === "UND_ERR_CONNECT_TIMEOUT" || /timeout|timed out/i.test(message)) {
+    return `Connection to ${host} timed out. The crawler did not save a fake full-content record. Try again later or use a reachable source.`;
+  }
+  if (code === "ECONNREFUSED") {
+    return `Connection to ${host} was refused. The site is not accepting crawler connections from this machine.`;
+  }
+  if (/certificate|CERT_|SSL|TLS/i.test(`${code} ${message}`)) {
+    return `Secure connection to ${host} failed because of a certificate/TLS problem.`;
+  }
+  if (err?.name === "AbortError") {
+    return `Crawler timed out while reading ${host}.`;
+  }
+  return err?.message || "URL crawl and training save failed.";
+}
+
+async function fetchTrainingUrlContent(url: string): Promise<{ title: string; text: string; description: string; fetchedAt: string; contentType: string; bytes: number }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "accept": "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.8",
+        "user-agent": "SaadAgentTrainingCrawler/1.0"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`URL fetch failed with HTTP ${response.status}.`);
+    }
+    const contentType = response.headers.get("content-type") || "unknown";
+    const raw = await response.text();
+    const extracted = contentType.includes("html") ? extractReadableHtml(raw) : {
+      title: "Untitled",
+      text: raw.trim(),
+      description: ""
+    };
+    if (!extracted.text || extracted.text.length < 200) {
+      throw new Error("Crawler could not extract enough readable page text.");
+    }
+    return {
+      ...extracted,
+      fetchedAt: new Date().toISOString(),
+      contentType,
+      bytes: Buffer.byteLength(raw, "utf8")
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function buildTrainingLinkMarkdown(url: string, category: TrainingKnowledgeCategory, tags: string[]): string {
@@ -106,6 +286,60 @@ function buildTrainingLinkMarkdown(url: string, category: TrainingKnowledgeCateg
     "- Use this source as a reference pointer when the task matches the category or tags.",
     "- If live content is required, use the approved web/search/crawler path before making current claims.",
     "- Do not copy any external design system blindly; extract principles and adapt them to Saad Studio needs.",
+    ""
+  ].join("\n");
+}
+
+function buildCrawledTrainingMarkdown(
+  url: string,
+  category: TrainingKnowledgeCategory,
+  tags: string[],
+  crawled: { title: string; text: string; description: string; fetchedAt: string; contentType: string; bytes: number },
+  storyMode: boolean
+): string {
+  const tagLine = Array.from(new Set([category, storyMode ? "private-narrative-psychology" : "", "crawled-page", ...tags].filter(Boolean))).join(", ");
+  const cappedText = crawled.text.length > 470_000
+    ? `${crawled.text.slice(0, 470_000)}\n\n[Content truncated at safe indexing limit.]`
+    : crawled.text;
+  const storyHeader = storyMode
+    ? [
+        "## Story Knowledge Card",
+        "",
+        `Title: ${crawled.title || "Untitled"}`,
+        `Source: ${url}`,
+        "Category: story / private narrative psychology",
+        `Tags: ${tagLine}`,
+        "Adult/Consent Status: user-marked private adult narrative; verify consent/adult-only boundaries before analysis",
+        "Summary: To be generated from the crawled text during chat analysis.",
+        "Characters: To be extracted during chat analysis.",
+        "Relationship Dynamics: To be extracted during chat analysis.",
+        "Key Themes: To be extracted during chat analysis.",
+        "Psychological Notes: To be extracted during chat analysis.",
+        "Narrative Style: To be extracted during chat analysis.",
+        "Vocabulary: To be extracted during chat analysis.",
+        "Lessons: To be extracted during chat analysis.",
+        "Safety Notes: Adult consensual fictional/narrative material only.",
+        ""
+      ]
+    : [];
+  return [
+    `# ${crawled.title || "Crawled Training Source"}`,
+    "",
+    `Source URL: ${url}`,
+    `Training category: ${category}`,
+    `Tags: ${tagLine}`,
+    `Fetched: ${crawled.fetchedAt}`,
+    `Content-Type: ${crawled.contentType}`,
+    `Fetched Bytes: ${crawled.bytes}`,
+    `Description: ${crawled.description || "None"}`,
+    "",
+    "## Storage Rule",
+    "This file stores readable page text fetched from a public URL. It does not bypass paywalls, login walls, or site protections.",
+    "",
+    ...storyHeader,
+    "## Crawled Page Text",
+    "",
+    cappedText,
     ""
   ].join("\n");
 }
@@ -805,7 +1039,7 @@ ipcMain.handle("trusted-workspace:copy-path", async (event, { targetPath }) => {
 ipcMain.handle("knowledge:list", async () => {
   try {
     await KnowledgeManagerService.initialize();
-    return { success: true, documents: readKnowledgeRegistry() };
+    return { success: true, documents: readKnowledgeRegistry().map(normalizeKnowledgeDocument) };
   } catch (err: any) {
     return { success: false, error: err.message, documents: [] };
   }
@@ -848,7 +1082,7 @@ ipcMain.handle("knowledge:get-document", async (event, { id }) => {
   try {
     await KnowledgeManagerService.initialize();
     const document = readKnowledgeRegistry().find((item: any) => item.documentId === id || item.id === id);
-    return document ? { success: true, document } : { success: false, error: "Document not found." };
+    return document ? { success: true, document: normalizeKnowledgeDocument(document) } : { success: false, error: "Document not found." };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -922,28 +1156,34 @@ ipcMain.handle("knowledge:import-url", async (event, { url, category, tags }) =>
     }
 
     const trainingCategory = inferTrainingCategoryForUrl(rawUrl, category);
+    const trainingSubfolder = inferTrainingSubfolderForUrl(rawUrl, category);
     const safeTags = Array.isArray(tags)
       ? tags.map((tag) => String(tag || "").trim()).filter(Boolean).slice(0, 12)
       : [];
-    const trainingDir = path.join(workspacePath, ".saad-agent", "training", trainingCategory);
+    const crawled = await fetchTrainingUrlContent(rawUrl);
+    const trainingDir = path.join(workspacePath, ".saad-agent", "training", trainingCategory, trainingSubfolder || "");
     fs.mkdirSync(trainingDir, { recursive: true });
     const filePath = nextAvailableSync(path.join(trainingDir, safeUrlTrainingFileName(rawUrl)));
-    const markdown = buildTrainingLinkMarkdown(rawUrl, trainingCategory, safeTags);
+    const markdown = buildCrawledTrainingMarkdown(rawUrl, trainingCategory, safeTags, crawled, trainingSubfolder === "stories");
     fs.writeFileSync(filePath, markdown, "utf8");
 
     const registry = await KnowledgeIngestionService.ingestTrainingKnowledge(workspacePath);
     const rel = path.relative(workspacePath, filePath).replace(/\\/g, "/");
+    const importedItem = registry.items.find((item) => item.filePath === rel);
     return {
       success: true,
-      mode: "training-link-reference",
+      mode: "full-page-crawl",
       url: rawUrl,
+      title: crawled.title,
       category: trainingCategory,
+      subfolder: trainingSubfolder,
       trainingPath: rel,
+      chunksCreated: importedItem?.chunkCount || 0,
       registryItems: registry.items.length,
-      message: "Training source link saved and indexed as a local reference."
+      message: "URL crawled, readable page text saved, and indexed as local training knowledge."
     };
   } catch (err: any) {
-    return { success: false, error: err.message || "URL training source save failed." };
+    return { success: false, error: describeTrainingFetchError(String(url || ""), err) };
   }
 });
 

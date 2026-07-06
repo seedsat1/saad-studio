@@ -315,22 +315,23 @@ export function KnowledgeManager() {
     if (!importUrl) return;
     let docType = "General training source";
     const lower = importUrl.toLowerCase();
-    if (/(figma|material|fluent|carbon|polaris|atlassian|wcag|apple|design|ui|ux)/.test(lower)) docType = "UI/UX reference";
+    if (/(hotwife|cuckold|swinging|femdom|story|lover|submission|relationship|psychology|intimacy|narrative)/.test(lower)) docType = "Private narrative psychology story";
+    else if (/(figma|material|fluent|carbon|polaris|atlassian|wcag|apple|design|ui|ux)/.test(lower)) docType = "UI/UX reference";
     else if (/(api|openapi|swagger|sdk|developer|docs|reference|endpoint|provider)/.test(lower)) docType = "API documentation reference";
     else if (/(github|gitlab|source|code|react|nextjs|typescript|javascript|electron|node)/.test(lower)) docType = "Code/documentation reference";
 
     setUrlPreview({
       type: docType,
       estimatedPages: 1,
-      estimatedSize: "Local Markdown reference",
-      estimatedPackSize: "Small",
-      crawlingMode: "Save link only; no website crawl is claimed"
+      estimatedSize: "Fetched page text, then local Markdown training file",
+      estimatedPackSize: "Depends on page content",
+      crawlingMode: "Fetch public page, extract readable text, save and index"
     });
   };
 
   const handleImportUrl = async () => {
     if (!importUrl) return;
-    setImportStatus({ type: "loading", msg: "Saving training source link..." });
+    setImportStatus({ type: "loading", msg: "Crawling URL, extracting readable text, and indexing training knowledge..." });
     setWorkerLogs([]);
     setImportReport(null);
     try {
@@ -338,32 +339,32 @@ export function KnowledgeManager() {
       const res = await api.knowledgeImportUrl(importUrl, importCategory, tagsList);
       if (res?.success) {
         setActiveTaskId(null);
-        setImportStatus({ type: "success", msg: `Saved and indexed: ${res.trainingPath}` });
+        setImportStatus({ type: "success", msg: `Crawled, saved, and indexed: ${res.trainingPath}` });
         setImportReport({
           source: importUrl,
-          packName: derivePackName(importUrl, res.category || importCategory),
+          packName: res.title || derivePackName(importUrl, res.category || importCategory),
           category: res.category || importCategory,
           status: "Completed Successfully",
           started: new Date().toLocaleString(),
           finished: new Date().toLocaleString(),
-          elapsedTime: "Under 1 second",
+          elapsedTime: "Completed during request",
           pagesDiscovered: 1,
           pagesCrawled: 1,
           pagesImported: 1,
           pagesSkipped: 0,
           pagesFailed: 0,
-          storageUsed: "Small Markdown reference",
-          chunksCreated: 1,
+          storageUsed: res.mode === "full-page-crawl" ? "Full crawled page Markdown" : "Markdown reference",
+          chunksCreated: res.chunksCreated || 0,
           dictionaryTermsExtracted: tagsList.length,
           codeExamplesExtracted: 0,
           apiEndpointsExtracted: 0,
           apiMetadata: [],
           tablesExtracted: 0,
           imagesFound: 0,
-          relationsBuilt: "Reference indexed",
+          relationsBuilt: res.subfolder ? `Indexed under ${res.category}/${res.subfolder}` : "Indexed training file",
           knowledgeGraphUpdated: "Yes (Success)",
           searchIndexUpdated: "Yes (Success)",
-          topicsLearned: [res.category || importCategory, ...tagsList].slice(0, 8),
+          topicsLearned: [res.subfolder || res.category || importCategory, res.category || importCategory, ...tagsList].slice(0, 8),
           failures: [],
           skipped: [],
           timeouts: []
@@ -372,10 +373,10 @@ export function KnowledgeManager() {
         setImportTags("");
         void loadData();
       } else {
-        setImportStatus({ type: "error", msg: res?.error || "Training source link save failed." });
+        setImportStatus({ type: "error", msg: res?.error || "URL crawl and training save failed." });
       }
     } catch (e: any) {
-      setImportStatus({ type: "error", msg: e.message || "Training source link save failed." });
+      setImportStatus({ type: "error", msg: e.message || "URL crawl and training save failed." });
     }
   };
 
@@ -614,7 +615,7 @@ export function KnowledgeManager() {
             Engineering Knowledge Manager
           </h1>
           <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#94a3b8" }}>
-            Real-time RAG indexing, background web crawler, and technical brain parameters
+            Real-time RAG indexing, URL crawling, and technical brain parameters
           </p>
         </div>
 
@@ -1012,12 +1013,12 @@ export function KnowledgeManager() {
               
               {/* URL Training Source Import */}
               <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "16px" }}>
-                <h3 style={{ margin: "0 0 12px 0", color: "#00e5ff", fontSize: "16px" }}>Training Source Link</h3>
+                <h3 style={{ margin: "0 0 12px 0", color: "#00e5ff", fontSize: "16px" }}>Training URL Crawler</h3>
                 
                 <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
                   <input
                     type="text"
-                    placeholder="Trusted URL (e.g., https://m3.material.io/)"
+                    placeholder="Public trusted URL to crawl and save"
                     value={importUrl}
                     onChange={(e) => setImportUrl(e.target.value)}
                     style={{ flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "6px", padding: "10px", color: "#fff" }}
@@ -1033,16 +1034,16 @@ export function KnowledgeManager() {
                     disabled={activeTaskId !== null}
                     style={{ background: "linear-gradient(to right, #00f2fe, #4facfe)", border: "none", color: "#0b132b", padding: "10px 20px", borderRadius: "6px", cursor: "pointer", fontWeight: "700" }}
                   >
-                    Save Link
+                    Crawl & Save
                   </button>
                 </div>
 
                 {urlPreview && (
                   <div style={{ background: "rgba(0,242,254,0.05)", border: "1px solid rgba(0,242,254,0.2)", borderRadius: "8px", padding: "12px", fontSize: "12px", marginBottom: "12px" }}>
-                    <strong>Training Link Preview:</strong>
+                    <strong>Training Crawl Preview:</strong>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "6px" }}>
                       <div>Type: <strong>{urlPreview.type}</strong></div>
-                      <div>Stored Items: <strong>{urlPreview.estimatedPages} local reference</strong></div>
+                      <div>Stored Items: <strong>{urlPreview.estimatedPages} crawled page</strong></div>
                       <div>Estimated Size: <strong>{urlPreview.estimatedSize}</strong></div>
                       <div>Mode: <strong>{urlPreview.crawlingMode}</strong></div>
                     </div>

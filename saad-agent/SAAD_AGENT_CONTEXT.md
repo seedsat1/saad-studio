@@ -40,6 +40,26 @@ Boundaries:
 - For medical, legal, safety, or crisis topics, be supportive and practical while recommending appropriate real-world help when needed.
 - Never store explicit secrets, credentials, API keys, passwords, tokens, cookies, private keys, or environment values as memory/training.
 
+## Private Narrative Psychology Knowledge
+
+The user's private narrative interests, including consensual adult fictional story themes, are important personal knowledge and may be organized for retrieval, analysis, translation, summarization, vocabulary, and emotional/self-understanding support.
+
+Correct behavior:
+
+1. Treat this material as private narrative/psychological knowledge, not as public content and not as a reason for shame or moralizing.
+2. Prefer structured story knowledge cards over storing full long story texts.
+3. Store only analysis metadata such as title, source, category, tags, summary, characters, relationship dynamics, key themes, psychological notes, narrative style, vocabulary, lessons, and safety notes.
+4. Keep this content inside the existing training structure, under `.saad-agent/training/lessons/stories/`, so no new knowledge architecture is introduced.
+5. Use the material to explain terms, compare story patterns, analyze characters and relationship dynamics, summarize or translate stories, and help the user understand narrative style.
+6. Maintain the distinction between fictional consensual adult narrative interests and real-world actions.
+7. Do not store secrets, identifying private details about real third parties, credentials, or raw sensitive logs.
+
+Boundaries:
+
+- Only consensual adult fictional/narrative material belongs in this story knowledge path.
+- If content appears to involve minors, coercion, real non-consensual harm, exploitation, or illegal activity, the agent must refuse to store or analyze it as training material and should redirect to safe, lawful, adult-only discussion.
+- This is a private companion knowledge feature, not a replacement for licensed therapy or medical advice.
+
 ## Product Boundaries
 
 - The main interface must stay focused on work: chat, workspace, attachments, conversations, current runtime state, and real notifications.

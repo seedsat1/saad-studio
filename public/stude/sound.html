@@ -521,7 +521,20 @@ const GEMINI_VOICES=[
   ['Umbriel','Easy-going','male'],['Algieba','Smooth','male'],['Despina','Smooth','female'],['Erinome','Clear','female'],['Algenib','Gravelly','male'],['Rasalgethi','Informative','male'],
   ['Laomedeia','Upbeat','female'],['Achernar','Soft','female'],['Alnilam','Firm','male'],['Schedar','Even','female'],['Gacrux','Mature','female'],['Pulcherrima','Forward','female'],
   ['Achird','Friendly','male'],['Zubenelgenubi','Casual','male'],['Vindemiatrix','Gentle','female'],['Sadachbia','Lively','male'],['Sadaltager','Knowledgeable','male'],['Sulafat','Warm','female']
-].map((v,i)=>({cat:'Arabic',id:`gemini:${v[0]}`,name:`Gemini ${v[0]}`,gender:v[2],lang:'AR',accent:`${v[1]} Arabic Google TTS`,emoji:'G',color:`hsl(${(145+i*23)%360} 62% 30%)`,provider:'gemini'}));
+].map((v,i)=>{
+  const genderAr = v[2] === 'male' ? 'ذكر' : 'أنثى';
+  return {
+    cat:'Arabic',
+    id:`gemini:${v[0]}`,
+    name:`Gemini ${v[0]} (${genderAr})`,
+    gender:v[2],
+    lang:'AR',
+    accent:`صوت غوغل عربي - نبرة ${v[1]}`,
+    emoji:'G',
+    color:`hsl(${(145+i*23)%360} 62% 30%)`,
+    provider:'gemini'
+  };
+});
 const VOICE_CATALOG=[
   ...GEMINI_VOICES,
   {cat:'Narration',id:'21m00Tcm4TlvDq8ikWAM',name:'Rachel',gender:'female',lang:'EN',accent:'American',emoji:'👩',color:'#1a2a5a'},
@@ -756,7 +769,8 @@ function renderVmGrid(){
     } else if(v.isCustom){
       av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}99)">${init}<div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     } else if(v.provider==='gemini'){
-      av=`<div class="vm-v2-avatar" style="background:linear-gradient(135deg,${clr},${clr}bb)"><span style="font-size:.82rem;font-weight:900;letter-spacing:.02em">${v.name.replace('Gemini ','').slice(0,2).toUpperCase()}</span><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
+      const label=v.id.replace(/^gemini:/,'').slice(0,2).toUpperCase();
+      av=`<div class="vm-v2-avatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:.82rem;font-weight:900;letter-spacing:.02em>${label}</span>'"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     } else {
       av=`<div class="vm-v2-avatar"><img src="${getVoiceAvatar(v.id,v.gender)}" alt="${v.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:.95rem;font-weight:800>${init}</span>'"><div class="vm-v2-play-ov"><svg width="12" height="12" viewBox="0 0 24 24" fill="white"><polygon points="6 3 20 12 6 21 6 3"/></svg></div></div>`;
     }
@@ -837,11 +851,6 @@ function getVoiceAvatar(id,gender){
 let _vmSelectedGender='female';
 function setVoiceChipAvatar(id,gender,color){
   const avatar=document.getElementById('vpAvatar');if(!avatar)return;
-  if(isGeminiVoiceId(id)){
-    const label=id.replace(/^gemini:/,'').slice(0,2).toUpperCase();
-    avatar.innerHTML=label;avatar.style.background=`linear-gradient(135deg,${color||'#174a2a'},#4b7fff)`;
-    return;
-  }
   avatar.style.background='linear-gradient(135deg,var(--accent),var(--purple))';
   avatar.innerHTML=`<img id="vpAvatarImg" src="${getVoiceAvatar(id,gender||'female')}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
 }

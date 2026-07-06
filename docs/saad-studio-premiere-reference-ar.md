@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## إصلاح أسماء وخامات وصور أصوات Google TTS (Gemini) وتهيئة صفحة المزامنة (2026-07-06)
+- تم حل مشاكل الأسماء والمعاينات المسموعة والصور الرمزية لأصوات Google TTS بشكل جذري ودقيق:
+  - **توليد خامات الصوت تلقائياً وتخزينها (On-the-fly Generation & Caching)**: تم تحديث المسار الخلفي المعني بجلب عينات خامات الصوت `/api/voice-sample` ليقوم تلقائياً عند أول طلب لمعاينة الصوت بفحصه في السجل، وفي حال عدم توليده مسبقاً من الإدارة، يقوم بإنشائه فوراً عبر واجهة برمجة تطبيقات Google Gemini الرسمية بنطق جملة ترحيبية معرفة للصوت باللغة العربية باسم الموقع (مثال: `مرحباً، أنا زيفير، صوت أنثوي من سعد ستوديو.`) وتحويل الترميز من PCM إلى WAV ورفعه لـ Supabase وتسجيل الرابط في السجل ليعمل فوراً وبسرعة فائقة في المرات التالية بدلاً من تكرار الصوت الافتراضي `Sulafat` لجميع الأصوات.
+  - **صور رمزية احترافية (Premium Portraits)**: تم تغيير آلية عرض الصور لقراء الفويزات لأصوات Gemini في واجهة الاستوديو ([sound.html](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/public/stude/sound.html)) لتستخدم نفس محرك جلب الصور الرمزية الملونة والممتازة (getVoiceAvatar) بدلاً من الدوائر الملونة البسيطة التي توحي بوجود خطأ في تحميل الصور، مع الحفاظ على تراجع نصي آمن في حال فشل التحميل.
+  - **تمييز وتحديد نوع الجنس للأصوات العربية**: تم تمييز وتصنيف كافة الأصوات بإلحاق نوع الجنس بشكل صريح لاسم الصوت باللغة العربية (مثال: `Gemini Zephyr (أنثى)`) وترجمة طابع ونبرة الصوت بالكامل لتسهيل الاختيار والفرز.
+  - **توسيع وضبط خيارات مزامنة الشفاه (Lipsync)**: تم تصحيح الأخطاء المتعلقة بتحديد نوع جنس أصوات Gemini (تعديل تصنيف Zephyr لـ أنثى بدلاً من ذكر) وتوسيع القائمة المنسدلة في صفحة المزامنة ([lipsync/page.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/lipsync/page.tsx)) لتشمل جميع الأصوات الـ 30 الرسمية بدقة متكاملة.
+
 ## ربط وتفعيل إعدادات توليد الموسيقى (النوع، الحالة، سرعة الإيقاع BPM، والكلمات المخصصة) بموديل Lyria (2026-07-06)
 - تم حل مشكلة تجاهل السيرفر لإعدادات توليد الموسيقى وجعلها حقيقية وتفاعلية بالكامل وليست وهمية أو عشوائية:
   - تم تحديث كود الواجهة ([audio/page.tsx](file:///E:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/audio/page.tsx)) ليرسل قيم الـ `genre` (النوع)، الـ `mood` (الحالة)، والـ `bpm` (سرعة الإيقاع) بشكل صريح ضمن الحمولة الموجهة للطلب POST إلى `/api/music`.
@@ -997,3 +1004,24 @@
 - The internal executor writes real files inside the trusted workspace and reports exact paths; it remains intentionally bounded and is not a replacement for full engineering refactors.
 - Chat and prompt composer layout now uses bounded responsive constraints to avoid tiny text, uncontrolled wide trace cards, and prompt-box overlap while resizing.
 - 2026-07-05: Saad Agent packaged UI now defaults execution tracing to Simple mode. The full Execution Trace card is no longer created for ordinary running or successful chat tasks in Simple mode. Failure and approval-required tasks still surface the trace card. Developer and Verbose remain diagnostic opt-in modes.
+## Saad Agent private story knowledge behavior (2026-07-06)
+- Saad Agent now has a documented private narrative psychology knowledge rule for consensual adult fictional story interests.
+- The update preserves the current training architecture by storing structured story analysis cards under `.saad-agent/training/lessons/stories/`.
+- Story entries should be compact knowledge cards with title, source, category, tags, summary, characters, relationship dynamics, key themes, psychological notes, narrative style, vocabulary, lessons, and safety notes.
+- The agent should use these cards for term explanation, pattern comparison, character/dynamic analysis, summarization, translation, and narrative-style understanding.
+- This is a private companion knowledge behavior, not a new storage architecture or a replacement for licensed therapy/medical advice.
+- Safety boundary: only adult consensual fictional/narrative material belongs in this path; content involving minors, coercion, real non-consensual harm, exploitation, or illegal activity must not be stored or trained.
+
+## Saad Agent real URL crawler training import behavior (2026-07-06)
+- The Knowledge Manager URL import is now a real request-time crawler, not a link-only placeholder.
+- `knowledge:import-url` fetches a public HTTP/HTTPS URL, extracts readable HTML/text, writes a Markdown training file, and runs the existing `KnowledgeIngestionService.ingestTrainingKnowledge(...)` pipeline.
+- Private narrative/story-like sources route under `.saad-agent/training/lessons/stories/` and include a story knowledge card header plus crawled page text.
+- The crawler must fail honestly when DNS, HTTP status, timeout, login wall, paywall, or unreadable content prevents extraction; it must not save a fake full-content record.
+- The crawler does not bypass protected content. For inaccessible pages, the user must provide reachable text or a reachable source URL.
+
+## Saad Agent Knowledge document normalization and crawler error clarity (2026-07-06)
+- `knowledge:list` and `knowledge:get-document` must normalize training registry records before returning them to the Knowledge Manager UI.
+- Registry fields such as `fileName`, `filePath`, `addedDate`, and `type` map to UI fields such as `title`, `originalFileName`, `sourcePath`, `importedAt`, and `fileType`.
+- This preserves the existing registry schema and avoids creating a second knowledge service.
+- URL crawler errors must expose the real failure class, including DNS lookup failure, timeout, refused connection, and TLS/certificate failure, instead of returning only `fetch failed`.
+- The crawler must not save fake full-content records when the URL cannot be reached or readable content cannot be extracted.
