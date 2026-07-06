@@ -618,7 +618,6 @@ const CINEMA_APPROVED_IDS: ReadonlySet<string> = new Set([
   "google-veo3.1-t2v",
   "google-veo3.1-fast-t2v",
   "kling-v3.0-pro-t2v",
-  "kling-v3.0-4k-t2v",
   "openai-sora-2-t2v",
   "bytedance-seedance-v2-t2v",
 ]);
@@ -630,7 +629,6 @@ const CINEMA_ORDER: ReadonlyArray<string> = [
   "google-gemini-omni-video", // Gemini Omni Flash — newest Google flagship 🆕
   "google-veo3.1-t2v",        // Hollywood-grade flagship
   "kling-v3.0-pro-t2v",       // Kuaishou cinematic flagship
-  "kling-v3.0-4k-t2v",        // Native 4K cinema
   "openai-sora-2-t2v",        // Narrative flagship
   "bytedance-seedance-v2-t2v",// BytePlus Hollywood-grade
   "google-veo3.1-fast-t2v",   // Quick cinema variant

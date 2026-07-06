@@ -179,27 +179,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       max_reference_images: 3,
     }),
   },
-  // ╔══════════════════════════════════════════════════════════════════════════
-  // ║ Kling V3.0 4K — Premium native 4K cinematic output
-  // ║ Confirmed via WaveSpeed search bar (screenshot verified)
-  // ║ Route: kwaivgi/kling-v3.0-4k/text-to-video  • Pricing: $2.10/gen
-  // ╚══════════════════════════════════════════════════════════════════════════
-  {
-    id: "kling-v3.0-4k-t2v",
-    name: "Kling 3.0 4K",
-    family: "kling", family_label: "Kling", family_color: "#06b6d4",
-    badge: "4K",
-    description: "Kling 3.0 native 4K text-to-video. Top cinematic resolution.",
-    api_route: "kwaivgi/kling-v3.0-4k/text-to-video",
-    route_confirmed: true,
-    capabilities: t2vCaps({
-      aspect_ratios:       ["16:9", "9:16", "1:1"],
-      // 4K endpoint locks the resolution; quality is implied by the route itself.
-      resolutions:         ["4K"],
-      durations:           [5, 10],
-      has_sound:           true,
-    }),
-  },
+
   // NOTE: Kling 3.0 Omni / Omni Edit removed — KIE does not provide these endpoints.
   // The kwaivgi/kling-video-o3-pro/* routes were aliased to kling-3.0/video (duplicate of standard).
   // Re-add when KIE officially launches Omni 3 (O3) — see https://kie.ai/kling-3-0 FAQ.

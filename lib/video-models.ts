@@ -71,7 +71,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     accepts: ["start-frame", "end-frame"],
     aspectRatios: ["16:9", "9:16", "1:1"],
     durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    resolutions: ["std", "pro"],
+    resolutions: ["std", "pro", "4k"],
     badge: "TOP",
     creditCost: 17.5,
     maxDuration: 15,

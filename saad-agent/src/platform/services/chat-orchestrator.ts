@@ -940,7 +940,9 @@ export class ChatOrchestratorService {
             "لن أقدم نتائج بحث تخمينية بدون مصدر مباشر."
           ].join("\n");
           await TaskStateStore.transitionTask(taskId, "FAILED", err.message || "Internet search failed");
-        }    } else {
+        }
+      }
+    } else {
       const isGreeting = ChatOrchestratorService.isSimpleGreeting(userRequestText);
       const isConversational = isGreeting || intent === "conversation";
 
@@ -1437,9 +1439,16 @@ export class ChatOrchestratorService {
 
   private static isMemorySave(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
+    const arabicSaveSignals = /(\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a)/.test(normalized);
+    const arabicTrainingSignals =
+      /(?:^|\s)(?:\u062f\u0631\u0628|\u062a\u062f\u0631\u064a\u0628)\s+(?:\u0646\u0641\u0633\u0643|\u0639\u0644\u0649|\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642)/.test(normalized)
+      || /(?:\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062e\u0632\u0646|\u0633\u062c\u0644|\u062b\u0628\u062a|\u0627\u0633\u062a\u062e\u062f\u0645|\u0627\u0639\u062a\u0645\u062f).*(?:\u0645\u0631\u062c\u0639|\u0645\u0631\u0627\u062c\u0639|\u062a\u062f\u0631\u064a\u0628)/.test(normalized)
+      || /(?:\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642)\s+(?:\u0645\u0631\u062c\u0639|\u0644\u0644\u062a\u062f\u0631\u064a\u0628)/.test(normalized);
     const saveSignals = /\b(remember|save|store|memorize)\b/i.test(lower)
+      || arabicSaveSignals
       || /(Ø§Ø­ÙØ¸|Ø­ÙØ¸|ØªØ°ÙƒØ±|ØªØ°ÙƒÙ‘Ø±|Ø®Ø²Ù†|Ø®Ø²Ù‘Ù†|Ø³Ø¬Ù„|Ø³Ø¬Ù‘Ù„|Ø«Ø¨Øª|Ø«Ø¨Ù‘Øª)/.test(normalized);
     const trainingSignals = /\b(train|training|learn from|use as reference|save as reference|store as reference)\b/i.test(lower)
+      || arabicTrainingSignals
       || /(?:^|\s)(?:Ø¯Ø±Ø¨|ØªØ¯Ø±ÙŠØ¨)\s+(?:Ù†ÙØ³Ùƒ|Ø¹Ù„Ù‰|Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø°ÙŠ|Ù‡Ø§ÙŠ|Ø§Ù„Ù…Ù„Ù|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©|Ø§Ù„Ù…Ø±ÙÙ‚)/.test(normalized)
       || /(?:Ø§Ø­ÙØ¸|Ø­ÙØ¸|Ø®Ø²Ù†|Ø³Ø¬Ù„|Ø«Ø¨Øª|Ø§Ø³ØªØ®Ø¯Ù…|Ø§Ø¹ØªÙ…Ø¯).*(?:Ù…Ø±Ø¬Ø¹|Ù…Ø±Ø§Ø¬Ø¹|ØªØ¯Ø±ÙŠØ¨)/.test(normalized)
       || /(?:Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø°ÙŠ|Ù‡Ø§ÙŠ|Ø§Ù„Ù…Ù„Ù|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©|Ø§Ù„Ù…Ø±ÙÙ‚)\s+(?:Ù…Ø±Ø¬Ø¹|Ù„Ù„ØªØ¯Ø±ÙŠØ¨)/.test(normalized);
@@ -1463,7 +1472,8 @@ export class ChatOrchestratorService {
   }
 
   private static isMemoryRecall(prompt: string, normalized: string): boolean {
-    return /(Ù…Ù† Ø§Ù†Ø§|Ù…Ù† Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†Ø§|Ø§Ù†Ø§ Ù…Ù†Ùˆ|Ø§Ù†ÙŠ Ù…Ù†Ùˆ|Ù…Ø§ Ø§Ø³Ù…ÙŠ|Ø´Ù†Ùˆ Ø§Ø³Ù…ÙŠ|Ø§Ø³Ù…ÙŠ Ø´Ù†Ùˆ|Ø§Ø³Ù…ÙŠ Ù…Ù†Ùˆ|ØªØ¹Ø±ÙÙ†ÙŠ|ØªØªØ°ÙƒØ±Ù†ÙŠ|Ù…Ø§Ø°Ø§ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù„ÙŠ|Ù…Ø§Ø°Ø§ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø­Ø§ÙØ¸ Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ù…Ø®Ø²Ù† Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø°Ø§ÙƒØ± Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ ØªØ¹Ø±ÙÙ‡ Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ Ø­Ø§ÙØ¸Ù‡ Ø¹Ù†ÙŠ|Ù…Ø¹Ù„ÙˆÙ…Ø§ØªÙŠ|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
+    return /(\u0645\u0646 \u0627\u0646\u0627|\u0645\u0646 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u0627|\u0627\u0646\u0627 \u0645\u0646\u0648|\u0627\u0646\u064a \u0645\u0646\u0648|\u0645\u0627 \u0627\u0633\u0645\u064a|\u0634\u0646\u0648 \u0627\u0633\u0645\u064a|\u0627\u0633\u0645\u064a \u0634\u0646\u0648|\u0627\u0633\u0645\u064a \u0645\u0646\u0648|\u062a\u0639\u0631\u0641\u0646\u064a|\u062a\u062a\u0630\u0643\u0631\u0646\u064a|\u0645\u0627\u0630\u0627 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0644\u064a|\u0645\u0627\u0630\u0627 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062d\u0627\u0641\u0638 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0645\u062e\u0632\u0646 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0630\u0627\u0643\u0631 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062a\u0639\u0631\u0641\u0647 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062d\u0627\u0641\u0638\u0647 \u0639\u0646\u064a|\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized)
+      || /(Ù…Ù† Ø§Ù†Ø§|Ù…Ù† Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†Ø§|Ø§Ù†Ø§ Ù…Ù†Ùˆ|Ø§Ù†ÙŠ Ù…Ù†Ùˆ|Ù…Ø§ Ø§Ø³Ù…ÙŠ|Ø´Ù†Ùˆ Ø§Ø³Ù…ÙŠ|Ø§Ø³Ù…ÙŠ Ø´Ù†Ùˆ|Ø§Ø³Ù…ÙŠ Ù…Ù†Ùˆ|ØªØ¹Ø±ÙÙ†ÙŠ|ØªØªØ°ÙƒØ±Ù†ÙŠ|Ù…Ø§Ø°Ø§ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù„ÙŠ|Ù…Ø§Ø°Ø§ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø­Ø§ÙØ¸ Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ù…Ø®Ø²Ù† Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø°Ø§ÙƒØ± Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ ØªØ¹Ø±ÙÙ‡ Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ Ø­Ø§ÙØ¸Ù‡ Ø¹Ù†ÙŠ|Ù…Ø¹Ù„ÙˆÙ…Ø§ØªÙŠ|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
   }
 
   private static isExplicitInternetSearch(prompt: string, normalized: string): boolean {
@@ -1689,6 +1699,26 @@ export class ChatOrchestratorService {
     ].join("\n");
   }
 
+  private static formatInternetProviderConfigurationResponse(error: any): string {
+    const reason = String(error?.message || "Brave Answers is not configured.");
+    return [
+      "ما أگدر أجيب روابط مباشرة حالياً لأن مزود البحث الحقيقي Brave Answers يحتاج إعداد.",
+      "",
+      `السبب: ${reason}`,
+      "",
+      "حتى يشتغل البحث الفعلي:",
+      "1. افتح Settings.",
+      "2. ادخل على Providers.",
+      "3. افتح Brave Answers.",
+      "4. فعّل المزود إذا كان مطفّى.",
+      "5. ضع API Key الصحيح.",
+      "6. تأكد أن الـ endpoint هو:",
+      "https://api.search.brave.com/res/v1/web/search",
+      "",
+      "بعدها أعد نفس الطلب، وراح أرجع لك روابط حقيقية بمصادرها. ما راح أعطيك روابط تخمينية."
+    ].join("\n");
+  }
+
   private static formatModelFailureResponse(errorMessage: string): string {
     return [
       "Ù…Ø§ Ú¯Ø¯Ø±Øª Ø£Ø±Ø¬Ø¹ Ø¬ÙˆØ§Ø¨ Ù„Ø£Ù† Ù…Ø²ÙˆØ¯ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ù…Ø§ ÙƒÙ…Ù‘Ù„ Ø§Ù„Ø·Ù„Ø¨.",
@@ -1803,11 +1833,14 @@ export class ChatOrchestratorService {
     const lower = prompt.trim().toLowerCase();
     const words = normalized.split(/\s+/).filter(Boolean);
     const isShort = words.length <= 5;
-    const thanks = /^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©|thank you|thanks|thx)$/i.test(normalized)
+    const thanks = /^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629|thank you|thanks|thx)$/i.test(normalized)
+      || /^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©|thank you|thanks|thx)$/i.test(normalized)
       || /^(?:thank you|thanks|thx)$/i.test(lower);
-    const ok = /^(?:ØªÙ…Ø§Ù…|Ø²ÙŠÙ†|Ø§ÙˆÙƒÙŠ|Ø­Ø§Ø¶Ø±|ØªÙ…|Ø§ÙŠ|Ø¥ÙŠ|Ù†Ø¹Ù…|ok|okay)$/i.test(normalized)
+    const ok = /^(?:\u062a\u0645\u0627\u0645|\u0632\u064a\u0646|\u0627\u0648\u0643\u064a|\u062d\u0627\u0636\u0631|\u062a\u0645|\u0627\u064a|\u0625\u064a|\u0646\u0639\u0645|ok|okay)$/i.test(normalized)
+      || /^(?:ØªÙ…Ø§Ù…|Ø²ÙŠÙ†|Ø§ÙˆÙƒÙŠ|Ø­Ø§Ø¶Ø±|ØªÙ…|Ø§ÙŠ|Ø¥ÙŠ|Ù†Ø¹Ù…|ok|okay)$/i.test(normalized)
       || /^(?:ok|okay)$/i.test(lower);
-    const smallTalk = /^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized);
+    const smallTalk = /^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
+      || /^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized);
     const greeting = this.isSimpleGreeting(prompt);
     return isShort && (thanks || ok || smallTalk || greeting);
   }
@@ -1884,11 +1917,13 @@ export class ChatOrchestratorService {
 
   private static formatCasualAcknowledgement(prompt: string): string {
     const normalized = this.normalizeArabic(prompt);
-    if (/^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©)/i.test(normalized)) {
-      return "Ø§Ù„Ø¹ÙÙˆ Ø³Ø¹Ø¯ØŒ Ø­Ø§Ø¶Ø±.";
+    if (/^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629)/i.test(normalized)
+      || /^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©)/i.test(normalized)) {
+      return "العفو سعد، حاضر.";
     }
-    if (/^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized)) {
-      return "Ù‡Ù„Ø§ Ø¨ÙŠÙƒØŒ Ø§Ù„Ø­Ù…Ø¯ Ù„Ù„Ù‡ Ø¨Ø®ÙŠØ±. Ø´Ù„ÙˆÙ†Ùƒ Ø¥Ù†ØªØŸ Ø´ØªØ­ØªØ§Ø¬ØŸ";
+    if (/^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
+      || /^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized)) {
+      return "هلا بيك، الحمد لله بخير. شلونك إنت؟ شتحتاج؟";
     }
     if (/^(?:Ù…Ø³Ø§Ø¡ Ø§Ù„Ø®ÙŠØ±)$/.test(normalized)) {
       return "Ù…Ø³Ø§Ø¡ Ø§Ù„Ù†ÙˆØ±ØŒ Ø£Ù‡Ù„Ù‹Ø§ ÙˆØ³Ù‡Ù„Ù‹Ø§ Ø¨ÙŠÙƒ. Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„Ù„ÙŠÙ„Ø©ØŸ";
@@ -1982,6 +2017,7 @@ export class ChatOrchestratorService {
 
   private static extractMemoryFact(prompt: string): string {
     return EngineeringMemory.scrubSecrets(this.extractUserRequest(prompt))
+      .replace(/^(\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a|\u062f\u0631\u0628|\u062f\u0631\u0651\u0628|\u062a\u062f\u0631\u064a\u0628)\s*(\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0627\u064a|\u0647\u0630\u064a|\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0629|\u0627\u0644\u062a\u0627\u0644\u064a|\u0627\u0644\u0645\u0644\u0641|:)?\s*/i, "")
       .replace(/^(Ø§Ø­ÙØ¸|Ø­ÙØ¸|ØªØ°ÙƒØ±|ØªØ°ÙƒÙ‘Ø±|Ø®Ø²Ù†|Ø®Ø²Ù‘Ù†|Ø³Ø¬Ù„|Ø³Ø¬Ù‘Ù„|Ø«Ø¨Øª|Ø«Ø¨Ù‘Øª|Ø¯Ø±Ø¨|Ø¯Ø±Ù‘Ø¨|ØªØ¯Ø±ÙŠØ¨)\s*(Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø§ÙŠ|Ù‡Ø°ÙŠ|Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø©|Ø§Ù„ØªØ§Ù„ÙŠ|Ø§Ù„Ù…Ù„Ù|:)?\s*/i, "")
       .replace(/^(remember|save|store|memorize|train|training|learn from)\s*(this|that|the following|file|:)?\s*/i, "")
       .replace(/^(use\s+)?(this|that)?\s*(as\s+a\s+)?reference\s*:?\s*/i, "")
