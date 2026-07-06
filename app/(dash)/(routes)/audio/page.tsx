@@ -451,14 +451,11 @@ export default function AudioPage() {
     }, 3000);
 
     try {
-      let customLyrics = "";
-      if (activeTab === "lyrics") {
-        customLyrics = [
-          verse.trim() ? `[Verse]\n${verse.trim()}` : "",
-          chorus.trim() ? `[Chorus]\n${chorus.trim()}` : "",
-          bridge.trim() ? `[Bridge]\n${bridge.trim()}` : "",
-        ].filter(Boolean).join("\n\n");
-      }
+      const customLyrics = [
+        verse.trim() ? `[Verse]\n${verse.trim()}` : "",
+        chorus.trim() ? `[Chorus]\n${chorus.trim()}` : "",
+        bridge.trim() ? `[Bridge]\n${bridge.trim()}` : "",
+      ].filter(Boolean).join("\n\n");
 
       const imagePayloads = [];
       for (const img of images) {
@@ -477,7 +474,14 @@ export default function AudioPage() {
         }
       }
 
-      const finalPrompt = prompt.trim() || `Create a beautiful song in the style of ${genre || "pop"}${mood ? ", " + mood : ""} using the provided lyrics.`;
+      let finalPrompt = prompt.trim();
+      if (!finalPrompt) {
+        if (instrumental) {
+          finalPrompt = `Create a beautiful instrumental song in the style of ${genre || "pop"}${mood ? ", " + mood : ""}.`;
+        } else {
+          finalPrompt = `Create a beautiful song in the style of ${genre || "pop"}${mood ? ", " + mood : ""}${customLyrics ? " using the provided lyrics" : ""}.`;
+        }
+      }
 
       const payload = {
         prompt: finalPrompt,

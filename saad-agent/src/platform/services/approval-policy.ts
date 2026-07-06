@@ -107,8 +107,9 @@ export class ApprovalPolicyService {
   }
 
   static async getConversationMode(conversationId: string | undefined, fallback?: ApprovalMode): Promise<ApprovalMode> {
+    if (fallback) return this.normalizeMode(fallback);
     const store = await this.loadStore();
-    return this.normalizeMode((conversationId && store.conversationModes[conversationId]) || fallback);
+    return this.normalizeMode(conversationId && store.conversationModes[conversationId]);
   }
 
   static async rememberAlwaysAllow(conversationId: string | undefined, action: ApprovalAction): Promise<void> {

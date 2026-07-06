@@ -230,6 +230,16 @@ export class ChatOrchestratorService {
       };
     }
 
+    if (!conversationState.pendingClarification
+      && ChatOrchestratorService.isAffirmativeOnly(userRequestText)
+      && ChatOrchestratorService.lastAssistantOfferedAction(conversationState.history || [])) {
+      return await ChatOrchestratorService.answerAffirmativeFollowUp(
+        userRequestText,
+        ConversationStateEngine.getState(sessionId).history || [],
+        input.signal
+      );
+    }
+
     if (!conversationState.pendingClarification && ChatOrchestratorService.isCasualAcknowledgement(userRequestText)) {
       return {
         intent: "conversation",
@@ -238,7 +248,9 @@ export class ChatOrchestratorService {
       };
     }
 
-    if (!normalizedAttachments.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+    if (!normalizedAttachments.length
+      && !ChatOrchestratorService.isTranslationRequest(userRequestText)
+      && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
         userRequestText,
         activeWorkspace,
@@ -253,7 +265,9 @@ export class ChatOrchestratorService {
       effectiveApprovalMode,
       conversationId
     );
-    if (!normalizedAttachments.length && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
+    if (!normalizedAttachments.length
+      && !ChatOrchestratorService.isTranslationRequest(userRequestText)
+      && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
         userRequestText,
         activeWorkspace,
@@ -262,7 +276,9 @@ export class ChatOrchestratorService {
       );
     }
 
-    if (!normalizedAttachments.length && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
+    if (!normalizedAttachments.length
+      && !ChatOrchestratorService.isTranslationRequest(userRequestText)
+      && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       try {
         const historyBlock = ChatOrchestratorService.formatConversationHistory(
           ConversationStateEngine.getState(sessionId).history || []
@@ -853,6 +869,27 @@ export class ChatOrchestratorService {
       } catch {}
       responseText = `المراجع التدريبية الحالية: ${count} ملف.\nلمزيد من التفاصيل، يرجى مراجعة إعدادات المعرفة والتدريب.`;
       await this.transitionToComplete(taskId, "Knowledge list retrieved");
+    } else if (intent === "translation") {
+      usedModel = true;
+      try {
+        responseText = await ChatOrchestratorService.translateWithKnowledgeContext({
+          userRequestText,
+          activeWorkspace,
+          preAnswerReview,
+          readableAttachmentContext,
+          history: conversationState.history || [],
+          signal: input.signal
+        });
+        await this.transitionToComplete(taskId, "Translation completed");
+      } catch (err: any) {
+        usedModel = false;
+        responseText = ChatOrchestratorService.formatTranslationFailureResponse(
+          userRequestText,
+          preAnswerReview.knowledgeMatches,
+          err?.message || "Unknown model provider error"
+        );
+        await TaskStateStore.transitionTask(taskId, "FAILED", err?.message || "Translation failed");
+      }
     } else if (intent === "knowledge_lookup") {
       usedModel = false;
       const usageReport = PreAnswerReviewService.formatKnowledgeUsageReport(preAnswerReview);
@@ -1323,6 +1360,19 @@ export class ChatOrchestratorService {
     const engine = new IntentEngine();
     const classified = engine.classifyIntent(prompt, sessionId);
 
+    if (this.isTranslationRequest(prompt)) {
+      return {
+        ...classified,
+        intent: "translation",
+        confidence: Math.max(classified.confidence, 0.95),
+        source: "pattern",
+        matchedPattern: classified.matchedPattern || "direct translation pattern",
+        reason: classified.reason || "User asks for translation.",
+        selectedPipeline: "language.translate",
+        selectedTools: ["ReasoningEngine"]
+      };
+    }
+
     if (this.isTrainingRecallQuestion(prompt, normalized) && classified.intent === "memory_save") {
       return {
         ...classified,
@@ -1446,6 +1496,13 @@ export class ChatOrchestratorService {
     return true;
   }
 
+  private static isTranslationRequest(prompt: string): boolean {
+    const lower = String(prompt || "").trim().toLowerCase();
+    const normalized = this.normalizeArabic(prompt || "");
+    return /^(?:translate|translation)\b/i.test(lower)
+      || /^(?:\u062a\u0631\u062c\u0645|\u062a\u0631\u062c\u0645\u0647|\u062a\u0631\u062c\u0645\u0629)(?:\s|$)/.test(normalized);
+  }
+
   private static async answerQuietlyWithTrainingKnowledge(
     userRequestText: string,
     activeWorkspace: string,
@@ -1512,6 +1569,123 @@ export class ChatOrchestratorService {
     }
   }
 
+  private static async translateWithKnowledgeContext(options: {
+    userRequestText: string;
+    activeWorkspace: string;
+    preAnswerReview: Awaited<ReturnType<typeof PreAnswerReviewService.review>>;
+    readableAttachmentContext?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
+    signal?: AbortSignal | undefined;
+  }): Promise<string> {
+    const targetInstruction = ChatOrchestratorService.translationTargetInstruction(options.userRequestText);
+    const explicitText = ChatOrchestratorService.extractInlineTranslationText(options.userRequestText);
+    const knowledgeText = ChatOrchestratorService.formatTranslationKnowledgeContext(options.preAnswerReview.knowledgeMatches);
+    const historyBlock = ChatOrchestratorService.formatConversationHistory(options.history || []);
+    const sourceBlocks = [
+      explicitText ? `Explicit text from user:\n${explicitText}` : "",
+      options.readableAttachmentContext || "",
+      knowledgeText ? `Matched trained knowledge for possible translation:\n${knowledgeText}` : "",
+      historyBlock
+    ].filter(Boolean).join("\n\n");
+
+    const response = await ReasoningEngine.requestCompletion({
+      role: "Coding",
+      systemPrompt: [
+        "You are Saad Studio Agent, the user's private local assistant.",
+        "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
+        "This turn is a translation task.",
+        targetInstruction,
+        "If the target is Iraqi Arabic, use the user's natural Iraqi/Baghdad tone: clear, warm, direct, and not theatrical.",
+        "Keep meaning, emotional tone, relationship dynamics, and psychological nuance accurate.",
+        "For adult fictional/narrative material, translate neutrally and privately without moralizing or shaming.",
+        "Do not print raw matched sources, diagnostics, chunk labels, or 'Matched content' in the final answer.",
+        "If several knowledge chunks match, translate the most relevant passage or summarize-translated answer when no exact passage is identifiable.",
+        "If no translatable text is available, ask the user to paste or attach the exact text."
+      ].join("\n"),
+      userPrompt: [
+        "User translation request:",
+        options.userRequestText,
+        "",
+        "Available source material:",
+        sourceBlocks || "No source text was found in the request, readable attachments, trained knowledge, or conversation history."
+      ].join("\n"),
+      signal: options.signal,
+      requestTimeoutMs: 20000,
+      retryCountOverride: 0
+    });
+    return response.rawResponse;
+  }
+
+  private static translationTargetInstruction(prompt: string): string {
+    const lower = String(prompt || "").toLowerCase();
+    const normalized = this.normalizeArabic(prompt || "");
+    if (/\b(to|into)\s+english\b/i.test(lower)
+      || /(?:\u0627\u0644\u0627\u0646\u0643\u0644\u064a\u0632\u064a|\u0627\u0644\u0627\u0646\u062c\u0644\u064a\u0632\u064a|\u0644\u0644\u0627\u0646\u0643\u0644\u064a\u0632\u064a|\u0644\u0644\u0627\u0646\u062c\u0644\u064a\u0632\u064a)/.test(normalized)) {
+      return "Translate into natural English unless the user gives another target language.";
+    }
+    if (/(?:\u0641\u0635\u062d\u0649|\u0644\u0644\u0641\u0635\u062d\u0649|\u0639\u0631\u0628\u064a\u0629 \u0641\u0635\u062d\u0649)/.test(normalized)) {
+      return "Translate into clear Modern Standard Arabic.";
+    }
+    return "Translate into natural Iraqi Arabic by default, matching the user's preferred voice and dialect.";
+  }
+
+  private static extractInlineTranslationText(prompt: string): string {
+    const stripped = EngineeringMemory.scrubSecrets(String(prompt || "")).trim()
+      .replace(/^(?:translate|translation)\s*(?:this|that|to\s+\w+|into\s+\w+|:)?\s*/i, "")
+      .replace(/^(?:\u062a\u0631\u062c\u0645|\u062a\u0631\u062c\u0645\u0647|\u062a\u0631\u062c\u0645\u0629)\s*(?:\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0627\u064a|\u0644\u0644\u0639\u0631\u0628\u064a|\u0644\u0644\u0641\u0635\u062d\u0649|\u0644\u0644\u0627\u0646\u0643\u0644\u064a\u0632\u064a|:)?\s*/i, "")
+      .trim();
+    if (!stripped || stripped.length < 8) return "";
+    if (/^(?:\u0644\u0644\u0639\u0631\u0628\u064a|\u0644\u0644\u0641\u0635\u062d\u0649|\u0644\u0644\u0627\u0646\u0643\u0644\u064a\u0632\u064a|to english|to arabic)$/i.test(stripped)) return "";
+    return stripped.slice(0, 12000);
+  }
+
+  private static formatTranslationKnowledgeContext(
+    matches: Array<{ item: any; chunks?: Array<{ content: string }> }>
+  ): string {
+    return matches
+      .filter((match) => match?.item)
+      .slice(0, 4)
+      .map((match, index) => {
+        const title = match.item.title || match.item.fileName || path.basename(match.item.filePath || `source-${index + 1}`);
+        const content = (match.chunks || [])
+          .slice(0, 3)
+          .map((chunk) => EngineeringMemory.scrubSecrets(String(chunk.content || "")).trim())
+          .filter(Boolean)
+          .join("\n\n")
+          .slice(0, 3500);
+        const summary = EngineeringMemory.scrubSecrets(String(match.item.summary || "")).trim().slice(0, 800);
+        return [
+          `Source ${index + 1}: ${title}`,
+          summary ? `Summary: ${summary}` : "",
+          content ? `Text:\n${content}` : ""
+        ].filter(Boolean).join("\n");
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  private static formatTranslationFailureResponse(
+    userRequestText: string,
+    matches: Array<{ item: any; chunks?: Array<{ content: string }> }>,
+    errorMessage: string
+  ): string {
+    const sourceNames = matches
+      .filter((match) => match?.item)
+      .slice(0, 3)
+      .map((match, index) => `${index + 1}. ${match.item.title || match.item.fileName || path.basename(match.item.filePath || "training-source")}`)
+      .join("\n");
+    return [
+      "ما كدرت أكمل الترجمة لأن مزود الموديل ما رجع جواب.",
+      "",
+      `الطلب: ${userRequestText}`,
+      sourceNames ? `لقيت مراجع ممكن تترجم منها:\n${sourceNames}` : "ما لكيت نص واضح أترجمه من الطلب أو المعرفة.",
+      "",
+      `السبب التقني: ${errorMessage}`,
+      "",
+      "شغّل/خفف الموديل أو غيّر الموديل السريع، وبعدها أترجمها إلك بصوتك العراقي الطبيعي بدون عرض المراجع الخام."
+    ].join("\n");
+  }
+
   private static formatModelFailureResponse(errorMessage: string): string {
     return [
       "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
@@ -1535,16 +1709,9 @@ export class ChatOrchestratorService {
     const sources = usableMatches.map((match, index) => {
       const title = match.item.title || match.item.fileName || path.basename(match.item.filePath || `source-${index + 1}`);
       const summary = String(match.item.summary || "").trim();
-      const chunkText = (match.chunks || [])
-        .slice(0, 2)
-        .map((chunk) => String(chunk.content || "").trim())
-        .filter(Boolean)
-        .join("\n")
-        .slice(0, 900);
       return [
         `${index + 1}. ${title}`,
-        summary ? `   Summary: ${summary}` : "",
-        chunkText ? `   Matched content: ${chunkText}` : ""
+        summary ? `   Summary: ${summary.slice(0, 500)}` : ""
       ].filter(Boolean).join("\n");
     }).join("\n\n");
 
@@ -1640,6 +1807,76 @@ export class ChatOrchestratorService {
     const smallTalk = /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized);
     const greeting = this.isSimpleGreeting(prompt);
     return isShort && (thanks || ok || smallTalk || greeting);
+  }
+
+  private static isAffirmativeOnly(prompt: string): boolean {
+    const normalized = this.normalizeArabic(prompt || "");
+    const lower = String(prompt || "").trim().toLowerCase();
+    return /^(?:\u0646\u0639\u0645|\u0627\u064a|\u0625\u064a|\u062a\u0645\u0627\u0645|\u0632\u064a\u0646|\u0627\u0648\u0643\u064a|\u062d\u0627\u0636\u0631|\u062a\u0645)$/.test(normalized)
+      || /^(?:yes|yep|yeah|ok|okay|sure|do it)$/i.test(lower);
+  }
+
+  private static lastAssistantOfferedAction(history: Array<{ role: "user" | "assistant"; content: string }>): boolean {
+    const lastAssistant = ChatOrchestratorService.findLastAssistantBeforeLatestUser(history);
+    if (!lastAssistant) return false;
+    const normalized = this.normalizeArabic(lastAssistant);
+    const lower = lastAssistant.toLowerCase();
+    const offered = /(?:\u062a\u0631\u064a\u062f|\u062a\u062d\u0628|\u0644\u0648 \u062a\u062d\u0628|\u0627\u0630\u0627 \u062a\u062d\u0628|\u0625\u0630\u0627 \u062a\u062d\u0628|\u0645\u0645\u0643\u0646|\u0627\u0643\u062f\u0631|\u0623\u0643\u062f\u0631|\u0627\u0642\u062f\u0631|\u0623\u0642\u062f\u0631|\u0627\u0633\u0627\u0639\u062f\u0643|\u0623\u0633\u0627\u0639\u062f\u0643)/.test(normalized)
+      || /\b(?:want me to|would you like|i can|let me|do you want)\b/i.test(lower);
+    const concreteAction = /(?:\u0627\u0643\u062a\u0628|\u0623\u0643\u062a\u0628|\u0627\u0635\u064a\u063a|\u0623\u0635\u064a\u063a|\u0627\u0643\u0645\u0644|\u0623\u0643\u0645\u0644|\u0627\u0633\u0648\u064a|\u0623\u0633\u0648\u064a|\u0627\u0639\u0637\u064a\u0643|\u0623\u0639\u0637\u064a\u0643|\u062a\u0631\u062c\u0645|\u0627\u0644\u062e\u0635|\u0623\u0644\u062e\u0635|\u0627\u062d\u0644\u0644|\u0623\u062d\u0644\u0644|\u0646\u0643\u062a\u0628|\u0631\u0633\u0627\u0644\u0629|\u0646\u0635|\u0635\u064a\u0627\u063a\u0629|\u0645\u0633\u0648\u062f\u0629|\u062e\u0637\u0629)/.test(normalized)
+      || /\b(?:write|draft|continue|summarize|translate|analyze|prepare|compose)\b/i.test(lower);
+    return offered && concreteAction;
+  }
+
+  private static findLastAssistantBeforeLatestUser(history: Array<{ role: "user" | "assistant"; content: string }>): string {
+    for (let i = history.length - 2; i >= 0; i -= 1) {
+      const message = history[i];
+      if (message?.role === "assistant" && message.content.trim()) {
+        return message.content;
+      }
+    }
+    return "";
+  }
+
+  private static async answerAffirmativeFollowUp(
+    userRequestText: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+    signal?: AbortSignal
+  ): Promise<ChatOrchestrationResult> {
+    const historyBlock = ChatOrchestratorService.formatConversationHistory(history);
+    try {
+      const response = await ReasoningEngine.requestCompletion({
+        role: "Coding",
+        systemPrompt: [
+          "You are Saad Studio Agent, the user's private local assistant.",
+          "Always reply in natural Iraqi Arabic unless the user asks for another language.",
+          "The latest user message is a short affirmative follow-up such as yes/نعم/إي/تمام.",
+          "Infer exactly what the user approved from the immediately previous assistant message and continue that same topic.",
+          "If the previous assistant offered to write, draft, translate, summarize, analyze, or continue something, do that action now.",
+          "Do not answer with only 'حاضر' or a generic acknowledgement.",
+          "If the approved action still lacks essential details, ask one short clarifying question and stay on the same topic."
+        ].join("\n"),
+        userPrompt: [
+          historyBlock,
+          "Latest user reply:",
+          userRequestText
+        ].filter(Boolean).join("\n\n"),
+        signal,
+        requestTimeoutMs: 12000,
+        retryCountOverride: 0
+      });
+      return {
+        intent: "conversation",
+        usedModel: true,
+        response: response.rawResponse
+      };
+    } catch (err: any) {
+      return {
+        intent: "conversation",
+        usedModel: true,
+        response: ChatOrchestratorService.formatModelFailureResponse(err?.message || "Unknown model provider error")
+      };
+    }
   }
 
   private static formatCasualAcknowledgement(prompt: string): string {

@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## تفعيل إرسال الكلمات المخصصة وتطبيق الوضع الصامت/الموسيقي الصرف بشكل صارم (2026-07-06)
+- تم إصلاح مشكلة عدم إرسال الكلمات المخصصة (Verse, Chorus, Bridge) في حال كتابتها والرجوع لتبويب التوجيه (Prompt) قبل النقر على التوليد. أصبحت الكلمات تُرسل تلقائياً طالما كانت الحقول مملوءة بغض النظر عن التبويب النشط.
+- تم تحسين الموجه الافتراضي (Default Prompt Builder) في حال ترك حقل التوجيه فارغاً لكي يُنشئ صيغة طبيعية متوافقة مع حالة الوضع الصامت (Instrumental) أو الغنائي التعبيري.
+- تم تشديد تفعيل خيار "Instrumental Only" (بدون أصوات بشرية) في السيرفر لمنع أي خروج عن التعليمات بواسطة موديل Google Lyria:
+  - تم إضافة وسم التخصيص `[Vocal Type: Instrumental only, absolutely NO vocals, NO singing, NO voice]` في رأس إعدادات الموجه.
+  - تم إرفاق توجيه حرج وصارم في نهاية الموجه يمنع توليد الكلمات أو الأصوات البشرية نهائياً لضمان إنتاج موسيقى آلاتية صرفة.
+
 ## دمج صفحات AI Canvas و3D Studio وAssist وSmart CLI في قائمة الفيديو المنسدلة (2026-07-06)
 - بناءً على طلب المستخدم، تم دمج وتوحيد الصفحات الرئيسية الإضافية لتكون قابلة للوصول مباشرة من قائمة الفيديو المنسدلة (Video Dropdown):
   - **الصفحات المضافة**:
@@ -1037,3 +1044,30 @@
 - This preserves the existing registry schema and avoids creating a second knowledge service.
 - URL crawler errors must expose the real failure class, including DNS lookup failure, timeout, refused connection, and TLS/certificate failure, instead of returning only `fetch failed`.
 - The crawler must not save fake full-content records when the URL cannot be reached or readable content cannot be extracted.
+
+## Saad Agent attachment training and conversation continuity behavior (2026-07-06)
+- Runtime attachments must be normalized at the orchestration boundary before any training import, readable attachment scan, approval check, or model prompt assembly.
+- Attachments that arrive with `name`, missing `filename`, missing `mimeType`, or only a local path must receive safe filename and MIME fallbacks before storage/indexing.
+- When a prompt with attachments asks to save, store, remember, train, read, classify, search, index, use memory, or use as reference, Saad Agent must save and index the attachments first through the existing `.saad-agent/training/` pipeline and must not answer as if it only received metadata.
+- Text-like training attachments may be indexed up to 8MB. PDF, Word, image, screenshot, map, and diagram files remain reference-only until a real extractor/OCR/Vision pipeline is available.
+- Direct model answer paths must include recent conversation history in the model prompt so follow-up messages stay in sequence instead of behaving like a new chat.
+- An explicit approval mode sent with the current request takes precedence over stale stored conversation mode. Stored mode is fallback-only when no explicit mode is present.
+
+## Saad Agent translation route behavior (2026-07-06)
+- Translation prompts must route through a dedicated `translation` path before raw knowledge lookup reporting.
+- Default translation target is natural Iraqi Arabic matching the user's preferred private-agent voice.
+- Explicit user requests for Modern Standard Arabic or English override the Iraqi Arabic default.
+- The translation path may use inline text, readable attachments, trained knowledge matches, and recent conversation history as source material.
+- Final translation responses must not print raw chunk labels, diagnostics, `Matched content`, or full source reports unless the user explicitly asks for sources.
+- If the active model/provider fails, the fallback should list only possible source names and the provider error, not raw matched content.
+
+## Saad Agent chat readability sizing behavior (2026-07-06)
+- Chat message body text and composer input text should use stable 16px sizing for readability.
+- Narrow/mobile composer rules must not reduce the prompt text below the product-level readable size.
+- Font-size readability changes are UI-only and must not alter chat orchestration, memory, training, provider, or backend behavior.
+
+## Saad Agent affirmative follow-up continuity behavior (2026-07-06)
+- Short affirmative replies such as `نعم`, `إي`, `تمام`, `ok`, or `yes` must inspect the immediately previous assistant message before using the generic acknowledgement shortcut.
+- If the previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing something, the affirmative reply means the user approved that offered action.
+- In that case, Saad Agent must continue the same topic using conversation history and perform the offered action; it must not answer only `حاضر`.
+- Standalone thanks and acknowledgements remain deterministic no-model responses when there is no previous actionable assistant offer.

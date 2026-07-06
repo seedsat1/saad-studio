@@ -189,25 +189,31 @@ export async function POST(req: Request) {
 
         // Build a highly structured musical specification block to enforce real settings on Lyria
         const specs: string[] = [];
-        if (genre?.trim()) specs.push(`Genre: ${genre.trim()}`);
+        if (genre?.trim()) specs.push(`Genre/Style: ${genre.trim()}`);
         if (mood?.trim()) specs.push(`Mood/Atmosphere: ${mood.trim()}`);
         if (bpm && Number.isFinite(bpm) && bpm > 0) specs.push(`Tempo: ${bpm} BPM`);
-
-        if (specs.length > 0) {
-          fullPrompt = `[Musical Specifications]\n${specs.join("\n")}\n\n[Directions]\n${fullPrompt}`;
+        if (force_instrumental) {
+          specs.push(`Vocal Type: Instrumental only, absolutely NO vocals, NO singing, NO voice`);
+        } else {
+          specs.push(`Vocal Type: Vocal track incorporating lyrics`);
         }
 
-        if (lyrics?.trim()) {
+        if (specs.length > 0) {
+          const prefix = specs.map(s => `[${s}]`).join(" ");
+          fullPrompt = `${prefix}\n\n${fullPrompt}`;
+        }
+
+        if (lyrics?.trim() && !force_instrumental) {
           fullPrompt += `\n\nLyrics:\n\n${sanitizePrompt(lyrics, 2500)}`;
         }
         if (style?.trim() && !genre && !mood) {
           fullPrompt += `\n\nStyle/Mood/Instruments: ${sanitizePrompt(style, 200)}`;
         }
         if (force_instrumental) {
-          fullPrompt += `\n\nInstrumental only, no vocals.`;
+          fullPrompt += `\n\n[CRITICAL DIRECTIVE: This is a pure instrumental piece. Absolutely NO vocals, NO singing, NO humming, and NO voice. Return instrumental arrangement only.]`;
         }
         if (duration && Number.isFinite(duration) && duration > 0) {
-          fullPrompt += `\n\n[Duration Constraint]: Generate exactly ${duration} seconds of audio. The music must resolve and end at around ${duration} seconds.`;
+          fullPrompt += `\n\n[Duration Constraint: Generate exactly ${duration} seconds of audio. The music must resolve and end at around ${duration} seconds.]`;
         }
 
         inputList.push({

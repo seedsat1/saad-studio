@@ -1,5 +1,132 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed Lyrics Tab omission and enforce strict instrumental mode (2026-07-06)
+
+- Status:
+  - Fixed a critical bug in `app/(dash)/(routes)/audio/page.tsx` where Custom Lyrics (Verse, Chorus, Bridge) were completely ignored and not sent if the user switched back to the "Prompt" tab before clicking Generate. They are now compiled and sent regardless of the active tab.
+  - Enhanced the default prompt builder to dynamically generate tailored natural prompts when the text area is empty, properly handling the "Instrumental Only" state.
+  - Enhanced `app/api/music/route.ts` to prepend settings specs as tag format headers (e.g. `[Vocal Type: Instrumental only...]`) and append critical directives to completely enforce the Instrumental mode on Google Lyria.
+- Affected files:
+  - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
+  - `app/api/music/route.ts` [MODIFY]
+- Verification:
+  - Verified compilation via `npx tsc --noEmit`.
+- Decision:
+  - Always send custom lyrics if they are filled and strictly enforce instrumental mode using double specs.
+
+## Latest task: Fix Saad Agent affirmative follow-up continuity (2026-07-06)
+
+- Status:
+  - Fixed the issue where a short reply such as `نعم` after an assistant offer could be treated as a generic acknowledgement and return only `حاضر`.
+  - Added an affirmative follow-up path in `ChatOrchestratorService` before the casual acknowledgement shortcut.
+  - If the previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing, a short affirmative reply now continues that same topic and invokes the model to perform the promised action.
+  - Generic thanks/acknowledgements still remain deterministic no-model responses when there is no previous actionable offer.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/dist/platform/services/chat-orchestrator.js` [BUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/chat-orchestrator.js` [PACKAGE WORKTREE]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [PACKAGE]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+  - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+  - `saad-agent/SAAD_AGENT_CONTEXT.md` [MODIFY]
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression test that seeds conversation history with an assistant offer to write a message, then sends `نعم`; the orchestrator now routes through the affirmative follow-up model path.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` to a temporary check folder and verified it contains `isAffirmativeOnly`, `lastAssistantOfferedAction`, and `answerAffirmativeFollowUp`.
+- Findings:
+  - `isCasualAcknowledgement(...)` correctly protected simple thanks from model calls, but it ran before recognizing `نعم` as approval of the previous assistant offer.
+  - The previous assistant offer was present in conversation history but was not converted into an actionable pending state.
+- Decision:
+  - Keep the deterministic no-model shortcut for standalone thanks/acknowledgements, but insert a narrow context-aware affirmative-follow-up gate before it.
+- Remaining:
+  - Restart the packaged Electron app before retesting the exact chat sequence.
+
+## Latest task: Increase Saad Agent chat and composer font size (2026-07-06)
+
+- Status:
+  - Increased Saad Agent chat message text from 14px to 16px with a more readable line height.
+  - Increased both composer/input textarea variants to 16px, including the narrow mobile rule, so typed chat text no longer shrinks in the active UI.
+  - Slightly increased message metadata/time text to keep the message header balanced with the larger body text.
+- Affected files:
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/ui/dist/` [BUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/` [PACKAGE WORKTREE]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [PACKAGE]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+- Verification:
+  - `npm.cmd run build:ui` in `saad-agent` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified packaged worktree `ui/dist/index.html` points to the new `index-DqkX1WVK.css` and `index-BcIUg-QO.js`.
+  - Verified the packaged CSS contains the 16px chat/composer font rules.
+- Findings:
+  - The first copy attempt did not update packaged `index.html` because a wildcard was used with `Copy-Item -LiteralPath`; it was corrected by copying `index.html` and `assets/*` explicitly before repacking.
+- Decision:
+  - Keep the change scoped to CSS readability only; do not touch chat orchestration, memory, training, providers, or backend behavior.
+- Remaining:
+  - Restart the packaged Electron app before checking the larger chat text.
+
+## Latest task: Add Saad Agent real translation route with Iraqi Arabic default voice (2026-07-06)
+
+- Status:
+  - Added a dedicated `translation` route in `ChatOrchestratorService` before the `knowledge_lookup` raw-report path.
+  - Translation prompts now bypass quiet conversation shortcuts and are forced to `language.translate` when the user starts with Arabic `translate` equivalents or English `translate`.
+  - Default translation target is natural Iraqi Arabic matching the user's preferred voice; explicit requests for Modern Standard Arabic or English override the default.
+  - Translation uses inline text, readable attachments, matched trained knowledge, and recent conversation history as source material without printing raw chunk labels or `Matched content` in the final answer.
+  - Translation failure fallback no longer dumps raw matched chunks; it lists only possible source names and the provider error.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/dist/platform/services/chat-orchestrator.js` [BUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/chat-orchestrator.js` [PACKAGE WORKTREE]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [PACKAGE]
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including the new translation route test.
+  - Verified packaged `resources/app.asar` contains `translateWithKnowledgeContext`, `isTranslationRequest`, `formatTranslationFailureResponse`, and the no-raw-source translation rule.
+- Findings:
+  - `IntentEngine` already had a translation intent, but direct chat could route translation-like prompts through quiet conversation or raw knowledge lookup paths.
+  - The old training-knowledge fallback could expose raw English matched chunks when the model failed or timed out.
+- Decision:
+  - Keep translation as a model-backed response path because quality translation requires the active language model, but keep retrieval deterministic and hide raw knowledge diagnostics unless explicitly requested.
+- Remaining:
+  - Restart the packaged Electron app before retesting translation in the UI.
+
+## Latest task: Fix Saad Agent attachment training import and conversation continuity (2026-07-06)
+
+- Status:
+  - Fixed attachment import crashes caused by runtime attachments that provide `name`/missing `mimeType` instead of the backend `filename`/`mimeType` contract.
+  - Added runtime attachment normalization in `ChatOrchestratorService`, plus defensive filename/MIME fallback in `AttachmentManager` and `KnowledgeIngestionService`.
+  - Text/Markdown/JSON/code training attachment size limit was raised to 8MB so long pasted text and book-like text references can be saved and indexed instead of silently skipped at the previous 512KB ceiling.
+  - When a user sends attachments with prompts such as save/store/train/read/classify/search/memory/reference, the orchestrator now imports and indexes the attachments first instead of calling the model or answering from metadata.
+  - Conversation history is now injected into quiet answer, simple general answer, conversational, and non-conversational model prompt paths, reducing the issue where each message behaved like a new chat.
+  - Explicit per-request approval mode now overrides stale stored conversation mode; stored mode is used only when no explicit mode is passed.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts` [MODIFY]
+  - `saad-agent/src/platform/services/attachments.ts` [MODIFY]
+  - `saad-agent/src/platform/services/approval-policy.ts` [MODIFY]
+  - `saad-agent/dist/platform/services/*.js` [BUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/*.js` [PACKAGE WORKTREE]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [PACKAGE]
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added and ran a manual runtime check for a text attachment with `name` only and missing `mimeType`; it saved and indexed under `.saad-agent/training/lessons/` without the previous `toLowerCase` crash.
+  - Verified packaged `resources/app.asar` contains `normalizeRuntimeAttachments`, `shouldImportAttachmentsBeforeAnswer`, `formatConversationHistory`, `normalizeAttachment`, `safeAttachmentFileName`, the 8MB training limit, and the approval fallback-priority fix.
+- Findings:
+  - The attachment failure was caused by inconsistent renderer/backend attachment shape and missing MIME fallback.
+  - The continuity issue came from several direct answer paths omitting conversation history from the final model prompt.
+  - A stale stored approval mode could override the current UI mode and force unexpected approval prompts.
+- Decision:
+  - Keep the existing training/knowledge pipeline and repair normalization at service boundaries instead of introducing a separate storage system.
+  - Save and index attachments first for memory/training/read/classify/search prompts; analysis can then use the indexed knowledge on the next turn.
+- Remaining:
+  - Restart the packaged Electron app before retesting.
+  - PDF/Word/image files are still stored as references only until a real extractor/OCR pipeline is implemented.
+
 ## Latest task: Integrate AI Canvas, 3D Studio, Assist, and Smart CLI into Video dropdown navigation (2026-07-06)
 
 - Status:

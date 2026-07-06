@@ -394,6 +394,8 @@ Casual greetings and short acknowledgements such as `Ø§Ù‡Ù„Ø§`, `Ø´�
 
 Casual thank-you and acknowledgement messages such as `Ù…Ù…Ù†ÙˆÙ†`, `Ù…Ù…ØªÙ†`, `Ø³Ù„Ù…Øª`, `Ø´ÙƒØ±Ø§`, and `ØªØ³Ù„Ù…` must be handled as conversation-only inputs before task-state initialization. They must not render an Execution Trace card.
 
+Short affirmative replies such as `نعم`, `إي`, `تمام`, `ok`, or `yes` must not always be treated as final acknowledgements. If the immediately previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing something, the affirmative reply means approval to perform that offered action and must continue the same topic using conversation history. It must not answer only `حاضر`.
+
 Normal direct-answer conversation must not create a full engineering Execution Trace card. If the request is a low-risk answer/explain prompt, the orchestrator must run a quiet pre-answer review first, without trace UI, then call the active model with memory, training knowledge, project rules, and matched skills context. The final answer must not expose diagnostics unless the user asks for diagnostics.
 
 If no trained knowledge matches the prompt, the model prompt must say: `No matching trained knowledge found. Answering from model knowledge only.` The agent must not pretend that training was used.
