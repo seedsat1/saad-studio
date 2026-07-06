@@ -95,34 +95,32 @@ export async function GET(req: NextRequest) {
     }
 
     const parsed = new URL(finalTargetUrl);
+    const lowercaseUrl = finalTargetUrl.toLowerCase();
+    const contentType = res.headers.get("Content-Type")?.toLowerCase() || "";
 
-    // Try to guess the extension from the URL path first
-    let ext = "";
-    const pathname = parsed.pathname.toLowerCase();
-    if (pathname.endsWith(".mp3")) ext = ".mp3";
-    else if (pathname.endsWith(".wav")) ext = ".wav";
-    else if (pathname.endsWith(".mp4")) ext = ".mp4";
-    else if (pathname.endsWith(".mov")) ext = ".mov";
-    else if (pathname.endsWith(".png")) ext = ".png";
-    else if (pathname.endsWith(".jpg") || pathname.endsWith(".jpeg")) ext = ".jpg";
-    else if (pathname.endsWith(".webp")) ext = ".webp";
-    else if (pathname.endsWith(".gif")) ext = ".gif";
-
-    // If not found in URL path, fallback to Content-Type header
-    if (!ext) {
-      const contentType = res.headers.get("Content-Type")?.toLowerCase() || "";
-      if (contentType.includes("image/png")) ext = ".png";
-      else if (contentType.includes("image/jpeg") || contentType.includes("image/jpg")) ext = ".jpg";
-      else if (contentType.includes("image/webp")) ext = ".webp";
-      else if (contentType.includes("image/gif")) ext = ".gif";
-      else if (contentType.includes("video/mp4")) ext = ".mp4";
-      else if (contentType.includes("video/quicktime")) ext = ".mov";
-      else if (contentType.includes("audio/mpeg") || contentType.includes("audio/mp3")) ext = ".mp3";
-      else if (contentType.includes("audio/wav")) ext = ".wav";
+    // Guess the source format (srcExt) and extension (ext) with robust checks
+    let srcExt = "";
+    if (lowercaseUrl.includes(".mp3") || contentType.includes("mpeg") || contentType.includes("mp3")) {
+      srcExt = "mp3";
+    } else if (lowercaseUrl.includes(".wav") || contentType.includes("wav") || contentType.includes("wave")) {
+      srcExt = "wav";
+    } else if (lowercaseUrl.includes(".mp4") || contentType.includes("mp4")) {
+      srcExt = "mp4";
+    } else if (lowercaseUrl.includes(".mov") || contentType.includes("quicktime")) {
+      srcExt = "mov";
+    } else if (lowercaseUrl.includes(".png") || contentType.includes("png")) {
+      srcExt = "png";
+    } else if (lowercaseUrl.includes(".jpg") || lowercaseUrl.includes(".jpeg") || contentType.includes("jpeg") || contentType.includes("jpg")) {
+      srcExt = "jpg";
+    } else if (lowercaseUrl.includes(".webp") || contentType.includes("webp")) {
+      srcExt = "webp";
+    } else if (lowercaseUrl.includes(".gif") || contentType.includes("gif")) {
+      srcExt = "gif";
     }
 
-    // Clean up filename by removing illegal OS characters, and make sure it has the correct extension
-    const srcExt = ext ? ext.replace(".", "").toLowerCase() : "";
+    let ext = srcExt ? `.${srcExt}` : "";
+
+    // Determine requested target format
     let targetExt = "";
     if (filename.toLowerCase().endsWith(".mp3")) targetExt = "mp3";
     else if (filename.toLowerCase().endsWith(".wav")) targetExt = "wav";
