@@ -1,5 +1,64 @@
 import { NextRequest } from "next/server";
 import { getFallbackUrls } from "@/lib/utils";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
+import { getFfmpegPath } from "@/lib/server/ffmpeg-path";
+
+const execFileAsync = promisify(execFile);
+
+async function transcodeAudio(inputBuffer: any, inputExt: string, targetExt: string): Promise<any> {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "audio-transcode-"));
+  const inputPath = path.join(tmpDir, `input.${inputExt}`);
+  const outputPath = path.join(tmpDir, `output.${targetExt}`);
+  
+  try {
+    fs.writeFileSync(inputPath, inputBuffer);
+    const ffmpegPath = await getFfmpegPath();
+    
+    let args: string[] = [];
+    if (targetExt === "mp3") {
+      args = [
+        "-hide_banner",
+        "-y",
+        "-i", inputPath,
+        "-codec:a", "libmp3lame",
+        "-qscale:a", "2",
+        outputPath
+      ];
+    } else if (targetExt === "wav") {
+      args = [
+        "-hide_banner",
+        "-y",
+        "-i", inputPath,
+        outputPath
+      ];
+    } else {
+      args = [
+        "-hide_banner",
+        "-y",
+        "-i", inputPath,
+        outputPath
+      ];
+    }
+    
+    await execFileAsync(ffmpegPath, args, { timeout: 30_000 });
+    
+    if (!fs.existsSync(outputPath)) {
+      throw new Error("FFmpeg failed to transcode audio.");
+    }
+    
+    return fs.readFileSync(outputPath);
+  } finally {
+    try {
+      if (fs.existsSync(tmpDir)) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    } catch {}
+  }
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -63,20 +122,45 @@ export async function GET(req: NextRequest) {
     }
 
     // Clean up filename by removing illegal OS characters, and make sure it has the correct extension
+    const srcExt = ext ? ext.replace(".", "").toLowerCase() : "";
+    let targetExt = "";
+    if (filename.toLowerCase().endsWith(".mp3")) targetExt = "mp3";
+    else if (filename.toLowerCase().endsWith(".wav")) targetExt = "wav";
+
+    let fileBuffer = Buffer.from(await res.arrayBuffer());
+    let responseContentType = res.headers.get("Content-Type") || "application/octet-stream";
+
+    // Transcode audio on the fly if needed (MP3 <-> WAV)
+    if (targetExt && srcExt && srcExt !== targetExt && (srcExt === "mp3" || srcExt === "wav") && (targetExt === "mp3" || targetExt === "wav")) {
+      try {
+        console.log(`[DOWNLOAD_TRANSCODE] Transcoding from ${srcExt} to ${targetExt}`);
+        fileBuffer = (await transcodeAudio(fileBuffer, srcExt, targetExt)) as any;
+        responseContentType = targetExt === "wav" ? "audio/wav" : "audio/mpeg";
+        ext = `.${targetExt}`;
+      } catch (transcodeErr) {
+        console.error("[DOWNLOAD_TRANSCODE_FAILED] Fallback to raw buffer", transcodeErr);
+      }
+    }
+
     let finalFilename = filename.replace(/[\\\/:*?"<>|]/g, "_").trim() || "download";
     if (ext && !finalFilename.toLowerCase().endsWith(ext)) {
-      finalFilename = `${finalFilename}${ext}`;
+      const otherExt = ext === ".mp3" ? ".wav" : ".mp3";
+      if (finalFilename.toLowerCase().endsWith(otherExt)) {
+        finalFilename = finalFilename.slice(0, -otherExt.length) + ext;
+      } else {
+        finalFilename = `${finalFilename}${ext}`;
+      }
     }
 
     const headers = new Headers();
     // Force browser to download the file directly using standard RFC 6266
     headers.set("Content-Disposition", `attachment; filename="${finalFilename}"; filename*=UTF-8''${encodeURIComponent(finalFilename)}`);
-    headers.set("Content-Type", res.headers.get("Content-Type") || "application/octet-stream");
+    headers.set("Content-Type", responseContentType);
     
     // Explicitly allow same-origin requests
     headers.set("Access-Control-Allow-Origin", "*");
 
-    return new Response(res.body, {
+    return new Response(fileBuffer, {
       status: 200,
       headers,
     });

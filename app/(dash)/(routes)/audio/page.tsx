@@ -344,10 +344,20 @@ export default function AudioPage() {
   // Player
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState<number>(0);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [showLyricsPanel, setShowLyricsPanel] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Sync audioDuration with track metadata defaults on load
+  useEffect(() => {
+    if (currentTrack) {
+      setAudioDuration(currentTrack.duration || 60);
+    } else {
+      setAudioDuration(0);
+    }
+  }, [currentTrack]);
 
   // History & clipboard
   const [history, setHistory] = useState<Track[]>(SAMPLE_HISTORY);
@@ -561,13 +571,14 @@ export default function AudioPage() {
 
   const handleDownloadTrack = (track: Track) => {
     if (!track.audioUrl) return;
+    const filenameParam = `${track.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
     const a = document.createElement("a");
-    a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}`;
-    a.download = `${track.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
+    a.href = `/api/download?url=${encodeURIComponent(track.audioUrl)}&filename=${encodeURIComponent(filenameParam)}`;
+    a.download = filenameParam;
     a.click();
   };
 
-  const progress = currentTrack ? currentTime / currentTrack.duration : 0;
+  const progress = currentTrack ? (audioDuration > 0 ? currentTime / audioDuration : 0) : 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-black">
@@ -576,6 +587,7 @@ export default function AudioPage() {
         <audio
           ref={audioRef}
           src={currentAudioSrc}
+          onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)}
           onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
           onEnded={() => {
             setIsPlaying(false);
@@ -1219,7 +1231,8 @@ export default function AudioPage() {
                             onClick={e => {
                               const rect = e.currentTarget.getBoundingClientRect();
                               const pct = (e.clientX - rect.left) / rect.width;
-                              const newTime = pct * currentTrack.duration;
+                              const actualLength = audioDuration || currentTrack.duration || 60;
+                              const newTime = pct * actualLength;
                               setCurrentTime(newTime);
                               if (audioRef.current) {
                                 audioRef.current.currentTime = newTime;
@@ -1238,11 +1251,11 @@ export default function AudioPage() {
                                     style={{
                                       height: `${h * 88}%`,
                                       backgroundColor: isHead
-                                        ? "#c084fc"
+                                        ? "#06b6d4" // Cyan-500
                                         : played
-                                        ? "#7c3aed"
-                                        : "#27272a",
-                                      opacity: played ? 1 : 0.55,
+                                        ? "#0891b2" // Cyan-600 (active played bar)
+                                        : "#1e2d3d", // Slate-800/zinc (unplayed background bar)
+                                      opacity: played ? 1 : 0.45,
                                     }}
                                   />
                                 );
@@ -1258,7 +1271,7 @@ export default function AudioPage() {
                           {/* Timeline */}
                           <div className="flex items-center justify-between text-xs text-zinc-400 mb-4 px-1">
                             <span className="tabular-nums font-medium">{formatTime(currentTime)}</span>
-                            <span className="tabular-nums">{formatTime(currentTrack.duration)}</span>
+                            <span className="tabular-nums">{formatTime(audioDuration || currentTrack.duration)}</span>
                           </div>
 
                           {/* Transport controls */}
@@ -1326,9 +1339,10 @@ export default function AudioPage() {
                               </button>
                               <button
                                 onClick={() => {
+                                  const filenameParam = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
                                   const a = document.createElement("a");
-                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}`;
-                                  a.download = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${outputFmt}`;
+                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}&filename=${encodeURIComponent(filenameParam)}`;
+                                  a.download = filenameParam;
                                   a.click();
                                 }}
                                 className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white transition-all shadow-md"
@@ -1347,9 +1361,10 @@ export default function AudioPage() {
                               <button
                                 key={fmt}
                                 onClick={() => {
+                                  const filenameParam = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${fmt.toLowerCase()}`;
                                   const a = document.createElement("a");
-                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}`;
-                                  a.download = `${currentTrack.title.toLowerCase().replace(/\s+/g, "_")}_saadstudio.${fmt.toLowerCase()}`;
+                                  a.href = `/api/download?url=${encodeURIComponent(currentTrack.audioUrl || "")}&filename=${encodeURIComponent(filenameParam)}`;
+                                  a.download = filenameParam;
                                   a.click();
                                 }}
                                 className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-100 transition-colors"
