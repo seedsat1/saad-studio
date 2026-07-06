@@ -20,6 +20,9 @@ const VIDEO_ROUTE_COST_MAP = new Map<string, number>([
   ["kwaivgi/kling-v3.0-pro/motion-control", 14],
   ["kling/v2-5-turbo-text-to-video-pro", 7.15],
   ["kling/v2-5-turbo-image-to-video-pro", 7.15],
+  ["kling/v3-turbo-text-to-video", 9.0],
+  ["kling/v3-turbo-image-to-video", 9.0],
+  ["kling/v3-turbo", 9.0],
   ["minimax/hailuo-2.3/i2v-standard", 6.18],
   ["minimax/hailuo-2.3/i2v-pro", 10.26],
   ["openai/sora-2/text-to-video", 13.64],
@@ -223,6 +226,10 @@ function applyGenericRouteDynamics(modelRoute: string, baseCost: number, payload
 }
 
 export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload): number {
+  if (modelId === "kling-v3-turbo") {
+    const duration = readDuration(payload, 5);
+    return applySoundMultiplier(parseFloat((duration * 1.8).toFixed(2)), payload);
+  }
   if (modelId === "kling-3.0/video") return applySoundMultiplier(getKling3Credits(payload), payload);
   if (modelId === "kling-3.0/motion-control") return applySoundMultiplier(getKlingMotionCredits(payload), payload);
   if (modelId === "bytedance/seedance-2") return getSeedance2Credits(payload, "hq");
@@ -255,6 +262,10 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
 }
 
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
+  if (modelRoute.includes("kling/v3-turbo")) {
+    const duration = readDuration(payload, 5);
+    return applySoundMultiplier(parseFloat((duration * 1.8).toFixed(2)), payload);
+  }
   if (modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video") {
     return applySoundMultiplier(getKling3Credits(payload), payload);
   }

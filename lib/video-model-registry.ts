@@ -220,6 +220,22 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     }),
   },
   {
+    id: "kling-v3-turbo",
+    name: "Kling V3 Turbo",
+    family: "kling", family_label: "Kling", family_color: "#06b6d4",
+    badge: "FAST",
+    description: "Kling V3 Turbo auto-routing model. Automatically switches between Text-to-Video and Image-to-Video.",
+    api_route: "kling/v3-turbo",
+    route_confirmed: true,
+    capabilities: t2vCaps({
+      optional_image:      true,
+      aspect_ratios:       ["16:9", "9:16", "1:1"],
+      resolutions:         ["720p", "1080p"],
+      quality_param:       "resolution",
+      durations:           [5, 10],
+    }),
+  },
+  {
     id: "kling-v2.5-turbo-t2v",
     name: "Kling 2.5 Turbo",
     family: "kling", family_label: "Kling", family_color: "#06b6d4",

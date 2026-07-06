@@ -1,5 +1,25 @@
 # Saad Studio Project Context Update
 
+## Latest task: Integrated Kling V3 Turbo with dynamic auto-routing (2026-07-06)
+
+- Status:
+  - Added Kling V3 Turbo model as a unified UI option that dynamically routes requests to either Text-to-Video or Image-to-Video based on whether the user uploaded a starting image.
+  - Registered the model in `VIDEO_MODEL_REGISTRY` and `VIDEO_MODELS` with optional image capabilities, standard aspect ratios, and durations (5s, 10s).
+  - Configured pricing models and route mappings to enforce a 1.8 credit/sec rate for the Kling V3 Turbo routes.
+  - Implemented the auto-routing hooks in `app/api/video/route.ts` and spec-compliant KIE input formatter mapping for both Kling V3 Turbo variants.
+- Affected files:
+  - `lib/video-model-registry.ts` [MODIFY]
+  - `lib/video-models.ts` [MODIFY]
+  - `lib/kie-model-routing.ts` [MODIFY]
+  - `lib/pricing-models.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+  - `lib/credit-pricing.ts` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+- Verification:
+  - Verified TypeScript compilation successfully with `npx tsc --noEmit`.
+- Decision:
+  - Implement dynamic route interception at the beginning of the POST handler to reuse existing downstream pipeline mapping and pricing hooks without duplicating code.
+
 ## Latest task: Fixed Lyrics Tab omission and enforce strict instrumental mode (2026-07-06)
 
 - Status:

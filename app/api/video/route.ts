@@ -987,6 +987,44 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     return out;
   }
 
+  // ── Kling V3 Turbo (T2V + I2V) — KIE input shape ────────────────
+  if (
+    model === "kling/v3-turbo-text-to-video" ||
+    model === "kling/v3-turbo-image-to-video"
+  ) {
+    const isI2V = model === "kling/v3-turbo-image-to-video";
+    const out: Record<string, unknown> = {};
+    out.prompt = typeof input.prompt === "string" ? input.prompt : "";
+    
+    // Duration: string enum (default '5')
+    const durRaw = typeof input.duration === "number" ? input.duration
+                 : typeof input.duration === "string" ? Number(input.duration) : 5;
+    out.duration = String(durRaw);
+    
+    // Resolution: string enum '720p' or '1080p'
+    const resRaw = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "720p";
+    out.resolution = resRaw === "1080p" ? "1080p" : "720p";
+
+    if (isI2V) {
+      // image_urls is required array of strings
+      if (startImage) {
+        out.image_urls = [startImage];
+      } else if (Array.isArray(input.image_urls) && input.image_urls.length > 0) {
+        out.image_urls = input.image_urls;
+      } else if (typeof input.image === "string") {
+        out.image_urls = [input.image];
+      } else {
+        out.image_urls = [];
+      }
+    } else {
+      // aspect_ratio: required only for text-to-video
+      const arRaw = typeof input.aspect_ratio === "string" ? input.aspect_ratio : "16:9";
+      out.aspect_ratio = ["16:9", "9:16", "1:1"].includes(arRaw) ? arRaw : "16:9";
+    }
+
+    return out;
+  }
+
   // ── Kling 2.5 Turbo Pro (T2V + I2V) — KIE flat input shape ────────────────
   // T2V: { prompt, duration ('5'|'10'), aspect_ratio, negative_prompt?, cfg_scale? }
   // I2V: { prompt, image_url, duration ('5'|'10'), negative_prompt?, cfg_scale? }
@@ -1479,7 +1517,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
     requestHash = hashRequestBody(body);
-    const { modelRoute, payload } = body as {
+    let { modelRoute, payload } = body as {
       modelRoute?: string;
       payload?: Record<string, unknown>;
     };
@@ -1490,6 +1528,18 @@ export async function POST(req: Request) {
 
     if (!payload || typeof payload !== "object") {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
+    }
+
+    // Auto-route Kling V3 Turbo based on input type
+    if (modelRoute === "kling/v3-turbo") {
+      const hasImage = !!(
+        payload.first_frame_url ||
+        payload.image_url ||
+        payload.image ||
+        (Array.isArray(payload.image_urls) && payload.image_urls.length > 0)
+      );
+      modelRoute = hasImage ? "kling/v3-turbo-image-to-video" : "kling/v3-turbo-text-to-video";
+      console.log(`[API/video] Auto-routed kling/v3-turbo to ${modelRoute} (hasImage: ${hasImage})`);
     }
 
     const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
