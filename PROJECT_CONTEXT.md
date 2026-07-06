@@ -4,7 +4,7 @@
 
 - Status:
   - Added Kling V3 Turbo model as a unified UI option that dynamically routes requests to either Text-to-Video or Image-to-Video based on whether the user uploaded a starting image.
-  - Registered the model in `VIDEO_MODEL_REGISTRY` and `VIDEO_MODELS` with optional image capabilities, standard aspect ratios, and durations (5s, 10s).
+  - Registered the model in `VIDEO_MODEL_REGISTRY` and `VIDEO_MODELS` with optional image capabilities, standard aspect ratios, and the full range of durations (3s - 15s).
   - Configured pricing models and route mappings to enforce a 1.8 credit/sec rate for the Kling V3 Turbo routes.
   - Implemented the auto-routing hooks in `app/api/video/route.ts` and spec-compliant KIE input formatter mapping for both Kling V3 Turbo variants.
 - Affected files:

@@ -100,7 +100,7 @@ export const VIDEO_MODELS: VideoModel[] = [
     inputType: "text-to-video",
     accepts: ["start-frame"],
     aspectRatios: ["16:9", "9:16", "1:1"],
-    durations: [5, 10],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     resolutions: ["720p", "1080p"],
     badge: "FAST",
     creditCost: 9.0,

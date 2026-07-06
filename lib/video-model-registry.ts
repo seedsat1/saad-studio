@@ -232,7 +232,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       aspect_ratios:       ["16:9", "9:16", "1:1"],
       resolutions:         ["720p", "1080p"],
       quality_param:       "resolution",
-      durations:           [5, 10],
+      durations:           [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
     }),
   },
   {
