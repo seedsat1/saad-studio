@@ -433,8 +433,6 @@ const STUDIO_LINKS = [
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
-  { label: "AI Canvas", href: "/original-series", icon: Monitor, color: "text-purple-400" },
-  { label: "3D Studio", href: "/3d", icon: Box, color: "text-indigo-400" },
 ];
 
 const ListItem = ({
@@ -1092,16 +1090,8 @@ const TopNavbar = () => {
 
               {/* Assist | Gallery | Connect Claude */}
               <div className="flex items-center">
-                <Link href="/assist" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/assist" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <Bot className="h-3 w-3 text-green-400" />Assist
-                </Link>
-                <NavSep />
                 <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />Gallery
-                </Link>
-                <NavSep />
-                <Link href="/smart-cli" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/smart-cli" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <Plug className="h-3 w-3 text-violet-400" />Smart CLI
                 </Link>
               </div>
 
@@ -1451,13 +1441,8 @@ const TopNavbar = () => {
               </MobileAccordion>
               )}
 
-              {/* Assist | Gallery */}
-              <div className="grid grid-cols-2 gap-1 pt-0.5">
-                <Link href="/assist"
-                  className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    pathname === "/assist" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
-                  <Bot className="h-4 w-4 text-green-400" />Assist
-                </Link>
+              {/* Gallery */}
+              <div className="pt-0.5">
                 <Link href="/gallery"
                   className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     pathname === "/gallery" ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>

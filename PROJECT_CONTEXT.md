@@ -5,7 +5,8 @@
 - Status:
   - Added `AI Canvas`, `3D Studio`, `Assist`, and `Smart CLI` pages to the `VIDEO_FEATURES` array inside `components/TopNavbar.tsx`.
   - Configured each page with descriptive titles, corresponding icons (`Monitor`, `Box`, `Bot`, `Plug`), custom colors, and descriptive sub-texts.
-  - This populates the pages under the `Video` dropdown menu for desktop screens and groups them in the Video accordion for responsive mobile views.
+  - Removed these pages from the top-level desktop header and mobile drawer shortcut lists, resolving duplication and clutter.
+  - This populates the pages exclusively under the `Video` dropdown menu for desktop screens and groups them in the Video accordion for responsive mobile views.
 - Affected files:
   - `components/TopNavbar.tsx` [MODIFY]
   - `PROJECT_CONTEXT.md` [MODIFY]
