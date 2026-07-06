@@ -1,5 +1,36 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fix Saad Agent Brave Answers configuration handling and protect no-guess search behavior (2026-07-06)
+
+- Status:
+  - Fixed Saad Agent external search handling when Brave Answers is not configured.
+  - `BraveAnswersService` now throws typed `BraveAnswersError` values for disabled/missing provider, missing API key, timeout, and request failure instead of unstructured generic errors.
+  - `ChatOrchestratorService` now treats missing/disabled Brave configuration as an actionable configuration response, not a failed internet-search execution.
+  - Real Brave API/network/request failures still remain `FAILED` and still refuse to invent links.
+  - Added direct Unicode-safe Arabic/Iraqi fallbacks for memory-save, memory-recall, casual acknowledgement, and memory fact extraction after a UTF-8 save exposed old mojibake-only matching.
+- Affected files:
+  - `saad-agent/src/platform/services/brave-answers.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/dist/platform/services/brave-answers.js` [BUILD]
+  - `saad-agent/dist/platform/services/chat-orchestrator.js` [BUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/*.js` [PACKAGE WORKTREE]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [PACKAGE]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Extracted the repacked `resources/app.asar` and verified it contains `BraveAnswersError`, `isConfigurationError`, `api_key_missing`, `formatInternetProviderConfigurationResponse`, and `Internet search provider requires configuration`.
+- Findings:
+  - Missing Brave API key was previously rendered as a failed execution trace instead of a clear provider-configuration message.
+  - The external search path correctly avoided fake links, but the UX made a missing configuration look like a broken task.
+  - Re-saving the orchestrator as UTF-8 exposed older mojibake-only Arabic regex branches; direct Unicode-safe Arabic fallbacks were added for the critical tested chat paths.
+- Decision:
+  - Keep internet research honest: no guessed links, and no model fallback for requests that require live sources.
+  - Treat missing Brave configuration as a setup-needed completion so the user sees the exact Settings path instead of a scary failed trace.
+- Remaining:
+  - Restart the packaged Electron app before retesting.
+  - Add a real Brave Answers API key under Settings > Providers > Brave Answers before expecting live source links.
+
 ## Latest task: Integrated Kling V3 Turbo with dynamic auto-routing (2026-07-06)
 
 - Status:

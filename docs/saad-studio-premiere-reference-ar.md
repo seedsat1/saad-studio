@@ -1071,3 +1071,9 @@
 - If the previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing something, the affirmative reply means the user approved that offered action.
 - In that case, Saad Agent must continue the same topic using conversation history and perform the offered action; it must not answer only `حاضر`.
 - Standalone thanks and acknowledgements remain deterministic no-model responses when there is no previous actionable assistant offer.
+
+## Saad Agent Brave Answers configuration behavior (2026-07-06)
+- External research and link requests must use the real Brave Answers provider when live sources are required.
+- If Brave Answers is not enabled or has no API key, Saad Agent should show a setup-needed answer that points to Settings > Providers > Brave Answers instead of rendering a failed trace as if the search itself ran and failed.
+- Missing search-provider configuration must not trigger model guessing or fake links.
+- Real Brave API/network/timeouts still remain failed live-search attempts and must report the real technical reason.

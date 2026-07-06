@@ -729,3 +729,10 @@ flowchart TD
 - Developer and Verbose modes may show full trace cards for debugging, but they are opt-in diagnostic modes.
 - Old localStorage values must not force the product back into Developer trace mode after an update; use the v3 storage key.
 - Chat output should prioritize the actual answer or real execution result, not diagnostic scaffolding.
+
+## Saad Agent Brave Answers configuration behavior (2026-07-06)
+
+- External research must use real configured search sources and must never fabricate links or source lists.
+- If Brave Answers is disabled, missing, or has no API key, the orchestrator should return a clear setup-needed message pointing to Settings > Providers > Brave Answers.
+- Missing Brave configuration is a product configuration state, not a failed live-search result.
+- Actual Brave API failures, network errors, and timeouts remain real failures and must report the technical reason without guessing results.
