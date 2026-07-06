@@ -1,14 +1,14 @@
 # Saad Studio Project Context Update
 
-## Latest task: Redesign Landing Page for Fluid, Borderless English Layout (2026-07-06)
+## Latest task: Implement Custom Node-Based Cinematic Landing Page Layout (2026-07-06)
 
 - Status:
-  - Redesigned the homepage to be fluid, borderless, fully in English, and visually stunning.
-  - Removed cluttered and duplicate card grids (`showcaseWall`, `modelSpotlights`, `adCards`) to keep the page clean and focused.
-  - Refactored `ToolCardItem` and `StudioPathways` to use 3xl rounded corners (`rounded-3xl`), translucent background configurations (`bg-zinc-950/20`), and glassmorphism styling.
-  - Relocated the company review registry box (`StartupVerification`) to the absolute bottom of the page and simplified it into a clean, text-only compliance layout. This ensures search engines can fully crawl compliance/Stripe info without cluttering the landing page for users.
-  - Standardized pricing cards with modern cyan/blue gradient themes and glassmorphic designs.
-  - Aligned footer (`components/Footer.tsx`) with the user's visual reference, adjusting link labels ("AI Tools", "About Us"), ordering, tagline, stay-in-the-loop newsletter headings/subtitles, and subscribe button backgrounds.
+  - Replaced the old slides carousel with `CinematicHero` showcasing a node-based workflow layout.
+  - Implemented bold English copy: `"DIRECT CINEMATIC WORLDS WITH AI"`, outlining the creative studio value proposition directly upon entry.
+  - Placed floating nodes for `"Mastering the Unseen"` and `"Aethoria"` connected to a mock Video Editor Timeline using SVG bezier paths.
+  - Animated glowing connection strokes with Framer Motion to simulate active data pipeline flows.
+  - Removed old slide parameters, `HeroCarousel`, and `getYouTubeId` functions to prevent code duplication.
+  - Kept the visual bottom navbar (footer) customized to match the user's reference mockup.
 - Affected files:
   - `app/(landing)/page.tsx` [MODIFY]
   - `components/Footer.tsx` [MODIFY]
@@ -17,9 +17,9 @@
   - TypeScript type checks passed successfully with `npx tsc --noEmit`.
   - Next.js production build succeeded with `npm run build`.
 - Decision:
-  - Avoid any viewport font scaling on controls to prevent rendering issues.
-  - Completely separate crawler-compliance blocks from primary visual landing assets.
-  - Synchronize default client footer details with custom brand visual guides.
+  - Keep node visual interactive paths responsive, collapsing into clean layout grids on smaller mobile screens.
+  - Maintain zero code duplication by pruning old carousel logic completely.
+  - Ensure the brand's production capacities (image, video, cinema, audio) are instantly recognizable to new subscribers.
 
 ## Latest task: Fix Saad Agent Knowledge Documents display contract and crawler error clarity (2026-07-06)
 

@@ -454,261 +454,280 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
-// ─── 1. Cinematic Hero Carousel ───────────────────────────────────────────────
-function getYouTubeId(url: string): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1).split("?")[0] || null;
-    if (u.hostname.includes("youtube.com")) {
-      if (u.pathname.includes("/embed/")) return u.pathname.split("/embed/")[1]?.split("?")[0] || null;
-      return u.searchParams.get("v");
-    }
-    return null;
-  } catch {
-    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return m ? m[1] : null;
-  }
-}
-
-function HeroCarousel({
-  slides = HERO_SLIDES,
-  primaryCtaLabel = "Try Now",
-  trailerLabel = "Watch Trailer",
-}: {
-  slides?: HeroSlide[];
-  primaryCtaLabel?: string;
-  trailerLabel?: string;
-}) {
-  const [active, setActive] = useState(0);
-  const [dir, setDir] = useState(1);
-  const [trailerOpen, setTrailerOpen] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const safeSlides = slides.length > 0 ? slides : HERO_SLIDES;
-
-  const go = useCallback((next: number, d = 1) => {
-    setDir(d);
-    setActive((next + safeSlides.length) % safeSlides.length);
-  }, [safeSlides.length]);
-
-  useEffect(() => {
-    setActive(0);
-  }, [safeSlides.length]);
-
-  useEffect(() => {
-    if (trailerOpen) return;
-    timerRef.current = setTimeout(() => go(active + 1, 1), 6000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [active, go, trailerOpen]);
-
-  const slide = safeSlides[active] ?? safeSlides[0];
-  const bgYtId = slide.youtubeUrl ? getYouTubeId(slide.youtubeUrl) : null;
-  const trailerYtId = slide.trailerUrl ? getYouTubeId(slide.trailerUrl) : null;
-
-  const variants = {
-    enter: (d: number) => ({ opacity: 0, x: d > 0 ? 60 : -60 }),
-    center: { opacity: 1, x: 0 },
-    exit: (d: number) => ({ opacity: 0, x: d > 0 ? -60 : 60 }),
-  };
-
+// ─── 1. Cinematic Hero Workspace ───────────────────────────────────────────────
+function CinematicHero() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   return (
-    <>
-      <section className="relative w-full min-h-[calc(100vh-4rem)] overflow-hidden">
-        {/* BG image / YouTube / gradient overlay */}
-        <AnimatePresence custom={dir} initial={false}>
-          <motion.div
-            key={slide.id + "-bg"}
-            custom={dir}
-            variants={{ enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } }}
-            initial="enter" animate="center" exit="exit"
-            transition={{ duration: 1 }}
-            className="absolute inset-0"
-          >
-            {bgYtId ? (
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <iframe
-                  src={`https://www.youtube-nocookie.com/embed/${bgYtId}?autoplay=1&mute=1&loop=1&playlist=${bgYtId}&controls=0&showinfo=0&rel=0&playsinline=1&iv_load_policy=3&modestbranding=1`}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-w-full min-h-full w-[177.8vh] h-[56.3vw]"
-                  allow="autoplay; encrypted-media"
-                  title={slide.title}
-                />
-              </div>
-            ) : isVideoUrl(slide.bgImage) ? (
-              <video
-                src={normalizeMediaUrl(slide.bgImage) || ""}
-                autoPlay muted loop playsInline
-                className="absolute inset-0 h-full w-full object-cover object-center"
-              />
-            ) : (
-              <Image
-                src={normalizeMediaUrl(slide.bgImage) || ""}
-                alt={slide.title}
-                fill
-                sizes="100vw"
-                className="object-cover object-center"
-                priority
-              />
-            )}
-            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-80", slide.gradient)} />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Dot grid overlay */}
+    <section className="relative w-full overflow-hidden bg-[#02050c] pt-24 pb-16 lg:pt-32">
+      {/* Immersive background glow */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/3 h-[600px] w-[600px] rounded-full bg-violet-900/10 blur-[130px]" />
+        <div className="absolute bottom-1/4 right-1/4 h-[500px] w-[500px] rounded-full bg-cyan-900/10 blur-[130px]" />
         <div
-          className="pointer-events-none absolute inset-0 opacity-25"
+          className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px)",
-            backgroundSize: "30px 30px",
+            backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.15) 1px,transparent 1px)",
+            backgroundSize: "24px 24px",
           }}
         />
+      </div>
 
-        {/* Vignette */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/12 to-slate-950/50" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/82 via-slate-950/35 to-slate-950/70" />
+      <div className="relative z-10 mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
+        {/* Main Text Copy */}
+        <div className="max-w-4xl text-center lg:text-left">
+          <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] bg-white/5 border border-white/10 text-cyan-300 mb-6">
+            <Sparkles className="h-3 w-3 animate-pulse" />
+            AI Creative Production Suite
+          </div>
+          
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white tracking-tight uppercase leading-[0.92] drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)]">
+            Direct Cinematic <br />
+            Worlds with <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-500 drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">AI</span>
+          </h1>
+          
+          <p className="mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-zinc-300">
+            Pioneering future-forward visuals through advanced AI-driven creation for film, media, and brands. Generate high-fidelity images, cinematic videos, custom audio, and manage the entire workflow in one seamless canvas.
+          </p>
 
-        {/* Content */}
-        <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col justify-end px-5 pb-10 pt-24 sm:px-10 lg:px-16 xl:px-20">
-          <div className="max-w-5xl">
-            <AnimatePresence custom={dir} mode="wait">
-              <motion.div
-                key={slide.id}
-                custom={dir}
-                variants={variants}
-                initial="enter" animate="center" exit="exit"
-                transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="max-w-4xl"
+          <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-4">
+            <Link href="/explore">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="relative flex items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-7 py-3.5 text-xs font-bold text-white shadow-lg shadow-cyan-500/10 hover:from-cyan-400 hover:to-blue-500 transition-all duration-300"
               >
-                <div className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ring-1 mb-4",
-                  `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo} bg-opacity-20 ring-white/20 text-white/90`
-                )}>
-                  <Sparkles className="h-3 w-3" />{slide.tag}
-                </div>
-
-                <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-white drop-shadow-2xl sm:text-6xl lg:text-7xl xl:text-8xl">
-                  Saad Studio
-                </h1>
-                <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-200 sm:text-xl">
-                  Images, videos, scenes, characters, audio, and workflows in one AI production studio.
-                </p>
-                <div className="mt-5 flex flex-wrap items-center gap-2 text-sm text-white/70">
-                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">Now featuring {slide.title}</span>
-                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">20+ AI models</span>
-                  <span className="rounded-full border border-white/15 bg-black/35 px-3 py-1 backdrop-blur">85+ AI tools</span>
-                </div>
-
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link href={slide.ctaHref}>
-                    <motion.button
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      className={cn(
-                        "relative flex items-center gap-2 overflow-hidden rounded-xl px-6 py-3 text-sm font-black text-white shadow-2xl",
-                        `bg-gradient-to-r ${slide.accentFrom} ${slide.accentTo}`
-                      )}
-                    >
-                      <Zap className="h-4 w-4" />
-                      {primaryCtaLabel}
-                    </motion.button>
-                  </Link>
-                  <Link href="/explore">
-                    <motion.button
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      className="flex items-center gap-2 rounded-xl border border-white/20 bg-white px-6 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/30 hover:bg-slate-100"
-                    >
-                      Explore Models
-                      <ArrowRight className="h-4 w-4" />
-                    </motion.button>
-                  </Link>
-                  {trailerYtId && (
-                    <motion.button
-                      whileHover={{ scale: 1.04 }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => setTrailerOpen(true)}
-                      className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/15 transition-colors"
-                    >
-                      <Play className="h-3.5 w-3.5 fill-white" />
-                      {trailerLabel}
-                    </motion.button>
-                  )}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="mt-10 hidden max-w-3xl grid-cols-4 gap-2 sm:grid">
-              {safeSlides.map((s, i) => (
-                <button
-                  key={s.id}
-                  onClick={() => go(i, i > active ? 1 : -1)}
-                  className={cn(
-                    "group relative overflow-hidden rounded-xl border bg-black/35 p-2 text-left backdrop-blur transition",
-                    i === active ? "border-white/70" : "border-white/10 hover:border-white/35"
-                  )}
-                >
-                  <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-                    0{i + 1}
-                  </span>
-                  <span className="mt-1 block truncate text-xs font-bold text-white/80 group-hover:text-white">
-                    {s.title}
-                  </span>
-                </button>
-              ))}
-            </div>
+                <Zap className="h-4 w-4" />
+                Explore Our Craft
+              </motion.button>
+            </Link>
+            
+            <Link href="/pricing">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-7 py-3.5 text-xs font-bold text-white backdrop-blur-md hover:bg-white/10 transition"
+              >
+                View Plans
+              </motion.button>
+            </Link>
           </div>
         </div>
 
-        {/* Arrow controls */}
-        <button
-          onClick={() => go(active - 1, -1)}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => go(active + 1, 1)}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white/70 backdrop-blur-sm hover:bg-black/50 hover:text-white transition-all"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </section>
+        {/* Floating Node Canvas (Desktop View) */}
+        <div ref={containerRef} className="relative w-full min-h-[640px] mt-16 hidden lg:block select-none">
+          {/* SVG Connection Paths */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="cyan-violet" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.2" />
+              </linearGradient>
+              <linearGradient id="violet-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
+                <stop offset="50%" stopColor="#6366f1" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
 
-      {/* YouTube Trailer Modal */}
-      <AnimatePresence>
-        {trailerOpen && trailerYtId && (
+            {/* Glowing lines from cards to timeline */}
+            {/* Mastering the Unseen -> Timeline track 1 */}
+            <motion.path
+              d="M 310 160 C 450 160, 480 320, 680 320"
+              stroke="url(#cyan-violet)"
+              strokeWidth="2.5"
+              fill="none"
+              strokeDasharray="8 6"
+              animate={{ strokeDashoffset: [-28, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            />
+            {/* Aethoria Still -> Timeline track 2 */}
+            <motion.path
+              d="M 330 460 C 480 460, 500 370, 680 370"
+              stroke="url(#violet-cyan)"
+              strokeWidth="2.5"
+              fill="none"
+              strokeDasharray="8 6"
+              animate={{ strokeDashoffset: [28, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            />
+            
+            {/* Soft Ambient glowing dots on path terminals */}
+            <circle cx="680" cy="320" r="4" fill="#06b6d4" className="animate-ping" />
+            <circle cx="680" cy="370" r="4" fill="#8b5cf6" className="animate-ping" />
+          </svg>
+
+          {/* Card 1: Mastering the Unseen (Top Left) */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
-            onClick={() => setTrailerOpen(false)}
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="absolute top-4 left-0 w-[310px] rounded-3xl border border-white/[0.05] bg-zinc-950/20 backdrop-blur-lg p-4 shadow-xl shadow-black/30 z-10 animate-fade"
           >
-            <motion.div
-              initial={{ scale: 0.88, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.88, opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl shadow-black/60"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <iframe
-                src={`https://www.youtube.com/embed/${trailerYtId}?autoplay=1&rel=0`}
-                className="w-full h-full"
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
-                title="Trailer"
-              />
-              <button
-                onClick={() => setTrailerOpen(false)}
-                className="absolute top-3 right-3 z-10 h-8 w-8 flex items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </motion.div>
+            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <Image src="/landing/hero-1.jpg" alt="Mastering the Unseen" fill className="object-cover" unoptimized />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <span className="absolute top-2 left-2 rounded-md bg-cyan-500/20 text-cyan-300 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 ring-1 ring-cyan-500/30 backdrop-blur-sm">
+                Next Scene Still
+              </span>
+            </div>
+            <div className="mt-3.5">
+              <h4 className="text-sm font-bold text-white tracking-tight">Mastering the Unseen</h4>
+              <p className="mt-1 text-[10px] leading-relaxed text-zinc-400">
+                Stunning fidelity visuals of actual work, cinematic video visual creation. AI generation with optimized workflows.
+              </p>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+
+          {/* Card 2: Aethoria (Bottom Left) */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="absolute bottom-4 left-6 w-[330px] rounded-3xl border border-white/[0.05] bg-zinc-950/20 backdrop-blur-lg p-4 shadow-xl shadow-black/30 z-10"
+          >
+            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <Image src="/landing/hero-2.jpg" alt="Aethoria: AI Narrative Short" fill className="object-cover" unoptimized />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <span className="absolute top-2 left-2 rounded-md bg-violet-500/20 text-violet-300 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 ring-1 ring-violet-500/30 backdrop-blur-sm">
+                Narrative Short
+              </span>
+            </div>
+            <div className="mt-3.5">
+              <h4 className="text-sm font-bold text-white tracking-tight">Aethoria: AI Narrative Short</h4>
+              <p className="mt-1 text-[10px] leading-relaxed text-zinc-400">
+                Pioneering future-forward visuals through advanced AI-driven creation for film, media, and brands.
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Card 3: Video Editor Timeline Mockup (Center Right) */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="absolute top-0 right-0 w-[700px] h-[480px] rounded-[32px] border border-white/[0.05] bg-zinc-950/30 backdrop-blur-xl p-5 shadow-2xl shadow-black/50 overflow-hidden flex flex-col z-10 group"
+          >
+            {/* Top Bar / Interface Details */}
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3.5 text-[10px] text-zinc-500">
+              <div className="flex items-center gap-3">
+                <span className="flex gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/50" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+                </span>
+                <span className="font-bold text-zinc-400">Saad Studio Edit v1.2</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span>1080p @ 24fps</span>
+                <span className="rounded bg-white/10 px-2 py-0.5 text-[9px] text-white">Production Mode</span>
+              </div>
+            </div>
+
+            {/* Video Preview Panel */}
+            <div className="flex-1 grid grid-cols-[1.4fr_1fr] gap-4 py-4 min-h-0">
+              <div className="relative w-full h-full rounded-2xl overflow-hidden border border-white/[0.05] shadow-inner bg-black">
+                <Image src="/landing/hero-3.jpg" alt="Video Preview" fill className="object-cover opacity-90" unoptimized />
+                <div className="absolute inset-0 bg-black/10" />
+                {/* Playhead Overlay */}
+                <div className="absolute bottom-3 left-3 rounded-lg bg-black/60 px-3 py-1.5 text-[10px] font-bold text-white backdrop-blur">
+                  01:45:06:21
+                </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center rounded-full bg-white/10 border border-white/20 backdrop-blur text-white shadow-xl shadow-black/20">
+                  <Play className="h-5 w-5 fill-white ml-0.5" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 overflow-y-auto pr-1">
+                <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 text-[10px] space-y-1">
+                  <span className="font-bold text-cyan-400 uppercase tracking-wider text-[8px]">Active Model</span>
+                  <p className="font-semibold text-white">Google Gemini Omni Flash</p>
+                </div>
+                <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 text-[10px] space-y-1">
+                  <span className="font-bold text-violet-400 uppercase tracking-wider text-[8px]">Audio Engine</span>
+                  <p className="font-semibold text-white">Google Lyria Music</p>
+                </div>
+                <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 text-[10px] space-y-1">
+                  <span className="font-bold text-zinc-400 uppercase tracking-wider text-[8px]">Generation ID</span>
+                  <p className="text-zinc-500 font-mono">gen_omni_788219x</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline Tracks Mockup */}
+            <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-2">
+              {/* Playhead Marker Rail */}
+              <div className="relative h-4 text-[9px] text-zinc-500 border-b border-white/[0.03]">
+                <div className="absolute left-[40%] -top-1 px-1.5 py-0.5 rounded bg-cyan-500 text-black font-bold text-[8px] z-20">
+                  01:45
+                </div>
+                <div className="absolute left-[40%] top-3 bottom-[-90px] w-0.5 bg-cyan-500/70 shadow-[0_0_10px_#06b6d4] z-20" />
+                <span className="absolute left-0">0:00</span>
+                <span className="absolute left-[20%]">0:30</span>
+                <span className="absolute left-[40%]">1:00</span>
+                <span className="absolute left-[60%]">1:30</span>
+                <span className="absolute left-[80%]">2:00</span>
+              </div>
+              
+              {/* Video Track 1 */}
+              <div className="flex gap-2 items-center text-[9px] text-zinc-400">
+                <span className="w-14 font-semibold text-right shrink-0">Video 1</span>
+                <div className="flex-1 h-7 rounded-lg border border-white/[0.04] bg-white/[0.01] relative overflow-hidden">
+                  <div className="absolute top-0.5 bottom-0.5 left-[10%] right-[55%] rounded-md bg-gradient-to-r from-cyan-500/25 to-blue-500/25 border border-cyan-500/30 flex items-center px-2 text-cyan-200 font-bold overflow-hidden">
+                    Mastering the Unseen
+                  </div>
+                </div>
+              </div>
+
+              {/* Video Track 2 */}
+              <div className="flex gap-2 items-center text-[9px] text-zinc-400">
+                <span className="w-14 font-semibold text-right shrink-0">Video 2</span>
+                <div className="flex-1 h-7 rounded-lg border border-white/[0.04] bg-white/[0.01] relative overflow-hidden">
+                  <div className="absolute top-0.5 bottom-0.5 left-[30%] right-[35%] rounded-md bg-gradient-to-r from-violet-500/25 to-indigo-500/25 border border-violet-500/30 flex items-center px-2 text-violet-200 font-bold overflow-hidden">
+                    Aethoria Narrative Short
+                  </div>
+                </div>
+              </div>
+
+              {/* Audio Track 1 */}
+              <div className="flex gap-2 items-center text-[9px] text-zinc-400">
+                <span className="w-14 font-semibold text-right shrink-0">Audio 1</span>
+                <div className="flex-1 h-7 rounded-lg border border-white/[0.04] bg-white/[0.01] relative overflow-hidden">
+                  <div className="absolute top-0.5 bottom-0.5 left-[10%] right-[20%] rounded-md bg-gradient-to-r from-emerald-500/25 to-teal-500/25 border border-emerald-500/30 flex items-center px-2 text-emerald-200 font-bold overflow-hidden">
+                    Cinematic Music SFX
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Stacked Cards for Mobile / Small Screens */}
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:hidden">
+          <div className="rounded-3xl border border-white/[0.05] bg-zinc-950/20 p-5 shadow-xl">
+            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <Image src="/landing/hero-1.jpg" alt="Mastering the Unseen" fill className="object-cover" unoptimized />
+            </div>
+            <h4 className="mt-4 font-bold text-white text-base">Mastering the Unseen</h4>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+              Stunning fidelity visuals of actual work, cinematic video visual creation. AI generation with optimized workflows.
+            </p>
+          </div>
+          <div className="rounded-3xl border border-white/[0.05] bg-zinc-950/20 p-5 shadow-xl">
+            <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <Image src="/landing/hero-2.jpg" alt="Aethoria" fill className="object-cover" unoptimized />
+            </div>
+            <h4 className="mt-4 font-bold text-white text-base">Aethoria: AI Narrative Short</h4>
+            <p className="mt-2 text-xs leading-relaxed text-zinc-400">
+              Pioneering future-forward visuals through advanced AI-driven creation for film, media, and brands.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1460,7 +1479,6 @@ export default function ExplorePage() {
 
   type PublicPageContent = { textContent?: string | null } | null;
 
-  const [heroContent, setHeroContent] = useState<PublicPageContent>(null);
   const [coreToolsContent, setCoreToolsContent] = useState<PublicPageContent>(null);
 
   useEffect(() => {
@@ -1469,27 +1487,13 @@ export default function ExplorePage() {
   }, [cms?.coreTools?.length]);
 
   useEffect(() => {
-    fetch("/api/content?slug=home&sectionName=hero")
-      .then((r) => r.json())
-      .then((d) => setHeroContent(d))
-      .catch(() => {});
     fetch("/api/content?slug=home&sectionName=coreTools")
       .then((r) => r.json())
       .then((d) => setCoreToolsContent(d))
       .catch(() => {});
   }, []);
 
-  const heroSectionText = useMemo(() => safeParseJsonObject(heroContent?.textContent), [heroContent?.textContent]);
   const coreToolsSectionText = useMemo(() => safeParseJsonObject(coreToolsContent?.textContent), [coreToolsContent?.textContent]);
-
-  const heroPrimaryCtaLabel =
-    typeof heroSectionText.primaryCtaLabel === "string" && heroSectionText.primaryCtaLabel.trim()
-      ? heroSectionText.primaryCtaLabel.trim()
-      : "Try Now";
-  const heroTrailerLabel =
-    typeof heroSectionText.trailerLabel === "string" && heroSectionText.trailerLabel.trim()
-      ? heroSectionText.trailerLabel.trim()
-      : "Watch Trailer";
 
   const coreToolsTitle =
     typeof coreToolsSectionText.title === "string" && coreToolsSectionText.title.trim()
@@ -1509,45 +1513,6 @@ export default function ExplorePage() {
     (typeof coreToolsSectionText.ctaLink === "string" && coreToolsSectionText.ctaLink.trim()
       ? coreToolsSectionText.ctaLink.trim()
       : "/apps");
-
-  // ── Hero Slides: CMS layout (cms-home) → promo → hardcoded defaults ─────────
-  const homeHeroSlides = useMemo<HeroSlide[]>(() => {
-    if (cms?.heroSlides && cms.heroSlides.length > 0) {
-      return cms.heroSlides.map((s, idx) => {
-        const fallback = HERO_SLIDES[idx % HERO_SLIDES.length];
-        const stableKey = s._id || `${s.title}|${s.ctaHref}|${idx}`;
-        return {
-          id: stablePositiveIntFromString(stableKey),
-          title: s.title || fallback.title,
-          subtitle: s.subtitle || fallback.subtitle,
-          tag: s.tag || fallback.tag,
-          bgImage: s.bgImage || fallback.bgImage,
-          ctaHref: s.ctaHref || fallback.ctaHref,
-          gradient: s.gradient || fallback.gradient,
-          accentFrom: s.accentFrom || fallback.accentFrom,
-          accentTo: s.accentTo || fallback.accentTo,
-          youtubeUrl: s.youtubeUrl,
-          trailerUrl: s.trailerUrl,
-        };
-      });
-    }
-
-    return HERO_SLIDES.map((s, i) => {
-      const slotId = HERO_SLOT_IDS[i];
-      if (!slotId) return s;
-      let updated = { ...s };
-      const custom = promo[slotId];
-      if (custom?.url) updated.bgImage = custom.url;
-      const text = promoContent[slotId];
-      if (text) {
-        if (text.title) updated.title = text.title;
-        if (text.subtitle) updated.subtitle = text.subtitle;
-        if (text.badge) updated.tag = text.badge;
-        if (text.ctaHref) updated.ctaHref = text.ctaHref;
-      }
-      return updated;
-    });
-  }, [promo, promoContent, cms]);
 
   // ── Core Tools: CMS layout (cms-home) → promo → hardcoded defaults ─────────
   const homeCoreCards = useMemo<ToolCard[]>(() => {
@@ -1725,7 +1690,7 @@ export default function ExplorePage() {
   }, [cms]);
 
   const sectionMap: Record<string, React.ReactNode> = {
-    heroSlides: <HeroCarousel key="hero" slides={homeHeroSlides} primaryCtaLabel={heroPrimaryCtaLabel} trailerLabel={heroTrailerLabel} />,
+    heroSlides: <CinematicHero key="hero" />,
     startupVerification: <StartupVerification key="startupVerification" />,
     studioPathways: <StudioPathways key="studioPathways" items={homeStudioPathways} />,
     showcaseWall: <ShowcaseWall key="showcaseWall" tiles={homeShowcaseTiles} />,
