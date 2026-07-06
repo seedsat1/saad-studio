@@ -1,5 +1,19 @@
 # Saad Studio — Project Context
 
+## Latest task: Hook up settings controls (Genre, Mood, BPM, and Custom Lyrics) directly to Google Lyria (2026-07-06)
+
+- Status:
+  - Fixed a gap where the UI settings controls (Genre, Mood, BPM, and Custom Lyrics) were not being forwarded or parsed properly by the server, causing them to be ignored.
+  - Updated `app/(dash)/(routes)/audio/page.tsx` to include `genre`, `mood`, and `bpm` properties in the `/api/music` POST request payload.
+  - Updated `app/api/music/route.ts` to parse these parameters and assemble them as a structured `[Musical Specifications]` configuration block at the top of the Google Lyria prompt, forcing the model to honor the selected genre, mood, and BPM.
+- Affected files:
+  - `app/(dash)/(routes)/audio/page.tsx` [MODIFY]
+  - `app/api/music/route.ts` [MODIFY]
+- Verification:
+  - Verified compilation via `npx tsc --noEmit`.
+- Decision:
+  - Ensure all settings are translated into structured Gemini prompt specs for maximum accuracy and impact.
+
 ## Latest task: Enforce requested audio generation duration using FFmpeg trimming and Lyria prompts (2026-07-06)
 
 - Status:

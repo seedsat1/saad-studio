@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     requestHash = hashRequestBody(body);
-    const { prompt, model = "elevenlabs/music", duration, style, lyrics, force_instrumental, output_format } = body as {
+    const { prompt, model = "elevenlabs/music", duration, style, lyrics, force_instrumental, output_format, genre, mood, bpm } = body as {
       prompt: string;
       model?: string;
       duration?: number;
@@ -101,6 +101,9 @@ export async function POST(req: Request) {
       lyrics?: string;
       force_instrumental?: boolean;
       output_format?: string;
+      genre?: string;
+      mood?: string;
+      bpm?: number;
     };
 
     if (!prompt?.trim()) {
@@ -183,10 +186,21 @@ export async function POST(req: Request) {
 
         const inputList: any[] = [];
         let fullPrompt = sanitizePrompt(prompt, 3000);
-        if (lyrics?.trim()) {
-          fullPrompt += `\n\nUse the following lyrics:\n${sanitizePrompt(lyrics, 2500)}`;
+
+        // Build a highly structured musical specification block to enforce real settings on Lyria
+        const specs: string[] = [];
+        if (genre?.trim()) specs.push(`Genre: ${genre.trim()}`);
+        if (mood?.trim()) specs.push(`Mood/Atmosphere: ${mood.trim()}`);
+        if (bpm && Number.isFinite(bpm) && bpm > 0) specs.push(`Tempo: ${bpm} BPM`);
+
+        if (specs.length > 0) {
+          fullPrompt = `[Musical Specifications]\n${specs.join("\n")}\n\n[Directions]\n${fullPrompt}`;
         }
-        if (style?.trim()) {
+
+        if (lyrics?.trim()) {
+          fullPrompt += `\n\nLyrics:\n\n${sanitizePrompt(lyrics, 2500)}`;
+        }
+        if (style?.trim() && !genre && !mood) {
           fullPrompt += `\n\nStyle/Mood/Instruments: ${sanitizePrompt(style, 200)}`;
         }
         if (force_instrumental) {
