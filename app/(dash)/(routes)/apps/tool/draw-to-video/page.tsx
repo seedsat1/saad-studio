@@ -31,6 +31,7 @@ import {
   Type,
   Undo2,
   Upload,
+  Video,
   Wand2,
   X,
 } from "lucide-react";
@@ -339,6 +340,8 @@ interface TextLayer {
 export default function DrawToVideoPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
+  const videoPlayerRef = useRef<HTMLVideoElement>(null);
+  const videoUploadRef = useRef<HTMLInputElement>(null);
   const drawingRef = useRef(false);
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
@@ -351,6 +354,10 @@ export default function DrawToVideoPage() {
   
   const draggingTextIdRef = useRef<string | null>(null);
   const dragTextOffsetRef = useRef({ x: 0, y: 0 });
+
+  const [baseVideoUrl, setBaseVideoUrl] = useState<string>("");
+  const [baseVideoFile, setBaseVideoFile] = useState<File | null>(null);
+  const [baseVideoPlaying, setBaseVideoPlaying] = useState(false);
 
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   
@@ -576,6 +583,9 @@ export default function DrawToVideoPage() {
     
     setBackgroundImage("");
     setReferenceImages([]);
+    setBaseVideoUrl("");
+    setBaseVideoFile(null);
+    setBaseVideoPlaying(false);
     undoRef.current = [];
     redoRef.current = [];
     snapshot();
@@ -693,6 +703,10 @@ export default function DrawToVideoPage() {
 
   const onPointerDown = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
     const point = pointFromEvent(event);
+    if (videoPlayerRef.current && !videoPlayerRef.current.paused) {
+      videoPlayerRef.current.pause();
+      setBaseVideoPlaying(false);
+    }
     if (tool === "pointer") {
       // Clear text selection if clicking empty canvas space
       setSelectedTextId(null);
@@ -854,6 +868,9 @@ export default function DrawToVideoPage() {
     const image = new Image();
     image.onload = () => {
       setBackgroundImage(data);
+      setBaseVideoUrl("");
+      setBaseVideoFile(null);
+      setBaseVideoPlaying(false);
       context.clearRect(0, 0, canvas.width, canvas.height);
       
       const imgCanvas = imageCanvasRef.current;
@@ -871,6 +888,44 @@ export default function DrawToVideoPage() {
     };
     image.src = data;
   }, [snapshot]);
+
+  const importVideo = useCallback(async (file: File) => {
+    if (!file.type.startsWith("video/")) return;
+    setBaseVideoFile(file);
+    const url = URL.createObjectURL(file);
+    setBaseVideoUrl(url);
+    setBaseVideoPlaying(false);
+    
+    // Clear image background
+    setBackgroundImage("");
+    const imgCanvas = imageCanvasRef.current;
+    const imgContext = imgCanvas?.getContext("2d", { willReadFrequently: true });
+    if (imgCanvas && imgContext) {
+      imgContext.clearRect(0, 0, imgCanvas.width, imgCanvas.height);
+    }
+    
+    // Reset drawing canvas
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d", { willReadFrequently: true });
+    if (canvas && context) {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Select Google Gemini Omni Flash by default when video is uploaded
+    setSelectedModelId("google/gemini-omni-flash");
+    
+    undoRef.current = [];
+    redoRef.current = [];
+    snapshot();
+  }, [snapshot]);
+
+  useEffect(() => {
+    return () => {
+      if (baseVideoUrl) {
+        URL.revokeObjectURL(baseVideoUrl);
+      }
+    };
+  }, [baseVideoUrl]);
 
   const generate = useCallback(async () => {
     const promptNeeded = studioMode !== "draw-edit" || editAction !== "remove";
@@ -898,7 +953,9 @@ export default function DrawToVideoPage() {
       sourceContext.fillStyle = studioMode === "sketch-video" ? "#f6f1e7" : "#151515";
       sourceContext.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
       
-      if (imageCanvasRef.current) {
+      if (baseVideoUrl && videoPlayerRef.current) {
+        sourceContext.drawImage(videoPlayerRef.current, 0, 0, sourceCanvas.width, sourceCanvas.height);
+      } else if (imageCanvasRef.current) {
         sourceContext.drawImage(imageCanvasRef.current, 0, 0);
       }
       sourceContext.drawImage(canvasRef.current, 0, 0);
@@ -982,6 +1039,13 @@ export default function DrawToVideoPage() {
           selectedModel.family === "Sora"
             ? (aspect === "9:16" ? "portrait" : "landscape")
             : aspect === "auto" ? "16:9" : aspect;
+        
+        let baseVideoDataUrl = "";
+        if (baseVideoFile) {
+          baseVideoDataUrl = await readFile(baseVideoFile);
+        }
+
+        const isGoogleModel = selectedModel.id.includes("google/");
         const response = await fetch("/api/video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -990,6 +1054,7 @@ export default function DrawToVideoPage() {
             payload: {
               prompt: `${prefix} ${prompt.trim()}. Style: ${selectedStyle.prompt}`,
               image_url: videoSource,
+              video_url: (baseVideoDataUrl && isGoogleModel) ? baseVideoDataUrl : undefined,
               duration,
               ...(resolution ? { resolution } : {}),
               aspect_ratio: providerAspect,
@@ -1009,6 +1074,8 @@ export default function DrawToVideoPage() {
   }, [
     aspect,
     backgroundImage,
+    baseVideoUrl,
+    baseVideoFile,
     duration,
     editAction,
     estimatedCredits,
@@ -1345,10 +1412,23 @@ export default function DrawToVideoPage() {
                 </div>
               ) : (
                 <>
-                  <canvas
-                    ref={imageCanvasRef}
-                    className="absolute inset-0 h-full w-full pointer-events-none z-0"
-                  />
+                  {baseVideoUrl ? (
+                    <video
+                      ref={videoPlayerRef}
+                      src={baseVideoUrl}
+                      className="absolute inset-0 w-full h-full z-0 pointer-events-none object-fill"
+                      loop
+                      muted
+                      playsInline
+                      onPlay={() => setBaseVideoPlaying(true)}
+                      onPause={() => setBaseVideoPlaying(false)}
+                    />
+                  ) : (
+                    <canvas
+                      ref={imageCanvasRef}
+                      className="absolute inset-0 h-full w-full pointer-events-none z-0"
+                    />
+                  )}
                   <canvas
                     ref={canvasRef}
                     onPointerDown={onPointerDown}
@@ -1453,16 +1533,27 @@ export default function DrawToVideoPage() {
               )}
 
               {/* Upload Initial Prompt Button (If Canvas is Empty) */}
-              {!videoUrl && !imageUrl && !backgroundImage && undoRef.current.length <= 1 && (
-                <button
-                  type="button"
-                  onClick={() => uploadRef.current?.click()}
-                  className="absolute flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-slate-950/85 p-6 text-center text-zinc-500 backdrop-blur-sm hover:border-violet-500/30 hover:text-white transition w-64 z-20"
-                >
-                  <ImagePlus className="mb-2 h-6 w-6 text-violet-400" />
-                  <span className="text-xs font-bold text-zinc-300">Upload base image or draw</span>
-                  <span className="mt-1 text-[10px] text-zinc-500 font-medium">Supports PNG, JPG, WEBP</span>
-                </button>
+              {!videoUrl && !imageUrl && !backgroundImage && !baseVideoUrl && undoRef.current.length <= 1 && (
+                <div className="absolute flex flex-col sm:flex-row gap-4 items-center justify-center z-20">
+                  <button
+                    type="button"
+                    onClick={() => uploadRef.current?.click()}
+                    className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-slate-950/85 p-6 text-center text-zinc-500 backdrop-blur-sm hover:border-violet-500/30 hover:text-white transition w-56"
+                  >
+                    <ImagePlus className="mb-2 h-6 w-6 text-violet-400" />
+                    <span className="text-xs font-bold text-zinc-300">Upload base image</span>
+                    <span className="mt-1 text-[10px] text-zinc-500 font-medium">Supports PNG, JPG, WEBP</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => videoUploadRef.current?.click()}
+                    className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 bg-slate-950/85 p-6 text-center text-zinc-500 backdrop-blur-sm hover:border-violet-500/30 hover:text-white transition w-56"
+                  >
+                    <Video className="mb-2 h-6 w-6 text-indigo-400" />
+                    <span className="text-xs font-bold text-zinc-300">Upload base video</span>
+                    <span className="mt-1 text-[10px] text-zinc-500 font-medium">Supports MP4, WebM, MOV</span>
+                  </button>
+                </div>
               )}
 
               {/* Generating Loading Overlay */}
@@ -1499,6 +1590,39 @@ export default function DrawToVideoPage() {
                       </button>
                     );
                   })}
+
+                  {baseVideoUrl && (
+                    <>
+                      <span className="w-px h-4 bg-white/10 mx-0.5" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const vid = videoPlayerRef.current;
+                          if (vid) {
+                            if (vid.paused) {
+                              void vid.play();
+                            } else {
+                              vid.pause();
+                            }
+                          }
+                        }}
+                        className="flex h-7 px-2.5 items-center gap-1 rounded-full border border-white/10 text-[10px] font-bold text-zinc-400 hover:border-violet-500/30 hover:text-white transition"
+                        title={baseVideoPlaying ? "Pause Video" : "Play Video"}
+                      >
+                        {baseVideoPlaying ? (
+                          <>
+                            <span className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
+                            <span>Pause Video</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="h-2 w-2 bg-zinc-500 rounded-full" />
+                            <span>Play Video</span>
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
 
                   <span className="w-px h-4 bg-white/10 mx-0.5" />
 
@@ -1615,28 +1739,45 @@ export default function DrawToVideoPage() {
               {/* Bottom Actions Row */}
               <div className="flex items-center justify-between mt-1 border-t border-white/5 pt-2">
                 
-                {/* Left Side: Upload / Preview Base Image */}
+                {/* Left Side: Upload / Preview Base Image or Video */}
                 <div className="flex items-center gap-2">
-                  {backgroundImage ? (
+                  {backgroundImage || baseVideoUrl ? (
                     <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full pl-2 pr-1.5 py-0.5 text-xs text-zinc-300">
-                      <span className="text-[10px] font-bold truncate max-w-[120px]">Base loaded</span>
+                      <span className="text-[10px] font-bold truncate max-w-[120px]">
+                        {baseVideoUrl ? "Video loaded" : "Base loaded"}
+                      </span>
                       <button
                         type="button"
-                        onClick={() => setBackgroundImage("")}
+                        onClick={() => {
+                          setBackgroundImage("");
+                          setBaseVideoUrl("");
+                          setBaseVideoFile(null);
+                          setBaseVideoPlaying(false);
+                        }}
                         className="h-5 w-5 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-rose-400 transition"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => uploadRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white transition text-[11px] font-bold"
-                    >
-                      <Upload className="h-3 w-3" />
-                      <span>Upload base image</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => uploadRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white transition text-[11px] font-bold"
+                      >
+                        <Upload className="h-3 w-3" />
+                        <span>Upload image</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => videoUploadRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-zinc-300 hover:text-white transition text-[11px] font-bold"
+                      >
+                        <Video className="h-3 w-3" />
+                        <span>Upload video</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -2054,6 +2195,17 @@ export default function DrawToVideoPage() {
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void importImage(file);
+          event.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={videoUploadRef}
+        type="file"
+        accept="video/mp4,video/quicktime,video/x-matroska,video/webm"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importVideo(file);
           event.currentTarget.value = "";
         }}
       />

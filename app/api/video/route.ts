@@ -300,8 +300,18 @@ async function sourceToGoogleImageInput(value: unknown) {
   return urlToImageInput(value);
 }
 
+function dataUrlToVideoInput(value: string) {
+  const parsed = extractBase64(value);
+  if (!parsed) return null;
+  return {
+    videoBytes: parsed.fileData,
+    mimeType: parsed.mime,
+  };
+}
+
 async function sourceToGoogleVideoInput(value: unknown) {
   if (typeof value !== "string" || !value.trim()) return undefined;
+  if (value.startsWith("data:")) return dataUrlToVideoInput(value) ?? undefined;
   return urlToVideoInput(value);
 }
 

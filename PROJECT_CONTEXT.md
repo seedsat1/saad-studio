@@ -1,5 +1,21 @@
 # Saad Studio Project Context Update
 
+## Latest task: Implemented Video-to-Video Editing using Gemini Omni Flash (2026-07-08)
+
+- Status:
+  - Added base video upload support to the Draw-to-Video page, allowing users to upload MP4/WebM videos.
+  - Integrated an HTML5 `<video>` preview component inside the canvas viewport, syncing play/pause state when drawing.
+  - Implemented canvas-to-video overlay frame extraction to combine drawing masks with the paused video frame.
+  - Added server-side parsing support for base64 video data URLs inside the `/api/video` POST handler.
+- Affected files:
+  - `app/(dash)/(routes)/apps/tool/draw-to-video/page.tsx` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+- Verification:
+  - Verified compilation type-safety with `npx tsc --noEmit` (completed successfully).
+- Decision:
+  - Keep the HTML5 video container styled with `object-fill` to match the exact coordinate mapping of the canvas viewport, ensuring painted masks align pixel-for-pixel with the captured video frame.
+  - Restrict the `video_url` payload transmission to Google models to avoid sending large base64 strings to endpoints that do not support it.
+
 ## Latest task: Implemented Explore Creations Feed with Admin Image & Video Upload (2026-07-08)
 
 - Status:
