@@ -28,6 +28,7 @@ import {
   Check,
   Search,
   Loader2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
@@ -1262,6 +1263,7 @@ export default function ExplorePage() {
   const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
   const [loadingCreations, setLoadingCreations] = useState(true);
+  const [activeMediaItem, setActiveMediaItem] = useState<ShowcaseItem | null>(null);
 
   // Prompt Generator states
   const [promptText, setPromptText] = useState("");
@@ -1866,7 +1868,7 @@ export default function ExplorePage() {
             <p className="text-sm text-zinc-500 font-medium">No creations published yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
             {(activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).map((item) => {
               const isVideo = item.video_url && 
                 !item.video_url.endsWith(".png") && 
@@ -1885,106 +1887,214 @@ export default function ExplorePage() {
               const aspectClass = aspectMap[(item as any).aspect_ratio || "16:9"] || "aspect-[16/9]";
 
               return (
-                <motion.article
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
-                >
-                  {/* Media Container */}
-                  <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
-                    {isVideo ? (
-                      <PreviewVideo
-                        videoUrl={item.video_url}
-                        posterUrl={item.thumbnail_url}
-                        title={item.title}
-                        shouldPlay={autoplayKey === `creations:${item.id}`}
-                      />
-                    ) : (
-                      <img
-                        src={item.thumbnail_url}
-                        alt={item.title}
-                        className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    )}
-                    {/* Dark gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
-                    
-                    {/* Hover activation trigger */}
-                    <div 
-                      className="absolute inset-0 z-10 cursor-pointer"
-                      onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
-                      onMouseLeave={() => setAutoplayKey(null)}
-                    />
-
-                    {/* Tags / Model badge */}
-                    <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
-                      <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
-                        {item.model}
-                      </span>
-                    </div>
-
-                    {isVideo && (
-                      <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
-                        <Video className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Card Info & Prompt Copy */}
-                  <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold tracking-wider">
-                        <span>{item.provider}</span>
-                        <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                      </div>
-                      <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
-                        {item.prompt}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-400">
-                        <span className="inline-flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5" />
-                          {item.views}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <Heart className="w-3.5 h-3.5" />
-                          {item.likes}
-                        </span>
-                      </div>
+                <div key={item.id} className="break-inside-avoid mb-6">
+                  <motion.article
+                    layout
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
+                  >
+                    {/* Media Container */}
+                    <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
+                      {isVideo ? (
+                        <PreviewVideo
+                          videoUrl={item.video_url}
+                          posterUrl={item.thumbnail_url}
+                          title={item.title}
+                          shouldPlay={autoplayKey === `creations:${item.id}`}
+                        />
+                      ) : (
+                        <img
+                          src={item.thumbnail_url}
+                          alt={item.title}
+                          className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
+                      {/* Dark gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
                       
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPrompt(item.id, item.prompt)}
-                        className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
-                      >
-                        {copiedId === item.id ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy Prompt</span>
-                          </>
-                        )}
-                      </button>
+                      {/* Hover activation & Click preview trigger */}
+                      <div 
+                        className="absolute inset-0 z-10 cursor-pointer"
+                        onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
+                        onMouseLeave={() => setAutoplayKey(null)}
+                        onClick={() => setActiveMediaItem(item)}
+                      />
+
+                      {/* Tags / Model badge */}
+                      <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
+                        <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
+                          {item.model}
+                        </span>
+                      </div>
+
+                      {isVideo && (
+                        <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
+                          <Video className="w-3.5 h-3.5" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </motion.article>
+
+                    {/* Card Info & Prompt Copy */}
+                    <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
+                      <div>
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold tracking-wider">
+                          <span>{item.provider}</span>
+                          <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                        </div>
+                        <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
+                          {item.title}
+                        </h3>
+                        <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
+                          {item.prompt}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
+                        <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                          <span className="inline-flex items-center gap-1">
+                            <Eye className="w-3.5 h-3.5" />
+                            {item.views}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Heart className="w-3.5 h-3.5" />
+                            {item.likes}
+                          </span>
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt(item.id, item.prompt)}
+                          className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
+                        >
+                          {copiedId === item.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span className="text-emerald-400">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Copy Prompt</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.article>
+                </div>
               );
             })}
           </div>
         )}
+
+        {/* ── Fullscreen Lightbox Modal ── */}
+        <AnimatePresence>
+          {activeMediaItem && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md"
+              onClick={() => setActiveMediaItem(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative max-w-5xl w-full bg-[#080b11] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Left Column: Media Player */}
+                <div className="flex-1 bg-black flex items-center justify-center relative min-h-[300px] md:min-h-0">
+                  {activeMediaItem.video_url && 
+                    !activeMediaItem.video_url.endsWith(".png") && 
+                    !activeMediaItem.video_url.endsWith(".jpg") && 
+                    !activeMediaItem.video_url.endsWith(".jpeg") && 
+                    !activeMediaItem.video_url.endsWith(".webp") &&
+                    !activeMediaItem.video_url.endsWith(".gif") ? (
+                    <video
+                      src={activeMediaItem.video_url}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain max-h-[70vh] md:max-h-[80vh]"
+                    />
+                  ) : (
+                    <img
+                      src={activeMediaItem.thumbnail_url}
+                      alt={activeMediaItem.title}
+                      className="w-full h-full object-contain max-h-[70vh] md:max-h-[80vh]"
+                    />
+                  )}
+                </div>
+
+                {/* Right Column: Info Panel */}
+                <div className="w-full md:w-[360px] p-6 flex flex-col justify-between border-t md:border-t-0 md:border-l border-white/10 overflow-y-auto">
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 tracking-wider">
+                      <span>{activeMediaItem.provider}</span>
+                      <span>{new Date(activeMediaItem.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    </div>
+                    <h3 className="mt-2 text-lg font-extrabold text-white leading-tight">
+                      {activeMediaItem.title}
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      <span className="bg-white/5 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        {activeMediaItem.model}
+                      </span>
+                    </div>
+
+                    <div className="mt-5 space-y-1.5">
+                      <label className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">Prompt</label>
+                      <p className="text-xs text-zinc-300 bg-white/[0.02] border border-white/5 rounded-xl p-3 font-mono leading-relaxed select-all text-right">
+                        {activeMediaItem.prompt}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPrompt(activeMediaItem.id, activeMediaItem.prompt)}
+                      className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-400 hover:text-cyan-300 transition"
+                    >
+                      {copiedId === activeMediaItem.id ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span className="text-emerald-400">Prompt Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copy Prompt</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveMediaItem(null)}
+                      className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-bold transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+
+                {/* Close Button top-right */}
+                <button
+                  type="button"
+                  onClick={() => setActiveMediaItem(null)}
+                  className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white border border-white/10 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* ════════════════════════════════════════════════
