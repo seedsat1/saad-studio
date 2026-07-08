@@ -104,7 +104,12 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
     if (!finalVideoUrl) throw new Error("Video URL is required");
   }
 
-  if (!thumbnailUrl) throw new Error("Thumbnail URL is required");
+  let finalThumbnailUrl = thumbnailUrl;
+  if (!finalThumbnailUrl) {
+    finalThumbnailUrl = finalVideoUrl;
+  }
+
+  if (!finalThumbnailUrl) throw new Error("Thumbnail or Media URL is required");
 
   return {
     title,
@@ -112,7 +117,7 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
     model,
     provider,
     video_url: finalVideoUrl,
-    thumbnail_url: thumbnailUrl,
+    thumbnail_url: finalThumbnailUrl,
     prompt: String(body.prompt ?? "").trim(),
     tags: normalizeTags(body.tags),
     featured: Boolean(body.featured),
