@@ -1,5 +1,28 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## إضافة معرض أعمال الاستوديو ودعم رفع الصور والفيديوهات بالنسب الأصلية (2026-07-08)
+- **معرض أعمال الاستوديو (Studio Creations Feed)**: تم تصميم وإدراج قسم تفاعلي جديد في صفحة اكتشف (`app/(dash)/(routes)/explore/page.tsx`) أسفل صف الأدوات الدائرية مباشرة. يقوم هذا القسم بجلب بطاقات التوليد الفنية (Showcase items) المنشورة في قاعدة البيانات وعرضها في شبكة بطاقات متناسقة تدعم التشغيل التلقائي للفيديو عند مرور الفأرة ونسخ الـ Prompts.
+- **الالتزام بنسب الأبعاد (Aspect Ratio Control)**: تدعم البطاقات الالتزام بالنسب الأصلية التي تم توليدها بها (مثل 16:9 و 9:16 و 1:1 و 4:3 و 3:4) عن طريق فئات Tailwind الديناميكية (`aspect-[16/9]`، `aspect-[9/16]`، إلخ) مما يمنع تشويه المشهد أو تمدده.
+- **تكامل لوحة التحكم (Admin Panel Integration)**: تم ترقية لوحة إدارة المحتوى لصفحة اكتشف (`app/admin/cms/explore/page.tsx`) لتمكين المدير من:
+  - اختيار نوع الوسيط يدوياً (فيديو أو صورة).
+  - تحديد نسبة الأبعاد للإنتاج (Aspect Ratio).
+  - رفع الصور مباشرة كـ Showcase Item دون اشتراط وجود ملف فيديو مرافق (يقوم النظام بربط رابط الصورة تلقائياً كـ `thumbnail_url` و `video_url` لضمان تكامل البيانات).
+
+## تطوير عميل صفحة اكتشف وإضافة الأنماط الإبداعية المبتكرة (2026-07-07)
+- **دعم كتابة المحتوى (Content Writing)**: تم تطوير السلوك البرمجي لعميل صفحة اكتشف في المسار الخلفي `app/api/explore/route.ts` ليتعرف على طلبات كتابة السيناريوهات، القصص، المقالات، والأفكار الدرامية أو السينمائية، حيث يقوم العميل الذكي بكتابة المحتوى بالكامل باللغة العربية وإعادته في حقل الـ `response` مباشرة دون الحاجة لطلب إعادة توجيه (set `"action": "chat"`).
+- **دمج الأنماط الإبداعية والأدوات (Creative AI Presets)**: تم توسيع مصفوفة التوجيهات الذكية وتكوين مسارات برمجية وPrompt presets مخصصة للأنماط والطلبات الإبداعية التالية:
+  - **DV Diary**: تحويل فوري إلى صفحة توليد الفيديو مع Prompt يحاكي تسجيلات Handycam المنزلية والتسعينيات.
+  - **Two faces. One flag.**: دمج الوجوه مع العلم بنمط التعريض الفني المزدوج (Double Exposure).
+  - **The top of the Empire State**: لقطات سينمائية ملحمية من أعلى ناطحة السحاب إمباير ستيت.
+  - **Turn product into video ad**: إحالة فورية لأداة توليد إعلانات المنتجات الاحترافية.
+  - **Create your photobooth strip**: شريط عمودي كلاسيكي مكون من 4 صور بورتريه متباينة.
+  - **Angles & Shots (Direct the camera)**: إحالة فورية لاستوديو Canvas لنظام Angles Production System للتحكم بالكاميرا والنودات.
+  - **SPINFORGE**: إحالة فورية لاستوديو ثلاثي الأبعاد 3D Studio.
+- **إضافة قسم الأنماط الإبداعية في الواجهة (Creative Presets Grid)**: تم تصميم وإضافة قسم تفاعلي متناسق بصرياً مع ثيم الموقع الداكن والزجاجي في صفحة اكتشف (`app/(dash)/(routes)/explore/page.tsx`) يعرض كروت تفاعلية لهذه الميزات، مع توفير خياري:
+  - **Open (فتح)**: للانتقال الفوري للأداة أو الصفحة المطلوبة.
+  - **Use (استخدام)**: لوضع الـ Prompt المخصص في صندوق الموجه، وتحديد نوع الوسيط (Image/Video) تلقائياً، والنزول السلس للمستخدم لمراجعة الطلب أو النقر على توليد لتفعيله عبر العميل الذكي.
+
+
 ## تفعيل إرسال الكلمات المخصصة وتطبيق الوضع الصامت/الموسيقي الصرف بشكل صارم (2026-07-06)
 - تم إصلاح مشكلة عدم إرسال الكلمات المخصصة (Verse, Chorus, Bridge) في حال كتابتها والرجوع لتبويب التوجيه (Prompt) قبل النقر على التوليد. أصبحت الكلمات تُرسل تلقائياً طالما كانت الحقول مملوءة بغض النظر عن التبويب النشط.
 - تم تحسين الموجه الافتراضي (Default Prompt Builder) في حال ترك حقل التوجيه فارغاً لكي يُنشئ صيغة طبيعية متوافقة مع حالة الوضع الصامت (Instrumental) أو الغنائي التعبيري.
@@ -1077,3 +1100,17 @@
 - If Brave Answers is not enabled or has no API key, Saad Agent should show a setup-needed answer that points to Settings > Providers > Brave Answers instead of rendering a failed trace as if the search itself ran and failed.
 - Missing search-provider configuration must not trigger model guessing or fake links.
 - Real Brave API/network/timeouts still remain failed live-search attempts and must report the real technical reason.
+
+## 7-Day Weather Forecast and Date Auto-Binding ExtendScript behavior (2026-07-07)
+
+- The automatic weather update script (`update_weather.js`) is fully portable and zero-hardcoded. It dynamically walks folders to locate `DATA.jsx` and auto-extracts it from `WEATHER 2023.aegraphic` zip if missing.
+- Refactored `replaceAndExpandTds` to perform slice-based table cells expansion (4 days to 7 days) which discards trailing original cells and prevents row/cell duplication on multiple runs.
+- Standardized After Effects ExtendScript bindings to use simple string split `split('width="150">')` instead of regular expression split to prevent backslash escaping mismatches inside different After Effects engines.
+- Generates 7 independent day-specific scripts (`auto_bind_weather_day1.jsx` to `auto_bind_weather_day7.jsx`) containing dynamically calculated cell index mappings:
+  - Date cells: `Index = 2 + d` (where `d` is the 0-indexed day offset `0` to `6`).
+  - City `k` (0 to 17) weather cards:
+    - Icon: `Index = 9 + k * 28 + d`
+    - Status/Case: `Index = 16 + k * 28 + d`
+    - Max Temp: `Index = 23 + k * 28 + d`
+    - Min Temp: `Index = 30 + k * 28 + d`
+- All ExtendScript binding files automatically reload `DATA.jsx` in After Effects memory (`item.reload()`) and reactivate any disabled expressions (`prop.expressionEnabled = true`).

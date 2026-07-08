@@ -48,6 +48,8 @@ type ShowcaseForm = {
   tags: string;
   featured: boolean;
   status: "draft" | "published";
+  type: "video" | "image";
+  aspect_ratio: string;
 };
 
 type PromoMediaMap = Record<string, { url: string; type: string }>;
@@ -72,6 +74,8 @@ const emptyForm: ShowcaseForm = {
   tags: "",
   featured: false,
   status: "draft",
+  type: "video",
+  aspect_ratio: "16:9",
 };
 
 const EXPLORE_ADS: ExploreAdCms[] = [
@@ -185,31 +189,55 @@ const EXPLORE_ADS: ExploreAdCms[] = [
 ];
 
 async function uploadToSupabase(file: File): Promise<{ publicUrl: string; isVideo: boolean }> {
-  const signRes = await fetch("/api/admin/media/upload", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fileName: file.name, fileType: file.type }),
-  });
+  try {
+    const signRes = await fetch("/api/admin/media/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    });
 
-  if (!signRes.ok) {
-    const err = await signRes.json().catch(() => ({}));
-    throw new Error(err?.error ?? "Failed to create upload URL");
+    if (!signRes.ok) {
+      throw new Error("Failed to create upload URL");
+    }
+
+    const { signedUrl, publicUrl, isVideo } = (await signRes.json()) as {
+      signedUrl: string;
+      publicUrl: string;
+      isVideo: boolean;
+    };
+
+    if (signedUrl.includes("fallback-trigger")) {
+      throw new Error("Local environment: triggering server upload fallback");
+    }
+
+    const uploadRes = await fetch(signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+
+    if (!uploadRes.ok) throw new Error("Upload to storage failed");
+    return { publicUrl, isVideo };
+  } catch (err) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const fallbackRes = await fetch("/api/admin/media/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!fallbackRes.ok) {
+      const errorJson = await fallbackRes.json().catch(() => ({}));
+      throw new Error(errorJson?.error ?? "Upload failed completely");
+    }
+
+    const { publicUrl, isVideo } = (await fallbackRes.json()) as {
+      publicUrl: string;
+      isVideo: boolean;
+    };
+    return { publicUrl, isVideo };
   }
-
-  const { signedUrl, publicUrl, isVideo } = (await signRes.json()) as {
-    signedUrl: string;
-    publicUrl: string;
-    isVideo: boolean;
-  };
-
-  const uploadRes = await fetch(signedUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!uploadRes.ok) throw new Error("Upload to storage failed");
-  return { publicUrl, isVideo };
 }
 
 function toForm(item: ShowcaseItem): ShowcaseForm {
@@ -225,6 +253,8 @@ function toForm(item: ShowcaseItem): ShowcaseForm {
     tags: item.tags.join(", "),
     featured: item.featured,
     status: item.status,
+    type: (item as any).type ?? "video",
+    aspect_ratio: (item as any).aspect_ratio ?? "16:9",
   };
 }
 
@@ -532,9 +562,14 @@ export default function ExploreCmsPage() {
     setError(null);
     try {
       const { publicUrl, isVideo } = await uploadToSupabase(file);
-      if (type === "video" && !isVideo) throw new Error("Please upload a video file for video URL");
-      if (type === "thumbnail" && isVideo) throw new Error("Please upload an image file for thumbnail");
-      updateField(type === "video" ? "video_url" : "thumbnail_url", publicUrl);
+      if (form.type === "image") {
+        updateField("thumbnail_url", publicUrl);
+        updateField("video_url", publicUrl);
+      } else {
+        if (type === "video" && !isVideo) throw new Error("Please upload a video file for video URL");
+        if (type === "thumbnail" && isVideo) throw new Error("Please upload an image file for thumbnail");
+        updateField(type === "video" ? "video_url" : "thumbnail_url", publicUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -565,6 +600,8 @@ export default function ExploreCmsPage() {
           tags: form.tags,
           featured: form.featured,
           status: form.status,
+          type: form.type,
+          aspect_ratio: form.aspect_ratio,
         }),
       });
 
@@ -832,29 +869,79 @@ export default function ExploreCmsPage() {
                 <textarea value={form.prompt} onChange={(e) => updateField("prompt", e.target.value)} placeholder="Prompt" rows={4} className="resize-none rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-cyan-400/50" />
                 <input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} placeholder="Tags separated by commas" className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm outline-none focus:border-cyan-400/50" />
 
-                <div className="space-y-2 rounded-xl border border-white/10 bg-slate-950 p-3">
-                  <label className="text-xs font-bold text-slate-400">Video</label>
-                  <div className="flex gap-2">
-                    <input value={form.video_url} onChange={(e) => updateField("video_url", e.target.value)} placeholder="Video URL" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none focus:border-cyan-400/50" />
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
-                      {uploading === "video" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      Upload
-                      <input type="file" accept="video/*" className="hidden" onChange={(e) => void uploadFile(e, "video")} />
-                    </label>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400">Media Type</label>
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-slate-950 p-2">
+                    {(["video", "image"] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => updateField("type", type)}
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-xs font-bold capitalize transition",
+                          form.type === type ? "bg-cyan-400 text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10",
+                        )}
+                      >
+                        {type}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="space-y-2 rounded-xl border border-white/10 bg-slate-950 p-3">
-                  <label className="text-xs font-bold text-slate-400">Thumbnail</label>
-                  <div className="flex gap-2">
-                    <input value={form.thumbnail_url} onChange={(e) => updateField("thumbnail_url", e.target.value)} placeholder="Thumbnail URL" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none focus:border-cyan-400/50" />
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
-                      {uploading === "thumbnail" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                      Upload
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => void uploadFile(e, "thumbnail")} />
-                    </label>
-                  </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400">Aspect Ratio</label>
+                  <select
+                    value={form.aspect_ratio}
+                    onChange={(e) => updateField("aspect_ratio", e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/50"
+                  >
+                    <option value="16:9">16:9 (Horizontal)</option>
+                    <option value="9:16">9:16 (Vertical/Reel)</option>
+                    <option value="1:1">1:1 (Square)</option>
+                    <option value="4:3">4:3 (Classic)</option>
+                    <option value="3:4">3:4 (Portrait)</option>
+                  </select>
                 </div>
+
+                {form.type === "video" ? (
+                  <>
+                    <div className="space-y-2 rounded-xl border border-white/10 bg-slate-950 p-3">
+                      <label className="text-xs font-bold text-slate-400">Video</label>
+                      <div className="flex gap-2">
+                        <input value={form.video_url} onChange={(e) => updateField("video_url", e.target.value)} placeholder="Video URL" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none focus:border-cyan-400/50" />
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                          {uploading === "video" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          Upload
+                          <input type="file" accept="video/*" className="hidden" onChange={(e) => void uploadFile(e, "video")} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-xl border border-white/10 bg-slate-950 p-3">
+                      <label className="text-xs font-bold text-slate-400">Video Thumbnail</label>
+                      <div className="flex gap-2">
+                        <input value={form.thumbnail_url} onChange={(e) => updateField("thumbnail_url", e.target.value)} placeholder="Thumbnail URL" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none focus:border-cyan-400/50" />
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                          {uploading === "thumbnail" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                          Upload
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => void uploadFile(e, "thumbnail")} />
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2 rounded-xl border border-white/10 bg-slate-950 p-3">
+                    <label className="text-xs font-bold text-slate-400">Image</label>
+                    <div className="flex gap-2">
+                      <input value={form.thumbnail_url} onChange={(e) => { updateField("thumbnail_url", e.target.value); updateField("video_url", e.target.value); }} placeholder="Image URL" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs outline-none focus:border-cyan-400/50" />
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">
+                        {uploading === "thumbnail" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                        Upload
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => void uploadFile(e, "thumbnail")} />
+                      </label>
+                    </div>
+                  </div>
+                )}
 
                 <label className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-300">
                   <input type="checkbox" checked={form.featured} onChange={(e) => updateField("featured", e.target.checked)} />

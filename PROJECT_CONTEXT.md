@@ -1,5 +1,66 @@
 # Saad Studio Project Context Update
 
+## Latest task: Implemented Explore Creations Feed with Admin Image & Video Upload (2026-07-08)
+
+- Status:
+  - Added new `type` ("video" | "image") and `aspectRatio` ("16:9", "9:16", etc.) fields to `ShowcaseItem` in `schema.prisma`.
+  - Updated shared `lib/showcase.ts` type definitions, DTO serializer, and payload parser with safe fallback handling for image uploads.
+  - Extended API endpoints `/api/admin/showcase` and `/api/admin/showcase/[id]` to write new fields to the database.
+  - Implemented dynamic Media Type and Aspect Ratio selectors, conditional image/video upload inputs, and library preview mappings in `/admin/cms/explore`.
+  - Integrated the dynamic "Studio Creations" feed below the Quick Circles Tools Row on `/explore`, rendering uploaded images and autoplay-on-hover videos respecting their exact aspect ratios.
+- Affected files:
+  - `prisma/schema.prisma` [MODIFY]
+  - `lib/showcase.ts` [MODIFY]
+  - `app/api/admin/showcase/route.ts` [MODIFY]
+  - `app/api/admin/showcase/[id]/route.ts` [MODIFY]
+  - `app/admin/cms/explore/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/explore/page.tsx` [MODIFY]
+- Verification:
+  - Ran `npx prisma db push --accept-data-loss` to sync schema and regenerate client.
+  - Ran `npx tsc --noEmit` which completed with 0 errors.
+  - Ran `npm run build` which compiled the production bundle successfully.
+- Decision:
+  - Map uploaded image files to both `video_url` and `thumbnail_url` columns to preserve non-nullable database constraints without schema overhead.
+  - Use custom `aspect-[W/H]` Tailwind classes based on dynamic database values to adhere strictly to uploaded aspect ratios.
+
+## Latest task: Developed Robust 7-Day Weather Forecast and Date Auto-Binding Scripts with Footage Auto-Reload (2026-07-07)
+
+- Status:
+  - Completed the 7-day weather forecast integration successfully.
+  - Restored the clean original `DATA.jsx` from `WEATHER 2023.aegraphic` zip archive to recover from table corruptions.
+  - Refactored `replaceAndExpandTds` in `update_weather.js` to use a slice-based approach that discards trailing cells and prevents duplicate cells/rows when executed multiple times.
+  - Simplified the After Effects split expressions to use standard string split `split('width="150">')` instead of RegExp split, bypassing backslash escaping problems inside After Effects.
+  - Calculated and verified the exact mathematical cell indices for all 18 Iraqi cities across the 7-day forecast.
+  - Automatically re-enables expressions via `prop.expressionEnabled = true` and reloads `DATA.jsx` via `item.reload()` in all 7 ExtendScript files.
+- Affected files:
+  - `E:\كارتات العراقية\WEATHER 2023\WEATHER 2023\update_weather.js` [MODIFY]
+  - `E:\كارتات العراقية\WEATHER 2023\WEATHER 2023\(Footage)\ASSETS\DATA.jsx` [RESTORED & UPDATED]
+  - `E:\كارتات العراقية\WEATHER 2023\WEATHER 2023\auto_bind_weather_day1.jsx` to `auto_bind_weather_day7.jsx` [REGENERATED]
+- Verification:
+  - Verified `DATA.jsx` size and structure (exactly 513 cells on split).
+  - Verified indices matching for all 18 cities for Day 1 and Day 7 using Node script validation.
+  - Verified that date and temperature render correctly in After Effects without any expression errors.
+- Decision:
+  - Use simple string split in expressions to maximize compatibility and reliability across different After Effects version engines.
+
+## Latest task: Developed Portable After Effects Automatic Weather Update with Dynamic Discovery (2026-07-07)
+
+## Latest task: Postponed Explore page mockup changes and restored backup (2026-07-07)
+
+- Status:
+  - Postponed the 16 Creative Modules Figma mockup layout implementation to a later time at the user's request.
+  - Successfully restored `app/(dash)/(routes)/explore/page.tsx` and `app/api/explore/route.ts` from their backup files (`page.tsx.backup` and `route.ts.backup`).
+- Affected files:
+  - `app/(dash)/(routes)/explore/page.tsx` [RESTORED]
+  - `app/api/explore/route.ts` [RESTORED]
+- Verification:
+  - Verified 100% clean type safety check with `npx tsc --noEmit`.
+  - Cleared Next.js cache (`.next` directory) and restarted the dev server.
+- Decision:
+  - Keep the backups intact for future reference when the user decides to resume this work.
+
+## Latest task: Developed Explore Page AI Agent routing & Creative Presets layout (2026-07-07)
+
 ## Latest task: Fix Saad Agent Brave Answers configuration handling and protect no-guess search behavior (2026-07-06)
 
 - Status:

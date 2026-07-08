@@ -43,6 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         status: payload.status ?? existing.status,
         views: payload.views ?? existing.views,
         likes: payload.likes ?? existing.likes,
+        type: payload.type ?? existing.type,
+        aspectRatio: payload.aspectRatio ?? existing.aspectRatio,
       },
     });
 

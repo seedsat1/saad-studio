@@ -14,6 +14,8 @@ export type ShowcasePayload = {
   status?: "draft" | "published";
   views?: number;
   likes?: number;
+  type?: string;
+  aspectRatio?: string;
 };
 
 type ShowcaseRecord = Awaited<ReturnType<typeof prismadb.showcaseItem.findMany>>[number];
@@ -34,6 +36,8 @@ export function toShowcaseDto(item: ShowcaseRecord) {
     views: item.views,
     likes: item.likes,
     created_at: item.createdAt.toISOString(),
+    type: item.type ?? "video",
+    aspect_ratio: item.aspectRatio ?? "16:9",
   };
 }
 
@@ -84,13 +88,22 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
   const title = String(body.title ?? "").trim();
   const model = String(body.model ?? "").trim();
   const provider = String(body.provider ?? "").trim();
+  const type = String(body.type ?? "video").trim();
+  const aspectRatio = String(body.aspect_ratio ?? body.aspectRatio ?? "16:9").trim();
   const videoUrl = String(body.video_url ?? body.videoUrl ?? "").trim();
   const thumbnailUrl = String(body.thumbnail_url ?? body.thumbnailUrl ?? "").trim();
 
   if (!title) throw new Error("Title is required");
   if (!model) throw new Error("Model is required");
   if (!provider) throw new Error("Provider is required");
-  if (!videoUrl) throw new Error("Video URL is required");
+  
+  let finalVideoUrl = videoUrl;
+  if (type === "image") {
+    if (!finalVideoUrl) finalVideoUrl = thumbnailUrl;
+  } else {
+    if (!finalVideoUrl) throw new Error("Video URL is required");
+  }
+
   if (!thumbnailUrl) throw new Error("Thumbnail URL is required");
 
   return {
@@ -98,7 +111,7 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
     slug: body.slug ? slugifyShowcaseTitle(String(body.slug)) : undefined,
     model,
     provider,
-    video_url: videoUrl,
+    video_url: finalVideoUrl,
     thumbnail_url: thumbnailUrl,
     prompt: String(body.prompt ?? "").trim(),
     tags: normalizeTags(body.tags),
@@ -106,5 +119,7 @@ export function parseShowcasePayload(body: Record<string, unknown>): ShowcasePay
     status: normalizeShowcaseStatus(body.status),
     views: Number.isFinite(Number(body.views)) ? Math.max(0, Number(body.views)) : undefined,
     likes: Number.isFinite(Number(body.likes)) ? Math.max(0, Number(body.likes)) : undefined,
+    type,
+    aspectRatio,
   };
 }

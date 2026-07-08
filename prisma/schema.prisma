@@ -242,6 +242,8 @@ model ShowcaseItem {
   likes        Int      @default(0)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  type         String   @default("video")
+  aspectRatio  String   @default("16:9") @map("aspect_ratio")
 
   @@index([featured, createdAt])
   @@index([status, createdAt])

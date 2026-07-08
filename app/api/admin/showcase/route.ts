@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
         status: payload.status ?? "draft",
         views: payload.views ?? 0,
         likes: payload.likes ?? 0,
+        type: payload.type ?? "video",
+        aspectRatio: payload.aspectRatio ?? "16:9",
       },
     });
 

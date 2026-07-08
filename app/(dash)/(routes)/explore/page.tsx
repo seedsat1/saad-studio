@@ -1821,6 +1821,161 @@ export default function ExplorePage() {
       </section>
 
       {/* ════════════════════════════════════════════════
+          STUDIO CREATIONS FEED (معرض أعمال الاستوديو)
+      ════════════════════════════════════════════════ */}
+      <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto border-b border-white/5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <h2 className="text-xl font-bold tracking-tight text-white">Studio Creations</h2>
+            <span className="text-[10px] bg-cyan-400/10 border border-cyan-400/20 rounded-full px-2.5 py-0.5 font-bold text-cyan-200 uppercase tracking-wider">
+              Live Feed
+            </span>
+          </div>
+          <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 self-end sm:self-auto">
+            {(["latest", "featured", "trending"] as const).map((feed) => (
+              <button
+                key={feed}
+                type="button"
+                onClick={() => setActiveFeed(feed)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition ${
+                  activeFeed === feed ? "bg-white/10 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                {feed}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
+            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
+            <p className="text-sm text-zinc-400 font-medium">Loading creations...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {(activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).map((item) => {
+              const isVideo = item.video_url && 
+                !item.video_url.endsWith(".png") && 
+                !item.video_url.endsWith(".jpg") && 
+                !item.video_url.endsWith(".jpeg") && 
+                !item.video_url.endsWith(".webp") &&
+                !item.video_url.endsWith(".gif");
+              
+              const aspectMap: Record<string, string> = {
+                "16:9": "aspect-[16/9]",
+                "9:16": "aspect-[9/16]",
+                "1:1": "aspect-[1/1]",
+                "4:3": "aspect-[4/3]",
+                "3:4": "aspect-[3/4]",
+              };
+              const aspectClass = aspectMap[(item as any).aspect_ratio || "16:9"] || "aspect-[16/9]";
+
+              return (
+                <motion.article
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#080b11] shadow-xl hover:border-cyan-400/30 transition-all duration-300 flex flex-col"
+                >
+                  {/* Media Container */}
+                  <div className={cn("relative w-full overflow-hidden bg-slate-950", aspectClass)}>
+                    {isVideo ? (
+                      <PreviewVideo
+                        videoUrl={item.video_url}
+                        posterUrl={item.thumbnail_url}
+                        title={item.title}
+                        shouldPlay={autoplayKey === `creations:${item.id}`}
+                      />
+                    ) : (
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition duration-700 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    )}
+                    {/* Dark gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-transparent to-transparent opacity-90" />
+                    
+                    {/* Hover activation trigger */}
+                    <div 
+                      className="absolute inset-0 z-10 cursor-pointer"
+                      onMouseEnter={() => setAutoplayKey(`creations:${item.id}`)}
+                      onMouseLeave={() => setAutoplayKey(null)}
+                    />
+
+                    {/* Tags / Model badge */}
+                    <div className="absolute left-3 top-3 z-20 flex flex-wrap gap-1.5 pointer-events-none">
+                      <span className="bg-black/60 border border-white/10 text-[9px] font-black text-cyan-200 px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md">
+                        {item.model}
+                      </span>
+                    </div>
+
+                    {isVideo && (
+                      <div className="absolute right-3 top-3 z-20 w-8 h-8 rounded-full border border-white/20 bg-black/40 backdrop-blur flex items-center justify-center text-white pointer-events-none">
+                        <Video className="w-3.5 h-3.5" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Info & Prompt Copy */}
+                  <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold tracking-wider">
+                        <span>{item.provider}</span>
+                        <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      </div>
+                      <h3 className="mt-1 text-base font-extrabold text-white leading-tight group-hover:text-cyan-400 transition-colors">
+                        {item.title}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 text-xs text-zinc-400 bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono text-right select-all">
+                        {item.prompt}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2.5 border-t border-white/5">
+                      <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                        <span className="inline-flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" />
+                          {item.views}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Heart className="w-3.5 h-3.5" />
+                          {item.likes}
+                        </span>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => handleCopyPrompt(item.id, item.prompt)}
+                        className="flex items-center gap-1 text-[11px] font-extrabold text-cyan-400 hover:text-cyan-300 transition"
+                      >
+                        {copiedId === item.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy Prompt</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ════════════════════════════════════════════════
           FEATURED BLUEPRINTS (Horizontal Cards Row)
       ════════════════════════════════════════════════ */}
       <section className="w-full px-4 md:px-8 py-10 max-w-[1600px] mx-auto">
