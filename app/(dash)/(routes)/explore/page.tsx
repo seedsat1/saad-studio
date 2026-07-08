@@ -1261,6 +1261,7 @@ export default function ExplorePage() {
   const [trendingCursor, setTrendingCursor] = useState<string | null>(null);
   const [autoplayKey, setAutoplayKey] = useState<string | null>(null);
   const [activeFeed, setActiveFeed] = useState<"latest" | "featured" | "trending">("latest");
+  const [loadingCreations, setLoadingCreations] = useState(true);
 
   // Prompt Generator states
   const [promptText, setPromptText] = useState("");
@@ -1318,22 +1319,29 @@ export default function ExplorePage() {
 
   // Fetch showcase items
   const loadInitial = useCallback(async () => {
-    const [latestRes, featuredRes, trendingRes] = await Promise.all([
-      fetch("/api/showcase?take=30", { cache: "no-store" }),
-      fetch("/api/showcase/featured?take=18", { cache: "no-store" }),
-      fetch("/api/showcase/trending?take=30", { cache: "no-store" }),
-    ]);
+    setLoadingCreations(true);
+    try {
+      const [latestRes, featuredRes, trendingRes] = await Promise.all([
+        fetch("/api/showcase?take=30", { cache: "no-store" }),
+        fetch("/api/showcase/featured?take=18", { cache: "no-store" }),
+        fetch("/api/showcase/trending?take=30", { cache: "no-store" }),
+      ]);
 
-    const latestJson = latestRes.ok ? ((await latestRes.json()) as FeedResponse) : { items: [] };
-    const featuredJson = featuredRes.ok ? ((await featuredRes.json()) as FeedResponse) : { items: [] };
-    const trendingJson = trendingRes.ok ? ((await trendingRes.json()) as FeedResponse) : { items: [] };
+      const latestJson = latestRes.ok ? ((await latestRes.json()) as FeedResponse) : { items: [] };
+      const featuredJson = featuredRes.ok ? ((await featuredRes.json()) as FeedResponse) : { items: [] };
+      const trendingJson = trendingRes.ok ? ((await trendingRes.json()) as FeedResponse) : { items: [] };
 
-    setItems(latestJson.items ?? []);
-    setItemsCursor(latestJson.nextCursor ?? null);
-    setFeatured(featuredJson.items ?? []);
-    setFeaturedCursor((featuredJson as any).nextCursor ?? null);
-    setTrending(trendingJson.items ?? []);
-    setTrendingCursor((trendingJson as any).nextCursor ?? null);
+      setItems(latestJson.items ?? []);
+      setItemsCursor(latestJson.nextCursor ?? null);
+      setFeatured(featuredJson.items ?? []);
+      setFeaturedCursor((featuredJson as any).nextCursor ?? null);
+      setTrending(trendingJson.items ?? []);
+      setTrendingCursor((trendingJson as any).nextCursor ?? null);
+    } catch (err) {
+      console.error("Failed to load creations:", err);
+    } finally {
+      setLoadingCreations(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -1848,10 +1856,14 @@ export default function ExplorePage() {
           </div>
         </div>
 
-        {items.length === 0 ? (
+        {loadingCreations ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
             <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
             <p className="text-sm text-zinc-400 font-medium">Loading creations...</p>
+          </div>
+        ) : (activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).length === 0 ? (
+          <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
+            <p className="text-sm text-zinc-500 font-medium">No creations published yet.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
