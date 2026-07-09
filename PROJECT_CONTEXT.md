@@ -283,6 +283,7 @@
   - Configured pricing for `seedance2f` (Seedance 2.0 Fast) at `720p` resolution to be 55 credits per 15 seconds, and at `480p` resolution to be 25 credits per 15 seconds.
   - Configured pricing for `seedance2` (Seedance 2.0 HQ) to be 60 credits for 480p, 90 credits for 720p, 130 credits for 1080p, and 200 credits for 4K over 15 seconds.
   - Completely disabled direct BytePlus (ModelArk) integration to route all Seedance v2 requests exclusively through KIE.
+  - Added clickable reference image badges (with thumbnails and `@image1` tags) above the pinned prompt input bar.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]

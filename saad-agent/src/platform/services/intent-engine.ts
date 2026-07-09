@@ -250,6 +250,8 @@ const DEFAULT_RULES: Record<string, IntentRuleFile> = {
       { pattern: "(?:ابحثلي|ابحث لي|ابحث|دورلي|دور لي|دور|فتشلي|فتش لي|فتش|جيبلي معلومات|جيب لي معلومات|هاتلي معلومات|هات لي معلومات|طلعلي معلومات|طلع لي معلومات).*(?:[A-Za-z][A-Za-z0-9_.\\-/]*|\\d+(?:\\.\\d+)+|موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|معلومات|تفاصيل)", weight: 0.96, reason: "User asks to search for an external product/model/topic." },
       { pattern: "(?:اعطني|اعطيني|هات|اريد).*(?:روابط|مصادر|links|sources)", weight: 0.96, reason: "User asks for external links or sources." },
       { pattern: "(?:اخر|آخر|احدث|أحدث|latest|current|recent).*(?:اصدار|إصدار|نسخه|نسخة|update|version)", weight: 0.94, reason: "User asks for current external information." },
+      { pattern: "(?:\u0627\u062e\u0631|\u0622\u062e\u0631|\u0627\u062d\u062f\u062b|\u0623\u062d\u062f\u062b|latest|current|recent).*(?:\u0648\u062b\u0627\u0626\u0642|\u0645\u0633\u062a\u0646\u062f\u0627\u062a|\u062f\u0644\u064a\u0644|documentation|docs|api)", weight: 0.95, reason: "User asks for current external documentation." },
+      { pattern: "(?:\u0648\u062b\u0627\u0626\u0642|\u0645\u0633\u062a\u0646\u062f\u0627\u062a|\u062f\u0644\u064a\u0644|documentation|docs|api).*(?:\u0627\u062e\u0631|\u0622\u062e\u0631|\u0627\u062d\u062f\u062b|\u0623\u062d\u062f\u062b|latest|current|recent)", weight: 0.95, reason: "User asks for current external documentation." },
       { pattern: "\\b(?:search web|search online|latest|current|recent)\\b", weight: 0.94, reason: "User asks for external/current information." }
     ],
     negativePatterns: [

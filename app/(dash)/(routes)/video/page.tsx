@@ -2207,6 +2207,50 @@ function VideoPageInner() {
           )}
         </AnimatePresence>
 
+        {/* Clickable reference image badges */}
+        {referenceImages.length > 0 && (
+          <div className="mx-4 mb-2 flex flex-wrap gap-2 items-center bg-slate-950/20 p-2.5 rounded-xl border border-white/[0.03]">
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
+              <Sparkles size={11} className="text-cyan-400" /> Click to insert reference:
+            </span>
+            {(() => {
+              let imageCount = 0;
+              return referenceImages.map((file, idx) => {
+                const isImage = file.type.startsWith("image/");
+                if (!isImage) return null;
+                imageCount++;
+                const tag = `@image${imageCount}`;
+                const previewSrc = referencePreviews[idx];
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setPrompt(prev => prev ? `${prev} ${tag}` : tag);
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
+                    style={{
+                      background: "rgba(6, 182, 212, 0.08)",
+                      border: "1px solid rgba(6, 182, 212, 0.25)",
+                      color: "#22d3ee",
+                    }}
+                    title={`Click to insert ${tag} into prompt`}
+                  >
+                    {previewSrc && (
+                      <img
+                        src={previewSrc}
+                        alt={`Ref ${imageCount}`}
+                        className="w-4 h-4 rounded-full object-cover border border-cyan-500/30"
+                      />
+                    )}
+                    <span className="font-mono text-[10px]">{tag}</span>
+                  </button>
+                );
+              });
+            })()}
+          </div>
+        )}
+
         {/* Pinned prompt bar */}
         <div
           className="flex-shrink-0 mx-4 mb-4 mt-2 rounded-xl flex items-center gap-2 px-3"

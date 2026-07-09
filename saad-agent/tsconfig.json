@@ -41,5 +41,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
+  "include": ["src/**/*.ts"],
   "exclude": ["ui", "dist", "dist-test*", "release", "release-*", "release-production-v4", "codex-main", "codex-main.zip"]
 }
