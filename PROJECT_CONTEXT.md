@@ -1,5 +1,21 @@
 # Saad Studio Project Context Update
 
+## Latest task: Automatic routing of Seedance 2.0 / Mini requests based on image reference input (2026-07-09)
+
+- Status:
+  - Added automatic fallback routing to `kie.ai` for Seedance 2.0 / Mini model routes when an image/avatar reference is uploaded. Text-only requests continue to route directly to BytePlus (ModelArk).
+  - Added `bytedance/seedance-2-mini` model mapping for KIE.ai catalog consistency.
+- Affected files:
+  - `lib/kie-model-routing.ts` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+  - `app/api/panel/generate/video/route.ts` [MODIFY]
+  - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+- Verification:
+  - TypeScript compilation checks (`npx tsc --noEmit`) completed with 0 errors.
+  - Successfully committed and pushed all modifications to Git remote repository.
+- Decision:
+  - We skip the official BytePlus ModelArk pathway in both standard generation (`app/api/video/route.ts`) and panel/external integrations (`app/api/panel/generate/video/route.ts`) when reference images, frames, or custom avatars are present.
+
 ## Latest task: Compact Arabic runtime approval card (2026-07-09)
 
 - Status:
