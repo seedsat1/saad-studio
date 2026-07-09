@@ -1,5 +1,37 @@
 # Saad Studio Project Context Update
 
+## Latest task: Modified Credit Prices for Image Generation Models (2026-07-09)
+
+- Status:
+  - Set credit costs of `nano-banana-pro`, `nano-banana-2`, `gpt-image-2-text-to-image`, and `gpt-image-2-image-to-image` to `2.0` credits.
+  - Set all other standard image generation models to `1.0` credit.
+  - Registered `wan_image_pro` separately from `nano_pro` to price Wan 2.7 Image Pro at `1.0` credit.
+  - Updated the database table `PricingConstitution` using a migration script to align with the new rates.
+- Affected files:
+  - `lib/image-models.ts` [MODIFY]
+  - `lib/pricing-models.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+- Verification:
+  - TypeScript compiler checks (`npx tsc --noEmit`) completed with 0 errors.
+  - Database updates ran successfully via Prisma upserts.
+  - Verification suite `scratch/verify-pricing.js` verified correct rates across database rows, catalog configurations, and pricing registry defaults.
+- Decision:
+  - Exclude image utility tools and legacy models from the standard 1.0 credit rule to preserve custom resources and billing multipliers.
+
+## Latest task: Localized visible loading messages to Arabic (2026-07-09)
+
+- Status:
+  - Replaced `Processing request...` with `جاري معالجة طلبك...`.
+  - Replaced the attachment-training loader with `جاري حفظ المرفقات وفهرستها في المعرفة الدائمة...`.
+  - Existing post-approval progress remains Arabic.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - Packaged ASAR contains both Arabic messages and no longer contains `Processing request...`.
+  - Relaunched the packaged app at 14:07:38 to load the updated UI.
+
 ## Latest task: Moved deterministic commands ahead of the model at the IPC boundary (2026-07-09)
 
 - Status:

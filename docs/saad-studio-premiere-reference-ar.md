@@ -1140,6 +1140,7 @@
 - Link styling uses a distinct accent color, hover underline, external-link icon, and keyboard focus indicator.
 - Deterministic commands are resolved by `DeterministicCommandService` at the desktop `chat-complete` IPC boundary before orchestration or model invocation.
 - The orchestrator calls the same service as a secondary guard; deterministic patterns must not be duplicated across routing layers.
+- Visible user-facing loading messages must be Arabic and describe the active state, such as request processing or permanent knowledge indexing.
 
 ## 7-Day Weather Forecast and Date Auto-Binding ExtendScript behavior (2026-07-07)
 
