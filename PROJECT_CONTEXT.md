@@ -12,6 +12,7 @@
   - Set credit cost multipliers for Seedream 5 Pro model qualities: `1K` = 1.0x (1 credit), `1.5K` = 2.0x (2 credits), `2K` = 3.0x (3 credits).
   - Mapped quality resolution outputs to KIE parameter values (`2K` to `high`, and `1K`/`1.5K` to `basic`).
   - Configured pricing for `seedance2mini` (Seedance 2.0 Mini) at `480p` resolution to be 20 credits per 15 seconds.
+  - Configured pricing for `seedance2f` (Seedance 2.0 Fast) at `720p` resolution to be 55 credits per 15 seconds, and at `480p` resolution to be 25 credits per 15 seconds.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]
