@@ -6,6 +6,7 @@
   - Unified Seedream 5.0 Pro model under a single choice `seedream/5-pro` in the UI frontend model list on `/image`.
   - Added backend routing in `/api/generate/image` and `/api/image/generate` to dynamically redirect requests to `seedream/5-pro-text-to-image` (when text only) or `seedream/5-pro-image-to-image` (when image/avatar is uploaded).
   - Synchronized model pricing in database with upsert operations for `seedream5p` (6 credits) and `seedream5pi` (8 credits).
+  - Unhid `bytedance-seedance-v2-t2v-fast` (Seedance 2.0 Fast) from `HIDDEN_VIDEO_PAGE_MODEL_IDS` to display it in the video generation sidebar list.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]
@@ -16,6 +17,7 @@
   - `app/api/generate/image/route.ts` [MODIFY]
   - `app/api/image/generate/route.ts` [MODIFY]
   - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/video/page.tsx` [MODIFY]
   - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
 - Verification:
   - Executed database sync (`node scratch/execute-db-update.js`) successfully.

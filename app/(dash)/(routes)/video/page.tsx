@@ -519,7 +519,6 @@ const HIDDEN_VIDEO_PAGE_MODEL_IDS = new Set([
   "kling-v2.5-turbo-i2v",
   "openai-sora-2-t2v",
   "openai-sora-2-i2v",
-  "bytedance-seedance-v2-t2v-fast",
   "xai-grok-imagine-t2v",
   "xai-grok-imagine-edit",
 ]);
