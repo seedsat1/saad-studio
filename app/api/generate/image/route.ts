@@ -112,6 +112,7 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
     "google/nano-banana-edit",
     "seedream/4.5-edit",
     "seedream/5-lite-image-to-image",
+    "seedream/5-pro-image-to-image",
     "grok-imagine/image-to-image",
     "flux-2/pro-image-to-image",
     "flux-2/flex-image-to-image",
@@ -155,6 +156,16 @@ function resolveFlux2Variant(modelId: string, hasReferenceImages: boolean, quali
   return hasReferenceImages
     ? `flux-2/${prefix}-image-to-image`
     : `flux-2/${prefix}-text-to-image`;
+}
+
+function resolveSeedream5ProVariant(modelId: string, hasReferenceImages: boolean): string {
+  const normalized = modelId.toLowerCase();
+  if (normalized === "seedream/5-pro") {
+    return hasReferenceImages
+      ? "seedream/5-pro-image-to-image"
+      : "seedream/5-pro-text-to-image";
+  }
+  return modelId;
 }
 
 function getGoogleImageModel(modelId: string): string | null {
@@ -579,7 +590,8 @@ export async function POST(req: NextRequest) {
 
     const isFluxKontext = modelId.startsWith("flux-kontext");
     const hasReferenceImages = Boolean(imageUrl || imageUrlsParam?.length);
-    const effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
+    let effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
+    effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
     const { imageModelMap } = getResolvedKieRoutingMaps();
     const isWaveSpeedImageModel = false;
     const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);

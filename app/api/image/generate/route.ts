@@ -20,6 +20,7 @@ type Provider = "wavespeed" | "kie";
 
 function resolveProvider(model: string): Provider {
   const lower = model.toLowerCase();
+  if (lower.includes("seedream/5-pro")) return "kie";
   if (WAVESPEED_PREFIXES.some((p) => lower.startsWith(p))) return "wavespeed";
   return "kie";
 }

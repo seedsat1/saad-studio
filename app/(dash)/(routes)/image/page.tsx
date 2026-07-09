@@ -41,6 +41,7 @@ const ANNUAL_UNLIMITED_IMAGE_MODEL_IDS = new Set([
   "flux-2/flex",
   "seedream/4.5-text-to-image",
   "seedream/4.5-edit",
+  "seedream/5-pro",
   "google/nano-banana",
   "gpt-image/1.5-text-to-image",
   "gpt-image/1.5-image-to-image",
@@ -68,6 +69,8 @@ const HIDDEN_IMAGE_PAGE_MODEL_IDS = new Set([
   "seedream/4.5-edit",
   "seedream/5-lite-text-to-image",
   "seedream/5-lite-image-to-image",
+  "seedream/5-pro-text-to-image",
+  "seedream/5-pro-image-to-image",
   "z-image",
 ]);
 const HIDDEN_IMAGE_PAGE_MODEL_LABELS = new Set([

@@ -1,5 +1,26 @@
 # Saad Studio Project Context Update
 
+## Latest task: Unified Seedream 5.0 Pro image routing based on image reference presence (2026-07-09)
+
+- Status:
+  - Unified Seedream 5.0 Pro model under a single choice `seedream/5-pro` in the UI frontend model list on `/image`.
+  - Added backend routing in `/api/generate/image` and `/api/image/generate` to dynamically redirect requests to `seedream/5-pro-text-to-image` (when text only) or `seedream/5-pro-image-to-image` (when image/avatar is uploaded).
+  - Synchronized model pricing in database with upsert operations for `seedream5p` (6 credits) and `seedream5pi` (8 credits).
+- Affected files:
+  - `lib/image-models.ts` [MODIFY]
+  - `lib/annual-image-unlimited.ts` [MODIFY]
+  - `lib/kie-model-routing.ts` [MODIFY]
+  - `lib/pricing.ts` [MODIFY]
+  - `lib/pricing-models.ts` [MODIFY]
+  - `scratch/execute-db-update.js` [MODIFY]
+  - `app/api/generate/image/route.ts` [MODIFY]
+  - `app/api/image/generate/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+  - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+- Verification:
+  - Executed database sync (`node scratch/execute-db-update.js`) successfully.
+  - TypeScript compilation checks (`npx tsc --noEmit`) completed with 0 errors.
+
 ## Latest task: Automatic routing of Seedance 2.0 / Mini requests based on image reference input (2026-07-09)
 
 - Status:
