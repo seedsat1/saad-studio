@@ -17,7 +17,7 @@ interface ChatEndpointCandidate {
 }
 
 export class ModelClient {
-  private static readonly MAX_INTERACTIVE_TIMEOUT_MS = 20000;
+  private static readonly MAX_INTERACTIVE_TIMEOUT_MS = 1800000;
 
   private static normalizeHost(baseUrl: string): string {
     let normalized = baseUrl.trim().replace(/\/+$/, "");

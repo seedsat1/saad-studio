@@ -81,7 +81,7 @@ export interface TrainingAttachmentImportResult {
 export class KnowledgeIngestionService {
   private static readonly MAX_FILES = 350;
   private static readonly MAX_FILE_BYTES = 8 * 1024 * 1024;
-  private static readonly MAX_CHUNKS = 900;
+  private static readonly MAX_CHUNKS = 5000;
   private static readonly CHUNK_TOKENS = 450;
   private static readonly VECTOR_DIMENSIONS = 256;
   private static readonly TRAINING_CATEGORIES: TrainingKnowledgeCategory[] = [

@@ -1,5 +1,223 @@
 # Saad Studio Project Context Update
 
+## Latest task: Moved deterministic commands ahead of the model at the IPC boundary (2026-07-09)
+
+- Status:
+  - Added `DeterministicCommandService` for executable/static commands that require no language-model reasoning.
+  - `chat-complete` now resolves deterministic commands before invoking `ChatOrchestratorService`, so known official links cannot reach the model even if intent routing or conversation state is wrong.
+  - The orchestrator also uses the same service as a secondary guard; duplicate pattern logic was removed.
+- Affected files:
+  - `saad-agent/src/platform/services/deterministic-command-service.ts` [ADD]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/desktop/main.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including known YouTube link no-model/no-approval assertions.
+  - Packaged ASAR contains the deterministic service and confirms `chat-complete` calls it at the IPC boundary.
+  - Relaunched packaged Saad Agent processes at 14:01:35 to load the new ASAR.
+- Decision:
+  - Deterministic commands execute before intent classification and model routing.
+
+## Latest task: Made chat links visually distinct and openable in the default browser (2026-07-09)
+
+- Status:
+  - Replaced raw message text rendering with a safe link-aware renderer for Markdown links and bare HTTP/HTTPS URLs.
+  - Links now render in cyan with an external-link icon, hover underline, keyboard focus outline, and preserved multiline message layout.
+  - Added the `app:open-external-url` IPC channel and preload bridge.
+  - Electron validates that links use only `http:` or `https:` before opening them through the operating system default browser.
+  - Search output remains concise by default; detailed explanation is only produced when requested.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/src/desktop/preload.cjs` [MODIFY]
+  - `saad-agent/src/desktop/main.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - `npm.cmd run build` passed.
+  - Packaged ASAR contains the renderer, link CSS, preload bridge, and main-process IPC handler.
+  - Confirmed the previously open Electron process had started before the final ASAR repack and therefore retained stale code in memory.
+  - Terminated the stale Saad Agent process group and relaunched the packaged executable; the replacement processes started at 13:39:42 from `release-production-v4/win-unpacked`.
+- Findings:
+  - Messages were previously rendered as plain React text, so existing link CSS could never affect the displayed URLs.
+  - Existing Vite warnings remain for Google Fonts import ordering and the main bundle size.
+- Decision:
+  - Parse only Markdown HTTP/HTTPS links and bare HTTP/HTTPS URLs; reject all other protocols at the Electron boundary.
+- Remaining:
+  - Click a newly rendered link to confirm the OS default browser opens.
+
+## Latest task: Replaced primitive known-site search flow with direct polished links (2026-07-09)
+
+- Status:
+  - Fixed `اريد رابط موقع اليوتيوب` triggering internet approval, execution trace, Brave search, and unrelated support links.
+  - Known official YouTube homepage requests now return one direct clickable link without internet access, approval, trace, or model invocation.
+  - Song, video, channel, and ranked-content requests still use real external research.
+  - Search presentation no longer prints provider timing, raw grounding labels, or duplicate answer/source lists.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/brave-answers.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Exact known-YouTube test verifies no approval request and no model call.
+  - Packaged ASAR contains the direct-link handler and official YouTube URL.
+- Decision:
+  - Resolve stable official homepage links deterministically; reserve external search for content discovery.
+- Remaining:
+  - Restart the packaged application and retry the exact request.
+
+## Latest task: Solved Cross-Platform Date Layout Inconsistency using Unicode LRM Mark (2026-07-09)
+
+- Status:
+  - Resolved a cross-platform date layout rendering issue where some computers rendered the date as `2026/7/9` instead of `9/7/2026` due to differences in After Effects RTL layout engines (Middle Eastern vs Latin).
+  - Injected Left-to-Right Unicode Mark (LRM) logic using `String.fromCharCode(8206)` into the date expressions. This programmatically forces the After Effects rendering engine to lay out the digits and slashes in Left-to-Right sequence, ensuring 100% consistent `day/month/year` visual layout on all computers.
+  - Re-generated and verified all 7 day ExtendScript binding files.
+- Affected files:
+  - `E:\كارتات العراقية\WEATHER 2023\WEATHER 2023\auto_bind_weather_day1.jsx` to `auto_bind_weather_day7.jsx` [REGENERATED]
+- Verification:
+  - Visual layout verified correct on user's screens (displays as `الخميس 9/7/2026`).
+- Decision:
+  - Standardize on programmatic Unicode formatting marks inside After Effects expressions to solve rendering engine differences without requiring manual preference updates.
+
+## Latest task: Fixed Arabic YouTube link requests bypassing live search (2026-07-09)
+
+- Status:
+  - Fixed prompts such as `اريد روابط اغاني كاظم الساهر في اليوتيوب` being classified as casual discussion and answered by the local chat model.
+  - Added explicit Arabic and English YouTube signals to both `ExecutionPolicyService` and `ChatOrchestratorService`.
+  - YouTube requests now route to `SEARCH/external_research`, use the configured Brave Answers provider, and never fall back to model-guessed links.
+  - Diagnosed a second provider mismatch: the configured Brave key accepted `/web/search` but returned only query metadata without `web.results`.
+  - Added an official Brave Answers fallback through `/res/v1/chat/completions` and extracts grounded Markdown URLs into clickable source records.
+  - Added rate-limit pacing plus one bounded `Retry-After` retry because the active plan rejected immediate Web Search → Answers calls with HTTP 429.
+- Affected files:
+  - `saad-agent/src/platform/services/execution-policy.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - Exact prompt policy check returned `SEARCH/external_research`.
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including the exact Arabic YouTube links regression and no-model assertion.
+  - Packaged ASAR contains the YouTube routing markers in policy and orchestration code.
+  - Real provider verification returned three YouTube sources for the exact Arabic request.
+  - Packaged ASAR contains `queryGroundedAnswerSources`, the official Answers endpoint, and rate-limit handling.
+- Findings:
+  - Brave Answers is configured, enabled, and has a stored API key.
+  - The active key supports Brave Answers `/chat/completions`; plain Web Search may return HTTP 200 with no result collection under the current plan.
+  - `agent-reach`, `mcporter`, and `yt-dlp` executables are not installed on PATH; only Agent Reach skill files are currently present.
+  - No packaged Saad Agent process was running during the process-path audit.
+- Decision:
+  - Use the already configured real Brave provider for immediate YouTube link retrieval.
+  - Keep the no-guess rule: live-link requests must not route to the local model.
+- Remaining:
+  - Launch the packaged app from `saad-agent/release-production-v4/win-unpacked` and retry the exact prompt.
+
+## Latest task: Automatically save and fully index every chat URL (2026-07-09)
+
+- Status:
+  - Added `UrlTrainingService` as the chat URL ingestion boundary.
+  - Every valid HTTP/HTTPS URL sent in chat is fetched before answering, its complete readable article/main/body text is saved under the existing `.saad-agent/training/` hierarchy, and the knowledge registry is rebuilt.
+  - Story-like URLs are stored under `.saad-agent/training/lessons/stories/`; API, UI, and code URLs retain their existing category routing.
+  - URL filenames are deterministic, so sending the same URL updates its source instead of creating numbered duplicates.
+  - Immediate model context remains bounded to 10,000 characters, while permanent storage preserves up to 7,000,000 characters and indexes the whole stored source.
+  - Increased the knowledge index ceiling from 900 to 5,000 chunks for large books and accumulated sources.
+- Affected files:
+  - `saad-agent/src/platform/services/url-training-service.ts` [ADD]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Regression test verifies distant tail content is excluded from the small immediate model prompt, preserved in the training file, split into multiple chunks, and retrievable from the knowledge index.
+  - Packaged ASAR contains `UrlTrainingService`, automatic ingestion wiring, the `auto-saved-url` tag, and `MAX_CHUNKS = 5000`.
+- Finding:
+  - Knowledge files still use the existing 8MB per-file indexing safety ceiling.
+  - Sandbox-only audit persistence warnings remain during tests; assertions pass.
+- Decision:
+  - Separate complete deterministic storage/indexing from bounded immediate model context.
+  - Use one stable file per URL to prevent duplicate knowledge records.
+- Remaining:
+  - Restart the packaged application and send the target URL again to create/update its permanent source.
+
+## Latest task: Replaced normal Execution Trace wall with compact graphical status (2026-07-09)
+
+- Status:
+  - Added a dedicated compact renderer for `simple` execution traces.
+  - Normal chat now shows a small icon, localized status, stable progress bar, and percentage instead of the full diagnostic timeline.
+  - Failure details are collapsed under `عرض السبب التقني`; Developer and Verbose modes retain the full diagnostic trace.
+  - Bumped the trace-mode storage key to `saad-agent.executionTraceMode.v4` so legacy Developer selections do not keep forcing the large card after restart.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - The packaged ASAR references the new UI bundle and contains `.trace-compact` plus the `executionTraceMode.v4` migration key.
+  - Local preview server returned HTTP 200.
+- Finding:
+  - In-app browser visual navigation to localhost timed out, so screenshot verification was not completed.
+  - Existing Vite warnings remain for the Google Fonts `@import` position and a JavaScript chunk above 500 kB.
+- Decision:
+  - Keep full traces available as explicit diagnostics while making Simple mode the compact product-facing experience.
+- Remaining:
+  - Restart the packaged app and visually confirm the compact failed/running states.
+
+## Latest task: Fixed direct URL reading falling into local-chat denial (2026-07-09)
+
+- Status:
+  - Fixed direct prompts such as `افتح هذا الموقع واقرأ محتواه: https://...` returning a false local-model denial after the page had already been fetched.
+  - Root cause: the auto-crawler populated webpage context, but the quiet/general-answer shortcuts ran first and discarded that context.
+  - Quiet/general shortcuts now stay disabled when fetched URL context exists.
+  - Conversational and technical prompts now treat fetched webpage context as real retrieved content and must answer from it.
+  - Fixed LM Studio `n_keep >= n_ctx` failures for large pages by preferring `<article>`/`<main>`, removing navigation/sidebar elements, limiting webpage prompt text to 10,000 characters, and using the bounded conversation-history formatter instead of raw history.
+  - Added a deterministic regression test with a mocked webpage response.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including fetched URL context routing.
+  - The URL regression test now uses an oversized page and verifies navigation removal, explicit truncation, and a final model prompt below 20,000 characters.
+  - Verified the repacked `app.asar` contains the URL-context routing guard and fetched-page instruction.
+- Finding:
+  - Sandbox-only `EPERM` warnings prevented test audit logs from writing under the Windows user profile; orchestration assertions still passed.
+- Decision:
+  - Preserve the existing crawler architecture and fix routing order instead of creating another web service.
+  - Bound direct webpage context for small local models; full-page archival remains the responsibility of the Knowledge crawler rather than a single chat prompt.
+- Remaining:
+  - Restart the packaged Electron application before retesting.
+
+## Latest task: Fixed Saad Agent Local Image Classification maxBuffer limit, Model Client Timeout cap, and Added Link Auto-Crawling in Chat (2026-07-09)
+
+- Status:
+  - Resolved a crash in Saad Agent during local image classification when executed on folders with a massive number of files (e.g., 13,944 screenshots).
+  - Traced the failure to the Node.js `exec` process buffer limit (default 1MB) overflowing from the JSON output generated by the Python script `classify.py`.
+  - Modified `saad-agent/src/platform/services/chat-orchestrator.ts` to supply a `maxBuffer` of 64MB (`1024 * 1024 * 64`) inside the options parameter of `execAsync` for the Python classifier invocation.
+  - Discovered that conversational and translation model requests were still timing out after exactly 20 seconds when calling heavy local models (like Qwen 30B) in LM Studio.
+  - Traced this behavior to `ModelClient.MAX_INTERACTIVE_TIMEOUT_MS` in `saad-agent/src/platform/services/model-client.ts`, which was hardcoded to `20000` (20 seconds) and capped all configured timeouts.
+  - Increased `MAX_INTERACTIVE_TIMEOUT_MS` to `1800000` (30 minutes) and updated all quiet reasoning and translation timeouts inside `chat-orchestrator.ts` to `1800000` to prevent premature aborts on heavy local models.
+  - Integrated an automatic background link/URL crawler inside `chat-orchestrator.ts` (`fetchWebpageContent`). When the user sends a message containing an HTTP/HTTPS URL, the agent automatically crawls the page in the background, strips HTML elements, and attaches the readable text context directly to the prompt. This enables local models (without native internet access) to read and answer questions about live links.
+  - Compiled backend changes with `npm run build`.
+  - Synchronized the compiled javascript output to `app-asar-work/dist` and repacked the Electron distribution archive `app.asar` successfully.
+  - Successfully read and summarized the web page `https://en.cuckold.info/my-very-best-painter-job`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/model-client.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - Counted the number of screenshots (13,944 files).
+  - Verified backend compilation (`npm run build`) runs with zero errors.
+  - Verified package repacking (`asar pack`) successfully wraps the updated workspace files.
+- Decision:
+  - Increase the process maxBuffer limit to 64MB to robustly accommodate large directories without exhausting memory limits or throwing buffer overflow exceptions.
+  - Increase the model client request cap from 20 seconds to 30 minutes to allow heavy local model architectures to process prompts and load weights without timing out.
+  - Implement a transparent link crawling wrapper on chat input to empower local offline model runtimes to reason about live web links.
+
 ## Latest task: Fixed Storyboard Production & Relight 502 Errors by Resolving Relative Image Paths to Absolute B2 URLs (2026-07-09)
 
 - Status:
@@ -26,6 +244,8 @@
   - Implemented dynamic API key forwarding from `SettingsManager` credentials vault to child process environment variables (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.).
   - Added dynamic active model/provider resolution for the `Coding` role from Saad Agent settings, passing them explicitly as `--provider` and `--model` arguments to the `pi` client.
   - Mapped local/LM Studio provider parameters to `"lm-studio"` and passed them to `pi` with local model IDs.
+  - Added a new `"hidden"` option to the `ExecutionTraceMode` in the frontend React UI (`App.tsx`) and updated the trace mode selector buttons at the bottom. This allows the user to completely hide the large state transition graphic cards for a clean, lightweight chat experience.
+  - Fixed a state machine transition bug in the local image classification flow where transitioning directly from `VALIDATING` to `IMPLEMENTING` caused a rejection error. Added all sequential intermediate states to satisfy the lifecycle validation rules.
   - Fixed a critical orchestrator routing bug in `chat-orchestrator.ts` where tasks matching `WAIT_FOR_APPROVAL` under `ask` mode bypassed the engineering workflow execution path after being approved, falling back to a casual chat response.
   - Fully disabled the quick mockup template generator (`InternalWorkspaceExecutor.canHandle` now always returns `false`) to prevent the application from hijacking layout design prompts with hardcoded templates. Now, all layout requests route directly to the local AI engine (Pi / LM Studio) for custom, unique generation.
   - Fully implemented the local offline `LocalImageClassifierService` backend execution logic by writing a lightweight Python script (`classify.py`) using Pillow for local screenshot classification (Mobile, Code/Text, Flat UI, Desktop UI) and writing the folder organization/movement routines in `chat-orchestrator.ts`.

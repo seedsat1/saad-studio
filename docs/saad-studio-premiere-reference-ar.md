@@ -161,6 +161,7 @@
 - Requests such as `Ø§Ù†Ø¸Ø± Ø¯Ø§Ø®Ù„ C:\Users\PC\Pictures\Screenshots ÙˆØµÙ†Ù Ø§Ù„ØµÙˆØ±` are classified as `vision_analysis` and routed by Execution Policy to `local_image_classification`.
 - The Chat Orchestrator intercepts this workflow before project context expansion and before `ReasoningEngine`, so Qwen/LM Studio is not called and context-length failures are avoided.
 - If no local image classification model/runtime is installed, the agent must report the missing local classifier honestly and stop before creating folders or moving images.
+- Enforced process maxBuffer allocation (64MB) inside child process options to prevent buffer overflow exceptions (stdout maxBuffer length exceeded) when running classification over large directories.
 - A future implementation should install/connect a real local image classifier, produce a dry-run classification preview, then move files only when approval/access policy allows.
 
 ## Saad Agent Brave Answers Secret Path Alignment (2026-07-03)
@@ -1067,6 +1068,20 @@
 - The crawler must fail honestly when DNS, HTTP status, timeout, login wall, paywall, or unreadable content prevents extraction; it must not save a fake full-content record.
 - The crawler does not bypass protected content. For inaccessible pages, the user must provide reachable text or a reachable source URL.
 
+## Saad Agent direct URL reading behavior (2026-07-09)
+- A direct HTTP/HTTPS URL in chat is fetched before response generation and its readable text is passed as webpage context.
+- When fetched webpage context exists, quiet/general chat shortcuts must not run because they would discard the retrieved text.
+- The response model must answer from the retrieved context and must not claim that it cannot open the supplied URL.
+- Fetch failures remain explicit and must not be represented as successfully read content.
+- Direct chat URL context prefers the HTML `<article>` or `<main>` body, removes navigation/header/footer/sidebar/form content, and is bounded to 10,000 characters so 8K-context local models do not fail with `n_keep >= n_ctx`.
+- Direct conversational URL responses use bounded recent history instead of injecting raw conversation history.
+- Every chat URL is also saved automatically as a permanent training source through `UrlTrainingService`.
+- Permanent URL storage and indexing are separate from the 10,000-character immediate response excerpt.
+- Re-sending the same URL updates the deterministic training file instead of creating a duplicate.
+- Story-like sources route to `.saad-agent/training/lessons/stories/`; other sources use the existing category inference.
+- A single stored URL may preserve up to 7,000,000 readable characters, subject to the existing 8MB knowledge-file indexing ceiling.
+- The global knowledge index supports up to 5,000 chunks so long stories, books, and accumulated URL sources remain retrievable.
+
 ## Saad Agent Knowledge document normalization and crawler error clarity (2026-07-06)
 - `knowledge:list` and `knowledge:get-document` must normalize training registry records before returning them to the Knowledge Manager UI.
 - Registry fields such as `fileName`, `filePath`, `addedDate`, and `type` map to UI fields such as `title`, `originalFileName`, `sourcePath`, `importedAt`, and `fileType`.
@@ -1095,6 +1110,12 @@
 - Narrow/mobile composer rules must not reduce the prompt text below the product-level readable size.
 - Font-size readability changes are UI-only and must not alter chat orchestration, memory, training, provider, or backend behavior.
 
+## Saad Agent compact execution status behavior (2026-07-09)
+- `simple` mode is the product-facing execution display: a compact icon, localized status, progress bar, and percentage.
+- Technical failure text stays collapsed by default and is exposed only through an optional details disclosure.
+- `developer` and `verbose` remain the explicit diagnostic modes that may render the full execution timeline.
+- The persisted trace-mode key is versioned so older detailed-mode selections do not force legacy trace walls after UI upgrades.
+
 ## Saad Agent affirmative follow-up continuity behavior (2026-07-06)
 - Short affirmative replies such as `نعم`, `إي`, `تمام`, `ok`, or `yes` must inspect the immediately previous assistant message before using the generic acknowledgement shortcut.
 - If the previous assistant message offered a concrete action such as writing, drafting, translating, summarizing, analyzing, or continuing something, the affirmative reply means the user approved that offered action.
@@ -1106,6 +1127,19 @@
 - If Brave Answers is not enabled or has no API key, Saad Agent should show a setup-needed answer that points to Settings > Providers > Brave Answers instead of rendering a failed trace as if the search itself ran and failed.
 - Missing search-provider configuration must not trigger model guessing or fake links.
 - Real Brave API/network/timeouts still remain failed live-search attempts and must report the real technical reason.
+- YouTube terms (`يوتيوب`, `اليوتيوب`, `youtube`, and `youtu.be`) are explicit external-research signals even when the user does not write a separate search verb.
+- Requests for YouTube links must use real external research and must never fall back to local-model link generation.
+- When Brave Web Search returns a successful response without `web.results`, `BraveAnswersService` falls back to the official OpenAI-compatible Brave Answers endpoint at `/res/v1/chat/completions`.
+- Grounded Markdown links from Brave Answers are normalized into clickable source records.
+- The Web Search to Answers fallback is paced and may retry HTTP 429 once using the bounded `Retry-After` delay.
+- Stable official homepage requests, such as the YouTube homepage, are deterministic direct-link answers and do not require internet approval, a model call, or execution trace.
+- Requests for specific songs, videos, channels, or ranked content remain live external searches.
+- Product-facing search responses show one concise linked list and omit provider timing, raw grounding labels, and duplicate source sections.
+- Chat messages render Markdown links and bare HTTP/HTTPS URLs as visually distinct interactive anchors.
+- External chat links open through a preload IPC bridge and `shell.openExternal`; the main process accepts only HTTP/HTTPS protocols.
+- Link styling uses a distinct accent color, hover underline, external-link icon, and keyboard focus indicator.
+- Deterministic commands are resolved by `DeterministicCommandService` at the desktop `chat-complete` IPC boundary before orchestration or model invocation.
+- The orchestrator calls the same service as a secondary guard; deterministic patterns must not be duplicated across routing layers.
 
 ## 7-Day Weather Forecast and Date Auto-Binding ExtendScript behavior (2026-07-07)
 

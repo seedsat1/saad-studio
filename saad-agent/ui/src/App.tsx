@@ -7,6 +7,7 @@ import type { Attachment } from "./attachments.js";
 import { ContextCards } from "./components/ContextCards.js";
 import { SettingsModal } from "./components/SettingsModal.js";
 import { PromptBox } from "./components/PromptBox";
+import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, LoaderCircle, ShieldCheck } from "lucide-react";
 type SettingsTab = "general" | "workspace" | "models" | "providers" | "agents" | "skills" | "tools" | "connectors" | "mcp" | "creative" | "vision" | "knowledge" | "execution" | "security" | "backups" | "diagnostics" | "advanced";
 type RuntimeModelRole = {
   role: string;
@@ -27,7 +28,7 @@ type Conversation = {
 };
 
 type MessageUpdater = Message[] | ((previous: Message[]) => Message[]);
-type ExecutionTraceMode = "simple" | "developer" | "verbose";
+type ExecutionTraceMode = "simple" | "developer" | "verbose" | "hidden";
 type ApprovalMode = "ask" | "approve_for_me" | "full_access";
 type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
 type ExecutionTraceRunStatus = "running" | "waiting_approval" | "completed" | "failed";
@@ -64,13 +65,51 @@ type ExecutionTraceCardData = {
 
 const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
 const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
-const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v3";
+const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v4";
 const APPROVAL_MODE_STORAGE_KEY = "saad-agent.approvalMode.v1";
 
 const traceModeLabels: Record<ExecutionTraceMode, string> = {
   simple: "Simple",
   developer: "Developer",
   verbose: "Verbose",
+  hidden: "Hidden",
+};
+
+const renderMessageWithLinks = (content: string): React.ReactNode[] => {
+  const text = String(content || "");
+  const pattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
+  const nodes: React.ReactNode[] = [];
+  let cursor = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
+    const markdownLabel = match[1];
+    const rawUrl = match[2] || match[3] || "";
+    const cleanUrl = rawUrl.replace(/[.,;:!?]+$/, "");
+    const trailing = rawUrl.slice(cleanUrl.length);
+    const label = markdownLabel || cleanUrl;
+    nodes.push(
+      <a
+        key={`message-link-${match.index}`}
+        className="message-link"
+        href={cleanUrl}
+        title={`فتح ${cleanUrl} في المتصفح`}
+        onClick={(event) => {
+          event.preventDefault();
+          void (window as any).electronAPI?.openExternalUrl?.(cleanUrl);
+        }}
+      >
+        <span>{label}</span>
+        <ExternalLink size={13} strokeWidth={2} aria-hidden="true" />
+      </a>
+    );
+    if (trailing) nodes.push(trailing);
+    cursor = match.index + match[0].length;
+  }
+
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return nodes;
 };
 
 const simpleTracePhase = (phase: string) => {
@@ -146,6 +185,7 @@ const runStatusForTrace = (current: ExecutionTraceRunStatus, event: ExecutionTra
 };
 
 const shouldCreateTraceCardForEvent = (mode: ExecutionTraceMode, event: ExecutionTraceRuntimeEvent) => {
+  if (mode === "hidden") return false;
   if (mode !== "simple") return true;
   if (event.status === "failed") return true;
   if (event.phase === "WAIT_FOR_APPROVAL") return true;
@@ -187,7 +227,7 @@ const createExecutionTraceDataFromEvent = (
 }, event);
 
 const normalizeTraceMode = (value: string | null): ExecutionTraceMode => {
-  return value === "simple" || value === "verbose" || value === "developer" ? value : "simple";
+  return value === "simple" || value === "verbose" || value === "developer" || value === "hidden" ? value : "simple";
 };
 
 const normalizeApprovalMode = (value: string | null): ApprovalMode => {
@@ -1497,7 +1537,7 @@ export default function App() {
           id: loaderMsgId,
           sender: "agent",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: "Saving attachment(s) into permanent training knowledge...",
+          content: "جاري حفظ المرفقات وفهرستها في المعرفة الدائمة...",
         });
 
         setIsGenerating(true);
@@ -1594,7 +1634,7 @@ export default function App() {
           id: loaderMsgId,
           sender: "agent",
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: "Processing request...",
+          content: "جاري معالجة طلبك...",
         });
 
         setIsGenerating(true);
@@ -1703,6 +1743,55 @@ export default function App() {
     switch (msg.cardType) {
       case "execution-trace": {
         const trace = msg.cardData as ExecutionTraceCardData;
+        if (trace.mode === "hidden") return null;
+        if (trace.mode === "simple") {
+          const latestStage = [...trace.stages].reverse().find((stage) => stage.status !== "skipped") || trace.stages[trace.stages.length - 1];
+          const completedStages = trace.stages.filter((stage) => stage.status === "done").length;
+          const progress = trace.status === "completed"
+            ? 100
+            : Math.max(10, Math.min(92, Math.round((completedStages / Math.max(trace.stages.length, 1)) * 100)));
+          const statusLabel = trace.status === "failed"
+            ? "تعذر إكمال الطلب"
+            : trace.status === "waiting_approval"
+              ? "بانتظار موافقتك"
+              : trace.status === "completed"
+                ? "اكتمل"
+                : latestStage?.label || "جاري التنفيذ";
+          const StatusIcon = trace.status === "failed"
+            ? AlertTriangle
+            : trace.status === "completed"
+              ? CheckCircle2
+              : trace.status === "waiting_approval"
+                ? ShieldCheck
+                : LoaderCircle;
+          const errorDetail = [...trace.stages].reverse().find((stage) => stage.status === "failed")?.detail;
+
+          return (
+            <div className={`trace-compact trace-compact-${trace.status}`} role="status" aria-live="polite">
+              <span className="trace-compact-icon">
+                <StatusIcon size={18} strokeWidth={2} />
+              </span>
+              <div className="trace-compact-main">
+                <div className="trace-compact-heading">
+                  <span>{statusLabel}</span>
+                  <span className="trace-compact-percent">{progress}%</span>
+                </div>
+                <div className="trace-compact-track" aria-hidden="true">
+                  <span style={{ width: `${progress}%` }} />
+                </div>
+                {errorDetail && (
+                  <details className="trace-compact-details">
+                    <summary>
+                      <ChevronDown size={14} />
+                      عرض السبب التقني
+                    </summary>
+                    <p>{errorDetail.replace(/^Error:\s*/i, "")}</p>
+                  </details>
+                )}
+              </div>
+            </div>
+          );
+        }
         return (
           <div className={`engineering-card execution-trace-card trace-${trace.status}`}>
             <div className="card-header">
@@ -2812,7 +2901,7 @@ export default function App() {
                     </button>
                   </span>
                 </div>
-                <div className="message-bubble">{msg.content}</div>
+                <div className="message-bubble">{renderMessageWithLinks(msg.content)}</div>
                 
                 {/* Render inline sent attachments */}
                 {msg.attachments && msg.attachments.length > 0 && (
@@ -2872,7 +2961,7 @@ export default function App() {
 
           <div className="trace-mode-selector" aria-label="Execution trace display mode">
             <span className="trace-mode-label">Trace</span>
-            {(["simple", "developer", "verbose"] as ExecutionTraceMode[]).map((mode) => (
+            {(["simple", "developer", "verbose", "hidden"] as ExecutionTraceMode[]).map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -2883,7 +2972,9 @@ export default function App() {
                     ? "Show compact analyzing/executing status"
                     : mode === "developer"
                       ? "Show the main execution pipeline"
-                      : "Show pipeline details, selected runtime, and safety context"
+                      : mode === "verbose"
+                        ? "Show pipeline details, selected runtime, and safety context"
+                        : "Hide execution trace cards completely"
                 }
               >
                 {traceModeLabels[mode]}

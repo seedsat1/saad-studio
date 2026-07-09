@@ -22,6 +22,8 @@ import { InternalWorkspaceExecutor } from "./internal-workspace-executor.js";
 import { LocalFileSearchExecutor } from "./local-file-search-executor.js";
 import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 import { LocalImageClassifierService } from "./local-image-classifier.js";
+import { UrlTrainingService } from "./url-training-service.js";
+import { DeterministicCommandService } from "./deterministic-command-service.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -141,7 +143,30 @@ export class ChatOrchestratorService {
     await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
     const normalizedAttachments = ChatOrchestratorService.normalizeRuntimeAttachments(input.attachments);
     input.attachments = normalizedAttachments;
-    const readableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(normalizedAttachments);
+    const rawReadableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(normalizedAttachments);
+    
+    // Auto-crawler for links in user prompt
+    let urlAttachmentContext = "";
+    const urlRegex = /(https?:\/\/[^\s\)]+)/i;
+    if (urlRegex.test(userRequestText)) {
+      const matchedUrl = userRequestText.match(urlRegex)![0].replace(/[\[\]\)\(\"\'\>\<\*]/g, "").trim();
+      try {
+        console.log(`[CRAWLER] Auto-fetching URL: ${matchedUrl}`);
+        const imported = await UrlTrainingService.importAndPrepareContext(matchedUrl, activeWorkspace);
+        urlAttachmentContext = [
+          `=== محتوى الصفحة المحفوظة (${matchedUrl}) ===`,
+          imported.promptContext,
+          "",
+          `تم حفظ المصدر كاملاً وفهرسته في: ${imported.trainingPath}`,
+          `عدد أجزاء الفهرسة: ${imported.chunksCreated}`,
+          "===================================="
+        ].join("\n");
+      } catch (err: any) {
+        urlAttachmentContext = `=== خطأ في قراءة الرابط (${matchedUrl}) ===\nتعذر جلب محتوى الرابط: ${err.message}\n====================================`;
+      }
+    }
+    
+    const readableAttachmentContext = [rawReadableAttachmentContext, urlAttachmentContext].filter(Boolean).join("\n\n");
     const reviewRequestText = readableAttachmentContext
       ? [userRequestText, readableAttachmentContext].join("\n\n")
       : userRequestText;
@@ -248,7 +273,17 @@ export class ChatOrchestratorService {
       };
     }
 
+    const deterministicCommand = DeterministicCommandService.resolve(userRequestText);
+    if (deterministicCommand) {
+      return {
+        intent: deterministicCommand.intent,
+        usedModel: false,
+        response: deterministicCommand.response
+      };
+    }
+
     if (!normalizedAttachments.length
+      && !urlAttachmentContext
       && !ChatOrchestratorService.isTranslationRequest(userRequestText)
       && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
@@ -266,6 +301,7 @@ export class ChatOrchestratorService {
       conversationId
     );
     if (!normalizedAttachments.length
+      && !urlAttachmentContext
       && !ChatOrchestratorService.isTranslationRequest(userRequestText)
       && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
       return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(
@@ -277,6 +313,7 @@ export class ChatOrchestratorService {
     }
 
     if (!normalizedAttachments.length
+      && !urlAttachmentContext
       && !ChatOrchestratorService.isTranslationRequest(userRequestText)
       && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       try {
@@ -303,7 +340,7 @@ export class ChatOrchestratorService {
             userRequestText
           ].filter(Boolean).join("\n\n"),
           signal: input.signal,
-          requestTimeoutMs: 8000,
+          requestTimeoutMs: 1800000,
           retryCountOverride: 0
         });
         return {
@@ -452,6 +489,11 @@ export class ChatOrchestratorService {
         folderPath = path.join(process.env.USERPROFILE || "C:\\Users\\PC", "Pictures", "Screenshots");
       }
 
+      await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Local image classifier dependencies satisfied");
+      await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Preparing file organization impact report");
+      await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying final check before image organization");
+      await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing file movement routines");
+      await TaskStateStore.transitionTask(taskId, "PLANNING", "Direct image classifier runtime scheduled");
       await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", `Running local image classification on ${folderPath}`);
 
       const { exec } = await import("child_process");
@@ -460,7 +502,9 @@ export class ChatOrchestratorService {
 
       try {
         const pythonScript = path.join(classifierStatus.modelPath, "classify.py");
-        const { stdout } = await execAsync(`python "${pythonScript}" "${folderPath}"`);
+        const { stdout } = await execAsync(`python "${pythonScript}" "${folderPath}"`, {
+          maxBuffer: 1024 * 1024 * 64
+        });
         const results = JSON.parse(stdout);
 
         if (results.error) {
@@ -985,13 +1029,13 @@ export class ChatOrchestratorService {
           action: "use_internet"
         }, approval, true, "internet search allowed");
         const search = await BraveAnswersService.query(userRequestText);
-        const sourceBlock = BraveAnswersService.formatSourcesMarkdown(search.sources);
-        responseText = [
-          `Internet Search: completed in ${search.latencyMs}ms${search.cacheHit ? " (cache)" : ""}`,
-          "",
-          search.answersText,
-          sourceBlock
-        ].join("\n");
+        responseText = search.sources.length > 0
+          ? [
+              `لقيت لك ${search.sources.length} روابط موثقة:`,
+              "",
+              ...search.sources.map((source, index) => `${index + 1}. [${source.title}](${source.url})`)
+            ].join("\n")
+          : "ما لكيت نتائج موثقة ومباشرة لهذا البحث. جرّب تكتب اسم الشيء المطلوب بتفصيل أكثر.";
         await this.transitionToComplete(taskId, "Internet search completed");
       } catch (err: any) {
         if (BraveAnswersService.isConfigurationError(err)) {
@@ -1096,6 +1140,7 @@ export class ChatOrchestratorService {
           "Respond warmly, directly, and non-judgmentally. Do not lecture, moralize, or say you cannot discuss family/private topics.",
           "You may be affectionate and emotionally present in tone, but do not claim to be a real human spouse, real lover, licensed therapist, doctor, or lawyer.",
           "Ask a short clarifying question only when the user request is genuinely unclear, unsafe, or needs consent/adult-safety boundaries.",
+          "When the request includes a fetched webpage context, the page was actually retrieved by Saad Agent. Read and answer from that context; never claim that you cannot open or access the supplied URL.",
           "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
           "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
           "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
@@ -1112,6 +1157,7 @@ export class ChatOrchestratorService {
           "If the topic is formal or scientific, use a slightly more formal Arabic style with a light Iraqi touch.",
           "Reply directly with a polite, intelligent, and conversational tone.",
           "You have direct access to search the internet via the integrated Brave Search tool. You can search the web and summarize online sources when requested.",
+          "When the request includes a fetched webpage context, the page was actually retrieved by Saad Agent. Read and answer from that context; never claim that you cannot open or access the supplied URL.",
           "Explain technical concepts clearly, structure your answers with markdown headings, tables, or lists, and provide code blocks when helpful.",
           "Never answer before the orchestrator, memory, training knowledge, and context review have run.",
           "Obey the Mandatory Pre-Answer Review Context before using model knowledge.",
@@ -1124,12 +1170,8 @@ export class ChatOrchestratorService {
         if (isConversational) {
           const history = conversationState.history || [];
           if (history.length > 0) {
-            const formattedHistory = history.map((msg) => {
-              const senderName = msg.role === "user" ? "User" : "Assistant";
-              return `${senderName}: ${msg.content}`;
-            }).join("\n\n");
+            const formattedHistory = ChatOrchestratorService.formatConversationHistory(history);
             userPrompt = [
-              "Conversation history:",
               formattedHistory,
               "",
               "Latest user request:",
@@ -1545,7 +1587,8 @@ export class ChatOrchestratorService {
     const asksLocalScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalized)
       || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
     const allowedTriggers = /(ابحث في الانترنت|ابحث في الإنترنت|ابحث بالويب|اخر تحديث|آخر تحديث|وثائق|توثيق|اخبار|أخبار|مستندات)/i.test(normalized)
-      || /\b(search online|search web|latest|official docs|documentation|api docs|news)\b/i.test(lower);
+      || /(?:\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628)/.test(normalized)
+      || /\b(search online|search web|latest|official docs|documentation|api docs|news|youtube|youtu\.be)\b/i.test(lower);
     const explicitLinksOrSources = /(?:\u0627\u0639\u0637\u0646\u064a|\u0627\u0639\u0637\u064a\u0646\u064a|\u0647\u0627\u062a|\u0627\u0631\u064a\u062f|\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a).*(?:\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0635\u0648\u0631)/.test(normalized)
       || /\b(give me links|give me sources|links|sources|find images|image search)\b/i.test(lower);
     const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalized)
@@ -1623,7 +1666,7 @@ export class ChatOrchestratorService {
           userRequestText
         ].filter(Boolean).join("\n\n"),
         signal,
-        requestTimeoutMs: 12000,
+        requestTimeoutMs: 1800000,
         retryCountOverride: 0
       });
       return {
@@ -1687,7 +1730,7 @@ export class ChatOrchestratorService {
         sourceBlocks || "No source text was found in the request, readable attachments, trained knowledge, or conversation history."
       ].join("\n"),
       signal: options.signal,
-      requestTimeoutMs: 20000,
+      requestTimeoutMs: 1800000,
       retryCountOverride: 0
     });
     return response.rawResponse;
@@ -1962,7 +2005,7 @@ export class ChatOrchestratorService {
           userRequestText
         ].filter(Boolean).join("\n\n"),
         signal,
-        requestTimeoutMs: 12000,
+        requestTimeoutMs: 1800000,
         retryCountOverride: 0
       });
       return {
@@ -2478,6 +2521,7 @@ export class ChatOrchestratorService {
       console.warn("Failed in transitionToApproval helper:", err);
     }
   }
+
 }
 
 

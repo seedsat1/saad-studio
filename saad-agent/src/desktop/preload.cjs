@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  openExternalUrl: (url) => ipcRenderer.invoke("app:open-external-url", { url }),
   openFolder: () => ipcRenderer.invoke("open-folder"),
   runCommand: (args) => ipcRenderer.invoke("run-command", args),
   switchWorkspace: (workspacePath) => ipcRenderer.invoke("switch-workspace", workspacePath),

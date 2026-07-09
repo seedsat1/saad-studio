@@ -23,6 +23,7 @@ import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emit
 import { KnowledgeManagerService } from "../platform/services/knowledge-manager.js";
 import { KnowledgeIngestionService, type TrainingKnowledgeCategory } from "../platform/services/knowledge-ingestion.js";
 import { TrustedWorkspaceRuntime } from "../platform/services/trusted-workspace-runtime.js";
+import { DeterministicCommandService } from "../platform/services/deterministic-command-service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -452,6 +453,15 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
 
 ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }) => {
   try {
+    const deterministicCommand = DeterministicCommandService.resolve(String(prompt || ""));
+    if (deterministicCommand) {
+      return {
+        success: true,
+        response: deterministicCommand.response,
+        intent: deterministicCommand.intent,
+        usedModel: false
+      };
+    }
     const result = await ChatOrchestratorService.handleDirectChat({
       prompt,
       workspacePath,
@@ -1017,6 +1027,19 @@ ipcMain.handle("trusted-workspace:open-path", async (event, { targetPath }) => {
     return await TrustedWorkspaceRuntime.openLocalPath(targetPath);
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("app:open-external-url", async (_event, { url }) => {
+  try {
+    const parsed = new URL(String(url || "").trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { success: false, error: "Only HTTP/HTTPS links can be opened." };
+    }
+    await shell.openExternal(parsed.toString());
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Invalid external URL." };
   }
 });
 

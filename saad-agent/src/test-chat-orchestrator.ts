@@ -99,6 +99,56 @@ async function main() {
       return originalRequestCompletion.apply(ReasoningEngine, args);
     };
 
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(
+      `<html><head><title>Painter story</title></head><body><nav>${"navigation ".repeat(3000)}</nav><article>Verified fetched painter page content. ${"article ".repeat(4000)} FULL_SOURCE_TAIL</article></body></html>`,
+      { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }
+    );
+    ReasoningEngine.requestCompletion = async (request: any) => {
+      modelCalls += 1;
+      assert.ok(String(request.systemPrompt || "").includes("page was actually retrieved"));
+      assert.ok(String(request.userPrompt || "").includes("Verified fetched painter page content."));
+      assert.ok(String(request.userPrompt || "").includes("Immediate chat excerpt shortened"));
+      assert.ok(String(request.userPrompt || "").length < 20_000, "fetched page prompt must fit small local-model contexts");
+      assert.ok(!String(request.userPrompt || "").includes("navigation navigation"));
+      assert.ok(!String(request.userPrompt || "").includes("FULL_SOURCE_TAIL"), "distant source text should stay out of the bounded immediate prompt");
+      return {
+        rawResponse: "\u0642\u0631\u0623\u062a \u0627\u0644\u0635\u0641\u062d\u0629 \u0648\u0647\u0630\u0627 \u0645\u0644\u062e\u0635 \u0645\u062d\u062a\u0648\u0627\u0647\u0627."
+      } as any;
+    };
+    const fetchedPageResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0641\u062a\u062d \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0648\u0627\u0642\u0631\u0623 \u0645\u062d\u062a\u0648\u0627\u0647: https://example.com/painter-story",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(fetchedPageResult.usedModel, true);
+    assert.ok(fetchedPageResult.response.includes("\u0642\u0631\u0623\u062a \u0627\u0644\u0635\u0641\u062d\u0629"));
+    const savedUrlSource = path.join(
+      workspace,
+      ".saad-agent",
+      "training",
+      "lessons",
+      "stories",
+      "example.com-painter-story.md"
+    );
+    const savedUrlText = await fs.readFile(savedUrlSource, "utf8");
+    assert.ok(savedUrlText.includes("Verified fetched painter page content."));
+    assert.ok(savedUrlText.includes("FULL_SOURCE_TAIL"), "the complete fetched story must be preserved in permanent training storage");
+    const urlRegistry = await KnowledgeIngestionService.ingestTrainingKnowledge(workspace);
+    const savedUrlRegistryItem = urlRegistry.items.find((item) => item.filePath.endsWith("example.com-painter-story.md"));
+    assert.ok((savedUrlRegistryItem?.chunkCount || 0) > 1, "the complete saved story must be indexed into multiple retrievable chunks");
+    const tailMatches = await KnowledgeIngestionService.search(workspace, "FULL_SOURCE_TAIL", 12);
+    assert.ok(
+      tailMatches.some((chunk) => chunk.sourcePath.endsWith("example.com-painter-story.md") && chunk.content.includes("FULL_SOURCE_TAIL")),
+      "the distant end of the saved story must remain retrievable from the knowledge index"
+    );
+    globalThis.fetch = originalFetch;
+    ReasoningEngine.requestCompletion = async (...args: Parameters<typeof originalRequestCompletion>) => {
+      modelCalls += 1;
+      return originalRequestCompletion.apply(ReasoningEngine, args);
+    };
+
     const callsBeforeWeb = modelCalls;
     const webResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u0639\u0637\u0646\u064a \u0631\u0648\u0627\u0628\u0637 \u0639\u0646 \u0635\u0648\u0631 \u0633\u064a\u062f\u0631 \u062a\u0631\u0627\u0628",
@@ -112,6 +162,30 @@ async function main() {
       "web search must either perform real search or report a real search failure"
     );
     assert.strictEqual(modelCalls, callsBeforeWeb, "web search must not fall back to model guessing");
+
+    const callsBeforeYouTube = modelCalls;
+    const youtubeLinksResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0631\u064a\u062f \u0631\u0648\u0627\u0628\u0637 \u0627\u063a\u0627\u0646\u064a \u0643\u0627\u0638\u0645 \u0627\u0644\u0633\u0627\u0647\u0631 \u0641\u064a \u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(youtubeLinksResult.intent, "external_research");
+    assert.strictEqual(youtubeLinksResult.usedModel, false);
+    assert.strictEqual(modelCalls, callsBeforeYouTube, "YouTube link requests must use external research instead of the chat model");
+
+    const callsBeforeKnownWebsite = modelCalls;
+    const youtubeHomepageResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0631\u064a\u062f \u0631\u0627\u0628\u0637 \u0645\u0648\u0642\u0639 \u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "ask"
+    });
+    assert.strictEqual(youtubeHomepageResult.intent, "conversation");
+    assert.strictEqual(youtubeHomepageResult.usedModel, false);
+    assert.ok(youtubeHomepageResult.response.includes("[فتح YouTube](https://www.youtube.com)"));
+    assert.ok(!youtubeHomepageResult.approvalRequest, "known official website links must not request internet approval");
+    assert.strictEqual(modelCalls, callsBeforeKnownWebsite, "known official website links must not call the model");
 
     const attachmentSource = path.join(workspace, "uploaded-reference.md");
     await fs.writeFile(attachmentSource, "Attachment rule: saved files must become permanent training references.", "utf8");
@@ -170,7 +244,10 @@ async function main() {
     console.log("Chat orchestrator memory_save no-model test passed.");
     console.log("Chat orchestrator memory_recall concise no-model test passed.");
     console.log("Chat orchestrator casual thanks no-model test passed.");
+    console.log("Chat orchestrator fetched URL context routing test passed.");
     console.log("Chat orchestrator external_research no-model/no-guessing test passed.");
+    console.log("Chat orchestrator Arabic YouTube links routing test passed.");
+    console.log("Chat orchestrator known YouTube homepage direct-link test passed.");
     console.log("Chat orchestrator attachment-to-training no-model test passed.");
     console.log("Chat orchestrator translation uses Iraqi Arabic model path test passed.");
   } finally {

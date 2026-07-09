@@ -160,11 +160,16 @@ ${parsedError}`;
         }
       }
 
-      const sources = webResults.map((item: any) => ({
+      let sources = webResults.map((item: any) => ({
         title: String(item.title || item.url),
         url: String(item.url),
         snippet: String(item.description || item.snippet || ""),
       }));
+
+      if (sources.length === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1100));
+        sources = await this.queryGroundedAnswerSources(searchQuery, apiKey, controller.signal);
+      }
 
       const answersText = sources.length > 0
         ? sources.map((s: any, idx: number) => `[${idx + 1}] ${s.title}: ${s.snippet}`).join("\n\n")
@@ -190,10 +195,89 @@ ${parsedError}`;
     }
   }
 
+  private static async queryGroundedAnswerSources(
+    searchQuery: string,
+    apiKey: string,
+    signal: AbortSignal
+  ): Promise<Array<{ title: string; url: string; snippet: string }>> {
+    const request = () => fetch("https://api.search.brave.com/res/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-Subscription-Token": apiKey,
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0"
+        },
+        body: JSON.stringify({
+          model: "brave",
+          stream: false,
+          messages: [{
+            role: "user",
+            content: `${searchQuery}\n\nReturn verified direct links with clear titles. Do not invent URLs.`
+          }]
+        }),
+        signal
+      });
+
+    let response = await request();
+    if (response.status === 429) {
+      const retryAfterSeconds = Number(response.headers.get("retry-after") || "1");
+      const retryDelayMs = Math.min(Math.max(retryAfterSeconds * 1000, 1100), 3000);
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      response = await request();
+    }
+
+    const text = await response.text();
+    if (!response.ok) {
+      let detail = text.slice(0, 800);
+      try {
+        const parsed = JSON.parse(text);
+        detail = parsed?.error?.detail || parsed?.error?.message || detail;
+      } catch {}
+      throw new BraveAnswersError(
+        "request_failed",
+        `Brave Answers request failed with HTTP ${response.status}: ${detail}`
+      );
+    }
+
+    let payload: any;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      throw new BraveAnswersError("request_failed", "Brave Answers returned invalid JSON.");
+    }
+    const content = String(payload?.choices?.[0]?.message?.content || "").trim();
+    if (!content) {
+      throw new BraveAnswersError("request_failed", "Brave Answers returned no grounded answer content.");
+    }
+
+    const sources: Array<{ title: string; url: string; snippet: string }> = [];
+    const seen = new Set<string>();
+    const markdownLink = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+    for (const match of content.matchAll(markdownLink)) {
+      const title = String(match[1] || "Source").trim();
+      const url = String(match[2] || "").trim();
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      sources.push({ title, url, snippet: "Brave Answers grounded source" });
+    }
+
+    if (sources.length === 0) {
+      const plainUrl = /https?:\/\/[^\s<>"')\]]+/g;
+      for (const match of content.matchAll(plainUrl)) {
+        const url = String(match[0] || "").replace(/[.,;:]+$/, "");
+        if (!url || seen.has(url)) continue;
+        seen.add(url);
+        sources.push({ title: url, url, snippet: "Brave Answers grounded source" });
+      }
+    }
+    return sources;
+  }
+
   static formatSourcesMarkdown(sources: Array<{ title: string; url: string; snippet: string }>): string {
     if (sources.length === 0) return "";
     const list = sources
-      .map((s, idx) => `${idx + 1}. **[${s.title}](${s.url})**\n   _${s.snippet}_`)
+      .map((s, idx) => `${idx + 1}. [${s.title}](${s.url})`)
       .join("\n");
     return `\n\n### المصادر والتوثيق (Sources & Documentation)\n${list}`;
   }
