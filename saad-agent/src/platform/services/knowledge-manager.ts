@@ -1,12 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
-import * as zlib from "zlib";
 import { execSync } from "child_process";
 import * as crypto from "crypto";
 import * as http from "http";
 import * as https from "https";
 import { CONFIG } from "../../config.js";
 import { DialectNormalizer } from "./dialect-normalizer.js";
+import { DocumentTextExtractor } from "./document-text-extractor.js";
 
 export interface KnowledgeDocument {
   id: string;
@@ -487,81 +487,11 @@ export class KnowledgeManagerService {
   }
 
   static extractTextFromPDF(filePath: string): string {
-    // Fast binary stream parser for PDF text
-    try {
-      const buffer = fs.readFileSync(filePath);
-      let text = "";
-      
-      // Look for streams containing (text strings)
-      // Standard PDFs contain text inside parenthesis (Text) Tj or [ (Text1) (Text2) ] TJ
-      const matches = buffer.toString("binary").match(/\/Filter\s*\/FlateDecode[\s\S]*?stream[\s\S]*?endstream/g);
-      if (matches) {
-        for (const m of matches) {
-          try {
-            const streamStart = m.indexOf("stream") + 6;
-            const streamEnd = m.indexOf("endstream");
-            const streamBinary = m.slice(streamStart, streamEnd).trim();
-            const decompressed = zlib.inflateSync(Buffer.from(streamBinary, "binary"));
-            const decompressedText = decompressed.toString("utf8");
-            
-            // Extract content inside parenthesis
-            const strings = decompressedText.match(/\(([^)]*)\)/g);
-            if (strings) {
-              text += strings.map(s => s.slice(1, -1)).join(" ") + "\n";
-            }
-          } catch {}
-        }
-      }
-
-      if (text.trim().length > 100) {
-        return text;
-      }
-
-      // Fallback: Run PowerShell on Windows to extract text if Adobe Reader or Word is installed
-      try {
-        const tempTxt = path.join(this.DIRS.failed, `${path.basename(filePath)}.txt`);
-        const cmd = `powershell -Command "$word = New-Object -ComObject Word.Application; $doc = $word.Documents.Open('${filePath.replace(/'/g, "''")}'); $doc.Content.Text | Out-File '${tempTxt.replace(/'/g, "''")}' -Encoding utf8; $doc.Close(); $word.Quit();"`;
-        execSync(cmd, { stdio: "ignore", timeout: 5000 });
-        if (fs.existsSync(tempTxt)) {
-          const txtContent = fs.readFileSync(tempTxt, "utf8");
-          fs.unlinkSync(tempTxt);
-          return txtContent;
-        }
-      } catch {}
-
-      // Fallback 2: Extract clean ASCII strings
-      return buffer.toString("utf8").replace(/[^\x20-\x7E\s]/g, " ").replace(/\s+/g, " ");
-    } catch (e) {
-      console.warn("Failed PDF parse, using fallback ASCII extraction:", e);
-      return "";
-    }
+    return DocumentTextExtractor.extractFromPath(filePath, "application/pdf").text;
   }
 
   static extractTextFromDOCX(filePath: string): string {
-    try {
-      // unzipping using PowerShell (built-in) to a temp folder
-      const tempDir = path.join(this.DIRS.imports, `docx-temp-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      
-      const cmd = `powershell -Command "Expand-Archive -Path '${filePath.replace(/'/g, "''")}' -DestinationPath '${tempDir.replace(/'/g, "''")}' -Force"`;
-      execSync(cmd, { stdio: "ignore" });
-
-      const xmlPath = path.join(tempDir, "word", "document.xml");
-      if (fs.existsSync(xmlPath)) {
-        const xmlContent = fs.readFileSync(xmlPath, "utf8");
-        const matches = xmlContent.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
-        let text = "";
-        if (matches) {
-          text = matches.map(m => m.replace(/<[^>]*>/g, "")).join(" ");
-        }
-        // Cleanup temp folder
-        fs.rmSync(tempDir, { recursive: true, force: true });
-        return text;
-      }
-    } catch (e) {
-      console.error("Failed DOCX extraction:", e);
-    }
-    return "";
+    return DocumentTextExtractor.extractFromPath(filePath, "application/vnd.openxmlformats-officedocument.wordprocessingml.document").text;
   }
 
   // 4. Ingestion Pipeline Implementation (Requirement 5)

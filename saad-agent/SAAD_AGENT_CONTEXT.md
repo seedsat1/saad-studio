@@ -664,6 +664,14 @@ When rebuilding a packaged copy manually, ensure updated backend `dist/**`, prel
 
 PDF, Word, image, screenshot, map, and diagram files are saved as permanent training references, but deep content extraction requires real PDF/DOCX/OCR/Vision extraction. Until that exists, the agent must describe them as stored references, not fully read documents.
 
+## Document Training Extraction
+
+- Text-like attachments remain directly readable and indexable.
+- PDF, DOCX, and RTF attachments now route through the shared `DocumentTextExtractor` before being registered as training knowledge.
+- Extracted PDF/DOCX/RTF text is chunked into the existing vector index, so trained documents can be searched by their content.
+- Immediate chat use of extracted document text is clipped for model context safety; the knowledge index is the durable retrieval layer.
+- Scanned PDFs and images still require OCR/Vision extraction and must not be described as fully read unless a vision/OCR summary exists.
+
 ## V2 Architecture Freeze
 
 The V2 architecture is frozen as an implementation contract.

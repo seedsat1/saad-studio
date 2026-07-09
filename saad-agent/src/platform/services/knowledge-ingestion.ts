@@ -4,6 +4,7 @@ import { TokenManager } from "./token-manager.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { SemanticSearch } from "../../context/semantic-search.js";
 import type { Attachment } from "./attachments.js";
+import { DocumentTextExtractor } from "./document-text-extractor.js";
 
 export interface KnowledgeChunkRecord {
   id: string;
@@ -501,6 +502,8 @@ export class KnowledgeIngestionService {
     if (ext === ".json") return "application/json";
     if (ext === ".yaml" || ext === ".yml") return "application/yaml";
     if (ext === ".html") return "text/html";
+    if (ext === ".docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (ext === ".rtf") return "application/rtf";
     if (ext === ".css") return "text/css";
     if (ext === ".js" || ext === ".jsx") return "text/javascript";
     if (ext === ".ts" || ext === ".tsx") return "text/typescript";
@@ -532,15 +535,19 @@ export class KnowledgeIngestionService {
       const raw = await fs.readFile(filePath, "utf8").catch(() => "");
       return { text: raw, metadataOnly: false };
     }
-    if (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(extension)) {
+    if (DocumentTextExtractor.canAttempt(filePath)) {
+      const extracted = DocumentTextExtractor.extractFromPath(filePath);
+      if (extracted.text.trim()) {
+        return { text: extracted.text, metadataOnly: false };
+      }
       return {
-        text: `Visual training item in ${category}: ${path.basename(rel)}. Use the vision pipeline to inspect this screenshot, diagram, or map when it matches the task.`,
+        text: `${extension.slice(1).toUpperCase() || "Document"} training item in ${category}: ${path.basename(rel)}. ${extracted.warning || "Readable text extraction was not available for this file."}`,
         metadataOnly: true
       };
     }
-    if (extension === ".pdf") {
+    if (/\.(png|jpg|jpeg|webp|gif|svg)$/i.test(extension)) {
       return {
-        text: `PDF training item in ${category}: ${path.basename(rel)}. Text extraction requires a PDF extractor; metadata is indexed until readable text is available.`,
+        text: `Visual training item in ${category}: ${path.basename(rel)}. Use the vision pipeline to inspect this screenshot, diagram, or map when it matches the task.`,
         metadataOnly: true
       };
     }

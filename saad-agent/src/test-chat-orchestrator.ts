@@ -2,6 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs/promises";
 import * as os from "os";
 import * as path from "path";
+import * as zlib from "zlib";
 import { setProjectRoot } from "./config.js";
 import { ChatOrchestratorService } from "./platform/services/chat-orchestrator.js";
 import { ReasoningEngine } from "./platform/services/reasoning-engine.js";
@@ -351,6 +352,29 @@ async function main() {
       "saved attachment was not registered as training knowledge"
     );
 
+    const pdfSource = path.join(workspace, "training-story.pdf");
+    const pdfText = "Saad PDF extraction lesson: full document text should become searchable training knowledge.";
+    const compressedPdfStream = zlib.deflateSync(Buffer.from(`BT (${pdfText}) Tj ET`, "latin1"));
+    const pdfHeader = Buffer.from(`%PDF-1.4\n1 0 obj\n<< /Length ${compressedPdfStream.length} /Filter /FlateDecode >>\nstream\n`, "latin1");
+    const pdfFooter = Buffer.from("\nendstream\nendobj\ntrailer\n<<>>\n%%EOF", "latin1");
+    await fs.writeFile(pdfSource, Buffer.concat([pdfHeader, compressedPdfStream, pdfFooter]));
+    await KnowledgeIngestionService.importAttachmentsAsTraining(workspace, [{
+      id: "att-test-pdf",
+      filename: "training-story.pdf",
+      mimeType: "application/pdf",
+      size: compressedPdfStream.length,
+      localPath: pdfSource,
+      previewPath: pdfSource,
+      source: "upload",
+      timestamp: Date.now(),
+      workspaceId: "test-workspace"
+    }]);
+    const pdfMatches = await KnowledgeIngestionService.searchTrainingKnowledge(workspace, "PDF extraction searchable training knowledge", 3);
+    assert.ok(
+      pdfMatches.some((match) => match.item.fileName === "training-story.pdf" && match.chunks.some((chunk) => chunk.content.includes("full document text"))),
+      "PDF attachment text was not extracted and indexed as searchable training knowledge"
+    );
+
     const callsBeforeTranslation = modelCalls;
     ReasoningEngine.requestCompletion = async (request: any) => {
       modelCalls += 1;
@@ -391,6 +415,7 @@ async function main() {
     console.log("Chat orchestrator known YouTube homepage direct-link test passed.");
     console.log("Chat orchestrator known Adobe homepage direct-link test passed.");
     console.log("Chat orchestrator attachment-to-training no-model test passed.");
+    console.log("Knowledge ingestion PDF extraction indexing test passed.");
     console.log("Chat orchestrator translation uses Iraqi Arabic model path test passed.");
   } finally {
     ReasoningEngine.requestCompletion = originalRequestCompletion;

@@ -242,7 +242,8 @@ function arkHeaders() {
 }
 
 function isOfficialSeedance2Route(modelRoute: string): boolean {
-  return SEEDANCE_2_ROUTES.has(modelRoute);
+  // Disabled completely - routing all Seedance requests to KIE
+  return false;
 }
 
 function getOfficialSeedanceModel(modelRoute: string): string {

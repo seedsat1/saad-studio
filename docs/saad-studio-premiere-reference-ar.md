@@ -19,7 +19,7 @@
 - **تسعير جودة 480p**: تم تحديد تسعير موديل Seedance 2.0 Mini لدقة 480p ليكون **20 رصيد لكل 15 ثانية** (بمعدل 20/15 رصيد في الثانية).
 - **تسعير Seedance 2.0 Fast**: تم تحديد تسعير موديل Seedance 2.0 Fast ليكون **55 رصيد لكل 15 ثانية** لدقة 720p (بمعدل 55/15 رصيد في الثانية)، و **25 رصيد لكل 15 ثانية** لدقة 480p (بمعدل 25/15 رصيد في الثانية).
 - **تسعير Seedance 2.0 HQ**: تم تحديد تسعير موديل Seedance 2.0 HQ ليكون **60 رصيد** لدقة 480p، و **90 رصيد** لدقة 720p، و **130 رصيد** لدقة 1080p، و **200 رصيد** لدقة 4K، وذلك لكل 15 ثانية (بمعدل متناسب في الثانية).
-- **التوجيه للمصدر (BytePlus)**: في حال كان الطلب نصياً فقط (Text-to-Video) بدون أي صور أو وسائط مدخلة، يتم تمرير الطلب تلقائياً للمصدر الرسمي (BytePlus ModelArk) لتوفير التكلفة وضمان سرعة الاستجابة.
+- **التوجيه للمصدر (BytePlus)**: تم إيقاف هذا الارتباط المباشر بالكامل، وأصبحت جميع طلبات Seedance v2 (سواء النصية أو التي تحتوي على صور) تتوجه تلقائياً وحصرياً عبر KIE لتجنب الصرف المزدوج أو التشتيت المالي للمشروع.
 - **تكامل موديل Mini**: تم إدراج خرائط التوجيه وتوافق البيانات الخاصة بموديل `bytedance/seedance-2-mini` لضمان عمل الفحص والتوليد بشكل متكامل بدون أخطاء.
 
 ## إضافة ميزة تعديل الفيديو الحقيقي (Video-to-Video Editing) عبر Gemini Omni Flash (2026-07-08)
@@ -1183,6 +1183,15 @@
 - Durable conversation saving must guard against overwriting an existing conversation store with an empty payload.
 - Explicit memory-recall prompts return stored `user-memory` directly without a model call.
 - Stable official homepage requests for known services are deterministic commands and do not require model reasoning, external search, or approval.
+
+## Saad Agent document extraction and training behavior (2026-07-10)
+
+- Document extraction is centralized in `DocumentTextExtractor`; chat, training ingestion, and Knowledge Manager must not maintain separate PDF/DOCX parsing logic.
+- PDF, DOCX, and RTF training attachments must attempt real text extraction before being marked metadata-only.
+- Extracted document text is indexed as normal training chunks through `KnowledgeIngestionService`.
+- Immediate chat attachment context may include only a clipped excerpt for provider context safety; durable retrieval comes from the knowledge index.
+- If extraction returns no readable text, the registry must clearly remain metadata-only and must not claim the document was fully read.
+- Scanned PDFs, screenshots, and images require OCR/Vision extraction or a stored vision summary before the agent can claim it read their content.
 
 ## Saad Agent durable conversation persistence behavior (2026-07-09)
 - Chat conversations are product state and must survive closing and reopening the desktop app.

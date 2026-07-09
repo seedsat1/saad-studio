@@ -24,6 +24,7 @@ import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 import { LocalImageClassifierService } from "./local-image-classifier.js";
 import { UrlTrainingService } from "./url-training-service.js";
 import { DeterministicCommandService } from "./deterministic-command-service.js";
+import { DocumentTextExtractor } from "./document-text-extractor.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -2230,6 +2231,8 @@ export class ChatOrchestratorService {
     if (ext === ".toml") return "application/toml";
     if (ext === ".xml") return "application/xml";
     if (ext === ".html") return "text/html";
+    if (ext === ".docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (ext === ".rtf") return "application/rtf";
     if (ext === ".css") return "text/css";
     if (ext === ".js" || ext === ".jsx") return "text/javascript";
     if (ext === ".ts" || ext === ".tsx") return "text/typescript";
@@ -2299,11 +2302,11 @@ export class ChatOrchestratorService {
     for (const attachment of attachments) {
       const sourcePath = attachment.localPath;
       const safeName = EngineeringMemory.scrubSecrets(attachment.filename || path.basename(sourcePath || "attachment"));
-      if (!sourcePath || !this.isReadableAttachment(attachment)) {
+      if (!sourcePath) {
         blocks.push([
           `Attachment: ${safeName}`,
           `Status: metadata-only`,
-          `Reason: attachment is not a supported readable text file in the current runtime.`
+          `Reason: attachment has no stored local path.`
         ].join("\n"));
         continue;
       }
@@ -2313,6 +2316,33 @@ export class ChatOrchestratorService {
           `Attachment: ${safeName}`,
           `Status: unavailable`,
           `Reason: stored attachment file was not found.`
+        ].join("\n"));
+        continue;
+      }
+      if (!this.isReadableAttachment(attachment) && DocumentTextExtractor.canAttempt(sourcePath, attachment.mimeType)) {
+        const extracted = DocumentTextExtractor.extractFromPath(sourcePath, attachment.mimeType);
+        const safeExtracted = EngineeringMemory.scrubSecrets(extracted.text || "");
+        const clipped = safeExtracted.slice(0, MAX_READABLE_ATTACHMENT_BYTES);
+        blocks.push([
+          `Attachment: ${safeName}`,
+          `Mime: ${attachment.mimeType || "unknown"}`,
+          `Size: ${stat.size} bytes`,
+          `Status: ${safeExtracted.trim() ? "read-extracted" : "metadata-only"}`,
+          `Extractor: ${extracted.extractor}`,
+          extracted.warning ? `Warning: ${extracted.warning}` : "",
+          safeExtracted.length > clipped.length ? `Content truncated to ${MAX_READABLE_ATTACHMENT_BYTES} characters for model context safety.` : "",
+          "",
+          clipped
+        ].filter(Boolean).join("\n"));
+        continue;
+      }
+      if (!this.isReadableAttachment(attachment)) {
+        blocks.push([
+          `Attachment: ${safeName}`,
+          `Mime: ${attachment.mimeType || "unknown"}`,
+          `Size: ${stat.size} bytes`,
+          `Status: metadata-only`,
+          `Reason: attachment is not a supported readable file in the current runtime.`
         ].join("\n"));
         continue;
       }

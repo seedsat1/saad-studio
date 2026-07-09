@@ -68,13 +68,7 @@ export function getProviderFor(modelId: string): ProviderId {
     return "google";
   }
 
-  // BytePlus official (Seedance v2)
-  if (
-    id.startsWith("bytedance/seedance-v2") ||
-    id.startsWith("bytedance/seedance-2")
-  ) {
-    return "byteplus";
-  }
+  // BytePlus official (Seedance v2) disabled completely to route via KIE
 
   // OpenAI official (image gen + Sora — only when we have direct access).
   // Note: Sora API access is gated; route falls back to kie.ai when the

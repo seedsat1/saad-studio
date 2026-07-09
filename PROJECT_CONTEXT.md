@@ -282,6 +282,7 @@
   - Configured pricing for `seedance2mini` (Seedance 2.0 Mini) at `480p` resolution to be 20 credits per 15 seconds.
   - Configured pricing for `seedance2f` (Seedance 2.0 Fast) at `720p` resolution to be 55 credits per 15 seconds, and at `480p` resolution to be 25 credits per 15 seconds.
   - Configured pricing for `seedance2` (Seedance 2.0 HQ) to be 60 credits for 480p, 90 credits for 720p, 130 credits for 1080p, and 200 credits for 4K over 15 seconds.
+  - Completely disabled direct BytePlus (ModelArk) integration to route all Seedance v2 requests exclusively through KIE.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]
@@ -2760,6 +2761,34 @@
 - Remaining:
   - Add real Agent-Reach/MindSearch adapters behind `ResearchGatewayService` if deeper platform search is required.
   - Add PDF/DOCX/OCR/Vision extraction before claiming full book/document/image reading.
+
+## Latest task: Saad Agent document extraction pipeline for training attachments (2026-07-10)
+
+- Status:
+  Added a single shared `DocumentTextExtractor` service and wired it into the training ingestion path, immediate chat attachment context, and legacy Knowledge Manager document import. PDF, DOCX, and RTF files now attempt real text extraction before falling back to metadata-only records. Extracted document text is chunked into the existing knowledge index, so uploaded/trained PDF text can be retrieved by search instead of saving only a title or file reference. Immediate chat context still clips extracted text for model safety; the full extracted training text is handled by the knowledge index.
+- Affected files:
+  - `saad-agent/src/platform/services/document-text-extractor.ts`
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/knowledge-manager.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-skills.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including `Knowledge ingestion PDF extraction indexing test passed`.
+  - Extracted the rebuilt `app.asar` and verified `document-text-extractor.js`, ingestion wiring, chat `read-extracted` handling, and Knowledge Manager wiring are present in the packaged backend.
+- Findings:
+  - Saad Agent did not have packaged `pdf-parse`, `mammoth`, `jszip`, or OCR dependencies, so the fix uses a dependency-free extractor: DOCX XML extraction via PowerShell `Expand-Archive`, RTF cleanup, and a basic PDF stream/string extractor.
+  - This is real extraction for text-based PDFs and DOCX files, but scanned image PDFs still require OCR/Vision before they can be described as fully read.
+  - Local Agent-Reach was inspected at `E:\Agent-Reach-main\Agent-Reach-main`; it is a Python package with a console script named `agent-reach`, but `agent-reach` is not installed on PATH and both `python`/`py` failed to execute in this sandbox with a Windows logon-session error. No Agent-Reach adapter was wired as production behavior because the executable path is not currently runnable.
+- Decisions:
+  - Centralize document extraction in one service to avoid duplicate PDF/DOCX parsing logic across chat, ingestion, and Knowledge Manager.
+  - Keep `ResearchGatewayService` as the only live-search gateway; do not claim Agent-Reach integration until the local CLI can run and pass `agent-reach doctor --json`.
+- Remaining:
+  - Add OCR/Vision extraction for scanned PDFs and images.
+  - Install or expose a working Agent-Reach CLI, then add it as an optional provider adapter behind `ResearchGatewayService`.
 
 ## Latest task: Saad Agent refreshed Windows installer packaging after Settings wiring (2026-06-28)
 
