@@ -1,23 +1,22 @@
 # Saad Studio Project Context Update
 
-## Latest task: Fixed Storyboard Production 502 Error by Updating WaveSpeed API Key on Vercel (2026-07-09)
+## Latest task: Fixed Storyboard Production & Relight 502 Errors by Resolving Relative Image Paths to Absolute B2 URLs (2026-07-09)
 
 - Status:
-  - Found that the storyboard production tool (/apps/tool/storyboard-studio) was returning a 502 Bad Gateway.
-  - Traced the error to /api/runninghub/storyboard-production, which catches WaveSpeed provider errors (such as 401 Unauthorized due to an invalid/expired key) and returns a 502 response to the client.
-  - Audited the API keys across all environment files and found that `.env` had the correct working live key (`wsk_live_...`), while `.env.vercel` and `.env.local` had an incorrect/invalid key (`06517b6...` with double quotes).
-  - Verified using a test script that WaveSpeed successfully accepts requests with the `wsk_live_...` key (status 200), and rejects requests using the `06517b6...` key (status 401).
-  - Updated the Vercel environment variable `WAVESPEED_API_KEY` across all environments (Production, Preview, Development) to use the correct working key.
-  - Added `/saad-agent/` and `/scratch/` to `.vercelignore` to avoid uploading unnecessary developer files.
-  - Redeployed the Next.js application to Vercel production to make the new environment variables active.
+  - Found that the storyboard production tool (/apps/tool/storyboard-studio) was returning a 502 Bad Gateway even after updating the WaveSpeed API key.
+  - Inspected Vercel production logs in JSON format and discovered the error `Value is not a valid URL, file path, or base64-encoded string. Error: Incorrect padding (1401)` from WaveSpeed.
+  - Traced the bug to how reference images are handled: the image is uploaded to Backblaze B2/Supabase, but the returned URL is a relative storage key (`images/userId/ref.jpg`). Passing this relative path to the external WaveSpeed API causes the "invalid URL" error.
+  - Imported `resolveProviderMediaUrl` from `@/lib/media/public-url-resolver` to resolve the relative storage key into a fully qualified, absolute Backblaze B2 public URL.
+  - Fixed both storyboard production (`/api/runninghub/storyboard-production`) and image relighting (`/api/runninghub/relight`) routes to resolve reference image URLs before submitting tasks to WaveSpeed.
+  - Redeployed the project to Vercel production and pushed all changes to Git.
 - Affected files:
-  - `.vercelignore` [MODIFY]
+  - `app/api/runninghub/storyboard-production/route.ts` [MODIFY]
+  - `app/api/runninghub/relight/route.ts` [MODIFY]
 - Verification:
-  - Production deployment succeeded on Vercel: Aliased https://www.saadstudio.app is READY.
-  - Verified WaveSpeed API key validation using synchronous fetch test scripts (status 200).
+  - Validated type safety locally using `npx tsc --noEmit`.
+  - Deployment succeeded on Vercel production (`Aliased https://www.saadstudio.app`).
 - Decision:
-  - Keep the storyboard production model ID (`bytedance/seedream-v4.5/edit`) unchanged as it is verified to be the correct, active endpoint on WaveSpeed (returned 200).
-  - Use Vercel CLI env sync scripts with `--non-interactive`, `--force`, and `--value` flags redirected from temporary files to safely update credentials without printing them to logs or consoles.
+  - Leverage the pre-existing, robust `resolveProviderMediaUrl` helper to format the reference image URLs consistently for third-party endpoints.
 
 ## Latest task: Integrated Pi Coding Agent CLI (pi.dev) and Repaired Arabic Mojibake (2026-07-09)
 
