@@ -64,7 +64,7 @@ export class ProjectMemoryStore {
                 summary,
             };
             if (useLegacy) {
-                console.log("🔄 Migrating legacy knowledge base directory to knowledge/ subfolder...");
+                console.log("�� Migrating legacy knowledge base directory to knowledge/ subfolder...");
                 await this.save(); // writes to knowledgeDir
                 const legacyFiles = ["memory.json", "architecture.json", "dependency-graph.json", "project-summary.json"];
                 for (const file of legacyFiles) {

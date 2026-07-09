@@ -44,7 +44,7 @@ export class SaadAgent {
   }
 
   async runTask(task: string): Promise<void> {
-    console.log(chalk.blue(`\n🤖 Saad Agent starting task: ${task}\n`));
+    console.log(chalk.blue(`\n�� Saad Agent starting task: ${task}\n`));
 
     await this.memory.load();
 
@@ -56,7 +56,7 @@ export class SaadAgent {
       memory.summary.projectName === "unknown";
 
     if (isCorruptedOrMissing) {
-      console.log(chalk.gray("🔍 Building project knowledge base from scratch..."));
+      console.log(chalk.gray("�� Building project knowledge base from scratch..."));
       const scanResult = await this.scanner.scan();
       this.memory.updateSummary(scanResult.summary);
       this.memory.updateArchitecture(scanResult.architecture);
@@ -65,7 +65,7 @@ export class SaadAgent {
       await this.memory.save();
       console.log(chalk.green("✅ Project knowledge base built"));
     } else {
-      console.log(chalk.gray("🔄 Refreshing project knowledge base incrementally..."));
+      console.log(chalk.gray("�� Refreshing project knowledge base incrementally..."));
       await this.scanner.refresh(this.memory);
     }
 

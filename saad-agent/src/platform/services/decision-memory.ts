@@ -65,7 +65,7 @@ export class DecisionMemoryService {
     if (decisions.length === 0) return "No stored architectural decision records (ADRs) yet.";
     return decisions
       .filter((d) => d.status === "accepted")
-      .map((d) => `• [ADR] ${d.title}: ${d.decision}`)
+      .map((d) => `� [ADR] ${d.title}: ${d.decision}`)
       .join("\n");
   }
 }

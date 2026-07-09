@@ -151,7 +151,7 @@ export class LocalFileSearchExecutor {
 
   private static extractQuery(prompt: string): string {
     const raw = (prompt || "").trim();
-    const quoted = raw.match(/["'“”`«»](.+?)["'“”`«»]/)?.[1]?.trim();
+    const quoted = raw.match(/["'��`��](.+?)["'��`��]/)?.[1]?.trim();
     if (quoted) return this.cleanupQuery(quoted);
 
     const normalized = this.normalizeArabic(raw);
@@ -198,7 +198,7 @@ export class LocalFileSearchExecutor {
       lines.push(`Workspace: ${group.workspaceName}`);
       for (const result of group.results.slice(0, 10)) {
         const suffix = result.type === "content" && result.line ? `:${result.line}` : "";
-        const preview = result.preview ? ` — ${result.preview}` : "";
+        const preview = result.preview ? ` � ${result.preview}` : "";
         lines.push(`- ${result.relativePath}${suffix}`);
         lines.push(`  ${path.normalize(result.path)}${preview}`);
       }

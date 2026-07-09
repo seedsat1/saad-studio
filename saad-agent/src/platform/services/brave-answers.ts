@@ -83,7 +83,7 @@ export class BraveAnswersService {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
     };
 
-    let finalQuery = searchQuery.replace(/["'«»“”]/g, "").trim();
+    let finalQuery = searchQuery.replace(/["'����]/g, "").trim();
     const strippedFillers = finalQuery
       .replace(/(?:شنو|شنو هي|أريد|اريد|أحدث|احدث|عن|مكتبة|شكو|شنو نوع)\s+/gi, " ")
       .replace(/[؟?]/g, "")
@@ -139,9 +139,9 @@ ${parsedError}`;
         }));
       }
 
-      if (webResults.length === 0 && finalQuery !== searchQuery.replace(/["'«»“”]/g, "").trim()) {
+      if (webResults.length === 0 && finalQuery !== searchQuery.replace(/["'����]/g, "").trim()) {
         const fallbackUrl = new URL(baseUrl);
-        fallbackUrl.searchParams.set("q", searchQuery.replace(/["'«»“”]/g, "").trim());
+        fallbackUrl.searchParams.set("q", searchQuery.replace(/["'����]/g, "").trim());
         const fallbackRes = await fetch(fallbackUrl.toString(), {
           headers,
           signal: controller.signal

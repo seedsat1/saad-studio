@@ -83,6 +83,6 @@ export class UserMemoryService {
     );
 
     const targetList = matched.length > 0 ? matched : facts;
-    return targetList.map((f) => `• ${f.rawFact}`).join("\n");
+    return targetList.map((f) => `� ${f.rawFact}`).join("\n");
   }
 }

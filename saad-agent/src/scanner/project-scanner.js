@@ -7,7 +7,7 @@ import { ProjectMemoryStore } from "../memory/project-memory.js";
 import { listFiles, readFile } from "../tools/fs-tools.js";
 export class ProjectScanner {
     async scan() {
-        console.log("🔍 Scanning project structure...");
+        console.log("�� Scanning project structure...");
         const [summary, architecture, dependencies, fileHashes] = await Promise.all([
             this.scanSummary(),
             this.scanArchitecture(),
@@ -40,7 +40,7 @@ export class ProjectScanner {
         // If memory is not initialized, missing key structure, or contains legacy fileMtimes, do a full scan
         if (!memory.fileHashes || hasLegacyMtimes || !memory.architecture || !memory.dependencies || !memory.summary) {
             if (hasLegacyMtimes) {
-                console.log("🔄 Legacy fileMtimes schema detected. Upgrading database to fileHashes...");
+                console.log("�� Legacy fileMtimes schema detected. Upgrading database to fileHashes...");
                 delete memory.fileMtimes;
                 delete memoryStore.get().fileMtimes;
             }
@@ -57,7 +57,7 @@ export class ProjectScanner {
             console.log("✅ Database schema upgraded to fileHashes successfully");
             return true;
         }
-        console.log("🔄 Detecting project changes incrementally via hashing...");
+        console.log("�� Detecting project changes incrementally via hashing...");
         const currentFiles = await listFiles();
         const currentFileHashes = {};
         const addedFiles = [];
@@ -94,7 +94,7 @@ export class ProjectScanner {
             await memoryStore.save();
             return false;
         }
-        console.log(`📝 Changes detected: ${addedFiles.length} added, ${modifiedFiles.length} modified, ${deletedFiles.length} deleted.`);
+        console.log(`�� Changes detected: ${addedFiles.length} added, ${modifiedFiles.length} modified, ${deletedFiles.length} deleted.`);
         // 1. Update Architecture
         const updatedArch = this.updateArchitectureIncrementally(memory.architecture, addedFiles, modifiedFiles, deletedFiles);
         memoryStore.updateArchitecture(updatedArch);

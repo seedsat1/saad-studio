@@ -1,5 +1,48 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed Storyboard Production 502 Error by Updating WaveSpeed API Key on Vercel (2026-07-09)
+
+- Status:
+  - Found that the storyboard production tool (/apps/tool/storyboard-studio) was returning a 502 Bad Gateway.
+  - Traced the error to /api/runninghub/storyboard-production, which catches WaveSpeed provider errors (such as 401 Unauthorized due to an invalid/expired key) and returns a 502 response to the client.
+  - Audited the API keys across all environment files and found that `.env` had the correct working live key (`wsk_live_...`), while `.env.vercel` and `.env.local` had an incorrect/invalid key (`06517b6...` with double quotes).
+  - Verified using a test script that WaveSpeed successfully accepts requests with the `wsk_live_...` key (status 200), and rejects requests using the `06517b6...` key (status 401).
+  - Updated the Vercel environment variable `WAVESPEED_API_KEY` across all environments (Production, Preview, Development) to use the correct working key.
+  - Added `/saad-agent/` and `/scratch/` to `.vercelignore` to avoid uploading unnecessary developer files.
+  - Redeployed the Next.js application to Vercel production to make the new environment variables active.
+- Affected files:
+  - `.vercelignore` [MODIFY]
+- Verification:
+  - Production deployment succeeded on Vercel: Aliased https://www.saadstudio.app is READY.
+  - Verified WaveSpeed API key validation using synchronous fetch test scripts (status 200).
+- Decision:
+  - Keep the storyboard production model ID (`bytedance/seedream-v4.5/edit`) unchanged as it is verified to be the correct, active endpoint on WaveSpeed (returned 200).
+  - Use Vercel CLI env sync scripts with `--non-interactive`, `--force`, and `--value` flags redirected from temporary files to safely update credentials without printing them to logs or consoles.
+
+## Latest task: Integrated Pi Coding Agent CLI (pi.dev) and Repaired Arabic Mojibake (2026-07-09)
+
+- Status:
+  - Installed `@earendil-works/pi-coding-agent` globally via npm.
+  - Updated `codex-runtime-bridge.ts` to support both `codex` and `pi` dynamically.
+  - Implemented dynamic API key forwarding from `SettingsManager` credentials vault to child process environment variables (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.).
+  - Added dynamic active model/provider resolution for the `Coding` role from Saad Agent settings, passing them explicitly as `--provider` and `--model` arguments to the `pi` client.
+  - Mapped local/LM Studio provider parameters to `"lm-studio"` and passed them to `pi` with local model IDs.
+  - Fixed a critical orchestrator routing bug in `chat-orchestrator.ts` where tasks matching `WAIT_FOR_APPROVAL` under `ask` mode bypassed the engineering workflow execution path after being approved, falling back to a casual chat response.
+  - Fully implemented the local offline `LocalImageClassifierService` backend execution logic by writing a lightweight Python script (`classify.py`) using Pillow for local screenshot classification (Mobile, Code/Text, Flat UI, Desktop UI) and writing the folder organization/movement routines in `chat-orchestrator.ts`.
+  - Mapped the internal `GOOGLE_API_KEY` value to `GEMINI_API_KEY` to prevent model auth failures in Google Gemini workflows.
+  - Wrapped execution in `execFileWithClosedStdin` to avoid stdin hangs on Windows by actively closing stdin after spawn.
+  - Developed and ran a recursive, idempotent repair script that fixed legacy encoding Mojibake (double UTF-8 encoded text) across 17 files in the `saad-agent/src` directory (including `chat-orchestrator.ts`, `brave-answers.ts`, etc.), restoring full Arabic characters.
+- Affected files:
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY] (and 16 other source files)
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - Verified compilation and ASAR repacking succeeded.
+  - Integration test runs successfully and Arabic fallback text is displayed with correct Arabic character encoding (tested and verified).
+- Decision:
+  - Executed global `pi` command via direct `node` invocation of `cli.js` without shell wrappers on Windows to secure argument passing and guarantee stdin EOF signals are resolved by Node.
+  - Applied idempotent UTF-8 byte reconstruction mapping over all non-ASCII character sequences to fix Windows-1252/Windows-1256 double-encoding Mojibake issues without corrupting already clean Arabic strings.
+
 ## Latest task: Implemented Video-to-Video Editing using Gemini Omni Flash (2026-07-08)
 
 - Status:

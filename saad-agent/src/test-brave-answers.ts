@@ -4,7 +4,7 @@ import { BraveAnswersService } from "./platform/services/brave-answers.js";
 import { CognitiveOrchestratorService } from "./platform/services/cognitive-orchestrator.js";
 
 async function runTests() {
-  console.log("🧪 Starting Brave Answers Provider Integration Automated Test Suite...");
+  console.log("�� Starting Brave Answers Provider Integration Automated Test Suite...");
 
   // 1. Verify SettingsManager has Brave Answers Provider registered
   const settings = await SettingsManager.getSettings();
@@ -33,7 +33,7 @@ async function runTests() {
   ];
   const formattedMd = BraveAnswersService.formatSourcesMarkdown(mockSources);
   console.log(`[Test 4] Formatted Sources Markdown:\n${formattedMd}`);
-  assert.ok(formattedMd.includes("### 📚 المصادر والتوثيق"));
+  assert.ok(formattedMd.includes("### �� المصادر والتوثيق"));
   assert.ok(formattedMd.includes("[Next.js Documentation]"));
 
   console.log("✅ All Brave Answers Provider Integration tests PASSED 100% successfully!");

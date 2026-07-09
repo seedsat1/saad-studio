@@ -20,7 +20,7 @@ async function runTests() {
     await fs.mkdir(tempWorkspace, { recursive: true });
     setProjectRoot(tempWorkspace);
 
-    // 1. Part A — Engineering Standards & Decision Policies
+    // 1. Part A � Engineering Standards & Decision Policies
     console.log("\n--- Test 1: Engineering Standards & Policies ---");
     const standards = await StandardsManager.getStandards();
     console.log("Engineering Standards version:", standards.version);

@@ -1467,7 +1467,7 @@ async function setupApplicationMenu(win: any) {
               icon: appIcon,
               title: "About Saad Studio Agent",
               message: "Saad Studio Agent v6.5.0 Production Release",
-              detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright Â© 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\nâ€¢ Electron: v${process.versions.electron}\nâ€¢ Node.js: v${process.versions.node}\nâ€¢ Chromium: v${process.versions.chrome}\nâ€¢ Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
+              detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright © 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\n• Electron: v${process.versions.electron}\n• Node.js: v${process.versions.node}\n• Chromium: v${process.versions.chrome}\n• Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
             });
           }
         },

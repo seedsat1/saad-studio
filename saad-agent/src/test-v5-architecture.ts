@@ -8,7 +8,7 @@ import { SelfReviewEngine } from "./platform/services/self-review.js";
 import { KnowledgeRAGService } from "./platform/services/knowledge-rag.js";
 
 async function runTests() {
-  console.log("🧪 Starting Saad Agent v5.0 Architectural Subsystems Test Suite...");
+  console.log("�� Starting Saad Agent v5.0 Architectural Subsystems Test Suite...");
 
   // 1. Decision Memory Service (ADRs)
   const adr = await DecisionMemoryService.recordDecision("Storage Provider Choice", "Use Backblaze B2 instead of AWS R2", "Lower bandwidth egress cost.");

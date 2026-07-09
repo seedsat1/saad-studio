@@ -14,7 +14,7 @@ export class ProjectScanner {
     dependencies: DependencyGraph;
     fileHashes: Record<string, string>;
   }> {
-    console.log("🔍 Scanning project structure...");
+    console.log("�� Scanning project structure...");
 
     const [summary, architecture, dependencies, fileHashes] = await Promise.all([
       this.scanSummary(),
@@ -53,7 +53,7 @@ export class ProjectScanner {
     // If memory is not initialized, missing key structure, or contains legacy fileMtimes, do a full scan
     if (!memory.fileHashes || hasLegacyMtimes || !memory.architecture || !memory.dependencies || !memory.summary) {
       if (hasLegacyMtimes) {
-        console.log("🔄 Legacy fileMtimes schema detected. Upgrading database to fileHashes...");
+        console.log("�� Legacy fileMtimes schema detected. Upgrading database to fileHashes...");
         delete (memory as any).fileMtimes;
         delete (memoryStore.get() as any).fileMtimes;
       } else {
@@ -73,7 +73,7 @@ export class ProjectScanner {
       return true;
     }
 
-    console.log("🔄 Detecting project changes incrementally via hashing...");
+    console.log("�� Detecting project changes incrementally via hashing...");
     const currentFiles = await listFiles();
     const currentFileHashes: Record<string, string> = {};
     
@@ -115,7 +115,7 @@ export class ProjectScanner {
       return false;
     }
 
-    console.log(`📝 Changes detected: ${addedFiles.length} added, ${modifiedFiles.length} modified, ${deletedFiles.length} deleted.`);
+    console.log(`�� Changes detected: ${addedFiles.length} added, ${modifiedFiles.length} modified, ${deletedFiles.length} deleted.`);
 
     // 1. Update Architecture
     const updatedArch = this.updateArchitectureIncrementally(memory.architecture, addedFiles, modifiedFiles, deletedFiles);

@@ -1,4 +1,4 @@
-﻿import * as path from "path";
+import * as path from "path";
 import * as fs from "fs/promises";
 import { CONFIG } from "../../config.js";
 import { BraveAnswersService } from "./brave-answers.js";
@@ -153,7 +153,7 @@ export class ChatOrchestratorService {
         return {
           intent: "training_ingest",
           usedModel: false,
-          response: "Ø§Ø±ÙØ¹ Ø§Ù„Ù…Ù„Ù Ø£ÙˆÙ„Ù‹Ø§ØŒ ÙˆØ¨Ø¹Ø¯Ù‡Ø§ Ø§ÙƒØªØ¨: Ø¯Ø±Ù‘Ø¨ Ù†ÙØ³Ùƒ Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù„Ù. Ø¨Ø¯ÙˆÙ† Ù…Ù„Ù Ù…Ø§ Ø£Ú¯Ø¯Ø± Ø£Ø³ÙˆÙŠ ØªØ¯Ø±ÙŠØ¨ Ø­Ù‚ÙŠÙ‚ÙŠ."
+          response: "ارفع الملف أولًا، وبعدها اكتب: درّب نفسك على هذا الملف. بدون ملف ما أگدر أسوي تدريب حقيقي."
         };
       }
       if (ChatOrchestratorService.isMemorySave(userRequestText, normalizedRequest)) {
@@ -162,7 +162,7 @@ export class ChatOrchestratorService {
           return {
             intent: "memory_save",
             usedModel: false,
-            response: "Ø§ÙƒØªØ¨ Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø© Ø§Ù„Ù„ÙŠ ØªØ±ÙŠØ¯ Ø£Ø­ÙØ¸Ù‡Ø§ Ø¨ÙˆØ¶ÙˆØ­ØŒ ÙˆØ£Ø­ÙØ¸Ù‡Ø§ Ø¨Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø© Ø¨Ø¯ÙˆÙ† Ù…Ø§ Ø£Ø³ØªØ¯Ø¹ÙŠ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„."
+            response: "اكتب المعلومة اللي تريد أحفظها بوضوح، وأحفظها بالذاكرة الدائمة بدون ما أستدعي الموديل."
           };
         }
         const saved = await EngineeringMemory.addKnowledgeItem({
@@ -173,7 +173,7 @@ export class ChatOrchestratorService {
         return {
           intent: "memory_save",
           usedModel: false,
-          response: `ØªÙ… Ø§Ù„Ø­ÙØ¸ Ø¨Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø©.\nMemory ID: ${saved.id}\nØ§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø©: ${saved.description}`
+          response: `تم الحفظ بالذاكرة الدائمة.\nMemory ID: ${saved.id}\nالمعلومة: ${saved.description}`
         };
       }
       if (ChatOrchestratorService.isMemoryRecall(userRequestText, normalizedRequest)) {
@@ -218,7 +218,7 @@ export class ChatOrchestratorService {
       return {
         intent: "conversation",
         usedModel: false,
-        response: "ØªÙ…Ø§Ù…ØŒ Ø¨Ø³ Ø¨Ø¹Ø¯Ù†ÙŠ Ù…Ø­ØªØ§Ø¬ Ø§Ù„ØªÙˆØ¶ÙŠØ­ Ø­ØªÙ‰ Ø£ÙƒÙ…Ù„ ØµØ­: Ø§ÙƒØªØ¨ Ø§Ø³Ù… Ø§Ù„ØµÙØ­Ø© Ø£Ùˆ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ø¨Ø§Ù„Ø¶Ø¨Ø·."
+        response: "تمام، بس بعدني محتاج التوضيح حتى أكمل صح: اكتب اسم الصفحة أو المطلوب بالضبط."
       };
     }
 
@@ -316,11 +316,11 @@ export class ChatOrchestratorService {
           intent: "conversation",
           usedModel: true,
           response: [
-            "Ù…Ø§ Ú¯Ø¯Ø±Øª Ø£Ø±Ø¬Ø¹ Ø¬ÙˆØ§Ø¨ Ù„Ø£Ù† Ù…Ø²ÙˆØ¯ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ù…Ø§ ÙƒÙ…Ù‘Ù„ Ø§Ù„Ø·Ù„Ø¨.",
+            "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
             "",
-            `Ø§Ù„Ø³Ø¨Ø¨: ${err?.message || "Unknown model provider error"}`,
+            `السبب: ${err?.message || "Unknown model provider error"}`,
             "",
-            "Ù‡Ø°Ø§ Ø³Ø¤Ø§Ù„ Ø¹Ø§Ù… ÙˆÙ…Ø§ ÙŠØ­ØªØ§Ø¬ ÙØ­Øµ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹. Ø¥Ø°Ø§ ØªÙƒØ±Ø± Ø§Ù„ØªÙˆÙ‚ÙØŒ Ø±Ø§Ø¬Ø¹ Ø§ØªØµØ§Ù„ LM Studio ÙˆØ§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ù†Ø´Ø·."
+            "هذا سؤال عام وما يحتاج فحص المشروع. إذا تكرر التوقف، راجع اتصال LM Studio والموديل النشط."
           ].join("\n")
         };
       }
@@ -427,31 +427,95 @@ export class ChatOrchestratorService {
           intent: "vision_analysis",
           usedModel: false,
           response: [
-            "ØµÙ†Ù‘ÙØª Ø§Ù„Ø·Ù„Ø¨ Ù…Ø­Ù„ÙŠØ§Ù‹ ÙƒÙ€ Local Image Classification.",
-            "Ù…Ø§ Ø±Ø§Ø­ Ø£Ø³ØªØ¯Ø¹ÙŠ Qwen Ø£Ùˆ LM Studio Ù„Ù‡Ø°Ø§ Ø§Ù„Ù†ÙˆØ¹ Ù…Ù† Ø§Ù„Ø·Ù„Ø¨Ø§Øª.",
+            "صنّفت الطلب محلياً كـ Local Image Classification.",
+            "ما راح أستدعي Qwen أو LM Studio لهذا النوع من الطلبات.",
             "",
-            "Ø§Ù„ØªÙ†ÙÙŠØ° Ù…ØªÙˆÙ‚Ù Ù„Ø£Ù† Ù…ØµÙ†Ù‘Ù Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø­Ù„ÙŠ ØºÙŠØ± Ù…Ø«Ø¨Øª Ø¯Ø§Ø®Ù„ Ø§Ù„Ø­Ø²Ù…Ø©.",
-            `Ù…Ø³Ø§Ø± Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ù…ØªÙˆÙ‚Ø¹: ${classifierStatus.modelPath}`,
+            "التنفيذ متوقف لأن مصنّف الصور المحلي غير مثبت داخل الحزمة.",
+            `مسار الموديل المتوقع: ${classifierStatus.modelPath}`,
             "",
-            "Ø§Ù„Ø®Ø·ÙˆØ© Ø§Ù„Ù‡Ù†Ø¯Ø³ÙŠØ© Ø§Ù„ØµØ­ÙŠØ­Ø©:",
-            "- ØªØ«Ø¨ÙŠØª/Ø±Ø¨Ø· Ù…ÙˆØ¯ÙŠÙ„ ØªØµÙ†ÙŠÙ ØµÙˆØ± Ù…Ø­Ù„ÙŠ.",
-            "- ØªØ´ØºÙŠÙ„ Dry Run ÙŠØ¹Ø±Ø¶ Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª Ø§Ù„Ù…Ù‚ØªØ±Ø­Ø© Ù‚Ø¨Ù„ Ù†Ù‚Ù„ Ø§Ù„ØµÙˆØ±.",
-            "- Ø¨Ø¹Ø¯Ù‡Ø§ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ÙÙˆÙ„Ø¯Ø±Ø§Øª ÙˆÙ†Ù‚Ù„ Ø§Ù„ØµÙˆØ± ÙÙ‚Ø· Ø¥Ø°Ø§ Ø³ÙŠØ§Ø³Ø© Ø§Ù„ÙˆØµÙˆÙ„ ØªØ³Ù…Ø­.",
+            "الخطوة الهندسية الصحيحة:",
+            "- تثبيت/ربط موديل تصنيف صور محلي.",
+            "- تشغيل Dry Run يعرض التصنيفات المقترحة قبل نقل الصور.",
+            "- بعدها إنشاء الفولدرات ونقل الصور فقط إذا سياسة الوصول تسمح.",
             "",
-            "Ø¨Ù‡Ø°Ø§ Ø§Ù„ØªØµØ­ÙŠØ­ØŒ Ø§Ù„Ø·Ù„Ø¨ Ø¨Ø¹Ø¯ Ø§Ù„Ø¢Ù† Ù…Ø§ ÙŠØ¯Ø®Ù„ Ù„Ù…Ø³Ø§Ø± Ø§Ù„Ø¬ÙˆØ§Ø¨ Ø§Ù„Ø¹Ø§Ù… ÙˆÙ„Ø§ ÙŠØ±Ø³Ù„ ÙƒÙˆÙ†ØªÙƒØ³Øª Ø·ÙˆÙŠÙ„ Ù„Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ù†ØµÙŠ."
+            "بهذا التصحيح، الطلب بعد الآن ما يدخل لمسار الجواب العام ولا يرسل كونتكست طويل للموديل النصي."
           ].join("\n")
         };
       }
 
-      await TaskStateStore.transitionTask(taskId, "FAILED", "Local classifier runtime is not implemented yet");
-      return {
-        intent: "vision_analysis",
-        usedModel: false,
-        response: [
-          "Ù…ØµÙ†Ù‘Ù Ø§Ù„ØµÙˆØ± Ø§Ù„Ù…Ø­Ù„ÙŠ Ù…ÙˆØ¬ÙˆØ¯ØŒ Ø¨Ø³ Runtime Ø§Ù„ØªØµÙ†ÙŠÙ ÙˆØ§Ù„Ù†Ù‚Ù„ Ø¨Ø¹Ø¯Ù‡ ØºÙŠØ± Ù…Ø±Ø¨ÙˆØ·.",
-          "Ø£ÙˆÙ‚ÙØª Ø§Ù„ØªÙ†ÙÙŠØ° Ø­ØªÙ‰ Ù„Ø§ Ø£Ù†Ù‚Ù„ Ù…Ù„ÙØ§Øª Ø£Ùˆ Ø£Ø®Ù…Ù‘Ù† ØªØµÙ†ÙŠÙØ§Øª Ø¨Ø¯ÙˆÙ† Ù…Ø­Ø±Ùƒ ÙØ¹Ù„ÙŠ."
-        ].join("\n")
-      };
+      // Extract target folder path
+      let folderPath = "";
+      const pathMatch = userRequestText.match(/([a-zA-Z]:\\[^:\r\n]*)/) || userRequestText.match(/([a-zA-Z]:\/[^:\r\n]*)/);
+      if (pathMatch && pathMatch[1]) {
+        folderPath = pathMatch[1].trim();
+      } else {
+        folderPath = path.join(process.env.USERPROFILE || "C:\\Users\\PC", "Pictures", "Screenshots");
+      }
+
+      await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", `Running local image classification on ${folderPath}`);
+
+      const { exec } = await import("child_process");
+      const { promisify } = await import("util");
+      const execAsync = promisify(exec);
+
+      try {
+        const pythonScript = path.join(classifierStatus.modelPath, "classify.py");
+        const { stdout } = await execAsync(`python "${pythonScript}" "${folderPath}"`);
+        const results = JSON.parse(stdout);
+
+        if (results.error) {
+          throw new Error(results.error);
+        }
+
+        const fileEntries = Object.entries(results);
+        if (fileEntries.length === 0) {
+          await TaskStateStore.transitionTask(taskId, "COMPLETED", "No images found to classify");
+          return {
+            intent: "vision_analysis",
+            usedModel: false,
+            response: `بحثت بالفولدر \`${folderPath}\` بس ما لقيت أي صور لتصنيفها. تأكد أن الملفات بامتدادات مدعومة (.png, .jpg, .jpeg, .bmp, .webp).`
+          };
+        }
+
+        const fsSync = await import("fs");
+        const movedFilesReport: string[] = [];
+        for (const [filename, info] of fileEntries) {
+          const item = info as { category: string; reason: string };
+          const categoryFolder = path.join(folderPath, item.category);
+          if (!fsSync.existsSync(categoryFolder)) {
+            fsSync.mkdirSync(categoryFolder, { recursive: true });
+          }
+          const oldPath = path.join(folderPath, filename);
+          const newPath = path.join(categoryFolder, filename);
+          fsSync.renameSync(oldPath, newPath);
+          movedFilesReport.push(`- **${filename}** ➡️ \`${item.category}/\` (${item.reason})`);
+        }
+
+        await TaskStateStore.transitionTask(taskId, "VERIFYING", "Files classified and organized");
+        await TaskStateStore.transitionTask(taskId, "COMPLETED", `Organized ${fileEntries.length} images`);
+
+        return {
+          intent: "vision_analysis",
+          usedModel: false,
+          response: [
+            `✅ **تم تصنيف وتنظيم الصور محلياً بالكامل!**`,
+            `المجلد المستهدف: \`${folderPath}\``,
+            `عدد الملفات المنقولة: ${fileEntries.length} صور.`,
+            "",
+            "**تفاصيل التصنيف والنقل:**",
+            ...movedFilesReport,
+            "",
+            "تم فرز الصور محلياً ومجاناً 100% دون إرسالها إلى LM Studio أو أي خوادم سحابية."
+          ].join("\n")
+        };
+      } catch (err: any) {
+        await TaskStateStore.transitionTask(taskId, "FAILED", `Failed to run image classification: ${err.message}`);
+        return {
+          intent: "vision_analysis",
+          usedModel: false,
+          response: `حدث خطأ أثناء تصنيف الصور محلياً: ${err.message}`
+        };
+      }
     }
 
     if (decisionResult.workflow === "local_filesystem_search") {
@@ -511,14 +575,14 @@ export class ChatOrchestratorService {
         const entity: any = domainResult.entity || {};
         const val = entity.chest_size || entity.height || "large";
         friendlyMsg = [
-          "ØªÙ… Ø¨Ù†Ø¬Ø§Ø­ Ø§Ù„ØªØ¹Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø³Ù…Ø© Ø§Ù„Ø¨Ø´Ø±ÙŠØ© ÙˆØªØµÙ†ÙŠÙÙ‡Ø§ ÙƒØ¥Ø¬Ø±Ø§Ø¡ ÙÙˆØ±ÙŠ:",
-          `- **Ù†ÙˆØ¹ Ø§Ù„Ø³Ù…Ø©**: Ø­Ø¬Ù… Ø§Ù„ØµØ¯Ø± (chest_size)`,
-          `- **Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©**: ${val === "large" ? "ÙƒØ¨ÙŠØ±" : val}`
+          "تم بنجاح التعرف على السمة البشرية وتصنيفها كإجراء فوري:",
+          `- **نوع السمة**: حجم الصدر (chest_size)`,
+          `- **القيمة المحددة**: ${val === "large" ? "كبير" : val}`
         ].join("\n");
       } else if (domainResult.domain === "iraqi_dialect") {
-        friendlyMsg = `ØªÙ… ÙÙ‡Ù… Ø§Ù„Ù„Ù‡Ø¬Ø© Ø§Ù„Ø¹Ø±Ø§Ù‚ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­ ÙˆØªÙˆØ¬ÙŠÙ‡ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø§Ù„Ù…Ù†Ø§Ø³Ø¨: ${domainResult.intent}`;
+        friendlyMsg = `تم فهم اللهجة العراقية بنجاح وتوجيه الإجراء التلقائي المناسب: ${domainResult.intent}`;
       } else {
-        friendlyMsg = `ØªÙ… ØªÙ†ÙÙŠØ° Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ù…Ø­Ø¯Ø¯ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¯ÙˆÙ† Ø§Ù„Ø­Ø§Ø¬Ø© Ù„Ù†Ù…ÙˆØ°Ø¬ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ: ${domainResult.intent}`;
+        friendlyMsg = `تم تنفيذ الإجراء المحدد تلقائياً دون الحاجة لنموذج الذكاء الاصطناعي: ${domainResult.intent}`;
       }
 
       await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Immediate domain resolved");
@@ -595,7 +659,7 @@ export class ChatOrchestratorService {
         return {
           intent,
           usedModel: false,
-          response: "ØªØ´ØºÙŠÙ„ Codex Runtime ÙŠØ­ØªØ§Ø¬ Ù…ÙˆØ§ÙÙ‚Ø© Ø­Ø³Ø¨ ÙˆØ¶Ø¹ Ø§Ù„ÙˆØµÙˆÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ.",
+          response: "تشغيل Codex Runtime يحتاج موافقة حسب وضع الوصول الحالي.",
           approvalRequest: codexResult.approvalRequest
         };
       }
@@ -631,16 +695,16 @@ export class ChatOrchestratorService {
         await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
       }
 
-      const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "Ù…Ø§ÙƒÙˆ output Ø±Ø¬Ø¹ Ù…Ù† Codex runtime.";
+      const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "ماكو output رجع من Codex runtime.";
       return {
         intent,
         usedModel: false,
         response: [
-          codexResult.success ? "Codex Runtime Ø§Ø´ØªØºÙ„ ÙˆØ±Ø¬Ø¹ Ø§Ù„Ù†ØªÙŠØ¬Ø©:" : "Codex Runtime Ù…Ø§ Ø§Ø´ØªØºÙ„ Ø¨Ù†Ø¬Ø§Ø­:",
+          codexResult.success ? "Codex Runtime اشتغل ورجع النتيجة:" : "Codex Runtime ما اشتغل بنجاح:",
           "",
-          codexResult.error ? `Ø§Ù„Ø³Ø¨Ø¨:\n${codexResult.error}` : "",
+          codexResult.error ? `السبب:\n${codexResult.error}` : "",
           "",
-          "Ø§Ù„Ø£Ù…Ø±:",
+          "الأمر:",
           `${codexResult.command} ${codexResult.args.join(" ")}`,
           "",
           "Workspace:",
@@ -652,7 +716,7 @@ export class ChatOrchestratorService {
       };
     }
 
-    if (decisionResult.decision === "PLAN" && decisionResult.workflow === "engineering_workflow") {
+    if ((decisionResult.decision === "PLAN" || decisionResult.decision === "WAIT_FOR_APPROVAL") && decisionResult.workflow === "engineering_workflow") {
       ConversationStateEngine.updateState(sessionId, {
         lastIntent: intent,
         activeWorkflow: "engineering_workflow",
@@ -793,7 +857,7 @@ export class ChatOrchestratorService {
     let usedModel = true;
     let responseText = "";
 
-    // Bypass LLM for non-LLM actions (Section 1: Ø§Ø­ÙØ¸ / Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ / Ø®Ø²Ù† / ØªØ°ÙƒØ±)
+    // Bypass LLM for non-LLM actions (Section 1: احفظ / درب نفسك / خزن / تذكر)
     const shouldImportAttachmentsFirst = normalizedAttachments.length > 0
       && ChatOrchestratorService.shouldImportAttachmentsBeforeAnswer(userRequestText);
     if (intent === "memory_save" || intent === "training_ingest" || shouldImportAttachmentsFirst) {
@@ -826,16 +890,16 @@ export class ChatOrchestratorService {
         const imported = await KnowledgeIngestionService.importAttachmentsAsTraining(activeWorkspace, normalizedAttachments);
         const importedLines = imported.length
           ? imported.map((item) => `- ${item.fileName} -> ${item.trainingPath} (${item.category})`)
-          : ["Ù„Ù… Ø£ØªÙ…ÙƒÙ† Ù…Ù† Ø­ÙØ¸ Ø£ÙŠ Ù…Ø±ÙÙ‚. ØªØ£ÙƒØ¯ Ø£Ù† Ø§Ù„Ù…Ù„Ù Ù…ÙˆØ¬ÙˆØ¯ ÙˆÙ„ÙŠØ³ Ù…Ù„ÙÙ‹Ø§ Ø­Ø³Ø§Ø³Ù‹Ø§ Ø£Ùˆ Ù…Ø­Ø°ÙˆÙÙ‹Ø§."];
+          : ["لم أتمكن من حفظ أي مرفق. تأكد أن الملف موجود وليس ملفًا حساسًا أو محذوفًا."];
         responseText = [
-          "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù…Ø±ÙÙ‚Ø§Øª ÙƒÙ…Ø±Ø§Ø¬Ø¹ ØªØ¯Ø±ÙŠØ¨ Ø¯Ø§Ø¦Ù…Ø© ÙˆØ¥Ø¹Ø§Ø¯Ø© ÙÙ‡Ø±Ø³ØªÙ‡Ø§.",
+          "تم حفظ المرفقات كمراجع تدريب دائمة وإعادة فهرستها.",
           ...importedLines
         ].join("\n");
         await this.transitionToComplete(taskId, "Attachments saved successfully");
       } else {
         const fact = this.extractMemoryFact(userRequestText);
         if (!fact) {
-          responseText = "Ø§ÙƒØªØ¨ Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø© Ø§Ù„ØªÙŠ ØªØ±ÙŠØ¯ Ø­ÙØ¸Ù‡Ø§ Ø¨ÙˆØ¶ÙˆØ­ØŒ ÙˆØ³Ø£Ø­ÙØ¸Ù‡Ø§ ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø© Ø¨Ø¯ÙˆÙ† ØªÙˆÙ„ÙŠØ¯ Ø±Ø¯ Ù…Ù† Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„.";
+          responseText = "اكتب المعلومة التي تريد حفظها بوضوح، وسأحفظها في الذاكرة الدائمة بدون توليد رد من الموديل.";
           await this.transitionToComplete(taskId, "No fact extracted");
         } else {
           const saved = await EngineeringMemory.addKnowledgeItem({
@@ -843,7 +907,7 @@ export class ChatOrchestratorService {
             description: fact,
             relatedFiles: []
           });
-          responseText = `ØªÙ… Ø§Ù„Ø­ÙØ¸ ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø©.\nMemory ID: ${saved.id}\nØ§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø©: ${saved.description}`;
+          responseText = `تم الحفظ في الذاكرة الدائمة.\nMemory ID: ${saved.id}\nالمعلومة: ${saved.description}`;
           await this.transitionToComplete(taskId, "Memory saved successfully");
         }
       }
@@ -867,7 +931,7 @@ export class ChatOrchestratorService {
         const items = Array.isArray(registry) ? registry : (registry.items || []);
         count = items.length;
       } catch {}
-      responseText = `Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„ØªØ¯Ø±ÙŠØ¨ÙŠØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ©: ${count} Ù…Ù„Ù.\nÙ„Ù…Ø²ÙŠØ¯ Ù…Ù† Ø§Ù„ØªÙØ§ØµÙŠÙ„ØŒ ÙŠØ±Ø¬Ù‰ Ù…Ø±Ø§Ø¬Ø¹Ø© Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø¹Ø±ÙØ© ÙˆØ§Ù„ØªØ¯Ø±ÙŠØ¨.`;
+      responseText = `المراجع التدريبية الحالية: ${count} ملف.\nلمزيد من التفاصيل، يرجى مراجعة إعدادات المعرفة والتدريب.`;
       await this.transitionToComplete(taskId, "Knowledge list retrieved");
     } else if (intent === "translation") {
       usedModel = true;
@@ -1033,8 +1097,8 @@ export class ChatOrchestratorService {
           "You may be affectionate and emotionally present in tone, but do not claim to be a real human spouse, real lover, licensed therapist, doctor, or lawyer.",
           "Ask a short clarifying question only when the user request is genuinely unclear, unsafe, or needs consent/adult-safety boundaries.",
           "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
-          "Use words such as: Ø´Ù„ÙˆÙ†, Ø´Ù†Ùˆ, Ù„ÙŠØ´, Ø¥ÙŠ, Ù„Ø§, Ø²ÙŠÙ†, Ù‡Ø³Ù‡, ØªØ±Ù‡, Ø¨Ø¹Ø¯, ÙŠØ¹Ù†ÙŠ, Ø¥Ø°Ø§, Ù…Ùˆ, Ù…Ø§ÙƒÙˆ, Ù‡Ø°Ù†ÙŠ, Ø°Ù†ÙŠ, Ù‡ÙˆØ§ÙŠØ©, ÙƒÙ„Ø´, Ø¨Ø§Ø¬Ø±, Ø§Ù„ÙŠÙˆÙ…, Ù‡Ø§Ù„Ø´ÙŠ, Ù‡ÙŠÚ†, Ø¹ÙˆÙ, Ø®ÙˆØ´, ØªÙ…Ø§Ù….",
-          "Do not use non-Iraqi phrases such as: ÙˆØ´, ÙŠØ§Ø®ÙŠ, Ù…Ø±Ù‡, Ø±Ù‡ÙŠØ¨, Ø£Ø¨Ø´Ø±, ÙƒÙÙˆ Ø¹Ù„ÙŠÙƒ, ÙŠØ®ÙˆÙŠ, ÙŠØ§ Ø²Ù„Ù…Ø©, ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©.",
+          "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
+          "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
           "Maintain context using the provided conversation history. Reply directly with a concise, polite, and friendly response."
         ].join("\n") : [
           "You are Saad Studio Agent, the user's local AI engineering agent, tailored for software development.",
@@ -1042,9 +1106,9 @@ export class ChatOrchestratorService {
           "Always reply in natural Iraqi Arabic unless the user asks for another language.",
           "Even in engineering mode, remember this is the user's private personal agent. Keep responses personal, direct, and respectful instead of generic corporate assistant wording.",
           "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
-          "Use words such as: Ø´Ù„ÙˆÙ†, Ø´Ù†Ùˆ, Ù„ÙŠØ´, Ø¥ÙŠ, Ù„Ø§, Ø²ÙŠÙ†, Ù‡Ø³Ù‡, ØªØ±Ù‡, Ø¨Ø¹Ø¯, ÙŠØ¹Ù†ÙŠ, Ø¥Ø°Ø§, Ù…Ùˆ, Ù…Ø§ÙƒÙˆ, Ù‡Ø°Ù†ÙŠ, Ø°Ù†ÙŠ, Ù‡ÙˆØ§ÙŠØ©, ÙƒÙ„Ø´, Ø¨Ø§Ø¬Ø±, Ø§Ù„ÙŠÙˆÙ…, Ù‡Ø§Ù„Ø´ÙŠ, Ù‡ÙŠÚ†, Ø¹ÙˆÙ, Ø®ÙˆØ´, ØªÙ…Ø§Ù….",
-          "Do not use non-Iraqi phrases such as: ÙˆØ´, ÙŠØ§Ø®ÙŠ, Ù…Ø±Ù‡, Ø±Ù‡ÙŠØ¨, Ø£Ø¨Ø´Ø±, ÙƒÙÙˆ Ø¹Ù„ÙŠÙƒ, ÙŠØ®ÙˆÙŠ, ÙŠØ§ Ø²Ù„Ù…Ø©, ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©.",
-          "For technical replies, keep the Iraqi tone while staying precise, e.g. Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ù…Ùˆ Ø¨Ø§Ù„Ù€ APIØŒ Ø§Ù„Ù…Ø´ÙƒÙ„Ø© Ø¨Ø§Ù„Ù€ State Management.",
+          "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
+          "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
+          "For technical replies, keep the Iraqi tone while staying precise, e.g. المشكلة مو بالـ API، المشكلة بالـ State Management.",
           "If the topic is formal or scientific, use a slightly more formal Arabic style with a light Iraqi touch.",
           "Reply directly with a polite, intelligent, and conversational tone.",
           "You have direct access to search the internet via the integrated Brave Search tool. You can search the web and summarize online sources when requested.",
@@ -1231,26 +1295,26 @@ export class ChatOrchestratorService {
   private static wantsDiagnostics(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     return /\b(diagnostics?|debug|trace|routing|intent)\b/i.test(prompt)
-      || /(ØªØ´Ø®ÙŠØµ|Ø´Ø®Øµ|Ø¯ÙŠØ¨Ø§Ùƒ|Ù…Ø³Ø§Ø± Ø§Ù„Ù†ÙŠÙ‡|Ù…Ø³Ø§Ø± Ø§Ù„Ù†ÙŠØ©|Ø§Ø¸Ù‡Ø± Ø§Ù„ØªØ´Ø®ÙŠØµ|Ø§Ø¹Ø±Ø¶ Ø§Ù„ØªØ´Ø®ÙŠØµ)/.test(normalized);
+      || /(تشخيص|شخص|ديباك|مسار النيه|مسار النية|اظهر التشخيص|اعرض التشخيص)/.test(normalized);
   }
 
   private static isExplicitCodexRuntimeRequest(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     return /^\/codex\b/i.test(prompt.trim())
       || /\b(use|run|execute)\s+codex\b/i.test(prompt)
-      || /(Ø§Ø³ØªØ®Ø¯Ù…|Ø´ØºÙ„|Ø´ØºÙ‘Ù„|Ù†ÙØ°|Ù†ÙÙ‘Ø°).{0,20}codex/i.test(normalized)
-      || /codex.{0,20}(Ù†ÙØ°|Ù†ÙÙ‘Ø°|Ø´ØºÙ„|Ø´ØºÙ‘Ù„)/i.test(normalized);
+      || /(استخدم|شغل|شغّل|نفذ|نفّذ).{0,20}codex/i.test(normalized)
+      || /codex.{0,20}(نفذ|نفّذ|شغل|شغّل)/i.test(normalized);
   }
 
   private static formatMemoryRecallResponse(userMemory: string[], prompt = ""): string {
     if (userMemory.length === 0) {
-      return "Ù„Ø§ Ø£Ø¹Ø±Ù Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ù…Ø­ÙÙˆØ¸Ø© Ø¹Ù†Ùƒ Ø­ØªÙ‰ Ø§Ù„Ø¢Ù†.";
+      return "لا أعرف معلومات محفوظة عنك حتى الآن.";
     }
 
     const facts = userMemory
       .map((item) => item.trim())
       .filter(Boolean)
-      .map((item) => item.replace(/^[-â€¢]\s*/, ""))
+      .map((item) => item.replace(/^[-•]\s*/, ""))
       .filter((item) => !this.isTrainingMemoryFact(item))
       .filter((item, index, list) => {
         const normalized = this.normalizeArabic(item);
@@ -1258,7 +1322,7 @@ export class ChatOrchestratorService {
       });
 
     if (facts.length === 0) {
-      return "Ù„Ø§ Ø£Ø¹Ø±Ù Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø´Ø®ØµÙŠØ© Ù…Ø­ÙÙˆØ¸Ø© Ø¹Ù†Ùƒ Ø­ØªÙ‰ Ø§Ù„Ø¢Ù†.";
+      return "لا أعرف معلومات شخصية محفوظة عنك حتى الآن.";
     }
 
     if (this.isIdentityRecallPrompt(prompt)) {
@@ -1274,28 +1338,28 @@ export class ChatOrchestratorService {
     }
 
     return [
-      "Ø£Ø¹Ø±Ù Ø¹Ù†Ùƒ Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª:",
+      "أعرف عنك هذه المعلومات:",
       ...facts.map((fact) => `- ${fact}`)
     ].join("\n");
   }
 
   private static humanizeSingleMemoryFact(fact: string): string {
     const normalized = fact.trim();
-    const nameMatch = normalized.match(/^(?:Ø§Ø³Ù…ÙŠ|Ø§Ù†Ø§|Ø£Ù†Ø§|Ø§Ø³Ù…ÙŠ Ù‡Ùˆ)\s+(.+)$/i);
+    const nameMatch = normalized.match(/^(?:اسمي|انا|أنا|اسمي هو)\s+(.+)$/i);
     if (nameMatch?.[1]) {
-      return `Ø£Ù†Øª ${nameMatch[1].trim()}.`;
+      return `أنت ${nameMatch[1].trim()}.`;
     }
-    return `Ø­Ø³Ø¨ Ø§Ù„Ø°Ø§ÙƒØ±Ø©: ${normalized}`;
+    return `حسب الذاكرة: ${normalized}`;
   }
 
   private static isIdentityRecallPrompt(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
-    return /(Ù…Ù† Ø§Ù†Ø§|Ù…Ù† Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†Ø§|Ø§Ù†Ø§ Ù…Ù†Ùˆ|Ø§Ù†ÙŠ Ù…Ù†Ùˆ|Ù…Ø§ Ø§Ø³Ù…ÙŠ|Ø´Ù†Ùˆ Ø§Ø³Ù…ÙŠ|Ø§Ø³Ù…ÙŠ Ø´Ù†Ùˆ|Ø§Ø³Ù…ÙŠ Ù…Ù†Ùˆ|ØªØ¹Ø±ÙÙ†ÙŠ|ØªØªØ°ÙƒØ±Ù†ÙŠ|who am i|what is my name|do you know me)/i.test(normalized);
+    return /(من انا|من اني|منو اني|منو انا|انا منو|اني منو|ما اسمي|شنو اسمي|اسمي شنو|اسمي منو|تعرفني|تتذكرني|who am i|what is my name|do you know me)/i.test(normalized);
   }
 
   private static isIdentityMemoryFact(fact: string): boolean {
     const normalized = this.normalizeArabic(fact);
-    return /(Ø§Ø³Ù…ÙŠ|Ø§Ù†Ø§|Ø§Ù†ÙŠ|Ù…ØµÙ…Ù…|ÙƒØ±Ø§ÙÙŠÙƒ|Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ|Ù‡Ø°Ø§ Ø§Ù„Ø§Ø¬ÙŠÙ†Øª|graphic|designer|my name)/i.test(normalized)
+    return /(اسمي|انا|اني|مصمم|كرافيك|سعد ستوديو|هذا الاجينت|graphic|designer|my name)/i.test(normalized)
       && !this.isTrainingMemoryFact(fact);
   }
 
@@ -1303,7 +1367,7 @@ export class ChatOrchestratorService {
     const normalized = this.normalizeArabic(fact);
     const lower = fact.toLowerCase();
     return /saad agent core training protocol|permanent training instruction|autonomous learning|experience system|rule\s+\d|\.saad-agent|loading state|error state|empty state/i.test(lower)
-      || /(ØªØ¯Ø±Ø¨|ØªØ¯Ø±ÙŠØ¨|Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ|Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„|Ù‚Ø§Ø¹Ø¯Ù‡|Ù‚Ø§Ø¹Ø¯Ø©|ÙƒÙ„ ØµÙØ­Ù‡|ÙƒÙ„ ØµÙØ­Ø©|Ø³Ù…ÙŠÙ†|Ø¶Ø¹ÙŠÙ|ØµØ¯Ø± ÙƒØ¨ÙŠØ±|ØµØ¯Ø± ØµØºÙŠØ±|Ø§Ø±Ø¯Ø§Ù|Ø£Ø±Ø¯Ø§Ù|Ø´ÙØ§ÙŠÙ|Ø¹Ø¶Ù„Ø§Øª|body_type|chest_size|butt_size|lips_)/i.test(normalized);
+      || /(تدرب|تدريب|درب نفسك|بروتوكول|قاعده|قاعدة|كل صفحه|كل صفحة|سمين|ضعيف|صدر كبير|صدر صغير|ارداف|أرداف|شفايف|عضلات|body_type|chest_size|butt_size|lips_)/i.test(normalized);
   }
 
   private static detectIntent(prompt: string, sessionId: string): IntentClassificationResult {
@@ -1311,7 +1375,7 @@ export class ChatOrchestratorService {
     
     // Explicit Dialect / Direct mapping check (Section 3 & 8)
     const n = normalized;
-    if (n.includes("Ø§Ø­ÙØ¸ Ù‡Ø°Ø§") || n.includes("Ø§Ø­ÙØ¸ Ù‡Ø°Ù‡ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ù‡") || n.includes("Ø§Ø­ÙØ¸ Ù‡Ø°Ù‡ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©") || n.includes("Ø®Ø²Ù† Ù‡Ø°Ø§")) {
+    if (n.includes("احفظ هذا") || n.includes("احفظ هذه القاعده") || n.includes("احفظ هذه القاعدة") || n.includes("خزن هذا")) {
       return {
         intent: "memory_save",
         confidence: 1.0,
@@ -1321,7 +1385,7 @@ export class ChatOrchestratorService {
         selectedTools: ["EngineeringMemory"]
       };
     }
-    if (n.includes("Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ù…Ù„Ù") || n.includes("Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ Ø¹Ù„Ù‰ Ù‡Ø°Ù‡ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ù‡") || n.includes("Ø¯Ø±Ø¨ Ù†ÙØ³Ùƒ Ø¹Ù„Ù‰ Ù‡Ø°Ù‡ Ø§Ù„Ù‚Ø§Ø¹Ø¯Ø©")) {
+    if (n.includes("درب نفسك على هذا الملف") || n.includes("درب نفسك على هذه القاعده") || n.includes("درب نفسك على هذه القاعدة")) {
       return {
         intent: "training_ingest",
         confidence: 1.0,
@@ -1331,7 +1395,7 @@ export class ChatOrchestratorService {
         selectedTools: ["AttachmentManager", "KnowledgeIngestionService"]
       };
     }
-    if (n.includes("Ù…Ø§ Ø§Ù„Ø°ÙŠ Ø¯Ø±Ø¨ØªÙƒ Ø¹Ù„ÙŠÙ‡") || n.includes("Ù…Ø§ Ø§Ù„Ø°ÙŠ Ø¯Ø±Ø¨ØªÙƒ Ø¹Ù„ÙŠÙ‡ Ù‚Ø¨Ù„ Ù‚Ù„ÙŠÙ„")) {
+    if (n.includes("ما الذي دربتك عليه") || n.includes("ما الذي دربتك عليه قبل قليل")) {
       return {
         intent: "memory_recall",
         confidence: 1.0,
@@ -1341,7 +1405,7 @@ export class ChatOrchestratorService {
         selectedTools: ["EngineeringMemory"]
       };
     }
-    if (n.includes("Ø§Ø´Ø±Ø­ Ø§Ù„Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„ Ø§Ù„Ø°ÙŠ Ø­ÙØ¸ØªÙ‡") || n.includes("Ø§Ø´Ø±Ø­ Ø§Ù„Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„")) {
+    if (n.includes("اشرح البروتوكول الذي حفظته") || n.includes("اشرح البروتوكول")) {
       return {
         intent: "knowledge_lookup",
         confidence: 1.0,
@@ -1351,7 +1415,7 @@ export class ChatOrchestratorService {
         selectedTools: ["PreAnswerReviewService", "ContextEngine"]
       };
     }
-    if (n.includes("Ø§Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ¨ÙŠÙ‡") || n.includes("Ø§Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„Ø§Øª Ø§Ù„ØªØ¯Ø±ÙŠØ¨ÙŠØ©") || n.includes("Ø§Ø¹Ø±Ø¶ Ø¬Ù…ÙŠØ¹")) {
+    if (n.includes("اعرض جميع البروتوكولات التدريبيه") || n.includes("اعرض جميع البروتوكولات التدريبية") || n.includes("اعرض جميع")) {
       return {
         intent: "knowledge_list",
         confidence: 1.0,
@@ -1446,12 +1510,12 @@ export class ChatOrchestratorService {
       || /(?:\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642)\s+(?:\u0645\u0631\u062c\u0639|\u0644\u0644\u062a\u062f\u0631\u064a\u0628)/.test(normalized);
     const saveSignals = /\b(remember|save|store|memorize)\b/i.test(lower)
       || arabicSaveSignals
-      || /(Ø§Ø­ÙØ¸|Ø­ÙØ¸|ØªØ°ÙƒØ±|ØªØ°ÙƒÙ‘Ø±|Ø®Ø²Ù†|Ø®Ø²Ù‘Ù†|Ø³Ø¬Ù„|Ø³Ø¬Ù‘Ù„|Ø«Ø¨Øª|Ø«Ø¨Ù‘Øª)/.test(normalized);
+      || /(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|ثبت|ثبّت)/.test(normalized);
     const trainingSignals = /\b(train|training|learn from|use as reference|save as reference|store as reference)\b/i.test(lower)
       || arabicTrainingSignals
-      || /(?:^|\s)(?:Ø¯Ø±Ø¨|ØªØ¯Ø±ÙŠØ¨)\s+(?:Ù†ÙØ³Ùƒ|Ø¹Ù„Ù‰|Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø°ÙŠ|Ù‡Ø§ÙŠ|Ø§Ù„Ù…Ù„Ù|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©|Ø§Ù„Ù…Ø±ÙÙ‚)/.test(normalized)
-      || /(?:Ø§Ø­ÙØ¸|Ø­ÙØ¸|Ø®Ø²Ù†|Ø³Ø¬Ù„|Ø«Ø¨Øª|Ø§Ø³ØªØ®Ø¯Ù…|Ø§Ø¹ØªÙ…Ø¯).*(?:Ù…Ø±Ø¬Ø¹|Ù…Ø±Ø§Ø¬Ø¹|ØªØ¯Ø±ÙŠØ¨)/.test(normalized)
-      || /(?:Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø°ÙŠ|Ù‡Ø§ÙŠ|Ø§Ù„Ù…Ù„Ù|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©|Ø§Ù„Ù…Ø±ÙÙ‚)\s+(?:Ù…Ø±Ø¬Ø¹|Ù„Ù„ØªØ¯Ø±ÙŠØ¨)/.test(normalized);
+      || /(?:^|\s)(?:درب|تدريب)\s+(?:نفسك|على|هذا|هذه|هذي|هاي|الملف|الصوره|الصورة|المرفق)/.test(normalized)
+      || /(?:احفظ|حفظ|خزن|سجل|ثبت|استخدم|اعتمد).*(?:مرجع|مراجع|تدريب)/.test(normalized)
+      || /(?:هذا|هذه|هذي|هاي|الملف|الصوره|الصورة|المرفق)\s+(?:مرجع|للتدريب)/.test(normalized);
     const recallQuestion = this.isMemoryRecall(prompt, normalized)
       || /\?/.test(prompt);
     return (saveSignals || trainingSignals) && !recallQuestion;
@@ -1460,35 +1524,35 @@ export class ChatOrchestratorService {
   private static isTrainingIngestRequest(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
     return /\b(train|training|learn from|use as reference|save as reference)\b/i.test(lower)
-      || /(?:Ø¯Ø±Ø¨|Ø¯Ø±Ù‘Ø¨|ØªØ¯Ø±ÙŠØ¨).*(?:Ù†ÙØ³Ùƒ|Ø§Ù„Ù…Ù„Ù|Ù‡Ø°Ø§ Ø§Ù„Ù…Ù„Ù|Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù„Ù|Ø§Ù„Ù…Ø±ÙÙ‚|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©)/.test(normalized)
-      || /(?:Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø°ÙŠ|Ù‡Ø§ÙŠ|Ø§Ù„Ù…Ù„Ù|Ø§Ù„ØµÙˆØ±Ù‡|Ø§Ù„ØµÙˆØ±Ø©|Ø§Ù„Ù…Ø±ÙÙ‚).*(?:Ù„Ù„ØªØ¯Ø±ÙŠØ¨|Ù…Ø±Ø¬Ø¹)/.test(normalized);
+      || /(?:درب|درّب|تدريب).*(?:نفسك|الملف|هذا الملف|هذه الملف|المرفق|الصوره|الصورة)/.test(normalized)
+      || /(?:هذا|هذه|هذي|هاي|الملف|الصوره|الصورة|المرفق).*(?:للتدريب|مرجع)/.test(normalized);
   }
 
   private static isTrainingRecallQuestion(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
     return /\b(what did i train you on|what have you learned|explain what you learned|trained knowledge)\b/i.test(lower)
-      || /(?:Ø§Ù„Ø°ÙŠ|Ø§Ù„Ù„ÙŠ|Ù…Ø§|Ù…Ø§Ø°Ø§|Ø§Ø´Ø±Ø­|Ø§Ø°ÙƒØ±|Ø´Ù†Ùˆ|Ù…Ø§Ù‡Ùˆ|Ù…Ø§ Ù‡Ùˆ).*(?:Ø¯Ø±Ø¨Ùƒ|Ø¯Ø±Ø¨ØªÙƒ|ØªØ¯Ø±Ø¨Øª|ØªØ¹Ù„Ù…Øª|Ø§Ù„Ù…Ø¹Ø±ÙÙ‡ Ø§Ù„Ù…Ø¯Ø±Ø¨Ù‡|Ø§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„Ù…Ø¯Ø±Ø¨Ø©|Ø§Ù„ØªØ¯Ø±ÙŠØ¨ Ø§Ù„Ø³Ø§Ø¨Ù‚|Ù‚Ø¨Ù„)/.test(normalized)
-      || /(?:Ø¯Ø±Ø¨Ùƒ|Ø¯Ø±Ø¨ØªÙƒ|ØªØ¯Ø±Ø¨Øª).*(?:Ù‚Ø¨Ù„|Ø³Ø§Ø¨Ù‚Ø§|Ø³Ø§Ø¨Ù‚Ø§Ù‹|Ø¹Ù„ÙŠÙ‡)/.test(normalized);
+      || /(?:الذي|اللي|ما|ماذا|اشرح|اذكر|شنو|ماهو|ما هو).*(?:دربك|دربتك|تدربت|تعلمت|المعرفه المدربه|المعرفة المدربة|التدريب السابق|قبل)/.test(normalized)
+      || /(?:دربك|دربتك|تدربت).*(?:قبل|سابقا|سابقاً|عليه)/.test(normalized);
   }
 
   private static isMemoryRecall(prompt: string, normalized: string): boolean {
     return /(\u0645\u0646 \u0627\u0646\u0627|\u0645\u0646 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u0627|\u0627\u0646\u0627 \u0645\u0646\u0648|\u0627\u0646\u064a \u0645\u0646\u0648|\u0645\u0627 \u0627\u0633\u0645\u064a|\u0634\u0646\u0648 \u0627\u0633\u0645\u064a|\u0627\u0633\u0645\u064a \u0634\u0646\u0648|\u0627\u0633\u0645\u064a \u0645\u0646\u0648|\u062a\u0639\u0631\u0641\u0646\u064a|\u062a\u062a\u0630\u0643\u0631\u0646\u064a|\u0645\u0627\u0630\u0627 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0644\u064a|\u0645\u0627\u0630\u0627 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062d\u0627\u0641\u0638 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0645\u062e\u0632\u0646 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0630\u0627\u0643\u0631 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062a\u0639\u0631\u0641\u0647 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062d\u0627\u0641\u0638\u0647 \u0639\u0646\u064a|\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized)
-      || /(Ù…Ù† Ø§Ù†Ø§|Ù…Ù† Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†ÙŠ|Ù…Ù†Ùˆ Ø§Ù†Ø§|Ø§Ù†Ø§ Ù…Ù†Ùˆ|Ø§Ù†ÙŠ Ù…Ù†Ùˆ|Ù…Ø§ Ø§Ø³Ù…ÙŠ|Ø´Ù†Ùˆ Ø§Ø³Ù…ÙŠ|Ø§Ø³Ù…ÙŠ Ø´Ù†Ùˆ|Ø§Ø³Ù…ÙŠ Ù…Ù†Ùˆ|ØªØ¹Ø±ÙÙ†ÙŠ|ØªØªØ°ÙƒØ±Ù†ÙŠ|Ù…Ø§Ø°Ø§ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØ¹Ø±Ù Ø¹Ù„ÙŠ|Ù…Ø§Ø°Ø§ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ ØªØªØ°ÙƒØ± Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø­Ø§ÙØ¸ Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ù…Ø®Ø²Ù† Ø¹Ù†ÙŠ|Ø´Ù†Ùˆ Ø°Ø§ÙƒØ± Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ ØªØ¹Ø±ÙÙ‡ Ø¹Ù†ÙŠ|Ø§ÙƒÙˆ Ø´ÙŠ Ø­Ø§ÙØ¸Ù‡ Ø¹Ù†ÙŠ|Ù…Ø¹Ù„ÙˆÙ…Ø§ØªÙŠ|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
+      || /(من انا|من اني|منو اني|منو انا|انا منو|اني منو|ما اسمي|شنو اسمي|اسمي شنو|اسمي منو|تعرفني|تتذكرني|ماذا تعرف عني|شنو تعرف عني|شنو تعرف علي|ماذا تتذكر عني|شنو تتذكر عني|شنو حافظ عني|شنو مخزن عني|شنو ذاكر عني|اكو شي تعرفه عني|اكو شي حافظه عني|معلوماتي|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
   }
 
   private static isExplicitInternetSearch(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
-    const asksLocalScope = /(Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|ÙÙŠ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¨Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ù„ÙØ§Øª|ÙÙŠ Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¨Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¯Ø§Ø®Ù„ Ø§Ù„ÙƒÙˆØ¯|ÙÙŠ Ø§Ù„ÙƒÙˆØ¯|workspace|project files|local files|codebase)/i.test(normalized)
+    const asksLocalScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalized)
       || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
-    const allowedTriggers = /(Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ø§Ù†ØªØ±Ù†Øª|Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª|Ø§Ø¨Ø­Ø« Ø¨Ø§Ù„ÙˆÙŠØ¨|Ø§Ø®Ø± ØªØ­Ø¯ÙŠØ«|Ø¢Ø®Ø± ØªØ­Ø¯ÙŠØ«|ÙˆØ«Ø§Ø¦Ù‚|ØªÙˆØ«ÙŠÙ‚|Ø§Ø®Ø¨Ø§Ø±|Ø£Ø®Ø¨Ø§Ø±|Ù…Ø³ØªÙ†Ø¯Ø§Øª)/i.test(normalized)
+    const allowedTriggers = /(ابحث في الانترنت|ابحث في الإنترنت|ابحث بالويب|اخر تحديث|آخر تحديث|وثائق|توثيق|اخبار|أخبار|مستندات)/i.test(normalized)
       || /\b(search online|search web|latest|official docs|documentation|api docs|news)\b/i.test(lower);
     const explicitLinksOrSources = /(?:\u0627\u0639\u0637\u0646\u064a|\u0627\u0639\u0637\u064a\u0646\u064a|\u0647\u0627\u062a|\u0627\u0631\u064a\u062f|\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a).*(?:\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0635\u0648\u0631)/.test(normalized)
       || /\b(give me links|give me sources|links|sources|find images|image search)\b/i.test(lower);
-    const directSearchVerb = /(?:^|\s)(?:Ø§Ø¨Ø­Ø«Ù„ÙŠ|Ø§Ø¨Ø­Ø«\s+Ù„ÙŠ|Ø§Ø¨Ø­Ø«|Ø¯ÙˆØ±Ù„ÙŠ|Ø¯ÙˆØ±\s+Ù„ÙŠ|Ø¯ÙˆØ±|ÙØªØ´Ù„ÙŠ|ÙØªØ´\s+Ù„ÙŠ|ÙØªØ´|Ø¬ÙŠØ¨Ù„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|Ø¬ÙŠØ¨\s+Ù„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|Ù‡Ø§ØªÙ„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|Ù‡Ø§Øª\s+Ù„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|Ø·Ù„Ø¹Ù„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|Ø·Ù„Ø¹\s+Ù„ÙŠ\s+Ù…Ø¹Ù„ÙˆÙ…Ø§Øª)(?:\s|$)/i.test(normalized)
+    const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalized)
       || /\b(?:search for|look up|research|find info about|find information about)\b/i.test(lower);
     const externalTopicSignal = /[A-Za-z][A-Za-z0-9_.\-/]*(?:\s+\d+(?:\.\d+)*)?/i.test(prompt)
       || /\d+(?:\.\d+)+/.test(prompt)
-      || /(Ù…ÙˆØ¯ÙŠÙ„|Ù†Ù…ÙˆØ°Ø¬|Ø´Ø±ÙƒØ©|Ù…Ù†ØªØ¬|Ù…Ù†ØµØ©|Ø®Ø¯Ù…Ø©|ØªÙ‚Ù†ÙŠØ©|Ø§ØµØ¯Ø§Ø±|Ø¥ØµØ¯Ø§Ø±|Ù†Ø³Ø®Ù‡|Ù†Ø³Ø®Ø©|Ù…Ø¹Ù„ÙˆÙ…Ø§Øª|ØªÙØ§ØµÙŠÙ„|Ø³Ø¹Ø±|Ø§Ø³Ø¹Ø§Ø±|Ø£Ø³Ø¹Ø§Ø±|ÙˆØ«Ø§Ø¦Ù‚|ØªÙˆØ«ÙŠÙ‚|Ù…ØµØ§Ø¯Ø±|Ø±ÙˆØ§Ø¨Ø·)/i.test(normalized);
+      || /(موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|اصدار|إصدار|نسخه|نسخة|معلومات|تفاصيل|سعر|اسعار|أسعار|وثائق|توثيق|مصادر|روابط)/i.test(normalized);
     const directExternalSearch = directSearchVerb && externalTopicSignal && !asksLocalScope;
     return allowedTriggers || explicitLinksOrSources || directExternalSearch;
   }
@@ -1688,14 +1752,14 @@ export class ChatOrchestratorService {
       .map((match, index) => `${index + 1}. ${match.item.title || match.item.fileName || path.basename(match.item.filePath || "training-source")}`)
       .join("\n");
     return [
-      "Ù…Ø§ ÙƒØ¯Ø±Øª Ø£ÙƒÙ…Ù„ Ø§Ù„ØªØ±Ø¬Ù…Ø© Ù„Ø£Ù† Ù…Ø²ÙˆØ¯ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ù…Ø§ Ø±Ø¬Ø¹ Ø¬ÙˆØ§Ø¨.",
+      "ما كدرت أكمل الترجمة لأن مزود الموديل ما رجع جواب.",
       "",
-      `Ø§Ù„Ø·Ù„Ø¨: ${userRequestText}`,
-      sourceNames ? `Ù„Ù‚ÙŠØª Ù…Ø±Ø§Ø¬Ø¹ Ù…Ù…ÙƒÙ† ØªØªØ±Ø¬Ù… Ù…Ù†Ù‡Ø§:\n${sourceNames}` : "Ù…Ø§ Ù„ÙƒÙŠØª Ù†Øµ ÙˆØ§Ø¶Ø­ Ø£ØªØ±Ø¬Ù…Ù‡ Ù…Ù† Ø§Ù„Ø·Ù„Ø¨ Ø£Ùˆ Ø§Ù„Ù…Ø¹Ø±ÙØ©.",
+      `الطلب: ${userRequestText}`,
+      sourceNames ? `لقيت مراجع ممكن تترجم منها:\n${sourceNames}` : "ما لكيت نص واضح أترجمه من الطلب أو المعرفة.",
       "",
-      `Ø§Ù„Ø³Ø¨Ø¨ Ø§Ù„ØªÙ‚Ù†ÙŠ: ${errorMessage}`,
+      `السبب التقني: ${errorMessage}`,
       "",
-      "Ø´ØºÙ‘Ù„/Ø®ÙÙ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø£Ùˆ ØºÙŠÙ‘Ø± Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ø³Ø±ÙŠØ¹ØŒ ÙˆØ¨Ø¹Ø¯Ù‡Ø§ Ø£ØªØ±Ø¬Ù…Ù‡Ø§ Ø¥Ù„Ùƒ Ø¨ØµÙˆØªÙƒ Ø§Ù„Ø¹Ø±Ø§Ù‚ÙŠ Ø§Ù„Ø·Ø¨ÙŠØ¹ÙŠ Ø¨Ø¯ÙˆÙ† Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ø®Ø§Ù…."
+      "شغّل/خفف الموديل أو غيّر الموديل السريع، وبعدها أترجمها إلك بصوتك العراقي الطبيعي بدون عرض المراجع الخام."
     ].join("\n");
   }
 
@@ -1721,13 +1785,13 @@ export class ChatOrchestratorService {
 
   private static formatModelFailureResponse(errorMessage: string): string {
     return [
-      "Ù…Ø§ Ú¯Ø¯Ø±Øª Ø£Ø±Ø¬Ø¹ Ø¬ÙˆØ§Ø¨ Ù„Ø£Ù† Ù…Ø²ÙˆØ¯ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ù…Ø§ ÙƒÙ…Ù‘Ù„ Ø§Ù„Ø·Ù„Ø¨.",
+      "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
       "",
-      `Ø§Ù„Ø³Ø¨Ø¨: ${errorMessage}`,
+      `السبب: ${errorMessage}`,
       "",
-      "Ø±Ø§Ø¬Ø¹ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø²ÙˆØ¯ ÙˆØ§Ù„Ù…ÙˆØ¯ÙŠÙ„ØŒ Ø®ØµÙˆØµØ§Ù‹ Endpoint Ø§Ù„Ø®Ø§Øµ Ø¨Ù€ LM Studio. Ù„Ø§Ø²Ù… ÙŠÙƒÙˆÙ† Ù…Ø«Ù„:",
+      "راجع إعدادات المزود والموديل، خصوصاً Endpoint الخاص بـ LM Studio. لازم يكون مثل:",
       "`http://127.0.0.1:32768`",
-      "ÙˆØ§Ù„Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠ ÙŠØ³ØªØ®Ø¯Ù… `/api/v1/chat` Ø£Ùˆ `/api/v1/chat/completions`."
+      "والاستدعاء الداخلي يستخدم `/api/v1/chat` أو `/api/v1/chat/completions`."
     ].join("\n");
   }
 
@@ -1749,25 +1813,25 @@ export class ChatOrchestratorService {
     }).join("\n\n");
 
     return [
-      "Ù…Ø§ Ø±Ø§Ø­ Ø£Ø®Ù„ÙŠ Ø§Ù„Ø·Ù„Ø¨ ÙŠØ¶ÙŠØ¹ Ù„Ø£Ù† Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ ØªØ£Ø®Ø±.",
-      "Ù„Ù‚ÙŠØª ØªØ¯Ø±ÙŠØ¨ Ù…Ø·Ø§Ø¨Ù‚ØŒ ÙØ£Ø±Ø¬Ø¹ Ù„Ùƒ Ø®Ù„Ø§ØµØ© Ù…Ø¨Ù†ÙŠØ© Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„Ù…Ø®Ø²ÙˆÙ†Ø© Ø¨Ø¯Ù„ Ø¬ÙˆØ§Ø¨ ØªØ®Ù…ÙŠÙ†ÙŠ Ù…Ù† Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„.",
+      "ما راح أخلي الطلب يضيع لأن الموديل تأخر.",
+      "لقيت تدريب مطابق، فأرجع لك خلاصة مبنية على المعرفة المخزونة بدل جواب تخميني من الموديل.",
       "",
-      `Ø³Ø¤Ø§Ù„Ùƒ: ${userRequestText}`,
+      `سؤالك: ${userRequestText}`,
       "",
-      "Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚Ø©:",
+      "المراجع المطابقة:",
       sources,
       "",
-      "Ù…Ù„Ø§Ø­Ø¸Ø© ØªÙ‚Ù†ÙŠØ©:",
-      `LM Studio ÙØ´Ù„ Ø£Ùˆ ØªØ£Ø®Ø±: ${errorMessage}`,
-      "Ø­ØªÙ‰ ØªØ­ØµÙ„ Ø¬ÙˆØ§Ø¨ Ù…ØµØ§Øº Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ØŒ Ø´ØºÙ‘Ù„/Ø®ÙÙ Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø£Ùˆ ØºÙŠÙ‘Ø± Ø§Ù„Ù…ÙˆØ¯ÙŠÙ„ Ø§Ù„Ø³Ø±ÙŠØ¹. Ø¨Ø³ Ø§Ù„ØªØ¯Ø±ÙŠØ¨ Ù†ÙØ³Ù‡ Ù…ÙˆØ¬ÙˆØ¯ ÙˆÙ‚Ø§Ø¨Ù„ Ù„Ù„Ø§Ø³ØªØ±Ø¬Ø§Ø¹."
+      "ملاحظة تقنية:",
+      `LM Studio فشل أو تأخر: ${errorMessage}`,
+      "حتى تحصل جواب مصاغ بالكامل، شغّل/خفف الموديل أو غيّر الموديل السريع. بس التدريب نفسه موجود وقابل للاسترجاع."
     ].join("\n");
   }
 
   private static isSimpleGreeting(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     const greetings = [
-      "Ø§Ù‡Ù„Ø§", "Ù‡Ù„Ø§", "ÙŠØ§ Ù‡Ù„Ø§", "ÙŠØ§Ù‡Ù„Ø§", "Ù…Ø±Ø­Ø¨Ø§", "Ù…Ø±Ø­Ø¨Ù‰", "Ù…Ø±Ø­Ø¨ÙŠ", "Ù…Ø±Ø§Ø­Ø¨", "Ø³Ù„Ø§Ù…",
-      "Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ…", "ØµØ¨Ø§Ø­ Ø§Ù„Ø®ÙŠØ±", "Ù…Ø³Ø§Ø¡ Ø§Ù„Ø®ÙŠØ±", "hello", "hi", "hey"
+      "اهلا", "هلا", "يا هلا", "ياهلا", "مرحبا", "مرحبى", "مرحبي", "مراحب", "سلام",
+      "السلام عليكم", "صباح الخير", "مساء الخير", "hello", "hi", "hey"
     ];
     return greetings.includes(normalized);
   }
@@ -1779,13 +1843,13 @@ export class ChatOrchestratorService {
     if (words.length === 0 || words.length > 18) return false;
 
     const asksQuestion = /\?/.test(prompt)
-      || /^(?:Ù…Ù†Ùˆ|Ù…Ù†|Ù…Ø§|Ù…Ø§Ø°Ø§|Ø´Ù†Ùˆ|Ø´Ù†ÙŠ|Ù„ÙŠØ´|Ù„Ù…Ø§Ø°Ø§|Ù‡Ù„|Ø§ÙŠÙ†|ÙˆÙŠÙ†|Ù…ØªÙ‰|ÙƒÙ…|ÙƒÙŠÙ|Ø´Ù„ÙˆÙ†)\b/.test(normalized)
+      || /^(?:منو|من|ما|ماذا|شنو|شني|ليش|لماذا|هل|اين|وين|متى|كم|كيف|شلون)\b/.test(normalized)
       || /^(?:who|what|why|where|when|how|is|are|do|does|did)\b/i.test(lower)
-      || /(?:Ø¹Ù†Ø¯ÙŠ Ø³Ø¤Ø§Ù„|Ø§Ø±ÙŠØ¯ Ø§Ø³Ø§Ù„|Ø§Ø±ÙŠØ¯ Ø§Ø³Ø£Ù„|Ø³Ø¤Ø§Ù„).{0,30}(?:Ù…Ù†Ùˆ|Ù…Ù† Ù‡Ùˆ|Ø´Ù†Ùˆ|Ù…Ø§ Ù‡Ùˆ|Ù„ÙŠØ´|Ù„Ù…Ø§Ø°Ø§|ÙˆÙŠÙ†|Ø§ÙŠÙ†|Ù…ØªÙ‰|Ø´Ù„ÙˆÙ†|ÙƒÙŠÙ)/.test(normalized)
-      || /(?:Ù…Ù†Ùˆ Ù‡Ùˆ|Ù…Ù† Ù‡Ùˆ|Ø´Ù†Ùˆ Ù‡Ùˆ|Ù…Ø§ Ù‡Ùˆ)/.test(normalized);
+      || /(?:عندي سؤال|اريد اسال|اريد اسأل|سؤال).{0,30}(?:منو|من هو|شنو|ما هو|ليش|لماذا|وين|اين|متى|شلون|كيف)/.test(normalized)
+      || /(?:منو هو|من هو|شنو هو|ما هو)/.test(normalized);
     if (!asksQuestion) return false;
 
-    const engineeringSignals = /(ÙƒÙˆØ¯|Ø¨Ø±Ù…Ø¬|Ù…Ø´Ø±ÙˆØ¹|Ù…Ù„Ù|ÙÙˆÙ„Ø¯Ø±|ØµÙØ­Ù‡|ØµÙØ­Ø©|route|component|api|provider|model|workspace|mcp|terminal|git|build|test|lint|fix|bug|error|review|deploy|install|npm|next|react|electron|saad studio|Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ|Ø§ØµÙ„Ø­|Ø¹Ø¯Ù‘Ù„|Ø¹Ø¯Ù„|Ø³ÙˆÙ‘ÙŠ|Ø³ÙˆÙŠ|Ø§Ù†Ø´Ø¦|Ø§Ù†Ø´Ø¡|Ø§Ø¶Ù|Ø§Ø±Ø¨Ø·|Ø§ÙØªØ­|Ø§Ø¨Ø­Ø«|Ø§Ø­ÙØ¸|Ø¯Ø±Ø¨|ØªØ°ÙƒØ±|Ø®Ø²Ù†)/i;
+    const engineeringSignals = /(كود|برمج|مشروع|ملف|فولدر|صفحه|صفحة|route|component|api|provider|model|workspace|mcp|terminal|git|build|test|lint|fix|bug|error|review|deploy|install|npm|next|react|electron|saad studio|سعد ستوديو|اصلح|عدّل|عدل|سوّي|سوي|انشئ|انشء|اضف|اربط|افتح|ابحث|احفظ|درب|تذكر|خزن)/i;
     if (engineeringSignals.test(normalized) || engineeringSignals.test(lower)) return false;
 
     const localPathSignal = /[a-zA-Z]:[\\/]|\.env|\.ts\b|\.tsx\b|\.js\b|\.json\b|\/|\\/;
@@ -1797,33 +1861,33 @@ export class ChatOrchestratorService {
   private static isAgentIdentityQuestion(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     const lower = prompt.trim().toLowerCase();
-    return /^(?:Ù…Ù†Ùˆ Ø§Ù†Øª|Ù…Ù†Ùˆ Ø§Ù†ØªÙ‡|Ù…Ù† Ø§Ù†Øª|Ù…Ù† Ø£Ù†Øª|Ø§Ù†Øª Ù…Ù†Ùˆ|Ø§Ù†ØªÙ‡ Ù…Ù†Ùˆ|Ø´Ù†Ùˆ Ø§Ù†Øª|Ù…Ø§ Ø§Ù†Øª|Ø¹Ø±ÙÙ†ÙŠ Ø¨Ù†ÙØ³Ùƒ|ØªÙƒÙ„Ù… Ø¹Ù† Ù†ÙØ³Ùƒ)$/.test(normalized)
+    return /^(?:منو انت|منو انته|من انت|من أنت|انت منو|انته منو|شنو انت|ما انت|عرفني بنفسك|تكلم عن نفسك)$/.test(normalized)
       || /^(?:who are you|what are you|introduce yourself)$/i.test(lower);
   }
 
   private static isSaadStudioProjectQuestion(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt);
     const lower = prompt.trim().toLowerCase();
-    return /(?:Ù…Ø§Ù‡Ùˆ|Ù…Ø§ Ù‡Ùˆ|Ø´Ù†Ùˆ|Ø¹Ø±ÙÙ†ÙŠ|Ø§Ø´Ø±Ø­).{0,20}(?:Ù…Ø´Ø±ÙˆØ¹)?\s*(?:Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ|saad studio)/i.test(normalized)
+    return /(?:ماهو|ما هو|شنو|عرفني|اشرح).{0,20}(?:مشروع)?\s*(?:سعد ستوديو|saad studio)/i.test(normalized)
       || /(?:what is|explain|describe).{0,30}(?:saad studio)/i.test(lower);
   }
 
   private static formatSaadStudioProjectResponse(): string {
     return [
-      "Ù…Ø´Ø±ÙˆØ¹ Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆ Ù‡Ùˆ Ù…Ù†Ø¸ÙˆÙ…Ø© ÙˆÙƒÙŠÙ„ Ù‡Ù†Ø¯Ø³ÙŠ Ù…Ø­Ù„ÙŠ Ø¯Ø§Ø®Ù„ ØªØ·Ø¨ÙŠÙ‚ ElectronØŒ Ù…Ø±Ø¨ÙˆØ· Ø¨ÙˆØ§Ø¬Ù‡Ø© Ø¯Ø±Ø¯Ø´Ø© ÙˆØ°Ø§ÙƒØ±Ø© Ù…Ø´Ø±ÙˆØ¹ ÙˆØªØ¯Ø±ÙŠØ¨ ÙˆÙ…Ø¹Ø±ÙØ©.",
+      "مشروع سعد ستوديو هو منظومة وكيل هندسي محلي داخل تطبيق Electron، مربوط بواجهة دردشة وذاكرة مشروع وتدريب ومعرفة.",
       "",
-      "Ø­Ø³Ø¨ Ù…Ø±Ø¬Ø¹ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø§Ù„Ø­Ø§Ù„ÙŠØŒ Ø§Ù„Ù‡Ø¯Ù Ù…Ù†Ù‡ ÙŠØ³Ø§Ø¹Ø¯Ùƒ Ø¨Ø§Ù„Ø´ØºÙ„ Ø§Ù„ÙŠÙˆÙ…ÙŠ: Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ØŒ ÙÙ‡Ù… Ø§Ù„Ø³ÙŠØ§Ù‚ØŒ Ø­ÙØ¸ Ø§Ù„Ù…Ø¹Ø±ÙØ©ØŒ Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ù…Ù„ÙØ§ØªØŒ Ø§Ù„ØªØ®Ø·ÙŠØ· Ù„Ù„ØªØ¹Ø¯ÙŠÙ„Ø§ØªØŒ ÙˆØªØ´ØºÙŠÙ„ Ù…Ù‡Ø§Ù… Ø¢Ù…Ù†Ø© Ø¯Ø§Ø®Ù„ Ø§Ù„Ù€ trusted workspace Ø¨Ø¹Ø¯ Ø§Ù„Ù…ÙˆØ§ÙÙ‚Ø©.",
+      "حسب مرجع المشروع الحالي، الهدف منه يساعدك بالشغل اليومي: قراءة المشروع، فهم السياق، حفظ المعرفة، مراجعة الملفات، التخطيط للتعديلات، وتشغيل مهام آمنة داخل الـ trusted workspace بعد الموافقة.",
       "",
-      "ÙˆØ¨Ø§Ù„Ù†Ø³Ø¨Ø© Ù„Ù…Ø±Ø¬Ø¹ Premiere: Ø£ÙƒÙˆ Ø¬Ø²Ø¡ Ø®Ø§Øµ Ø¨Ø¥Ø¶Ø§ÙØ© CEP Ù„Ù€ Premiere Pro 26.2.0ØŒ ÙŠØ¹ØªÙ…Ø¯ FFmpeg Ù„Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„ØµÙˆØªÙŠØŒ ÙˆÙŠØ¯Ø¹Ù… Multi-Cam Auto Switch ÙˆSilence Removal.",
+      "وبالنسبة لمرجع Premiere: أكو جزء خاص بإضافة CEP لـ Premiere Pro 26.2.0، يعتمد FFmpeg للتحليل الصوتي، ويدعم Multi-Cam Auto Switch وSilence Removal.",
       "",
-      "ÙŠØ¹Ù†ÙŠ Ø¨Ø§Ø®ØªØµØ§Ø±: Ù‡Ùˆ Ù…Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„Ø´Ø®ØµÙŠ ÙˆØ§Ù„Ù‡Ù†Ø¯Ø³ÙŠ Ù„Ø³Ø¹Ø¯ Ø³ØªÙˆØ¯ÙŠÙˆØŒ Ù…Ùˆ Ø¯Ø±Ø¯Ø´Ø© Ø¹Ø§Ù…Ø© ÙÙ‚Ø·."
+      "يعني باختصار: هو مساعدك الشخصي والهندسي لسعد ستوديو، مو دردشة عامة فقط."
     ].join("\n");
   }
 
   private static formatAgentIdentityResponse(prompt: string): string {
     const normalized = this.normalizeArabic(prompt);
-    if (/Ù…Ù†Ùˆ|Ø´Ù†Ùˆ|Ø§Ù†ØªÙ‡|Ø§Ù†Øª/.test(normalized)) {
-      return "Ø¢Ù†ÙŠ Saad Studio AgentØŒ ÙˆÙƒÙŠÙ„Ùƒ Ø§Ù„Ù‡Ù†Ø¯Ø³ÙŠ Ø§Ù„Ù…Ø­Ù„ÙŠ. Ø¥Ø°Ø§ Ø¹Ù†Ø¯Ùƒ ÙƒÙˆØ¯ØŒ Ù…Ø´Ø±ÙˆØ¹ØŒ Ù…Ù„ÙØŒ Ø£Ùˆ Ù…Ø´ÙƒÙ„Ø©ØŒ ÙƒÙ„Ù‘ÙŠ ÙˆØ´ÙˆÙ Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ.";
+    if (/منو|شنو|انته|انت/.test(normalized)) {
+      return "آني Saad Studio Agent، وكيلك الهندسي المحلي. إذا عندك كود، مشروع، ملف، أو مشكلة، كلّي وشوف شلون أگدر أساعدك.";
     }
     return "I am Saad Studio Agent, your local AI engineering agent. I help with code, projects, workspace knowledge, memory, and safe task execution.";
   }
@@ -1834,13 +1898,13 @@ export class ChatOrchestratorService {
     const words = normalized.split(/\s+/).filter(Boolean);
     const isShort = words.length <= 5;
     const thanks = /^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629|thank you|thanks|thx)$/i.test(normalized)
-      || /^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©|thank you|thanks|thx)$/i.test(normalized)
+      || /^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية|thank you|thanks|thx)$/i.test(normalized)
       || /^(?:thank you|thanks|thx)$/i.test(lower);
     const ok = /^(?:\u062a\u0645\u0627\u0645|\u0632\u064a\u0646|\u0627\u0648\u0643\u064a|\u062d\u0627\u0636\u0631|\u062a\u0645|\u0627\u064a|\u0625\u064a|\u0646\u0639\u0645|ok|okay)$/i.test(normalized)
-      || /^(?:ØªÙ…Ø§Ù…|Ø²ÙŠÙ†|Ø§ÙˆÙƒÙŠ|Ø­Ø§Ø¶Ø±|ØªÙ…|Ø§ÙŠ|Ø¥ÙŠ|Ù†Ø¹Ù…|ok|okay)$/i.test(normalized)
+      || /^(?:تمام|زين|اوكي|حاضر|تم|اي|إي|نعم|ok|okay)$/i.test(normalized)
       || /^(?:ok|okay)$/i.test(lower);
     const smallTalk = /^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
-      || /^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized);
+      || /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized);
     const greeting = this.isSimpleGreeting(prompt);
     return isShort && (thanks || ok || smallTalk || greeting);
   }
@@ -1886,10 +1950,10 @@ export class ChatOrchestratorService {
         systemPrompt: [
           "You are Saad Studio Agent, the user's private local assistant.",
           "Always reply in natural Iraqi Arabic unless the user asks for another language.",
-          "The latest user message is a short affirmative follow-up such as yes/Ù†Ø¹Ù…/Ø¥ÙŠ/ØªÙ…Ø§Ù….",
+          "The latest user message is a short affirmative follow-up such as yes/نعم/إي/تمام.",
           "Infer exactly what the user approved from the immediately previous assistant message and continue that same topic.",
           "If the previous assistant offered to write, draft, translate, summarize, analyze, or continue something, do that action now.",
-          "Do not answer with only 'Ø­Ø§Ø¶Ø±' or a generic acknowledgement.",
+          "Do not answer with only 'حاضر' or a generic acknowledgement.",
           "If the approved action still lacks essential details, ask one short clarifying question and stay on the same topic."
         ].join("\n"),
         userPrompt: [
@@ -1918,35 +1982,35 @@ export class ChatOrchestratorService {
   private static formatCasualAcknowledgement(prompt: string): string {
     const normalized = this.normalizeArabic(prompt);
     if (/^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629)/i.test(normalized)
-      || /^(?:Ø´ÙƒØ±Ø§|Ø´ÙƒØ±Ø§ Ù„Ùƒ|Ù…Ø´ÙƒÙˆØ±|Ù…Ù…Ù†ÙˆÙ†|Ù…Ù…ØªÙ†|ØªØ³Ù„Ù…|Ø³Ù„Ù…Øª|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠÙ‡|ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©)/i.test(normalized)) {
+      || /^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية)/i.test(normalized)) {
       return "العفو سعد، حاضر.";
     }
     if (/^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
-      || /^(?:Ø´Ù„ÙˆÙ†Ùƒ|Ø´Ø®Ø¨Ø§Ø±Ùƒ|ÙƒÙŠÙÙƒ|ÙƒÙŠÙ Ø§Ù„Ø­Ø§Ù„)$/.test(normalized)) {
+      || /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized)) {
       return "هلا بيك، الحمد لله بخير. شلونك إنت؟ شتحتاج؟";
     }
-    if (/^(?:Ù…Ø³Ø§Ø¡ Ø§Ù„Ø®ÙŠØ±)$/.test(normalized)) {
-      return "Ù…Ø³Ø§Ø¡ Ø§Ù„Ù†ÙˆØ±ØŒ Ø£Ù‡Ù„Ù‹Ø§ ÙˆØ³Ù‡Ù„Ù‹Ø§ Ø¨ÙŠÙƒ. Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„Ù„ÙŠÙ„Ø©ØŸ";
+    if (/^(?:مساء الخير)$/.test(normalized)) {
+      return "مساء النور، أهلًا وسهلًا بيك. شلون أگدر أساعدك الليلة؟";
     }
-    if (/^(?:ØµØ¨Ø§Ø­ Ø§Ù„Ø®ÙŠØ±)$/.test(normalized)) {
-      return "ØµØ¨Ø§Ø­ Ø§Ù„Ù†ÙˆØ±ØŒ Ø£Ù‡Ù„Ù‹Ø§ ÙˆØ³Ù‡Ù„Ù‹Ø§ Ø¨ÙŠÙƒ. Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„ÙŠÙˆÙ…ØŸ";
+    if (/^(?:صباح الخير)$/.test(normalized)) {
+      return "صباح النور، أهلًا وسهلًا بيك. شلون أگدر أساعدك اليوم؟";
     }
-    if (/^(?:ÙŠØ§Ù‡Ù„Ø§|ÙŠØ§ Ù‡Ù„Ø§)$/.test(normalized)) {
-      return "ÙŠØ§Ù‡Ù„Ø§ ÙˆØºÙ„Ø§. Ø´Ù†Ùˆ Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ Ø¨ÙŠÙ‡ Ø§Ù„ÙŠÙˆÙ…ØŸ";
+    if (/^(?:ياهلا|يا هلا)$/.test(normalized)) {
+      return "ياهلا وغلا. شنو أگدر أساعدك بيه اليوم؟";
     }
-    if (/^(?:Ù…Ø±Ø§Ø­Ø¨)$/.test(normalized)) {
-      return "Ù…Ø±Ø§Ø­Ø¨ Ø¨ÙŠÙƒ.";
+    if (/^(?:مراحب)$/.test(normalized)) {
+      return "مراحب بيك.";
     }
-    if (/^(?:ØªÙ…Ø§Ù…|Ø²ÙŠÙ†|Ø§ÙˆÙƒÙŠ|Ø­Ø§Ø¶Ø±|ØªÙ…|Ø§ÙŠ|Ù†Ø¹Ù…|ok|okay)$/.test(normalized)) {
-      return "ØªÙ…Ø§Ù… Ø³Ø¹Ø¯ØŒ Ø­Ø§Ø¶Ø±.";
+    if (/^(?:تمام|زين|اوكي|حاضر|تم|اي|نعم|ok|okay)$/.test(normalized)) {
+      return "تمام سعد، حاضر.";
     }
-    return "Ø£Ù‡Ù„Ù‹Ø§ ÙˆØ³Ù‡Ù„Ù‹Ø§. Ø´Ù„ÙˆÙ† Ø£Ú¯Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯Ùƒ Ø§Ù„ÙŠÙˆÙ…ØŸ";
+    return "أهلًا وسهلًا. شلون أگدر أساعدك اليوم؟";
   }
 
   private static isPageBlueprintRequest(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt || "");
-    return /(?:Ù…Ø®Ø·Ø·|Ù‡ÙŠÙƒÙ„|ÙˆØ§ÙŠØ±ÙØ±ÙŠÙ…|wireframe|blueprint|layout).*(?:ØµÙØ­Ù‡|ØµÙØ­Ø©|page)/i.test(normalized)
-      || /(?:Ø§Ø¹Ø·ÙŠÙ†ÙŠ|Ø§Ø¹Ø·Ù†ÙŠ|Ø§Ø±ÙŠØ¯|Ù‡Ø§Øª).*(?:Ù…Ø®Ø·Ø·|Ù‡ÙŠÙƒÙ„|ÙˆØ§ÙŠØ±ÙØ±ÙŠÙ…).*(?:ØµÙØ­Ù‡|ØµÙØ­Ø©|page)/i.test(normalized);
+    return /(?:مخطط|هيكل|وايرفريم|wireframe|blueprint|layout).*(?:صفحه|صفحة|page)/i.test(normalized)
+      || /(?:اعطيني|اعطني|اريد|هات).*(?:مخطط|هيكل|وايرفريم).*(?:صفحه|صفحة|page)/i.test(normalized);
   }
 
   private static formatPageBlueprintResponse(prompt: string, activeTask?: string | null): string {
@@ -1954,71 +2018,71 @@ export class ChatOrchestratorService {
 
     if (!subject) {
       return [
-        "Ø£Ú¯Ø¯Ø± Ø£Ø³ÙˆÙŠÙ„Ùƒ Ù…Ø®Ø·Ø· ØµÙØ­Ø©ØŒ Ø¨Ø³ Ù…Ø§ Ø±Ø§Ø­ Ø£Ø®ØªØ±Ø¹ ØµÙØ­Ø© Ù…Ù† Ø¹Ù†Ø¯ÙŠ.",
-        "Ø§ÙƒØªØ¨Ù„ÙŠ Ø§Ø³Ù… Ø§Ù„ØµÙØ­Ø© Ø£Ùˆ ÙˆØ¸ÙŠÙØªÙ‡Ø§ØŒ Ù…Ø«Ù„:",
-        "- ØµÙØ­Ø© Ù„Ø§Ù†Ø¬Ø±ÙŠ",
-        "- ØµÙØ­Ø© ØªØ³Ø¬ÙŠÙ„ Ø¯Ø®ÙˆÙ„",
-        "- ØµÙØ­Ø© Dashboard",
+        "أگدر أسويلك مخطط صفحة، بس ما راح أخترع صفحة من عندي.",
+        "اكتبلي اسم الصفحة أو وظيفتها، مثل:",
+        "- صفحة لانجري",
+        "- صفحة تسجيل دخول",
+        "- صفحة Dashboard",
         "",
-        "Ø¨Ø¹Ø¯Ù‡Ø§ Ø£Ø¹Ø·ÙŠÙƒ Ù…Ø®Ø·Ø· ÙˆØ§Ø¶Ø­: Ø§Ù„Ø£Ù‚Ø³Ø§Ù…ØŒ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§ØªØŒ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§ØªØŒ Ø§Ù„Ø­Ø§Ù„Ø§ØªØŒ ÙˆÙ…Ø³Ø§Ø± Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ù‚ØªØ±Ø­."
+        "بعدها أعطيك مخطط واضح: الأقسام، المكونات، البيانات، الحالات، ومسار الملفات المقترح."
       ].join("\n");
     }
 
     return [
-      `Ù‡Ø°Ø§ Ù…Ø®Ø·Ø· Ø£ÙˆÙ„ÙŠ Ù„ØµÙØ­Ø© ${subject}:`,
+      `هذا مخطط أولي لصفحة ${subject}:`,
       "",
-      "1. Ø§Ù„Ù‡Ø¯Ù",
-      `- ØªÙˆØ¶ÙŠØ­ ÙˆØ¸ÙŠÙØ© ØµÙØ­Ø© ${subject} Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø¯ÙˆÙ† Ø§ÙØªØ±Ø§Ø¶ API Ø£Ùˆ Ù…Ù„ÙØ§Øª ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©.`,
+      "1. الهدف",
+      `- توضيح وظيفة صفحة ${subject} للمستخدم بدون افتراض API أو ملفات غير موجودة.`,
       "",
-      "2. Ø£Ù‚Ø³Ø§Ù… Ø§Ù„ØµÙØ­Ø©",
-      "- Header Ù…Ø®ØªØµØ±: Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØµÙØ­Ø© ÙˆÙˆØµÙ Ø³Ø±ÙŠØ¹.",
-      "- Hero / Intro: Ø´Ù†Ùˆ ØªÙ‚Ø¯Ù… Ø§Ù„ØµÙØ­Ø© ÙˆÙ„ÙŠØ´ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ­ØªØ§Ø¬Ù‡Ø§.",
-      "- Content area: ÙƒØ±ÙˆØª Ø£Ùˆ Ø£Ù‚Ø³Ø§Ù… Ø­Ø³Ø¨ Ù†ÙˆØ¹ Ø§Ù„ØµÙØ­Ø©.",
-      "- Actions: Ø£Ø²Ø±Ø§Ø± ÙˆØ§Ø¶Ø­Ø© Ù…Ø«Ù„ Ø¹Ø±Ø¶ Ø§Ù„ØªÙØ§ØµÙŠÙ„ Ø£Ùˆ Ø¥Ù†Ø´Ø§Ø¡ Ø¹Ù†ØµØ±.",
-      "- Empty State: Ø¥Ø°Ø§ Ù…Ø§ÙƒÙˆ Ø¨ÙŠØ§Ù†Ø§Øª.",
-      "- Loading State: Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.",
-      "- Error State: Ø¥Ø°Ø§ ÙØ´Ù„ Ø§Ù„ØªØ­Ù…ÙŠÙ„.",
+      "2. أقسام الصفحة",
+      "- Header مختصر: عنوان الصفحة ووصف سريع.",
+      "- Hero / Intro: شنو تقدم الصفحة وليش المستخدم يحتاجها.",
+      "- Content area: كروت أو أقسام حسب نوع الصفحة.",
+      "- Actions: أزرار واضحة مثل عرض التفاصيل أو إنشاء عنصر.",
+      "- Empty State: إذا ماكو بيانات.",
+      "- Loading State: أثناء تحميل البيانات.",
+      "- Error State: إذا فشل التحميل.",
       "",
-      "3. Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ù…Ù‚ØªØ±Ø­Ø©",
+      "3. المكونات المقترحة",
       "- PageShell",
       "- PageHeader",
-      "- ContentGrid Ø£Ùˆ DetailsPanel",
+      "- ContentGrid أو DetailsPanel",
       "- EmptyState",
       "- ErrorState",
       "- LoadingState",
       "",
-      "4. Ù‚Ø¨Ù„ Ø§Ù„ØªÙ†ÙÙŠØ°",
-      "- Ø£Ø­ØªØ§Ø¬ Ù…Ù†Ùƒ ØªØ£ÙƒÙŠØ¯ Ø§Ø³Ù… Ø§Ù„Ù…Ø³Ø§Ø± ÙˆØ§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ù‚Ø¨Ù„ ÙƒØªØ§Ø¨Ø© Ù…Ù„ÙØ§Øª."
+      "4. قبل التنفيذ",
+      "- أحتاج منك تأكيد اسم المسار والمحتوى المطلوب قبل كتابة ملفات."
     ].join("\n");
   }
 
   private static extractPageSubject(text: string): string | null {
     const normalized = this.normalizeArabic(text || "");
-    const explicitMatch = normalized.match(/(?:ØµÙØ­Ù‡|ØµÙØ­Ø©|page)\s+(?:Ø®Ø§ØµÙ‡|Ø®Ø§ØµØ©|Ù„|Ù„Ù„|Ø¹Ù†)?\s*([\w\u0600-\u06FF-]+)/i);
+    const explicitMatch = normalized.match(/(?:صفحه|صفحة|page)\s+(?:خاصه|خاصة|ل|لل|عن)?\s*([\w\u0600-\u06FF-]+)/i);
     if (explicitMatch?.[1]) return explicitMatch[1];
 
-    const knownPage = normalized.match(/(?:Ù„Ø§Ù†Ø¬Ø±ÙŠ|Ù„Ø§Ù†Ø¬Ø±Ù‰|Ù„Ø§Ù†Ø¯Ù†Ù‚|landing|login|dashboard|settings|pricing|gallery)/i);
+    const knownPage = normalized.match(/(?:لانجري|لانجرى|لاندنق|landing|login|dashboard|settings|pricing|gallery)/i);
     return knownPage?.[0] || null;
   }
 
   private static formatApprovalReason(reason: string): string {
     if (/Internet access/i.test(reason)) {
-      return "Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨ ÙŠØ­ØªØ§Ø¬ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø¥Ù†ØªØ±Ù†ØªØŒ ÙˆÙ…Ø§ Ø±Ø§Ø­ Ø£Ø·Ù„Ø¹ Ù†ØªØ§Ø¦Ø¬ Ø£Ùˆ Ø±ÙˆØ§Ø¨Ø· ÙˆÙ‡Ù…ÙŠØ©. ÙˆØ§ÙÙ‚ Ø¹Ù„Ù‰ Ø§Ù„Ø¨Ø­Ø« Ø­ØªÙ‰ Ø£Ù†ÙØ°Ù‡ ÙØ¹Ù„ÙŠØ§Ù‹.";
+      return "هذا الطلب يحتاج استخدام الإنترنت، وما راح أطلع نتائج أو روابط وهمية. وافق على البحث حتى أنفذه فعلياً.";
     }
     if (/Project modification/i.test(reason)) {
-      return "Ù‡Ø°Ø§ Ø·Ù„Ø¨ ØªØ¹Ø¯ÙŠÙ„ Ø¹Ù„Ù‰ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ ÙˆÙŠØ­ØªØ§Ø¬ Ù…ÙˆØ§ÙÙ‚ØªÙƒ Ù‚Ø¨Ù„ Ø§Ù„ØªÙ†ÙÙŠØ°.";
+      return "هذا طلب تعديل على المشروع ويحتاج موافقتك قبل التنفيذ.";
     }
-    return `Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ ÙŠØ­ØªØ§Ø¬ Ù…ÙˆØ§ÙÙ‚ØªÙƒ Ù‚Ø¨Ù„ Ø§Ù„ØªÙ†ÙÙŠØ°: ${reason}`;
+    return `هذا الإجراء يحتاج موافقتك قبل التنفيذ: ${reason}`;
   }
 
   private static isKnowledgeUsageQuestion(prompt: string): boolean {
-    return /what trained knowledge did you use|Ù…Ø§(?:Ø°Ø§)? Ø§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„Ù…Ø¯Ø±Ø¨Ø©|Ù…Ø§ Ø§Ù„Ù…Ø¹Ø±ÙØ© Ø§Ù„ØªÙŠ Ø§Ø³ØªØ®Ø¯Ù…Øª|Ø£ÙŠ Ù…Ø¹Ø±ÙØ© Ù…Ø¯Ø±Ø¨Ø©/i.test(prompt || "");
+    return /what trained knowledge did you use|ما(?:ذا)? المعرفة المدربة|ما المعرفة التي استخدمت|أي معرفة مدربة/i.test(prompt || "");
   }
 
   private static extractMemoryFact(prompt: string): string {
     return EngineeringMemory.scrubSecrets(this.extractUserRequest(prompt))
       .replace(/^(\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a|\u062f\u0631\u0628|\u062f\u0631\u0651\u0628|\u062a\u062f\u0631\u064a\u0628)\s*(\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0627\u064a|\u0647\u0630\u064a|\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0629|\u0627\u0644\u062a\u0627\u0644\u064a|\u0627\u0644\u0645\u0644\u0641|:)?\s*/i, "")
-      .replace(/^(Ø§Ø­ÙØ¸|Ø­ÙØ¸|ØªØ°ÙƒØ±|ØªØ°ÙƒÙ‘Ø±|Ø®Ø²Ù†|Ø®Ø²Ù‘Ù†|Ø³Ø¬Ù„|Ø³Ø¬Ù‘Ù„|Ø«Ø¨Øª|Ø«Ø¨Ù‘Øª|Ø¯Ø±Ø¨|Ø¯Ø±Ù‘Ø¨|ØªØ¯Ø±ÙŠØ¨)\s*(Ù‡Ø°Ø§|Ù‡Ø°Ù‡|Ù‡Ø§ÙŠ|Ù‡Ø°ÙŠ|Ø§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø©|Ø§Ù„ØªØ§Ù„ÙŠ|Ø§Ù„Ù…Ù„Ù|:)?\s*/i, "")
+      .replace(/^(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|ثبت|ثبّت|درب|درّب|تدريب)\s*(هذا|هذه|هاي|هذي|المعلومة|التالي|الملف|:)?\s*/i, "")
       .replace(/^(remember|save|store|memorize|train|training|learn from)\s*(this|that|the following|file|:)?\s*/i, "")
       .replace(/^(use\s+)?(this|that)?\s*(as\s+a\s+)?reference\s*:?\s*/i, "")
       .trim();
@@ -2218,10 +2282,10 @@ export class ChatOrchestratorService {
     return input
       .toLowerCase()
       .replace(/[\u064B-\u065F\u0670]/g, "")
-      .replace(/[Ø¥Ø£Ø¢Ù±]/g, "Ø§")
-      .replace(/Ù‰/g, "ÙŠ")
-      .replace(/Ø©/g, "Ù‡")
-      .replace(/[ØŸ?!.ØŒ,Ø›:()"']/g, " ")
+      .replace(/[إأآٱ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .replace(/[؟?!.،,؛:()"']/g, " ")
       .replace(/\s+/g, " ")
       .trim();
   }
@@ -2231,7 +2295,7 @@ export class ChatOrchestratorService {
     if (!match) return null;
     return match[0]
       .replace(/[`"'<>]+/g, "")
-      .replace(/[.ØŒ,Ø›;ØŸ?!]+$/g, "")
+      .replace(/[.،,؛;؟?!]+$/g, "")
       .trim();
   }
 
@@ -2267,7 +2331,7 @@ export class ChatOrchestratorService {
     const resolvedBlocks: string[] = [];
     for (let match of matches) {
       let cleanPath = match.trim();
-      cleanPath = cleanPath.replace(/[.ØŒ,Ø›:?ØŸ!]+$/, "").trim();
+      cleanPath = cleanPath.replace(/[.،,؛:?؟!]+$/, "").trim();
       
       let found = false;
       let current = cleanPath;

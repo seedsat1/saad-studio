@@ -5,7 +5,7 @@ import { UserMemoryService } from "./platform/services/user-memory.js";
 import { ConversationStateEngine } from "./platform/services/conversation-state-engine.js";
 
 async function runTests() {
-  console.log("🧪 Starting Intent Routing & Memory Protection Automated Test Suite...");
+  console.log("�� Starting Intent Routing & Memory Protection Automated Test Suite...");
   const sessionId = "routing_test_session";
 
   // --- Test 1: Memory Save Without Name ("احفظ اسمي") ---

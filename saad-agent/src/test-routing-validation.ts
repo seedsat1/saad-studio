@@ -3,7 +3,7 @@ import { ProjectCodeIndexService } from "./platform/services/project-code-index.
 
 async function runRoutingValidationSuite() {
   console.log("================================================================================");
-  console.log("🎯 RUNNING SAAD AGENT INTENT CLASSIFICATION & TASK ROUTING VALIDATION");
+  console.log("�� RUNNING SAAD AGENT INTENT CLASSIFICATION & TASK ROUTING VALIDATION");
   console.log("================================================================ shower\n");
 
   const testCases = [
