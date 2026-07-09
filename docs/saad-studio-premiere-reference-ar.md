@@ -1141,6 +1141,11 @@
 - Deterministic commands are resolved by `DeterministicCommandService` at the desktop `chat-complete` IPC boundary before orchestration or model invocation.
 - The orchestrator calls the same service as a secondary guard; deterministic patterns must not be duplicated across routing layers.
 - Visible user-facing loading messages must be Arabic and describe the active state, such as request processing or permanent knowledge indexing.
+- Normal chat uses a Codex-inspired hierarchy: compact right-aligned user bubbles, open agent prose, embedded operational cards, and one unified bottom composer.
+- The existing message renderer, cards, and `PromptBox` remain the single implementation; visual composition must not duplicate chat or composer components.
+- The right engineering panel starts collapsed and verbose trace controls stay off the normal conversation surface.
+- Runtime approval requests use one compact Arabic decision card with a command/action preview.
+- The three decision rows call the existing `handleRuntimeApprovalResponse` path for approve once, conversation-scoped always allow, or reject; no duplicate approval state machine is introduced.
 
 ## 7-Day Weather Forecast and Date Auto-Binding ExtendScript behavior (2026-07-07)
 

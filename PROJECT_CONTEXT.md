@@ -1,5 +1,46 @@
 # Saad Studio Project Context Update
 
+## Latest task: Compact Arabic runtime approval card (2026-07-09)
+
+- Status:
+  - Restyled the existing runtime approval card into a compact Codex-inspired decision surface.
+  - Kept the existing approval handler and policy; no duplicate approval or execution path was added.
+  - The card now shows an Arabic question, a command/action preview, and three numbered choices: approve once, always allow this action in the conversation, or reject.
+  - Approved/rejected completion messages are Arabic.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - The packaged ASAR lists the new hashed UI assets and index.
+  - The packaged work tree contains the new approval selectors and Arabic title.
+- Known warnings:
+  - Existing Vite warnings remain for the late Google Fonts `@import` and a JavaScript chunk over 500 kB.
+- Decision:
+  - Approval choices execute immediately when clicked. This preserves the established handler and avoids adding redundant selection/submission state.
+
+## Latest task: Applied a Codex-inspired chat and composer layout without duplicating components (2026-07-09)
+
+- Status:
+  - Reused the existing message renderer, engineering cards, and `PromptBox`; no parallel chat/composer implementation was created.
+  - User messages now render as compact right-aligned bubbles; agent responses render as open readable text with subtle metadata.
+  - Engineering/tool cards use restrained flat surfaces and remain embedded in the response flow.
+  - The composer is fixed above a bottom fade and keeps attachments, approval mode, and submit controls together.
+  - The right engineering panel starts collapsed and the exposed Trace selector is hidden from normal chat.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [MODIFY]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - Browser screenshot verified desktop composition with no message/composer overlap.
+  - Packaged ASAR was rebuilt and Saad Agent relaunched at 14:26:46.
+- Findings:
+  - Existing Vite warnings remain for Google Fonts import ordering and a JavaScript chunk above 500 kB.
+- Decision:
+  - Apply one composition layer over existing components, preserving backend behavior and avoiding duplicate UI logic.
+
 ## Latest task: Modified Credit Prices for Image Generation Models (2026-07-09)
 
 - Status:

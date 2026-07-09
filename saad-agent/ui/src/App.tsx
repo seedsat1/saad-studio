@@ -390,7 +390,7 @@ const classifyLongTextContent = (content: string): LongTextClassification => {
 };
 
 export default function App() {
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [settingsModalTab, setSettingsModalTab] = useState<SettingsTab>("general");
   const defaultMessagesRef = useRef<Message[]>((window as any).electronAPI ? [] : MOCK_MESSAGES);
@@ -1934,10 +1934,12 @@ export default function App() {
         const data = msg.cardData || {};
         const request = data.request || {};
         const status = data.status || "awaiting_approval";
+        const actionLabel = request.action || "هذا الإجراء";
+        const executionPreview = request.command || request.files?.join("\n") || request.reason || actionLabel;
         return (
-          <div className="engineering-card runtime-approval-card">
-            <div className="card-header">
-              <span className="card-title">Approval Required</span>
+          <div className="engineering-card runtime-approval-card" dir="rtl">
+            <div className="runtime-approval-header">
+              <span className="runtime-approval-title">هل تسمح لـ Saad Agent بتنفيذ هذا الإجراء؟</span>
               <span className={`card-badge risk-${request.risk || "medium"}`}>
                 {(request.risk || "medium").toUpperCase()}
               </span>
@@ -1945,25 +1947,36 @@ export default function App() {
             <p className="runtime-approval-reason">
               {request.reason || "هذا الإجراء يحتاج موافقتك قبل التنفيذ."}
             </p>
-            <div className="runtime-approval-meta">
-              <span>Action: {request.action || "unknown"}</span>
-              <span>Mode: {data.approvalMode || activeApprovalMode}</span>
+            <div className="runtime-approval-preview" dir="ltr">
+              <code>{executionPreview}</code>
             </div>
             {status === "awaiting_approval" ? (
-              <div className="approval-buttons">
-                <button className="approve-btn" onClick={() => handleRuntimeApprovalResponse(msg.id, true)}>
-                  Approve
+              <div className="runtime-approval-choices">
+                <button className="runtime-approval-choice primary-choice" onClick={() => handleRuntimeApprovalResponse(msg.id, true)}>
+                  <span className="approval-choice-number">1</span>
+                  <span className="approval-choice-copy">
+                    <strong>نعم، نفّذ الآن</strong>
+                    <small>الموافقة على هذا الإجراء فقط</small>
+                  </span>
                 </button>
-                <button className="approve-btn secondary-approve" onClick={() => handleRuntimeApprovalResponse(msg.id, true, true)}>
-                  Always allow here
+                <button className="runtime-approval-choice" onClick={() => handleRuntimeApprovalResponse(msg.id, true, true)}>
+                  <span className="approval-choice-number">2</span>
+                  <span className="approval-choice-copy">
+                    <strong>نعم، ولا تسأل مرة أخرى</strong>
+                    <small>لإجراءات تبدأ بـ {actionLabel} في هذه المحادثة</small>
+                  </span>
                 </button>
-                <button className="reject-btn" onClick={() => handleRuntimeApprovalResponse(msg.id, false)}>
-                  Reject
+                <button className="runtime-approval-choice reject-choice" onClick={() => handleRuntimeApprovalResponse(msg.id, false)}>
+                  <span className="approval-choice-number">3</span>
+                  <span className="approval-choice-copy">
+                    <strong>لا، أوقف التنفيذ</strong>
+                    <small>لن يتم تنفيذ هذا الإجراء</small>
+                  </span>
                 </button>
               </div>
             ) : (
               <div className={`approval-result-status ${status}`}>
-                {status === "approved" ? "Approved. Execution resumed." : "Rejected. Execution stopped."}
+                {status === "approved" ? "تمت الموافقة واستؤنف التنفيذ." : "رُفض الطلب وتوقف التنفيذ."}
               </div>
             )}
           </div>

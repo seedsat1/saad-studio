@@ -2497,36 +2497,127 @@ body {
 }
 
 .runtime-approval-card {
-  border-left: 3px solid rgba(251, 191, 36, 0.78);
+  width: min(100%, 740px);
+  margin-inline: auto;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #2a2a2a;
+}
+
+.runtime-approval-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.runtime-approval-title {
+  min-width: 0;
+  color: #f5f5f5;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .runtime-approval-reason {
-  margin: 0 0 12px;
-  color: var(--text-secondary);
+  margin: 12px 0 10px;
+  color: #c7c7c7;
   font-size: 13px;
   line-height: 1.6;
 }
 
-.runtime-approval-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-  color: var(--text-muted);
+.runtime-approval-preview {
+  max-height: 84px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  background: #242424;
+  color: #aaa;
+  text-align: left;
+}
+
+.runtime-approval-preview code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
   font-size: 11px;
+  line-height: 1.55;
 }
 
-.runtime-approval-meta span {
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 999px;
-  padding: 4px 8px;
-  background: rgba(15, 23, 42, 0.45);
+.runtime-approval-choices {
+  display: grid;
+  gap: 4px;
 }
 
-.approval-buttons .secondary-approve {
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.32);
-  color: var(--accent-cyan);
+.runtime-approval-choice {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #e7e7e7;
+  text-align: right;
+  cursor: pointer;
+}
+
+.runtime-approval-choice:hover,
+.runtime-approval-choice:focus-visible {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  outline: none;
+}
+
+.runtime-approval-choice.primary-choice {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.approval-choice-number {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #444;
+  color: #f5f5f5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.primary-choice .approval-choice-number {
+  background: #f2f2f2;
+  color: #202020;
+}
+
+.approval-choice-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.approval-choice-copy strong {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.approval-choice-copy small {
+  overflow-wrap: anywhere;
+  color: #909090;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.runtime-approval-choice.reject-choice {
+  color: #bbb;
 }
 
 .approval-result-status {
@@ -2924,4 +3015,205 @@ body,
   background: rgba(59, 130, 246, 0.08);
   color: var(--accent-blue);
   border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+/* Codex-inspired conversation composition */
+.main-area {
+  background: #171717;
+}
+
+.top-bar {
+  background: rgba(23, 23, 23, 0.96);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+  height: 46px;
+}
+
+.chat-messages {
+  gap: 34px;
+  margin: 0 auto;
+  max-width: 920px;
+  padding: 34px 36px 210px;
+}
+
+.message-wrapper {
+  animation: fadeIn 0.18s ease;
+  gap: 0;
+}
+
+.message-avatar {
+  display: none;
+}
+
+.message-content-container {
+  gap: 9px;
+  max-width: 100%;
+  width: 100%;
+}
+
+.message-wrapper.user {
+  justify-content: flex-end;
+}
+
+.message-wrapper.user .message-content-container {
+  align-items: flex-end;
+  flex: 0 1 auto;
+  max-width: min(72%, 680px);
+}
+
+.message-wrapper.user .message-meta {
+  display: none;
+}
+
+.message-wrapper.user .message-bubble {
+  background: #242424;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 16px;
+  color: #f3f3f3;
+  line-height: 1.65;
+  padding: 10px 15px;
+  width: fit-content;
+}
+
+.message-wrapper.agent .message-content-container {
+  max-width: 100%;
+}
+
+.message-wrapper.agent .message-meta {
+  color: #777;
+  font-size: 12px;
+  gap: 7px;
+}
+
+.message-wrapper.agent .message-sender {
+  color: #b8b8b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.message-wrapper.agent .message-time {
+  color: #666;
+  font-size: 11px;
+}
+
+.message-wrapper.agent .message-bubble {
+  color: #ededed;
+  line-height: 1.8;
+  padding: 0;
+}
+
+.message-action-btn {
+  background: transparent;
+  border-color: transparent;
+  color: #777;
+}
+
+.message-action-btn:hover {
+  background: #252525;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.engineering-card,
+.runtime-approval-card,
+.plan-approval-card {
+  background: #202020;
+  border-color: rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.engineering-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+  transform: none;
+}
+
+.trace-compact {
+  background: #202020;
+  border-color: rgba(255, 255, 255, 0.09);
+  max-width: 100%;
+  width: 100%;
+}
+
+.input-area {
+  background: linear-gradient(to top, #171717 76%, rgba(23, 23, 23, 0));
+  bottom: 0;
+  left: 0;
+  padding: 42px 28px 20px;
+  position: absolute;
+  right: 0;
+  z-index: 20;
+}
+
+.saad-prompt-root {
+  max-width: 760px;
+  width: min(760px, calc(100vw - 48px));
+}
+
+.saad-prompt-shell {
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.32);
+}
+
+.saad-prompt-shell:focus-within {
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 46px rgba(0, 0, 0, 0.38);
+}
+
+.saad-prompt-input-row {
+  min-height: 58px;
+  padding: 15px 17px 8px;
+}
+
+.saad-prompt-input-row textarea {
+  color: #f1f1f1;
+  line-height: 1.55;
+}
+
+.saad-prompt-input-row textarea::placeholder {
+  color: #8b8b8b;
+}
+
+.saad-prompt-toolbar {
+  padding: 7px 11px 11px;
+}
+
+.saad-prompt-icon-btn,
+.saad-prompt-text-btn,
+.saad-prompt-approval-btn {
+  background: transparent;
+  border-color: transparent;
+  color: #aaa;
+}
+
+.saad-prompt-icon-btn:hover,
+.saad-prompt-text-btn:hover,
+.saad-prompt-approval-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #eee;
+}
+
+.trace-mode-selector {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .chat-messages {
+    max-width: 100%;
+    padding: 26px 18px 200px;
+  }
+
+  .message-wrapper.user .message-content-container {
+    max-width: 88%;
+  }
+
+  .input-area {
+    padding: 36px 14px 14px;
+  }
+
+  .saad-prompt-root {
+    width: 100%;
+  }
 }

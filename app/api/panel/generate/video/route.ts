@@ -302,7 +302,17 @@ export async function POST(req: NextRequest) {
     // ── Early dispatch: Google Veo direct (Vertex/Gemini) and BytePlus
     //    Seedance v2 direct. OpenAI Sora has no public direct API yet so
     //    it falls through to the kie.ai path below.
-    if (isDirectProviderModel(modelId) && getProviderFor(modelId) !== "openai") {
+    const hasImageOrAvatar = !!(
+      firstFrameUrl ||
+      lastFrameUrl ||
+      imageUrl ||
+      (Array.isArray(imageUrls) && imageUrls.length > 0) ||
+      (Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0)
+    );
+    const provider = getProviderFor(modelId);
+    const shouldGoDirect = isDirectProviderModel(modelId) && provider !== "openai" && !(provider === "byteplus" && hasImageOrAvatar);
+
+    if (shouldGoDirect) {
       const result = await dispatchDirectVideo({
         userId,
         modelId,
@@ -331,8 +341,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate the model is a known KIE video model
-    const { kieVideoModelMap } = getResolvedKieRoutingMaps();
-    const kieModelId = kieVideoModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
+    const { kieVideoModelMap, videoRouteToKieModelMap } = getResolvedKieRoutingMaps();
+    const kieModelId = kieVideoModelMap[modelId] ?? videoRouteToKieModelMap[modelId] ?? modelId; // fallback: use as-is if already a KIE ID
 
     let creditsToCharge: number;
     try {

@@ -899,7 +899,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
   //   resolution: HQ allows 480p/720p/1080p; Fast allows 480p/720p only
   //   aspect_ratio: 1:1 / 4:3 / 3:4 / 16:9 / 9:16 / 21:9 / adaptive (default 16:9)
   //   duration: 4-15 (integer)
-  if (model === "bytedance/seedance-2" || model === "bytedance/seedance-2-fast") {
+  if (model === "bytedance/seedance-2" || model === "bytedance/seedance-2-fast" || model === "bytedance/seedance-2-mini") {
     const isFast = model === "bytedance/seedance-2-fast";
     const out: Record<string, unknown> = { ...input };
 
@@ -1676,7 +1676,21 @@ export async function POST(req: Request) {
     }
 
     // ── Official Seedance 2.0 path (BytePlus ModelArk, no KIE) ───────────────
-    if (isOfficialSeedance2Route(modelRoute)) {
+    const hasImageOrAvatar = !!(
+      payload.first_frame_url ||
+      payload.last_frame_url ||
+      payload.image_url ||
+      payload.imageUrl ||
+      payload.image ||
+      payload.last_image ||
+      payload.end_image ||
+      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0) ||
+      (Array.isArray(payload.imageUrls) && payload.imageUrls.length > 0) ||
+      (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.length > 0) ||
+      (Array.isArray(payload.referenceImageUrls) && payload.referenceImageUrls.length > 0)
+    );
+
+    if (isOfficialSeedance2Route(modelRoute) && !hasImageOrAvatar) {
       const arkKey = getArkApiKeyFromEnv();
       if (!arkKey) {
         return NextResponse.json(
