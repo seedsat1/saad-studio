@@ -9,6 +9,7 @@ import {
 import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { getClientIp, isAllowedOrigin } from "@/lib/security";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
+import { resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
 
 export const maxDuration = 300;
 
@@ -170,9 +171,13 @@ export async function POST(req: NextRequest) {
 
     // Upload image to Supabase for a public URL
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, generationId || "");
+    const resolvedImageUrl = await resolveProviderMediaUrl(hostedImageUrl, {
+      userId,
+      assetType: "image",
+    });
 
     // Submit WaveSpeed task
-    const predId = await createWavespeedTask(apiKey, hostedImageUrl, editPrompt);
+    const predId = await createWavespeedTask(apiKey, resolvedImageUrl, editPrompt);
 
     // Poll for result
     const result = await pollWavespeedTask(apiKey, predId);

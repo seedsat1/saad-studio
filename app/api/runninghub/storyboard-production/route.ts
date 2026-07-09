@@ -16,6 +16,7 @@ import {
 } from "@/lib/storyboard-reference-safety";
 import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
+import { resolveProviderMediaUrl } from "@/lib/media/public-url-resolver";
 
 /** Allow up to 5 minutes */
 export const maxDuration = 300;
@@ -432,6 +433,10 @@ export async function POST(req: NextRequest) {
 
     const precheckGenerationId = `storyboard-ref-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const hostedImageUrl = await uploadRefImage(imageDataUrl, userId, precheckGenerationId);
+    const resolvedImageUrl = await resolveProviderMediaUrl(hostedImageUrl, {
+      userId,
+      assetType: "image",
+    });
     const apiKey = getWavespeedApiKey();
 
     // Create one Generation row per panel so each image is persisted in assets
@@ -469,7 +474,7 @@ export async function POST(req: NextRequest) {
       });
       const predId = await createWavespeedTask(
         apiKey,
-        hostedImageUrl,
+        resolvedImageUrl,
         plan.angle,
         aspectRatio,
         outputFormat,

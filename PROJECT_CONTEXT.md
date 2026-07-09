@@ -28,6 +28,7 @@
   - Added dynamic active model/provider resolution for the `Coding` role from Saad Agent settings, passing them explicitly as `--provider` and `--model` arguments to the `pi` client.
   - Mapped local/LM Studio provider parameters to `"lm-studio"` and passed them to `pi` with local model IDs.
   - Fixed a critical orchestrator routing bug in `chat-orchestrator.ts` where tasks matching `WAIT_FOR_APPROVAL` under `ask` mode bypassed the engineering workflow execution path after being approved, falling back to a casual chat response.
+  - Fully disabled the quick mockup template generator (`InternalWorkspaceExecutor.canHandle` now always returns `false`) to prevent the application from hijacking layout design prompts with hardcoded templates. Now, all layout requests route directly to the local AI engine (Pi / LM Studio) for custom, unique generation.
   - Fully implemented the local offline `LocalImageClassifierService` backend execution logic by writing a lightweight Python script (`classify.py`) using Pillow for local screenshot classification (Mobile, Code/Text, Flat UI, Desktop UI) and writing the folder organization/movement routines in `chat-orchestrator.ts`.
   - Mapped the internal `GOOGLE_API_KEY` value to `GEMINI_API_KEY` to prevent model auth failures in Google Gemini workflows.
   - Wrapped execution in `execFileWithClosedStdin` to avoid stdin hangs on Windows by actively closing stdin after spawn.

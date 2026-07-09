@@ -546,7 +546,7 @@ Generated files:
 
 export class InternalWorkspaceExecutor {
   static canHandle(prompt: string): boolean {
-    return isStaticPageRequest(prompt);
+    return false; // Disabled to ensure the local AI (LM Studio/Pi) handles all design tasks uniquely
   }
 
   static async tryExecute(request: InternalWorkspaceExecutorRequest): Promise<InternalWorkspaceExecutorResult> {
