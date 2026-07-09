@@ -1,5 +1,273 @@
 # Saad Studio Project Context Update
 
+## Latest task: Analyzed Admin Balance Monitor UNAVAILABLE issue (2026-07-10)
+
+- Status:
+  - Investigated the reason why the API Supplier Balance Monitor shows "UNAVAILABLE" for all balances on the production admin panel.
+  - Verified that `/api/admin/provider-balances/route.ts` relies on specific environment variables (for Google, BytePlus, Backblaze B2) and API keys (for KIE, WaveSpeed) which are likely missing or misconfigured on Vercel.
+- Affected files:
+  - None
+- Verification:
+  - Verified logic in `app/api/admin/provider-balances/route.ts`.
+  - Confirmed requirements in `docs/saad-studio-premiere-reference-ar.md` for manual and API-based balance variables.
+- Decision:
+  - Provide the user with a clear explanation of which environment variables need to be configured in Vercel.
+- Remaining:
+  - User needs to add these keys to their hosting environment and redeploy/restart.
+
+## Latest task: Enabled clipboard image paste in Saad Agent prompt box (2026-07-10)
+
+- Status:
+  - Fixed the prompt box not accepting images pasted from browsers or Windows Snipping Tool.
+  - `PromptBox` now reads image file items from `clipboardData.items`, converts them into named `File` objects, and queues them through the existing attachment path.
+  - `App.processFiles(...)` now accepts a source kind (`upload`, `clipboard`, or `drag_drop`) and records pasted images with `sourceKind: clipboard`.
+  - Cleaned rebuilt `ui/dist`, copied the fresh renderer into `release-production-v4/win-unpacked/resources/app-asar-work/ui/dist`, and repacked `release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/ui/src/components/PromptBox.tsx` [MODIFY]
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/dist/*` [REBUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/*` [REBUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - Packaged `app-asar-work/ui/dist/index.html` points to `assets/index-BrRxo7Ki.js`.
+  - Packaged renderer bundle contains the `clipboard-image-*` filename marker and `Clipboard image ready` status marker.
+  - Packaged UI asset folder contains only the current JS/CSS bundle pair.
+- Findings:
+  - The previous paste handler only inspected `text/plain`, so image clipboard entries were ignored.
+  - A `File` icon import from `lucide-react` shadowed the browser `File` constructor and was renamed to `FileIcon`.
+- Decision:
+  - Reuse the existing attachment pipeline instead of creating a separate clipboard image store.
+- Remaining:
+  - User should test by copying an image or taking a Windows screenshot, focusing the prompt box, pressing `Ctrl+V`, and confirming the image thumbnail appears before sending.
+
+## Latest task: Fixed packaged Saad Agent chat persistence (2026-07-09)
+
+- Status:
+  - Fixed the packaged desktop app losing chat messages after closing and reopening.
+  - Root cause was the packaged `ui/dist` still containing an older renderer bundle that only used browser `localStorage` and did not call the Electron `loadConversations` / `saveConversations` IPC bridge.
+  - Rebuilt the UI from a clean `ui/dist`, copied the clean output into `release-production-v4/win-unpacked/resources/app-asar-work`, and repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Hardened desktop conversation saving with an atomic temp-file write and a `.bak` backup beside `conversations.json`.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts` [MODIFY]
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/ui/dist/*` [REBUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/*` [REBUILD]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `npm.cmd run build:ui` passed.
+  - Packaged `app-asar-work/ui/dist/index.html` now points to the clean `assets/index-D31UgXGA.js` bundle.
+  - Packaged renderer bundle contains the durable `loadConversations` and `saveConversations` calls.
+  - Packaged desktop main bundle contains `conversations:load`, `conversations:save`, and atomic `fs.renameSync(...)` persistence.
+- Findings:
+  - Vite had left old hashed JS files in `ui/dist`; copying without cleaning could keep stale bundles around and confuse verification.
+  - The authoritative conversation store is local Electron user-data state, not project memory and not external knowledge.
+- Decision:
+  - Clean both source `ui/dist` and packaged `app-asar-work/ui/dist` before copying rebuilt UI assets.
+  - Keep `localStorage` only as a fallback cache, while Electron IPC remains the durable source of truth.
+- Remaining:
+  - User should test by sending a message, closing Saad Agent fully, reopening it from `release-production-v4/win-unpacked/Saad Agent.exe`, and confirming the same conversation appears.
+
+## Latest task: Added first real deep-search planning layer to Saad Agent (2026-07-09)
+
+- Status:
+  - Upgraded `ResearchGatewayService` from a single Brave query wrapper into a deterministic query-planning layer.
+  - URL-scoped searches now extract the target domain and generate multiple planned queries such as `site:domain topic`, topic workflow, topic prompt, and related storyboard/comic-page variants when relevant.
+  - Search results from planned queries are merged, URL-deduplicated, scored, and sorted by relevance before display.
+  - `BraveAnswersService.query(...)` now accepts a bounded result count and requests up to 10 results per planned query.
+  - Packaged `release-production-v4/win-unpacked/resources/app.asar` was rebuilt with the updated research services.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts` [MODIFY]
+  - `saad-agent/src/platform/services/brave-answers.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Regression proves a Civitai-style storyboard/NSFW site search expands into multiple planned queries, includes `site:civitai.com`, includes a storyboard/comic-page related query, and reranks the relevant article above a generic login page.
+- Findings:
+  - The previous research gateway only sent the user's raw text to Brave and returned whatever top results came back, which made searches shallow and too close to a manual Google query.
+  - A first test caught that URL cleaning was removing the domain before `site:` planning; fixed by extracting the domain from the raw prompt first.
+- Decision:
+  - Implement deterministic query planning and reranking now, while keeping provider integration behind `ResearchGatewayService`. Agent-Reach/MindSearch adapters remain the next larger step, not a direct repo merge.
+- Remaining:
+  - Add optional Agent-Reach adapter behind `ResearchGatewayService` for broader platform search, then add richer result inspection/summarization for high-depth research tasks.
+
+## Latest task: Fixed URL-scoped website search routing in Saad Agent (2026-07-09)
+
+- Status:
+  - Fixed prompts that contain an HTTP/HTTPS URL plus a search verb, such as `ابحث في هذا الموقع https://... عن`, being misrouted toward Trusted Workspace/local search.
+  - `ExecutionPolicyService` now detects URL-scoped search requests before local file/image/workspace search and routes them to `external_research`.
+  - `ChatOrchestratorService` now shares the same URL-scoped search rule and skips direct URL auto-crawling for search-inside-site prompts; direct read prompts such as `افتح هذا الرابط واقرأه` still use the URL crawler/training path.
+  - Rebuilt backend and repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/execution-policy.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Regression proves the Civitai-style URL-scoped site-search request routes to `external_research`, uses `usedModel=false`, avoids Trusted Workspace text, and does not trigger direct URL crawler fetch.
+- Findings:
+  - Direct URL reading and site-scoped web search are different actions and must not share the same early crawler path.
+  - The sandbox still reports EPERM for test-only audit writes under `C:\Users\PC\.saad-agent`; runtime assertions pass.
+- Decision:
+  - Treat external HTTP/HTTPS URLs with explicit search verbs as external research commands unless the user explicitly says to search inside the workspace/code/local files.
+
+## Latest task: Introduced Saad Agent Research Gateway spine (2026-07-09)
+
+- Status:
+  - Added `ResearchGatewayService` as the single internal gateway for external research results.
+  - `ChatOrchestratorService` no longer calls `BraveAnswersService` directly for external research; it calls `ResearchGatewayService.search(...)`.
+  - The gateway currently wraps the existing Brave Answers provider only, preserving current behavior while creating a clean extension point for Agent-Reach, MindSearch, or other real research providers later.
+  - Rebuilt backend and UI, then repacked `release-production-v4/win-unpacked/resources/app.asar`.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts` [ADD]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `npm.cmd run build:ui` passed with existing Vite warnings only.
+  - `node dist/test-chat-orchestrator.js` passed, including no-model external search, URL training, deterministic official links, attachment training, and translation route checks.
+  - Verified packaged `app.asar` contains `dist/platform/services/research-gateway.js` and the packaged `chat-orchestrator.js` imports `ResearchGatewayService`.
+- Findings:
+  - A broad copy into `app-asar-work` initially nested `dist` inside `dist`; this was corrected by copying the exact changed compiled service files and repacking.
+- Decision:
+  - Treat external research as a provider-gateway capability, not a direct Brave-only call inside chat orchestration. Future providers must plug into the gateway with normalized source records and no model-only fallback.
+- Remaining:
+  - Next real slice should add an optional Agent-Reach adapter behind `ResearchGatewayService`, with CLI detection, timeouts, normalized sources, and tests that prove failures are honest and do not call the model.
+
+## Latest task: Evaluated external search and memory repositories for Saad Agent (2026-07-09)
+
+- Status:
+  - Reviewed the user-provided GitHub repositories as candidates for Saad Agent internet search, deep research, private knowledge retrieval, and session memory.
+  - No code changes were made in this task.
+- Repositories reviewed:
+  - Panniantong/Agent-Reach: best fit as an optional external internet/platform search connector.
+  - InternLM/MindSearch: useful as a heavier multi-agent web-search reference or optional research backend.
+  - zilliztech/deep-searcher: strongest candidate for private knowledge/RAG improvement over saved documents and trained sources.
+  - Dicklesworthstone/coding_agent_session_search: useful reference for local conversation/session search and durable agent memory.
+  - 666ghj/DeepSearchAgent-Demo: useful as a small educational deep-search pattern, not a production dependency.
+- Decision:
+  - Do not merge these repositories directly into the packaged app. Any adoption should be through bounded adapters with normalized result records, timeouts, source URLs, no secret leakage, and no model-only fallback for live research.
+- Remaining:
+  - If implementation is requested, start with a small adapter spike for Agent-Reach and a separate local-memory spike inspired by deep-searcher/cass.
+
+## Latest task: Prevent approved external-search requests from falling back to the model (2026-07-09)
+
+- Status:
+  - Fixed requests like `cuckold اريد مواقع من الانترنت` where the approval policy detected internet access, but the intent stayed conversational after approval and fell through to the active model.
+  - `ChatOrchestratorService` now treats `ExecutionPolicyService` workflow `external_research` as authoritative and forces `intent=external_research` before the model branch.
+  - Added explicit Arabic/Iraqi pattern support for `مواقع/روابط/مصادر من الانترنت`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `npm.cmd run build:ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - New regression proves `cuckold اريد مواقع من الانترنت` routes to `external_research`, returns `usedModel=false`, and does not increment model calls after approval.
+- Findings:
+  - Approval workflow and intent classification could disagree: approval requested internet correctly, but post-approval response could still use the conversational model branch.
+- Decision:
+  - External-search workflow from execution policy is authoritative; the model must not be used to guess or format external-search results.
+
+## Latest task: Saad Agent persistent chat conversations and Iraqi internet-search routing (2026-07-09)
+
+- Status:
+  - Fixed chat conversations being stored only in renderer `localStorage`; Saad Agent now also persists conversations to an Electron main-process JSON store under the app user-data state folder.
+  - Added `conversations:load` and `conversations:save` IPC handlers plus preload bridge methods `loadConversations` and `saveConversations`.
+  - The UI still keeps `localStorage` as a fast fallback, but it now loads the durable Electron store on startup and avoids overwriting it with an empty initial screen before loading completes.
+  - Explicit Iraqi/Arabic internet-search phrasing such as `ابحث بالانترنت` now routes to `external_research` and never calls the local model for link guessing.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts` [MODIFY]
+  - `saad-agent/src/desktop/preload.ts` [MODIFY]
+  - `saad-agent/src/desktop/preload.cjs` [MODIFY]
+  - `saad-agent/ui/src/App.tsx` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `npm.cmd run build:ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including the exact Iraqi internet-search regression with `usedModel=false`.
+  - Verified packaged `app.asar` includes updated `dist/desktop/main.js`, `dist/desktop/preload.cjs`, `dist/platform/services/chat-orchestrator.js`, and `ui/dist/index.html`.
+- Findings:
+  - The previous chat page persistence depended on Chromium `localStorage`, which is fragile across origin/path changes and can be overwritten by an empty bootstrap after restart.
+  - The older explicit web-search matcher missed the natural phrasing `ابحث بالانترنت`, causing the request to fall through to conversational model routing.
+  - Test-only audit writes under `C:\Users\PC\.saad-agent` still report EPERM in the sandbox, but runtime assertions pass.
+- Decisions:
+  - Store conversation UI state locally in the Electron app-data area as durable product state, while keeping `localStorage` only as a fallback cache.
+  - Treat explicit Arabic/Iraqi internet-search phrases as real search commands that must not use model guesses.
+
+## Latest task: Integrated local ComfyUI image generation, editing, and storyboard pipelines (2026-07-09)
+
+- Status:
+  - Configured local image pipeline to use user's best model: **`Qwen-Rapid-AIO-NSFW-v14.1.safetensors`**.
+  - Added support for custom **Aspect Ratios** (`1:1`, `16:9`, `9:16`, `3:2`, `2:3`) and **Quality** steps (`Standard - 20`, `High - 35`, `Ultra - 50`) dynamically injected into the KSampler and Latent Image nodes.
+  - Implemented prompt feedback: Qwen's expanded cinematic prompt is rendered directly in the user's browser chat window above the generated image.
+  - Integrated local **Storyboard** generation tool using user's loop-based custom workflow `SaadStudio_Qwen_Auto_Storyboard_NO_MISSING_NODES55555.json` to generate sequential scenes.
+  - Created a robust GUI-to-API workflow converter in `src/prompt/index.ts` to seamlessly convert GUI JSON files to ComfyUI API formats.
+  - Refreshed the client interface (`index.html`) with selector controls for Aspect Ratio, Quality, and Storyboard mode.
+  - Restarted the NSFW agent backend server successfully (running on port 4000).
+- Affected files:
+  - `flux-dev-nsfw-agent-main/src/prompt/index.ts` [MODIFY]
+  - `flux-dev-nsfw-agent-main/src/constants.ts` [MODIFY]
+  - `flux-dev-nsfw-agent-main/index.html` [MODIFY]
+- Verification:
+  - Verified that all workflow edits parse correctly and the server boots without any TSX or runtime errors.
+
+## Latest task: Memory-first conversational routing and deterministic official links (2026-07-09)
+
+- Status:
+  - Conversational pre-answer review now searches personal `user-memory`, relevant engineering memory, and trained knowledge instead of returning an empty context.
+  - The bounded conversational memory/training context is passed into the response prompt before conversation history and the latest request.
+  - Short Iraqi recall prompts such as `شنو تذكر شوي` route to `memory_recall` and return stored personal memory without invoking a model.
+  - Known Adobe, GitHub, and Google homepage requests join the existing YouTube deterministic path and return official clickable links without model or internet approval.
+- Affected files:
+  - `saad-agent/src/platform/services/pre-answer-review.ts` [MODIFY]
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/src/platform/services/deterministic-command-service.ts` [MODIFY]
+  - `saad-agent/src/test-chat-orchestrator.ts` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build` passed.
+  - `node dist/test-chat-orchestrator.js` passed all scenarios.
+  - Regression coverage proves short Iraqi memory recall and Adobe homepage lookup use zero model calls.
+  - Conversational review test proves saved personal memory is present in the returned context.
+  - Packaged ASAR work tree contains all three runtime markers and ASAR lists the updated service files.
+- Findings:
+  - `EngineeringMemory.retrieveRelevantContext()` searches decisions, successes, and failures but does not return `user-memory` knowledge items.
+  - Conversational mode previously skipped memory and trained knowledge, and its model prompt omitted pre-answer context.
+  - Test-only audit persistence reported `EPERM` under `C:\Users\PC\.saad-agent`; runtime decisions and all assertions still completed successfully.
+- Decision:
+  - Keep personal memory retrieval explicit and bounded to the latest eight `user-memory` items; do not enlarge general engineering context for ordinary chat.
+
+## Latest task: Composer containment and Saad Agent approval-menu styling (2026-07-09)
+
+- Status:
+  - Fixed the bottom composer being positioned against the full window and overlapping the left sidebar.
+  - Made `.main-area` the positioning context and constrained the prompt root to the available chat-column width.
+  - Replaced conflicting utility classes on the approval dropdown with dedicated Saad Agent component classes.
+  - The dropdown now keeps a stable 300px responsive width and uses the application's navy/cyan palette.
+- Affected files:
+  - `saad-agent/ui/src/components/PromptBox.tsx` [MODIFY]
+  - `saad-agent/ui/src/index.css` [MODIFY]
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar` [REPACK]
+- Verification:
+  - `npm.cmd run build:ui` passed.
+  - Browser measurement at 1280x720 confirmed `.input-area` matches `.main-area` exactly: left 280px, right 1280px.
+  - Prompt bounds were left 400px/right 1160px; open menu bounds were left 452px/right 752px, with no sidebar or viewport overlap.
+  - Visual screenshot confirmed the navy/cyan product palette and orderly dropdown layout.
+- Findings:
+  - The earlier `100vw` prompt width and missing positioned ancestor caused the composer to use viewport coordinates.
+  - The generic `.input-area * { max-width: 100% }` rule compressed the utility-class dropdown to its narrow trigger parent.
+- Decision:
+  - Preserve the existing `PromptBox` and approval behavior; fix containment and styling through dedicated component classes only.
+
 ## Latest task: Unified Seedream 5.0 Pro image routing based on image reference presence (2026-07-09)
 
 - Status:
@@ -13,7 +281,7 @@
   - Mapped quality resolution outputs to KIE parameter values (`2K` to `high`, and `1K`/`1.5K` to `basic`).
   - Configured pricing for `seedance2mini` (Seedance 2.0 Mini) at `480p` resolution to be 20 credits per 15 seconds.
   - Configured pricing for `seedance2f` (Seedance 2.0 Fast) at `720p` resolution to be 55 credits per 15 seconds, and at `480p` resolution to be 25 credits per 15 seconds.
-  - Restored default pricing for `seedance2` (Seedance 2.0 HQ) and removed `"4k"` resolution from its capabilities.
+  - Configured pricing for `seedance2` (Seedance 2.0 HQ) to be 60 credits for 480p, 90 credits for 720p, 130 credits for 1080p, and 200 credits for 4K over 15 seconds.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]
@@ -2441,6 +2709,58 @@
   - Use `release-layout-fix/` as the newest installable output for this UI fix.
 - Remaining:
   - If the user still sees old behavior, uninstall/close old running Saad Agent and install from `release-layout-fix/`.
+## Latest task: Saad Agent conversational Skills routing hardening (2026-07-10)
+
+- Status:
+  Fixed the conversational pre-answer path so it no longer skips Skills. `PreAnswerReviewService` now searches bounded memory, trained knowledge, and matching enabled Skills for conversational requests before model formulation. Added a built-in `Agent Orchestration Skill` for routing decisions around memory, knowledge, deterministic commands, external research, tools, and model fallback. Improved `SkillRegistry` matching with task-type and capability triggers while preserving disabled-skill exclusion.
+- Affected files:
+  - `saad-agent/src/skills/builtin-skills.ts`
+  - `saad-agent/src/skills/skill-registry.ts`
+  - `saad-agent/src/platform/services/pre-answer-review.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-skills.js` passed and registered 13 built-in skills.
+  - `node dist/test-chat-orchestrator.js` passed, including the new conversational pre-answer skill loading test.
+  - Extracted the rebuilt `app.asar` to a temp folder and verified `Agent Orchestration Skill`, `memory, trained knowledge, and skills searched`, and task-type matching markers exist in the packaged backend. The old `none loaded in conversational mode` marker is absent.
+- Findings:
+  - The prior conversational branch intentionally returned `skillsLoaded: []` and emitted `Skills selected (none loaded in conversational mode)`, which made ordinary chat ignore enabled Skills even though engineering mode loaded them.
+  - `asar extract-file` still cannot address the archive's Windows-style paths directly, so full archive extraction was used for verification.
+  - Sandbox blocked audit writes under `C:\Users\PC\.saad-agent` during tests, but those warnings were non-fatal and the relevant tests passed.
+- Decisions:
+  - Keep Skill selection centralized in `SkillRegistry` and inject concise skill rules through `PreAnswerReviewService` instead of duplicating routing rules in UI or chat code.
+  - Treat the model as the final formulation/reasoning layer after deterministic, memory, knowledge, research, and tool routing have been considered.
+- Remaining:
+  - Future deep-search adapters such as Agent-Reach or MindSearch should still plug behind `ResearchGatewayService`, not directly into chat orchestration.
+
+## Latest task: Saad Agent grouped reliability repairs for search, memory, and packaging (2026-07-10)
+
+- Status:
+  Grouped the open Saad Agent reliability issues and completed the next concrete repairs without duplicating routing code. `ResearchGatewayService` was rewritten as the single deep-search gateway with multi-query planning, source deduplication, relevance ranking, per-query failure recording, and partial-failure resilience. Search/link requests remain no-model paths after approval. Desktop conversation persistence was hardened so an empty save payload cannot overwrite an existing durable conversation store. The packaged `app.asar` was rebuilt with the updated backend.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-skills.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including no-model external search, URL-scoped site search, query expansion/reranking, and partial-failure search resilience.
+  - Extracted the rebuilt `app.asar` and verified `failedQueries`, partial-search continuation, `Agent Orchestration Skill`, conversational skills context, and the empty conversation save guard are present in the packaged backend.
+- Findings:
+  - The previous research gateway stopped on the first provider/query failure, which made multi-query search brittle.
+  - The durable conversation backend had atomic writes and backups, but lacked a backend guard against replacing an existing conversation store with an empty payload.
+  - Text-like attachments and pasted clipboard images are already routed through the attachment/training pipeline. PDF/Word/OCR/image deep extraction remains intentionally incomplete and must not be described as fully read.
+- Decisions:
+  - Keep `ResearchGatewayService` as the single adapter boundary for Brave now and Agent-Reach/MindSearch later.
+  - Preserve the existing UI and IPC surfaces; fix behavior in backend services first.
+  - Do not claim full document/OCR reading until a real extractor pipeline is added and tested.
+- Remaining:
+  - Add real Agent-Reach/MindSearch adapters behind `ResearchGatewayService` if deeper platform search is required.
+  - Add PDF/DOCX/OCR/Vision extraction before claiming full book/document/image reading.
+
 ## Latest task: Saad Agent refreshed Windows installer packaging after Settings wiring (2026-06-28)
 
 - Status:

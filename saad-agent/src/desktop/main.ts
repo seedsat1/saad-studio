@@ -35,6 +35,64 @@ try {
 
 let mainWindow: any = null;
 
+function getConversationStorePath(): string {
+  const storeDir = path.join(app.getPath("userData"), "state");
+  fs.mkdirSync(storeDir, { recursive: true });
+  return path.join(storeDir, "conversations.json");
+}
+
+function normalizeStoredConversations(value: any): { conversations: any[]; activeId: string | null } {
+  const rawConversations = Array.isArray(value) ? value : Array.isArray(value?.conversations) ? value.conversations : [];
+  const conversations = rawConversations
+    .filter((item: any) => item && typeof item.id === "string" && Array.isArray(item.messages))
+    .slice(-100)
+    .map((item: any) => ({
+      id: String(item.id),
+      title: String(item.title || "New Chat").slice(0, 160),
+      createdAt: Number(item.createdAt) || Date.now(),
+      updatedAt: Number(item.updatedAt) || Date.now(),
+      workspacePath: typeof item.workspacePath === "string" ? item.workspacePath : undefined,
+      projectName: typeof item.projectName === "string" ? item.projectName : undefined,
+      titleEdited: Boolean(item.titleEdited),
+      messages: item.messages
+        .filter((message: any) => message && typeof message.id === "string" && typeof message.content === "string")
+        .slice(-500)
+    }));
+  const activeId = typeof value?.activeId === "string" && conversations.some((item: any) => item.id === value.activeId)
+    ? value.activeId
+    : conversations[0]?.id || null;
+  return { conversations, activeId };
+}
+
+function loadPersistedConversations(): { conversations: any[]; activeId: string | null } {
+  const storePath = getConversationStorePath();
+  if (!fs.existsSync(storePath)) return { conversations: [], activeId: null };
+  const parsed = JSON.parse(fs.readFileSync(storePath, "utf8"));
+  return normalizeStoredConversations(parsed);
+}
+
+function savePersistedConversations(payload: any): { conversations: any[]; activeId: string | null } {
+  const normalized = normalizeStoredConversations(payload);
+  const storePath = getConversationStorePath();
+  if (normalized.conversations.length === 0 && fs.existsSync(storePath)) {
+    return loadPersistedConversations();
+  }
+  const tempPath = `${storePath}.tmp`;
+  const backupPath = `${storePath}.bak`;
+  const nextPayload = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    activeId: normalized.activeId,
+    conversations: normalized.conversations
+  };
+  if (fs.existsSync(storePath)) {
+    fs.copyFileSync(storePath, backupPath);
+  }
+  fs.writeFileSync(tempPath, JSON.stringify(nextPayload, null, 2), "utf8");
+  fs.renameSync(tempPath, storePath);
+  return normalized;
+}
+
 function readKnowledgeRegistry(): any[] {
   const dirs = KnowledgeManagerService.getDirs();
   const candidates = [
@@ -437,6 +495,24 @@ ipcMain.handle("get-resource-snapshot", async () => {
     return { success: true, snapshot };
   } catch (err: any) {
     return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("conversations:load", async () => {
+  try {
+    const payload = loadPersistedConversations();
+    return { success: true, ...payload };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to load conversations." };
+  }
+});
+
+ipcMain.handle("conversations:save", async (_event, payload) => {
+  try {
+    const saved = savePersistedConversations(payload);
+    return { success: true, ...saved };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to save conversations." };
   }
 });
 

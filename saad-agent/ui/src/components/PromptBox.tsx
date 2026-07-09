@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
-import { Plus, ChevronDown, ArrowUp, Check, X, FileText, File, Hand, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Plus, ChevronDown, ArrowUp, Check, X, FileText, File as FileIcon, Hand, ShieldCheck, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const ACCEPTED_TEXT = [".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml", ".html", ".css", ".js", ".ts", ".jsx", ".tsx", ".py", ".java", ".c", ".cpp", ".rs", ".go", ".pdf", ".docx", ".rtf"];
@@ -21,7 +21,7 @@ interface PromptBoxProps {
   value: string;
   setValue: (val: string) => void;
   files: AttachedFile[];
-  onAddFiles: (fileList: FileList) => void;
+  onAddFiles: (fileList: FileList | File[], sourceKind?: "upload" | "clipboard" | "drag_drop") => void;
   onRemoveFile: (id: string) => void;
   onLongTextInput: (content: string, sourceKind: "clipboard" | "drag_drop" | "typed_long_input") => { attached: boolean; attachmentId?: string };
   onPasteAsTextAnyway: (content: string) => void;
@@ -40,7 +40,7 @@ function formatSize(bytes: number) {
 }
 
 function FileChip({ file, onRemove }: { file: AttachedFile; onRemove: () => void }) {
-  const Icon = file.type === "text" ? FileText : File;
+  const Icon = file.type === "text" ? FileText : FileIcon;
 
   if (file.type === "image" && file.previewUrl) {
     return (
@@ -149,6 +149,25 @@ export function PromptBox({
   }
 
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const clipboardFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item, index) => {
+        const file = item.getAsFile();
+        if (!file) return null;
+        const extension = item.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+        const filename = file.name && file.name !== "image.png"
+          ? file.name
+          : `clipboard-image-${Date.now()}-${index}.${extension}`;
+        return new File([file], filename, { type: file.type || item.type, lastModified: Date.now() });
+      })
+      .filter((file): file is File => Boolean(file));
+
+    if (clipboardFiles.length > 0) {
+      e.preventDefault();
+      onAddFiles(clipboardFiles, "clipboard");
+      return;
+    }
+
     const text = e.clipboardData.getData("text/plain");
     if (!text) return;
 
@@ -315,9 +334,6 @@ export function PromptBox({
                 type="button"
                 onClick={() => setDropdownOpen((prev) => !prev)}
                 className="saad-prompt-approval-btn"
-                style={{ color: "#60a5fa", background: "transparent" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(96,165,250,0.1)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
               >
                 <TriggerIcon size={14} strokeWidth={2.25} />
                 <span>{currentMode.label}</span>
@@ -331,12 +347,12 @@ export function PromptBox({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.12 }}
-                    className="absolute bottom-9 left-0 w-[300px] rounded-xl border border-zinc-800 bg-zinc-950 p-2.5 shadow-2xl z-50"
+                    className="saad-approval-menu"
                   >
-                    <div className="px-2 py-1.5 text-[11px] font-medium text-zinc-500">
-                      How should Codex actions be approved?
+                    <div className="saad-approval-menu-title">
+                      كيف تريد أن يتعامل Saad Agent مع الموافقات؟
                     </div>
-                    <div className="mt-1.5 flex flex-col gap-1">
+                    <div className="saad-approval-menu-options">
                       {approvalModeOptions.map((opt) => {
                         const IconComponent = opt.icon;
                         const isSelected = activeApprovalMode === opt.value;
@@ -348,23 +364,21 @@ export function PromptBox({
                               setActiveApprovalMode(opt.value);
                               setDropdownOpen(false);
                             }}
-                            className={`flex items-start gap-3 w-full p-2 rounded-lg text-left transition-colors duration-150 cursor-pointer ${
-                              isSelected ? "bg-zinc-900" : "hover:bg-zinc-900/60"
-                            }`}
+                            className={`saad-approval-option ${isSelected ? "active" : ""}`}
                           >
-                            <div className="mt-0.5 text-zinc-400">
+                            <div className="saad-approval-option-icon">
                               <IconComponent size={15} strokeWidth={2} />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[13px] font-medium text-zinc-200">
+                            <div className="saad-approval-option-copy">
+                              <div className="saad-approval-option-heading">
+                                <span>
                                   {opt.label}
                                 </span>
                                 {isSelected && (
-                                  <Check size={13} className="text-zinc-400" strokeWidth={3} />
+                                  <Check size={13} strokeWidth={3} />
                                 )}
                               </div>
-                              <p className="text-[11px] text-zinc-500 leading-normal mt-0.5">
+                              <p>
                                 {opt.subtitle}
                               </p>
                             </div>

@@ -19,12 +19,21 @@ export class PreAnswerReviewService {
     await KnowledgeIngestionService.ensureTrainingFolders(workspacePath);
 
     if (isConversational) {
+      const [memoryMatches, personalMemory, knowledgeMatches, skills] = await Promise.all([
+        EngineeringMemory.retrieveRelevantContext(safePrompt).catch(() => []),
+        EngineeringMemory.searchMemory({}).then((result) =>
+          result.knowledgeItems.filter((item) => item.area === "user-memory").slice(-8)
+        ).catch(() => []),
+        KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 4).catch(() => []),
+        Promise.resolve(SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5))
+      ]);
+      const skillsLoaded = skills.map((match) => match.skill.name);
       if (traceContext) {
         const phases = [
           { phase: "loading_project_context", label: "Project context skipped (conversational mode)", service: "PreAnswerReviewService" },
-          { phase: "loading_memory", label: "Memory context skipped (conversational mode)", service: "EngineeringMemory" },
-          { phase: "loading_knowledge", label: "Knowledge context skipped (conversational mode)", service: "KnowledgeIngestionService" },
-          { phase: "selecting_skills", label: "Skills selected (none loaded in conversational mode)", service: "SkillRegistry" },
+          { phase: "loading_memory", label: "Memory context loaded", service: "EngineeringMemory" },
+          { phase: "loading_knowledge", label: "Knowledge context loaded", service: "KnowledgeIngestionService" },
+          { phase: "selecting_skills", label: "Skills selected", service: "SkillRegistry" },
           { phase: "selecting_workflow", label: "Workflow selected", service: "IntentEngine" }
         ];
         for (const p of phases) {
@@ -42,18 +51,54 @@ export class PreAnswerReviewService {
             phase: p.phase,
             status: "done",
             label: p.label,
-            safeDetails: p.phase === "selecting_workflow" ? { intent: "conversation" } : {},
+            safeDetails: p.phase === "selecting_workflow"
+              ? { intent: "conversation" }
+              : p.phase === "loading_memory"
+                ? { memoryMatchesCount: memoryMatches.length + personalMemory.length }
+                : p.phase === "loading_knowledge"
+                  ? { knowledgeMatchesCount: knowledgeMatches.length }
+                  : p.phase === "selecting_skills"
+                    ? { matchedSkills: skillsLoaded }
+                  : {},
             sourceService: p.service
           });
         }
       }
+      const personalMemoryContext = personalMemory
+        .map((item) => `- ${item.description.slice(0, 500)}`)
+        .join("\n");
+      const engineeringMemoryContext = memoryMatches
+        .slice(0, 4)
+        .map((item) => `- ${item.title || item.id}: ${item.content.slice(0, 350)}`)
+        .join("\n");
+      const memoryContext = personalMemoryContext || engineeringMemoryContext
+        ? [personalMemoryContext, engineeringMemoryContext].filter(Boolean).join("\n")
+        : "- No matching personal or engineering memory was found.";
+      const trainingContext = knowledgeMatches.length
+        ? knowledgeMatches.slice(0, 4).map((match) => {
+            const content = match.chunks.slice(0, 2).map((chunk) => chunk.content.slice(0, 500)).join("\n");
+            return `- ${match.item.filePath}: ${content || match.item.summary}`;
+          }).join("\n")
+        : "- No matching trained knowledge was found.";
+      const skillContext = this.formatSkillMatches(skills);
       return {
-        diagnostics: "Conversational mode: bypassed engineering review",
-        finalContext: "",
-        knowledgeMatches: [],
-        skillsLoaded: [],
-        projectContextLoaded: false,
-        noKnowledgeNotice: null
+        diagnostics: "Conversational mode: memory, trained knowledge, and skills searched",
+        finalContext: [
+          "Relevant private-agent context",
+          "",
+          "Memory:",
+          memoryContext,
+          "",
+          "Trained knowledge:",
+          trainingContext,
+          "",
+          "Matched skills:",
+          skillContext
+        ].join("\n"),
+        knowledgeMatches,
+        skillsLoaded,
+        projectContextLoaded: memoryMatches.length > 0 || personalMemory.length > 0,
+        noKnowledgeNotice: knowledgeMatches.length === 0 ? "No matching trained knowledge found for this request." : null
       };
     }
 
@@ -200,9 +245,7 @@ export class PreAnswerReviewService {
     const projectContextLoaded = Boolean(projectRules || adrs || memoryMatches.length > 0);
     const skillsLoaded = skills.map((match) => match.skill.name);
     const trainingContext = this.formatKnowledgeMatches(knowledgeMatches);
-    const skillContext = skillsLoaded.length
-      ? skills.map((match) => `- ${match.skill.name}: ${match.activationReason}`).join("\n")
-      : "- No matching enabled skill was detected.";
+    const skillContext = this.formatSkillMatches(skills);
     const memoryContext = memoryMatches.length
       ? memoryMatches.slice(0, 6).map((item) => `- ${item.title || item.id}: ${item.content.slice(0, 500)}`).join("\n")
       : "- No matching engineering memory was found.";
@@ -312,5 +355,21 @@ export class PreAnswerReviewService {
     const joined = lines.join("\n\n");
     const budget = TokenManager.getBudgetInfo(TokenManager.estimateTokens(joined), 2800);
     return budget.isOverBudget ? joined.slice(0, 11200) : joined;
+  }
+
+  private static formatSkillMatches(matches: ReturnType<typeof SkillRegistry.matchSkillsForTask>): string {
+    if (!matches.length) return "- No matching enabled skill was detected.";
+    const lines = matches.slice(0, 5).map((match) => {
+      const rules = match.skill.promptTemplates.systemRules
+        .slice(0, 5)
+        .map((rule) => `  - ${rule}`)
+        .join("\n");
+      return [
+        `- ${match.skill.name} (${match.skill.domain})`,
+        `  Reason: ${match.activationReason}`,
+        rules ? `  Rules:\n${rules}` : ""
+      ].filter(Boolean).join("\n");
+    });
+    return lines.join("\n");
   }
 }

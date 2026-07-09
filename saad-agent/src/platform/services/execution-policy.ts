@@ -57,11 +57,16 @@ export class ExecutionPolicyService {
       normalizedPrompt,
       normalizedArabicPrompt
     );
+    const isUrlScopedExternalSearch = this.isUrlScopedExternalSearchRequest(
+      normalizedPrompt,
+      normalizedArabicPrompt
+    );
 
     if (this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
       isModificationRequired = true;
     }
-    const isExternalResearchRequired = this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt);
+    const isExternalResearchRequired = isUrlScopedExternalSearch
+      || this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt);
 
     if (
       normalizedPrompt.includes("rm -rf") ||
@@ -78,6 +83,17 @@ export class ExecutionPolicyService {
       riskLevel = "critical";
       reason = "Safety check failed: Dangerous command or destructive action detected.";
       workflow = "safety_rejection";
+    } else if (isExternalResearchRequired) {
+      riskLevel = "medium";
+      workflow = "external_research";
+      if (approvalMode === "ask") {
+        requiresApproval = true;
+        decision = "WAIT_FOR_APPROVAL";
+        reason = "Internet access requires explicit user authorization under 'ask' mode.";
+      } else {
+        decision = "SEARCH";
+        reason = "External web research requested.";
+      }
     } else if (isLocalImageClassification) {
       riskLevel = "medium";
       workflow = "local_image_classification";
@@ -105,17 +121,6 @@ export class ExecutionPolicyService {
       } else {
         decision = "PLAN";
         reason = "Project modification requested; generating execution plan.";
-      }
-    } else if (isExternalResearchRequired) {
-      riskLevel = "medium";
-      workflow = "external_research";
-      if (approvalMode === "ask") {
-        requiresApproval = true;
-        decision = "WAIT_FOR_APPROVAL";
-        reason = "Internet access requires explicit user authorization under 'ask' mode.";
-      } else {
-        decision = "SEARCH";
-        reason = "External web research requested.";
       }
     } else {
       if (/\b(explain|why|how)\b/i.test(normalizedPrompt)) {
@@ -208,6 +213,18 @@ export class ExecutionPolicyService {
     const explicitWeb = /(?:\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0648\u064a\u0628|\u0627\u0644\u0648\u064a\u0628|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0627\u062e\u0628\u0627\u0631|\u0623\u062e\u0628\u0627\u0631)/i.test(normalizedArabic)
       || /\b(internet|web|online|latest|current|links|sources|news)\b/i.test(lowerPrompt);
     return hasSearchVerb && hasLocalScope && !explicitWeb;
+  }
+
+  private static isUrlScopedExternalSearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {
+    const hasHttpUrl = /https?:\/\/[^\s)>\]"]+/i.test(lowerPrompt);
+    if (!hasHttpUrl) return false;
+
+    const localScope = /(\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0641\u064a \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0628\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0641\u064a \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0628\u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u062f\u0627\u062e\u0644 \u0627\u0644\u0643\u0648\u062f|\u0641\u064a \u0627\u0644\u0643\u0648\u062f|workspace|project files|local files|codebase)/i.test(normalizedArabic)
+      || /\b(workspace|codebase|local files|project files)\b/i.test(lowerPrompt);
+    if (localScope) return false;
+
+    return /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u0627\u0628\u062d\u062b\s+\u0644\u064a|\u0628\u062d\u062b|\u062f\u0648\u0631|\u062f\u0648\u0631\u0644\u064a|\u062f\u0648\u0631\s+\u0644\u064a|\u0641\u062a\u0634|\u0641\u062a\u0634\u0644\u064a|\u0641\u062a\u0634\s+\u0644\u064a)(?:\s|$)/i.test(normalizedArabic)
+      || /\b(search|find|look up|research)\b/i.test(lowerPrompt);
   }
 
   private static isExternalResearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {

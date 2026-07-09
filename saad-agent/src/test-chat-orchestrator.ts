@@ -7,6 +7,9 @@ import { ChatOrchestratorService } from "./platform/services/chat-orchestrator.j
 import { ReasoningEngine } from "./platform/services/reasoning-engine.js";
 import { KnowledgeIngestionService } from "./platform/services/knowledge-ingestion.js";
 import { ConversationStateEngine } from "./platform/services/conversation-state-engine.js";
+import { PreAnswerReviewService } from "./platform/services/pre-answer-review.js";
+import { BraveAnswersService } from "./platform/services/brave-answers.js";
+import { ResearchGatewayService } from "./platform/services/research-gateway.js";
 
 async function main() {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "saad-chat-orchestrator-"));
@@ -15,6 +18,7 @@ async function main() {
   await fs.writeFile(path.join(workspace, "PROJECT_CONTEXT.md"), "Test project context.", "utf8");
 
   const originalRequestCompletion = ReasoningEngine.requestCompletion;
+  const originalBraveQuery = BraveAnswersService.query;
   let modelCalls = 0;
   ReasoningEngine.requestCompletion = async (...args: Parameters<typeof originalRequestCompletion>) => {
     modelCalls += 1;
@@ -54,6 +58,40 @@ async function main() {
     assert.ok(!recallResult.response.includes("Model Invocation"));
     assert.ok(!recallResult.response.includes("Reasoning Engine"));
     assert.strictEqual(modelCalls, 0, "memory_recall must not call the model");
+
+    const shortRecallResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0634\u0646\u0648 \u062a\u0630\u0643\u0631 \u0634\u0648\u064a",
+      workspacePath: workspace,
+      projectName: "test-workspace"
+    });
+    assert.strictEqual(shortRecallResult.intent, "memory_recall");
+    assert.strictEqual(shortRecallResult.usedModel, false);
+    assert.ok(shortRecallResult.response.includes("\u0633\u0639\u062f"));
+    assert.strictEqual(modelCalls, 0, "short Iraqi memory recall must not call the model");
+
+    const conversationalReview = await PreAnswerReviewService.review(
+      "\u0627\u062d\u0686\u064a\u0644\u064a \u0639\u0646 \u0646\u0641\u0633\u064a",
+      workspace,
+      undefined,
+      true
+    );
+    assert.ok(conversationalReview.finalContext.includes("\u0633\u0639\u062f"));
+    assert.ok(conversationalReview.diagnostics.includes("memory, trained knowledge, and skills searched"));
+
+    const conversationalSkillReview = await PreAnswerReviewService.review(
+      "\u0644\u064a\u0634 \u0627\u0644\u0627\u062c\u064a\u0646\u062a \u064a\u0633\u062a\u062f\u0639\u064a \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u0628\u062f\u0644 \u0627\u0644\u0630\u0627\u0643\u0631\u0629 \u0648\u0627\u0644\u0633\u0643\u0644\u0627\u062a",
+      workspace,
+      undefined,
+      true
+    );
+    assert.ok(
+      conversationalSkillReview.skillsLoaded.includes("Agent Orchestration Skill"),
+      "conversational mode must load matching orchestration skills before model formulation"
+    );
+    assert.ok(
+      conversationalSkillReview.finalContext.includes("Choose deterministic commands, memory recall, trained knowledge"),
+      "matched skill rules must be injected into conversational pre-answer context"
+    );
 
     const thanksResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0634\u0643\u0631\u0627 \u0644\u0643",
@@ -163,6 +201,89 @@ async function main() {
     );
     assert.strictEqual(modelCalls, callsBeforeWeb, "web search must not fall back to model guessing");
 
+    const callsBeforeExactIraqiSearch = modelCalls;
+    const exactIraqiSearchResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0631\u064a\u062f \u0631\u0648\u0627\u0628\u0637 \u0644\u062f\u0639\u0645 \u0645\u0648\u0628\u0627\u064a\u0644\u064a \u0627\u0628\u062d\u062b \u0628\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(exactIraqiSearchResult.intent, "external_research");
+    assert.strictEqual(exactIraqiSearchResult.usedModel, false);
+    assert.strictEqual(modelCalls, callsBeforeExactIraqiSearch, "explicit Iraqi internet search must use Brave and never call the model");
+
+    const callsBeforeInternetSitesSearch = modelCalls;
+    const internetSitesSearchResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "cuckold \u0627\u0631\u064a\u062f \u0645\u0648\u0627\u0642\u0639 \u0645\u0646 \u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(internetSitesSearchResult.intent, "external_research");
+    assert.strictEqual(internetSitesSearchResult.usedModel, false);
+    assert.strictEqual(modelCalls, callsBeforeInternetSitesSearch, "internet sites requests must use search and never call the model after approval");
+
+    BraveAnswersService.query = async (query: string) => ({
+      query,
+      answersText: "",
+      latencyMs: 12,
+      cacheHit: false,
+      sources: query.includes("storyboarding comic story page")
+        ? [{
+            title: "Civitai Comics Tell Your Story Page by Page",
+            url: "https://civitai.com/articles/29539/civitai-comics-tell-your-story-page-by-page",
+            snippet: "Storyboard and comic story page workflow."
+          }]
+        : [{
+            title: "Civitai Login",
+            url: "https://civitai.com/login",
+            snippet: "Account login page."
+          }]
+    });
+    const deepSearchPlanResult = await ResearchGatewayService.search(
+      "STORYBOARD NSFW \u0627\u0628\u062d\u062b \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 https://civitai.com/ \u0639\u0646"
+    );
+    assert.ok(deepSearchPlanResult.plannedQueries.length > 1, "deep search must expand one vague request into multiple planned queries");
+    assert.ok(deepSearchPlanResult.plannedQueries.some((query) => query.includes("site:civitai.com")));
+    assert.ok(deepSearchPlanResult.plannedQueries.some((query) => query.includes("storyboarding comic story page")));
+    assert.ok(deepSearchPlanResult.sources[0]);
+    assert.strictEqual(deepSearchPlanResult.sources[0]!.url, "https://civitai.com/articles/29539/civitai-comics-tell-your-story-page-by-page");
+
+    BraveAnswersService.query = async (query: string) => {
+      if (query.endsWith("guide")) {
+        throw new Error("temporary provider failure for one planned query");
+      }
+      return {
+        query,
+        answersText: "",
+        latencyMs: 9,
+        cacheHit: false,
+        sources: query.endsWith("examples")
+          ? [{
+              title: "Resilient search result",
+              url: "https://example.com/resilient-search-result",
+              snippet: "A verified result from a later planned query."
+            }]
+          : []
+      };
+    };
+    const resilientSearchResult = await ResearchGatewayService.search("resilient topic");
+    assert.strictEqual(resilientSearchResult.sources[0]?.url, "https://example.com/resilient-search-result");
+    assert.strictEqual(resilientSearchResult.failedQueries.length, 1, "one failed planned query should be recorded without aborting the whole search");
+    BraveAnswersService.query = originalBraveQuery;
+
+    const callsBeforeUrlSiteSearch = modelCalls;
+    const urlSiteSearchResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "STORYBOARD NSFW \u0627\u0628\u062d\u062b \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 https://civitai.com/ \u0639\u0646",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(urlSiteSearchResult.intent, "external_research");
+    assert.strictEqual(urlSiteSearchResult.usedModel, false);
+    assert.ok(!urlSiteSearchResult.response.includes("Trusted Workspace"));
+    assert.strictEqual(modelCalls, callsBeforeUrlSiteSearch, "URL-scoped site searches must use external research and never trusted-workspace/model routing");
+
     const callsBeforeYouTube = modelCalls;
     const youtubeLinksResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u0631\u064a\u062f \u0631\u0648\u0627\u0628\u0637 \u0627\u063a\u0627\u0646\u064a \u0643\u0627\u0638\u0645 \u0627\u0644\u0633\u0627\u0647\u0631 \u0641\u064a \u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628",
@@ -186,6 +307,18 @@ async function main() {
     assert.ok(youtubeHomepageResult.response.includes("[فتح YouTube](https://www.youtube.com)"));
     assert.ok(!youtubeHomepageResult.approvalRequest, "known official website links must not request internet approval");
     assert.strictEqual(modelCalls, callsBeforeKnownWebsite, "known official website links must not call the model");
+
+    const callsBeforeAdobeWebsite = modelCalls;
+    const adobeHomepageResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0631\u064a\u062f \u0631\u0627\u0628\u0637 \u0645\u0648\u0642\u0639 \u0627\u062f\u0648\u0628\u064a",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "ask"
+    });
+    assert.strictEqual(adobeHomepageResult.intent, "conversation");
+    assert.strictEqual(adobeHomepageResult.usedModel, false);
+    assert.ok(adobeHomepageResult.response.includes("https://www.adobe.com"));
+    assert.strictEqual(modelCalls, callsBeforeAdobeWebsite, "known Adobe homepage must not call the model");
 
     const attachmentSource = path.join(workspace, "uploaded-reference.md");
     await fs.writeFile(attachmentSource, "Attachment rule: saved files must become permanent training references.", "utf8");
@@ -243,15 +376,25 @@ async function main() {
 
     console.log("Chat orchestrator memory_save no-model test passed.");
     console.log("Chat orchestrator memory_recall concise no-model test passed.");
+    console.log("Chat orchestrator short Iraqi memory recall no-model test passed.");
+    console.log("Conversational pre-answer memory retrieval test passed.");
+    console.log("Conversational pre-answer skill loading test passed.");
     console.log("Chat orchestrator casual thanks no-model test passed.");
     console.log("Chat orchestrator fetched URL context routing test passed.");
     console.log("Chat orchestrator external_research no-model/no-guessing test passed.");
+    console.log("Chat orchestrator exact Iraqi internet-search routing test passed.");
+    console.log("Chat orchestrator internet-sites after-approval no-model test passed.");
+    console.log("Research gateway query-expansion and reranking test passed.");
+    console.log("Research gateway partial-failure resilience test passed.");
+    console.log("Chat orchestrator URL-scoped site search routing test passed.");
     console.log("Chat orchestrator Arabic YouTube links routing test passed.");
     console.log("Chat orchestrator known YouTube homepage direct-link test passed.");
+    console.log("Chat orchestrator known Adobe homepage direct-link test passed.");
     console.log("Chat orchestrator attachment-to-training no-model test passed.");
     console.log("Chat orchestrator translation uses Iraqi Arabic model path test passed.");
   } finally {
     ReasoningEngine.requestCompletion = originalRequestCompletion;
+    BraveAnswersService.query = originalBraveQuery;
     await fs.rm(workspace, { recursive: true, force: true });
   }
 }

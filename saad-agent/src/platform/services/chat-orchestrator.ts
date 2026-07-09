@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs/promises";
 import { CONFIG } from "../../config.js";
-import { BraveAnswersService } from "./brave-answers.js";
+import { ResearchGatewayService } from "./research-gateway.js";
 import type { Attachment } from "./attachments.js";
 import { ContextEngine } from "./context-engine.js";
 import { EngineeringMemory } from "./engineering-memory.js";
@@ -148,7 +148,10 @@ export class ChatOrchestratorService {
     // Auto-crawler for links in user prompt
     let urlAttachmentContext = "";
     const urlRegex = /(https?:\/\/[^\s\)]+)/i;
-    if (urlRegex.test(userRequestText)) {
+    const normalizedRequestForUrl = ChatOrchestratorService.normalizeArabic(userRequestText);
+    const shouldFetchUrlContext = urlRegex.test(userRequestText)
+      && !ChatOrchestratorService.isUrlScopedExternalSearch(userRequestText, normalizedRequestForUrl);
+    if (shouldFetchUrlContext) {
       const matchedUrl = userRequestText.match(urlRegex)![0].replace(/[\[\]\)\(\"\'\>\<\*]/g, "").trim();
       try {
         console.log(`[CRAWLER] Auto-fetching URL: ${matchedUrl}`);
@@ -649,7 +652,10 @@ export class ChatOrchestratorService {
 
     // 2. Intent Engine
     const intentResult = this.detectIntent(userRequestText, sessionId);
-    const intent = intentResult.intent;
+    let intent = intentResult.intent;
+    if (decisionResult.workflow === "external_research") {
+      intent = "external_research";
+    }
 
     if (intent === "conversation" && this.isCasualAcknowledgement(userRequestText)) {
       await this.transitionToComplete(taskId, "Casual acknowledgement completed without engineering execution");
@@ -1028,17 +1034,11 @@ export class ChatOrchestratorService {
           conversationId,
           action: "use_internet"
         }, approval, true, "internet search allowed");
-        const search = await BraveAnswersService.query(userRequestText);
-        responseText = search.sources.length > 0
-          ? [
-              `لقيت لك ${search.sources.length} روابط موثقة:`,
-              "",
-              ...search.sources.map((source, index) => `${index + 1}. [${source.title}](${source.url})`)
-            ].join("\n")
-          : "ما لكيت نتائج موثقة ومباشرة لهذا البحث. جرّب تكتب اسم الشيء المطلوب بتفصيل أكثر.";
+        const search = await ResearchGatewayService.search(userRequestText);
+        responseText = ResearchGatewayService.formatConciseLinks(search);
         await this.transitionToComplete(taskId, "Internet search completed");
       } catch (err: any) {
-        if (BraveAnswersService.isConfigurationError(err)) {
+        if (ResearchGatewayService.isConfigurationError(err)) {
           responseText = ChatOrchestratorService.formatInternetProviderConfigurationResponse(err);
           await this.transitionToComplete(taskId, "Internet search provider requires configuration");
         } else {
@@ -1172,6 +1172,8 @@ export class ChatOrchestratorService {
           if (history.length > 0) {
             const formattedHistory = ChatOrchestratorService.formatConversationHistory(history);
             userPrompt = [
+              preAnswerReview.finalContext,
+              "",
               formattedHistory,
               "",
               "Latest user request:",
@@ -1179,9 +1181,12 @@ export class ChatOrchestratorService {
               readableAttachmentContext ? ["", readableAttachmentContext].join("\n") : ""
             ].join("\n");
           } else {
-            userPrompt = readableAttachmentContext
-              ? [userRequestText, readableAttachmentContext].join("\n\n")
-              : userRequestText;
+            userPrompt = [
+              preAnswerReview.finalContext,
+              "Latest user request:",
+              userRequestText,
+              readableAttachmentContext
+            ].filter(Boolean).join("\n\n");
           }
         } else {
           const historyBlock = ChatOrchestratorService.formatConversationHistory(conversationState.history || []);
@@ -1529,7 +1534,7 @@ export class ChatOrchestratorService {
         matchedPattern: classified.matchedPattern || "explicit external research pattern",
         reason: classified.reason || "User asks for internet/current information.",
         selectedPipeline: "research.external",
-        selectedTools: ["BraveAnswersService"],
+        selectedTools: ["ResearchGatewayService"],
       };
     }
 
@@ -1578,12 +1583,37 @@ export class ChatOrchestratorService {
   }
 
   private static isMemoryRecall(prompt: string, normalized: string): boolean {
+    const shortRecallQuestion =
+      /^(?:\u0634\u0646\u0648|\u0634\u0646\u0648\u0647|\u0645\u0627\u0630\u0627)?\s*(?:\u062a\u0630\u0643\u0631|\u0645\u062a\u0630\u0643\u0631|\u062d\u0627\u0641\u0638|\u0645\u062e\u0632\u0646|\u062a\u0639\u0631\u0641)(?:\s+\u0639\u0646\u064a)?(?:\s+\u0634\u0648\u064a)?\s*$/.test(normalized)
+      || /^(?:what|anything)\s+(?:do you )?(?:remember|know)(?: about me)?$/i.test(prompt.trim());
+    if (shortRecallQuestion) return true;
     return /(\u0645\u0646 \u0627\u0646\u0627|\u0645\u0646 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u0627|\u0627\u0646\u0627 \u0645\u0646\u0648|\u0627\u0646\u064a \u0645\u0646\u0648|\u0645\u0627 \u0627\u0633\u0645\u064a|\u0634\u0646\u0648 \u0627\u0633\u0645\u064a|\u0627\u0633\u0645\u064a \u0634\u0646\u0648|\u0627\u0633\u0645\u064a \u0645\u0646\u0648|\u062a\u0639\u0631\u0641\u0646\u064a|\u062a\u062a\u0630\u0643\u0631\u0646\u064a|\u0645\u0627\u0630\u0627 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0644\u064a|\u0645\u0627\u0630\u0627 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062d\u0627\u0641\u0638 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0645\u062e\u0632\u0646 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0630\u0627\u0643\u0631 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062a\u0639\u0631\u0641\u0647 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062d\u0627\u0641\u0638\u0647 \u0639\u0646\u064a|\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized)
       || /(من انا|من اني|منو اني|منو انا|انا منو|اني منو|ما اسمي|شنو اسمي|اسمي شنو|اسمي منو|تعرفني|تتذكرني|ماذا تعرف عني|شنو تعرف عني|شنو تعرف علي|ماذا تتذكر عني|شنو تتذكر عني|شنو حافظ عني|شنو مخزن عني|شنو ذاكر عني|اكو شي تعرفه عني|اكو شي حافظه عني|معلوماتي|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
   }
 
+  private static isUrlScopedExternalSearch(prompt: string, normalized: string): boolean {
+    const lower = prompt.toLowerCase();
+    const asksLocalScope = /(Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|ÙÙŠ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¨Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ù„ÙØ§Øª|ÙÙŠ Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¨Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¯Ø§Ø®Ù„ Ø§Ù„ÙƒÙˆØ¯|ÙÙŠ Ø§Ù„ÙƒÙˆØ¯|workspace|project files|local files|codebase)/i.test(normalized)
+      || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
+    if (asksLocalScope) return false;
+    return /https?:\/\/[^\s)>\]"]+/i.test(prompt)
+      && (
+        /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u0627\u0628\u062d\u062b\s+\u0644\u064a|\u0628\u062d\u062b|\u062f\u0648\u0631|\u062f\u0648\u0631\u0644\u064a|\u062f\u0648\u0631\s+\u0644\u064a|\u0641\u062a\u0634|\u0641\u062a\u0634\u0644\u064a|\u0641\u062a\u0634\s+\u0644\u064a)(?:\s|$)/i.test(normalized)
+        || /\b(search|find|look up|research)\b/i.test(lower)
+      );
+  }
+
   private static isExplicitInternetSearch(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
+    if (this.isUrlScopedExternalSearch(prompt, normalized)) return true;
+    const explicitArabicInternetSearch =
+      /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s+\u0644\u064a)?\s+(?:(?:\u0641\u064a|\u0639\u0644\u0649|\u0628)\s*)?\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a(?:\s|$)/.test(normalized)
+      || /(?:^|\s)\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a\s+(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s|$)/.test(normalized);
+    if (explicitArabicInternetSearch) return true;
+    const explicitArabicInternetSites =
+      /(?:\u0627\u0631\u064a\u062f|\u0627\u0628\u064a|\u0627\u0639\u0637\u0646\u064a|\u0647\u0627\u062a|\u062c\u064a\u0628)(?:\s+\u0644\u064a)?\s+(?:\u0645\u0648\u0627\u0642\u0639|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a)\s+(?:(?:\u0645\u0646|\u0641\u064a|\u0639\u0644\u0649)\s*)?\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a/.test(normalized)
+      || /(?:\u0645\u0648\u0627\u0642\u0639|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a).*\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a/.test(normalized);
+    if (explicitArabicInternetSites) return true;
     const asksLocalScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalized)
       || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
     const allowedTriggers = /(ابحث في الانترنت|ابحث في الإنترنت|ابحث بالويب|اخر تحديث|آخر تحديث|وثائق|توثيق|اخبار|أخبار|مستندات)/i.test(normalized)

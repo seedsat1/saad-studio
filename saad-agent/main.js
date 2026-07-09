@@ -23,6 +23,7 @@ import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emit
 import { KnowledgeManagerService } from "../platform/services/knowledge-manager.js";
 import { KnowledgeIngestionService } from "../platform/services/knowledge-ingestion.js";
 import { TrustedWorkspaceRuntime } from "../platform/services/trusted-workspace-runtime.js";
+import { DeterministicCommandService } from "../platform/services/deterministic-command-service.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 try {
@@ -31,6 +32,58 @@ try {
 }
 catch (_) { }
 let mainWindow = null;
+function getConversationStorePath() {
+    const storeDir = path.join(app.getPath("userData"), "state");
+    fs.mkdirSync(storeDir, { recursive: true });
+    return path.join(storeDir, "conversations.json");
+}
+function normalizeStoredConversations(value) {
+    const rawConversations = Array.isArray(value) ? value : Array.isArray(value?.conversations) ? value.conversations : [];
+    const conversations = rawConversations
+        .filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
+        .slice(-100)
+        .map((item) => ({
+        id: String(item.id),
+        title: String(item.title || "New Chat").slice(0, 160),
+        createdAt: Number(item.createdAt) || Date.now(),
+        updatedAt: Number(item.updatedAt) || Date.now(),
+        workspacePath: typeof item.workspacePath === "string" ? item.workspacePath : undefined,
+        projectName: typeof item.projectName === "string" ? item.projectName : undefined,
+        titleEdited: Boolean(item.titleEdited),
+        messages: item.messages
+            .filter((message) => message && typeof message.id === "string" && typeof message.content === "string")
+            .slice(-500)
+    }));
+    const activeId = typeof value?.activeId === "string" && conversations.some((item) => item.id === value.activeId)
+        ? value.activeId
+        : conversations[0]?.id || null;
+    return { conversations, activeId };
+}
+function loadPersistedConversations() {
+    const storePath = getConversationStorePath();
+    if (!fs.existsSync(storePath))
+        return { conversations: [], activeId: null };
+    const parsed = JSON.parse(fs.readFileSync(storePath, "utf8"));
+    return normalizeStoredConversations(parsed);
+}
+function savePersistedConversations(payload) {
+    const normalized = normalizeStoredConversations(payload);
+    const storePath = getConversationStorePath();
+    const tempPath = `${storePath}.tmp`;
+    const backupPath = `${storePath}.bak`;
+    const nextPayload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        activeId: normalized.activeId,
+        conversations: normalized.conversations
+    };
+    if (fs.existsSync(storePath)) {
+        fs.copyFileSync(storePath, backupPath);
+    }
+    fs.writeFileSync(tempPath, JSON.stringify(nextPayload, null, 2), "utf8");
+    fs.renameSync(tempPath, storePath);
+    return normalized;
+}
 function readKnowledgeRegistry() {
     const dirs = KnowledgeManagerService.getDirs();
     const candidates = [
@@ -419,6 +472,24 @@ ipcMain.handle("get-resource-snapshot", async () => {
         return { success: false, error: err.message };
     }
 });
+ipcMain.handle("conversations:load", async () => {
+    try {
+        const payload = loadPersistedConversations();
+        return { success: true, ...payload };
+    }
+    catch (err) {
+        return { success: false, error: err.message || "Failed to load conversations." };
+    }
+});
+ipcMain.handle("conversations:save", async (_event, payload) => {
+    try {
+        const saved = savePersistedConversations(payload);
+        return { success: true, ...saved };
+    }
+    catch (err) {
+        return { success: false, error: err.message || "Failed to save conversations." };
+    }
+});
 ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
     try {
         const session = EngineeringOrchestrator.createSession(taskText, CONFIG.PROJECT_ROOT);
@@ -432,6 +503,15 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
 });
 ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }) => {
     try {
+        const deterministicCommand = DeterministicCommandService.resolve(String(prompt || ""));
+        if (deterministicCommand) {
+            return {
+                success: true,
+                response: deterministicCommand.response,
+                intent: deterministicCommand.intent,
+                usedModel: false
+            };
+        }
         const result = await ChatOrchestratorService.handleDirectChat({
             prompt,
             workspacePath,
@@ -1004,6 +1084,19 @@ ipcMain.handle("trusted-workspace:open-path", async (event, { targetPath }) => {
         return { success: false, error: err.message };
     }
 });
+ipcMain.handle("app:open-external-url", async (_event, { url }) => {
+    try {
+        const parsed = new URL(String(url || "").trim());
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            return { success: false, error: "Only HTTP/HTTPS links can be opened." };
+        }
+        await shell.openExternal(parsed.toString());
+        return { success: true };
+    }
+    catch (err) {
+        return { success: false, error: err?.message || "Invalid external URL." };
+    }
+});
 ipcMain.handle("trusted-workspace:reveal-path", async (event, { targetPath }) => {
     try {
         return await TrustedWorkspaceRuntime.revealLocalPath(targetPath);
@@ -1450,7 +1543,7 @@ async function setupApplicationMenu(win) {
                             icon: appIcon,
                             title: "About Saad Studio Agent",
                             message: "Saad Studio Agent v6.5.0 Production Release",
-                            detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright Â© 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\nâ€¢ Electron: v${process.versions.electron}\nâ€¢ Node.js: v${process.versions.node}\nâ€¢ Chromium: v${process.versions.chrome}\nâ€¢ Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
+                            detail: `Autonomous AI Engineering Studio Desktop Platform\nEngine Build: v6.5.0-production (Build 2026-06-29)\nFeatures: Autonomous Engineering Engine, Intent Routing, Brave Research, Cognitive Memory & RAG\n\nCopyright © 2026 Saad Studio. All rights reserved.\nLicense: Commercial / Enterprise Studio License\nWebsite: https://saad-studio.ai\n\nRuntime Specifications:\n• Electron: v${process.versions.electron}\n• Node.js: v${process.versions.node}\n• Chromium: v${process.versions.chrome}\n• Architecture: x64\n\nUserData Directory:\n${app.getPath("userData")}`
                         });
                     }
                 },

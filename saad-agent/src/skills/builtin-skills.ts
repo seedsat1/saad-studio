@@ -2,6 +2,47 @@ import type { Skill } from "./skill-types.js";
 
 export const BUILTIN_SKILLS: Skill[] = [
   {
+    id: "skill-agent-orchestration",
+    name: "Agent Orchestration Skill",
+    version: "1.0.0",
+    domain: "Agent Runtime, Memory & Tool Routing",
+    description: "Guidance for choosing memory, trained knowledge, deterministic commands, internet research, tools, and model fallback in the right order.",
+    triggers: {
+      keywords: [
+        "agent", "orchestrator", "workflow", "routing", "memory", "knowledge", "skill", "skills",
+        "search", "internet", "model", "provider", "context", "rag", "tool", "tools",
+        "اجينت", "ايجنت", "وكيل", "ذاكرة", "يتذكر", "معرفة", "مهارة", "مهارات", "سكل", "سكلات",
+        "بحث", "انترنت", "موديل", "مزود", "سياق", "ادوات", "أدوات", "تسلسل", "عشوائي"
+      ],
+      filePatterns: [
+        "chat-orchestrator.ts",
+        "pre-answer-review.ts",
+        "context-engine.ts",
+        "skill-registry.ts",
+        "knowledge-ingestion.ts",
+        "research-gateway.ts",
+        "reasoning-engine.ts"
+      ],
+      taskTypes: ["conversation", "external_research", "memory_recall", "knowledge_lookup", "agent_runtime"]
+    },
+    capabilities: ["intent-routing", "memory-first-context", "skill-selection", "tool-before-model", "fallback-control"],
+    promptTemplates: {
+      systemRules: [
+        "Choose deterministic commands, memory recall, trained knowledge, URL reading, and external research before invoking the model when they can answer the request.",
+        "Treat the model as the final formulation/reasoning layer, not as the router for every simple action.",
+        "For conversational turns, load bounded relevant personal memory, trained knowledge, and matching skill rules before response generation.",
+        "If a real tool/provider is required but unavailable, report the missing configuration honestly instead of guessing.",
+        "Keep follow-up replies tied to the current conversation state and the immediately previous assistant offer."
+      ],
+      planningGuidelines: [
+        "Intent -> memory/knowledge -> skills -> deterministic/tool workflow -> model only if needed.",
+        "Do not duplicate routing rules across UI, IPC, and orchestrator layers."
+      ]
+    },
+    recommendedTools: ["memory-tool", "knowledge-search", "research-gateway"],
+    supportedAgents: ["Saad Agent", "Architect Agent", "Reviewer Agent"]
+  },
+  {
     id: "skill-typescript",
     name: "TypeScript Skill",
     version: "1.0.0",
@@ -188,7 +229,7 @@ export const BUILTIN_SKILLS: Skill[] = [
     domain: "UI/UX & Visual Aesthetics",
     description: "Guidelines for rich modern UI aesthetics, glassmorphic themes, vibrant gradients, and micro-animations.",
     triggers: {
-      keywords: ["creative", "design", "ui", "ux", "theme", "glassmorphism", "gradient", "aesthetics"],
+      keywords: ["creative", "design", "ui", "ux", "theme", "glassmorphism", "gradient", "aesthetics", "interface", "chat", "composer", "font", "color", "واجهة", "تصميم", "ألوان", "الوان", "لون", "خط", "كتابة", "دردشة", "جات"],
       filePatterns: ["*.css", "*.scss", "theme.json"],
     },
     capabilities: ["color-palette-tailoring", "typography", "micro-animations"],

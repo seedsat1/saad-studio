@@ -68,6 +68,21 @@ export class SkillRegistry {
         }
       }
 
+      for (const taskType of skill.triggers.taskTypes || []) {
+        if (taskLower.includes(taskType.toLowerCase())) {
+          score += 25;
+          matchedTriggers.push(`Task Type: ${taskType}`);
+        }
+      }
+
+      for (const capability of skill.capabilities) {
+        const normalized = capability.toLowerCase().replace(/[-_]/g, " ");
+        if (taskLower.includes(normalized)) {
+          score += 15;
+          matchedTriggers.push(`Capability: ${capability}`);
+        }
+      }
+
       // 2. File Pattern & Extension matching
       for (const pat of skill.triggers.filePatterns) {
         const patLower = pat.toLowerCase();

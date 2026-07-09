@@ -44,7 +44,7 @@ export class BraveAnswersService {
       && (error.code === "provider_disabled" || error.code === "api_key_missing");
   }
 
-  static async query(searchQuery: string): Promise<BraveAnswersResult> {
+  static async query(searchQuery: string, options: { count?: number } = {}): Promise<BraveAnswersResult> {
     const cleanQuery = searchQuery.trim().toLowerCase();
     const now = Date.now();
 
@@ -94,6 +94,9 @@ export class BraveAnswersService {
 
     const url = new URL(baseUrl);
     url.searchParams.set("q", finalQuery);
+    if (options.count) {
+      url.searchParams.set("count", String(Math.min(Math.max(options.count, 1), 20)));
+    }
 
     try {
       const res = await fetch(url.toString(), {

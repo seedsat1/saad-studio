@@ -19,6 +19,45 @@ Its core responsibility is to help the user work on local software projects thro
 - Context Engine retrieval.
 - Controlled tool and MCP orchestration.
 
+## Durable Conversation Persistence
+
+- Chat conversations are local product state and must survive closing and reopening the packaged Electron desktop app.
+- The renderer may use browser `localStorage` only as a fallback cache.
+- The authoritative conversation copy is saved through Electron IPC using `conversations:load` and `conversations:save` into the app user-data `state/conversations.json` file.
+- Startup must load the durable store before allowing an empty bootstrap conversation to overwrite it.
+- Save writes should be atomic and keep a local `.bak` backup when replacing an existing conversation store.
+- Packaged releases must rebuild clean `ui/dist` assets and repack `app.asar`; stale hashed Vite bundles must not remain in the packaged UI folder.
+
+## Prompt Box Clipboard Images
+
+- The prompt composer must accept pasted image clipboard data from browsers and Windows screenshot tools.
+- Pasted images should be queued through the same attachment path as uploaded images, with `sourceKind: clipboard`, visible thumbnails, MIME type, size, and base64 source.
+- Clipboard image paste must not create a separate storage architecture or bypass attachment security limits.
+- Long text paste handling remains separate and should continue to attach long text as a file when it crosses the configured thresholds.
+
+## Conversational Skills Routing
+
+- Conversational requests must load matching enabled Skills during `PreAnswerReviewService.review(..., isConversational=true)`.
+- Conversational pre-answer context is bounded personal/engineering memory, trained knowledge matches, then matched Skill rules.
+- The old behavior `Skills selected (none loaded in conversational mode)` is invalid for packaged builds.
+- `Agent Orchestration Skill` is the built-in routing guidance for memory-first, knowledge-first, deterministic command, external research, tool, and model-fallback decisions.
+- Skill matching remains centralized in `SkillRegistry`; UI, IPC, and chat orchestration must not duplicate skill routing rules.
+- Disabled or invalid Skills must still be excluded from conversational and engineering context.
+
+## External Research Gateway
+
+- All live web/link/search requests route through `ResearchGatewayService`; chat orchestration must not call Brave, Agent-Reach, MindSearch, or a model directly for search.
+- The gateway plans multiple query variants, merges and deduplicates sources, ranks by relevance, and records failed planned queries.
+- If one planned query fails but another returns verified sources, the search succeeds with the verified sources and records the failed query count.
+- If the search provider is missing or has no API key, the agent must report configuration needed and must not guess links.
+- If every planned query fails, the agent must report a real search failure and must not ask the model to invent results.
+
+## Conversation Store Guard
+
+- `conversations:save` must never replace an existing durable conversation store with an empty normalized conversation list.
+- If an empty payload is received while a store exists, the backend should return the existing persisted store instead of wiping it.
+- LocalStorage remains a renderer fallback; the Electron user-data state file is the authoritative durable store.
+
 ## Private Personal Companion Mode
 
 Saad Agent is a private local agent for one user. It must not behave like a generic public chatbot when the user shares personal life, emotions, secrets, relationship questions, marriage topics, intimacy preferences, desires, or private concerns.
@@ -138,6 +177,8 @@ Examples:
 Page blueprint requests such as `Ø§Ø¹Ø·ÙŠÙ†ÙŠ Ù…Ø®Ø·Ø· Ø§Ù„ØµÙØ­Ø©` must not invent a page, files, APIs, or project architecture. If the page name or purpose is missing, ask for that detail. If the page subject is present, return a bounded blueprint only and require approval before implementation.
 
 External research requests such as `Ø§Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ù†ØªØ±Ù†Øª ...` must never be answered with fabricated links or model-only current claims. Under `Ask for approval`, return an internet approval request first; after approval, use the real configured search path or report the real failure.
+
+HTTP/HTTPS URL prompts must distinguish between direct reading and site-scoped search. If the user says `افتح هذا الرابط واقرأه` or equivalent, fetch the page and save/index it through the URL training path. If the user says `ابحث في هذا الموقع https://... عن` or uses an external URL with a search verb, route to `external_research` through `ResearchGatewayService`; do not search Trusted Workspaces and do not auto-crawl the homepage as the answer source.
 
 Short follow-ups such as `Ù†Ø¹Ù…` must honor pending clarification or approval context. If the agent asked for missing page details, `Ù†Ø¹Ù…` is not enough; ask for the missing detail again instead of switching topics or calling the model.
 
@@ -328,6 +369,10 @@ For Brave Answers:
 - Header: `X-Subscription-Token`.
 - Endpoint: `https://api.search.brave.com/res/v1/web/search`.
 - Encrypted stored secret is the primary source. `BRAVE_ANSWERS_API_KEY`, `BRAVE_SEARCH_API_KEY`, and `BRAVE_API_KEY` are fallback-only when no stored secret exists.
+
+External research must route through `ResearchGatewayService`, not direct provider calls from chat orchestration. The gateway normalizes real source records and is the only extension point for Brave Answers, Agent-Reach, MindSearch, or future search providers. If all configured providers fail, the agent must report the real failure and must not use the model to invent links.
+
+ResearchGatewayService must not pass every prompt as one raw search string. It should build deterministic planned queries from the user request, extract explicit target domains for `site:` searches, expand relevant terms when the user's intent is clear, request enough provider results, merge and deduplicate URLs, and rerank results by relevance before formatting links. This is the first built-in deep-search layer; future Agent-Reach or MindSearch adapters must plug in behind the same gateway instead of bypassing it.
 
 LM Studio is a provider, not an MCP server.
 

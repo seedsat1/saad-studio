@@ -18,7 +18,7 @@
 - **التوجيه لـ KIE**: عند قيام المستخدم أو المشترك برفع أي صورة مرجعية، أفتار، صورة فريم أول أو أخير، يتم توجيه الطلب تلقائياً إلى منصة `kie.ai` لإنتاج الفيديو لتجنب سياسات الرفض والتصفية الصارمة للمصدر.
 - **تسعير جودة 480p**: تم تحديد تسعير موديل Seedance 2.0 Mini لدقة 480p ليكون **20 رصيد لكل 15 ثانية** (بمعدل 20/15 رصيد في الثانية).
 - **تسعير Seedance 2.0 Fast**: تم تحديد تسعير موديل Seedance 2.0 Fast ليكون **55 رصيد لكل 15 ثانية** لدقة 720p (بمعدل 55/15 رصيد في الثانية)، و **25 رصيد لكل 15 ثانية** لدقة 480p (بمعدل 25/15 رصيد في الثانية).
-- **موديل Seedance 2.0 HQ**: تم الإبقاء على تسعيرته الافتراضية العالية (دون دمجها مع Fast)، وإزالة دقة 4K من خيارات الموديل لعدم دعمها.
+- **تسعير Seedance 2.0 HQ**: تم تحديد تسعير موديل Seedance 2.0 HQ ليكون **60 رصيد** لدقة 480p، و **90 رصيد** لدقة 720p، و **130 رصيد** لدقة 1080p، و **200 رصيد** لدقة 4K، وذلك لكل 15 ثانية (بمعدل متناسب في الثانية).
 - **التوجيه للمصدر (BytePlus)**: في حال كان الطلب نصياً فقط (Text-to-Video) بدون أي صور أو وسائط مدخلة، يتم تمرير الطلب تلقائياً للمصدر الرسمي (BytePlus ModelArk) لتوفير التكلفة وضمان سرعة الاستجابة.
 - **تكامل موديل Mini**: تم إدراج خرائط التوجيه وتوافق البيانات الخاصة بموديل `bytedance/seedance-2-mini` لضمان عمل الفحص والتوليد بشكل متكامل بدون أخطاء.
 
@@ -1146,6 +1146,8 @@
 
 ## Saad Agent Brave Answers configuration behavior (2026-07-06)
 - External research and link requests must use the real Brave Answers provider when live sources are required.
+- External research now routes through `ResearchGatewayService` first. Brave Answers is the current concrete provider behind that gateway, and future providers such as Agent-Reach or MindSearch must be added there instead of calling them directly from chat orchestration.
+- `ResearchGatewayService` performs deterministic query planning before provider calls: it extracts target domains for `site:` searches, expands clear user intent into multiple planned queries, requests enough provider results, merges and deduplicates URLs, and reranks sources by relevance before formatting the answer. This is the built-in deep-search layer until optional Agent-Reach or MindSearch adapters are added behind the same gateway.
 - If Brave Answers is not enabled or has no API key, Saad Agent should show a setup-needed answer that points to Settings > Providers > Brave Answers instead of rendering a failed trace as if the search itself ran and failed.
 - Missing search-provider configuration must not trigger model guessing or fake links.
 - Real Brave API/network/timeouts still remain failed live-search attempts and must report the real technical reason.
@@ -1156,6 +1158,9 @@
 - The Web Search to Answers fallback is paced and may retry HTTP 429 once using the bounded `Retry-After` delay.
 - Stable official homepage requests, such as the YouTube homepage, are deterministic direct-link answers and do not require internet approval, a model call, or execution trace.
 - Requests for specific songs, videos, channels, or ranked content remain live external searches.
+- HTTP/HTTPS URL requests with explicit search verbs, such as `ابحث في هذا الموقع https://... عن`, are site-scoped external research requests. They must route through `ResearchGatewayService`, skip Trusted Workspace/local search, and skip the direct URL crawler. Direct read requests such as `افتح هذا الرابط واقرأه` still use the URL crawler and training path.
+- Explicit Iraqi/Arabic internet-search phrases such as `ابحث بالانترنت`, `ابحث في الانترنت`, `ابحث على الانترنت`, `دور بالانترنت`, and `فتش بالانترنت` must route to `external_research` and must not call the active model to guess links.
+- Requests for `مواقع/روابط/مصادر من الانترنت` are external-research requests even when no explicit search verb is present; after approval they must use the search provider path and must not fall back to the active model.
 - Product-facing search responses show one concise linked list and omit provider timing, raw grounding labels, and duplicate source sections.
 - Chat messages render Markdown links and bare HTTP/HTTPS URLs as visually distinct interactive anchors.
 - External chat links open through a preload IPC bridge and `shell.openExternal`; the main process accepts only HTTP/HTTPS protocols.
@@ -1168,6 +1173,30 @@
 - The right engineering panel starts collapsed and verbose trace controls stay off the normal conversation surface.
 - Runtime approval requests use one compact Arabic decision card with a command/action preview.
 - The three decision rows call the existing `handleRuntimeApprovalResponse` path for approve once, conversation-scoped always allow, or reject; no duplicate approval state machine is introduced.
+- The bottom composer is positioned relative to `.main-area`, never the full application viewport, so it cannot overlap the persistent sidebar.
+- The approval-mode dropdown uses dedicated `saad-approval-*` classes, a bounded responsive width, and the established Saad Agent navy/cyan palette.
+- Conversational requests must search bounded personal memory and trained knowledge before model formulation; conversational mode must never return an empty pre-answer context by design.
+- Conversational requests must also load matching enabled Skills and inject concise Skill rules into the pre-answer context before model formulation.
+- `Agent Orchestration Skill` governs routing decisions for deterministic commands, memory recall, trained knowledge, URL reading, external research, tools, and model fallback.
+- Skill routing remains centralized in `SkillRegistry`; Settings-disabled Skills are excluded from both conversational and engineering contexts.
+- `ResearchGatewayService` is the only live-search gateway. It plans multiple queries, deduplicates/reranks sources, records failed planned queries, and never falls back to model-generated links.
+- Durable conversation saving must guard against overwriting an existing conversation store with an empty payload.
+- Explicit memory-recall prompts return stored `user-memory` directly without a model call.
+- Stable official homepage requests for known services are deterministic commands and do not require model reasoning, external search, or approval.
+
+## Saad Agent durable conversation persistence behavior (2026-07-09)
+- Chat conversations are product state and must survive closing and reopening the desktop app.
+- The renderer may keep `localStorage` as a fallback cache, but the authoritative durable copy is saved through Electron IPC to the app user-data state folder.
+- Startup loading must not overwrite the durable conversation store with an empty bootstrap screen before the persisted store is read.
+- Conversation persistence is local-only UI state and must not be sent to external search, diagnostics, or unrelated project memory.
+- Packaged builds must clean and rebuild `ui/dist` before copying into `app-asar-work`; stale hashed Vite bundles can keep old non-persistent chat code alive.
+- Desktop conversation saving writes through a temp file, renames atomically to `conversations.json`, and keeps a sibling `.bak` copy when replacing an existing store.
+
+## Saad Agent prompt box clipboard image behavior (2026-07-10)
+- The prompt box accepts pasted images from browser copy actions and Windows screenshot tools through `clipboardData.items`.
+- Pasted images are normalized into named image `File` objects and sent through the existing attachment pipeline with `sourceKind: clipboard`.
+- The UI must show the same thumbnail preview used for uploaded images, and sending the message must store/analyze the pasted image through the same backend attachment path.
+- Long text paste and clipboard image paste are separate paths; adding image paste must not break long-text auto-attachment.
 
 ## 7-Day Weather Forecast and Date Auto-Binding ExtendScript behavior (2026-07-07)
 

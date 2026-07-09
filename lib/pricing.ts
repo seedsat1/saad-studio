@@ -492,6 +492,19 @@ export async function getGenerationCost(
     }
   }
 
+  if (constitutionId === "seedance2") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    if (q === "480p") {
+      return parseFloat(((60 / 15) * durationSec * numUnits).toFixed(2));
+    } else if (q === "1080p") {
+      return parseFloat(((130 / 15) * durationSec * numUnits).toFixed(2));
+    } else if (q === "4k") {
+      return parseFloat(((200 / 15) * durationSec * numUnits).toFixed(2));
+    } else {
+      return parseFloat(((90 / 15) * durationSec * numUnits).toFixed(2));
+    }
+  }
+
   const perUnit = calcUserCredits(model, durationSec);
   const qMul = qualityMultiplierForModel(modelRef, quality);
   return parseFloat((perUnit * numUnits * qMul).toFixed(2));
@@ -567,6 +580,19 @@ export function getGenerationCostSync(
       return parseFloat(((25 / 15) * durationSec * numUnits).toFixed(2));
     } else {
       return parseFloat(((55 / 15) * durationSec * numUnits).toFixed(2));
+    }
+  }
+
+  if (constitutionId === "seedance2") {
+    const q = quality?.trim().toLowerCase() ?? "720p";
+    if (q === "480p") {
+      return parseFloat(((60 / 15) * durationSec * numUnits).toFixed(2));
+    } else if (q === "1080p") {
+      return parseFloat(((130 / 15) * durationSec * numUnits).toFixed(2));
+    } else if (q === "4k") {
+      return parseFloat(((200 / 15) * durationSec * numUnits).toFixed(2));
+    } else {
+      return parseFloat(((90 / 15) * durationSec * numUnits).toFixed(2));
     }
   }
 

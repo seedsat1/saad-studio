@@ -28,6 +28,10 @@ type Conversation = {
 };
 
 type MessageUpdater = Message[] | ((previous: Message[]) => Message[]);
+type PersistedConversationPayload = {
+  conversations: Conversation[];
+  activeId: string | null;
+};
 type ExecutionTraceMode = "simple" | "developer" | "verbose" | "hidden";
 type ApprovalMode = "ask" | "approve_for_me" | "full_access";
 type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
@@ -252,6 +256,32 @@ const deriveConversationTitle = (messages: Message[]) => {
   return compact.length > 42 ? `${compact.slice(0, 42)}...` : compact;
 };
 
+const normalizeStoredConversations = (raw: any): PersistedConversationPayload => {
+  const source = Array.isArray(raw) ? raw : Array.isArray(raw?.conversations) ? raw.conversations : [];
+  const conversations = source
+    .filter((item: any) => item && typeof item.id === "string" && Array.isArray(item.messages))
+    .map((item: any) => {
+      const messages = item.messages.filter((message: any) =>
+        message && typeof message.id === "string" && typeof message.content === "string"
+      ) as Message[];
+      return {
+        ...item,
+        title: typeof item.title === "string" && item.title.trim() ? item.title.trim() : deriveConversationTitle(messages),
+        createdAt: Number(item.createdAt) || Date.now(),
+        updatedAt: Number(item.updatedAt) || Date.now(),
+        messages,
+      } as Conversation;
+    });
+  const activeId = typeof raw?.activeId === "string" && conversations.some((conversation: Conversation) => conversation.id === raw.activeId)
+    ? raw.activeId
+    : conversations[0]?.id || null;
+  return { conversations, activeId };
+};
+
+const latestConversationUpdate = (items: Conversation[]) => {
+  return items.reduce((latest, item) => Math.max(latest, Number(item.updatedAt) || 0), 0);
+};
+
 const loadConversationBootstrap = (defaultMessages: Message[]) => {
   if (typeof window === "undefined") {
     const fallback = createConversation(defaultMessages, deriveConversationTitle(defaultMessages));
@@ -262,22 +292,14 @@ const loadConversationBootstrap = (defaultMessages: Message[]) => {
     const stored = window.localStorage.getItem(CONVERSATIONS_STORAGE_KEY);
     const activeId = window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY);
     const parsed = stored ? JSON.parse(stored) : null;
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const conversations = parsed
-        .filter((item) => item && typeof item.id === "string" && Array.isArray(item.messages))
-        .map((item) => ({
-          ...item,
-          title: typeof item.title === "string" && item.title.trim() ? item.title.trim() : deriveConversationTitle(item.messages),
-          createdAt: Number(item.createdAt) || Date.now(),
-          updatedAt: Number(item.updatedAt) || Date.now(),
-        })) as Conversation[];
-
-      if (conversations.length > 0) {
-        return {
-          conversations,
-          activeId: conversations.some((conversation) => conversation.id === activeId) ? (activeId as string) : conversations[0].id,
-        };
-      }
+    const normalized = normalizeStoredConversations(parsed);
+    if (normalized.conversations.length > 0) {
+      return {
+        conversations: normalized.conversations,
+        activeId: normalized.conversations.some((conversation) => conversation.id === activeId)
+          ? (activeId as string)
+          : normalized.activeId || normalized.conversations[0].id,
+      };
     }
   } catch (error) {
     console.warn("Failed to load conversations", error);
@@ -397,6 +419,7 @@ export default function App() {
   const conversationBootstrapRef = useRef(loadConversationBootstrap(defaultMessagesRef.current));
   const [conversations, setConversations] = useState<Conversation[]>(conversationBootstrapRef.current.conversations);
   const [activeConversationId, setActiveConversationId] = useState(conversationBootstrapRef.current.activeId);
+  const conversationStoreReadyRef = useRef(!(window as any).electronAPI?.loadConversations);
   const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -467,11 +490,48 @@ export default function App() {
   };
 
 
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api?.loadConversations) {
+      conversationStoreReadyRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    api.loadConversations()
+      .then((result: any) => {
+        if (cancelled || !result?.success) return;
+        const persisted = normalizeStoredConversations(result);
+        if (persisted.conversations.length === 0) return;
+        const currentLatest = latestConversationUpdate(conversations);
+        const persistedLatest = latestConversationUpdate(persisted.conversations);
+        if (persistedLatest >= currentLatest) {
+          setConversations(persisted.conversations);
+          setActiveConversationId(persisted.activeId || persisted.conversations[0].id);
+        }
+      })
+      .catch((error: unknown) => {
+        console.warn("Failed to load persisted conversations", error);
+      })
+      .finally(() => {
+        if (!cancelled) conversationStoreReadyRef.current = true;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
-      window.localStorage.setItem(ACTIVE_CONVERSATION_STORAGE_KEY, activeConversationId);
+      const activeIdForStorage = activeConversationId || conversations[0]?.id || "";
+      const payload = { version: 1, conversations, activeId: activeIdForStorage || null };
+      window.localStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(payload));
+      window.localStorage.setItem(ACTIVE_CONVERSATION_STORAGE_KEY, activeIdForStorage);
+      if (conversationStoreReadyRef.current) {
+        void (window as any).electronAPI?.saveConversations?.(payload);
+      }
     } catch (error) {
       console.warn("Failed to save conversations", error);
     }
@@ -1010,7 +1070,7 @@ export default function App() {
   };
 
   // Process selected or dropped/pasted files
-  const processFiles = (files: FileList | File[]) => {
+  const processFiles = (files: FileList | File[], sourceKind: "upload" | "clipboard" | "drag_drop" = "upload") => {
     setErrorMsg(null);
     setStatusMsg(null);
 
@@ -1040,11 +1100,12 @@ export default function App() {
           mimeType: file.type,
           size: file.size,
           previewUrl,
-          source: base64Data
+          source: base64Data,
+          sourceKind
         };
 
         setAttachments((prev) => [...prev, attachmentItem]);
-        setStatusMsg("Upload ready");
+        setStatusMsg(sourceKind === "clipboard" ? "Clipboard image ready" : sourceKind === "drag_drop" ? "Dropped file ready" : "Upload ready");
       };
       reader.readAsDataURL(file);
     }
@@ -1272,7 +1333,7 @@ export default function App() {
     setIsDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
+      processFiles(e.dataTransfer.files, "drag_drop");
       return;
     }
 

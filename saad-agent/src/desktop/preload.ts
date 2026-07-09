@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("orchestrator-disconnect-connector", id),
   orchestratorRefreshConnector: (id: string) =>
     ipcRenderer.invoke("orchestrator-refresh-connector", id),
+  loadConversations: () =>
+    ipcRenderer.invoke("conversations:load"),
+  saveConversations: (payload: any) =>
+    ipcRenderer.invoke("conversations:save", payload),
   storeAttachment: (filename: string, mimeType: string, dataBase64: string, source: "upload" | "clipboard" | "drag_drop", workspaceId: string) =>
     ipcRenderer.invoke("attachments-store", { filename, mimeType, dataBase64, source, workspaceId }),
   analyzeImage: (localPath: string, mimeType: string) =>
