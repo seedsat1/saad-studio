@@ -1060,7 +1060,10 @@ export async function POST(req: NextRequest) {
       // - other ("medium"/"high")  → quality param (GPT Image)
       const gptImage2Resolution = normalizeGptImage2Resolution();
       const RESOLUTION_VALUES = ["1K", "2K", "4K"];
-      if (gptImage2Resolution) {
+      if (kieModelId.includes("seedream/5-pro")) {
+        const q = String(quality || "").toLowerCase();
+        input.quality = q === "2k" ? "high" : "basic";
+      } else if (gptImage2Resolution) {
         input.resolution = gptImage2Resolution;
       } else if (quality && RESOLUTION_VALUES.includes(quality)) {
         input.resolution = quality;

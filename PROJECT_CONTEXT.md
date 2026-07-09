@@ -7,6 +7,10 @@
   - Added backend routing in `/api/generate/image` and `/api/image/generate` to dynamically redirect requests to `seedream/5-pro-text-to-image` (when text only) or `seedream/5-pro-image-to-image` (when image/avatar is uploaded).
   - Synchronized model pricing in database with upsert operations for `seedream5p` (6 credits) and `seedream5pi` (8 credits).
   - Unhid `bytedance-seedance-v2-t2v-fast` (Seedance 2.0 Fast) from `HIDDEN_VIDEO_PAGE_MODEL_IDS` to display it in the video generation sidebar list.
+  - Added aspect ratios `2:3` and `3:2` to the frontend page rendering lists.
+  - Customized `Seedream 5.0 Pro` quality parameters to `["1K", "1.5K", "2K"]`.
+  - Set credit cost multipliers for Seedream 5 Pro model qualities: `1K` = 1.0x (1 credit), `1.5K` = 2.0x (2 credits), `2K` = 3.0x (3 credits).
+  - Mapped quality resolution outputs to KIE parameter values (`2K` to `high`, and `1K`/`1.5K` to `basic`).
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]

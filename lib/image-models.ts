@@ -60,6 +60,9 @@ const IMAGE_MODEL_QUALITY_CREDIT_MULTIPLIER: Record<string, Record<string, numbe
   "gpt-image-2-image-to-image": { "medium": 1.5, "high": 1.875 },
   "google/imagen4": { "2k": 1.5, "4k": 2.0 },
   "google/imagen4-ultra": { "2k": 1.5, "4k": 2.0 },
+  "seedream/5-pro": { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream/5-pro-text-to-image": { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream/5-pro-image-to-image": { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
 };
 
 export function getImageCreditCost(model: ImageModel, numImages = 1, quality?: string | null): number {
@@ -261,7 +264,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 10,
     imageInputField: "image_urls",
-    qualityParam: ["basic", "high"],
+    qualityParam: ["1K", "1.5K", "2K"],
     creditCost: 1.0,
   },
   {
@@ -274,7 +277,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     aspectRatios: ["1:1", "4:3", "3:4", "16:9", "9:16", "2:3", "3:2"],
     maxImages: 4,
     maxRefImages: 0,
-    qualityParam: ["basic", "high"],
+    qualityParam: ["1K", "1.5K", "2K"],
     creditCost: 1.0,
   },
   {
@@ -288,7 +291,7 @@ export const IMAGE_MODELS: ImageModel[] = [
     maxImages: 4,
     maxRefImages: 10,
     imageInputField: "image_urls",
-    qualityParam: ["basic", "high"],
+    qualityParam: ["1K", "1.5K", "2K"],
     creditCost: 1.0,
   },
   // ── Z-Image ───────────────────────────────────────────────────────────────

@@ -192,6 +192,8 @@ const RATIO_OPTIONS = [
   { value: "9:16", width: 1080, height: 1920, cls: "ratio-9-16" },
   { value: "4:3", width: 1440, height: 1080, cls: "ratio-4-3" },
   { value: "3:4", width: 1080, height: 1440, cls: "ratio-3-4" },
+  { value: "3:2", width: 1620, height: 1080, cls: "ratio-3-2" },
+  { value: "2:3", width: 1080, height: 1620, cls: "ratio-2-3" },
   { value: "21:9", width: 2560, height: 1080, cls: "ratio-21-9" },
 ] as const;
 
@@ -2011,6 +2013,8 @@ export default function ImageWorkspacePage() {
         .ratio-9-16 .ratio-shape { width: 20px; height: 36px; }
         .ratio-4-3 .ratio-shape { width: 32px; height: 24px; }
         .ratio-3-4 .ratio-shape { width: 24px; height: 32px; }
+        .ratio-3-2 .ratio-shape { width: 34px; height: 22px; }
+        .ratio-2-3 .ratio-shape { width: 22px; height: 34px; }
         .ratio-21-9 .ratio-shape { width: 42px; height: 18px; }
         .ratio-label { margin-top: 4px; font-size: 10px; color: inherit; }
         .num-selector { display:flex; gap:8px; }

@@ -410,6 +410,11 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
   "gemini-3-pro-image-preview":    { "2k": 1.5, "4k": 3.0 },
   "gemini-omni-character":        { "2k": 1.5, "4k": 3.0 },
   "gemini_omni_character":        { "2k": 1.5, "4k": 3.0 },
+  "seedream/5-pro":                     { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream/5-pro-text-to-image":       { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream/5-pro-image-to-image":      { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream5p":                         { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
+  "seedream5pi":                        { "1k": 1.0, "1.5k": 2.0, "2k": 3.0 },
 };
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
