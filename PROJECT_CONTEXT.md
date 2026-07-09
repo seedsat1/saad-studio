@@ -13,6 +13,7 @@
   - Mapped quality resolution outputs to KIE parameter values (`2K` to `high`, and `1K`/`1.5K` to `basic`).
   - Configured pricing for `seedance2mini` (Seedance 2.0 Mini) at `480p` resolution to be 20 credits per 15 seconds.
   - Configured pricing for `seedance2f` (Seedance 2.0 Fast) at `720p` resolution to be 55 credits per 15 seconds, and at `480p` resolution to be 25 credits per 15 seconds.
+  - Restored default pricing for `seedance2` (Seedance 2.0 HQ) and removed `"4k"` resolution from its capabilities.
 - Affected files:
   - `lib/image-models.ts` [MODIFY]
   - `lib/annual-image-unlimited.ts` [MODIFY]

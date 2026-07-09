@@ -483,7 +483,7 @@ export async function getGenerationCost(
     }
   }
 
-  if (constitutionId === "seedance2f" || constitutionId === "seedance2") {
+  if (constitutionId === "seedance2f") {
     const q = quality?.trim().toLowerCase() ?? "720p";
     if (q === "480p") {
       return parseFloat(((25 / 15) * durationSec * numUnits).toFixed(2));
@@ -561,7 +561,7 @@ export function getGenerationCostSync(
     }
   }
 
-  if (constitutionId === "seedance2f" || constitutionId === "seedance2") {
+  if (constitutionId === "seedance2f") {
     const q = quality?.trim().toLowerCase() ?? "720p";
     if (q === "480p") {
       return parseFloat(((25 / 15) * durationSec * numUnits).toFixed(2));
