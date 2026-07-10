@@ -7,11 +7,11 @@ async function runTests() {
 
   const webResult = await CognitiveOrchestratorService.evaluateCognitivePipeline("هل يمكنك البحث في الانترنت؟", sessionId);
   console.log(`[Multimodal Test] Web search intent: ${webResult.intentResult.intent}`);
-  assert.strictEqual(webResult.intentResult.intent, "web_search");
+  assert.strictEqual(webResult.intentResult.intent, "external_research");
 
   const imageResult = await CognitiveOrchestratorService.evaluateCognitivePipeline("أريد رابط لصورة على الإنترنت", sessionId);
   console.log(`[Multimodal Test] Image search intent: ${imageResult.intentResult.intent}`);
-  assert.strictEqual(imageResult.intentResult.intent, "image_search");
+  assert.strictEqual(imageResult.intentResult.intent, "external_research");
 
   GoalManager.updateActiveReferences(sessionId, {
     activeImage: "C:/tmp/example.png",

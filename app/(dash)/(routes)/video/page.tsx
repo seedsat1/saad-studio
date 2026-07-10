@@ -3192,13 +3192,49 @@ function VideoPageInner() {
           )}
 
               {(showReferenceImages || showSimpleKlingRefs) && referenceImages.length > 0 && (
-                <p className="text-[10px] -mt-3" style={{ color: "#64748b" }}>
-                  {showSimpleKlingRefs
-                    ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
-                    : isSeedanceV2Model
-                      ? "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately."
-                      : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
-                </p>
+                <div className="flex flex-col gap-2 -mt-3 mb-1">
+                  {/* Horizontal list of uploaded images with tags */}
+                  {(() => {
+                    let imageIdx = 0;
+                    const imageFiles = referenceImages.filter(f => f.type.startsWith("image/"));
+                    if (imageFiles.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {imageFiles.map((file, idx) => {
+                          imageIdx++;
+                          const tag = `@image${imageIdx}`;
+                          const previewSrc = referencePreviews[referenceImages.indexOf(file)];
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
+                              style={{
+                                background: "rgba(255,255,255,0.03)",
+                                border: "1px solid rgba(255,255,255,0.06)",
+                              }}
+                            >
+                              {previewSrc && (
+                                <img
+                                  src={previewSrc}
+                                  alt={tag}
+                                  className="w-5 h-5 rounded object-cover border border-cyan-500/20"
+                                />
+                              )}
+                              <span className="text-[10px] font-semibold text-cyan-400 font-mono">{tag}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                  <p className="text-[10px]" style={{ color: "#64748b" }}>
+                    {showSimpleKlingRefs
+                      ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
+                      : isSeedanceV2Model
+                        ? "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately."
+                        : "Reference images mode is active; first/last frame inputs will be ignored for this generation."}
+                  </p>
+                </div>
               )}
 
           {/* -- AI Model dropdown ------------------------------------------- */}

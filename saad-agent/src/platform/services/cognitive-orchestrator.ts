@@ -73,7 +73,7 @@ export class CognitiveOrchestratorService {
     let braveStatus = "Skipped";
     let reason = "Question refers to project source code and architecture.";
 
-    if (intentResult.intent === "internet_answers" || intentResult.intent === "web_search") {
+    if (intentResult.intent === "external_research" || intentResult.intent === "internet_answers" || intentResult.intent === "web_search" || intentResult.intent === "image_search") {
       detectedTaskType = "external_research";
       selectedPipeline = "Brave Answers";
       braveStatus = "Active";
@@ -97,7 +97,7 @@ export class CognitiveOrchestratorService {
     else if (selectedPipeline === "Brave Answers") loadedSkills = ["Live Research", "Docs Extraction"];
 
     const diagnosticReport: DiagnosticRoutingResult = {
-      detectedIntent: intentResult.intent === "workspace_question" ? "Project Question" : intentResult.intent === "internet_answers" ? "Internet Search" : intentResult.intent,
+      detectedIntent: intentResult.intent === "workspace_question" ? "Project Question" : intentResult.intent === "internet_answers" || intentResult.intent === "external_research" ? "Internet Search" : intentResult.intent,
       detectedTaskType: detectedTaskType === "workspace_query" ? "Workspace Query" : detectedTaskType,
       confidence: intentResult.confidence,
       selectedPipeline,
