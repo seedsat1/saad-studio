@@ -2228,7 +2228,7 @@ function VideoPageInner() {
                     onClick={() => {
                       setPrompt(prev => prev ? `${prev} ${tag}` : tag);
                     }}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
+                    className="flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
                     style={{
                       background: "rgba(6, 182, 212, 0.08)",
                       border: "1px solid rgba(6, 182, 212, 0.25)",
@@ -2240,7 +2240,7 @@ function VideoPageInner() {
                       <img
                         src={previewSrc}
                         alt={`Ref ${imageCount}`}
-                        className="w-4 h-4 rounded-full object-cover border border-cyan-500/30"
+                        className="w-6 h-6 rounded object-cover border border-cyan-500/30"
                       />
                     )}
                     <span className="font-mono text-[10px]">{tag}</span>
@@ -3207,7 +3207,7 @@ function VideoPageInner() {
                           return (
                             <div
                               key={idx}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
+                              className="flex items-center gap-2 px-2.5 py-1 rounded-lg"
                               style={{
                                 background: "rgba(255,255,255,0.03)",
                                 border: "1px solid rgba(255,255,255,0.06)",
@@ -3217,10 +3217,10 @@ function VideoPageInner() {
                                 <img
                                   src={previewSrc}
                                   alt={tag}
-                                  className="w-5 h-5 rounded object-cover border border-cyan-500/20"
+                                  className="w-8 h-8 rounded object-cover border border-cyan-500/20"
                                 />
                               )}
-                              <span className="text-[10px] font-semibold text-cyan-400 font-mono">{tag}</span>
+                              <span className="text-[11px] font-semibold text-cyan-400 font-mono">{tag}</span>
                             </div>
                           );
                         })}

@@ -2,6 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { ToolManager } from "./platform/services/tool-manager.js";
 import { EventBus } from "./platform/services/event-bus.js";
+import { setProjectRoot } from "./config.js";
 import "./platform/tools/index.js"; // Bootstraps and registers all tools
 
 async function runTests() {
@@ -17,6 +18,7 @@ async function runTests() {
 
     // Set configuration root to sandbox
     process.env["SAAD_AGENT_PROJECT_ROOT"] = tempWorkspace;
+    setProjectRoot(tempWorkspace);
 
     // 1. Tool Registry Verification
     console.log("\n--- Test 1: Tool Registry ---");
@@ -131,6 +133,7 @@ async function runTests() {
     console.log("\n--- Test 7: Git Tool ---");
     // Restore parent directory temporary to detect actual project repo status
     process.env["SAAD_AGENT_PROJECT_ROOT"] = oldRoot;
+    setProjectRoot(oldRoot);
     const gitDetect = await ToolManager.execute("git-tool", { action: "detect" });
     console.log("Parent workspace Git directory detected:", gitDetect.success);
     if (gitDetect.success) {
@@ -138,6 +141,7 @@ async function runTests() {
       console.log("Current branch name:", gitBranch.stdout);
     }
     process.env["SAAD_AGENT_PROJECT_ROOT"] = tempWorkspace;
+    setProjectRoot(tempWorkspace);
 
     // 8. Build Tool Verification
     console.log("\n--- Test 8: Build Tool ---");
@@ -171,6 +175,7 @@ async function runTests() {
   } finally {
     // Restore configs
     process.env["SAAD_AGENT_PROJECT_ROOT"] = oldRoot;
+    setProjectRoot(oldRoot);
     // Cleanup
     await fs.rm(tempWorkspace, { recursive: true, force: true });
   }

@@ -48,5 +48,25 @@
     "executionTimeMs": 43314,
     "resultSummary": "Pipeline executed for create_new_page. Real validation passed: true.",
     "timestamp": 1782720384491
+  },
+  {
+    "taskId": "hist_1783641813090",
+    "prompt": "أضف صفحة image-upscaler جديدة",
+    "filesCreated": 2,
+    "filesModified": 3,
+    "validationPassed": true,
+    "executionTimeMs": 47574,
+    "resultSummary": "Pipeline executed for create_new_page. Real validation passed: true.",
+    "timestamp": 1783641813090
+  },
+  {
+    "taskId": "hist_1783642123081",
+    "prompt": "أضف صفحة image-upscaler جديدة",
+    "filesCreated": 2,
+    "filesModified": 3,
+    "validationPassed": true,
+    "executionTimeMs": 47966,
+    "resultSummary": "Pipeline executed for create_new_page. Real validation passed: true.",
+    "timestamp": 1783642123081
   }
 ]

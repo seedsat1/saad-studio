@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-05T13:25:42.096Z",
+  "generatedAt": "2026-07-10T00:02:45.910Z",
   "items": [
     {
       "id": "training:97ef4f0e",
@@ -26,7 +26,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-02T14:50:03.027Z"
+      "lastUsedDate": "2026-07-10T00:02:45.910Z"
     },
     {
       "id": "training:1da2dc88",
@@ -55,7 +55,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-10T00:02:45.910Z"
     },
     {
       "id": "training:24525945",
@@ -84,7 +84,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-10T00:02:45.829Z"
     },
     {
       "id": "training:59e9c88c",
@@ -112,6 +112,64 @@
       "addedDate": "2026-07-05T13:25:42.069Z",
       "indexedStatus": "indexed",
       "chunkCount": 2,
+      "embeddingStatus": "indexed",
+      "lastUsedDate": null
+    },
+    {
+      "id": "training:9bbca61d",
+      "fileName": "README.md",
+      "filePath": ".saad-agent/training/lessons/stories/README.md",
+      "type": "md",
+      "category": "lessons",
+      "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+      "tags": [
+        "lessons",
+        "saad-agent",
+        "training",
+        "stories",
+        "readme",
+        "private",
+        "story",
+        "knowledge",
+        "this",
+        "folder",
+        "for",
+        "user-approved",
+        "narrative",
+        "cards"
+      ],
+      "addedDate": "2026-07-10T00:02:45.703Z",
+      "indexedStatus": "indexed",
+      "chunkCount": 1,
+      "embeddingStatus": "indexed",
+      "lastUsedDate": "2026-07-10T00:02:45.829Z"
+    },
+    {
+      "id": "training:e2d37fd5",
+      "fileName": "story-knowledge-card-template.md",
+      "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+      "type": "md",
+      "category": "lessons",
+      "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+      "tags": [
+        "lessons",
+        "saad-agent",
+        "training",
+        "stories",
+        "story-knowledge-card-template",
+        "story",
+        "knowledge",
+        "card",
+        "title",
+        "source",
+        "category",
+        "tags",
+        "adult",
+        "consent"
+      ],
+      "addedDate": "2026-07-10T00:02:45.705Z",
+      "indexedStatus": "indexed",
+      "chunkCount": 1,
       "embeddingStatus": "indexed",
       "lastUsedDate": null
     },
@@ -171,7 +229,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-02T14:50:03.027Z"
+      "lastUsedDate": "2026-07-10T00:02:45.829Z"
     },
     {
       "id": "training:e28b8440",
@@ -200,7 +258,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-10T00:02:45.910Z"
     }
   ]
 }

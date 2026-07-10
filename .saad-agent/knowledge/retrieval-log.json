@@ -1256,5 +1256,54 @@
     "timestamp": "2026-07-02T20:25:15.401Z",
     "query": "عندي سؤال منو هو النبي محمد",
     "matches": []
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-10T00:02:45.829Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-10T00:02:45.910Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      }
+    ]
   }
 ]

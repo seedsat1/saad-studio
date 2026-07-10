@@ -15,6 +15,13 @@ export class RecoveryEngineService {
         return { success: true, logs: "No uncommitted changes detected in git status. Skipping rollback stash." };
       }
 
+      if (process.env["SAAD_AGENT_ALLOW_GIT_STASH_ROLLBACK"] !== "true") {
+        return {
+          success: true,
+          logs: `Rollback requires explicit approval before stashing or modifying git state. Detected changes:\n${statusOut}`
+        };
+      }
+
       const stashName = `saad_backup_${Date.now()}`;
       const stdout = execSync(`git stash save "${stashName}"`, { cwd: workspacePath, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
       return { success: true, logs: `Created backup stash '${stashName}'. Stashed changes:\n${statusOut}` };

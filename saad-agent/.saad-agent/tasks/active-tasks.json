@@ -16,7 +16,7 @@
       }
     ],
     "status": "running",
-    "updatedAt": 1782700947384
+    "updatedAt": 1783641765517
   },
   {
     "taskId": "op_1782718594747",
@@ -237,5 +237,93 @@
     ],
     "status": "running",
     "updatedAt": 1782720384486
+  },
+  {
+    "taskId": "op_1783641813058",
+    "goal": "أضف صفحة image-upscaler جديدة",
+    "currentStepIndex": 1,
+    "subTasks": [
+      {
+        "id": "step_0",
+        "title": "1. Task Type: create_new_page | Impact Risk: MEDIUM",
+        "status": "in_progress"
+      },
+      {
+        "id": "step_1",
+        "title": "2. Loaded 2 real skills from .saad-agent/skills",
+        "status": "pending"
+      },
+      {
+        "id": "step_2",
+        "title": "3. Selected Filesystem tools",
+        "status": "pending"
+      },
+      {
+        "id": "step_3",
+        "title": "4. Strategy: Sequential execution across 0 files",
+        "status": "pending"
+      },
+      {
+        "id": "step_4",
+        "title": "5. Review Expected Outcome (/image-upscaler) & request user approval",
+        "status": "pending"
+      },
+      {
+        "id": "step_5",
+        "title": "6. Execute Real Runtime Verification (tsc typecheck, lint, build)",
+        "status": "pending"
+      },
+      {
+        "id": "step_6",
+        "title": "7. Log execution metrics to history DB if real validation passes",
+        "status": "pending"
+      }
+    ],
+    "status": "running",
+    "updatedAt": 1783641813062
+  },
+  {
+    "taskId": "op_1783642123068",
+    "goal": "أضف صفحة image-upscaler جديدة",
+    "currentStepIndex": 1,
+    "subTasks": [
+      {
+        "id": "step_0",
+        "title": "1. Task Type: create_new_page | Impact Risk: MEDIUM",
+        "status": "in_progress"
+      },
+      {
+        "id": "step_1",
+        "title": "2. Loaded 2 real skills from .saad-agent/skills",
+        "status": "pending"
+      },
+      {
+        "id": "step_2",
+        "title": "3. Selected Filesystem tools",
+        "status": "pending"
+      },
+      {
+        "id": "step_3",
+        "title": "4. Strategy: Sequential execution across 0 files",
+        "status": "pending"
+      },
+      {
+        "id": "step_4",
+        "title": "5. Review Expected Outcome (/image-upscaler) & request user approval",
+        "status": "pending"
+      },
+      {
+        "id": "step_5",
+        "title": "6. Execute Real Runtime Verification (tsc typecheck, lint, build)",
+        "status": "pending"
+      },
+      {
+        "id": "step_6",
+        "title": "7. Log execution metrics to history DB if real validation passes",
+        "status": "pending"
+      }
+    ],
+    "status": "running",
+    "updatedAt": 1783642123072
   }
 ]
