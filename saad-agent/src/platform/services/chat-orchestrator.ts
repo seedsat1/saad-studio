@@ -26,6 +26,7 @@ import { UrlTrainingService } from "./url-training-service.js";
 import { DeterministicCommandService } from "./deterministic-command-service.js";
 import { DocumentTextExtractor } from "./document-text-extractor.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
+import { CreativeService } from "./creative.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -2410,7 +2411,7 @@ export class ChatOrchestratorService {
     const listInstruction = this.resolveListMutationInstruction(prompt);
     if (listInstruction) return listInstruction;
 
-    const inlineImageGeneration = this.resolveInlineImageGenerationRequest(prompt);
+    const inlineImageGeneration = await this.resolveInlineImageGenerationRequest(prompt, workspacePath);
     if (inlineImageGeneration) return inlineImageGeneration;
 
     const imagePromptDraft = this.resolveImagePromptDraftRequest(prompt);
@@ -2441,7 +2442,7 @@ export class ChatOrchestratorService {
     return null;
   }
 
-  private static resolveInlineImageGenerationRequest(prompt: string): string | null {
+  private static async resolveInlineImageGenerationRequest(prompt: string, workspacePath: string): Promise<string | null> {
     const normalized = this.normalizeArabic(prompt);
     const lower = String(prompt || "").toLowerCase();
     const haystack = `${normalized} ${lower}`;
@@ -2454,7 +2455,40 @@ export class ChatOrchestratorService {
     const explicitSearchIntent = /(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634|\u0628\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0645\u0646\s+\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\bsearch\b|\bfind\b|\blook up\b|\binternet\b|\bonline\b)/i.test(haystack);
     if (explicitSearchIntent) return null;
 
-    return "\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629: \u0645\u0648\u0644\u062f \u0627\u0644\u0635\u0648\u0631 \u063a\u064a\u0631 \u0645\u0641\u0639\u0651\u0644 \u062f\u0627\u062e\u0644 \u0627\u0644\u0634\u0627\u062a.";
+    const subject = this.extractImagePromptSubject(prompt) || "\u0627\u0644\u0645\u0634\u0647\u062f \u0627\u0644\u0645\u0637\u0644\u0648\u0628";
+    const generationPrompt = this.buildImageGenerationPrompt(subject, prompt);
+    try {
+      const plan = await CreativeService.createPlan(
+        generationPrompt,
+        "provider-saad-studio",
+        process.env.SAAD_AGENT_IMAGE_MODEL || "nano-banana-pro",
+        "1024x1024",
+        workspacePath || "default"
+      );
+      const status = await CreativeService.approveJob(plan.taskId, true);
+      if (status.status === "completed" && status.asset?.previewUrl) {
+        return `![\u0627\u0644\u0635\u0648\u0631\u0629 \u0627\u0644\u0646\u0627\u062a\u062c\u0629](${status.asset.previewUrl})`;
+      }
+      return `\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629: ${status.error || "\u0644\u0645 \u064a\u0631\u062c\u0639 \u0627\u0644\u0645\u0648\u0644\u062f \u0635\u0648\u0631\u0629."}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || "\u062e\u0637\u0623 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641");
+      return `\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629: ${message}`;
+    }
+  }
+
+  private static buildImageGenerationPrompt(subject: string, prompt: string): string {
+    const normalized = this.normalizeArabic(prompt);
+    const lower = String(prompt || "").toLowerCase();
+    const styleHint = /(?:\u0644\u0648\u0643\u0633|\u0641\u062e\u0645|\u0641\u0627\u062e\u0631|lux|luxury|premium)/i.test(`${normalized} ${lower}`)
+      ? "Luxury editorial image"
+      : "Cinematic image";
+    return [
+      `${styleHint} of ${subject}`,
+      "premium composition, soft key light, elegant rim lighting, refined color grading, realistic textures",
+      "clean background separation, shallow depth of field, high-end commercial photography",
+      "ultra detailed, sharp focus, balanced framing, professional studio quality",
+      "no text, no watermark"
+    ].join(", ");
   }
 
   private static resolveImagePromptDraftRequest(prompt: string): string | null {

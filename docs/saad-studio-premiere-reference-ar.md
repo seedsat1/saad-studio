@@ -8,7 +8,9 @@
 
 ## Saad Agent inline image generation behavior (2026-07-12)
 - Inline image generation is separate from prompt drafting. If the user asks to generate/render/show an actual image inside chat, Saad Agent must not call image search, must not route to a text model, and must not display placeholder/mock images.
-- If no real authenticated image provider bridge is configured, Saad Agent should return a short direct generation error only. It must not expose routing explanations, mock-provider details, or a prompt fallback unless the user explicitly asks for a prompt.
+- Inline generation now routes through `CreativeService` and the Saad Studio creative provider. It can use a configured image endpoint (`SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` or `SAAD_STUDIO_IMAGE_ENDPOINT`) or direct KIE credentials (`KIE_API_KEY` or `KIEAI_API_KEY`).
+- If generation succeeds, chat returns a Markdown image (`![الصورة الناتجة](...)`) so the existing renderer shows a clickable thumbnail inside the conversation.
+- If no real authenticated image provider bridge is configured, Saad Agent should return a short direct generation/configuration error only. It must not expose routing explanations, mock-provider details, or a prompt fallback unless the user explicitly asks for a prompt.
 - Legacy Creative providers must not create 1x1 PNG placeholder assets or emit generated-asset completed/stored events without a real image-generation provider.
 
 ## Saad Agent malformed Skill/provider crash guard (2026-07-11)

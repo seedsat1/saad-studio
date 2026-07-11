@@ -56,6 +56,15 @@ async function main() {
     SAAD_DEEPSEARCH_AGENT_ENDPOINT: process.env.SAAD_DEEPSEARCH_AGENT_ENDPOINT,
     DEEPSEARCH_AGENT_ENDPOINT: process.env.DEEPSEARCH_AGENT_ENDPOINT,
   };
+  const originalCreativeEnv = {
+    SAAD_AGENT_IMAGE_GENERATION_ENDPOINT: process.env.SAAD_AGENT_IMAGE_GENERATION_ENDPOINT,
+    SAAD_STUDIO_IMAGE_ENDPOINT: process.env.SAAD_STUDIO_IMAGE_ENDPOINT,
+    SAAD_STUDIO_PANEL_TOKEN: process.env.SAAD_STUDIO_PANEL_TOKEN,
+    SAAD_AGENT_IMAGE_GENERATION_TOKEN: process.env.SAAD_AGENT_IMAGE_GENERATION_TOKEN,
+    SAAD_AGENT_IMAGE_MODEL: process.env.SAAD_AGENT_IMAGE_MODEL,
+    KIE_API_KEY: process.env.KIE_API_KEY,
+    KIEAI_API_KEY: process.env.KIEAI_API_KEY,
+  };
   const disableOptionalResearchProviders = () => {
     AgentReachProvider.setCommandRunnerForTests(async (command, args) => {
       if (command === "where.exe" || command === "which") {
@@ -74,6 +83,13 @@ async function main() {
   delete process.env.MINDSEARCH_ENDPOINT;
   delete process.env.SAAD_DEEPSEARCH_AGENT_ENDPOINT;
   delete process.env.DEEPSEARCH_AGENT_ENDPOINT;
+  delete process.env.SAAD_AGENT_IMAGE_GENERATION_ENDPOINT;
+  delete process.env.SAAD_STUDIO_IMAGE_ENDPOINT;
+  delete process.env.SAAD_STUDIO_PANEL_TOKEN;
+  delete process.env.SAAD_AGENT_IMAGE_GENERATION_TOKEN;
+  delete process.env.SAAD_AGENT_IMAGE_MODEL;
+  delete process.env.KIE_API_KEY;
+  delete process.env.KIEAI_API_KEY;
   disableOptionalResearchProviders();
   SessionSearchProvider.setCommandRunnerForTests(null);
   let modelCalls = 0;
@@ -1155,12 +1171,41 @@ async function main() {
     });
     assert.notStrictEqual(inlineImageGenerationResult.intent, "external_research");
     assert.strictEqual(inlineImageGenerationResult.usedModel, false);
-    assert.strictEqual(inlineImageGenerationResult.response.trim(), "\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629: \u0645\u0648\u0644\u062f \u0627\u0644\u0635\u0648\u0631 \u063a\u064a\u0631 \u0645\u0641\u0639\u0651\u0644 \u062f\u0627\u062e\u0644 \u0627\u0644\u0634\u0627\u062a.");
+    assert.ok(inlineImageGenerationResult.response.includes("\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629"));
+    assert.ok(inlineImageGenerationResult.response.includes("SAAD_AGENT_IMAGE_GENERATION_ENDPOINT") || inlineImageGenerationResult.response.includes("KIE_API_KEY"));
     assert.ok(!inlineImageGenerationResult.response.includes("\u0641\u0647\u0645\u062a\u0643"));
     assert.ok(!inlineImageGenerationResult.response.includes("mock"));
     assert.ok(!inlineImageGenerationResult.response.includes("Luxury editorial image"));
     assert.strictEqual(modelCalls, callsBeforeImagePromptDraft, "inline image generation setup response must not call the model or image search");
     assert.strictEqual(ResearchGatewayService.isImageSearchRequest("\u0627\u0631\u064a\u062f \u062a\u0635\u0645\u064a\u0645 \u0644\u0648\u0643\u0633 \u0628\u0631\u0648\u0645\u0628\u064a\u062a \u0635\u0648\u0631\u0629 \u0627\u0639\u0631\u0636\u0647\u0627 \u0647\u0646\u0627"), false);
+
+    process.env.SAAD_AGENT_IMAGE_GENERATION_ENDPOINT = "https://saad.test/api/panel/generate/image";
+    process.env.SAAD_AGENT_IMAGE_MODEL = "nano-banana-pro";
+    const fetchBeforeInlineGeneration = globalThis.fetch;
+    let inlineGenerationFetchCalled = false;
+    globalThis.fetch = async (url: any, init?: any) => {
+      inlineGenerationFetchCalled = true;
+      assert.strictEqual(String(url), "https://saad.test/api/panel/generate/image");
+      const body = JSON.parse(String(init?.body || "{}"));
+      assert.ok(String(body.prompt || "").includes("Luxury editorial image"));
+      assert.strictEqual(body.modelId, "nano-banana-pro");
+      return new Response(JSON.stringify({ imageUrl: "https://cdn.example.com/generated-luxury.png" }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    };
+    const inlineImageGenerationSuccess = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0631\u064a\u062f \u062a\u0635\u0645\u064a\u0645 \u0644\u0648\u0643\u0633 \u0628\u0631\u0648\u0645\u0628\u064a\u062a \u0635\u0648\u0631\u0629 \u0627\u0639\u0631\u0636\u0647\u0627 \u0647\u0646\u0627",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me"
+    });
+    assert.strictEqual(inlineImageGenerationSuccess.usedModel, false);
+    assert.ok(inlineGenerationFetchCalled, "configured inline image generation must call the configured image endpoint");
+    assert.strictEqual(inlineImageGenerationSuccess.response.trim(), "![\u0627\u0644\u0635\u0648\u0631\u0629 \u0627\u0644\u0646\u0627\u062a\u062c\u0629](https://cdn.example.com/generated-luxury.png)");
+    globalThis.fetch = fetchBeforeInlineGeneration;
+    delete process.env.SAAD_AGENT_IMAGE_GENERATION_ENDPOINT;
+    delete process.env.SAAD_AGENT_IMAGE_MODEL;
 
     const pureImagePromptDraftResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u0643\u062a\u0628\u0644\u064a \u0628\u0631\u0648\u0645\u0628\u062a \u0635\u0648\u0631\u0629 \u0644\u0648\u0643\u0633",
@@ -1522,6 +1567,13 @@ async function main() {
     BraveAnswersService.query = originalBraveQuery;
     BraveAnswersService.queryImages = originalBraveImageQuery;
     for (const [key, value] of Object.entries(originalResearchEnv)) {
+      if (typeof value === "undefined") {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+    for (const [key, value] of Object.entries(originalCreativeEnv)) {
       if (typeof value === "undefined") {
         delete process.env[key];
       } else {

@@ -1,5 +1,37 @@
 # Saad Studio Project Context Update
 
+## Latest task: Saad Agent real inline image-generation bridge (2026-07-12)
+
+- Status:
+  Connected inline chat image-generation requests to the existing Creative pipeline instead of returning only a static disabled message. The Saad Studio creative provider now supports two real output paths: a configured image endpoint via `SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` / `SAAD_STUDIO_IMAGE_ENDPOINT`, or direct KIE via `KIE_API_KEY` / `KIEAI_API_KEY`. If neither path is configured, the agent returns a short configuration error and still does not generate placeholders.
+- Affected files:
+  - `saad-agent/src/creative/creative-providers.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a configured endpoint regression that returns `![الصورة الناتجة](https://cdn.example.com/generated-luxury.png)` without model or image search.
+  - `node dist/test-creative.js` passed and still verifies no placeholder asset is produced when no real provider is configured.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it to verify packaged `chat-orchestrator.js` and `creative-providers.js` contain the new image bridge markers.
+- Decision:
+  - Inline image generation must either return a real generated image URL that the chat renderer can show as a thumbnail, or a concise provider-configuration error. It must not fall back to prompt drafting, image search, model chatter, or mock images.
+- Remaining:
+  - Configure a real endpoint/token or KIE key in the packaged runtime environment before testing live image generation against the real provider.
+
+## Latest task: Made prompt optional for motion control models (2026-07-12)
+
+- Status:
+  Updated client-side validation logic in `app/(dash)/(routes)/video/page.tsx` (`canGenerate` check) to treat text prompts as optional if the selected model requires video input (`caps.requires_video` is true, e.g. Kling 3.0 Motion Control). This activates the "Generate Video" button immediately upon uploading the required video and image references.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - Since motion control models rely on the guide video for motion control instructions, text prompts are API-optional. Forcing a text prompt to enable the UI submit button caused validation lockups.
+- Remaining:
+  - None.
+
 ## Latest task: Removed model switch info banner popup from video page (2026-07-12)
 
 - Status:

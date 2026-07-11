@@ -52,14 +52,13 @@ function resolveAspectRatio(size: string): string {
 }
 
 function createCompletedAsset(task: CreativeTask, providerId: string, providerName: string, imageUrl: string, source: string): GeneratedAssetMetadata {
-  return {
+  const asset: GeneratedAssetMetadata = {
     assetId: `asset-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     taskId: task.id,
     prompt: task.prompt,
     providerId,
     providerName,
     model: task.model,
-    seed: task.seed,
     size: task.size,
     mimeType: "image/png",
     localPath: imageUrl,
@@ -68,6 +67,8 @@ function createCompletedAsset(task: CreativeTask, providerId: string, providerNa
     timestamp: Date.now(),
     cost: source.includes("kie") ? "External provider" : "Saad Studio endpoint",
   };
+  if (typeof task.seed === "number") asset.seed = task.seed;
+  return asset;
 }
 
 async function postJson(url: string, headers: Record<string, string>, body: unknown): Promise<unknown> {
@@ -106,9 +107,12 @@ async function generateViaEndpoint(task: CreativeTask, endpoint: string, token?:
 }
 
 async function createKieTask(apiKey: string, task: CreativeTask): Promise<string> {
+  const isNanoBanana = ["nano-banana-pro", "nano-banana-2", "nano-banana-2-lite", "google/nano-banana"].includes(task.model);
   const input = {
     prompt: task.prompt,
-    aspect_ratio: task.aspectRatio || resolveAspectRatio(task.size),
+    ...(isNanoBanana
+      ? { image_size: task.aspectRatio || resolveAspectRatio(task.size) }
+      : { aspect_ratio: task.aspectRatio || resolveAspectRatio(task.size) }),
     resolution: "1K",
   };
   const json = await postJson(KIE_CREATE_URL, { Authorization: `Bearer ${apiKey}` }, { model: task.model, input }) as {

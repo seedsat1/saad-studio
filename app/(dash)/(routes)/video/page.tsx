@@ -1413,7 +1413,7 @@ function VideoPageInner() {
     const isKling30VideoEarly =
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
     // Skip the generic prompt guard for Kling 3.0 and Lipsync
-    if (activeTool !== "lipsync" && !isKling30VideoEarly && !hasMain && !(multiOn && hasMulti)) return;
+    if (activeTool !== "lipsync" && !isKling30VideoEarly && !caps.requires_video && !hasMain && !(multiOn && hasMulti)) return;
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));

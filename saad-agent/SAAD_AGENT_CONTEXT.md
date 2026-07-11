@@ -35,6 +35,14 @@ Its core responsibility is to help the user work on local software projects thro
 - Clipboard image paste must not create a separate storage architecture or bypass attachment security limits.
 - Long text paste handling remains separate and should continue to attach long text as a file when it crosses the configured thresholds.
 
+## Inline Chat Image Generation
+
+- Requests that ask to generate, render, create, or show an actual image inside chat are creative-generation requests, not internet image search and not prompt drafting.
+- The chat path calls `CreativeService` and the Saad Studio creative provider. The provider may use a configured endpoint (`SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` or `SAAD_STUDIO_IMAGE_ENDPOINT`) or direct KIE credentials (`KIE_API_KEY` or `KIEAI_API_KEY`).
+- Successful inline generation returns a Markdown image such as `![الصورة الناتجة](https://...)`; the renderer displays it as a clickable thumbnail.
+- If no real provider is configured, the response must be a short generation/configuration error. It must not expose routing explanations, return a text prompt as if it were an image, call image search, call the chat model, or emit placeholder/mock image assets.
+- No API keys, bearer tokens, or provider secrets are stored in context or shown in chat errors.
+
 ## Conversational Skills Routing
 
 - Conversational requests must load matching enabled Skills during `PreAnswerReviewService.review(..., isConversational=true)`.
