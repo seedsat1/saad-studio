@@ -2293,12 +2293,8 @@ export async function POST(req: Request) {
     try {
       const fs = require("fs");
       const path = require("path");
-      const logDir = "C:\\Users\\PC\\.gemini\\antigravity\\brain\\a21e4d5f-90d1-4c87-8885-ebbcae468e94\\scratch";
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true });
-      }
       fs.writeFileSync(
-        path.join(logDir, "last_kie_request.json"),
+        path.join(process.cwd(), "last_kie_request.json"),
         JSON.stringify({ createEndpoint, createBody }, null, 2)
       );
     } catch (err) {

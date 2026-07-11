@@ -1581,7 +1581,7 @@ export class ChatOrchestratorService {
   private static detectIntent(prompt: string, sessionId: string): IntentClassificationResult {
     const normalized = this.normalizeArabic(prompt);
     const route = RequestRoutingService.classify(prompt);
-    if (route.kind !== "conversation" && route.kind !== "deterministic_answer" && route.kind !== "inline_image_generation" && route.kind !== "image_prompt_draft" && route.kind !== "url_read") {
+    if (route.kind !== "conversation") {
       return {
         intent: route.intent,
         confidence: route.confidence,

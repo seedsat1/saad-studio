@@ -80,6 +80,10 @@ export class RequestRoutingService {
       return this.route("image_prompt_draft", "conversation", "creative.prompt_draft", [], "User asked to write an image prompt, not generate/search an image.", 0.94, false, false);
     }
 
+    if (this.isStrictLocalAnswerRequest(raw, normalized)) {
+      return this.route("deterministic_answer", "conversation", "local.deterministic_answer", [], "User constrained the answer to no tools/search/final-only.", 0.9, false, false);
+    }
+
     if (
       this.isUrlScopedExternalSearch(raw, normalized)
       || ResearchGatewayService.isMediaSearchRequest(raw)
@@ -88,10 +92,6 @@ export class RequestRoutingService {
       || this.isExplicitExternalResearch(raw, normalized)
     ) {
       return this.route("external_research", "external_research", "research.external", ["ResearchGatewayService"], "Live external research or media lookup request.", 0.96, false, false);
-    }
-
-    if (this.isStrictLocalAnswerRequest(raw, normalized)) {
-      return this.route("deterministic_answer", "conversation", "local.deterministic_answer", [], "User constrained the answer to no tools/search/final-only.", 0.9, false, false);
     }
 
     return this.route("conversation", "conversation", "chat.model", ["ReasoningEngine"], "Ordinary conversation after deterministic, memory, knowledge, research, and engineering gates.", 0.5, true, false);
@@ -175,6 +175,7 @@ export class RequestRoutingService {
   private static isExplicitExternalResearch(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
     if (this.hasLocalScope(prompt, normalized)) return false;
+    if (this.isStrictLocalAnswerRequest(prompt, normalized)) return false;
     return /\b(search online|search web|web search|internet search|latest|current|recent)\b/i.test(lower)
       || /(?:\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0648\u064a\u0628|\u0648\u064a\u0628|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0641\u064a\u062f\u064a\u0648|\u0645\u0642\u0637\u0639|\u0635\u0648\u062a|\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u062e\u0628\u0627\u0631|\u0648\u062b\u0627\u0626\u0642)/i.test(normalized)
       || /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u0628\u062d\u062b|\u062f\u0648\u0631|\u062f\u0648\u0631\u0644\u064a|\u0641\u062a\u0634|\u0647\u0627\u062a\u0644\u064a|\u062c\u064a\u0628\u0644\u064a)(?:\s|$)/i.test(normalized);

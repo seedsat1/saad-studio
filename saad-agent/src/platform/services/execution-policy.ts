@@ -76,14 +76,14 @@ export class ExecutionPolicyService {
     if (!isProjectAuditOrRepair && this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
       isModificationRequired = true;
     }
-    const isExternalResearchRequired = !isProjectAuditOrRepair && !isUrlContentRead && (
-      requestRoute.kind === "external_research"
-      ||
-      isUrlScopedExternalSearch
+    const legacyExternalResearchRequired = isUrlScopedExternalSearch
       || ResearchGatewayService.isMediaSearchRequest(userFacingPrompt)
       || ResearchGatewayService.isSocialProfileSearchRequest(userFacingPrompt)
       || ResearchGatewayService.isPublicPageLookupRequest(userFacingPrompt)
-      || this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt)
+      || this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt);
+    const isExternalResearchRequired = !isProjectAuditOrRepair && !isUrlContentRead && (
+      requestRoute.kind === "external_research"
+      || (requestRoute.kind === "conversation" && legacyExternalResearchRequired)
     );
 
     if (
