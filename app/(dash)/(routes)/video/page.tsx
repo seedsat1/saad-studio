@@ -3267,7 +3267,21 @@ function VideoPageInner() {
             {(activeTool as string) !== "lipsync" ? (
               // Regular video models
               <>
-                <NewModelsBanner kind="video" knownIds={allModels.map((m) => m.api_route)} className="mb-1" />
+                <NewModelsBanner
+                  kind="video"
+                  knownIds={allModels.map((m) => m.api_route)}
+                  onPick={(dynamicModel) => {
+                    const match = allModels.find(
+                      (m) =>
+                        m.api_route.toLowerCase() === dynamicModel.id.toLowerCase() ||
+                        m.id.toLowerCase() === dynamicModel.id.toLowerCase()
+                    );
+                    if (match) {
+                      selectModel(match);
+                    }
+                  }}
+                  className="mb-1"
+                />
                 {(() => {
                   const veoModel = allModels.find((m) => m.id === "google-veo3.1-t2v");
                   if (!veoModel || selectedModel.id === veoModel.id) return null;

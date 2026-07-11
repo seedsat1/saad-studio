@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Removed Log Retention Policy Alert banner from gallery page (2026-07-12)
+
+- Status:
+  Removed the "Log Retention Policy Alert" warning banner from the `/gallery` page to improve user layout.
+- Affected files:
+  - `app/(dash)/(routes)/gallery/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - The warning banner was no longer needed and requested for removal by the user.
+- Remaining:
+  - None.
+
 ## Latest task: Fixed 413 (Content Too Large) character reference photo upload error (2026-07-12)
 
 - Status:
