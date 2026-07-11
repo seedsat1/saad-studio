@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed model selection from NewModelsBanner in video page (2026-07-12)
+
+- Status:
+  Added missing `onPick` callback prop to `NewModelsBanner` in `app/(dash)/(routes)/video/page.tsx`. This ensures that when a dynamically detected model (like Google Veo) in the banner is clicked, it matches the registry model and calls `selectModel(match)`, enabling correct state changes and activating the generate button.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - A dynamic banner representing newly released models must bind to the select event, otherwise clicking has no effect and leaves users on the previous model.
+- Remaining:
+  - None.
+
 ## Latest task: Removed Log Retention Policy Alert banner from gallery page (2026-07-12)
 
 - Status:

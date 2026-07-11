@@ -3267,40 +3267,6 @@ function VideoPageInner() {
             {(activeTool as string) !== "lipsync" ? (
               // Regular video models
               <>
-                <NewModelsBanner
-                  kind="video"
-                  knownIds={allModels.map((m) => m.api_route)}
-                  onPick={(dynamicModel) => {
-                    const match = allModels.find(
-                      (m) =>
-                        m.api_route.toLowerCase() === dynamicModel.id.toLowerCase() ||
-                        m.id.toLowerCase() === dynamicModel.id.toLowerCase()
-                    );
-                    if (match) {
-                      selectModel(match);
-                    }
-                  }}
-                  className="mb-1"
-                />
-                {(() => {
-                  const veoModel = allModels.find((m) => m.id === "google-veo3.1-t2v");
-                  if (!veoModel || selectedModel.id === veoModel.id) return null;
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => selectModel(veoModel)}
-                      className="mb-1 flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all"
-                      style={{
-                        background: "rgba(59,130,246,0.08)",
-                        border: "1px solid rgba(59,130,246,0.22)",
-                        color: "#bfdbfe",
-                      }}
-                    >
-                      <span className="text-[12px] font-semibold">Switch to Google Veo 3.1</span>
-                      <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>NEW</span>
-                    </button>
-                  );
-                })()}
                 <div className="relative">
                   <button
                     onClick={() => setModelOpen(v => !v)}
