@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed early return guard in handleGenerate for motion control models (2026-07-12)
+
+- Status:
+  Fixed an issue where clicking the "Generate Video" button on `/video` for motion control models did nothing because an early return guard in `handleGenerate` (`app/(dash)/(routes)/video/page.tsx`) still returned early if the prompt was empty. Updated the guard to skip prompt validation when `caps.requires_video` is true.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - Making the prompt optional in validation state (`canGenerate`) must be matched by bypassing the empty-prompt early-return guard inside the submit event callback.
+- Remaining:
+  - None.
+
 ## Latest task: Saad Agent real inline image-generation bridge (2026-07-12)
 
 - Status:

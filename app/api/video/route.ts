@@ -1224,9 +1224,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
   // background_source ("input_video"|"input_image"). NO duration/aspect_ratio.
   if (model === "kling-3.0/motion-control") {
     const out: Record<string, unknown> = {};
-    if (typeof input.prompt === "string" && input.prompt.trim()) {
-      out.prompt = input.prompt.trim().slice(0, 2500);
-    }
+    out.prompt = typeof input.prompt === "string" ? input.prompt.trim().slice(0, 2500) : "";
     if (startImage) out.input_urls = [startImage];
     if (motionVideo) out.video_urls = [motionVideo];
 
