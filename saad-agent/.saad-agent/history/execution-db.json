@@ -68,5 +68,15 @@
     "executionTimeMs": 47966,
     "resultSummary": "Pipeline executed for create_new_page. Real validation passed: true.",
     "timestamp": 1783642123081
+  },
+  {
+    "taskId": "hist_1783643353933",
+    "prompt": "أضف صفحة image-upscaler جديدة",
+    "filesCreated": 2,
+    "filesModified": 3,
+    "validationPassed": true,
+    "executionTimeMs": 25549,
+    "resultSummary": "Pipeline executed for create_new_page. Real validation passed: true.",
+    "timestamp": 1783643353933
   }
 ]

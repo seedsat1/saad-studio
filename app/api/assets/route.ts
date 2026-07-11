@@ -26,7 +26,9 @@ function toAssetType(raw: string): AssetType {
 
 function isRenderableAssetUrl(url: string): boolean {
   if (!url) return false;
-  if (url.startsWith("task:")) return false;
+  const lower = url.trim().toLowerCase();
+  if (lower.startsWith("task:")) return false;
+  if (lower.startsWith("error:") || lower.startsWith("error ")) return false;
   return true;
 }
 

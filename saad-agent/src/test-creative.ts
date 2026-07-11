@@ -52,8 +52,8 @@ async function runTests() {
     console.log("Status after rejection (should be failed):", rejectStatus.status);
     console.log("Rejection error message:", rejectStatus.error);
 
-    // 3. Generation Execution & Local Asset Storage
-    console.log("\n--- Test 3: Approved Generation & Local Asset Storage ---");
+    // 3. Generation Execution Truthfulness Guard
+    console.log("\n--- Test 3: Approved Generation Without Mock Asset ---");
     const plan2 = await CreativeEngine.createCreativePlan(
       "Futuristic Saad Studio logo concept 3D render",
       "provider-local",
@@ -63,21 +63,15 @@ async function runTests() {
     );
 
     const approveStatus = await CreativeEngine.approveJob(plan2.taskId, true);
-    console.log("Initial job execution status:", approveStatus.status);
-
-    // Wait for async job completion
-    await new Promise(r => setTimeout(r, 300));
+    console.log("Initial job execution status (should be failed until a real provider is configured):", approveStatus.status);
+    console.log("Failure reason:", approveStatus.error);
 
     const finalJobStatus = await CreativeEngine.getJobStatus(plan2.taskId);
-    console.log("Final job status (should be completed):", finalJobStatus.status);
+    console.log("Final job status (should remain failed):", finalJobStatus.status);
     console.log("Final job progress:", finalJobStatus.progress);
-
-    if (finalJobStatus.asset) {
-      console.log("Generated Asset ID:", finalJobStatus.asset.assetId);
-      console.log("Generated Asset Provider:", finalJobStatus.asset.providerName);
-      console.log("Local path generated:", finalJobStatus.asset.localPath);
-      const fileExists = await fs.stat(finalJobStatus.asset.localPath).then(() => true).catch(() => false);
-      console.log("Asset file written to local disk inside .saad-agent/attachments/generated/:", fileExists);
+    console.log("Generated asset is absent:", !finalJobStatus.asset);
+    if (finalJobStatus.status !== "failed" || finalJobStatus.asset) {
+      throw new Error("Creative providers must not generate placeholder assets when no real generator is configured.");
     }
 
     // 4. EventBus Verification
@@ -86,8 +80,12 @@ async function runTests() {
     console.log("CreativePlanCreated fired:", eventsFired.includes("CreativePlanCreated"));
     console.log("GenerationApprovalRequired fired:", eventsFired.includes("GenerationApprovalRequired"));
     console.log("GenerationStarted fired:", eventsFired.includes("GenerationStarted"));
-    console.log("GenerationCompleted fired:", eventsFired.includes("GenerationCompleted"));
-    console.log("GeneratedAssetStored fired:", eventsFired.includes("GeneratedAssetStored"));
+    console.log("GenerationFailed fired:", eventsFired.includes("GenerationFailed"));
+    console.log("GenerationCompleted not fired:", !eventsFired.includes("GenerationCompleted"));
+    console.log("GeneratedAssetStored not fired:", !eventsFired.includes("GeneratedAssetStored"));
+    if (eventsFired.includes("GenerationCompleted") || eventsFired.includes("GeneratedAssetStored")) {
+      throw new Error("Creative mock providers must not emit completed/stored events.");
+    }
 
     console.log("\n✅ All Phase 18 Creative AI & Product Integration tests completed successfully!");
   } catch (err) {

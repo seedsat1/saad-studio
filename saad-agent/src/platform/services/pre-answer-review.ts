@@ -7,6 +7,7 @@ import { KnowledgeIngestionService, type PreAnswerReviewResult, type TrainingKno
 import { TokenManager } from "./token-manager.js";
 import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 import { ExecutionTraceEmitter } from "./execution-trace-emitter.js";
+import { SessionSearchProvider } from "./session-search-provider.js";
 
 export class PreAnswerReviewService {
   static async review(
@@ -19,12 +20,13 @@ export class PreAnswerReviewService {
     await KnowledgeIngestionService.ensureTrainingFolders(workspacePath);
 
     if (isConversational) {
-      const [memoryMatches, personalMemory, knowledgeMatches, skills] = await Promise.all([
+      const [memoryMatches, personalMemory, knowledgeMatches, sessionSearch, skills] = await Promise.all([
         EngineeringMemory.retrieveRelevantContext(safePrompt).catch(() => []),
         EngineeringMemory.searchMemory({}).then((result) =>
           result.knowledgeItems.filter((item) => item.area === "user-memory").slice(-8)
         ).catch(() => []),
         KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 4).catch(() => []),
+        SessionSearchProvider.search(safePrompt, 3).catch(() => ({ hits: [] })),
         Promise.resolve(SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5))
       ]);
       const skillsLoaded = skills.map((match) => match.skill.name);
@@ -56,7 +58,7 @@ export class PreAnswerReviewService {
               : p.phase === "loading_memory"
                 ? { memoryMatchesCount: memoryMatches.length + personalMemory.length }
                 : p.phase === "loading_knowledge"
-                  ? { knowledgeMatchesCount: knowledgeMatches.length }
+                  ? { knowledgeMatchesCount: knowledgeMatches.length, sessionHistoryMatchesCount: sessionSearch.hits.length }
                   : p.phase === "selecting_skills"
                     ? { matchedSkills: skillsLoaded }
                   : {},
@@ -80,9 +82,16 @@ export class PreAnswerReviewService {
             return `- ${match.item.filePath}: ${content || match.item.summary}`;
           }).join("\n")
         : "- No matching trained knowledge was found.";
+      const sessionContext = sessionSearch.hits.length
+        ? sessionSearch.hits.map((hit) => {
+            const trust = hit.trustTier ? ` [trust: ${hit.trustTier}]` : "";
+            const source = hit.source ? ` (${hit.source})` : "";
+            return `- ${hit.title}${source}${trust}: ${hit.excerpt.slice(0, 450)}`;
+          }).join("\n")
+        : "- No matching coding-session history was found or cass is not installed.";
       const skillContext = this.formatSkillMatches(skills);
       return {
-        diagnostics: "Conversational mode: memory, trained knowledge, and skills searched",
+        diagnostics: "Conversational mode: memory, trained knowledge, session history, and skills searched",
         finalContext: [
           "Relevant private-agent context",
           "",
@@ -91,6 +100,9 @@ export class PreAnswerReviewService {
           "",
           "Trained knowledge:",
           trainingContext,
+          "",
+          "Coding session history:",
+          sessionContext,
           "",
           "Matched skills:",
           skillContext
@@ -201,6 +213,8 @@ export class PreAnswerReviewService {
       return res;
     })();
 
+    const sessionSearchPromise = SessionSearchProvider.search(safePrompt, 4).catch(() => ({ hits: [] }));
+
     const skillsPromise = (async () => {
       const res = SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5);
       if (traceContext) {
@@ -219,11 +233,12 @@ export class PreAnswerReviewService {
       return res;
     })();
 
-    const [projectRules, adrs, memoryMatches, knowledgeMatches, skills] = await Promise.all([
+    const [projectRules, adrs, memoryMatches, knowledgeMatches, sessionSearch, skills] = await Promise.all([
       projectRulesPromise,
       adrsPromise,
       memoryPromise,
       knowledgePromise,
+      sessionSearchPromise,
       skillsPromise
     ]);
 
@@ -249,6 +264,13 @@ export class PreAnswerReviewService {
     const memoryContext = memoryMatches.length
       ? memoryMatches.slice(0, 6).map((item) => `- ${item.title || item.id}: ${item.content.slice(0, 500)}`).join("\n")
       : "- No matching engineering memory was found.";
+    const sessionContext = sessionSearch.hits.length
+      ? sessionSearch.hits.map((hit) => {
+          const trust = hit.trustTier ? ` [trust: ${hit.trustTier}]` : "";
+          const source = hit.source ? ` (${hit.source})` : "";
+          return `- ${hit.title}${source}${trust}: ${hit.excerpt.slice(0, 500)}`;
+        }).join("\n")
+      : "- No matching coding-session history was found or cass is not installed.";
 
     const finalContextParts = [
       "Mandatory Pre-Answer Review Context",
@@ -267,6 +289,9 @@ export class PreAnswerReviewService {
       "Engineering Memory:",
       memoryContext,
       "",
+      "Coding Session History:",
+      sessionContext,
+      "",
       "Skills:",
       skillContext
     ];
@@ -275,6 +300,7 @@ export class PreAnswerReviewService {
       "Memory: loaded",
       "Training Knowledge: searched",
       `Knowledge matches: ${knowledgeMatches.length}`,
+      `Session history matches: ${sessionSearch.hits.length}`,
       `Skills: ${skillsLoaded.length ? "loaded" : "loaded (none matched)"}`,
       `Project context: ${projectContextLoaded ? "loaded" : "skipped"}`,
       "Final context built: yes"

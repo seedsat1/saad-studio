@@ -1,6 +1,7 @@
 import { SkillRegistry } from "./skills/skill-registry.js";
 import { ContextEngine } from "./platform/services/context-engine.js";
 import { CONFIG, setProjectRoot } from "./config.js";
+import * as assert from "assert";
 import * as fs from "fs/promises";
 import * as path from "path";
 
@@ -37,6 +38,7 @@ async function runTests() {
     console.log("Top matched skill for React task:", topReactMatch?.skill.name);
     console.log("Activation confidence score:", topReactMatch?.confidence);
     console.log("Matched triggers list:", topReactMatch?.matchedTriggers);
+    assert.ok(reactMatches.length > 0, "React task should match at least one skill");
 
     // Match for Premiere CEP timeline task
     const cepMatches = SkillRegistry.matchSkillsForTask("Synchronize Premiere CEP ExtendScript timeline clips", ["manifest.xml"]);
@@ -44,6 +46,30 @@ async function runTests() {
     const topCepMatch = cepMatches[0];
     console.log("Top matched skill for CEP task:", topCepMatch?.skill.name);
     console.log("Activation confidence score:", topCepMatch?.confidence);
+    assert.ok(cepMatches.length > 0, "Premiere CEP task should match at least one skill");
+
+    SkillRegistry.registerSkill({
+      id: "skill-malformed-regression",
+      name: "Malformed Regression Skill",
+      version: "0.0.1",
+      domain: "test",
+      description: "Regression guard for malformed custom skills.",
+      triggers: {
+        keywords: ["تصميم", undefined as any],
+        filePatterns: [undefined as any],
+        taskTypes: [undefined as any],
+      },
+      capabilities: ["image-generation", undefined as any],
+      promptTemplates: { systemRules: [undefined as any] },
+      recommendedTools: [undefined as any],
+      supportedAgents: [undefined as any],
+    } as any);
+    const malformedMatches = SkillRegistry.matchSkillsForTask(
+      "اريد تصميم لوكس برومبيت صورة اعرضها هنا",
+      [undefined as any, "mock.png"]
+    );
+    console.log("Malformed skill matching completed without toLowerCase crash:", malformedMatches.length >= 0);
+    assert.ok(Array.isArray(malformedMatches), "Malformed custom skill must not crash skill matching");
 
     // 3. ContextEngine RAG Integration
     console.log("\n--- Test 3: ContextEngine Skill Rules Retrieval ---");
@@ -53,6 +79,7 @@ async function runTests() {
     );
     const skillItem = contextResult.items.find(i => i.id.startsWith("skill-ref:"));
     console.log("Skill rules candidate included in context result:", skillItem !== undefined);
+    assert.ok(skillItem !== undefined, "ContextEngine should include at least one skill reference");
     if (skillItem) {
       console.log("Retrieved skill item title:", skillItem.title);
       console.log("Retrieved skill rules content preview:", skillItem.content.split("\n")[0]);
@@ -68,11 +95,13 @@ async function runTests() {
       }
     }
     console.log("Skill definitions contain no secret footprints (should be false):", containsSecrets);
+    assert.strictEqual(containsSecrets, false, "Skill definitions must not contain secret footprints");
 
     // 5. Unregister & Dynamic Registration
     console.log("\n--- Test 5: Unregister & Dynamic Registration ---");
     const unregistered = SkillRegistry.unregisterSkill("skill-python");
     console.log("Successfully unregistered Python skill:", unregistered);
+    assert.strictEqual(unregistered, false, "Built-in skills must not be unregistered dynamically");
     console.log("Skills count after unregistration:", SkillRegistry.getSkills().length);
 
     console.log("\n✅ All Phase 19 Skills System tests completed successfully!");

@@ -81,15 +81,43 @@ const traceModeLabels: Record<ExecutionTraceMode, string> = {
 
 const renderMessageWithLinks = (content: string): React.ReactNode[] => {
   const text = String(content || "");
-  const pattern = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
+  const pattern = /\[!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)\]\((https?:\/\/[^\s)]+)\)|!\[([^\]\n]*)\]\((https?:\/\/[^\s)]+)\)|\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
   const nodes: React.ReactNode[] = [];
   let cursor = 0;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(text)) !== null) {
     if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
-    const markdownLabel = match[1];
-    const rawUrl = match[2] || match[3] || "";
+    const linkedImageAlt = match[1];
+    const linkedImageSrc = match[2];
+    const linkedImageTarget = match[3];
+    const imageAlt = match[4];
+    const imageSrc = match[5];
+    const markdownLabel = match[6];
+    const rawUrl = match[7] || match[8] || "";
+
+    if (linkedImageSrc || imageSrc) {
+      const previewUrl = linkedImageSrc || imageSrc || "";
+      const targetUrl = linkedImageTarget || previewUrl;
+      const alt = linkedImageAlt || imageAlt || "Image result";
+      nodes.push(
+        <a
+          key={`message-image-${match.index}`}
+          className="message-image-link"
+          href={targetUrl}
+          title={`Open ${targetUrl}`}
+          onClick={(event) => {
+            event.preventDefault();
+            void (window as any).electronAPI?.openExternalUrl?.(targetUrl);
+          }}
+        >
+          <img className="message-search-thumbnail" src={previewUrl} alt={alt} loading="lazy" />
+        </a>
+      );
+      cursor = match.index + match[0].length;
+      continue;
+    }
+
     const cleanUrl = rawUrl.replace(/[.,;:!?]+$/, "");
     const trailing = rawUrl.slice(cleanUrl.length);
     const label = markdownLabel || cleanUrl;
@@ -282,6 +310,17 @@ const latestConversationUpdate = (items: Conversation[]) => {
   return items.reduce((latest, item) => Math.max(latest, Number(item.updatedAt) || 0), 0);
 };
 
+const hasMeaningfulConversationContent = (items: Conversation[]) => {
+  return items.some((conversation) =>
+    conversation.messages.some((message) =>
+      Boolean(message.content?.trim()) ||
+      Boolean(message.attachments?.length) ||
+      Boolean(message.cardType) ||
+      Boolean(message.cardData)
+    )
+  );
+};
+
 const loadConversationBootstrap = (defaultMessages: Message[]) => {
   if (typeof window === "undefined") {
     const fallback = createConversation(defaultMessages, deriveConversationTitle(defaultMessages));
@@ -424,7 +463,7 @@ export default function App() {
   const [renameValue, setRenameValue] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [composerAction, setComposerAction] = useState("Generate Code");
-  const [activeRuntimeRole, setActiveRuntimeRole] = useState("Coding");
+  const [activeRuntimeRole, setActiveRuntimeRole] = useState("Chat");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
   const [activeApprovalMode, setActiveApprovalMode] = useState<ApprovalMode>(() => {
@@ -505,7 +544,8 @@ export default function App() {
         if (persisted.conversations.length === 0) return;
         const currentLatest = latestConversationUpdate(conversations);
         const persistedLatest = latestConversationUpdate(persisted.conversations);
-        if (persistedLatest >= currentLatest) {
+        const currentHasContent = hasMeaningfulConversationContent(conversations);
+        if (!currentHasContent || persistedLatest >= currentLatest) {
           setConversations(persisted.conversations);
           setActiveConversationId(persisted.activeId || persisted.conversations[0].id);
         }
@@ -1572,6 +1612,18 @@ export default function App() {
 
     const hasImage = userMsg.attachments?.some((a) => a.type === "image");
     const hasPdf = userMsg.attachments?.some((a) => a.type === "pdf");
+    const shouldAnalyzeImageRequest = (prompt: string) => {
+      const text = String(prompt || "").trim().toLowerCase();
+      if (!text) return false;
+      const normalized = text
+        .replace(/\u0623|\u0625|\u0622/g, "\u0627")
+        .replace(/\u0649/g, "\u064a")
+        .replace(/\u0629/g, "\u0647");
+      const imageWords = /(?:\u0627\u0644\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0647|\u0633\u0643\u0631\u064a\u0646|\u0644\u0642\u0637\u0647|screenshot|image|picture)/i;
+      const analysisWords = /(?:\u062d\u0644\u0644|\u0627\u0641\u062d\u0635|\u0641\u062d\u0635|\u0634\u0648\u0641|\u0627\u0646\u0638\u0631|\u0627\u0642\u0631\u0627|\u0627\u0633\u062a\u062e\u0631\u062c|analyze|analyse|inspect|read|extract|describe|check)/i;
+      return (imageWords.test(normalized) && analysisWords.test(normalized))
+        || /\b(?:what is in|what's in|describe)\s+(?:this\s+)?(?:image|screenshot|picture)\b/i.test(text);
+    };
     const isAttachmentSaveRequest = /(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|درّب|درب|تدريب|مرجع|reference|train|training|remember|save|store)/i.test(inputValue || "");
 
     if ((window as any).electronAPI) {
@@ -1622,7 +1674,7 @@ export default function App() {
             content: `Attachment save failed: ${err?.message || "Unknown IPC/runtime error."}`,
           });
         });
-      } else if (hasImage && savedAttachments.length > 0) {
+      } else if (hasImage && savedAttachments.length > 0 && shouldAnalyzeImageRequest(inputValue)) {
         const imageAtt = savedAttachments.find((a) => a.mimeType.startsWith("image/"));
         if (imageAtt) {
           const agentMsgId = `msg-agent-${Date.now()}`;

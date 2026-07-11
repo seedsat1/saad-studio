@@ -11,12 +11,49 @@ function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message);
 }
 
-function startModelsServer(): Promise<{ url: string; getLastChatModel: () => string | undefined; close: () => Promise<void> }> {
+function startModelsServer(): Promise<{
+  url: string;
+  getLastChatModel: () => string | undefined;
+  getLastGeminiUrl: () => string | undefined;
+  getLastGeminiBody: () => any;
+  close: () => Promise<void>;
+}> {
   let lastChatModel: string | undefined;
+  let lastGeminiUrl: string | undefined;
+  let lastGeminiBody: any;
   const server = http.createServer((req, res) => {
     if (req.url === "/v1/models") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ data: [{ id: "test-coder", owned_by: "lm-studio", context_window: 65536 }] }));
+      return;
+    }
+    if (req.url?.startsWith("/v1beta/models?")) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        models: [
+          {
+            name: "models/gemini-test-flash",
+            displayName: "Gemini Test Flash",
+            inputTokenLimit: 1000000,
+            supportedGenerationMethods: ["generateContent"]
+          }
+        ]
+      }));
+      return;
+    }
+    if (req.url?.startsWith("/v1beta/models/gemini-test-flash:generateContent?") && req.method === "POST") {
+      lastGeminiUrl = req.url;
+      let body = "";
+      req.on("data", chunk => { body += chunk; });
+      req.on("end", () => {
+        try {
+          lastGeminiBody = JSON.parse(body);
+        } catch {
+          lastGeminiBody = null;
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: "Gemini test response" }] } }] }));
+      });
       return;
     }
     if (req.url === "/v1/chat/completions" && req.method === "POST") {
@@ -42,6 +79,8 @@ function startModelsServer(): Promise<{ url: string; getLastChatModel: () => str
       resolve({
         url: `http://127.0.0.1:${address.port}/v1`,
         getLastChatModel: () => lastChatModel,
+        getLastGeminiUrl: () => lastGeminiUrl,
+        getLastGeminiBody: () => lastGeminiBody,
         close: () => new Promise<void>((done) => server.close(() => done())),
       });
     });
@@ -60,6 +99,44 @@ async function runTests() {
     await fs.mkdir(tempWorkspace, { recursive: true });
     setProjectRoot(tempWorkspace);
     SettingsManager.clearCache();
+
+    const legacySettings = SettingsManager.getDefaultSettings() as any;
+    legacySettings.providers = legacySettings.providers.map((provider: any) =>
+      provider.id === "lm-studio"
+        ? {
+            ...provider,
+            discoveredModels: [{ id: "qwen/qwen3-coder-30b", name: "qwen/qwen3-coder-30b", contextWindow: 32768 }],
+            modelCount: 1,
+          }
+        : provider
+    );
+    legacySettings.models.Coding = {
+      ...legacySettings.models.Coding,
+      providerId: "lm-studio",
+      modelName: "qwen/qwen3-coder-30b",
+    };
+    delete legacySettings.models.Chat;
+    await fs.mkdir(path.join(tempWorkspace, ".saad-agent"), { recursive: true });
+    await fs.writeFile(path.join(tempWorkspace, ".saad-agent", "settings.json"), JSON.stringify(legacySettings, null, 2), "utf8");
+    SettingsManager.clearCache();
+    const migratedLegacySettings = await SettingsManager.getSettings();
+    assert(migratedLegacySettings.models.Chat.modelName === "qwen/qwen3-coder-30b", "Missing legacy Chat role should inherit an existing Coding model.");
+
+    legacySettings.models.Chat = {
+      role: "Chat",
+      providerId: "lm-studio",
+      modelName: "lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF",
+      temperature: 0.3,
+      maxTokens: 8192,
+      detectedContextWindow: 32768,
+      streaming: true,
+      timeoutMs: 120000,
+      retryCount: 1,
+    };
+    await fs.writeFile(path.join(tempWorkspace, ".saad-agent", "settings.json"), JSON.stringify(legacySettings, null, 2), "utf8");
+    SettingsManager.clearCache();
+    const repairedInvalidChatSettings = await SettingsManager.getSettings();
+    assert(repairedInvalidChatSettings.models.Chat.modelName === "qwen/qwen3-coder-30b", "Invalid legacy Chat model should be repaired to a discovered provider model.");
 
     const defaults = await SettingsManager.getSettings();
     defaults.providers.push({
@@ -84,6 +161,17 @@ async function runTests() {
       timeoutMs: 5000,
       retryCount: 1,
     };
+    defaults.models.Chat = {
+      role: "Chat",
+      providerId: "test-provider",
+      modelName: "test-coder",
+      temperature: 0.33,
+      maxTokens: 777,
+      detectedContextWindow: 32000,
+      streaming: false,
+      timeoutMs: 5000,
+      retryCount: 1,
+    };
     await SettingsManager.replaceSettings(defaults);
     await SettingsManager.saveProviderSecret("test-provider", "super-secret-test-key");
 
@@ -93,6 +181,13 @@ async function runTests() {
     assert(Boolean(reloaded.providers.find(p => p.id === "test-provider")?.apiKeySecretRef), "Provider secret reference was not stored.");
     const settingsJson = await fs.readFile(path.join(tempWorkspace, ".saad-agent", "settings.json"), "utf8");
     assert(!settingsJson.includes("super-secret-test-key"), "Plain API key leaked into settings.json.");
+
+    await SettingsManager.saveProviderSecret("gemini", "gemini-secret-test-key");
+    SettingsManager.clearCache();
+    const afterGeminiSecret = await SettingsManager.getSettings();
+    const savedGeminiProvider = afterGeminiSecret.providers.find(p => p.id === "gemini");
+    assert(savedGeminiProvider?.enabled === true, "Saving a Gemini API key should enable the Gemini provider.");
+    assert(savedGeminiProvider?.apiKeySecretRef === "provider:gemini:api-key", "Gemini API key secret reference was not stored.");
 
     const testedProvider = await SettingsManager.testProviderConnection("test-provider");
     assert(testedProvider.healthStatus === "online", "Provider test connection did not return online.");
@@ -120,6 +215,36 @@ async function runTests() {
     assert(directResponse.includes("ok"), "Direct inference request did not return the provider response.");
     assert(server.getLastChatModel() === "test-coder", "Direct inference did not use the selected discovered model.");
 
+    const geminiRuntime = {
+      provider: {
+        id: "gemini",
+        name: "Gemini",
+        type: "cloud" as const,
+        endpointUrl: server.url.replace(/\/v1$/, "/v1beta"),
+        enabled: true,
+        isDefault: false,
+        priority: 1,
+        healthStatus: "unknown" as const,
+      },
+      model: {
+        role: "Coding" as const,
+        providerId: "gemini",
+        modelName: "gemini-test-flash",
+        temperature: 0.2,
+        maxTokens: 321,
+        streaming: false,
+        timeoutMs: 5000,
+        retryCount: 0,
+      },
+      apiKey: "gemini-secret-test-key",
+    };
+    const geminiResponse = await ModelClient.chatCompletion("Gemini system.", "Gemini user.", "gemini-test-flash", geminiRuntime);
+    assert(geminiResponse === "Gemini test response", "Gemini response text was not parsed.");
+    assert(server.getLastGeminiUrl()?.includes("key=gemini-secret-test-key"), "Gemini request did not pass API key as query parameter.");
+    assert(server.getLastGeminiBody()?.systemInstruction?.parts?.[0]?.text === "Gemini system.", "Gemini systemInstruction was not sent.");
+    assert(server.getLastGeminiBody()?.contents?.[0]?.parts?.[0]?.text === "Gemini user.", "Gemini user prompt was not sent.");
+    assert(server.getLastGeminiBody()?.generationConfig?.maxOutputTokens === 321, "Gemini maxOutputTokens was not mapped.");
+
     let captured: any = null;
     ModelClient.chatCompletion = async (systemPrompt, userPrompt, modelName, runtime) => {
       captured = { systemPrompt, userPrompt, modelName, runtime };
@@ -135,6 +260,17 @@ async function runTests() {
     assert(captured?.runtime?.provider?.id === "test-provider", "ReasoningEngine did not use persisted provider.");
     assert(captured?.runtime?.model?.temperature === 0.42, "Model role temperature was not applied.");
     assert(captured?.runtime?.apiKey === "super-secret-test-key", "Encrypted provider secret was not supplied to runtime.");
+
+    captured = null;
+    const chatReasoning = await ReasoningEngine.requestCompletion({
+      role: "Chat",
+      systemPrompt: "Return JSON.",
+      userPrompt: "Test chat role runtime settings.",
+    });
+    assert(chatReasoning.isValidJson === true, "Chat role reasoning response was not parsed as JSON.");
+    assert(captured?.modelName === "test-coder", "Chat role did not use persisted model name.");
+    assert(captured?.runtime?.provider?.id === "test-provider", "Chat role did not use persisted provider.");
+    assert(captured?.runtime?.model?.temperature === 0.33, "Chat role temperature was not applied.");
 
     await SettingsManager.setSkillEnabled("skill-react", false);
     const matches = SkillRegistry.matchSkillsForTask("Refactor React hooks in App.tsx", ["App.tsx"]);

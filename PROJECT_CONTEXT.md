@@ -1,19 +1,953 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed 413 (Content Too Large) character reference photo upload error (2026-07-12)
+
+- Status:
+  Resolved the 413 error when uploading reference photos on the Character Studio page (`/character`). Rewrote the client-side upload function to fetch a presigned R2 upload URL and upload raw binary data directly using `PUT`, bypassing the Vercel/Next.js body size limit (4MB).
+- Affected files:
+  - `app/(dash)/(routes)/character/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - Bypassing the Node server body parser by using client-side presigned PUT uploads is standard practice for files and successfully eliminates the 413 error.
+- Remaining:
+  - None.
+
+## Latest task: Saad Agent inline image generation error copy cleanup (2026-07-12)
+
+- Status:
+  Tightened the inline image-generation response. Requests that ask to generate/show an image inside chat no longer show routing explanations, mock-provider details, or a prompt fallback. If no real image provider bridge is configured, the agent returns only a short direct error: image generation is not enabled inside chat.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed after the build, including the regression that rejects `فهمتك`, `mock`, and prompt fallback text for inline image-generation requests.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `dist/platform/services/chat-orchestrator.js` returns the direct image-generation error string from `resolveInlineImageGenerationRequest`.
+- Decision:
+  - Product chat must show either a real generated image or a concise failure. Internal routing explanation belongs in tests/docs, not in the chat answer.
+- Remaining:
+  - Connect a real authenticated image provider bridge before inline image requests can return actual generated images.
+
+## Latest task: Fixed Content Security Policy warning caused by failed generation error URLs (2026-07-12)
+
+- Status:
+  Prevented failed generation error text messages (e.g. "ERROR: Failed to upload Lyria audio output to storage") stored in the database's `outputUrl` field from being loaded as images/videos on the website and Adobe Premiere panel.
+- Affected files:
+  - `app/api/assets/route.ts`
+  - `app/api/panel/generations/route.ts`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - Error messages are not renderable assets, so they must be filtered out in the API layer (`isRenderableAssetUrl` and `resolvePublicUrl`) before returning the asset list to the client.
+- Remaining:
+  - None.
+
+## Latest task: Saad Agent inline image generation truthfulness guard (2026-07-12)
+
+- Status:
+  Clarified the chat behavior for requests such as `اريد تصميم لوكس برومبيت صورة اعرضها هنا`. The agent now treats "show/generate an image here" as an inline image-generation request, not internet image search and not simple prompt drafting. Because the existing Creative providers were placeholder-only, the chat response now refuses to display a fake image and explains that a real KIE/Seedream/Flux provider bridge is required. Pure prompt-writing requests such as `اكتبلي برومبت صورة لوكس` still return a local prompt template without model/search.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/creative/creative-providers.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/src/test-creative.ts`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-skills.js` passed.
+  - `node dist/test-creative.js` passed and confirms Creative providers no longer emit completed/stored events or generated assets when no real provider is configured.
+- Findings:
+  - The existing Creative providers wrote 1x1 PNG placeholder assets with `local_mock` / `saad_studio_mock` sources. That would make the chat "display an image" falsely.
+  - The real SaaS image endpoint exists at `/api/panel/generate/image`, but it requires panel auth, credits, and KIE/server configuration, so it should be connected deliberately in a separate provider bridge.
+- Decisions:
+  - Do not use placeholder Creative output in production chat.
+  - Keep Markdown/image rendering available for real image-search results and future real generated image URLs.
+- Remaining:
+  - Add an authenticated Saad Studio/KIE image-generation bridge for the desktop agent, then return real generated image URLs or local saved assets in chat.
+
+## Latest task: Fixed video upload preview and hidden filenames on video page (2026-07-12)
+
+- Status:
+  Implemented a real-time looping preview for uploaded motion reference videos using HTML5 `<video>` and Object URLs, replacing the static Film icon. Removed all filename overlay labels on uploaded image and video preview cards inside the right sidebar on desktop and mobile view layouts.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - File name overlay text labels are redundant when graphic previews (image/video) are displayed and clutter the UI, so they are completely removed.
+- Remaining:
+  - Verify visually by uploading files in dev server.
+
+## Latest task: Saad Agent image prompt drafting must not trigger image search (2026-07-11)
+
+- Status:
+  Fixed the routing bug where prompts such as `اريد تصميم لوكس برومبيت صورة اعرضها هنا` were classified as internet image search because they contained `اريد` and `صورة`. Image-prompt drafting is now detected before media search and answered locally with a usable prompt template, without Brave Image Search, external approval, or model fallback.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that fails if the exact image-prompt request calls Brave Image Search.
+  - `node dist/test-skills.js` passed.
+- Decision:
+  - `برومبت/برومبيت image prompt` drafting is a writing task, not media retrieval. Real prompts like `ابحثلي عن صور نور زهير` still route to image search.
+- Remaining:
+  - Restart the desktop app before retesting so Electron reloads the repacked `app.asar`.
+
+## Latest task: Saad Agent malformed Skill/provider toLowerCase crash guard (2026-07-11)
+
+- Status:
+  Fixed the raw runtime crash exposed by the packaged screenshot: `Cannot read properties of undefined (reading 'toLowerCase')`. Skill matching now normalizes built-in and custom Skill fields before matching, ignores empty/undefined trigger entries, and safely handles malformed affected-file lists. The legacy provider factory now reports a clear missing/unsupported provider type instead of crashing on `type.toLowerCase()`.
+- Affected files:
+  - `saad-agent/src/skills/skill-registry.ts`
+  - `saad-agent/src/providers/factory.ts`
+  - `saad-agent/src/test-skills.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-skills.js` passed, including a regression that registers a deliberately malformed custom Skill with undefined triggers/capabilities and matches the Arabic image/design prompt without a `toLowerCase` crash.
+  - `node dist/test-providers.js` passed.
+  - Direct runtime probe for `اريد تصميم لوكس برومبيت صورة اعرضها هنا` completed without the `toLowerCase` crash.
+  - Copied updated `dist/**` into `release-production-v4/win-unpacked/resources/app-asar-work/dist`, repacked `app.asar`, extracted the archive, and verified packaged `skill-registry.js` contains `safeStringList` / `normalizeSkill` and packaged `factory.js` contains the missing-provider guard.
+- Findings:
+  - The currently built runtime did not reproduce the crash with a clean settings root, which points to a malformed custom Skill/settings record or an older loaded package in the user's running app.
+  - Custom/private skill imports must be treated as untrusted product data and normalized before routing.
+- Decisions:
+  - Harden the Skill registry boundary instead of patching one Arabic phrase.
+  - Keep provider-factory behavior explicit: missing provider config is a configuration error, not a JavaScript crash.
+- Remaining:
+  - Restart the packaged app before retesting so Electron reloads the repacked `app.asar`.
+
+## Latest task: Saad Agent clean Chat context and Gemini expertise response repair (2026-07-11)
+
+- Status:
+  Fixed the remaining context contamination exposed by the packaged Gemini screenshots. Normal conversation now uses the configured `Chat` role instead of `Coding`, strips mojibake/corrupted fragments from conversation history and provider context before model calls, suppresses unrelated adult-story training noise from ordinary chat prompts, and cleans visible model responses before storing them back into conversation history. Gemini expertise extraction responses are reformatted so they say Gemini when Gemini was the provider and topic cleanup no longer leaves a leading `for:`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/model-expertise-extraction.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including regressions for Gemini `for:` topic cleanup, Gemini response wording, Chat-role routing, and mojibake/adult-noise removal from model prompt history.
+  - Copied updated `dist/**` into `release-production-v4/win-unpacked/resources/app-asar-work/dist`, repacked `app.asar`, and verified packaged runtime markers for `sanitizeProviderContextBlock`, `formatCleanExpertiseExtractionResponse`, `isAdultTrainingNoise`, and conversational `Chat` role routing.
+- Findings:
+  - Gemini was working after configuration, but old corrupted history/context could still be sent into the model and copied back into answers.
+  - Ordinary harmless prompts could inherit unrelated adult-story training references, which can trigger Gemini safety blocks or off-topic answers.
+  - Gemini expertise extraction could be successful while the UI wording still said "local model" because the formatter was provider-neutral only at the header.
+- Decisions:
+  - Clean context at the orchestrator boundary before provider calls, and clean visible responses before saving them into chat history.
+  - Keep private adult narrative knowledge available for explicit private/saved-knowledge requests, but do not inject it into unrelated ordinary chat prompts.
+  - Use the `Chat` role for normal conversation and keep `Coding` for engineering workflows.
+- Remaining:
+  - Restart the packaged app before retesting so Electron reloads the repacked `app.asar`.
+
+## Latest task: Saad Agent legacy Chat model mapping repair (2026-07-11)
+
+- Status:
+  Fixed the remaining configuration bug exposed by the packaged UI screenshot. Old settings files that do not contain a `Chat` role, or contain a `Chat` role pointing at a model id that is not in the provider's discovered models, are now repaired during settings loading. Missing `Chat` inherits the existing `Coding` role model. Invalid discovered-provider model ids are replaced with a real discovered model, preferring the Coding model for Chat when possible.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including regressions for missing legacy `Chat` and invalid legacy `Chat` model ids.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Copied updated `dist/**` into `app-asar-work`, repacked `app.asar`, and verified packaged `settings-manager.js` contains `repairModelRoleMappings`.
+- Findings:
+  - The previous no-random-RAG fix worked, but the active Chat role could still resolve to the old default `lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF` when persisted settings lacked a valid `Chat` role.
+  - The project settings file showed `Gemini` disabled and no `Chat` role; this is exactly the kind of legacy settings shape that needed runtime repair.
+- Decision:
+  - Settings migration must prefer real discovered provider model ids over hard-coded defaults.
+  - Missing `Chat` should inherit `Coding` instead of using the global fallback model name.
+- Remaining:
+  - Restart the packaged app before retesting so Electron loads the repacked `app.asar`.
+
+## Latest task: Saad Agent Gemini activation and no-random-RAG model failure guard (2026-07-11)
+
+- Status:
+  Fixed the settings/configuration path exposed by the packaged UI screenshots. Saving a Gemini API key now enables the Gemini provider instead of leaving extraction blocked as "provider disabled". The Settings Models UI no longer silently saves a role to a provider with no discovered model; it stages the provider selection and tells the user to fetch models first. Normal chat model failures no longer fall back to unrelated training/RAG references unless the user explicitly asked for saved/stored/training knowledge.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/ui/src/components/SettingsModal.tsx`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including the new Gemini API-key auto-enable regression.
+  - `node dist/test-chat-orchestrator.js` passed, including the new ordinary-chat provider-failure regression that rejects unrelated training references.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified packaged `settings-manager.js` contains the Gemini auto-enable rule, packaged `chat-orchestrator.js` contains the saved-knowledge-only fallback guard, and packaged UI assets contain only the current `index-Cci3mmN_.js` and `index-C8oNebba.css`.
+- Findings:
+  - The user's screenshot was accurate: Gemini extraction was blocked because Gemini was disabled in Settings, while normal chat still used the configured Chat model path.
+  - The old trained-knowledge fallback was too broad and could show unrelated stored references when a normal prompt failed at the model provider.
+  - A stale Vite bundle remained in the unpacked UI assets and was removed before the final package.
+- Decisions:
+  - Saving a Gemini key is a clear user intent to activate Gemini, so Gemini is enabled automatically on secret save.
+  - Chat/Coding role selection must use discovered model ids; no guessed Gemini model names are saved.
+  - Training-knowledge fallback is allowed only for explicit saved/stored/training knowledge requests, not as a general substitute for a failed model.
+- Remaining:
+  - Restart the packaged desktop app before retesting.
+  - In Settings, save the Gemini key, fetch Gemini models, then assign the Chat role to a discovered Gemini model before testing normal chat.
+
+## Latest task: Saad Agent provider-aware model expertise extraction guard (2026-07-11)
+
+- Status:
+  Extended the model-expertise extraction path so it now resolves the requested provider before generating or saving training cards. Local-model extraction keeps the existing real behavior. Requests that explicitly ask for Gemini or ChatGPT/OpenAI expertise are recognized as global-provider extraction requests, but because no real Gemini/OpenAI extraction connector is wired in this phase, the agent returns a clear not-configured response, does not call the local reasoning engine as a substitute, and saves no training file.
+- Affected files:
+  - `saad-agent/src/platform/services/model-expertise-extraction.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression proving `extract expertise from Gemini ... and save it` returns `usedModel=false`, mentions `Provider: Gemini`, reports the provider is not configured, does not call `ReasoningEngine`, and creates no `saas-pricing-tables` training file.
+- Decision:
+  Provider-aware extraction must fail closed for unconfigured global providers. The agent must not fake Gemini/OpenAI cards by asking the local model or by saving placeholder knowledge.
+- Remaining:
+  - Restart the packaged app before UI retest.
+  - A future phase can add real configured Gemini/OpenAI connectors with API-key-backed calls and the same no-save-on-failure rule.
+- Packaging:
+  - Copied the updated built runtime files and memory references into `release-production-v4/win-unpacked/resources/app-asar-work/`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the archive to a temporary folder and verified packaged `model-expertise-extraction.js` contains `resolveRequestedProvider`, the Gemini not-configured guard, and `extractBatchFromRequestedProvider`; packaged `chat-orchestrator.js` contains the provider-aware extraction calls.
+
+## Latest task: Redesigned and generated 6 premium social media prompt-to-video ad templates in PDF format (2026-07-11)
+
+- Status:
+  Completely redesigned the 6 prompt-to-video social media ad templates to match the official brand guidelines of Saad Studio. The design was changed from a dark cybernetic theme to a premium pure white background with gold (#C9A227) and navy (#0F1B3D) brand colors. Arabic typography was resolved using Arial/Arial-Bold which has 100% glyph coverage for shaped Arabic text (hamzas, accents), avoiding square boxes.
+- Affected files:
+  - `C:\Users\PC\Desktop\New folder\saad_studio_ad_templates.pdf` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+- Verification:
+  - Executed the premium Python script successfully.
+  - Rendered all pages to high-resolution PNGs and verified layout, alignments, color consistency, and glyph rendering.
+- Findings:
+  - Custom font Cairo showed square boxes for Arabic hamzas due to missing presentation form glyphs in Windows font mappings; using Arial resolved the issue.
+  - Widescreen and vertical layouts look highly clean, creative, and luxurious, matching the official PDF guidelines design language.
+- Decisions:
+  - Stored the final PDF at: `C:\Users\PC\Desktop\New folder\saad_studio_ad_templates.pdf`.
+- Remaining:
+  - None. Task is fully completed.
+
+## Latest task: Saad Agent direct URL read failure must not fall back to model (2026-07-11)
+
+- Status:
+  Fixed the packaged chat routing branch for direct URL read/monitor prompts. If `UrlTrainingService.importAndPrepareContext(...)` fails because the page fetch or readable-text extraction fails, the orchestrator now returns an honest non-model failure response immediately instead of passing the failure context to the local model. This prevents generic model answers such as "I cannot access the page" when the crawler was the component that actually failed.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression where `fetch` throws for `https://kie.ai/api-updates`; the response uses `usedModel=false`, includes the real fetch error, and proves the model is not called.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `dist/platform/services/chat-orchestrator.js` contains `formatUrlReadFailureResponse`.
+- Decision:
+  Direct URL read/import requests are crawler-owned. A crawler failure is a real failed read, not a reason to ask the model to infer or apologize.
+- Remaining:
+  - Restart the packaged desktop app before retesting because Electron keeps old `app.asar` code loaded while running.
+  - A future browser-backed crawler can be added for JavaScript-heavy pages that do not expose enough readable HTML to the current fetch-based crawler.
+
+## Latest task: Created 6 premium social media prompt-to-video ad templates in PDF format (2026-07-11)
+
+- Status:
+  Generated a premium 6-page PDF document containing 6 different types of social media prompt-to-video ad templates. The design uses a rich cybernetic theme (dark blue/indigo background, neon gold and cyan borders) matching the Saad Studio branding. Embedded the cropped model images directly from the desktop folder into the templates.
+- Affected files:
+  - `C:\Users\PC\Desktop\New folder\saad_studio_ad_templates.pdf` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+- Verification:
+  - Executed the Python script successfully.
+  - Rendered all pages to high-resolution PNGs and verified proper RTL Arabic text shaping, alignment, and spacing.
+- Findings:
+  - Using two distinct layouts (Landscape Widescreen for cinematic, and Vertical 9:16 for product/abstract loops) makes the templates highly functional and authentic.
+  - Aligned Arabic text blocks to the right using `align=2` in PyMuPDF text boxes, solving text overlap.
+- Decisions:
+  - Grouped templates into: Cinematic Drama, E-Commerce Ad, Fashion Model, Educational Explainer, Action CGI/VFX, and Abstract Music Loop.
+  - Placed the final PDF at the user-requested path: `C:\Users\PC\Desktop\New folder\saad_studio_ad_templates.pdf`.
+- Remaining:
+  - None. Task is fully completed.
+
+## Latest task: Saad Agent saved-knowledge noise filter (2026-07-11)
+
+- Status:
+  Tightened saved-knowledge lookup formatting so prompts like `اشرحلي من معرفتك المحفوظة عن image search thumbnails` return the exact matching saved card instead of listing weakly related RAG matches such as unrelated API docs or story files. The filter is scoped only to the explicit `knowledge_lookup` response path and does not change the general training search/RAG behavior.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression proving saved-knowledge lookup for `image search thumbnails` returns the saved `model-expertise` card and does not include unrelated `docs.kie.ai-file-upload-api-quickstart` or `en.cuckold.info` matches.
+- Decision:
+  - For explicit saved-knowledge lookup, prefer title/path/tag exact phrase or token identity matches over broad semantic matches. If a strict identity match exists, suppress weaker matches.
+- Remaining:
+  - Repack `release-production-v4/win-unpacked/resources/app.asar` and restart the packaged app before UI retest.
+
+## Latest task: Saad Agent URL monitor routing and image auto-vision guard (2026-07-11)
+
+- Status:
+  Fixed two routing bugs exposed by the packaged chat UI. URL prompts that contain an actual `http(s)` link and wording such as monitor/watch/follow/check updates/what's new, or Arabic `راقب` / `تابع` / `التحديثات` / `الجديدة`, now use the direct URL crawler/training context path instead of answering that the agent cannot access the page. Image attachments no longer trigger Vision analysis automatically; Vision runs only when the prompt explicitly asks to analyze/inspect/read/extract/describe an image or screenshot.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Cleaned and rebuilt `saad-agent/ui/dist`; `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression proving `راقب هذا الموقع https://kie.ai/api-updates ... التحديثات الجديدة` fetches the page, saves it under URL training, and gives the model retrieved page context.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive to a temporary folder and verified it contains the backend URL monitor markers, the UI `shouldAnalyzeImageRequest` guard before `analyzeImage`, and only the current Vite assets.
+- Findings:
+  - The URL read detector covered open/read/summarize but missed monitor/update wording.
+  - The renderer treated every image attachment as an immediate Vision task, causing large-context Vision failures when the user merely attached a screenshot for reference.
+- Decisions:
+  - Keep direct URL reading separate from site-scoped search: `ابحث في هذا الموقع ... عن ...` remains external research, while `راقب/تابع/ما التحديثات` with a concrete URL fetches and indexes the page.
+  - Do not call Vision unless the user's text explicitly asks for image analysis.
+- Remaining:
+  - Restart the packaged app before UI retest.
+
+## Latest task: Saad Agent saved-knowledge lookup precedence fix (2026-07-11)
+
+- Status:
+  Fixed the routing bug exposed by `اشرحلي من معرفتك المحفوظة عن image search thumbnails`. Prompts that explicitly ask for saved/stored/local/training knowledge now route to a local `knowledge_lookup` response before internet, image-search, training-ingest, memory-save, or model fallback paths. This prevents topic words such as `image search` from triggering Brave Image Search when the user clearly asked for stored knowledge.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression proving saved-knowledge lookup for `image search thumbnails` returns `knowledge_lookup`, does not call the local model, does not call Brave image search, and surfaces the saved `model-expertise` card.
+- Findings:
+  - The previous routing could prioritize image-search detection from the topic text over the user's explicit `saved knowledge` intent.
+  - The old generic trained-knowledge fallback was not a clean answer path; saved knowledge needs an intentional local lookup response.
+- Decisions:
+  - Saved/local/stored/training knowledge wording outranks external research, including image-search phrases embedded in the requested topic.
+  - The response is local-only and says it did not use internet.
+- Remaining:
+  - Restart the packaged desktop app after repacking before retesting in the UI.
+
+## Latest task: Saad Agent local model expertise batch extraction (2026-07-11)
+
+- Status:
+  Extended the local-model expertise feature from one topic per request to bounded batch extraction. `ModelExpertiseExtractionService.extractTopics(...)` can parse multiple requested topics from colon/semicolon/newline/Arabic-comma separated prompts, up to 8 topics. `extractBatchFromLocalModel(...)` calls the configured local model once per topic, saves only successful structured cards, and reports saved and failed counts through the existing `training_ingest` path.
+- Affected files:
+  - `saad-agent/src/platform/services/model-expertise-extraction.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added a regression proving two requested topics call the local model twice, save two `model-expertise` cards, and return indexed matches.
+- Findings:
+  - The first phase handled only one topic. Multi-topic prompts needed a real batch wrapper rather than asking the model to merge several topics into one vague card.
+  - Topic cleanup now removes leftover trailing `it` from phrases like `save it`.
+- Decisions:
+  - Keep batch extraction sequential and bounded to 8 topics to avoid uncontrolled local-model loops.
+  - Preserve the same verification tag: every generated card remains `model-generated-unverified`.
+  - This is still local-only; no global provider extraction or automatic scheduler was added.
+- Packaging:
+  - Copied the updated built runtime files and documentation into `release-production-v4/win-unpacked/resources/app-asar-work/`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified the packaged archive contains `extractBatchFromLocalModel`, `extractTopics`, and the batch saved-count response marker.
+- Remaining:
+  - Restart the packaged desktop app before retesting this phase in the UI.
+  - Future phase can add a review queue UI for approving/rejecting generated expertise cards before indexing.
+
+## Latest task: Saad Agent local model expertise extraction implementation (2026-07-11)
+
+- Status:
+  Implemented the first real local-model expertise extraction path. When the user explicitly asks to extract/distill/capture expertise from the local model and save it, `ChatOrchestratorService` now routes the request before generic memory-save/training ingestion. The new `ModelExpertiseExtractionService` asks the configured active local model for a structured expertise card, scrubs secrets, saves it under `.saad-agent/training/lessons/model-expertise/`, marks it `model-generated-unverified`, and reindexes the existing training knowledge.
+- Affected files:
+  - `saad-agent/src/platform/services/model-expertise-extraction.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Regression tests prove a successful local-model expertise extraction is saved and indexed under `model-expertise`, and a failed local model call saves nothing.
+- Findings:
+  - This capability did not exist before this implementation; the previous code could ingest files/URLs and save memory, but had no dedicated model-expertise distillation route.
+  - The first test run exposed a test-isolation issue: local-model extraction intentionally increments the model-call counter, so the counter was reset before later no-model assertions.
+- Decisions:
+  - Keep this as a manual local-model extraction feature first. Do not claim automatic batch extraction or global-model harvesting yet.
+  - Mark every model-generated card as unverified until it is checked against project evidence, trusted documentation, or tests.
+  - If the local model fails, times out, or returns an empty card, save nothing and report the failure honestly.
+- Packaging:
+  - Copied the built `chat-orchestrator.js` and `model-expertise-extraction.js` into `release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified the packaged archive contains `model-generated-unverified` and `KnowledgeIngestionService` inside `dist/platform/services/model-expertise-extraction.js`.
+- Remaining:
+  - Restart the packaged desktop app before testing this feature in the UI.
+  - Later phases can add scheduled topic queues, review/approval UI, and optional global model extraction after local behavior is proven.
+
+## Latest task: Saad Agent model-expertise extraction audit (2026-07-11)
+
+- Status:
+  Audited the current Saad Agent code paths for the proposed "extract model expertise into agent knowledge" capability. The current product has real memory save, attachment/URL training ingestion, knowledge indexing, trained-knowledge retrieval, and conservative continuous-learning logs, but it does not yet have a dedicated automated model-expertise extraction/distillation pipeline.
+- Evidence:
+  - `saad-agent/src/platform/services/learning-engine.ts` only learns from explicit teaching, corrections, and completed/failed execution sessions.
+  - `saad-agent/src/platform/services/knowledge-ingestion.ts` indexes existing files/attachments/URLs under `.saad-agent/training/**`.
+  - `saad-agent/src/platform/services/chat-orchestrator.ts` routes memory/training ingestion and model calls, but no current route writes structured model-generated expertise cards into training knowledge.
+- Decision:
+  Treat model-expertise extraction as a new real feature to implement and test, not as an existing capability. Any future implementation must save structured generated knowledge cards, mark verification status, index them through `KnowledgeIngestionService`, and add regression tests proving no fake save occurs on model failure.
+- Remaining:
+  Implement a bounded `ModelExpertiseExtractionService` or equivalent orchestrator route if the user approves moving from audit to implementation.
+
+## Latest task: Saad Agent world country-count disputed-number training import (2026-07-11)
+
+- Status:
+  Added the user's Arabic-English training note about the disputed number of countries in the world as a dedicated indexed lesson file. The note records that the world is divided into seven continents, that a 1998 researcher estimate counted 230 countries including 25 self-governing territories, and that other sources such as The Economist cite a range from 168 to 254 while some sources cite 180.
+- Affected files:
+  - `saad-agent/.saad-agent/training/lessons/world-country-count-disputed-ar-en.txt`
+  - `saad-agent/.saad-agent/knowledge/registry.json`
+  - `saad-agent/.saad-agent/knowledge/vector-index.json`
+  - `saad-agent/.saad-agent/knowledge/ingestion-log.json`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `KnowledgeIngestionService.ingestTrainingKnowledge(...)` reports `world-country-count-disputed-ar-en.txt` as `indexed` with 1 chunk.
+  - Raw content checks found `230`, `25 self-governing territories`, `The Economist`, `168`, `254`, `180`, and `seven continents`.
+  - `KnowledgeIngestionService.searchTrainingKnowledge(...)` returns the new file as the first match for `number of countries in the world 230 self governing territories` and `The Economist 168 254 180 countries`.
+- Decisions:
+  - Store this as a separate lesson file rather than merging it into the country tables, because it is explanatory disputed-count context rather than tabular country metadata.
+  - No code, UI, or packaged app rebuild was required for this data-only training import.
+
+## Latest task: Saad Agent countries/capitals/continents deduplicated training import (2026-07-11)
+
+- Status:
+  Cleaned and imported the user-provided Arabic-English countries/capitals/continents table as real Saad Agent training knowledge. The input contained repeated header rows and duplicate country entries, so only the deduplicated text file was saved into the lessons training path for indexing.
+- Affected files:
+  - `saad-agent/.saad-agent/training/lessons/countries-capitals-continents-ar-en-clean.txt`
+  - `saad-agent/.saad-agent/knowledge/registry.json`
+  - `saad-agent/.saad-agent/knowledge/vector-index.json`
+  - `saad-agent/.saad-agent/knowledge/ingestion-log.json`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Source attachment had 199 data rows plus header.
+  - Removed 5 duplicate/noise rows: 3 embedded header rows, duplicate Bolivia, and duplicate Mauritius.
+  - Clean training file contains 194 country rows plus the header and reports 0 duplicate country keys.
+  - `KnowledgeIngestionService.ingestTrainingKnowledge(...)` reports `countries-capitals-continents-ar-en-clean.txt` as `indexed` with 7 chunks.
+  - `KnowledgeIngestionService.searchTrainingKnowledge(...)` returns the clean file for queries such as `Japan Tokyo Asia` and `Bolivia Sucre South America`.
+- Decisions:
+  - Store the cleaned data as `.txt` because the current text extractor indexes TXT fully while TSV is metadata-only.
+  - Keep this as a data-import task only; no runtime code or packaged app rebuild was required.
+
+## Latest task: Saad Agent countries/capitals/currencies training import (2026-07-11)
+
+- Status:
+  Imported the user-provided countries/capitals/currencies Arabic-English table as Saad Agent training knowledge. The original attachment was first registered as `.tsv`, but the current extractor treats TSV as metadata-only, so a `.txt` copy of the same content was added under the same lessons category to make the content actually chunked and searchable.
+- Affected files:
+  - `saad-agent/.saad-agent/training/lessons/countries-capitals-currencies-ar-en.tsv`
+  - `saad-agent/.saad-agent/training/lessons/countries-capitals-currencies-ar-en.txt`
+  - `saad-agent/.saad-agent/knowledge/registry.json`
+  - `saad-agent/.saad-agent/knowledge/vector-index.json`
+  - `saad-agent/.saad-agent/knowledge/ingestion-log.json`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `KnowledgeIngestionService.ingestTrainingKnowledge(...)` reports `countries-capitals-currencies-ar-en.txt` as `indexed` with 7 chunks.
+  - Raw content checks found `Japan / Tokyo / Japanese Yen`, `United States / Washington, D.C. / US Dollar`, and `Iraq / Baghdad / Iraqi Dinar`.
+  - `KnowledgeIngestionService.searchTrainingKnowledge(...)` for `Iraq Baghdad Iraqi Dinar` and `Japan Tokyo Japanese Yen` returns `countries-capitals-currencies-ar-en.txt`.
+- Findings:
+  - `.tsv` files are currently registered but not read as full text by `extractTrainingText`; they become metadata-only knowledge.
+- Decisions:
+  - Keep the original `.tsv` trace and add a `.txt` searchable copy instead of changing extractor behavior during a data-import task.
+  - Store this as `lessons` because it is a general factual reference table, not code/API documentation.
+
+## Latest task: Saad Agent deterministic text-instruction guard (2026-07-11)
+
+- Status:
+  Fixed a direct-chat routing failure where simple literal/text-operation prompts such as `اكتب 12345 ولا تضف أي شيء`, word-count questions, and ordered edit instructions could fall through to model failure and then print unrelated trained-knowledge fallback. Added deterministic non-model handlers for literal bare-write, word counting, and ordered write/delete-line instructions before memory, trained knowledge, URL crawling, and model fallback.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regressions proving `اكتب / 12345 / ولا تضف أي شيء` returns only `12345`, `كم كلمة في هذه الجملة؟ "أنا أحب البرمجة كثيرًا"` returns only `4`, and the ordered Baghdad/Basra/delete-first-line prompt returns only `البصرة`.
+  - The regressions assert `usedModel=false`, zero model calls, and no trained-knowledge fallback text.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified packaged runtime markers for `resolveTextInstructionRequest`, `resolveWordCountRequest`, `extractQuotedText`, and `stripInstructionNumber`.
+- Findings:
+  - The previous literal echo guard was too narrow and required wording like `كلمة`, so bare `اكتب` requests were missed.
+  - Arabic diacritics initially caused word-count overcounting; the tokenizer now treats combining marks as part of the word.
+  - Output for ordered `اكتب` operations must preserve the original user text, not normalized Arabic, so letters such as `ة` remain unchanged.
+- Decisions:
+  - Keep this as a narrow deterministic text-instruction guard, not a general reasoning engine.
+  - Do not let simple text operations consult trained knowledge when the model is unavailable.
+
+## Latest task: Saad Agent direct non-model answer guard (2026-07-11)
+
+- Status:
+  Fixed a routing failure where simple prompts such as arithmetic, literal echo requests, and project-language questions could fall through to the model, then print unrelated trained-knowledge matches when the provider failed. Added an early direct-answer guard in `ChatOrchestratorService` before URL crawling, memory, trained knowledge, and model fallback.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regressions proving `8 + 9` returns `17`, literal `write the word مرحبا` returns only `مرحبا`, and project-language questions inspect local project evidence without model calls or trained-knowledge fallback.
+  - Packaged `app.asar` was rebuilt and verified to include `resolveDirectNonModelResponse`, `resolveSimpleArithmetic`, `resolveLiteralEchoRequest`, and `formatProjectLanguageAnswer`.
+- Findings:
+  - The fallback knowledge response was too broad for ordinary chat failures and polluted simple direct answers with unrelated training references.
+  - Literal echo parsing must handle the target word on the next line, not treat the word `word/كلمة` itself as the requested output.
+- Decisions:
+  - Keep this as a narrow early guard, not a second general chatbot path.
+  - Project-language answers use local file/package evidence and refuse to guess when evidence is unavailable.
+
+## Latest task: Fixed social-profile search routing for Instagram-style requests (2026-07-11)
+
+- Status:
+  Fixed the routing bug where prompts such as `اريد صفحة الانستكرام ل ميرا النوري` or mixed Arabic/English prompts like `Mira Nouri اريد الانستكرام الخاص ب` could be treated as an engineering page/Codex runtime task or fall through to unrelated trained knowledge/model fallback. Social profile/account/page/link requests for platforms such as Instagram, Facebook, TikTok, X/Twitter, Snapchat, and LinkedIn now route to the existing canonical `external_research` gateway.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/*`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist\test-chat-orchestrator.js` passed.
+  - Added regressions proving Instagram profile requests use `external_research`, do not call the active model, do not invoke `pi_exec`/Codex runtime, do not surface unrelated trained story knowledge, and include platform-aware query planning such as `site:instagram.com`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified the packaged worktree contains `isSocialProfileSearchRequest`, `socialPlatformDomain`, `instagram`, and `site:instagram`.
+- Findings:
+  - The word `صفحة` was being over-weighted as a project/page engineering signal.
+  - Social profile requests need to outrank page-creation routing because `صفحة انستغرام` means a public/social profile page, not a page to build.
+  - A local PowerShell rewrite briefly damaged Arabic literals in a test string; the affected literals were replaced with Unicode escapes and the full orchestrator regression passed afterward.
+- Decisions:
+  - Keep the fix inside `ResearchGatewayService` and `ExecutionPolicyService`; no duplicate social-search workflow was introduced.
+  - Use Unicode escapes for Arabic routing regex additions to avoid Windows encoding drift.
+
+## Latest task: Fixed Agent-Reach YouTube result parsing and packaged it (2026-07-10)
+
+- Status:
+  Fixed the bad YouTube search result display where Saad Agent showed labels such as `watch` and `hq720.jpg` after the user searched for `اريد فيديو كاظم الساهر`. The root cause was in `AgentReachProvider`: `yt-dlp --dump-json` can return newline-delimited JSON, but the parser only accepted one JSON payload. When parsing failed, the fallback URL extractor picked thumbnail URLs from the raw JSON and inferred titles from paths. The provider now parses JSON lines, prefers `webpage_url` / `original_url`, converts YouTube IDs into `https://www.youtube.com/watch?v=...`, and filters image thumbnail/static asset URLs from generic fallback extraction.
+- Affected files:
+  - `saad-agent/src/platform/services/agent-reach-provider.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/platform/services/agent-reach-provider.js`
+  - `saad-agent/dist/test-chat-orchestrator.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/agent-reach-provider.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist\test-chat-orchestrator.js` passed.
+  - Added a regression proving Agent-Reach/`yt-dlp` JSON-lines output produces titled YouTube links and does not return `hq720.jpg` thumbnails or `[watch](...)` labels.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive to `.tmp-asar-verify-agent-reach` and verified packaged code contains `parseJsonRows`, `isLikelyMediaAssetUrl`, `webpage_url`, `youtube.com/watch`, and the new `hq720.jpg` regression.
+- Findings:
+  - The visible bad output was not model hallucination. It was a parser fallback bug that treated JSON thumbnail URLs as search results.
+  - The temporary verification folder `.tmp-asar-verify-agent-reach` remains because cleanup was rejected by the local tool approval/usage gate; it is not runtime code.
+- Decisions:
+  - Keep Agent-Reach/YouTube search inside the existing `ResearchGatewayService` path.
+  - Normalize provider output at the adapter boundary instead of patching the chat renderer or adding one-off UI filtering.
+
+## Latest task: Hardened chat-orchestrator research tests against host tool leakage (2026-07-10)
+
+- Status:
+  Fixed a deterministic-test failure reported after running `node dist\test-chat-orchestrator.js`. The video-search regression was accidentally allowed to see optional real host tools/endpoints after the Agent-Reach and DeepResearch provider tests reset their command runners to production mode. The test harness now disables optional Agent-Reach/DeepResearch command execution by default, clears MindSearch/DeepSearch endpoint env vars during the test run, and enables each optional provider only inside its own scoped regression.
+- Affected files:
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/test-chat-orchestrator.js`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist\test-chat-orchestrator.js` passed in `saad-agent`; the previously failing YouTube video assertion now passes.
+- Findings:
+  - The product adapter behavior was not the failing point. The failure was test isolation: host-installed tools such as `yt-dlp`, `mcporter`, `deepsearcher`, or configured endpoint env vars could influence unrelated search assertions.
+  - The sandbox still prints non-fatal EPERM audit-log warnings for `C:\Users\PC\.saad-agent`, but the regression exits successfully.
+- Decisions:
+  - Keep optional provider integrations opportunistic in production.
+  - Keep regression tests deterministic by default and opt into each optional provider only in the specific test that proves that provider.
+
+## Latest task: Wired optional deep-search and session-search adapters (2026-07-10)
+
+- Status:
+  Added optional adapters for the remaining research/session-search integrations without creating duplicate routing paths. `DeepResearchProvider` now sits behind `ResearchGatewayService` after Agent-Reach and before Brave fallback, supporting a configured MindSearch endpoint, a configured DeepSearchAgent-Demo endpoint, plus installed `deepsearcher` when present. `SessionSearchProvider` now lets `PreAnswerReviewService` pull bounded prior coding-session evidence from `cass` when installed, so prior sessions can inform answers before model fallback.
+- Affected files:
+  - `saad-agent/src/platform/services/deep-research-provider.ts` [NEW]
+  - `saad-agent/src/platform/services/session-search-provider.ts` [NEW]
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/pre-answer-review.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed, including regressions for `deepsearcher` provider routing before Brave and `cass` session-history context injection.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified packaged runtime markers for `DeepResearchProvider`, `deep-research`, `SessionSearchProvider`, and `Coding Session History` under active `dist/platform/services/*`.
+  - Removed the stale nested `dist/dist` folder from `app-asar-work` and repacked `app.asar` so the packaged app contains only the active runtime tree.
+- Findings:
+  - The remaining repositories are not all local installed CLIs. The safe integration is therefore opportunistic: use real installed tools/endpoints when available, otherwise fail quietly and preserve existing fallback behavior.
+  - `cass` results are local/session evidence, not internet links, so they belong in pre-answer context rather than `ResearchGatewayService` live web results.
+- Decisions:
+  - Keep `ResearchGatewayService` as the only live web-search gateway.
+  - Keep prior coding-session search inside `PreAnswerReviewService` so it augments memory/knowledge before model answers.
+  - Do not create fake adapters or synthetic links for missing tools.
+
+## Latest task: Wired Agent-Reach provider into Saad Agent research gateway (2026-07-10)
+
+- Status:
+  Added a real `AgentReachProvider` adapter behind `ResearchGatewayService`. Live web research now probes Agent-Reach-backed tools first (`mcporter`/Exa for broad web, `gh` for GitHub, `yt-dlp` for YouTube search) and then falls back to Brave Answers through the existing gateway. This keeps one search path and avoids duplicating orchestration rules. The raw BanNSFW prompt pack was not installed verbatim because it contains bypass/override rules; the existing safe `private-adult-narrative-analysis` skill remains the approved personal narrative skill.
+- Affected files:
+  - `saad-agent/src/platform/services/agent-reach-provider.ts` [NEW]
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that proves `ResearchGatewayService` invokes the Agent-Reach-backed `mcporter call exa.web_search_exa(...)` path before Brave fallback.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Verified packaged runtime files contain `AgentReachProvider`, `agent-reach`, `mcporter`, `gh`, and `yt-dlp` markers at `dist/platform/services/*`.
+- Findings:
+  - `agent-reach` is not installed as a global command on the machine; direct `agent-reach doctor --json` failed with command not found.
+  - The local Agent-Reach project is a router/installer and expects agents to call upstream tools directly; it is not a single search API wrapper.
+  - The first packaging copy created a harmless stale nested `dist/dist`; the active packaged path `dist/platform/services/*` was then overwritten correctly and verified.
+- Decisions:
+  - Keep `ResearchGatewayService` as the only live-search gateway.
+  - Use Agent-Reach provider tools opportunistically when installed, and fall back to Brave without model-generated links when unavailable.
+  - Do not install raw bypass-style NSFW skills; use the bounded private adult narrative analysis skill instead.
+
+## Latest task: Follow-up routing audit fixes for vague image, Facebook, URL-read, and Iraqi thanks (2026-07-10)
+
+- Status:
+  Addressed additional failures found by a routing audit after the broader media/link fix. `اريد صورة` now asks for a missing image topic instead of searching a broken leftover term. `اريد رابط موقع فيس بك` resolves directly to the official Facebook homepage without model/search calls. URL content-read prompts such as `افتح هذا الرابط واقرأ محتواه https://...` are no longer treated as external link search; the crawler fetches and stores the page, then the model is used only to formulate an answer from the fetched content. Iraqi thanks such as `شكرا الك` now use the deterministic casual response path without model calls.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/deterministic-command-service.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Manual routing audit confirmed: `اريد صورة` clarifies, `فيس بك` returns `https://www.facebook.com`, URL-read routes to fetched-page context, and `شكرا الك` does not call the model.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified the package worktree contains the Facebook deterministic entry and `isUrlContentReadRequest`.
+- Findings:
+  - The image query cleaner could leave one-letter fragments such as `ه`; these are now filtered out as non-meaningful search terms.
+  - URL read/open requests were being over-classified as external research because the word `رابط` appeared in the prompt.
+- Decisions:
+  - Keep URL reading separate from web search: fetch/store/read first, search only when the user asks to search.
+  - Keep casual Iraqi acknowledgements deterministic so short social turns do not waste model calls.
+
+## Latest task: Systemic media/link request routing fix (2026-07-10)
+
+- Status:
+  Fixed the broader issue behind one-off link fixes. Saad Agent now treats Arabic requests for links, images, videos, and audio as structured request types instead of sending vague prompts to the model. Generic requests such as `اريد رابط`, `اريد فيديو`, and `اريد صوت` ask for the missing topic before approval/provider calls. Topic-bearing media requests such as `اريد فيديو كاظم الساهر` route through `ResearchGatewayService` without model calls. Known official homepage links stay deterministic, with typo-tolerant matching for registered official sites.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/deterministic-command-service.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/dist/platform/services/*.js`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regression coverage for generic link/video/audio clarification before approval, video search routing without model calls, image search continuity, and direct official homepage routing.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` into `release-production-v4/win-unpacked/resources/package-verify-media-routing/full` and verified packaged service markers for media routing and typo-tolerant deterministic matching.
+- Findings:
+  - The previous YouTube typo fix was only a symptom fix. The real failure was that media/link requests were not represented as a general intent family.
+  - Query cleaning removed Arabic `في` before `فيديو`, leaving the bad search term `ديو`; this is now guarded so a bare video request is not mistaken for a searchable topic.
+- Decisions:
+  - Keep request-type detection centralized in `ResearchGatewayService`.
+  - Keep official homepage shortcuts centralized in `DeterministicCommandService`.
+  - Do not route vague link/media requests to the active model; ask for the missing topic first.
+
+## Latest task: Fixed YouTube typo homepage deterministic routing (2026-07-10)
+
+- Status:
+  Fixed the issue where a simple official-link request with a common Arabic typo such as `اريد رابط يوتويب` was treated as live internet research, requested approval, and returned unrelated search results. `DeterministicCommandService` now recognizes YouTube aliases `يوتيوب`, `اليوتيوب`, `يوتوب`, `اليوتوب`, `يوتويب`, and `اليوتويب` and returns the official YouTube homepage directly without model calls, internet approval, or Brave search.
+- Affected files:
+  - `saad-agent/src/platform/services/deterministic-command-service.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regression coverage proving `اريد رابط يوتويب` returns `[فتح YouTube](https://www.youtube.com)`, does not request approval, and does not call the model.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it to verify the packaged deterministic service and packaged test contain the new `يوتويب` alias.
+- Findings:
+  - The official-site deterministic table already handled correct `يوتيوب`, but missed common Arabic misspellings.
+  - Because the typo was not recognized as a known official site, the request fell through to external research and polluted the query as `يوت`.
+- Decisions:
+  - Keep official homepage shortcuts centralized in `DeterministicCommandService`.
+  - Treat typo-tolerant known-site aliases as deterministic only for homepage/link/open requests; content searches for videos, songs, channels, or explicit search still stay in `external_research`.
+
+## Latest task: Fixed Arabic image-search routing and internet follow-up continuity (2026-07-10)
+
+- Status:
+  Fixed the regression where Arabic prompts such as `ابحثلي عن صور نور زهير` could route to Trusted Workspace/local search instead of real internet image search. Image-search requests are now detected by `ResearchGatewayService.isImageSearchRequest(...)` and promoted to canonical `external_research` by `ExecutionPolicyService` and `ChatOrchestratorService` even when the user does not explicitly add `في الانترنت`. Generic follow-ups such as `في الانترنت` now reuse the immediately previous search-like user request in the same conversation, so they do not trigger empty/random provider searches.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regression coverage proving `ابحثلي عن صور نور زهير` uses image external research, does not call the model, does not search Trusted Workspaces, and does not leave the broken `لي ...` search term after cleaning `ابحثلي`.
+  - Added regression coverage proving the follow-up `في الانترنت` continues the previous image-search topic instead of starting an empty search.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it to verify the packaged backend contains `isGenericInternetFollowUp`, `hasLocalSearchScope`, `ResearchGatewayService.isImageSearchRequest`, and `resolveExternalResearchText`.
+- Findings:
+  - `ExecutionPolicyService` treated Arabic `صور` as a local file-search scope unless the prompt also contained an explicit internet word.
+  - `ResearchGatewayService.cleanQuery(...)` removed the shorter verb `ابحث` before `ابحثلي`, leaving a bad search prefix like `لي كاظم الساهر`.
+  - The product needed a bounded follow-up resolver for internet-only fragments, not a model fallback.
+- Decisions:
+  - Keep all live web/image retrieval under the existing `ResearchGatewayService` and canonical `external_research` path.
+  - Do not create a duplicate image-search workflow or UI path.
+  - Exclude local paths/folders from internet image-search detection so local image classification/search remains intact.
+
+## Latest task: Fixed Turnaround Page stretching & integrated Lingerie Sheet (2026-07-10)
+
+- Status:
+  Completely resolved the image stretching/compression issue on Page 16 by calculating and applying the exact aspect-ratio proportions (Undergarments: ~2.73, Casual/Formal: ~1.73) in Python. Integrated the user's uploaded lingerie turnaround sheet (`media__1783703108439.png`) directly into the Undergarments row. All other model images on pages 15, 17, 18, 20 are cropped to 4:5 to prevent stretching.
+- Affected files:
+  - `C:\Users\PC\Desktop\New folder\saad_studio_brand_guidelines_v4.pdf` [NEW]
+  - `PROJECT_CONTEXT.md` [MODIFY]
+- Verification:
+  - Rendered updated pages (15-20) to PNG and verified clean layouts with zero stretching/distortion and perfect RTL Arabic text shaping.
+- Findings:
+  - Splitting a multi-row turnaround sheet into single horizontal rows and applying bounding-box autocrops yields high-resolution panels that fit within A4 margins.
+  - Specifying the exact target width/height based on the source image ratio prevents PyMuPDF stretching behavior.
+- Decisions:
+  - Slice the user's uploaded lingerie sheet into Front, Back, and Side panels and stitch them horizontally.
+  - Save as `saad_studio_brand_guidelines_v4.pdf` to avoid locks on locked files.
+- Remaining:
+  - User to review `saad_studio_brand_guidelines_v4.pdf` in Desktop/New folder.
+
+## Latest task: Blocked empty internet searches before approval/provider calls (2026-07-10)
+
+- Status:
+  Fixed the issue where an incomplete internet-search prompt such as `ابحث في الانترنت` or a context fragment like `في الانترنت` could continue into approval/search flow and return irrelevant placeholder-like results such as `contoso.com`. `ResearchGatewayService` now exposes a searchable-topic guard and an Arabic clarification response. `ChatOrchestratorService` applies that guard before the early ExecutionPolicy approval card and again before provider search, so empty live-search requests ask for the missing topic instead of calling Brave, the model, or showing internet approval.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed, including regression coverage that `ابحث في الانترنت` returns a topic-clarification response, does not request approval, does not call Brave, and does not call the model.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` with the rebuilt backend.
+- Findings:
+  - The first guard inside the external-research branch was too late because `ExecutionPolicyService` can request internet approval before that branch runs.
+  - The correct fix is to guard immediately after decision classification and before the generic approval card.
+  - A final extraction check of `app.asar` could not be rerun because the local command tool hit a usage-limit rejection after packaging completed.
+- Decisions:
+  - Treat internet/search phrases without a searchable topic as a clarification case, not a live search.
+  - Do not call the model or provider to guess a topic from an empty search request.
+
+## Latest task: Added internet image search thumbnails in Saad Agent chat (2026-07-10)
+
+- Status:
+  Implemented real internet image-search rendering for Saad Agent. Image-search prompts such as `اريد صور من الانترنت عن ...` now stay inside the existing `external_research` route, use `ResearchGatewayService.searchImages(...)`, call Brave's official Image Search endpoint through the existing Brave provider settings, and return Markdown image thumbnails with clickable source and original-image links. The renderer now supports Markdown image/link-image syntax and displays bounded thumbnail tiles inside chat without creating a second chat renderer.
+- Affected files:
+  - `saad-agent/src/platform/services/brave-answers.ts`
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/dist/**`
+  - `saad-agent/ui/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed, including regression coverage that internet image search uses ResearchGateway image search, returns thumbnail Markdown, and does not call the model.
+  - Cleaned and rebuilt `ui/dist`; `npm.cmd run build:ui` passed with existing CSS import/chunk-size warnings only.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` and verified packaged backend markers `searchImages`, `formatImageResults`, `queryImages`, `/res/v1/images/search`, and packaged UI markers `message-search-thumbnail` / `message-image-link`.
+- Findings:
+  - The first packaging copy used `Copy-Item -LiteralPath ... *`, which did not copy UI assets as intended; this was caught by extracting `app.asar`, then fixed by cleaning `ui/dist`, rebuilding, copying child items explicitly, and repacking.
+  - Brave Image Search is a real endpoint and returns thumbnail/source/original image data; the app now uses the thumbnail URL for chat display and keeps links clickable.
+- Decisions:
+  - Keep image search as a sub-capability of `external_research`; do not introduce a separate `image_search` product path.
+  - Keep thumbnail rendering in the existing message renderer and CSS instead of duplicating chat components.
+  - Use strict Safe Search by default for the first implementation; a future Settings option can expose Safe Search control if needed.
+- Remaining:
+  - Future step: add optional provider settings for image-search count, Safe Search mode, and provider fallback after the core path is tested in the packaged app.
+
+## Latest task: Improved external research query planning and reranking (2026-07-10)
+
+- Status:
+  Implemented the next corrective step for Saad Agent external research. `ResearchGatewayService` now keeps the same public gateway API but uses stronger query planning: Arabic request wrapper words such as "اريد مواقع من الانترنت" are stripped from planned search terms, topic terms are preserved, and intent-based expansions are added for directories, forums, resources, stories, fiction, psychology, prompts, workflows, and examples. Search result scoring now boosts exact/topic matches and useful content paths while demoting login, support, privacy, terms, account, help, and generic homepage URLs.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Added regression coverage proving a request like `cuckold اريد مواقع من الانترنت` plans story/forum-oriented queries, removes Arabic wrapper words from planned queries, and ranks the relevant story archive above login/support pages.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` and verified the packaged `research-gateway.js` contains `expansionTerms`, story/forum/directory expansions, and the new regression assertions.
+- Findings:
+  - The previous gateway already expanded a few queries, but generic Arabic web-request words could pollute the actual search query and reduce relevance.
+  - User-facing search status strings in `ResearchGatewayService.formatConciseLinks(...)` were replaced with ASCII-safe Unicode escapes to avoid mojibake in packaged output.
+  - Audit-log writes still skip under sandbox restrictions for `C:\Users\PC\.saad-agent`, but search behavior and tests remain successful.
+- Decisions:
+  - Keep `ResearchGatewayService` as the single live-search gateway; do not add model-based search guessing or parallel Brave/Agent-Reach calls in chat orchestration.
+  - Improve search quality through deterministic query planning and reranking first, then later add optional provider adapters behind the same gateway.
+- Remaining:
+  - Future step: add an optional Agent-Reach/MindSearch adapter behind `ResearchGatewayService` only after its local CLI/runtime is verified and configured.
+
+## Latest task: Strengthened deterministic command routing before model fallback (2026-07-10)
+
+- Status:
+  Implemented the second corrective step for Saad Agent's decision brain. `DeterministicCommandService` now owns one central official-site command table for stable homepage/link requests and returns direct clickable Markdown links without calling the model, without internet approval, and without invoking live search. The service now covers YouTube, Adobe, GitHub, Google, Civitai, Mobily, and Reddit, while preserving the guard that content/search requests such as songs, videos, channels, ranked results, or explicit search verbs still route to external research instead of a homepage shortcut.
+- Affected files:
+  - `saad-agent/src/platform/services/deterministic-command-service.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/dist/**`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Regression coverage confirms known official homepage requests use `usedModel=false`.
+  - Regression coverage confirms explicit internet/site-search requests remain `external_research` with `usedModel=false`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` into a temporary verification folder and confirmed the packaged deterministic service contains the official-site table entries and the Civitai regression test.
+- Findings:
+  - The prior deterministic layer existed, but its known-site rules were narrow and harder to extend.
+  - PowerShell displayed some UTF-8 Arabic test strings as mojibake; the updated deterministic service uses ASCII-safe Unicode escapes for stable source encoding.
+  - The test run skipped audit-log persistence under sandbox restrictions for `C:\Users\PC\.saad-agent`, but this did not fail orchestration behavior.
+- Decisions:
+  - Keep deterministic command patterns centralized in `DeterministicCommandService`; do not duplicate known-site rules in the UI or orchestrator.
+  - Treat stable homepage requests as local deterministic answers, not live internet searches.
+  - Treat content discovery/search requests as external research so the agent does not answer with a homepage when the user expects real search results.
+- Remaining:
+  - Continue with the next corrective step: improve the live external research adapter depth and provider fallback behind `ResearchGatewayService`, not in the model prompt.
+
+## Latest task: Fixed Saad Agent startup conversation restore race (2026-07-10)
+
+- Status:
+  Fixed a renderer-side startup race that could make persisted chat conversations appear missing after closing and reopening Saad Agent. The Electron renderer created a fresh empty bootstrap conversation with `updatedAt=Date.now()`, then compared it against the durable saved store. Because the empty bootstrap looked newer, older real saved conversations could be ignored. The renderer now treats a contentless bootstrap conversation as non-authoritative, so any non-empty persisted store wins even when its timestamps are older.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/dist/*`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app-asar-work/ui/dist/*`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` passed in `saad-agent`.
+  - Cleaned `saad-agent/ui/dist`, then `npm.cmd run build:ui` passed.
+  - Cleaned packaged `app-asar-work/ui/dist`, copied the fresh UI, repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked `app.asar` and verified the packaged UI contains exactly one JS bundle and one CSS bundle.
+  - Verified the packaged renderer contains the restore condition equivalent to `!currentHasContent || persistedLatest >= currentLatest`.
+  - Verified packaged backend still contains `conversations:load`, `conversations:save`, and the empty-save guard.
+- Findings:
+  - A previous packaged UI source still had a stale hashed JS bundle in `ui/dist`; this was removed by cleaning before rebuilding.
+  - The backend empty-save guard was already present, but the renderer could still fail to display an existing store if the startup placeholder looked newer.
+- Decisions:
+  - Keep the existing Electron IPC conversation store architecture.
+  - Fix the race at the renderer restore decision instead of adding a second persistence system.
+- Remaining:
+  - User should test by opening `saad-agent/release-production-v4/win-unpacked/Saad Agent.exe`, sending a message, fully closing Saad Agent, reopening it, and confirming the same conversation appears.
+
+## Latest task: Private adult narrative skill installation (2026-07-10)
+
+- Status:
+  Added a real Saad Agent custom skill for private adult-only narrative knowledge handling. The original local folder at `E:\Agent-Reach-main\BanNSFW-Skills-main\BanNSFW-Skills-main` was inspected and found to contain `SKILL.md`/`SKILL_EN.md`, but it was not installed verbatim because it is a bypass-style prompt that attempts to override higher-priority rules and includes unsafe content rules. Instead, a safe product-compatible skill was created for adult-only story ingestion, classification, psychological theme extraction, relationship-dynamics tagging, Arabic translation style adaptation, and retrieval guidance.
+- Affected files:
+  - `.saad-agent/settings.json`
+  - `.saad-agent/skills/private-adult-narrative-analysis.json`
+  - `.saad-agent/skills/06-private-adult-narrative-analysis.md`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Loaded `SettingsManager` and confirmed custom skill `private-adult-narrative-analysis` is present, enabled, and persisted.
+  - Ran `SkillRegistry.matchSkillsForTask("احفظ الرابط واقرأ القصة وطلع تحليل نفسي", [])` and confirmed the new skill matched with confidence `100`.
+  - Parsed the stored JSON manifest with PowerShell `ConvertFrom-Json` and confirmed id/name/status/source.
+- Findings:
+  - The provided source skill folder has no `skill.json` or `manifest.json`, so Saad Agent's existing folder import path would reject it directly.
+  - The raw source skill is not suitable for product installation because it is an instruction-bypass prompt, not a bounded knowledge-analysis skill.
+- Decisions:
+  - Install a bounded, safe, adult-only knowledge-analysis skill rather than copying untrusted raw prompt rules.
+  - Keep the skill focused on ingestion, classification, summaries, translation, and retrieval. It must not override system, developer, application, or security rules.
+- Remaining:
+  - If this skill should be available in every active workspace, add a workspace-wide skill synchronization path instead of manually duplicating settings across roots.
+
 ## Latest task: Analyzed Admin Balance Monitor UNAVAILABLE issue (2026-07-10)
 
 - Status:
-  - Investigated the reason why the API Supplier Balance Monitor shows "UNAVAILABLE" for all balances on the production admin panel.
-  - Verified that `/api/admin/provider-balances/route.ts` relies on specific environment variables (for Google, BytePlus, Backblaze B2) and API keys (for KIE, WaveSpeed) which are likely missing or misconfigured on Vercel.
+  - Reviewed the user's Vercel screenshot showing they correctly inputted `GOOGLE_BILLING_USAGE_USD` with a value of `31.00`.
+  - Analyzed the user's question on how Google billing deduction works and how they can track it.
+  - Explained that API requests to Google AI Studio charge the linked GCP billing account, and tracked costs are visible in both the Google AI Studio dashboard (Usage/Billing tabs) and the manual `GOOGLE_BILLING_USAGE_USD` environment variable on Vercel.
 - Affected files:
   - None
 - Verification:
-  - Verified logic in `app/api/admin/provider-balances/route.ts`.
-  - Confirmed requirements in `docs/saad-studio-premiere-reference-ar.md` for manual and API-based balance variables.
+  - Confirmed billing logic.
 - Decision:
-  - Provide the user with a clear explanation of which environment variables need to be configured in Vercel.
+  - Explain the GCP API request consumption loop and monitoring methods clearly in Iraqi Arabic.
 - Remaining:
-  - User needs to add these keys to their hosting environment and redeploy/restart.
+  - User needs to trigger a redeployment to apply changes and monitor as desired.
 
 ## Latest task: Enabled clipboard image paste in Saad Agent prompt box (2026-07-10)
 
@@ -2791,6 +3725,42 @@
   - Add OCR/Vision extraction for scanned PDFs and images.
   - Install or expose a working Agent-Reach CLI, then add it as an optional provider adapter behind `ResearchGatewayService`.
 
+## Latest task: Saad Agent regression sweep and failure repairs (2026-07-10)
+
+- Status:
+  Ran a broad regression sweep after the document extraction work and fixed every concrete failure found. Current documentation/API prompts such as "latest docs" and Arabic "أحدث وثائق ... API" now classify as `external_research`. Image-link internet requests such as "رابط لصورة على الإنترنت" also route to external research instead of the model conversation path. `CognitiveOrchestratorService` now treats canonical `external_research` as a Brave/Web pipeline in diagnostics, not as a workspace query. Recovery rollback no longer performs a real `git stash` by default; it reports detected changes and requires explicit `SAAD_AGENT_ALLOW_GIT_STASH_ROLLBACK=true` before modifying Git state. Test harnesses were hardened to use temporary workspaces/settings roots and to fail loudly instead of printing hidden failures.
+- Affected files:
+  - `saad-agent/src/platform/services/intent-engine.ts`
+  - `saad-agent/src/platform/services/cognitive-orchestrator.ts`
+  - `saad-agent/src/platform/services/recovery-engine.ts`
+  - `saad-agent/src/test-brave-answers.ts`
+  - `saad-agent/src/test-multimodal-routing.ts`
+  - `saad-agent/src/test-tools.ts`
+  - `saad-agent/src/test-v5-architecture.ts`
+  - `saad-agent/src/test-incremental.ts`
+  - `saad-agent/src/test-workspace.ts`
+  - `saad-agent/tsconfig.json`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npm.cmd run build` passed.
+  - Re-ran the affected tests individually: `test-brave-answers`, `test-multimodal-routing`, `test-tools`, `test-v5-architecture`, `test-v6-engineering`, `test-incremental`, and `test-workspace` all passed.
+  - Completed two regression batches covering the remaining `dist/test-*.js` files; both batches passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it to verify the packaged backend contains the new intent rules, external-research diagnostics, safe rollback guard, and document extractor.
+- Findings:
+  - `test-brave-answers` still expected legacy `internet_answers` and a mojibake source heading even though the product now uses canonical `external_research` and clean Arabic source headings.
+  - `CognitiveOrchestratorService` did not include canonical `external_research` in its Brave/Web diagnostic branch, so routing validation displayed a workspace pipeline despite the intent being external research.
+  - `test-tools` changed only `SAAD_AGENT_PROJECT_ROOT`, while tools use `setProjectRoot`; that made SearchTool scan the full repo and caused a Node heap out-of-memory failure.
+  - `test-v5-architecture` and `test-incremental` used the full repository as test input and could hang or take excessive time; both now run in small temporary workspaces.
+  - `test-workspace` wrote global state to `C:\Users\PC\.saad-agent` in sandbox and caught errors without failing the process; it now uses a temporary settings root and exits nonzero on errors.
+  - The old rollback helper attempted to stash dirty Git state by default, which is unsafe when the user has unrelated worktree changes.
+- Decisions:
+  - Keep `external_research` as the single canonical live-search intent and update old tests around that contract instead of reintroducing duplicate `internet_answers`/`web_search` behavior.
+  - Prefer non-destructive rollback by default; real Git stash rollback requires an explicit environment opt-in.
+  - Keep test workspaces isolated so regression tests do not scan, modify, or depend on the user's active project state.
+- Remaining:
+  - OCR/Vision extraction and a real Agent-Reach adapter remain separate future work because they require additional runtime capability or a working local CLI.
+
 ## Latest task: Saad Agent refreshed Windows installer packaging after Settings wiring (2026-06-28)
 
 - Status:
@@ -2931,3 +3901,143 @@
 ## Latest task: Saad Agent Phase 20 Production Platform & Engineering Standards (2026-06-28)
 
 - Status:
+
+## Latest task: Saad Agent public page lookup routing fix (2026-07-11)
+
+- Status:
+  Fixed the routing hole where Arabic requests like `I want Kazem Al Saher page` were misclassified as engineering page creation and triggered coding-runtime approval. Added a general public page/profile/account lookup detector that routes lookup wording to `external_research` while preserving real creation wording such as create/build/design/write page as engineering work.
+- Affected files:
+  - `saad-agent/src/platform/services/research-gateway.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including tests for public page lookup, social profile lookup, and the negative page-creation path.
+  - Packaged `app.asar` was rebuilt and verified to include `isPublicPageLookupRequest`.
+- Findings:
+  - The previous rule only covered social-platform profile wording and missed generic `page + public person/entity` requests.
+  - Test audit logging warns under sandbox because it cannot write to `C:\Users\PC\.saad-agent`, but the runtime continues and assertions pass.
+- Decisions:
+  - Keep public page lookup inside `ResearchGatewayService` and wire it into policy/orchestrator detection instead of duplicating ad hoc prompt checks.
+  - Expand search queries with official page/profile/website terms for public page lookup.
+- Remaining:
+  - Restart the packaged desktop app before retesting the packaged build.
+
+## Latest task: Saad Agent project audit prompt routing fix (2026-07-11)
+
+- Status:
+  Fixed a critical routing bug where long Arabic/English engineering prompts asking to inspect a real web project could be saved as permanent memory because they contained words such as save/store/no-save inside task rules. The same prompt can no longer be treated as internet research only because it says `web project` or `مشروع ويب`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression for the exact project-audit/request-then-fix pattern.
+  - Packaged `app.asar` was rebuilt, and `app-asar-work` was verified to contain the new project-audit router, execution-policy guard, and regression marker.
+- Findings:
+  - The memory-save detector was too broad and did not distinguish explicit memory commands from engineering task rules that mention saving results.
+  - The execution policy treated generic `web` wording as live internet research even when the user meant a local web project.
+- Decisions:
+  - Project audit/repair detection now outranks memory-save and external-research routing unless the prompt starts as an explicit memory command.
+  - Inspect-first/report-first prompts route to `code_review`; repair prompts without a report-first gate route to engineering modification.
+- Remaining:
+  - Restart the packaged desktop app before retesting the packaged build.
+
+## Latest task: Saad Agent strict local-answer and no-RAG fallback guard (2026-07-11)
+
+- Status:
+  Fixed another direct-chat routing failure where strict local tests such as `do not use tools / do not search`, `no reply`, `final result only`, and `if you do not know say لا أعلم` could fall through to the model and then print unrelated trained-knowledge references. Memory save now supports silent saves when the user says `لا ترد`, exact remembered-number recall returns only the number, list mutation instructions run locally, and explicit unknown fallbacks return the requested fallback text only.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Packaged `app.asar` was rebuilt and verified to contain `resolveListMutationInstruction`, `resolveStrictUnknownFallback`, `shouldSuppressTrainingKnowledgeFallback`, and the new regression markers.
+- Findings:
+  - `لا ترد` was ignored after memory save, causing a confirmation message even when the user explicitly asked for silence.
+  - The fallback RAG response was too broad and could print unrelated trained adult-story references for strict local questions.
+  - The literal text cleaner incorrectly treated fallback answers beginning with `لا` as instructions and erased `لا أعلم`.
+- Decisions:
+  - Strict no-tool/no-search/final-only/unknown-fallback prompts must not use trained-knowledge fallback when the model is unavailable.
+  - Keep these as narrow deterministic guards rather than a new general reasoning engine.
+- Remaining:
+  - Restart the packaged desktop app before retesting the packaged build.
+
+## Latest task: Saad Agent structured country facts lookup (2026-07-11)
+
+- Status:
+  Fixed the country-reference routing gap. Country questions about capital, currency, and continent now read the structured country training tables directly before model calls and before general trained-knowledge/RAG fallback. This is not limited to China; it covers any country row present in the imported country reference files.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including deterministic no-model checks for Iraq capital, China capital, Japan currency, and France continent.
+  - Packaged `app.asar` was rebuilt and verified to contain `loadCountryFactRows` and `findCountryFactRow`.
+- Findings:
+  - `resolveKnownFactQuestion` previously had a narrow hard-coded Iraq-only answer, so other country questions could fall through to the model and then print unrelated trained-knowledge matches when the model failed.
+  - The imported country reference files existed, but there was no structured table lookup layer ahead of RAG.
+- Decisions:
+  - Country fact questions are deterministic table lookups, not semantic RAG answers.
+  - The lookup searches the active workspace training directory, the project training directory, and the packaged Saad Agent training directory so the reference still works when a different workspace is open.
+- Remaining:
+  - Restart the packaged desktop app before retesting the packaged build.
+
+## Latest task: Saad Agent Gemini provider wiring for expertise extraction (2026-07-11)
+
+- Status:
+  Connected Gemini as a real provider path instead of a placeholder. Gemini requests now use Google Generative Language `models/{model}:generateContent`, parse `candidates[].content.parts[].text`, and require an enabled Gemini provider plus a stored API key before any model-generated expertise card can be saved. Unconfigured Gemini requests return a clear no-save result.
+- Affected files:
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/platform/services/model-expertise-extraction.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including Gemini request-shape coverage.
+  - `node dist/test-chat-orchestrator.js` passed, including configured Gemini extraction and unconfigured Gemini no-save behavior.
+  - Packaged `app.asar` was rebuilt and verified to include `model-client.js`, `model-expertise-extraction.js`, and `settings-manager.js`.
+- Findings:
+  - Gemini previously existed in Settings as a provider label, but runtime calls still used OpenAI-compatible chat endpoints.
+  - Expertise extraction correctly blocked Gemini as unconfigured, but had no connected path to call Gemini when configured.
+- Decisions:
+  - Store Gemini-generated cards as `model-generated-unverified` with `gemini-model` tags until verified.
+  - Do not fall back from Gemini extraction to LM Studio silently; wrong-provider saves are worse than a clear configuration error.
+- Remaining:
+  - Add the Gemini API key in Settings > Providers > Gemini or set `GEMINI_API_KEY`, enable Gemini, restart the packaged app, then test a real Gemini extraction request.
+
+## Latest task: Saad Agent Chat role wiring for Gemini and normal conversation (2026-07-11)
+
+- Status:
+  Added an independent `Chat` model role so normal conversation, translation, knowledge-backed fallback wording, and short follow-up replies no longer have to share the `Coding` model role. This lets the user assign Gemini to normal chat, coding, or both from Settings without mixing engineering and conversational model choices.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/platform/services/reasoning-engine.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/ui/src/components/SettingsModal.tsx`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including persisted `Chat` role provider/model selection.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - Packaged `app.asar` was rebuilt and verified to contain the current UI bundle only: `index-IJA78nOs.js` and `index-C8oNebba.css`.
+- Findings:
+  - Gemini could be wired as a provider, but normal chat still had no separate role and therefore inherited `Coding`.
+  - A stale Vite bundle remained in `ui/dist/assets` and `app-asar-work`; it was removed before repacking.
+- Decisions:
+  - Use `Chat` for normal conversational model calls and keep `Coding` for engineering workflows/planning.
+  - Do not hard-code Gemini model names; model discovery should read real Gemini models from the configured Google provider.
+- Remaining:
+  - Restart the packaged desktop app, then set Settings > Models > Chat to Gemini if normal chat should use Gemini. Set Coding to Gemini separately only if engineering/coding should also use Gemini.

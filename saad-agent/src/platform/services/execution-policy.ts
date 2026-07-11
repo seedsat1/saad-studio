@@ -1,6 +1,7 @@
 import * as fsp from "fs/promises";
 import * as path from "path";
 import { getGlobalAppDataDir } from "../workspace-manager.js";
+import { ResearchGatewayService } from "./research-gateway.js";
 
 export type DecisionOutcome =
   | "ANSWER"
@@ -61,12 +62,25 @@ export class ExecutionPolicyService {
       normalizedPrompt,
       normalizedArabicPrompt
     );
+    const isUrlContentRead = this.isUrlContentReadRequest(
+      normalizedPrompt,
+      normalizedArabicPrompt
+    );
+    const isProjectAuditOrRepair = this.isProjectAuditOrRepairInstruction(
+      normalizedPrompt,
+      normalizedArabicPrompt
+    );
 
-    if (this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
+    if (!isProjectAuditOrRepair && this.isProjectModificationRequest(normalizedPrompt, normalizedArabicPrompt)) {
       isModificationRequired = true;
     }
-    const isExternalResearchRequired = isUrlScopedExternalSearch
-      || this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt);
+    const isExternalResearchRequired = !isProjectAuditOrRepair && !isUrlContentRead && (
+      isUrlScopedExternalSearch
+      || ResearchGatewayService.isMediaSearchRequest(userFacingPrompt)
+      || ResearchGatewayService.isSocialProfileSearchRequest(userFacingPrompt)
+      || ResearchGatewayService.isPublicPageLookupRequest(userFacingPrompt)
+      || this.isExternalResearchRequest(normalizedPrompt, normalizedArabicPrompt)
+    );
 
     if (
       normalizedPrompt.includes("rm -rf") ||
@@ -83,6 +97,12 @@ export class ExecutionPolicyService {
       riskLevel = "critical";
       reason = "Safety check failed: Dangerous command or destructive action detected.";
       workflow = "safety_rejection";
+    } else if (isProjectAuditOrRepair) {
+      riskLevel = "low";
+      workflow = "engineering_review";
+      decision = "ANALYZE";
+      requiresApproval = false;
+      reason = "Project audit requested; inspect and report before making changes.";
     } else if (isExternalResearchRequired) {
       riskLevel = "medium";
       workflow = "external_research";
@@ -169,6 +189,13 @@ export class ExecutionPolicyService {
   }
 
   private static isProjectModificationRequest(lowerPrompt: string, normalizedArabic: string): boolean {
+    if (
+      ResearchGatewayService.isSocialProfileSearchRequest(normalizedArabic || lowerPrompt)
+      || ResearchGatewayService.isPublicPageLookupRequest(normalizedArabic || lowerPrompt)
+    ) {
+      return false;
+    }
+
     const englishModification = /\b(create|write|delete|fix|implement|update|modify|add|replace|repack|run|build|generate|refactor|remove|edit)\b/i.test(lowerPrompt);
     if (englishModification) return true;
 
@@ -184,6 +211,16 @@ export class ExecutionPolicyService {
       || /(?:\u0641\u0648\u0644\u062f|\u0641\u0648\u0644\u062f\u0631|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u0628\u0627\u062b|\u0641\u0631\u064a\u0645|\u0645\u0634\u0631\u0648\u0639|folder|directory|workspace|path|frame|starter|app)/i.test(normalizedArabic);
 
     return directEngineeringPhrase || (arabicAction && engineeringTarget) || (localPathAction && folderOrPathTarget);
+  }
+
+  private static isProjectAuditOrRepairInstruction(lowerPrompt: string, normalizedArabic: string): boolean {
+    const compact = `${normalizedArabic} ${lowerPrompt}`;
+    const projectSignals = /(?:\u0645\u0634\u0631\u0648\u0639|\u0645\u0644\u0641|\u0645\u0644\u0641\u0627\u062a|\u0643\u0648\u062f|\u0648\u064a\u0628|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0635\u0641\u062d\u0627\u062a|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|api|\u062a\u0633\u062c\u064a\u0644\s+\u0627\u0644\u062f\u062e\u0648\u0644|\u0642\u0627\u0639\u062f\u0629\s+\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a|\u0642\u0627\u0639\u062f\u0647\s+\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a|typescript|build|framework|frontend|backend|database|auth|login|env|gallery|generate|generation)/i.test(compact);
+    const auditSignals = /(?:\u0627\u0641\u062d\u0635|\u0641\u062d\u0635|\u0631\u0627\u062c\u0639|\u062d\u0644\u0644|\u062d\u062f\u062f|\u062a\u0642\u0631\u064a\u0631|\u0627\u0644\u0645\u0634\u0627\u0643\u0644|\u0645\u0634\u0627\u0643\u0644|\u062e\u0637\u0648\u0631\u0629|\u0627\u0644\u062d\u0644\s+\u0627\u0644\u0645\u0642\u062a\u0631\u062d|\u0628\u0646\u064a\u0629\s+\u0627\u0644\u0645\u0634\u0631\u0648\u0639|inspect|audit|review|analyze|analyse|report|risk|solution|problems|issues)/i.test(compact);
+    const inspectFirst = /(?:\u0644\u0627\s+\u062a\u0639\u062f\u0644|\u0644\u0627\s+\u062a\u0639\u062f\u0651\u0644|\u0642\u0628\u0644\s+\u062a\u0646\u0641\u064a\u0630|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0639\u062f\u064a\u0644|\u062a\u0642\u0631\u064a\u0631\s+\u0627\u0644\u0641\u062d\u0635|\bbefore editing\b|\breport first\b|\bdo not edit\b|\bdo not modify\b)/i.test(compact);
+    const structuredTask = /(?:^|\n)\s*(?:\d+|[0-9]+)[-.)]\s+/.test(lowerPrompt)
+      || /(?:\u0627\u0644\u0645\u0647\u0645\u0629|\u0642\u0648\u0627\u0639\u062f\s+\u0645\u0647\u0645\u0629|\btask\b|\brules\b)/i.test(compact);
+    return projectSignals && auditSignals && (inspectFirst || structuredTask || lowerPrompt.length > 350);
   }
 
   private static isLocalImageClassificationRequest(lowerPrompt: string, normalizedArabic: string): boolean {
@@ -227,13 +264,24 @@ export class ExecutionPolicyService {
       || /\b(search|find|look up|research)\b/i.test(lowerPrompt);
   }
 
+  private static isUrlContentReadRequest(lowerPrompt: string, normalizedArabic: string): boolean {
+    const hasHttpUrl = /https?:\/\/[^\s)>\]"]+/i.test(lowerPrompt);
+    if (!hasHttpUrl) return false;
+    const readSignal = /(?:^|\s)(?:\u0627\u0642\u0631\u0627|\u0627\u0641\u062a\u062d|\u0641\u062a\u062d|\u0644\u062e\u0635|\u062d\u0644\u0644)(?:\s|$)/i.test(normalizedArabic)
+      || /(?:\u0645\u062d\u062a\u0648\u0627\u0647|\u0645\u062d\u062a\u0648\u0649|\u0627\u0644\u0635\u0641\u062d\u0647|\u0627\u0644\u0635\u0641\u062d\u0629)/i.test(normalizedArabic)
+      || /\b(read|open|summarize|analyse|analyze|content|page)\b/i.test(lowerPrompt);
+    const searchSignal = /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s|$)/i.test(normalizedArabic)
+      || /\b(search|find|look up|research)\b/i.test(lowerPrompt);
+    return readSignal && !searchSignal;
+  }
+
   private static isExternalResearchRequest(lowerPrompt: string, normalizedArabic: string): boolean {
     if (/\b(search online|search web|web search|internet search|latest|current|recent)\b/i.test(lowerPrompt)) {
       return true;
     }
     const localScope = /(\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0641\u064a \u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0628\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0641\u064a \u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u0628\u0627\u0644\u0645\u0644\u0641\u0627\u062a|\u062f\u0627\u062e\u0644 \u0627\u0644\u0643\u0648\u062f|\u0641\u064a \u0627\u0644\u0643\u0648\u062f|workspace|project files|local files|codebase)/i.test(normalizedArabic)
       || /\b(workspace|codebase|local files|project files)\b/i.test(lowerPrompt);
-    const explicitWeb = /(\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0648\u064a\u0628|\u0648\u064a\u0628|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u062e\u0628\u0627\u0631|\u0623\u062e\u0628\u0627\u0631|\u0648\u062b\u0627\u0626\u0642|\u062a\u0648\u062b\u064a\u0642)/i.test(normalizedArabic)
+    const explicitWeb = /(\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a|\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0644\u0648\u064a\u0628|\u0648\u064a\u0628|\u0631\u0627\u0628\u0637|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0641\u064a\u062f\u064a\u0648|\u0641\u062f\u064a\u0648|\u0645\u0642\u0637\u0639|\u0645\u0642\u0627\u0637\u0639|\u0635\u0648\u062a|\u0627\u063a\u0646\u064a\u0647|\u0627\u063a\u0627\u0646\u064a|\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u062e\u0628\u0627\u0631|\u0623\u062e\u0628\u0627\u0631|\u0648\u062b\u0627\u0626\u0642|\u062a\u0648\u062b\u064a\u0642)/i.test(normalizedArabic)
       || /\b(web|internet|online|links|sources|docs|documentation|news|youtube|youtu\.be)\b/i.test(lowerPrompt);
     if (explicitWeb) return true;
 

@@ -1,6 +1,3 @@
-import * as fs from "fs/promises";
-import * as path from "path";
-import { CONFIG } from "../config.js";
 import type {
   CreativeProvider,
   CreativeTask,
@@ -28,60 +25,11 @@ export class LocalCreativeProvider implements CreativeProvider {
     const jobId = `job-local-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const statusRecord: CreativeJobStatus = {
       jobId,
-      status: "processing",
-      progress: 50,
+      status: "failed",
+      progress: 0,
+      error: "Local creative generation is not configured. No placeholder image was generated."
     };
     this.jobs.set(jobId, statusRecord);
-
-    // Simulate async local rendering
-    setTimeout(async () => {
-      try {
-        const genDir = path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "attachments", "generated");
-        await fs.mkdir(genDir, { recursive: true });
-        const assetId = `asset-${Date.now()}`;
-        const fileName = `${assetId}-${task.model.replace(/[/\\?%*:|"<>]/g, "_")}.png`;
-        const localPath = path.join(genDir, fileName);
-
-        // Generate a 1x1 clean PNG buffer placeholder
-        const mockPngBuffer = Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-          "base64"
-        );
-        await fs.writeFile(localPath, mockPngBuffer);
-
-        const asset: GeneratedAssetMetadata = {
-          assetId,
-          taskId: task.id,
-          prompt: task.prompt,
-          providerId: this.id,
-          providerName: this.name,
-          model: task.model,
-          seed: task.seed || Math.floor(Math.random() * 1000000),
-          size: task.size || "1024x1024",
-          mimeType: "image/png",
-          localPath,
-          previewUrl: `data:image/png;base64,${mockPngBuffer.toString("base64")}`,
-          source: "local_mock",
-          timestamp: Date.now(),
-          cost: "Free (0 Credits)"
-        };
-
-        this.jobs.set(jobId, {
-          jobId,
-          status: "completed",
-          progress: 100,
-          asset
-        });
-      } catch (err: any) {
-        this.jobs.set(jobId, {
-          jobId,
-          status: "failed",
-          progress: 0,
-          error: err.message
-        });
-      }
-    }, 100);
-
     return statusRecord;
   }
 
@@ -114,59 +62,11 @@ export class SaadStudioCreativeProvider implements CreativeProvider {
     const jobId = `job-saad-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     const statusRecord: CreativeJobStatus = {
       jobId,
-      status: "processing",
-      progress: 30,
+      status: "failed",
+      progress: 0,
+      error: "Saad Studio creative generation is not connected to the authenticated panel/KIE pipeline yet. No placeholder image was generated."
     };
     this.jobs.set(jobId, statusRecord);
-
-    // Standard internal Saad Studio API shape execution
-    setTimeout(async () => {
-      try {
-        const genDir = path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "attachments", "generated");
-        await fs.mkdir(genDir, { recursive: true });
-        const assetId = `asset-saad-${Date.now()}`;
-        const fileName = `${assetId}.png`;
-        const localPath = path.join(genDir, fileName);
-
-        const mockPngBuffer = Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-          "base64"
-        );
-        await fs.writeFile(localPath, mockPngBuffer);
-
-        const asset: GeneratedAssetMetadata = {
-          assetId,
-          taskId: task.id,
-          prompt: task.prompt,
-          providerId: this.id,
-          providerName: `${this.name} (Mock Generation)`,
-          model: task.model || "saad-studio-flux-1.0",
-          seed: task.seed || 42,
-          size: task.size || "1024x1024",
-          mimeType: "image/png",
-          localPath,
-          previewUrl: `data:image/png;base64,${mockPngBuffer.toString("base64")}`,
-          source: "saad_studio_mock",
-          timestamp: Date.now(),
-          cost: "10 Credits"
-        };
-
-        this.jobs.set(jobId, {
-          jobId,
-          status: "completed",
-          progress: 100,
-          asset
-        });
-      } catch (err: any) {
-        this.jobs.set(jobId, {
-          jobId,
-          status: "failed",
-          progress: 0,
-          error: err.message
-        });
-      }
-    }, 100);
-
     return statusRecord;
   }
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "workspacePath": "E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main",
-  "generatedAt": "2026-07-10T00:02:45.870Z",
+  "generatedAt": "2026-07-10T00:28:16.527Z",
   "chunks": [
     {
       "id": "knowledge:ff57ac71",
@@ -25764,7 +25764,7 @@
         "242": 1
       },
       "tokensEstimate": 17,
-      "updatedAt": "2026-07-10T00:02:45.425Z"
+      "updatedAt": "2026-07-10T00:28:15.737Z"
     },
     {
       "id": "knowledge:27a7a884",
@@ -27169,7 +27169,7 @@
         "246": 5
       },
       "tokensEstimate": 18,
-      "updatedAt": "2026-07-10T00:02:45.370Z"
+      "updatedAt": "2026-07-10T00:28:15.679Z"
     },
     {
       "id": "knowledge:ccad59c1",

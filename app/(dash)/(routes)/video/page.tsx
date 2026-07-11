@@ -731,6 +731,7 @@ function VideoPageInner() {
   const [referenceImages, setReferenceImages] = useState<File[]>([]); // unified: image + video + audio for Seedance 2
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
+  const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null);
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
   const [startFrameRatio, setStartFrameRatio] = useState<string | null>(null);
   const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
@@ -901,6 +902,16 @@ function VideoPageInner() {
     setEndFramePreview(url);
     return () => URL.revokeObjectURL(url);
   }, [endFrame]);
+
+  useEffect(() => {
+    if (!motionVideo) {
+      setMotionVideoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(motionVideo);
+    setMotionVideoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [motionVideo]);
 
   useEffect(() => {
     if (!referenceImages.length) {
@@ -2600,12 +2611,22 @@ function VideoPageInner() {
                 />
                 {motionVideo ? (
                   <>
-                    <Film size={18} style={{ color: selectedModel.family_color }} />
-                    <span className="text-[10px] px-1 text-center leading-tight" style={{ color: selectedModel.family_color }}>
-                      {motionVideo.name.slice(0, 12)}…
-                    </span>
-                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setMotionVideo(null); }}>
-                      <X size={11} style={{ color: "#475569" }} />
+                    {motionVideoPreview && (
+                      <video
+                        src={motionVideoPreview}
+                        className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                        muted
+                        playsInline
+                        autoPlay
+                        loop
+                      />
+                    )}
+                    <button
+                      className="absolute top-2 left-2 z-10 rounded-full p-1"
+                      style={{ background: "rgba(0,0,0,0.75)" }}
+                      onClick={e => { e.stopPropagation(); setMotionVideo(null); }}
+                    >
+                      <X size={11} style={{ color: "#fff" }} />
                     </button>
                   </>
                 ) : (
@@ -2655,11 +2676,12 @@ function VideoPageInner() {
                         className="absolute inset-0 w-full h-full object-cover rounded-xl"
                       />
                     )}
-                    <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                      {startFrame.name}
-                    </span>
-                    <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setStartFrame(null); }}>
-                      <X size={11} style={{ color: "#475569" }} />
+                    <button
+                      className="absolute top-2 left-2 z-10 rounded-full p-1"
+                      style={{ background: "rgba(0,0,0,0.75)" }}
+                      onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                    >
+                      <X size={11} style={{ color: "#fff" }} />
                     </button>
                   </>
                 ) : (
@@ -2736,11 +2758,12 @@ function VideoPageInner() {
                           className="absolute inset-0 w-full h-full object-cover rounded-xl"
                         />
                       )}
-                      <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                        {startFrame.name}
-                      </span>
-                      <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setStartFrame(null); }}>
-                        <X size={11} style={{ color: "#475569" }} />
+                      <button
+                        className="absolute top-2 left-2 z-10 rounded-full p-1"
+                        style={{ background: "rgba(0,0,0,0.75)" }}
+                        onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                      >
+                        <X size={11} style={{ color: "#fff" }} />
                       </button>
                     </>
                   ) : (
@@ -2789,11 +2812,12 @@ function VideoPageInner() {
                             className="absolute inset-0 w-full h-full object-cover rounded-xl"
                           />
                         )}
-                        <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                          {startFrame.name}
-                        </span>
-                        <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setStartFrame(null); }}>
-                          <X size={11} style={{ color: "#475569" }} />
+                        <button
+                          className="absolute top-2 left-2 z-10 rounded-full p-1"
+                          style={{ background: "rgba(0,0,0,0.75)" }}
+                          onClick={e => { e.stopPropagation(); setStartFrame(null); }}
+                        >
+                          <X size={11} style={{ color: "#fff" }} />
                         </button>
                       </>
                     ) : (
@@ -2848,11 +2872,12 @@ function VideoPageInner() {
                             className="absolute inset-0 w-full h-full object-cover rounded-xl"
                           />
                         )}
-                        <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                          {endFrame.name}
-                        </span>
-                        <button className="absolute top-2 left-2" onClick={e => { e.stopPropagation(); setEndFrame(null); }}>
-                          <X size={11} style={{ color: "#475569" }} />
+                        <button
+                          className="absolute top-2 left-2 z-10 rounded-full p-1"
+                          style={{ background: "rgba(0,0,0,0.75)" }}
+                          onClick={e => { e.stopPropagation(); setEndFrame(null); }}
+                        >
+                          <X size={11} style={{ color: "#fff" }} />
                         </button>
                       </>
                     ) : (
@@ -3006,14 +3031,12 @@ function VideoPageInner() {
                           className="absolute inset-0 w-full h-full object-cover rounded-xl"
                         />
                       )}
-                      <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                        {startFrame.name}
-                      </span>
                       <button
-                        className="absolute top-2 left-2"
+                        className="absolute top-2 left-2 z-10 rounded-full p-1"
+                        style={{ background: "rgba(0,0,0,0.75)" }}
                         onClick={e => { e.stopPropagation(); setStartFrame(null); }}
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#fff" }} />
                       </button>
                     </>
                   ) : (
@@ -3074,14 +3097,12 @@ function VideoPageInner() {
                           className="absolute inset-0 w-full h-full object-cover rounded-xl"
                         />
                       )}
-                      <span className="absolute bottom-2 left-2 right-2 truncate rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] text-cyan-200">
-                        {endFrame.name}
-                      </span>
                       <button
-                        className="absolute top-2 left-2"
+                        className="absolute top-2 left-2 z-10 rounded-full p-1"
+                        style={{ background: "rgba(0,0,0,0.75)" }}
                         onClick={e => { e.stopPropagation(); setEndFrame(null); }}
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#fff" }} />
                       </button>
                     </>
                   ) : (
@@ -4995,7 +5016,7 @@ function VideoPageInner() {
                         >
                           <ImageIcon size={14} />
                           <span className="text-[12px] font-medium truncate">
-                            {startFrame ? startFrame.name : "Start frame"}
+                            {startFrame ? "Uploaded" : "Start frame"}
                           </span>
                         </button>
                       )}
@@ -5011,7 +5032,7 @@ function VideoPageInner() {
                         >
                           <ImageIcon size={14} />
                           <span className="text-[12px] font-medium truncate">
-                            {endFrame ? endFrame.name : "End frame"}
+                            {endFrame ? "Uploaded" : "End frame"}
                           </span>
                         </button>
                       )}

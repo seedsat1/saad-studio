@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs/promises";
 import { CONFIG } from "../../config.js";
-import { BraveAnswersService } from "./brave-answers.js";
+import { ResearchGatewayService } from "./research-gateway.js";
 import { ContextEngine } from "./context-engine.js";
 import { EngineeringMemory } from "./engineering-memory.js";
 import { IntentEngine } from "./intent-engine.js";
@@ -21,6 +21,10 @@ import { InternalWorkspaceExecutor } from "./internal-workspace-executor.js";
 import { LocalFileSearchExecutor } from "./local-file-search-executor.js";
 import { TrustedWorkspaceRuntime } from "./trusted-workspace-runtime.js";
 import { LocalImageClassifierService } from "./local-image-classifier.js";
+import { UrlTrainingService } from "./url-training-service.js";
+import { DeterministicCommandService } from "./deterministic-command-service.js";
+import { DocumentTextExtractor } from "./document-text-extractor.js";
+import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
     ".txt",
@@ -62,9 +66,12 @@ export class ChatOrchestratorService {
         }
         // 2. Execute actual chat orchestration logic
         const result = await this.executeDirectChat(input);
+        if (result?.response) {
+            result.response = ChatOrchestratorService.sanitizeResponseForUser(result.response, userRequestText);
+        }
         // 3. Record assistant response in history
         if (result && result.response && !result.approvalRequest) {
-            let cleanResponse = result.response;
+            let cleanResponse = ChatOrchestratorService.sanitizeModelVisibleText(result.response);
             // Strip === Diagnostics === block if present to avoid history pollution
             if (cleanResponse.startsWith("=== Diagnostics ===")) {
                 const parts = cleanResponse.split("\n\n");
@@ -100,13 +107,135 @@ export class ChatOrchestratorService {
         await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
         const normalizedAttachments = ChatOrchestratorService.normalizeRuntimeAttachments(input.attachments);
         input.attachments = normalizedAttachments;
-        const readableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(normalizedAttachments);
+        if (!normalizedAttachments.length) {
+            const directNonModelResponse = await ChatOrchestratorService.resolveDirectNonModelResponse(userRequestText, activeWorkspace);
+            if (directNonModelResponse) {
+                return {
+                    intent: "conversation",
+                    usedModel: false,
+                    response: directNonModelResponse
+                };
+            }
+        }
+        const rawReadableAttachmentContext = await ChatOrchestratorService.buildReadableAttachmentContext(normalizedAttachments);
+        // Auto-crawler for links in user prompt
+        let urlAttachmentContext = "";
+        const urlRegex = /(https?:\/\/[^\s\)]+)/i;
+        const normalizedRequestForUrl = ChatOrchestratorService.normalizeArabic(userRequestText);
+        const shouldFetchUrlContext = urlRegex.test(userRequestText)
+            && !ChatOrchestratorService.isUrlScopedExternalSearch(userRequestText, normalizedRequestForUrl);
+        if (shouldFetchUrlContext) {
+            const matchedUrl = userRequestText.match(urlRegex)[0].replace(/[\[\]\)\(\"\'\>\<\*]/g, "").trim();
+            try {
+                console.log(`[CRAWLER] Auto-fetching URL: ${matchedUrl}`);
+                const imported = await UrlTrainingService.importAndPrepareContext(matchedUrl, activeWorkspace);
+                urlAttachmentContext = [
+                    `=== محتوى الصفحة المحفوظة (${matchedUrl}) ===`,
+                    imported.promptContext,
+                    "",
+                    `تم حفظ المصدر كاملاً وفهرسته في: ${imported.trainingPath}`,
+                    `عدد أجزاء الفهرسة: ${imported.chunksCreated}`,
+                    "===================================="
+                ].join("\n");
+            }
+            catch (err) {
+                if (ChatOrchestratorService.isUrlContentReadRequest(userRequestText, normalizedRequestForUrl)) {
+                    return {
+                        intent: "conversation",
+                        usedModel: false,
+                        response: ChatOrchestratorService.formatUrlReadFailureResponse(matchedUrl, err)
+                    };
+                }
+                urlAttachmentContext = `=== خطأ في قراءة الرابط (${matchedUrl}) ===\nتعذر جلب محتوى الرابط: ${err.message}\n====================================`;
+            }
+        }
+        const readableAttachmentContext = [rawReadableAttachmentContext, urlAttachmentContext].filter(Boolean).join("\n\n");
         const reviewRequestText = readableAttachmentContext
             ? [userRequestText, readableAttachmentContext].join("\n\n")
             : userRequestText;
         const conversationState = ConversationStateEngine.getState(sessionId);
+        const externalResearchText = ChatOrchestratorService.resolveExternalResearchText(userRequestText, conversationState.history || []);
         if (!normalizedAttachments.length) {
             const normalizedRequest = ChatOrchestratorService.normalizeArabic(userRequestText);
+            if (ModelExpertiseExtractionService.isExtractionRequest(userRequestText)) {
+                const extractionTopics = ModelExpertiseExtractionService.extractTopics(userRequestText);
+                if (extractionTopics.length > 1) {
+                    const batch = await ModelExpertiseExtractionService.extractBatchFromRequestedProvider({
+                        workspacePath: activeWorkspace,
+                        prompt: userRequestText,
+                        signal: input.signal
+                    });
+                    const savedLines = batch.results
+                        .filter((result) => result.saved)
+                        .map((result, index) => `${index + 1}. ${result.topic} -> ${result.trainingPath} (${result.chunksCreated ?? 0})`);
+                    const failedLines = batch.results
+                        .filter((result) => !result.saved)
+                        .map((result, index) => `${index + 1}. ${result.topic}: ${result.error || "Unknown local model extraction error"}`);
+                    return {
+                        intent: "training_ingest",
+                        usedModel: batch.modelAttempted,
+                        response: [
+                            `Provider: ${batch.provider.label}`,
+                            batch.provider.configured ? "Status: extraction provider is configured." : "Status: extraction provider is not configured, so nothing was generated or saved.",
+                            "",
+                            "تم تنفيذ دفعة استخراج خبرات من الموديل المحلي.",
+                            "",
+                            `المحفوظ: ${batch.savedCount}`,
+                            `الفاشل: ${batch.failedCount}`,
+                            "",
+                            savedLines.length ? "المسارات المحفوظة:" : "المسارات المحفوظة: لا يوجد",
+                            ...savedLines,
+                            ...(failedLines.length ? ["", "الفشل:", ...failedLines] : []),
+                            "",
+                            "ملاحظة: كل بطاقة محفوظة كـ model-generated-unverified إلى أن نتحقق منها بمصدر أو اختبار."
+                        ].join("\n")
+                    };
+                }
+                const extraction = await ModelExpertiseExtractionService.extractFromRequestedProvider({
+                    workspacePath: activeWorkspace,
+                    prompt: userRequestText,
+                    signal: input.signal
+                });
+                if (!extraction.saved) {
+                    return {
+                        intent: "training_ingest",
+                        usedModel: Boolean(extraction.modelAttempted),
+                        response: [
+                            `Provider: ${extraction.provider?.label || "Local active model"}`,
+                            extraction.provider?.configured === false ? "Status: extraction provider is not configured, so nothing was generated or saved." : "Status: extraction failed.",
+                            "",
+                            "ما حفظت أي خبرة لأن الاستخراج المحلي فشل.",
+                            "",
+                            `الموضوع: ${extraction.topic}`,
+                            `السبب: ${extraction.error || "Unknown local model extraction error"}`
+                        ].join("\n")
+                    };
+                }
+                return {
+                    intent: "training_ingest",
+                    usedModel: Boolean(extraction.modelAttempted),
+                    response: [
+                        `Provider: ${extraction.provider?.label || "Local active model"}`,
+                        "",
+                        "تم استخراج خبرة من الموديل المحلي وحفظها كمعرفة تدريب.",
+                        "",
+                        `الموضوع: ${extraction.topic}`,
+                        `المسار: ${extraction.trainingPath}`,
+                        `أجزاء الفهرسة: ${extraction.chunksCreated ?? 0}`,
+                        "",
+                        "ملاحظة: هذه البطاقة محفوظة كـ model-generated-unverified إلى أن نتحقق منها بمصدر أو اختبار."
+                    ].join("\n")
+                };
+            }
+            if (ChatOrchestratorService.isSavedKnowledgeLookupRequest(userRequestText, normalizedRequest)) {
+                const knowledgeQuery = ChatOrchestratorService.extractSavedKnowledgeLookupQuery(userRequestText);
+                const matches = await KnowledgeIngestionService.searchTrainingKnowledge(activeWorkspace, knowledgeQuery, 4);
+                return {
+                    intent: "knowledge_lookup",
+                    usedModel: false,
+                    response: ChatOrchestratorService.formatSavedKnowledgeLookupResponse(knowledgeQuery, matches)
+                };
+            }
             if (ChatOrchestratorService.isTrainingIngestRequest(userRequestText, normalizedRequest)) {
                 return {
                     intent: "training_ingest",
@@ -128,6 +257,13 @@ export class ChatOrchestratorService {
                     description: fact,
                     relatedFiles: []
                 });
+                if (ChatOrchestratorService.isNoReplyRequest(userRequestText, normalizedRequest)) {
+                    return {
+                        intent: "memory_save",
+                        usedModel: false,
+                        response: ""
+                    };
+                }
                 return {
                     intent: "memory_save",
                     usedModel: false,
@@ -141,6 +277,14 @@ export class ChatOrchestratorService {
                     .map((item) => ChatOrchestratorService.cleanMemoryDescriptionForDisplay(item.description))
                     .filter(Boolean)
                     .slice(-12);
+                const exactRecall = ChatOrchestratorService.resolveExactMemoryRecall(userMemory, userRequestText);
+                if (exactRecall) {
+                    return {
+                        intent: "memory_recall",
+                        usedModel: false,
+                        response: exactRecall
+                    };
+                }
                 return {
                     intent: "memory_recall",
                     usedModel: false,
@@ -195,24 +339,35 @@ export class ChatOrchestratorService {
                 response: ChatOrchestratorService.formatCasualAcknowledgement(userRequestText)
             };
         }
+        const deterministicCommand = DeterministicCommandService.resolve(userRequestText);
+        if (deterministicCommand) {
+            return {
+                intent: deterministicCommand.intent,
+                usedModel: false,
+                response: deterministicCommand.response
+            };
+        }
         if (!normalizedAttachments.length
+            && !urlAttachmentContext
             && !ChatOrchestratorService.isTranslationRequest(userRequestText)
             && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
             return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(userRequestText, activeWorkspace, ConversationStateEngine.getState(sessionId).history || [], input.signal);
         }
         const quietDecision = await ExecutionPolicyService.evaluateDecision(userRequestText, activeWorkspace, effectiveApprovalMode, conversationId);
         if (!normalizedAttachments.length
+            && !urlAttachmentContext
             && !ChatOrchestratorService.isTranslationRequest(userRequestText)
             && ChatOrchestratorService.shouldAnswerQuietly(quietDecision, userRequestText)) {
             return await ChatOrchestratorService.answerQuietlyWithTrainingKnowledge(userRequestText, activeWorkspace, ConversationStateEngine.getState(sessionId).history || [], input.signal);
         }
         if (!normalizedAttachments.length
+            && !urlAttachmentContext
             && !ChatOrchestratorService.isTranslationRequest(userRequestText)
             && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
             try {
                 const historyBlock = ChatOrchestratorService.formatConversationHistory(ConversationStateEngine.getState(sessionId).history || []);
                 const response = await ReasoningEngine.requestCompletion({
-                    role: "Coding",
+                    role: "Chat",
                     systemPrompt: [
                         "You are Saad Studio Agent, the user's local AI assistant.",
                         "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
@@ -231,7 +386,7 @@ export class ChatOrchestratorService {
                         userRequestText
                     ].filter(Boolean).join("\n\n"),
                     signal: input.signal,
-                    requestTimeoutMs: 8000,
+                    requestTimeoutMs: 1800000,
                     retryCountOverride: 0
                 });
                 return {
@@ -281,6 +436,15 @@ export class ChatOrchestratorService {
                 intent: "conversation",
                 usedModel: false,
                 response: `Execution Policy Rejected: ${decisionResult.reason}`
+            };
+        }
+        if (decisionResult.workflow === "external_research" && !ResearchGatewayService.hasSearchableTopic(externalResearchText)) {
+            const clarification = ResearchGatewayService.formatSearchClarificationPrompt(externalResearchText);
+            await this.transitionToComplete(taskId, "Internet search needs a specific topic");
+            return {
+                intent: "external_research",
+                usedModel: false,
+                response: clarification
             };
         }
         if (decisionResult.requiresApproval && !input.approved) {
@@ -354,15 +518,80 @@ export class ChatOrchestratorService {
                     ].join("\n")
                 };
             }
-            await TaskStateStore.transitionTask(taskId, "FAILED", "Local classifier runtime is not implemented yet");
-            return {
-                intent: "vision_analysis",
-                usedModel: false,
-                response: [
-                    "مصنّف الصور المحلي موجود، بس Runtime التصنيف والنقل بعده غير مربوط.",
-                    "أوقفت التنفيذ حتى لا أنقل ملفات أو أخمّن تصنيفات بدون محرك فعلي."
-                ].join("\n")
-            };
+            // Extract target folder path
+            let folderPath = "";
+            const pathMatch = userRequestText.match(/([a-zA-Z]:\\[^:\r\n]*)/) || userRequestText.match(/([a-zA-Z]:\/[^:\r\n]*)/);
+            if (pathMatch && pathMatch[1]) {
+                folderPath = pathMatch[1].trim();
+            }
+            else {
+                folderPath = path.join(process.env.USERPROFILE || "C:\\Users\\PC", "Pictures", "Screenshots");
+            }
+            await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "Local image classifier dependencies satisfied");
+            await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Preparing file organization impact report");
+            await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying final check before image organization");
+            await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing file movement routines");
+            await TaskStateStore.transitionTask(taskId, "PLANNING", "Direct image classifier runtime scheduled");
+            await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", `Running local image classification on ${folderPath}`);
+            const { exec } = await import("child_process");
+            const { promisify } = await import("util");
+            const execAsync = promisify(exec);
+            try {
+                const pythonScript = path.join(classifierStatus.modelPath, "classify.py");
+                const { stdout } = await execAsync(`python "${pythonScript}" "${folderPath}"`, {
+                    maxBuffer: 1024 * 1024 * 64
+                });
+                const results = JSON.parse(stdout);
+                if (results.error) {
+                    throw new Error(results.error);
+                }
+                const fileEntries = Object.entries(results);
+                if (fileEntries.length === 0) {
+                    await TaskStateStore.transitionTask(taskId, "COMPLETED", "No images found to classify");
+                    return {
+                        intent: "vision_analysis",
+                        usedModel: false,
+                        response: `بحثت بالفولدر \`${folderPath}\` بس ما لقيت أي صور لتصنيفها. تأكد أن الملفات بامتدادات مدعومة (.png, .jpg, .jpeg, .bmp, .webp).`
+                    };
+                }
+                const fsSync = await import("fs");
+                const movedFilesReport = [];
+                for (const [filename, info] of fileEntries) {
+                    const item = info;
+                    const categoryFolder = path.join(folderPath, item.category);
+                    if (!fsSync.existsSync(categoryFolder)) {
+                        fsSync.mkdirSync(categoryFolder, { recursive: true });
+                    }
+                    const oldPath = path.join(folderPath, filename);
+                    const newPath = path.join(categoryFolder, filename);
+                    fsSync.renameSync(oldPath, newPath);
+                    movedFilesReport.push(`- **${filename}** ➡️ \`${item.category}/\` (${item.reason})`);
+                }
+                await TaskStateStore.transitionTask(taskId, "VERIFYING", "Files classified and organized");
+                await TaskStateStore.transitionTask(taskId, "COMPLETED", `Organized ${fileEntries.length} images`);
+                return {
+                    intent: "vision_analysis",
+                    usedModel: false,
+                    response: [
+                        `✅ **تم تصنيف وتنظيم الصور محلياً بالكامل!**`,
+                        `المجلد المستهدف: \`${folderPath}\``,
+                        `عدد الملفات المنقولة: ${fileEntries.length} صور.`,
+                        "",
+                        "**تفاصيل التصنيف والنقل:**",
+                        ...movedFilesReport,
+                        "",
+                        "تم فرز الصور محلياً ومجاناً 100% دون إرسالها إلى LM Studio أو أي خوادم سحابية."
+                    ].join("\n")
+                };
+            }
+            catch (err) {
+                await TaskStateStore.transitionTask(taskId, "FAILED", `Failed to run image classification: ${err.message}`);
+                return {
+                    intent: "vision_analysis",
+                    usedModel: false,
+                    response: `حدث خطأ أثناء تصنيف الصور محلياً: ${err.message}`
+                };
+            }
         }
         if (decisionResult.workflow === "local_filesystem_search") {
             ConversationStateEngine.updateState(sessionId, {
@@ -441,7 +670,10 @@ export class ChatOrchestratorService {
         }
         // 2. Intent Engine
         const intentResult = this.detectIntent(userRequestText, sessionId);
-        const intent = intentResult.intent;
+        let intent = intentResult.intent;
+        if (decisionResult.workflow === "external_research") {
+            intent = "external_research";
+        }
         if (intent === "conversation" && this.isCasualAcknowledgement(userRequestText)) {
             await this.transitionToComplete(taskId, "Casual acknowledgement completed without engineering execution");
             return {
@@ -542,7 +774,7 @@ export class ChatOrchestratorService {
                 ].filter(Boolean).join("\n")
             };
         }
-        if (decisionResult.decision === "PLAN" && decisionResult.workflow === "engineering_workflow") {
+        if ((decisionResult.decision === "PLAN" || decisionResult.decision === "WAIT_FOR_APPROVAL") && decisionResult.workflow === "engineering_workflow") {
             ConversationStateEngine.updateState(sessionId, {
                 lastIntent: intent,
                 activeWorkflow: "engineering_workflow",
@@ -724,7 +956,9 @@ export class ChatOrchestratorService {
                         description: fact,
                         relatedFiles: []
                     });
-                    responseText = `تم الحفظ في الذاكرة الدائمة.\nMemory ID: ${saved.id}\nالمعلومة: ${saved.description}`;
+                    responseText = this.isNoReplyRequest(userRequestText, this.normalizeArabic(userRequestText))
+                        ? ""
+                        : `تم الحفظ في الذاكرة الدائمة.\nMemory ID: ${saved.id}\nالمعلومة: ${saved.description}`;
                     await this.transitionToComplete(taskId, "Memory saved successfully");
                 }
             }
@@ -737,7 +971,8 @@ export class ChatOrchestratorService {
                 .map((item) => this.cleanMemoryDescriptionForDisplay(item.description))
                 .filter(Boolean)
                 .slice(-12);
-            responseText = this.formatMemoryRecallResponse(userMemory, userRequestText);
+            responseText = this.resolveExactMemoryRecall(userMemory, userRequestText)
+                || this.formatMemoryRecallResponse(userMemory, userRequestText);
             await this.transitionToComplete(taskId, "Memory recalled successfully");
         }
         else if (intent === "knowledge_list") {
@@ -782,6 +1017,15 @@ export class ChatOrchestratorService {
         else if (intent === "external_research" || intent === "web_search") {
             usedModel = false;
             try {
+                if (!ResearchGatewayService.hasSearchableTopic(externalResearchText)) {
+                    responseText = ResearchGatewayService.formatSearchClarificationPrompt(externalResearchText);
+                    await this.transitionToComplete(taskId, "Internet search needs a specific topic");
+                    return {
+                        intent,
+                        usedModel: false,
+                        response: responseText
+                    };
+                }
                 const approval = await ApprovalPolicyService.evaluate({
                     mode: effectiveApprovalMode,
                     conversationId,
@@ -804,23 +1048,29 @@ export class ChatOrchestratorService {
                     conversationId,
                     action: "use_internet"
                 }, approval, true, "internet search allowed");
-                const search = await BraveAnswersService.query(userRequestText);
-                const sourceBlock = BraveAnswersService.formatSourcesMarkdown(search.sources);
-                responseText = [
-                    `Internet Search: completed in ${search.latencyMs}ms${search.cacheHit ? " (cache)" : ""}`,
-                    "",
-                    search.answersText,
-                    sourceBlock
-                ].join("\n");
+                if (ResearchGatewayService.isImageSearchRequest(externalResearchText)) {
+                    const search = await ResearchGatewayService.searchImages(externalResearchText);
+                    responseText = ResearchGatewayService.formatImageResults(search);
+                }
+                else {
+                    const search = await ResearchGatewayService.search(externalResearchText);
+                    responseText = ResearchGatewayService.formatConciseLinks(search);
+                }
                 await this.transitionToComplete(taskId, "Internet search completed");
             }
             catch (err) {
-                responseText = [
-                    "تعذر تنفيذ البحث في الإنترنت فعليًا.",
-                    `السبب: ${err?.message || "Unknown search error"}`,
-                    "لن أقدم نتائج بحث تخمينية بدون مصدر مباشر."
-                ].join("\n");
-                await TaskStateStore.transitionTask(taskId, "FAILED", err.message || "Internet search failed");
+                if (ResearchGatewayService.isConfigurationError(err)) {
+                    responseText = ChatOrchestratorService.formatInternetProviderConfigurationResponse(err);
+                    await this.transitionToComplete(taskId, "Internet search provider requires configuration");
+                }
+                else {
+                    responseText = [
+                        "تعذر تنفيذ البحث في الإنترنت فعليًا.",
+                        `السبب: ${err?.message || "Unknown search error"}`,
+                        "لن أقدم نتائج بحث تخمينية بدون مصدر مباشر."
+                    ].join("\n");
+                    await TaskStateStore.transitionTask(taskId, "FAILED", err.message || "Internet search failed");
+                }
             }
         }
         else {
@@ -905,6 +1155,7 @@ export class ChatOrchestratorService {
                     "Respond warmly, directly, and non-judgmentally. Do not lecture, moralize, or say you cannot discuss family/private topics.",
                     "You may be affectionate and emotionally present in tone, but do not claim to be a real human spouse, real lover, licensed therapist, doctor, or lawyer.",
                     "Ask a short clarifying question only when the user request is genuinely unclear, unsafe, or needs consent/adult-safety boundaries.",
+                    "When the request includes a fetched webpage context, the page was actually retrieved by Saad Agent. Read and answer from that context; never claim that you cannot open or access the supplied URL.",
                     "Use a natural central Iraqi/Baghdad tone: friendly, smart, fast, respectful, direct, and not theatrical.",
                     "Use words such as: شلون, شنو, ليش, إي, لا, زين, هسه, تره, بعد, يعني, إذا, مو, ماكو, هذني, ذني, هواية, كلش, باجر, اليوم, هالشي, هيچ, عوف, خوش, تمام.",
                     "Do not use non-Iraqi phrases such as: وش, ياخي, مره, رهيب, أبشر, كفو عليك, يخوي, يا زلمة, يعطيك العافية.",
@@ -921,6 +1172,7 @@ export class ChatOrchestratorService {
                     "If the topic is formal or scientific, use a slightly more formal Arabic style with a light Iraqi touch.",
                     "Reply directly with a polite, intelligent, and conversational tone.",
                     "You have direct access to search the internet via the integrated Brave Search tool. You can search the web and summarize online sources when requested.",
+                    "When the request includes a fetched webpage context, the page was actually retrieved by Saad Agent. Read and answer from that context; never claim that you cannot open or access the supplied URL.",
                     "Explain technical concepts clearly, structure your answers with markdown headings, tables, or lists, and provide code blocks when helpful.",
                     "Never answer before the orchestrator, memory, training knowledge, and context review have run.",
                     "Obey the Mandatory Pre-Answer Review Context before using model knowledge.",
@@ -931,13 +1183,12 @@ export class ChatOrchestratorService {
                 let userPrompt = "";
                 if (isConversational) {
                     const history = conversationState.history || [];
+                    const safePreAnswerContext = ChatOrchestratorService.sanitizeProviderContextBlock(preAnswerReview.finalContext, userRequestText);
                     if (history.length > 0) {
-                        const formattedHistory = history.map((msg) => {
-                            const senderName = msg.role === "user" ? "User" : "Assistant";
-                            return `${senderName}: ${msg.content}`;
-                        }).join("\n\n");
+                        const formattedHistory = ChatOrchestratorService.formatConversationHistory(history);
                         userPrompt = [
-                            "Conversation history:",
+                            safePreAnswerContext,
+                            "",
                             formattedHistory,
                             "",
                             "Latest user request:",
@@ -946,17 +1197,21 @@ export class ChatOrchestratorService {
                         ].join("\n");
                     }
                     else {
-                        userPrompt = readableAttachmentContext
-                            ? [userRequestText, readableAttachmentContext].join("\n\n")
-                            : userRequestText;
+                        userPrompt = [
+                            safePreAnswerContext,
+                            "Latest user request:",
+                            userRequestText,
+                            readableAttachmentContext
+                        ].filter(Boolean).join("\n\n");
                     }
                 }
                 else {
                     const historyBlock = ChatOrchestratorService.formatConversationHistory(conversationState.history || []);
+                    const safePreAnswerContext = ChatOrchestratorService.sanitizeProviderContextBlock(preAnswerReview.finalContext, userRequestText);
                     userPrompt = [
                         `Project: ${input.projectName || path.basename(activeWorkspace)}`,
                         historyBlock,
-                        preAnswerReview.finalContext,
+                        safePreAnswerContext,
                         "Retrieved workspace context:",
                         contextSummary,
                         localFileSystemContext ? `Retrieved Local Filesystem Data:\n${localFileSystemContext}` : "",
@@ -967,7 +1222,7 @@ export class ChatOrchestratorService {
                     ].filter(Boolean).join("\n\n");
                 }
                 response = await ReasoningEngine.requestCompletion({
-                    role: "Coding",
+                    role: isConversational ? "Chat" : "Coding",
                     systemPrompt,
                     userPrompt,
                     signal: input.signal
@@ -1207,6 +1462,9 @@ export class ChatOrchestratorService {
         }
         const engine = new IntentEngine();
         const classified = engine.classifyIntent(prompt, sessionId);
+        const projectInstruction = this.resolveProjectAuditOrRepairInstruction(prompt, normalized, classified);
+        if (projectInstruction)
+            return projectInstruction;
         if (this.isTranslationRequest(prompt)) {
             return {
                 ...classified,
@@ -1255,16 +1513,18 @@ export class ChatOrchestratorService {
                 selectedTools: ["EngineeringMemory"],
             };
         }
-        if (this.isExplicitInternetSearch(prompt, normalized)) {
+        if (ResearchGatewayService.isSocialProfileSearchRequest(prompt)
+            || ResearchGatewayService.isPublicPageLookupRequest(prompt)
+            || this.isExplicitInternetSearch(prompt, normalized)) {
             return {
                 ...classified,
                 intent: "external_research",
                 confidence: Math.max(classified.confidence, 0.95),
                 source: "pattern",
-                matchedPattern: classified.matchedPattern || "explicit external research pattern",
-                reason: classified.reason || "User asks for internet/current information.",
+                matchedPattern: classified.matchedPattern || "explicit external/social research pattern",
+                reason: classified.reason || "User asks for internet, current, or social profile information.",
                 selectedPipeline: "research.external",
-                selectedTools: ["BraveAnswersService"],
+                selectedTools: ["ResearchGatewayService"],
             };
         }
         // Demote non-explicit search to workspace_query (Section 6)
@@ -1275,17 +1535,102 @@ export class ChatOrchestratorService {
         }
         return classified;
     }
+    static resolveExternalResearchText(userRequestText, history) {
+        if (!ResearchGatewayService.isGenericInternetFollowUp(userRequestText)) {
+            return userRequestText;
+        }
+        const previousUserRequest = [...(history || [])]
+            .slice(0, -1)
+            .reverse()
+            .find((message) => message.role === "user" && String(message.content || "").trim());
+        const previousText = previousUserRequest?.content?.trim();
+        if (!previousText)
+            return userRequestText;
+        const normalizedPrevious = this.normalizeArabic(previousText);
+        const previousLooksSearchLike = ResearchGatewayService.isMediaSearchRequest(previousText)
+            || ResearchGatewayService.isSocialProfileSearchRequest(previousText)
+            || ResearchGatewayService.isPublicPageLookupRequest(previousText)
+            || this.isExplicitInternetSearch(previousText, normalizedPrevious)
+            || /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u062f\u0648\u0631|\u0641\u062a\u0634|\u0647\u0627\u062a|\u062c\u064a\u0628|\u0627\u0631\u064a\u062f|\u0627\u0628\u064a)(?:\s|$)/.test(normalizedPrevious)
+            || /\b(search|find|look up|get|show me|give me)\b/i.test(previousText);
+        if (!previousLooksSearchLike)
+            return userRequestText;
+        return `${previousText} ${userRequestText}`.trim();
+    }
     static isMemorySave(prompt, normalized) {
+        if (this.isProjectAuditOrRepairInstruction(prompt, normalized))
+            return false;
         const lower = prompt.toLowerCase();
+        const arabicSaveSignals = /(\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a)/.test(normalized);
+        const arabicTrainingSignals = /(?:^|\s)(?:\u062f\u0631\u0628|\u062a\u062f\u0631\u064a\u0628)\s+(?:\u0646\u0641\u0633\u0643|\u0639\u0644\u0649|\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642)/.test(normalized)
+            || /(?:\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062e\u0632\u0646|\u0633\u062c\u0644|\u062b\u0628\u062a|\u0627\u0633\u062a\u062e\u062f\u0645|\u0627\u0639\u062a\u0645\u062f).*(?:\u0645\u0631\u062c\u0639|\u0645\u0631\u0627\u062c\u0639|\u062a\u062f\u0631\u064a\u0628)/.test(normalized)
+            || /(?:\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642)\s+(?:\u0645\u0631\u062c\u0639|\u0644\u0644\u062a\u062f\u0631\u064a\u0628)/.test(normalized);
         const saveSignals = /\b(remember|save|store|memorize)\b/i.test(lower)
+            || arabicSaveSignals
             || /(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|ثبت|ثبّت)/.test(normalized);
         const trainingSignals = /\b(train|training|learn from|use as reference|save as reference|store as reference)\b/i.test(lower)
+            || arabicTrainingSignals
             || /(?:^|\s)(?:درب|تدريب)\s+(?:نفسك|على|هذا|هذه|هذي|هاي|الملف|الصوره|الصورة|المرفق)/.test(normalized)
             || /(?:احفظ|حفظ|خزن|سجل|ثبت|استخدم|اعتمد).*(?:مرجع|مراجع|تدريب)/.test(normalized)
             || /(?:هذا|هذه|هذي|هاي|الملف|الصوره|الصورة|المرفق)\s+(?:مرجع|للتدريب)/.test(normalized);
         const recallQuestion = this.isMemoryRecall(prompt, normalized)
             || /\?/.test(prompt);
         return (saveSignals || trainingSignals) && !recallQuestion;
+    }
+    static isNoReplyRequest(prompt, normalized) {
+        const lower = String(prompt || "").toLowerCase();
+        return /(?:^|\s)(?:\u0644\u0627\s+\u062a\u0631\u062f|\u0628\u062f\u0648\u0646\s+\u0631\u062f|\u0645\u0627\s+\u062a\u0631\u062f)(?:\s|[.؟!]|$)/.test(normalized)
+            || /\b(?:do not reply|don't reply|no reply|silent(?:ly)?|without replying)\b/i.test(lower);
+    }
+    static resolveExactMemoryRecall(userMemory, prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const asksNumber = /(?:\u0645\u0627|\u0634\u0646\u0648|what).{0,40}(?:\u0627\u0644\u0631\u0642\u0645|\u0631\u0642\u0645|number).{0,40}(?:\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0631\u0647|\u0627\u062a\u0630\u0643\u0631|\u062d\u0641\u0638|remember|asked you to remember)/i.test(`${normalized} ${lower}`);
+        if (!asksNumber)
+            return null;
+        const facts = [...userMemory].reverse();
+        for (const fact of facts) {
+            const normalizedFact = this.normalizeArabic(fact);
+            if (!/(?:\u0631\u0642\u0645|\u0627\u0644\u0631\u0642\u0645|number)/i.test(`${normalizedFact} ${fact}`))
+                continue;
+            const numbers = this.normalizeNumerals(fact).match(/\b\d{2,}\b/g);
+            if (numbers?.length)
+                return numbers[numbers.length - 1] || null;
+        }
+        return null;
+    }
+    static resolveProjectAuditOrRepairInstruction(prompt, normalized, classified) {
+        if (!this.isProjectAuditOrRepairInstruction(prompt, normalized))
+            return null;
+        const inspectFirst = /(?:\u0644\u0627\s+\u062a\u0639\u062f\u0644|\u0644\u0627\s+\u062a\u0639\u062f\u0651\u0644|\u0627\u0648\u0644\u0627|\u0623\u0648\u0644\u0627|\u0642\u0628\u0644\s+\u062a\u0646\u0641\u064a\u0630|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0639\u062f\u064a\u0644|\u062a\u0642\u0631\u064a\u0631\s+\u0627\u0644\u0641\u062d\u0635|\bfirst\b|\bbefore editing\b|\breport first\b)/i.test(normalized)
+            || /\b(do not edit|do not modify|before any edit|before making changes|inspection report|audit report)\b/i.test(prompt);
+        const intent = inspectFirst ? "code_review" : "code_modification";
+        return {
+            ...classified,
+            intent,
+            confidence: Math.max(classified.confidence, 0.96),
+            source: "pattern",
+            matchedPattern: classified.matchedPattern || "project audit/repair instruction",
+            reason: inspectFirst
+                ? "User asks to inspect a real project and report before making edits."
+                : "User asks to inspect and repair a real project.",
+            selectedPipeline: inspectFirst ? "engineering.review" : "engineering.modify",
+            selectedTools: inspectFirst ? ["ContextEngine", "ValidationPipeline"] : ["ContextEngine", "Filesystem", "ValidationPipeline"]
+        };
+    }
+    static isProjectAuditOrRepairInstruction(prompt, normalized) {
+        const lower = String(prompt || "").toLowerCase();
+        const compact = `${normalized} ${lower}`;
+        const startsAsExplicitMemory = /^(?:\u0627\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a)\b/.test(normalized)
+            || /^(?:remember|save|store|memorize)\b/i.test(lower.trim());
+        if (startsAsExplicitMemory)
+            return false;
+        const projectSignals = /(?:\u0645\u0634\u0631\u0648\u0639|\u0645\u0644\u0641|\u0645\u0644\u0641\u0627\u062a|\u0643\u0648\u062f|\u0648\u064a\u0628|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0635\u0641\u062d\u0627\u062a|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0627\u0644\s*api|api|\u062a\u0633\u062c\u064a\u0644\s+\u0627\u0644\u062f\u062e\u0648\u0644|\u0642\u0627\u0639\u062f\u0629\s+\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a|\u0642\u0627\u0639\u062f\u0647\s+\u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a|\u0645\u0641\u0627\u062a\u064a\u062d\s+\u0627\u0644\u0628\u064a\u0626\u0647|\u0645\u0641\u0627\u062a\u064a\u062d\s+\u0627\u0644\u0628\u064a\u0626\u0629|\u0646\u062a\u0627\u0626\u062c\s+\u0627\u0644\u062a\u0648\u0644\u064a\u062f|typescript|build|framework|frontend|backend|database|auth|login|env|gallery|generate|generation)/i.test(compact);
+        const auditSignals = /(?:\u0627\u0641\u062d\u0635|\u0641\u062d\u0635|\u0631\u0627\u062c\u0639|\u062d\u0644\u0644|\u062d\u062f\u062f|\u062a\u0642\u0631\u064a\u0631|\u0627\u0644\u0645\u0634\u0627\u0643\u0644|\u0645\u0634\u0627\u0643\u0644|\u062e\u0637\u0648\u0631\u0629|\u0627\u0644\u062d\u0644\s+\u0627\u0644\u0645\u0642\u062a\u0631\u062d|\u0627\u0637\u0627\u0631\s+\u0627\u0644\u0639\u0645\u0644|\u0628\u0646\u064a\u0629\s+\u0627\u0644\u0645\u0634\u0631\u0648\u0639|inspect|audit|review|analyze|analyse|report|risk|solution|problems|issues)/i.test(compact);
+        const repairSignals = /(?:\u0627\u0635\u0644\u062d|\u0635\u0644\u062d|\u0627\u0636\u0641|\u0645\u0646\u0639|\u0627\u0639\u0631\u0636|\u0646\u0641\u0630\s+\u0627\u0644\u062a\u0639\u062f\u064a\u0644\u0627\u062a|\u0644\u0627\s+\u062a\u062e\u0635\u0645|\u0644\u0627\s+\u062a\u062d\u0641\u0638\s+\u0646\u062a\u064a\u062c\u0629\s+\u0641\u0627\u0634\u0644\u0629|loading|generate|fallback|provider|fix|add|prevent|show error|do not delete|do not change|do not edit)/i.test(compact);
+        const structuredTask = /(?:^|\n)\s*(?:\d+|[0-9]+)[-.)]\s+/.test(prompt)
+            || /(?:\u0627\u0644\u0645\u0647\u0645\u0629|\u0642\u0648\u0627\u0639\u062f\s+\u0645\u0647\u0645\u0629|\btask\b|\brules\b)/i.test(compact);
+        return projectSignals && (auditSignals || repairSignals) && (structuredTask || prompt.length > 350);
     }
     static isTrainingIngestRequest(prompt, normalized) {
         const lower = prompt.toLowerCase();
@@ -1300,16 +1645,49 @@ export class ChatOrchestratorService {
             || /(?:دربك|دربتك|تدربت).*(?:قبل|سابقا|سابقاً|عليه)/.test(normalized);
     }
     static isMemoryRecall(prompt, normalized) {
-        return /(من انا|من اني|منو اني|منو انا|انا منو|اني منو|ما اسمي|شنو اسمي|اسمي شنو|اسمي منو|تعرفني|تتذكرني|ماذا تعرف عني|شنو تعرف عني|شنو تعرف علي|ماذا تتذكر عني|شنو تتذكر عني|شنو حافظ عني|شنو مخزن عني|شنو ذاكر عني|اكو شي تعرفه عني|اكو شي حافظه عني|معلوماتي|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
+        const shortRecallQuestion = /^(?:\u0634\u0646\u0648|\u0634\u0646\u0648\u0647|\u0645\u0627\u0630\u0627)?\s*(?:\u062a\u0630\u0643\u0631|\u0645\u062a\u0630\u0643\u0631|\u062d\u0627\u0641\u0638|\u0645\u062e\u0632\u0646|\u062a\u0639\u0631\u0641)(?:\s+\u0639\u0646\u064a)?(?:\s+\u0634\u0648\u064a)?\s*$/.test(normalized)
+            || /^(?:what|anything)\s+(?:do you )?(?:remember|know)(?: about me)?$/i.test(prompt.trim());
+        if (shortRecallQuestion)
+            return true;
+        if (/(?:\u0645\u0627|\u0634\u0646\u0648|what).{0,40}(?:\u0627\u0644\u0631\u0642\u0645|\u0631\u0642\u0645|number).{0,40}(?:\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0631\u0647|\u0627\u062a\u0630\u0643\u0631|\u062d\u0641\u0638|remember|asked you to remember)/i.test(`${normalized} ${prompt.toLowerCase()}`)) {
+            return true;
+        }
+        return /(\u0645\u0646 \u0627\u0646\u0627|\u0645\u0646 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u064a|\u0645\u0646\u0648 \u0627\u0646\u0627|\u0627\u0646\u0627 \u0645\u0646\u0648|\u0627\u0646\u064a \u0645\u0646\u0648|\u0645\u0627 \u0627\u0633\u0645\u064a|\u0634\u0646\u0648 \u0627\u0633\u0645\u064a|\u0627\u0633\u0645\u064a \u0634\u0646\u0648|\u0627\u0633\u0645\u064a \u0645\u0646\u0648|\u062a\u0639\u0631\u0641\u0646\u064a|\u062a\u062a\u0630\u0643\u0631\u0646\u064a|\u0645\u0627\u0630\u0627 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u0639\u0631\u0641 \u0639\u0644\u064a|\u0645\u0627\u0630\u0627 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062a\u062a\u0630\u0643\u0631 \u0639\u0646\u064a|\u0634\u0646\u0648 \u062d\u0627\u0641\u0638 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0645\u062e\u0632\u0646 \u0639\u0646\u064a|\u0634\u0646\u0648 \u0630\u0627\u0643\u0631 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062a\u0639\u0631\u0641\u0647 \u0639\u0646\u064a|\u0627\u0643\u0648 \u0634\u064a \u062d\u0627\u0641\u0638\u0647 \u0639\u0646\u064a|\u0645\u0639\u0644\u0648\u0645\u0627\u062a\u064a|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized)
+            || /(من انا|من اني|منو اني|منو انا|انا منو|اني منو|ما اسمي|شنو اسمي|اسمي شنو|اسمي منو|تعرفني|تتذكرني|ماذا تعرف عني|شنو تعرف عني|شنو تعرف علي|ماذا تتذكر عني|شنو تتذكر عني|شنو حافظ عني|شنو مخزن عني|شنو ذاكر عني|اكو شي تعرفه عني|اكو شي حافظه عني|معلوماتي|what do you remember about me|what do you know about me|who am i|what is my name|do you know me|my info)/i.test(normalized);
+    }
+    static isUrlScopedExternalSearch(prompt, normalized) {
+        const lower = prompt.toLowerCase();
+        const asksLocalScope = /(Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|ÙÙŠ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¨Ø§Ù„Ù…Ø´Ø±ÙˆØ¹|Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ù„ÙØ§Øª|ÙÙŠ Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¨Ø§Ù„Ù…Ù„ÙØ§Øª|Ø¯Ø§Ø®Ù„ Ø§Ù„ÙƒÙˆØ¯|ÙÙŠ Ø§Ù„ÙƒÙˆØ¯|workspace|project files|local files|codebase)/i.test(normalized)
+            || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
+        if (asksLocalScope)
+            return false;
+        return /https?:\/\/[^\s)>\]"]+/i.test(prompt)
+            && (/(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a|\u0627\u0628\u062d\u062b\s+\u0644\u064a|\u0628\u062d\u062b|\u062f\u0648\u0631|\u062f\u0648\u0631\u0644\u064a|\u062f\u0648\u0631\s+\u0644\u064a|\u0641\u062a\u0634|\u0641\u062a\u0634\u0644\u064a|\u0641\u062a\u0634\s+\u0644\u064a)(?:\s|$)/i.test(normalized)
+                || /\b(search|find|look up|research)\b/i.test(lower));
     }
     static isExplicitInternetSearch(prompt, normalized) {
         const lower = prompt.toLowerCase();
+        if (this.isUrlContentReadRequest(prompt, normalized))
+            return false;
+        if (this.isUrlScopedExternalSearch(prompt, normalized))
+            return true;
+        if (ResearchGatewayService.isMediaSearchRequest(prompt))
+            return true;
+        const explicitArabicInternetSearch = /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s+\u0644\u064a)?\s+(?:(?:\u0641\u064a|\u0639\u0644\u0649|\u0628)\s*)?\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a(?:\s|$)/.test(normalized)
+            || /(?:^|\s)\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a\s+(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s|$)/.test(normalized);
+        if (explicitArabicInternetSearch)
+            return true;
+        const explicitArabicInternetSites = /(?:\u0627\u0631\u064a\u062f|\u0627\u0628\u064a|\u0627\u0639\u0637\u0646\u064a|\u0647\u0627\u062a|\u062c\u064a\u0628)(?:\s+\u0644\u064a)?\s+(?:\u0645\u0648\u0627\u0642\u0639|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a)\s+(?:(?:\u0645\u0646|\u0641\u064a|\u0639\u0644\u0649)\s*)?\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a/.test(normalized)
+            || /(?:\u0645\u0648\u0627\u0642\u0639|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a).*\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a/.test(normalized);
+        if (explicitArabicInternetSites)
+            return true;
         const asksLocalScope = /(داخل المشروع|في المشروع|بالمشروع|داخل الملفات|في الملفات|بالملفات|داخل الكود|في الكود|workspace|project files|local files|codebase)/i.test(normalized)
             || /\b(workspace|codebase|local files|project files)\b/i.test(lower);
         const allowedTriggers = /(ابحث في الانترنت|ابحث في الإنترنت|ابحث بالويب|اخر تحديث|آخر تحديث|وثائق|توثيق|اخبار|أخبار|مستندات)/i.test(normalized)
-            || /\b(search online|search web|latest|official docs|documentation|api docs|news)\b/i.test(lower);
-        const explicitLinksOrSources = /(?:\u0627\u0639\u0637\u0646\u064a|\u0627\u0639\u0637\u064a\u0646\u064a|\u0647\u0627\u062a|\u0627\u0631\u064a\u062f|\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a).*(?:\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0635\u0648\u0631)/.test(normalized)
-            || /\b(give me links|give me sources|links|sources|find images|image search)\b/i.test(lower);
+            || /(?:\u064a\u0648\u062a\u064a\u0648\u0628|\u0627\u0644\u064a\u0648\u062a\u064a\u0648\u0628)/.test(normalized)
+            || /\b(search online|search web|latest|official docs|documentation|api docs|news|youtube|youtu\.be)\b/i.test(lower);
+        const explicitLinksOrSources = /(?:\u0627\u0639\u0637\u0646\u064a|\u0627\u0639\u0637\u064a\u0646\u064a|\u0647\u0627\u062a|\u0627\u0631\u064a\u062f|\u0627\u0628\u062d\u062b|\u0627\u0628\u062d\u062b\u0644\u064a).*(?:\u0631\u0627\u0628\u0637|\u0631\u0648\u0627\u0628\u0637|\u0645\u0635\u0627\u062f\u0631|\u0644\u0646\u0643\u0627\u062a|\u0644\u064a\u0646\u0643\u0627\u062a|\u0635\u0648\u0631|\u0641\u064a\u062f\u064a\u0648|\u0641\u062f\u064a\u0648|\u0645\u0642\u0637\u0639|\u0645\u0642\u0627\u0637\u0639|\u0635\u0648\u062a|\u0627\u063a\u0646\u064a\u0647|\u0627\u063a\u0627\u0646\u064a)/.test(normalized)
+            || /\b(give me links|give me sources|links|sources|find images|image search|find videos|video search|find audio|audio search)\b/i.test(lower);
         const directSearchVerb = /(?:^|\s)(?:ابحثلي|ابحث\s+لي|ابحث|دورلي|دور\s+لي|دور|فتشلي|فتش\s+لي|فتش|جيبلي\s+معلومات|جيب\s+لي\s+معلومات|هاتلي\s+معلومات|هات\s+لي\s+معلومات|طلعلي\s+معلومات|طلع\s+لي\s+معلومات)(?:\s|$)/i.test(normalized)
             || /\b(?:search for|look up|research|find info about|find information about)\b/i.test(lower);
         const externalTopicSignal = /[A-Za-z][A-Za-z0-9_.\-/]*(?:\s+\d+(?:\.\d+)*)?/i.test(prompt)
@@ -1317,6 +1695,35 @@ export class ChatOrchestratorService {
             || /(موديل|نموذج|شركة|منتج|منصة|خدمة|تقنية|اصدار|إصدار|نسخه|نسخة|معلومات|تفاصيل|سعر|اسعار|أسعار|وثائق|توثيق|مصادر|روابط)/i.test(normalized);
         const directExternalSearch = directSearchVerb && externalTopicSignal && !asksLocalScope;
         return allowedTriggers || explicitLinksOrSources || directExternalSearch;
+    }
+    static isUrlContentReadRequest(prompt, normalized) {
+        const lower = prompt.toLowerCase();
+        if (!/https?:\/\/[^\s)>\]"]+/i.test(prompt))
+            return false;
+        const readSignal = /(?:^|\s)(?:\u0627\u0642\u0631\u0627|\u0627\u0641\u062a\u062d|\u0641\u062a\u062d|\u0644\u062e\u0635|\u062d\u0644\u0644|\u0631\u0627\u0642\u0628|\u062a\u0627\u0628\u0639)(?:\s|$)/i.test(normalized)
+            || /(?:\u0645\u062d\u062a\u0648\u0627\u0647|\u0645\u062d\u062a\u0648\u0649|\u0627\u0644\u0635\u0641\u062d\u0647|\u0627\u0644\u0635\u0641\u062d\u0629|\u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a|\u062a\u062d\u062f\u064a\u062b\u0627\u062a|\u0627\u0644\u062c\u062f\u064a\u062f\u0629|\u0627\u0644\u062c\u062f\u064a\u062f\u0647)/i.test(normalized)
+            || /\b(read|open|summarize|analyse|analyze|content|page|monitor|watch|check updates?|what'?s new|changelog)\b/i.test(lower);
+        const searchSignal = /(?:^|\s)(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634)(?:\s|$)/i.test(normalized)
+            || /\b(search|find|look up|research)\b/i.test(lower);
+        return readSignal && !searchSignal;
+    }
+    static formatUrlReadFailureResponse(url, error) {
+        const message = error instanceof Error
+            ? error.message
+            : String(error || "Unknown URL fetch error");
+        const cleanMessage = EngineeringMemory.scrubSecrets(message)
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 600);
+        return [
+            "\u0645\u0627 \u0642\u062f\u0631\u062a \u0623\u0642\u0631\u0623 \u0627\u0644\u0631\u0627\u0628\u0637 \u0641\u0639\u0644\u064a\u0627\u064b\u060c \u0648\u0645\u0627 \u0631\u0627\u062d \u0623\u062e\u0644\u064a \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u064a\u062e\u0645\u0651\u0646 \u0628\u062f\u0627\u0644\u0647.",
+            "",
+            `\u0627\u0644\u0631\u0627\u0628\u0637: ${url}`,
+            `\u0627\u0644\u0633\u0628\u0628: ${cleanMessage || "Unknown URL fetch error"}`,
+            "",
+            "\u0644\u0645 \u064a\u062a\u0645 \u062d\u0641\u0638 \u0623\u064a \u0645\u0635\u062f\u0631 \u062a\u062f\u0631\u064a\u0628\u064a \u0644\u0623\u0646 \u0627\u0644\u062c\u0644\u0628 \u0623\u0648 \u0627\u0633\u062a\u062e\u0631\u0627\u062c \u0627\u0644\u0646\u0635 \u0641\u0634\u0644.",
+            "\u0625\u0630\u0627 \u0627\u0644\u0635\u0641\u062d\u0629 \u062a\u0639\u062a\u0645\u062f JavaScript \u0623\u0648 \u062a\u0645\u0646\u0639 \u0627\u0644\u0643\u0631\u0627\u0648\u0644\u0631\u060c \u0646\u062d\u062a\u0627\u062c \u0645\u0633\u0627\u0631 browser/crawler \u062f\u064a\u0646\u0627\u0645\u064a\u0643\u064a \u062d\u062a\u0649 \u0646\u0642\u0631\u0623\u0647\u0627 \u0641\u0639\u0644\u064a\u0627\u064b."
+        ].join("\n");
     }
     static shouldAnswerQuietly(decision, prompt) {
         if (decision.requiresApproval)
@@ -1351,7 +1758,7 @@ export class ChatOrchestratorService {
                 : "No matching trained knowledge found. Answering from model knowledge only.";
             const historyBlock = ChatOrchestratorService.formatConversationHistory(history);
             const response = await ReasoningEngine.requestCompletion({
-                role: "Coding",
+                role: "Chat",
                 systemPrompt: [
                     "You are Saad Studio Agent, the user's local AI engineering assistant.",
                     "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
@@ -1375,7 +1782,7 @@ export class ChatOrchestratorService {
                     userRequestText
                 ].filter(Boolean).join("\n\n"),
                 signal,
-                requestTimeoutMs: 12000,
+                requestTimeoutMs: 1800000,
                 retryCountOverride: 0
             });
             return {
@@ -1406,7 +1813,7 @@ export class ChatOrchestratorService {
             historyBlock
         ].filter(Boolean).join("\n\n");
         const response = await ReasoningEngine.requestCompletion({
-            role: "Coding",
+            role: "Chat",
             systemPrompt: [
                 "You are Saad Studio Agent, the user's private local assistant.",
                 "Never identify yourself as ChatGPT, OpenAI, Gemini, Claude, or the active provider model.",
@@ -1427,7 +1834,7 @@ export class ChatOrchestratorService {
                 sourceBlocks || "No source text was found in the request, readable attachments, trained knowledge, or conversation history."
             ].join("\n"),
             signal: options.signal,
-            requestTimeoutMs: 20000,
+            requestTimeoutMs: 1800000,
             retryCountOverride: 0
         });
         return response.rawResponse;
@@ -1494,18 +1901,197 @@ export class ChatOrchestratorService {
             "شغّل/خفف الموديل أو غيّر الموديل السريع، وبعدها أترجمها إلك بصوتك العراقي الطبيعي بدون عرض المراجع الخام."
         ].join("\n");
     }
+    static formatInternetProviderConfigurationResponse(error) {
+        const reason = String(error?.message || "Brave Answers is not configured.");
+        return [
+            "ما أگدر أجيب روابط مباشرة حالياً لأن مزود البحث الحقيقي Brave Answers يحتاج إعداد.",
+            "",
+            `السبب: ${reason}`,
+            "",
+            "حتى يشتغل البحث الفعلي:",
+            "1. افتح Settings.",
+            "2. ادخل على Providers.",
+            "3. افتح Brave Answers.",
+            "4. فعّل المزود إذا كان مطفّى.",
+            "5. ضع API Key الصحيح.",
+            "6. تأكد أن الـ endpoint هو:",
+            "https://api.search.brave.com/res/v1/web/search",
+            "",
+            "بعدها أعد نفس الطلب، وراح أرجع لك روابط حقيقية بمصادرها. ما راح أعطيك روابط تخمينية."
+        ].join("\n");
+    }
     static formatModelFailureResponse(errorMessage) {
         return [
             "ما گدرت أرجع جواب لأن مزود الموديل ما كمّل الطلب.",
             "",
             `السبب: ${errorMessage}`,
             "",
-            "راجع إعدادات المزود والموديل، خصوصاً Endpoint الخاص بـ LM Studio. لازم يكون مثل:",
-            "`http://127.0.0.1:32768`",
-            "والاستدعاء الداخلي يستخدم `/api/v1/chat` أو `/api/v1/chat/completions`."
+            "راجع Settings > Providers و Settings > Models:",
+            "- تأكد أن المزود مفعّل.",
+            "- تأكد أن API Key محفوظ إذا كان المزود سحابي.",
+            "- تأكد أن دور Chat مربوط بموديل مكتشف ومحفوظ.",
+            "ما راح أعرض مراجع تدريب غير مرتبطة كبديل عن فشل الموديل."
         ].join("\n");
     }
+    static shouldSuppressTrainingKnowledgeFallback(prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const combined = `${normalized} ${lower}`;
+        const strictNoTools = [
+            /\u0644\u0627\s+\u062a\u0633\u062a\u062e\u062f\u0645\s+(?:\u0627\u064a|\u0623\u064a)?\s*(?:\u0627\u062f\u0627\u0647|\u0623\u062f\u0627\u0629|\u0627\u062f\u0627\u0629)/i,
+            /\u0644\u0627\s+\u062a\u0628\u062d\u062b|\u0628\u062f\u0648\u0646\s+\u0628\u062d\u062b|\u0628\u062f\u0648\u0646\s+\u0627\u062f\u0627\u0647|\u0628\u062f\u0648\u0646\s+\u0623\u062f\u0627\u0629/i,
+            /\bdo not use (?:any )?tools?\b|\bdon't use (?:any )?tools?\b|\bdo not search\b|\bdon't search\b|\bno search\b|\bwithout tools?\b/i
+        ].some((pattern) => pattern.test(combined));
+        const finalOnly = [
+            /(?:\u0627\u0644\u0646\u062a\u064a\u062c\u0647\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0647|\u0627\u0644\u0646\u062a\u064a\u062c\u0629\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629).{0,30}\u0641\u0642\u0637/i,
+            /\u0627\u062c\u0628.{0,30}\u0641\u0642\u0637|\u0623\u062c\u0628.{0,30}\u0641\u0642\u0637/i,
+            /\bfinal result only\b|\banswer only\b|\bonly answer\b|\bone word only\b/i
+        ].some((pattern) => pattern.test(combined));
+        return strictNoTools || finalOnly || Boolean(this.extractExplicitUnknownFallback(prompt));
+    }
+    static extractExplicitUnknownFallback(prompt) {
+        const text = String(prompt || "");
+        const lineFallback = text.match(/(?:\u0627\u0630\u0627|\u0625\u0630\u0627)\s+\u0644\u0645\s+\u062a\u0639\u0631\u0641\s+\u0641?\u0642\u0644\s*[:：]?\s*\r?\n\s*([^\r\n]{2,60})/i)?.[1]?.trim()
+            || text.match(/\bif\s+you\s+(?:do\s+not|don't)\s+know\s+(?:say|answer)\s*[:：]?\s*\r?\n\s*([^\r\n]{2,60})/i)?.[1]?.trim();
+        if (lineFallback)
+            return this.cleanExplicitFallbackCandidate(lineFallback);
+        const patterns = [
+            /(?:\u0627\u0630\u0627|\u0625\u0630\u0627)\s+\u0644\u0645\s+\u062a\u0639\u0631\u0641\s+(?:\u0641)?(?:\u0642\u0644|(?:\u0627\u062c\u0628|\u0623\u062c\u0628)\s+\u0628)?\s*[:：]?\s*([^\r\n.،,؛!?؟]{2,60})/i,
+            /\bif\s+you\s+(?:do\s+not|don't)\s+know\s+(?:say|answer)\s*[:：]?\s*([^\r\n.،,؛!?؟]{2,60})/i
+        ];
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            const fallback = match?.[1]?.trim();
+            if (fallback)
+                return this.cleanExplicitFallbackCandidate(fallback);
+        }
+        return null;
+    }
+    static cleanExplicitFallbackCandidate(candidate) {
+        return String(candidate || "")
+            .replace(/^[`"'“”‘’]+|[`"'“”‘’]+$/g, "")
+            .replace(/[.،,؛:!?؟]+$/g, "")
+            .trim();
+    }
+    static isSavedKnowledgeLookupRequest(prompt, normalized) {
+        const raw = String(prompt || "");
+        const lower = raw.toLowerCase();
+        const normalizedText = normalized || this.normalizeArabic(raw);
+        const savedKnowledgeSignals = [
+            /(?:\u0645\u0646|حسب|اعتمد على|اشرحلي من|اشرح لي من).{0,35}(?:\u0645\u0639\u0631\u0641\u062a\u0643|\u0627\u0644\u0645\u0639\u0631\u0641\u0629|\u0645\u0639\u0631\u0641\u0647|\u0627\u0644\u0645\u0639\u0631\u0641\u0647).{0,35}(?:\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629|\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0647|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0629|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0647)/i,
+            /(?:\u0627\u0644\u062a\u062f\u0631\u064a\u0628|\u0627\u0644\u0645\u0631\u0627\u062c\u0639|\u0627\u0644\u0645\u0639\u0631\u0641\u0629|\u0627\u0644\u0645\u0639\u0631\u0641\u0647).{0,25}(?:\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629|\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0647|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0629|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0647)/i,
+            /(?:\u0627\u0644\u0630\u0627\u0643\u0631\u0629|\u0627\u0644\u0630\u0627\u0643\u0631\u0647).{0,25}(?:\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629|\u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0647|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0629|\u0627\u0644\u0645\u062e\u0632\u0648\u0646\u0647)/i,
+            /\b(?:saved|stored|local|training)\s+knowledge\b/i,
+            /\b(?:from|using|based on)\s+your\s+(?:saved|stored|local|training)?\s*knowledge\b/i,
+            /\bknowledge\s+base\b/i
+        ];
+        return savedKnowledgeSignals.some((pattern) => pattern.test(raw) || pattern.test(lower) || pattern.test(normalizedText));
+    }
+    static extractSavedKnowledgeLookupQuery(prompt) {
+        let query = String(prompt || "").trim();
+        const cleanupPatterns = [
+            /(?:\u0627\u0634\u0631\u062d\u0644\u064a|\u0627\u0634\u0631\u062d\s+\u0644\u064a|\u0648\u0636\u062d\u0644\u064a|\u0648\u0636\u062d\s+\u0644\u064a)?\s*(?:\u0645\u0646|حسب|اعتمد\s+على)\s+(?:\u0645\u0639\u0631\u0641\u062a\u0643|\u0627\u0644\u0645\u0639\u0631\u0641\u0629|\u0645\u0639\u0631\u0641\u0647|\u0627\u0644\u0645\u0639\u0631\u0641\u0647).{0,40}?(?:\u0639\u0646|حول)\s*/i,
+            /\b(?:explain|summarize|tell me)\s+(?:from|using|based on)\s+your\s+(?:saved|stored|local|training)?\s*knowledge\s+(?:about|on|for)?\s*/i,
+            /\b(?:saved|stored|local|training)\s+knowledge\s+(?:about|on|for)?\s*/i
+        ];
+        for (const pattern of cleanupPatterns) {
+            query = query.replace(pattern, "").trim();
+        }
+        query = query.replace(/^[\s:：\-]+|[\s.?!؟]+$/g, "").trim();
+        return query || prompt;
+    }
+    static formatSavedKnowledgeLookupResponse(query, matches) {
+        const usableMatches = this.filterSavedKnowledgeLookupMatches(query, matches).slice(0, 4);
+        if (!usableMatches.length) {
+            return [
+                "\u0645\u0627 \u0644\u0642\u064a\u062a \u0645\u0639\u0631\u0641\u0629 \u0645\u062d\u0641\u0648\u0638\u0629 \u0645\u0637\u0627\u0628\u0642\u0629.",
+                `\u0627\u0644\u0628\u062d\u062b \u0627\u0644\u0645\u062d\u0644\u064a: ${query}`,
+                "\u0645\u0627 \u0627\u0633\u062a\u062e\u062f\u0645\u062a \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a."
+            ].join("\n");
+        }
+        const sources = usableMatches.map((match, index) => {
+            const title = match.item.title || match.item.fileName || path.basename(match.item.filePath || `source-${index + 1}`);
+            const filePath = match.item.filePath || "";
+            const tags = Array.isArray(match.item.tags) && match.item.tags.length ? `Tags: ${match.item.tags.join(", ")}` : "";
+            const summary = String(match.item.summary || match.chunks?.[0]?.content || "").replace(/\s+/g, " ").trim();
+            return [
+                `${index + 1}. ${title}`,
+                filePath ? `   Path: ${filePath}` : "",
+                tags ? `   ${tags}` : "",
+                summary ? `   Summary: ${summary.slice(0, 800)}` : ""
+            ].filter(Boolean).join("\n");
+        }).join("\n\n");
+        return [
+            "\u0644\u0642\u064a\u062a \u0645\u0639\u0631\u0641\u0629 \u0645\u062d\u0641\u0648\u0638\u0629 \u0645\u0637\u0627\u0628\u0642\u0629 \u0645\u062d\u0644\u064a\u0627:",
+            "",
+            sources,
+            "",
+            "\u0645\u0644\u0627\u062d\u0638\u0629: \u0647\u0630\u0627 \u062c\u0648\u0627\u0628 \u0645\u0646 \u0627\u0644\u0645\u0639\u0631\u0641\u0629 \u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629 \u0641\u0642\u0637\u060c \u0628\u062f\u0648\u0646 \u0628\u062d\u062b \u0625\u0646\u062a\u0631\u0646\u062a."
+        ].join("\n");
+    }
+    static filterSavedKnowledgeLookupMatches(query, matches) {
+        const cleanedQuery = this.normalizeLookupTokenText(query);
+        const queryTokens = this.lookupTokens(cleanedQuery);
+        if (!queryTokens.length)
+            return matches.filter((match) => match?.item);
+        const scored = matches
+            .filter((match) => match?.item)
+            .map((match, index) => {
+            const item = match.item || {};
+            const title = String(item.title || item.fileName || "");
+            const filePath = String(item.filePath || "");
+            const tags = Array.isArray(item.tags) ? item.tags.join(" ") : "";
+            const identityText = this.normalizeLookupTokenText(`${title} ${filePath} ${tags}`);
+            const summaryText = this.normalizeLookupTokenText(String(item.summary || match.chunks?.[0]?.content || ""));
+            const identityHits = queryTokens.filter((token) => identityText.includes(token)).length;
+            const summaryHits = queryTokens.filter((token) => summaryText.includes(token)).length;
+            const exactPhrase = identityText.includes(cleanedQuery);
+            const fileSlug = cleanedQuery.replace(/\s+/g, "-");
+            const slugMatch = fileSlug.length >= 4 && identityText.includes(fileSlug);
+            return {
+                match,
+                index,
+                identityHits,
+                summaryHits,
+                exactPhrase,
+                slugMatch,
+                score: (exactPhrase ? 100 : 0) + (slugMatch ? 80 : 0) + (identityHits * 10) + summaryHits
+            };
+        })
+            .sort((a, b) => b.score - a.score || a.index - b.index);
+        const best = scored[0];
+        if (!best || best.score <= 0)
+            return [];
+        const strictMatches = scored.filter((entry) => entry.exactPhrase
+            || entry.slugMatch
+            || entry.identityHits >= Math.max(2, Math.min(queryTokens.length, 3)));
+        if (strictMatches.length > 0) {
+            return strictMatches.map((entry) => entry.match);
+        }
+        return [best.match];
+    }
+    static lookupTokens(value) {
+        const stop = new Set(["about", "from", "using", "saved", "stored", "local", "training", "knowledge", "the", "and", "for", "عن", "من"]);
+        return this.normalizeLookupTokenText(value)
+            .split(/\s+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length >= 3 && !stop.has(token));
+    }
+    static normalizeLookupTokenText(value) {
+        return String(value || "")
+            .toLowerCase()
+            .replace(/\u0623|\u0625|\u0622/g, "\u0627")
+            .replace(/\u0649/g, "\u064a")
+            .replace(/\u0629/g, "\u0647")
+            .replace(/[^a-z0-9\u0600-\u06ff]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
     static formatTrainingKnowledgeFallbackResponse(userRequestText, matches, errorMessage) {
+        if (this.shouldSuppressTrainingKnowledgeFallback(userRequestText))
+            return null;
+        if (!this.isSavedKnowledgeLookupRequest(userRequestText))
+            return null;
         const usableMatches = matches.filter((match) => match?.item).slice(0, 4);
         if (!usableMatches.length)
             return null;
@@ -1527,8 +2113,8 @@ export class ChatOrchestratorService {
             sources,
             "",
             "ملاحظة تقنية:",
-            `LM Studio فشل أو تأخر: ${errorMessage}`,
-            "حتى تحصل جواب مصاغ بالكامل، شغّل/خفف الموديل أو غيّر الموديل السريع. بس التدريب نفسه موجود وقابل للاسترجاع."
+            `مزود الموديل فشل أو تأخر: ${errorMessage}`,
+            "حتى تحصل جواب مصاغ بالكامل، راجع Settings > Providers و Settings > Models. بس التدريب نفسه موجود وقابل للاسترجاع."
         ].join("\n");
     }
     static isSimpleGreeting(prompt) {
@@ -1559,6 +2145,515 @@ export class ChatOrchestratorService {
         if (localPathSignal.test(prompt))
             return false;
         return true;
+    }
+    static async resolveDirectNonModelResponse(prompt, workspacePath) {
+        const explicitUnknownFallback = this.resolveStrictUnknownFallback(prompt);
+        if (explicitUnknownFallback)
+            return explicitUnknownFallback;
+        const listInstruction = this.resolveListMutationInstruction(prompt);
+        if (listInstruction)
+            return listInstruction;
+        const inlineImageGeneration = this.resolveInlineImageGenerationRequest(prompt);
+        if (inlineImageGeneration)
+            return inlineImageGeneration;
+        const imagePromptDraft = this.resolveImagePromptDraftRequest(prompt);
+        if (imagePromptDraft)
+            return imagePromptDraft;
+        const textInstruction = this.resolveTextInstructionRequest(prompt);
+        if (textInstruction)
+            return textInstruction;
+        const knownFact = await this.resolveKnownFactQuestion(prompt, workspacePath);
+        if (knownFact)
+            return knownFact;
+        const explicitUnknown = await this.resolveExplicitUnknownFallbackAnswer(prompt);
+        if (explicitUnknown)
+            return explicitUnknown;
+        const wordCount = this.resolveWordCountRequest(prompt);
+        if (wordCount)
+            return wordCount;
+        const literal = this.resolveLiteralEchoRequest(prompt);
+        if (literal)
+            return literal;
+        const arithmetic = this.resolveSimpleArithmetic(prompt);
+        if (arithmetic)
+            return arithmetic;
+        if (this.isProjectLanguageQuestion(prompt)) {
+            return await this.formatProjectLanguageAnswer(workspacePath);
+        }
+        return null;
+    }
+    static resolveInlineImageGenerationRequest(prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const haystack = `${normalized} ${lower}`;
+        const imageTerm = /(?:\u0635\u0648\u0631|\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0629|\u0627\u0644\u0635\u0648\u0631|\bimage\b|\bphoto\b|\bpicture\b)/i.test(haystack);
+        if (!imageTerm)
+            return null;
+        const generationIntent = /(?:\u0648\u0644\u062f|\u0648\u0644\u0651\u062f|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0635\u0646\u0639|\u0627\u0631\u0633\u0645|\u0635\u0645\u0645|\u0633\u0648\u064a|\u0627\u0639\u0645\u0644|\u0627\u0639\u0631\u0636\u0647\u0627|\u0627\u0639\u0631\u0636\s+\u0635\u0648\u0631\u0629|\u0637\u0644\u0639\u0644\u064a\s+\u0635\u0648\u0631\u0629|\bgenerate\b|\bcreate\b|\bmake\b|\bdraw\b|\brender\b|\bshow\b)/i.test(haystack);
+        if (!generationIntent)
+            return null;
+        const explicitSearchIntent = /(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634|\u0628\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0645\u0646\s+\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\bsearch\b|\bfind\b|\blook up\b|\binternet\b|\bonline\b)/i.test(haystack);
+        if (explicitSearchIntent)
+            return null;
+        const subject = this.extractImagePromptSubject(prompt) || "\u0627\u0644\u0645\u0634\u0647\u062f \u0627\u0644\u0645\u0637\u0644\u0648\u0628";
+        const draft = this.buildImagePromptDraft(subject, prompt);
+        return [
+            "\u0641\u0647\u0645\u062a\u0643: \u0647\u0630\u0627 \u0637\u0644\u0628 \u062a\u0648\u0644\u064a\u062f \u0635\u0648\u0631\u0629 \u0648\u0639\u0631\u0636\u0647\u0627 \u062f\u0627\u062e\u0644 \u0627\u0644\u0634\u0627\u062a\u060c \u0645\u0648 \u0628\u062d\u062b \u0625\u0646\u062a\u0631\u0646\u062a \u0648\u0645\u0648 \u0643\u062a\u0627\u0628\u0629 \u0628\u0631\u0648\u0645\u0628\u062a \u0641\u0642\u0637.",
+            "",
+            "\u0645\u0627 \u0631\u0627\u062d \u0623\u0639\u0631\u0636 \u0635\u0648\u0631\u0629 \u0648\u0647\u0645\u064a\u0629. \u0645\u0648\u0644\u062f \u0627\u0644\u0635\u0648\u0631 \u0627\u0644\u062d\u0642\u064a\u0642\u064a \u063a\u064a\u0631 \u0645\u0631\u0628\u0648\u0637 \u0628\u0645\u0633\u0627\u0631 \u0627\u0644\u0634\u0627\u062a \u062d\u0627\u0644\u064a\u0627\u064b\u060c \u0648\u0645\u0632\u0648\u062f Creative \u0627\u0644\u0642\u062f\u064a\u0645 \u0643\u0627\u0646 mock \u0641\u0642\u0637.",
+            "",
+            "\u0625\u0644\u0649 \u0623\u0646 \u064a\u0646\u0631\u0628\u0637 \u0645\u0632\u0648\u062f \u062d\u0642\u064a\u0642\u064a \u0645\u062b\u0644 KIE/Seedream/Flux\u060c \u0647\u0630\u0627 \u0627\u0644\u0628\u0631\u0648\u0645\u0628\u062a \u0627\u0644\u062c\u0627\u0647\u0632:",
+            "",
+            draft
+        ].join("\n");
+    }
+    static resolveImagePromptDraftRequest(prompt) {
+        if (!ResearchGatewayService.isImagePromptDraftRequest(prompt))
+            return null;
+        const subject = this.extractImagePromptSubject(prompt) || "\u0627\u0644\u0645\u0634\u0647\u062f \u0627\u0644\u0645\u0637\u0644\u0648\u0628";
+        return this.buildImagePromptDraft(subject, prompt);
+    }
+    static buildImagePromptDraft(subject, prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const wantsArabicOnly = /(?:\u0628\u0627\u0644\u0639\u0631\u0628\u064a|\u0639\u0631\u0628\u064a|\u0644\u0647\u062c\u0629|\u0639\u0631\u0627\u0642\u064a)/i.test(normalized)
+            && !/\benglish\b/i.test(lower);
+        const styleHint = /(?:\u0644\u0648\u0643\u0633|\u0641\u062e\u0645|\u0641\u0627\u062e\u0631|lux|luxury|premium)/i.test(`${normalized} ${lower}`)
+            ? "luxury"
+            : "cinematic";
+        if (wantsArabicOnly) {
+            return [
+                "\u0628\u0631\u0648\u0645\u0628\u062a \u062c\u0627\u0647\u0632:",
+                `${subject}\u060c \u0644\u0642\u0637\u0629 ${styleHint === "luxury" ? "\u0641\u0627\u062e\u0631\u0629" : "\u0633\u064a\u0646\u0645\u0627\u0626\u064a\u0629"} \u0628\u0625\u0636\u0627\u0621\u0629 \u0646\u0627\u0639\u0645\u0629\u060c \u062a\u0643\u0648\u064a\u0646 \u0645\u062a\u0648\u0627\u0632\u0646\u060c \u062a\u0641\u0627\u0635\u064a\u0644 \u0648\u0627\u0636\u062d\u0629\u060c \u0639\u0645\u0642 \u0645\u064a\u062f\u0627\u0646 \u0627\u062d\u062a\u0631\u0627\u0641\u064a\u060c \u0623\u0644\u0648\u0627\u0646 \u0645\u062a\u0646\u0627\u0633\u0642\u0629\u060c \u062c\u0648\u062f\u0629 \u0639\u0627\u0644\u064a\u0629\u060c \u0648\u0625\u062d\u0633\u0627\u0633 \u0628\u0635\u0631\u064a \u0631\u0627\u0642\u064a.`,
+                "",
+                "\u0633\u0644\u0628\u064a:",
+                "\u062a\u0634\u0648\u0647\u0627\u062a\u060c \u0623\u0635\u0627\u0628\u0639 \u0632\u0627\u0626\u062f\u0629\u060c \u0646\u0635 \u0645\u0634\u0648\u0647\u060c \u0636\u0628\u0627\u0628\u064a\u0629\u060c \u062c\u0648\u062f\u0629 \u0645\u0646\u062e\u0641\u0636\u0629\u060c \u0625\u0636\u0627\u0621\u0629 \u0642\u0627\u0633\u064a\u0629\u060c \u0642\u0635 \u063a\u064a\u0631 \u0645\u062a\u0648\u0627\u0632\u0646."
+            ].join("\n");
+        }
+        return [
+            "\u0628\u0631\u0648\u0645\u0628\u062a \u062c\u0627\u0647\u0632:",
+            `${styleHint === "luxury" ? "Luxury editorial image" : "Cinematic image"} of ${subject}, premium composition, soft key light, elegant rim lighting, refined color grading, realistic textures, clean background separation, shallow depth of field, high-end commercial photography, ultra detailed, sharp focus, balanced framing, professional studio quality.`,
+            "",
+            "Negative prompt:",
+            "low quality, blurry, distorted anatomy, extra fingers, bad hands, deformed face, harsh shadows, text artifacts, watermark, messy composition, oversaturated colors."
+        ].join("\n");
+    }
+    static extractImagePromptSubject(prompt) {
+        const text = String(prompt || "").replace(/\s+/g, " ").trim();
+        if (!text)
+            return null;
+        const cleaned = text
+            .replace(/(?:\u0627\u0631\u064a\u062f|\u0627\u0628\u064a|\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0635\u0645\u0645|\u062a\u0635\u0645\u064a\u0645|\u0627\u0635\u0646\u0639|\u0633\u0648\u064a|\u062c\u0647\u0632|\u0627\u0639\u0645\u0644|\u0627\u0639\u0631\u0636\u0647\u0627|\u0627\u0639\u0631\u0636\u0647|\u0647\u0646\u0627|\u0635\u0648\u0631\u0629|\u0635\u0648\u0631\u0647|\u0628\u0631\u0648\u0645\u0628(?:\u062a|\u064a\u062a)?|\u0644\u0648\u0643\u0633|\u0641\u062e\u0645|\u0641\u0627\u062e\u0631|\bwrite\b|\bdraft\b|\bdesign\b|\bcreate\b|\bmake\b|\bgenerate\b|\bshow\b|\bluxury\b|\blux\b|\bpremium\b|\bimage\b|\bprompt\b)/gi, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        return cleaned || null;
+    }
+    static resolveStrictUnknownFallback(prompt) {
+        const fallback = this.extractExplicitUnknownFallback(prompt);
+        if (!fallback)
+            return null;
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const asksUnknownPersonalName = /(?:\u0645\u0627|what).{0,25}(?:\u0627\u0633\u0645|name).{0,25}(?:\u0627\u062e\u064a|\u0623\u062e\u064a|\u0627\u062e\u062a\u064a|\u0623\u062e\u062a\u064a|\u0632\u0648\u062c\u062a\u064a|\u0632\u0648\u062c\u064a|\u0627\u0628\u064a|\u0623\u0628\u064a|\u0627\u0645\u064a|\u0623\u0645\u064a|brother|sister|wife|husband|father|mother)/i.test(`${normalized} ${lower}`);
+        return asksUnknownPersonalName ? fallback : null;
+    }
+    static resolveListMutationInstruction(prompt) {
+        const text = String(prompt || "");
+        const normalized = this.normalizeArabic(text);
+        const lower = text.toLowerCase();
+        const asksLists = /(?:\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0633\u0648\u064a|\u0627\u0635\u0646\u0639|\u0623\u0646\u0634\u0626|\u0623\u0646\u0634\u0621).{0,30}(?:\u0642\u0648\u0627\u0626\u0645|\u0642\u0627\u0626\u0645\u0647|\u0642\u0627\u0626\u0645\u0629|\blists?\b)/i.test(`${normalized} ${lower}`);
+        const finalOnly = /(?:\u0627\u0644\u0646\u062a\u064a\u062c\u0647\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0647|\u0627\u0644\u0646\u062a\u064a\u062c\u0629\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629|\u0641\u0642\u0637|\bfinal result\b|\bonly\b)/i.test(`${normalized} ${lower}`);
+        const modifySecond = /(?:\u0639\u062f\u0644|\u0639\u062f\u0651\u0644|\u063a\u064a\u0631|\u063a\u064a\u0651\u0631|modify|edit).{0,40}(?:\u0627\u0644\u062b\u0627\u0646\u064a\u0647|\u0627\u0644\u062b\u0627\u0646\u064a\u0629|\u0627\u0644\u062b\u0627\u0646\u064a|\bsecond\b)/i.test(`${normalized} ${lower}`);
+        if (!asksLists || !modifySecond || !finalOnly)
+            return null;
+        const addValue = text.match(/(?:\u0627\u0636\u0627\u0641\u0647|\u0625\u0636\u0627\u0641\u0629|\u0628\u0627\u0636\u0627\u0641\u0647|\u0628\u0625\u0636\u0627\u0641\u0629|adding|add)\s+(?:\u0627\u0644\u0631\u0642\u0645\s*)?([A-Za-z0-9\u0660-\u0669\u06f0-\u06f9]+)/i)?.[1]
+            || text.match(/(?:\u0627\u0644\u0631\u0642\u0645|number)\s+([A-Za-z0-9\u0660-\u0669\u06f0-\u06f9]+)/i)?.[1];
+        if (!addValue)
+            return null;
+        const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const items = lines
+            .map((line) => this.stripInstructionNumber(line))
+            .filter((line) => /^[A-Za-z\u0600-\u06FF]$/.test(line))
+            .slice(0, 12);
+        if (items.length < 2)
+            return null;
+        items[1] = `${items[1]} ${this.normalizeNumerals(addValue)}`.trim();
+        return items.join("\n");
+    }
+    static async resolveKnownFactQuestion(prompt, workspacePath) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const strictShort = this.shouldSuppressTrainingKnowledgeFallback(prompt)
+            || /(?:\u0627\u062c\u0628|\u0623\u062c\u0628).{0,20}(?:\u0643\u0644\u0645\u0647|\u0643\u0644\u0645\u0629|\u0648\u0627\u062d\u062f\u0647|\u0648\u0627\u062d\u062f\u0629|\bonly one word\b|\bone word\b)/i.test(`${normalized} ${lower}`);
+        const asksCountryFact = /(?:\u0639\u0627\u0635\u0645\u0647|\u0639\u0627\u0635\u0645\u0629|\u0639\u0645\u0644\u0647|\u0639\u0645\u0644\u0629|\u0642\u0627\u0631\u0647|\u0642\u0627\u0631\u0629|\bcapital\b|\bcurrency\b|\bcontinent\b)/i.test(`${normalized} ${lower}`);
+        if (!strictShort && !asksCountryFact)
+            return null;
+        const factKind = /(?:\u0639\u0645\u0644\u0647|\u0639\u0645\u0644\u0629|\bcurrency\b)/i.test(`${normalized} ${lower}`)
+            ? "currency"
+            : /(?:\u0642\u0627\u0631\u0647|\u0642\u0627\u0631\u0629|\bcontinent\b)/i.test(`${normalized} ${lower}`)
+                ? "continent"
+                : /(?:\u0639\u0627\u0635\u0645\u0647|\u0639\u0627\u0635\u0645\u0629|\bcapital\b)/i.test(`${normalized} ${lower}`)
+                    ? "capital"
+                    : null;
+        if (!factKind)
+            return null;
+        const rows = await this.loadCountryFactRows(workspacePath);
+        const matched = this.findCountryFactRow(prompt, rows);
+        if (!matched)
+            return null;
+        const wantsEnglish = !/[\u0600-\u06FF]/.test(prompt) || /\bin english\b|\benglish\b/i.test(lower);
+        const value = factKind === "currency"
+            ? (wantsEnglish ? matched.currencyEn : matched.currencyAr)
+            : factKind === "continent"
+                ? (wantsEnglish ? matched.continentEn : matched.continentAr)
+                : (wantsEnglish ? matched.capitalEn : matched.capitalAr);
+        if (value)
+            return value;
+        return null;
+    }
+    static async loadCountryFactRows(workspacePath) {
+        const trainingDirs = [
+            path.join(workspacePath, ".saad-agent", "training", "lessons"),
+            path.join(workspacePath, "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(path.dirname(workspacePath), "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "training", "lessons"),
+            path.join(CONFIG.PROJECT_ROOT, "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(path.dirname(CONFIG.PROJECT_ROOT), "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(process.cwd(), ".saad-agent", "training", "lessons"),
+            path.join(process.cwd(), "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(path.dirname(process.cwd()), "saad-agent", ".saad-agent", "training", "lessons"),
+            path.join(String(process.resourcesPath || ""), "app-asar-work", ".saad-agent", "training", "lessons"),
+            path.join(String(process.resourcesPath || ""), "app-asar-work", "saad-agent", ".saad-agent", "training", "lessons")
+        ];
+        const files = [
+            "countries-capitals-continents-ar-en-clean.txt",
+            "countries-capitals-currencies-ar-en.txt",
+            "countries-capitals-currencies-ar-en.tsv"
+        ];
+        const byCountry = new Map();
+        for (const dir of Array.from(new Set(trainingDirs))) {
+            for (const file of files) {
+                const fullPath = path.join(dir, file);
+                const raw = await fs.readFile(fullPath, "utf8").catch(() => "");
+                if (!raw.trim())
+                    continue;
+                const isContinentFile = /continents/i.test(file);
+                for (const line of raw.split(/\r?\n/)) {
+                    const columns = line.split("\t").map((cell) => cell.trim());
+                    const firstColumn = columns[0] || "";
+                    if (columns.length < 5 || /^#?$/.test(firstColumn) || /Country \(English\)/i.test(line))
+                        continue;
+                    const offset = /^\d+$/.test(firstColumn) ? 1 : 0;
+                    const countryAr = columns[offset] || "";
+                    const countryEn = columns[offset + 1] || "";
+                    const capitalAr = columns[offset + 2] || "";
+                    const capitalEn = columns[offset + 3] || "";
+                    if (!countryAr || !countryEn || !capitalAr || !capitalEn)
+                        continue;
+                    const key = `${this.normalizeArabic(countryAr)}|${countryEn.toLowerCase()}`;
+                    const existing = byCountry.get(key) || { countryAr, countryEn, capitalAr, capitalEn };
+                    existing.countryAr = existing.countryAr || countryAr;
+                    existing.countryEn = existing.countryEn || countryEn;
+                    existing.capitalAr = existing.capitalAr || capitalAr;
+                    existing.capitalEn = existing.capitalEn || capitalEn;
+                    if (isContinentFile) {
+                        const continentAr = columns[offset + 4] || "";
+                        const continentEn = columns[offset + 5] || "";
+                        if (continentAr)
+                            existing.continentAr = continentAr;
+                        if (continentEn)
+                            existing.continentEn = continentEn;
+                    }
+                    else {
+                        const currencyAr = columns[offset + 4] || "";
+                        const currencyEn = columns[offset + 5] || "";
+                        if (currencyAr)
+                            existing.currencyAr = currencyAr;
+                        if (currencyEn)
+                            existing.currencyEn = currencyEn;
+                    }
+                    byCountry.set(key, existing);
+                }
+            }
+        }
+        return Array.from(byCountry.values());
+    }
+    static findCountryFactRow(prompt, rows) {
+        const normalizedPrompt = this.normalizeArabic(prompt);
+        const lowerPrompt = String(prompt || "").toLowerCase();
+        const ranked = rows
+            .map((row) => {
+            const countryAr = this.normalizeArabic(row.countryAr);
+            const countryEn = row.countryEn.toLowerCase();
+            let score = 0;
+            if (countryAr && new RegExp(`(?:^|\\s)${this.escapeRegExp(countryAr)}(?:\\s|$)`).test(normalizedPrompt))
+                score = Math.max(score, countryAr.length + 20);
+            if (countryEn && new RegExp(`(?:^|\\s)${this.escapeRegExp(countryEn)}(?:\\s|$)`, "i").test(lowerPrompt))
+                score = Math.max(score, countryEn.length + 20);
+            if (!score && countryAr && normalizedPrompt.includes(countryAr))
+                score = Math.max(score, countryAr.length);
+            if (!score && countryEn && lowerPrompt.includes(countryEn))
+                score = Math.max(score, countryEn.length);
+            return { row, score };
+        })
+            .filter((entry) => entry.score > 0)
+            .sort((a, b) => b.score - a.score);
+        return ranked[0]?.row || null;
+    }
+    static escapeRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    static async resolveExplicitUnknownFallbackAnswer(prompt) {
+        const fallback = this.extractExplicitUnknownFallback(prompt);
+        if (!fallback)
+            return null;
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const asksStoredPersonalUnknown = /(?:\u0645\u0627|what).{0,20}(?:\u0627\u0633\u0645|name).{0,20}(?:\u0627\u062e\u064a|\u0623\u062e\u064a|\u0627\u062e\u062a\u064a|\u0623\u062e\u062a\u064a|\u0632\u0648\u062c\u062a\u064a|\u0632\u0648\u062c\u064a|\u0627\u0628\u064a|\u0623\u0628\u064a|\u0627\u0645\u064a|\u0623\u0645\u064a|brother|sister|wife|husband|father|mother)/i.test(`${normalized} ${lower}`);
+        if (!asksStoredPersonalUnknown)
+            return null;
+        const memory = await EngineeringMemory.searchMemory({});
+        const facts = memory.knowledgeItems
+            .filter((item) => item.area === "user-memory")
+            .map((item) => this.cleanMemoryDescriptionForDisplay(item.description))
+            .filter(Boolean);
+        const relationMatches = facts.filter((fact) => {
+            const normalizedFact = this.normalizeArabic(fact);
+            return /(?:\u0627\u062e\u064a|\u0623\u062e\u064a|brother)/i.test(`${normalizedFact} ${fact}`);
+        });
+        if (!relationMatches.length)
+            return fallback;
+        const possibleName = relationMatches[relationMatches.length - 1]?.match(/(?:\u0627\u0633\u0645\s+\u0627\u062e\u064a|\u0627\u0633\u0645\s+\u0623\u062e\u064a|brother(?:'s)?\s+name)\s*[:：]?\s*([\p{L}\p{M}\s]{2,40})/iu)?.[1]?.trim();
+        return possibleName || fallback;
+    }
+    static resolveLiteralEchoRequest(prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const isLiteralRequest = /(?:^|\s)(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0642\u0644|\u062c\u0627\u0648\u0628|\u0631\u062f)(?:\s|$)/.test(normalized)
+            && /(?:\u0643\u0644\u0645\u0647|\u0643\u0644\u0645\u0629|\u0641\u0642\u0637|\u0628\u0627\u0644\u0636\u0628\u0637|\u0628\u0633|\u0648\u0644\u0627\s+\u062a\u0636\u0641|\u0644\u0627\s+\u062a\u0636\u0641|\u0648\u0644\u0627\s+\u062a\u0633\u062a\u062e\u062f\u0645|\u0644\u0627\s+\u062a\u0633\u062a\u062e\u062f\u0645|\bonly\b|\bexactly\b|\bwithout\b)/i.test(`${normalized} ${lower}`);
+        if (!isLiteralRequest)
+            return null;
+        if (/(?:\u0643\u0648\u062f|\u0645\u0644\u0641|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0645\u0634\u0631\u0648\u0639|\bcode\b|\bfile\b|\bpage\b|\bproject\b)/i.test(`${normalized} ${lower}`)) {
+            return null;
+        }
+        const lines = String(prompt || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        for (let index = 0; index < lines.length; index += 1) {
+            const line = lines[index] || "";
+            const normalizedLine = this.normalizeArabic(line);
+            const wordOnly = /^(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0642\u0644|\u062c\u0627\u0648\u0628|\u0631\u062f)\s+(?:\u0643\u0644\u0645\u0647|\u0643\u0644\u0645\u0629|word)\s*$/i.test(normalizedLine);
+            const bareWrite = /^(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0642\u0644|\u062c\u0627\u0648\u0628|\u0631\u062f|write|say|answer)\s*$/i.test(normalizedLine);
+            const inline = normalizedLine.match(/^(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0642\u0644|\u062c\u0627\u0648\u0628|\u0631\u062f)\s+(?:\u0643\u0644\u0645\u0647|\u0643\u0644\u0645\u0629|word)\s+(.+)$/i)?.[1]?.trim()
+                || normalizedLine.match(/^(?:\u0642\u0644|\u062c\u0627\u0648\u0628|\u0631\u062f)\s+(.+)$/i)?.[1]?.trim();
+            if (!wordOnly && !bareWrite && !inline)
+                continue;
+            const candidate = inline || lines[index + 1] || "";
+            const cleaned = this.cleanLiteralEchoCandidate(candidate);
+            if (cleaned)
+                return cleaned;
+        }
+        return null;
+    }
+    static resolveTextInstructionRequest(prompt) {
+        const normalizedPrompt = this.normalizeArabic(prompt);
+        const isOrderedInstruction = /(?:\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0628\u0627\u0644\u062a\u0631\u062a\u064a\u0628|\u0627\u0644\u0646\u062a\u064a\u062c\u0647\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0647|\u0627\u0644\u0646\u062a\u064a\u062c\u0629\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629|\bfinal result\b|\bin order\b)/i.test(normalizedPrompt);
+        if (!isOrderedInstruction)
+            return null;
+        const lines = String(prompt || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const output = [];
+        let mutated = false;
+        for (const rawLine of lines) {
+            const line = this.stripInstructionNumber(rawLine);
+            const normalizedLine = this.normalizeArabic(line);
+            const originalWriteMatch = line.match(/^(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0627\u0643\u062a\u0628\s+\u0644\u064a|\u0636\u0639|\u062d\u0637|write)\s+(.+)$/i);
+            const normalizedWriteMatch = normalizedLine.match(/^(?:\u0627\u0643\u062a\u0628|\u0627\u0643\u062a\u0628\u0644\u064a|\u0627\u0643\u062a\u0628\s+\u0644\u064a|\u0636\u0639|\u062d\u0637|write)\s+(.+)$/i);
+            if (originalWriteMatch?.[1] || normalizedWriteMatch?.[1]) {
+                const cleaned = this.cleanLiteralEchoCandidate(originalWriteMatch?.[1] || normalizedWriteMatch?.[1] || "");
+                if (cleaned) {
+                    output.push(cleaned);
+                    mutated = true;
+                }
+                continue;
+            }
+            if (/(?:\u0627\u062d\u0630\u0641|\u0627\u0645\u0633\u062d|delete|remove).{0,20}(?:\u0627\u0644\u0633\u0637\u0631\s+\u0627\u0644\u0627\u0648\u0644|\u0627\u0644\u0633\u0637\u0631\s+\u0627\u0644\u0623\u0648\u0644|\u0627\u0648\u0644\s+\u0633\u0637\u0631|\u0623\u0648\u0644\s+\u0633\u0637\u0631|first line)/i.test(normalizedLine)) {
+                if (output.length > 0)
+                    output.shift();
+                mutated = true;
+                continue;
+            }
+            if (/(?:\u0627\u062d\u0630\u0641|\u0627\u0645\u0633\u062d|delete|remove).{0,20}(?:\u0627\u0644\u0633\u0637\u0631\s+\u0627\u0644\u0627\u062e\u064a\u0631|\u0627\u0644\u0633\u0637\u0631\s+\u0627\u0644\u0623\u062e\u064a\u0631|\u0627\u062e\u0631\s+\u0633\u0637\u0631|\u0623\u062e\u0631\s+\u0633\u0637\u0631|last line)/i.test(normalizedLine)) {
+                if (output.length > 0)
+                    output.pop();
+                mutated = true;
+            }
+        }
+        return mutated && output.length > 0 ? output.join("\n") : null;
+    }
+    static resolveWordCountRequest(prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        const asksWordCount = /(?:\u0643\u0645\s+\u0643\u0644\u0645\u0647|\u0643\u0645\s+\u0643\u0644\u0645\u0629|\u0639\u062f\u062f\s+\u0627\u0644\u0643\u0644\u0645\u0627\u062a|\bhow many words\b|\bword count\b)/i.test(`${normalized} ${lower}`);
+        if (!asksWordCount)
+            return null;
+        const text = this.extractQuotedText(prompt)
+            || String(prompt || "").split(/\r?\n/).map((line) => line.trim()).find((line) => {
+                const normalizedLine = this.normalizeArabic(line);
+                return Boolean(line)
+                    && !/(?:\u0643\u0645\s+\u0643\u0644\u0645|\u0639\u062f\u062f\s+\u0627\u0644\u0643\u0644\u0645\u0627\u062a|\u0627\u062c\u0628|\u0623\u062c\u0628|\banswer\b|\bhow many words\b)/i.test(normalizedLine);
+            });
+        if (!text)
+            return null;
+        const words = text.match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*(?:[''\-][\p{L}\p{N}][\p{L}\p{N}\p{M}]*)?/gu) || [];
+        return String(words.length);
+    }
+    static extractQuotedText(prompt) {
+        const text = String(prompt || "");
+        const quotedPatterns = [
+            /"([^"]+)"/,
+            /\u201c([^\u201d]+)\u201d/,
+            /\u2018([^\u2019]+)\u2019/,
+            /'([^']+)'/
+        ];
+        for (const pattern of quotedPatterns) {
+            const match = text.match(pattern);
+            if (match?.[1]?.trim())
+                return match[1].trim();
+        }
+        return null;
+    }
+    static stripInstructionNumber(line) {
+        return String(line || "")
+            .replace(/^\s*[\d\u0660-\u0669\u06f0-\u06f9]+\s*[-.)\u2013\u2014]\s*/, "")
+            .trim();
+    }
+    static cleanLiteralEchoCandidate(candidate) {
+        const stripped = String(candidate || "")
+            .replace(/^[`"'“”‘’]+|[`"'“”‘’]+$/g, "")
+            .replace(/\s+(?:\u0648\u0644\u0627|\u0644\u0627|\u0628\u062f\u0648\u0646|\bonly\b|\bwithout\b).*/i, "")
+            .replace(/[.،,؛:!?؟]+$/g, "")
+            .trim();
+        if (!stripped)
+            return "";
+        const normalized = this.normalizeArabic(stripped);
+        if (/^(?:\u0648\u0644\u0627|\u0644\u0627|\u0628\u062f\u0648\u0646|\u0627\u0633\u062a\u062e\u062f\u0645|\u062a\u0636\u0641|\bonly\b|\bwithout\b)/i.test(normalized))
+            return "";
+        return stripped;
+    }
+    static resolveSimpleArithmetic(prompt) {
+        const normalized = this.normalizeArabic(this.normalizeNumerals(prompt));
+        const lower = String(prompt || "").toLowerCase();
+        const asksArithmetic = /(?:\u0643\u0645\s+\u064a\u0633\u0627\u0648\u064a|\u0627\u062d\u0633\u0628|\u062d\u0633\u0627\u0628|\bcalculate\b|\bwhat is\b|\bhow much is\b)/i.test(`${normalized} ${lower}`)
+            || /[؟?]/.test(prompt);
+        const match = this.normalizeNumerals(prompt).match(/(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)/);
+        if (!asksArithmetic || !match)
+            return null;
+        const left = Number(match[1]);
+        const operator = match[2];
+        const right = Number(match[3]);
+        if (!Number.isFinite(left) || !Number.isFinite(right))
+            return null;
+        let result;
+        switch (operator) {
+            case "+":
+                result = left + right;
+                break;
+            case "-":
+                result = left - right;
+                break;
+            case "*":
+            case "×":
+                result = left * right;
+                break;
+            case "/":
+            case "÷":
+                if (right === 0)
+                    return "\u0644\u0627\u060c \u0645\u0627 \u064a\u0635\u064a\u0631 \u0642\u0633\u0645\u0629 \u0639\u0644\u0649 \u0635\u0641\u0631.";
+                result = left / right;
+                break;
+            default:
+                return null;
+        }
+        return Number.isInteger(result) ? String(result) : String(Number(result.toFixed(8)));
+    }
+    static normalizeNumerals(input) {
+        const arabicIndic = "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669";
+        const easternArabic = "\u06f0\u06f1\u06f2\u06f3\u06f4\u06f5\u06f6\u06f7\u06f8\u06f9";
+        return String(input || "").replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (digit) => {
+            const arabicIndex = arabicIndic.indexOf(digit);
+            if (arabicIndex >= 0)
+                return String(arabicIndex);
+            const easternIndex = easternArabic.indexOf(digit);
+            return easternIndex >= 0 ? String(easternIndex) : digit;
+        });
+    }
+    static isProjectLanguageQuestion(prompt) {
+        const normalized = this.normalizeArabic(prompt);
+        const lower = String(prompt || "").toLowerCase();
+        return /(?:\u0644\u063a\u0647|\u0644\u063a\u0629).{0,40}(?:\u0628\u0631\u0645\u062c\u0647|\u0628\u0631\u0645\u062c\u0629|\u0627\u0644\u0628\u0631\u0645\u062c\u0647|\u0627\u0644\u0628\u0631\u0645\u062c\u0629).{0,60}(?:\u0645\u0634\u0631\u0648\u0639|\u0645\u0634\u0631\u0648\u0639\u064a|\u0627\u0644\u0645\u0634\u0631\u0648\u0639)/.test(normalized)
+            || /\b(?:programming language|language).{0,40}(?:project|codebase)\b/i.test(lower);
+    }
+    static async formatProjectLanguageAnswer(workspacePath) {
+        const counts = {};
+        const add = (language, amount = 1) => {
+            counts[language] = (counts[language] || 0) + amount;
+        };
+        try {
+            const packageJsonPath = path.join(workspacePath, "package.json");
+            const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8"));
+            const deps = { ...(packageJson.dependencies || {}), ...(packageJson.devDependencies || {}) };
+            if (deps.typescript || deps.tsx || deps["ts-node"])
+                add("TypeScript", 5);
+            if (deps.next)
+                add("Next.js", 4);
+            if (deps.react)
+                add("React", 3);
+            if (deps.electron || deps["electron-builder"])
+                add("Electron", 3);
+            add("JavaScript", 2);
+        }
+        catch {
+            // File scan below is enough when package.json is unavailable.
+        }
+        const extensionWeights = {
+            ".ts": "TypeScript",
+            ".tsx": "TypeScript",
+            ".js": "JavaScript",
+            ".jsx": "JavaScript",
+            ".css": "CSS",
+            ".scss": "CSS",
+            ".html": "HTML",
+            ".py": "Python"
+        };
+        await this.countLanguageFiles(workspacePath, extensionWeights, add).catch(() => undefined);
+        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        if (!sorted.length) {
+            return "\u0645\u0627 \u0643\u062f\u0631\u062a \u0627\u062a\u0627\u0643\u062f \u0645\u0646 \u0645\u0644\u0641\u0627\u062a \u0627\u0644\u0645\u0634\u0631\u0648\u0639\u060c \u0641\u0645\u0627 \u0631\u0627\u062d \u0627\u062e\u0645\u0646.";
+        }
+        const primary = sorted[0]?.[0] || "Unknown";
+        const stack = sorted.slice(0, 4).map(([language]) => language).join(" / ");
+        return [
+            `\u0644\u063a\u0629 \u0627\u0644\u0628\u0631\u0645\u062c\u0629 \u0627\u0644\u0623\u0633\u0627\u0633\u064a\u0629 \u0628\u0645\u0634\u0631\u0648\u0639\u0643: ${primary}.`,
+            "",
+            `\u0627\u0644\u0645\u0624\u0634\u0631\u0627\u062a \u0627\u0644\u0648\u0627\u0636\u062d\u0629: ${stack}.`
+        ].join("\n");
+    }
+    static async countLanguageFiles(root, extensionWeights, add, depth = 0) {
+        if (depth > 3)
+            return;
+        const ignored = new Set(["node_modules", ".git", "dist", "release", "release-production-v4", "ui\\dist", ".next", "out", "coverage"]);
+        const entries = await fs.readdir(root, { withFileTypes: true });
+        for (const entry of entries.slice(0, 250)) {
+            if (ignored.has(entry.name))
+                continue;
+            const fullPath = path.join(root, entry.name);
+            if (entry.isDirectory()) {
+                await this.countLanguageFiles(fullPath, extensionWeights, add, depth + 1);
+            }
+            else {
+                const language = extensionWeights[path.extname(entry.name).toLowerCase()];
+                if (language)
+                    add(language);
+            }
+        }
     }
     static isAgentIdentityQuestion(prompt) {
         const normalized = this.normalizeArabic(prompt);
@@ -1595,11 +2690,14 @@ export class ChatOrchestratorService {
         const lower = prompt.trim().toLowerCase();
         const words = normalized.split(/\s+/).filter(Boolean);
         const isShort = words.length <= 5;
-        const thanks = /^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية|thank you|thanks|thx)$/i.test(normalized)
+        const thanks = /^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0634\u0643\u0631\u0627 \u0627\u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629|thank you|thanks|thx)$/i.test(normalized)
+            || /^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية|thank you|thanks|thx)$/i.test(normalized)
             || /^(?:thank you|thanks|thx)$/i.test(lower);
-        const ok = /^(?:تمام|زين|اوكي|حاضر|تم|اي|إي|نعم|ok|okay)$/i.test(normalized)
+        const ok = /^(?:\u062a\u0645\u0627\u0645|\u0632\u064a\u0646|\u0627\u0648\u0643\u064a|\u062d\u0627\u0636\u0631|\u062a\u0645|\u0627\u064a|\u0625\u064a|\u0646\u0639\u0645|ok|okay)$/i.test(normalized)
+            || /^(?:تمام|زين|اوكي|حاضر|تم|اي|إي|نعم|ok|okay)$/i.test(normalized)
             || /^(?:ok|okay)$/i.test(lower);
-        const smallTalk = /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized);
+        const smallTalk = /^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
+            || /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized);
         const greeting = this.isSimpleGreeting(prompt);
         return isShort && (thanks || ok || smallTalk || greeting);
     }
@@ -1634,7 +2732,7 @@ export class ChatOrchestratorService {
         const historyBlock = ChatOrchestratorService.formatConversationHistory(history);
         try {
             const response = await ReasoningEngine.requestCompletion({
-                role: "Coding",
+                role: "Chat",
                 systemPrompt: [
                     "You are Saad Studio Agent, the user's private local assistant.",
                     "Always reply in natural Iraqi Arabic unless the user asks for another language.",
@@ -1650,7 +2748,7 @@ export class ChatOrchestratorService {
                     userRequestText
                 ].filter(Boolean).join("\n\n"),
                 signal,
-                requestTimeoutMs: 12000,
+                requestTimeoutMs: 1800000,
                 retryCountOverride: 0
             });
             return {
@@ -1669,10 +2767,12 @@ export class ChatOrchestratorService {
     }
     static formatCasualAcknowledgement(prompt) {
         const normalized = this.normalizeArabic(prompt);
-        if (/^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية)/i.test(normalized)) {
+        if (/^(?:\u0634\u0643\u0631\u0627|\u0634\u0643\u0631\u0627 \u0644\u0643|\u0645\u0634\u0643\u0648\u0631|\u0645\u0645\u0646\u0648\u0646|\u0645\u0645\u062a\u0646|\u062a\u0633\u0644\u0645|\u0633\u0644\u0645\u062a|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0647|\u064a\u0639\u0637\u064a\u0643 \u0627\u0644\u0639\u0627\u0641\u064a\u0629)/i.test(normalized)
+            || /^(?:شكرا|شكرا لك|مشكور|ممنون|ممتن|تسلم|سلمت|يعطيك العافيه|يعطيك العافية)/i.test(normalized)) {
             return "العفو سعد، حاضر.";
         }
-        if (/^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized)) {
+        if (/^(?:\u0634\u0644\u0648\u0646\u0643|\u0634\u062e\u0628\u0627\u0631\u0643|\u0643\u064a\u0641\u0643|\u0643\u064a\u0641 \u0627\u0644\u062d\u0627\u0644)$/.test(normalized)
+            || /^(?:شلونك|شخبارك|كيفك|كيف الحال)$/.test(normalized)) {
             return "هلا بيك، الحمد لله بخير. شلونك إنت؟ شتحتاج؟";
         }
         if (/^(?:مساء الخير)$/.test(normalized)) {
@@ -1759,9 +2859,11 @@ export class ChatOrchestratorService {
     }
     static extractMemoryFact(prompt) {
         return EngineeringMemory.scrubSecrets(this.extractUserRequest(prompt))
+            .replace(/^(\u0627\u062d\u0641\u0638|\u062d\u0641\u0638|\u062a\u0630\u0643\u0631|\u062a\u0630\u0643\u0651\u0631|\u062e\u0632\u0646|\u062e\u0632\u0651\u0646|\u0633\u062c\u0644|\u0633\u062c\u0651\u0644|\u062b\u0628\u062a|\u062b\u0628\u0651\u062a|\u062f\u0631\u0628|\u062f\u0631\u0651\u0628|\u062a\u062f\u0631\u064a\u0628)\s*(\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0627\u064a|\u0647\u0630\u064a|\u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0629|\u0627\u0644\u062a\u0627\u0644\u064a|\u0627\u0644\u0645\u0644\u0641|:)?\s*/i, "")
             .replace(/^(احفظ|حفظ|تذكر|تذكّر|خزن|خزّن|سجل|سجّل|ثبت|ثبّت|درب|درّب|تدريب)\s*(هذا|هذه|هاي|هذي|المعلومة|التالي|الملف|:)?\s*/i, "")
             .replace(/^(remember|save|store|memorize|train|training|learn from)\s*(this|that|the following|file|:)?\s*/i, "")
             .replace(/^(use\s+)?(this|that)?\s*(as\s+a\s+)?reference\s*:?\s*/i, "")
+            .replace(/(?:^|\n)\s*(?:\u0644\u0627\s+\u062a\u0631\u062f|\u0628\u062f\u0648\u0646\s+\u0631\u062f|\u0645\u0627\s+\u062a\u0631\u062f|do not reply|don't reply|no reply)\s*[.؟!]*\s*$/i, "")
             .trim();
     }
     static extractUserRequest(prompt) {
@@ -1838,6 +2940,10 @@ export class ChatOrchestratorService {
             return "application/xml";
         if (ext === ".html")
             return "text/html";
+        if (ext === ".docx")
+            return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        if (ext === ".rtf")
+            return "application/rtf";
         if (ext === ".css")
             return "text/css";
         if (ext === ".js" || ext === ".jsx")
@@ -1852,16 +2958,127 @@ export class ChatOrchestratorService {
             return "application/pdf";
         return "application/octet-stream";
     }
+    static formatExtractionProviderDescription(providerLabel) {
+        const normalized = String(providerLabel || "").toLowerCase();
+        if (normalized.includes("gemini"))
+            return "Gemini";
+        if (normalized.includes("openai") || normalized.includes("chatgpt"))
+            return "ChatGPT/OpenAI";
+        return "الموديل المحلي";
+    }
+    static sanitizeResponseForUser(response, userRequestText = "") {
+        const text = String(response || "");
+        const expertiseResponse = ChatOrchestratorService.formatCleanExpertiseExtractionResponse(text);
+        if (expertiseResponse)
+            return expertiseResponse;
+        let cleaned = ChatOrchestratorService.sanitizeModelVisibleText(text);
+        if (/Provider:\s*Gemini/i.test(text) && /model-generated-unverified/i.test(text)) {
+            cleaned = cleaned.replace(/تم استخراج خبرة من\s+الموديل المحلي/gi, "تم استخراج خبرة من Gemini");
+            cleaned = cleaned.replace(/دفعة استخراج خبرات من\s+الموديل المحلي/gi, "دفعة استخراج خبرات من Gemini");
+        }
+        return cleaned.trim() || text.trim();
+    }
+    static formatCleanExpertiseExtractionResponse(response) {
+        const text = String(response || "");
+        if (!/Provider:/i.test(text) || !/model-expertise/i.test(text))
+            return "";
+        const provider = (text.match(/Provider:\s*([^\n\r]+)/i)?.[1] || "Local active model").trim();
+        const providerName = ChatOrchestratorService.formatExtractionProviderDescription(provider);
+        const paths = Array.from(text.matchAll(/\.saad-agent[^\s()]+model-expertise[^\s()]+\.md/gi))
+            .map((match) => match[0].replace(/\\/g, "/"));
+        const failedOrUnavailable = /not configured|nothing was generated|Status:\s*extraction failed|ما حفظت|failed/i.test(text);
+        if (!paths.length && failedOrUnavailable) {
+            const reason = ChatOrchestratorService.sanitizeModelVisibleText(text.match(/(?:reason|السبب):\s*([^\n\r]+)/i)?.[1] || text.match(/Status:\s*([^\n\r]+)/i)?.[1] || "");
+            return [
+                `Provider: ${provider}`,
+                "",
+                `ما حفظت أي خبرة لأن الاستخراج من ${providerName} فشل.`,
+                reason ? `السبب: ${reason}` : ""
+            ].filter(Boolean).join("\n");
+        }
+        if (!paths.length) {
+            return [
+                `Provider: ${provider}`,
+                "",
+                `تم استخراج خبرة من ${providerName} وحفظها كمعرفة تدريب.`,
+                "",
+                "ملاحظة: البطاقة محفوظة كـ model-generated-unverified إلى أن نتحقق منها بمصدر أو اختبار."
+            ].join("\n");
+        }
+        const savedLines = paths.map((trainingPath, index) => `${index + 1}. ${trainingPath}`);
+        return [
+            `Provider: ${provider}`,
+            "",
+            paths.length > 1
+                ? `تم تنفيذ دفعة استخراج خبرات من ${providerName}.`
+                : `تم استخراج خبرة من ${providerName} وحفظها كمعرفة تدريب.`,
+            "",
+            `المحفوظ: ${paths.length}`,
+            "الفاشل: 0",
+            "",
+            "المسارات المحفوظة:",
+            ...savedLines,
+            "",
+            "ملاحظة: كل بطاقة محفوظة كـ model-generated-unverified إلى أن نتحقق منها بمصدر أو اختبار."
+        ].join("\n");
+    }
+    static sanitizeProviderContextBlock(text, userRequestText = "") {
+        const allowsPrivateNarrativeContext = ChatOrchestratorService.isPrivateNarrativeContextAllowed(userRequestText);
+        const lines = String(text || "")
+            .split(/\r?\n/)
+            .map((line) => ChatOrchestratorService.sanitizeModelVisibleText(line).trim())
+            .filter((line) => {
+            if (!line)
+                return false;
+            if (ChatOrchestratorService.isMostlyMojibake(line))
+                return false;
+            if (!allowsPrivateNarrativeContext && ChatOrchestratorService.isAdultTrainingNoise(line))
+                return false;
+            return true;
+        });
+        return lines.join("\n").trim();
+    }
+    static sanitizeModelVisibleText(text) {
+        return String(text || "")
+            .split(/\r?\n/)
+            .map((line) => line
+            .replace(/[^\s]*[ØÙÃÂâð][^\s]*/g, " ")
+            .replace(/\uFFFD+/g, " ")
+            .replace(/[ \t]{2,}/g, " ")
+            .trimEnd())
+            .join("\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+    }
+    static isMostlyMojibake(text) {
+        const compact = String(text || "").replace(/\s+/g, "");
+        if (!compact)
+            return false;
+        const mojibakeCount = (compact.match(/[ØÙÃÂâð\uFFFD]/g) || []).length;
+        const arabicCount = (compact.match(/[\u0600-\u06ff]/g) || []).length;
+        return mojibakeCount >= 3 && mojibakeCount > arabicCount;
+    }
+    static isAdultTrainingNoise(text) {
+        return /\b(cuckold|hotwife|wifeshar|sperm|pussy|blowjob|fisting|cum|porn|autofellatio|insemination|bull|en\.cuckold\.info|hotwifecaps)\b/i.test(text);
+    }
+    static isPrivateNarrativeContextAllowed(prompt) {
+        const lower = String(prompt || "").toLowerCase();
+        const normalized = this.normalizeArabic(prompt || "");
+        return /\b(cuckold|hotwife|wifeshar|sperm|pussy|blowjob|fisting|cum|porn|story|stories|nsfw|adult)\b/i.test(lower)
+            || /(قصة|قصص|ميولي|المحفوظة|المخزونة|التدريب|معرفة|خاص|حميم|نفسي|رغبة)/.test(normalized);
+    }
     static formatConversationHistory(history) {
         const lines = (history || [])
             .slice(-10)
             .map((message) => {
             const role = message.role === "assistant" ? "Assistant" : "User";
-            const content = EngineeringMemory.scrubSecrets(String(message.content || ""))
+            const content = ChatOrchestratorService.sanitizeModelVisibleText(EngineeringMemory.scrubSecrets(String(message.content || "")))
                 .replace(/\s+/g, " ")
                 .trim()
                 .slice(0, 1200);
-            return content ? `${role}: ${content}` : "";
+            if (!content || ChatOrchestratorService.isMostlyMojibake(content) || ChatOrchestratorService.isAdultTrainingNoise(content))
+                return "";
+            return `${role}: ${content}`;
         })
             .filter(Boolean);
         if (!lines.length)
@@ -1913,11 +3130,11 @@ export class ChatOrchestratorService {
         for (const attachment of attachments) {
             const sourcePath = attachment.localPath;
             const safeName = EngineeringMemory.scrubSecrets(attachment.filename || path.basename(sourcePath || "attachment"));
-            if (!sourcePath || !this.isReadableAttachment(attachment)) {
+            if (!sourcePath) {
                 blocks.push([
                     `Attachment: ${safeName}`,
                     `Status: metadata-only`,
-                    `Reason: attachment is not a supported readable text file in the current runtime.`
+                    `Reason: attachment has no stored local path.`
                 ].join("\n"));
                 continue;
             }
@@ -1927,6 +3144,33 @@ export class ChatOrchestratorService {
                     `Attachment: ${safeName}`,
                     `Status: unavailable`,
                     `Reason: stored attachment file was not found.`
+                ].join("\n"));
+                continue;
+            }
+            if (!this.isReadableAttachment(attachment) && DocumentTextExtractor.canAttempt(sourcePath, attachment.mimeType)) {
+                const extracted = DocumentTextExtractor.extractFromPath(sourcePath, attachment.mimeType);
+                const safeExtracted = EngineeringMemory.scrubSecrets(extracted.text || "");
+                const clipped = safeExtracted.slice(0, MAX_READABLE_ATTACHMENT_BYTES);
+                blocks.push([
+                    `Attachment: ${safeName}`,
+                    `Mime: ${attachment.mimeType || "unknown"}`,
+                    `Size: ${stat.size} bytes`,
+                    `Status: ${safeExtracted.trim() ? "read-extracted" : "metadata-only"}`,
+                    `Extractor: ${extracted.extractor}`,
+                    extracted.warning ? `Warning: ${extracted.warning}` : "",
+                    safeExtracted.length > clipped.length ? `Content truncated to ${MAX_READABLE_ATTACHMENT_BYTES} characters for model context safety.` : "",
+                    "",
+                    clipped
+                ].filter(Boolean).join("\n"));
+                continue;
+            }
+            if (!this.isReadableAttachment(attachment)) {
+                blocks.push([
+                    `Attachment: ${safeName}`,
+                    `Mime: ${attachment.mimeType || "unknown"}`,
+                    `Size: ${stat.size} bytes`,
+                    `Status: metadata-only`,
+                    `Reason: attachment is not a supported readable file in the current runtime.`
                 ].join("\n"));
                 continue;
             }

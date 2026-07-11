@@ -52,6 +52,25 @@ export class ModelClient {
       || /127\.0\.0\.1:(1234|32768)/i.test(baseUrl);
   }
 
+  private static isGeminiRuntime(runtime: ModelRuntimeOptions | undefined): boolean {
+    const providerId = runtime?.provider?.id?.toLowerCase() || "";
+    const providerName = runtime?.provider?.name?.toLowerCase() || "";
+    return providerId === "gemini" || providerName.includes("gemini");
+  }
+
+  private static normalizeGeminiBaseUrl(baseUrl: string): string {
+    const normalized = this.normalizeHost(baseUrl || "https://generativelanguage.googleapis.com/v1beta");
+    return normalized || "https://generativelanguage.googleapis.com/v1beta";
+  }
+
+  private static buildGeminiGenerateUrl(baseUrl: string, modelName: string, apiKey: string): string {
+    const base = this.normalizeGeminiBaseUrl(baseUrl);
+    const modelId = String(modelName || "gemini-2.0-flash").replace(/^models\//i, "");
+    const url = new URL(`${base}/models/${encodeURIComponent(modelId)}:generateContent`);
+    url.searchParams.set("key", apiKey);
+    return url.toString();
+  }
+
   private static buildChatEndpoints(baseUrl: string, isLmStudio: boolean): ChatEndpointCandidate[] {
     const normalized = this.normalizeHost(baseUrl);
     const openAIBase = this.normalizeOpenAIBaseUrl(baseUrl);
@@ -76,6 +95,16 @@ export class ModelClient {
   }
 
   private static extractText(payload: any): string {
+    const geminiParts = payload?.candidates?.[0]?.content?.parts;
+    if (Array.isArray(geminiParts)) {
+      const geminiText = geminiParts
+        .map((part: any) => typeof part?.text === "string" ? part.text : "")
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+      if (geminiText) return geminiText;
+    }
+
     const content = payload?.choices?.[0]?.message?.content
       ?? payload?.choices?.[0]?.text
       ?? payload?.output?.[0]?.content
@@ -190,12 +219,81 @@ export class ModelClient {
     return content;
   }
 
+  private static async postGeminiGenerateContent(
+    systemPrompt: string,
+    userParts: any[],
+    modelName: string,
+    runtime?: ModelRuntimeOptions
+  ): Promise<string> {
+    const rawBaseUrl = runtime?.provider?.endpointUrl || "https://generativelanguage.googleapis.com/v1beta";
+    const apiKey = runtime?.apiKey;
+    if (!apiKey) {
+      throw new Error("Gemini API key is required for Gemini provider requests.");
+    }
+
+    const generationConfig: any = {
+      temperature: runtime?.model?.temperature ?? CONFIG.TEMPERATURE,
+    };
+    const maxTokens = runtime?.model?.maxTokens;
+    if (typeof maxTokens === "number" && maxTokens > 0) {
+      generationConfig.maxOutputTokens = maxTokens;
+    }
+
+    const body: any = {
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents: [
+        {
+          role: "user",
+          parts: userParts,
+        },
+      ],
+      generationConfig,
+    };
+
+    const url = this.buildGeminiGenerateUrl(rawBaseUrl, modelName, apiKey);
+    const response = await this.fetchWithRuntime(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }, runtime);
+
+    const payload = await this.readJsonOrText(response);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}: ${JSON.stringify(payload).slice(0, 240)}`);
+    }
+
+    const content = this.extractText(payload);
+    if (!content) {
+      throw new Error(`Gemini returned no message content: ${JSON.stringify(payload).slice(0, 240)}`);
+    }
+    return content;
+  }
+
+  private static parseDataUrlImage(imageUrl: string): { mimeType: string; data: string } | null {
+    const match = String(imageUrl || "").match(/^data:([^;,]+);base64,(.+)$/);
+    if (!match) return null;
+    const mimeType = match[1];
+    const data = match[2];
+    if (!mimeType || !data) return null;
+    return { mimeType, data };
+  }
+
   static async chatCompletion(
     systemPrompt: string,
     userPrompt: string,
     modelName: string,
     runtime?: ModelRuntimeOptions
   ): Promise<string> {
+    if (this.isGeminiRuntime(runtime)) {
+      try {
+        return await this.postGeminiGenerateContent(systemPrompt, [{ text: userPrompt }], modelName, runtime);
+      } catch (err: any) {
+        throw new Error(`Failed to contact Gemini provider: ${err.message}`);
+      }
+    }
+
     const isLms = CONFIG.PROVIDER === "lm-studio";
     const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
     const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);
@@ -238,6 +336,21 @@ export class ModelClient {
     imageUrl: string,
     runtime?: ModelRuntimeOptions
   ): Promise<string> {
+    if (this.isGeminiRuntime(runtime)) {
+      try {
+        const image = this.parseDataUrlImage(imageUrl);
+        if (!image) {
+          throw new Error("Gemini multimodal currently supports data URL images only.");
+        }
+        return await this.postGeminiGenerateContent(systemPrompt, [
+          { text: userPrompt },
+          { inline_data: { mime_type: image.mimeType, data: image.data } },
+        ], modelName, runtime);
+      } catch (err: any) {
+        throw new Error(`Failed to contact Gemini provider: ${err.message}`);
+      }
+    }
+
     const isLms = CONFIG.PROVIDER === "lm-studio";
     const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
     const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);

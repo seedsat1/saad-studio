@@ -550,5 +550,23 @@
     "timestamp": "2026-07-10T00:02:45.893Z",
     "filesIndexed": 9,
     "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-10T00:28:16.379Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-10T00:28:16.453Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-10T00:28:16.554Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
   }
 ]

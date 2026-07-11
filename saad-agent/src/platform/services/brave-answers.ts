@@ -8,6 +8,19 @@ export interface BraveAnswersResult {
   cacheHit: boolean;
 }
 
+export interface BraveImageResult {
+  query: string;
+  images: Array<{
+    title: string;
+    sourcePageUrl: string;
+    imageUrl: string;
+    thumbnailUrl: string;
+    snippet: string;
+  }>;
+  latencyMs: number;
+  cacheHit: boolean;
+}
+
 export type BraveAnswersErrorCode =
   | "provider_disabled"
   | "api_key_missing"
@@ -26,6 +39,7 @@ export class BraveAnswersError extends Error {
 
 export class BraveAnswersService {
   private static cache = new Map<string, { result: BraveAnswersResult; timestamp: number }>();
+  private static imageCache = new Map<string, { result: BraveImageResult; timestamp: number }>();
   private static CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
   static requiresInternet(prompt: string): boolean {
@@ -195,6 +209,143 @@ ${parsedError}`;
       throw err;
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  static async queryImages(searchQuery: string, options: { count?: number } = {}): Promise<BraveImageResult> {
+    const cleanQuery = `image:${searchQuery.trim().toLowerCase()}`;
+    const now = Date.now();
+
+    const cached = this.imageCache.get(cleanQuery);
+    if (cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+      return { ...cached.result, cacheHit: true };
+    }
+
+    const settings = await SettingsManager.getSettings();
+    const provider = settings.providers.find((p) => p.id === "brave-answers");
+
+    if (!provider || !provider.enabled) {
+      throw new BraveAnswersError(
+        "provider_disabled",
+        "Brave Answers provider is disabled or missing in Settings."
+      );
+    }
+
+    const apiKey = await SettingsManager.getProviderApiKey(provider);
+    if (!apiKey) {
+      throw new BraveAnswersError(
+        "api_key_missing",
+        "Brave Answers API key is missing. Add it in Settings > Providers > Brave Answers."
+      );
+    }
+
+    const baseUrl = this.resolveImageSearchEndpoint(provider.endpointUrl);
+    const start = Date.now();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+
+    const headers: Record<string, string> = {
+      "Accept": "application/json",
+      "X-Subscription-Token": apiKey,
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SaadAgent/1.0",
+    };
+
+    const finalQuery = searchQuery.replace(/["'ï¿½ï¿½ï¿½ï¿½]/g, "").trim();
+    const url = new URL(baseUrl);
+    url.searchParams.set("q", finalQuery);
+    url.searchParams.set("count", String(Math.min(Math.max(options.count || 12, 1), 20)));
+    url.searchParams.set("safesearch", "strict");
+
+    try {
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers,
+        signal: controller.signal,
+      });
+      const latencyMs = Date.now() - start;
+      const text = await res.text();
+
+      if (!res.ok) {
+        let detail = text.slice(0, 1000);
+        try {
+          const parsed = JSON.parse(text);
+          detail = JSON.stringify(parsed, null, 2);
+        } catch {}
+        throw new BraveAnswersError(
+          "request_failed",
+          `Brave Image Search failed with HTTP ${res.status}: ${detail}`
+        );
+      }
+
+      let payload: any;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        throw new BraveAnswersError("request_failed", "Brave Image Search returned invalid JSON.");
+      }
+
+      const rows = Array.isArray(payload?.results)
+        ? payload.results
+        : Array.isArray(payload?.images?.results)
+          ? payload.images.results
+          : Array.isArray(payload?.image?.results)
+            ? payload.image.results
+            : [];
+
+      const images = rows
+        .map((item: any) => this.normalizeImageResult(item))
+        .filter((item: any): item is BraveImageResult["images"][number] => Boolean(item))
+        .slice(0, Math.min(Math.max(options.count || 12, 1), 20));
+
+      const result: BraveImageResult = {
+        query: searchQuery,
+        images,
+        latencyMs,
+        cacheHit: false,
+      };
+      this.imageCache.set(cleanQuery, { result, timestamp: now });
+      return result;
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        throw new BraveAnswersError("timeout", "Brave Image Search request timed out.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private static resolveImageSearchEndpoint(endpointUrl?: string): string {
+    if (!endpointUrl) return "https://api.search.brave.com/res/v1/images/search";
+    return endpointUrl
+      .replace(/\/res\/v1\/web\/search(?:\?.*)?$/i, "/res/v1/images/search")
+      .replace(/\/res\/v1\/chat\/completions(?:\?.*)?$/i, "/res/v1/images/search");
+  }
+
+  private static normalizeImageResult(item: any): BraveImageResult["images"][number] | null {
+    const title = String(item?.title || item?.source || item?.url || "Image result").trim();
+    const sourcePageUrl = String(item?.url || item?.meta_url?.url || item?.source?.url || "").trim();
+    const imageUrl = String(item?.properties?.url || item?.image_url || item?.thumbnail?.original || item?.thumbnail?.src || "").trim();
+    const thumbnailUrl = String(item?.thumbnail?.src || item?.thumbnail?.original || item?.properties?.placeholder || imageUrl || "").trim();
+    const snippet = String(item?.description || item?.snippet || item?.source || "").trim();
+
+    if (!this.isHttpUrl(thumbnailUrl)) return null;
+
+    return {
+      title,
+      sourcePageUrl: this.isHttpUrl(sourcePageUrl) ? sourcePageUrl : imageUrl,
+      imageUrl: this.isHttpUrl(imageUrl) ? imageUrl : thumbnailUrl,
+      thumbnailUrl,
+      snippet,
+    };
+  }
+
+  private static isHttpUrl(value: string): boolean {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
     }
   }
 

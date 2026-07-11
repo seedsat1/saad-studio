@@ -4,7 +4,7 @@ import { EventBus } from "./event-bus.js";
 import { CONFIG } from "../../config.js";
 import { SettingsManager } from "../../production/settings-manager.js";
 
-export type ModelRole = "Coding" | "Vision" | "Reviewer" | "Fast";
+export type ModelRole = "Chat" | "Coding" | "Vision" | "Reviewer" | "Fast";
 
 export interface ReasoningRequest {
   role: ModelRole;
@@ -27,7 +27,7 @@ export interface ReasoningResponse {
 export class ReasoningEngine {
   static async requestCompletion(request: ReasoningRequest): Promise<ReasoningResponse> {
     const runtime = await SettingsManager.getModelRuntime(request.role);
-    const modelName = runtime.model.modelName || CONFIG.ROLES[request.role];
+    const modelName = runtime.model.modelName || (CONFIG.ROLES as Record<string, string | undefined>)[request.role] || CONFIG.ROLES.Coding;
     if (!modelName) {
       throw new Error(`Model role "${request.role}" is not configured in CONFIG.ROLES`);
     }

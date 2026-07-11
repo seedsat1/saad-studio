@@ -1,6 +1,7 @@
+import assert from "assert";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { WorkspaceManager, getGlobalAppDataDir } from "./platform/workspace-manager.js";
+import { WorkspaceManager } from "./platform/workspace-manager.js";
 import { PROJECT_ROOT, CONFIG } from "./config.js";
 
 async function runTests() {
@@ -8,83 +9,82 @@ async function runTests() {
 
   const tempRoot = path.join(process.cwd(), "temp-test-workspace");
   const nestedFolder = path.join(tempRoot, "my-project");
+  const appDataRoot = path.join(tempRoot, "app-data");
+  const oldSettingsRoot = process.env["SAAD_AGENT_SETTINGS_ROOT"];
 
   try {
-    // Cleanup any previous runs
+    process.env["SAAD_AGENT_SETTINGS_ROOT"] = appDataRoot;
     await fs.rm(tempRoot, { recursive: true, force: true });
     await fs.mkdir(nestedFolder, { recursive: true });
 
-    // Step 1: Validate invalid workspace footprint
-    console.log("\n--- Step 1: Validating invalid workspace footprint ---");
+    console.log("\n--- Step 1: Validating accessible workspace folder ---");
     const val1 = await WorkspaceManager.validateWorkspace(nestedFolder);
-    console.log("Valid (should be false):", val1.valid);
-    console.log("Error (should exist):", val1.error);
+    console.log("Valid accessible folder:", val1.valid);
+    assert.strictEqual(val1.valid, true);
 
-    // Step 2: Validate valid workspace footprint
-    console.log("\n--- Step 2: Validating valid workspace footprint ---");
-    // Create package.json to make it valid
+    console.log("\n--- Step 2: Validating populated workspace footprint ---");
     await fs.writeFile(path.join(nestedFolder, "package.json"), "{}", "utf8");
     const val2 = await WorkspaceManager.validateWorkspace(nestedFolder);
-    console.log("Valid (should be true):", val2.valid);
-    console.log("Error (should be undefined):", val2.error);
+    console.log("Valid populated folder:", val2.valid);
+    assert.strictEqual(val2.valid, true);
 
-    // Step 3: Initialize workspace structures
     console.log("\n--- Step 3: Initializing workspace directories ---");
     await WorkspaceManager.initializeWorkspace(nestedFolder);
-    
-    // Check directories exist
     const subfolders = ["knowledge", "memory", "checkpoints", "history", "logs"];
     for (const folder of subfolders) {
       const exists = await fs.access(path.join(nestedFolder, ".saad-agent", folder))
         .then(() => true)
         .catch(() => false);
       console.log(`Directory .saad-agent/${folder} created:`, exists);
+      assert.strictEqual(exists, true);
     }
 
-    // Step 4: Handle corrupted workspace databases
     console.log("\n--- Step 4: Handling corrupted workspace databases ---");
     const memoryPath = path.join(nestedFolder, ".saad-agent", "knowledge", "memory.json");
-    await fs.writeFile(memoryPath, "{ invalid-json }", "utf8"); // corrupt file
-    
-    try {
-      await WorkspaceManager.initializeWorkspace(nestedFolder);
-      console.log("Initialization did NOT throw error on corruption (Test FAILED)");
-    } catch (err: any) {
-      console.log("Correctly caught corruption error:", err.message.includes("corrupted"));
-    }
+    await fs.writeFile(memoryPath, "{ invalid-json }", "utf8");
+    await assert.rejects(
+      () => WorkspaceManager.initializeWorkspace(nestedFolder),
+      /corrupted/
+    );
+    console.log("Correctly caught corruption error: true");
 
-    // Step 5: Switch active workspace & save sessions
     console.log("\n--- Step 5: Switching active workspace and saving sessions ---");
-    // Re-initialize as clean first
     await fs.writeFile(memoryPath, "{}", "utf8");
-    
     const oldRoot = PROJECT_ROOT;
     await WorkspaceManager.switchWorkspace(nestedFolder);
-    
-    console.log("Active PROJECT_ROOT updated:", PROJECT_ROOT === path.resolve(nestedFolder).replace(/\\/g, "/"));
-    console.log("CONFIG.PROJECT_ROOT resolves to new root:", CONFIG.PROJECT_ROOT === PROJECT_ROOT);
+    const normalized = path.resolve(nestedFolder).replace(/\\/g, "/");
 
-    // Step 6: Verify global config caches and recent list
+    console.log("Active PROJECT_ROOT updated:", PROJECT_ROOT === normalized);
+    console.log("CONFIG.PROJECT_ROOT resolves to new root:", CONFIG.PROJECT_ROOT === PROJECT_ROOT);
+    assert.strictEqual(PROJECT_ROOT, normalized);
+    assert.strictEqual(CONFIG.PROJECT_ROOT, PROJECT_ROOT);
+
     console.log("\n--- Step 6: Verifying global AppData caches ---");
     const globalConfig = await WorkspaceManager.loadGlobalConfig();
     console.log("Last active workspace saved:", globalConfig.lastActiveWorkspace === PROJECT_ROOT);
+    assert.strictEqual(globalConfig.lastActiveWorkspace, PROJECT_ROOT);
 
     const recent = await WorkspaceManager.loadRecentWorkspaces();
-    const recentEntry = recent.workspaces.find(w => w.path === PROJECT_ROOT);
+    const recentEntry = recent.workspaces.find((item) => item.path === PROJECT_ROOT);
     console.log("Workspace added to recent list:", !!recentEntry);
     console.log("Recent workspace name:", recentEntry?.name);
+    assert.ok(recentEntry);
 
-    // Clean up config changes
     globalConfig.lastActiveWorkspace = oldRoot;
     await WorkspaceManager.saveGlobalConfig(globalConfig);
 
-    console.log("\n✅ All Workspace System tests completed successfully!");
-  } catch (err) {
-    console.error("Test execution failed:", err);
+    console.log("\nAll Workspace System tests passed.");
   } finally {
-    // Cleanup local test directories
+    if (oldSettingsRoot === undefined) {
+      delete process.env["SAAD_AGENT_SETTINGS_ROOT"];
+    } else {
+      process.env["SAAD_AGENT_SETTINGS_ROOT"] = oldSettingsRoot;
+    }
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 }
 
-runTests();
+runTests().catch((err) => {
+  console.error("Workspace system tests failed:", err);
+  process.exit(1);
+});

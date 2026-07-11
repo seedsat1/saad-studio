@@ -23,7 +23,7 @@ type SettingsTab =
 
 type ProviderType = "local" | "cloud" | "first_party";
 type ProviderHealth = "online" | "offline" | "unknown";
-type ModelRoleName = "Coding" | "Vision" | "Reviewer" | "Fast";
+type ModelRoleName = "Chat" | "Coding" | "Vision" | "Reviewer" | "Fast";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -232,6 +232,7 @@ const defaultSettings: AppSettings = {
   workspace: { restoreLastWorkspace: true, ignoredFolders: ["node_modules", ".git", "dist", "release"], indexingMode: "balanced" },
   providers: [],
   models: {
+    Chat: { role: "Chat", providerId: "lm-studio", modelName: "", temperature: 0.3, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 1 },
     Coding: { role: "Coding", providerId: "lm-studio", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
     Vision: { role: "Vision", providerId: "lm-studio", modelName: "", temperature: 0.1, maxTokens: 4096, detectedContextWindow: 16384, streaming: false, timeoutMs: 120000, retryCount: 1 },
     Reviewer: { role: "Reviewer", providerId: "ollama", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 90000, retryCount: 2 },
@@ -358,7 +359,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
   const [selectedSkillId, setSelectedSkillId] = useState("");
   const [skillSearch, setSkillSearch] = useState("");
   const [skillDomain, setSkillDomain] = useState("all");
-  const [modelSearch, setModelSearch] = useState<Record<ModelRoleName, string>>({ Coding: "", Vision: "", Reviewer: "", Fast: "" });
+  const [modelSearch, setModelSearch] = useState<Record<ModelRoleName, string>>({ Chat: "", Coding: "", Vision: "", Reviewer: "", Fast: "" });
   const [secretDraft, setSecretDraft] = useState("");
   const [status, setStatus] = useState("Loading settings...");
   const [backendConnected, setBackendConnected] = useState(false);
@@ -741,6 +742,21 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
   function updateModelProvider(role: ModelRoleName, providerId: string) {
     const provider = settings.providers.find(item => item.id === providerId);
     const firstModel = provider?.discoveredModels?.[0];
+    if (!firstModel) {
+      setSettings({
+        ...settings,
+        models: {
+          ...settings.models,
+          [role]: {
+            ...settings.models[role],
+            providerId,
+            modelName: "",
+          },
+        },
+      });
+      setStatus(`${provider?.name || providerId} has no discovered models yet. Fetch models first, then select it for ${role}.`);
+      return;
+    }
     updateModel(role, {
       providerId,
       modelName: firstModel?.id || "",

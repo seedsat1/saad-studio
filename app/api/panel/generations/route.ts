@@ -33,7 +33,9 @@ function inferKind(assetType: string | null | undefined, type: string | null | u
 function resolvePublicUrl(mediaUrl: string | null | undefined, outputUrl: string | null | undefined): string | null {
   const candidate = outputUrl || mediaUrl;
   if (!candidate) return null;
-  if (candidate.startsWith("task:")) return null;
+  const trimmed = candidate.trim().toLowerCase();
+  if (trimmed.startsWith("task:")) return null;
+  if (trimmed.startsWith("error:") || trimmed.startsWith("error ")) return null;
   return normalizeMediaUrl(candidate);
 }
 

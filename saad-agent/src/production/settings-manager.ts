@@ -7,7 +7,7 @@ import { BUILTIN_SKILLS } from "../skills/builtin-skills.js";
 
 export type ProviderType = "local" | "cloud" | "first_party";
 export type ProviderHealth = "online" | "offline" | "unknown";
-export type ModelRoleName = "Coding" | "Vision" | "Reviewer" | "Fast";
+export type ModelRoleName = "Chat" | "Coding" | "Vision" | "Reviewer" | "Fast";
 export type MCPTransport = "stdio" | "http" | "sse";
 export type MCPPermissionMode = "always" | "ask" | "never";
 export type MCPServerStatus = "online" | "offline" | "error" | "unknown";
@@ -265,6 +265,7 @@ export class SettingsManager {
         { id: "brave-answers", name: "Brave Answers", type: "cloud", endpointUrl: "https://api.search.brave.com/res/v1/web/search", enabled: true, isDefault: false, priority: 8, fallbackProvider: "lm-studio", healthStatus: "online", apiKeySecretRef: "provider:brave-answers:api-key" },
       ],
       models: {
+        Chat: { role: "Chat", providerId: "lm-studio", modelName: CONFIG.ROLES.Coding, temperature: 0.3, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 1 },
         Coding: { role: "Coding", providerId: "lm-studio", modelName: CONFIG.ROLES.Coding, temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
         Vision: { role: "Vision", providerId: "lm-studio", modelName: CONFIG.ROLES.Vision, temperature: 0.1, maxTokens: 4096, detectedContextWindow: 16384, streaming: false, timeoutMs: 120000, retryCount: 1 },
         Reviewer: { role: "Reviewer", providerId: "ollama", modelName: CONFIG.ROLES.Reviewer, temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 90000, retryCount: 2 },
@@ -349,6 +350,7 @@ export class SettingsManager {
       diagnostics: { ...defaults.diagnostics, ...(raw?.diagnostics || {}) },
       advanced: { ...defaults.advanced, ...(raw?.advanced || {}) },
     };
+    merged.models = this.repairModelRoleMappings(merged, raw?.models || {});
     merged.theme = merged.general.theme;
     merged.defaultProvider = merged.providers.find(p => p.isDefault)?.id || defaults.defaultProvider || CONFIG.PROVIDER;
     merged.defaultModel = merged.models.Coding.modelName;
@@ -356,6 +358,40 @@ export class SettingsManager {
     merged.logLevel = merged.diagnostics.logLevel;
     merged.autoBackupOnUpgrade = merged.backups.autoBackupOnUpgrade;
     return this.sanitizeSettings(merged);
+  }
+
+  private static repairModelRoleMappings(settings: AppSettings, rawModels: Record<string, any>): Record<ModelRoleName, ModelRoleSettings> {
+    const models = { ...settings.models };
+    if (!rawModels?.Chat && models.Coding) {
+      models.Chat = {
+        ...models.Coding,
+        role: "Chat",
+        temperature: 0.3,
+        timeoutMs: Math.max(models.Coding.timeoutMs || 0, 120000),
+        retryCount: Math.max(models.Coding.retryCount || 0, 1),
+      };
+    }
+
+    for (const role of Object.keys(models) as ModelRoleName[]) {
+      const model = models[role];
+      const provider = settings.providers.find(p => p.id === model.providerId);
+      const discovered = provider?.discoveredModels || [];
+      if (!provider || discovered.length === 0) continue;
+      const exists = discovered.some(discoveredModel => discoveredModel.id === model.modelName);
+      if (exists) continue;
+      const fallback = role === "Chat"
+        ? discovered.find(discoveredModel => discoveredModel.id === models.Coding?.modelName) || discovered[0]
+        : discovered[0];
+      if (!fallback) continue;
+      const repairedModel = {
+        ...model,
+        modelName: fallback.id,
+      };
+      if (fallback.contextWindow) repairedModel.detectedContextWindow = fallback.contextWindow;
+      models[role] = repairedModel;
+    }
+
+    return models;
   }
 
   private static getDefaultMCPPermissions(): MCPPermissions {
@@ -545,7 +581,7 @@ export class SettingsManager {
     await SecretsManager.setSecret(ref, apiKey);
     const settings = await this.getSettings();
     const providers = settings.providers.map((provider) =>
-      provider.id === providerId ? { ...provider, apiKeySecretRef: ref } : provider
+      provider.id === providerId ? { ...provider, apiKeySecretRef: ref, enabled: provider.id === "gemini" ? true : provider.enabled } : provider
     );
     await this.replaceSettings({ ...settings, providers });
     return ref;
@@ -558,6 +594,9 @@ export class SettingsManager {
     }
     if (provider.id === "brave-answers") {
       return process.env["BRAVE_ANSWERS_API_KEY"] || process.env["BRAVE_SEARCH_API_KEY"] || process.env["BRAVE_API_KEY"];
+    }
+    if (provider.id === "gemini") {
+      return process.env["GEMINI_API_KEY"] || process.env["GOOGLE_API_KEY"] || process.env["GOOGLE_AI_API_KEY"];
     }
     return undefined;
   }
@@ -581,6 +620,10 @@ export class SettingsManager {
       if (!endpoints.includes(endpoint)) endpoints.push(endpoint);
     };
     const isLmStudio = provider.id === "lm-studio" || provider.name.toLowerCase().includes("lm studio");
+    if (provider.id === "gemini" || provider.name.toLowerCase().includes("gemini")) {
+      add(base.endsWith("/models") ? base : `${base}/models`);
+      return endpoints;
+    }
     if (isLmStudio) {
       try {
         const origin = new URL(base).origin;
@@ -607,11 +650,12 @@ export class SettingsManager {
 
     return rawModels
       .map((item: any) => {
-        const id = String(item?.id || item?.name || item?.model || "").trim();
+        const rawId = String(item?.id || item?.name || item?.model || "").trim();
+        const id = rawId.replace(/^models\//i, "");
         if (!id) return null;
         const discovered: DiscoveredModel = {
           id,
-          name: String(item?.name || item?.id || id),
+          name: String(item?.displayName || item?.name || item?.id || id),
         };
         const contextWindow = this.detectContextWindow(id, item);
         if (contextWindow) discovered.contextWindow = contextWindow;
@@ -690,14 +734,22 @@ ${parsedError}`;
     try {
       const headers: Record<string, string> = { Accept: "application/json" };
       if (apiKey) {
-        if (provider.id === "anthropic") headers["x-api-key"] = apiKey;
+        if (provider.id === "gemini") {
+          // Gemini uses the Google Generative Language API key as a query parameter for model listing.
+        } else if (provider.id === "anthropic") headers["x-api-key"] = apiKey;
         else headers.Authorization = `Bearer ${apiKey}`;
       }
 
       let lastError: any;
       for (const modelsEndpoint of this.buildProviderModelEndpoints(provider)) {
         try {
-          const response = await fetch(modelsEndpoint, { method: "GET", headers, signal: controller.signal });
+          let requestUrl = modelsEndpoint;
+          if (provider.id === "gemini" && apiKey) {
+            const url = new URL(modelsEndpoint);
+            url.searchParams.set("key", apiKey);
+            requestUrl = url.toString();
+          }
+          const response = await fetch(requestUrl, { method: "GET", headers, signal: controller.signal });
           const latencyMs = Date.now() - start;
           const text = await response.text();
           const payload: any = text.trim() ? JSON.parse(text) : {};
@@ -718,7 +770,13 @@ ${parsedError}`;
   }
 
   private static detectContextWindow(modelId: string, raw?: any): number | undefined {
-    const explicit = raw?.context_window || raw?.contextWindow || raw?.max_context_length || raw?.maxContextLength || raw?.n_ctx;
+    const explicit = raw?.context_window
+      || raw?.contextWindow
+      || raw?.max_context_length
+      || raw?.maxContextLength
+      || raw?.inputTokenLimit
+      || raw?.input_token_limit
+      || raw?.n_ctx;
     if (typeof explicit === "number" && explicit > 0) return explicit;
     const id = modelId.toLowerCase();
     const match = id.match(/(?:^|[-_])(\d{1,3})k(?:[-_]|$)/);
