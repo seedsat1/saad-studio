@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Removed NewModelsBanner and switch button from video page (2026-07-12)
+
+- Status:
+  Removed the dynamic `NewModelsBanner` and the "Switch to Google Veo 3.1" button from above the model dropdown selector in `app/(dash)/(routes)/video/page.tsx` as requested by the user.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - User requested removal of these banners to declutter the user interface.
+- Remaining:
+  - None.
+
 ## Latest task: Fixed model selection from NewModelsBanner in video page (2026-07-12)
 
 - Status:

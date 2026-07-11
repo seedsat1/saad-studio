@@ -813,9 +813,7 @@ function VideoPageInner() {
     };
   }, [searchParams]);
 
-  // Model info banner (shown briefly after model switch)
-  const [modelBanner, setModelBanner] = useState<WaveSpeedVideoModel | null>(null);
-  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   // Media gallery picker
   type PickerTarget = "startFrame" | "endFrame" | "motionVideo" | "referenceImages";
@@ -1073,10 +1071,7 @@ function VideoPageInner() {
     setSceneControl(false);
     setOrientation("video");
     setOmniTab("elements");
-    // Show info banner
-    setModelBanner(m);
-    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
-    bannerTimerRef.current = setTimeout(() => setModelBanner(null), 5000);
+
     // Clear any stale error from a previous model
     setGenerationError(null);
   }, []);
@@ -2495,95 +2490,7 @@ function VideoPageInner() {
             </div>
           ) : (
             <>
-              {/* -- Model info banner (shown on model switch) ----------------- */}
-          <AnimatePresence>
-            {modelBanner && (
-              <motion.div
-                key={modelBanner.id}
-                initial={{ opacity: 0, y: -10, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0,   scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                transition={{ duration: 0.2 }}
-                className="relative rounded-xl p-3 overflow-hidden"
-                style={{
-                  background: hexA(modelBanner.family_color, 0.1),
-                  border: `1px solid ${hexA(modelBanner.family_color, 0.35)}`,
-                }}
-              >
-                {/* Glow accent */}
-                <div
-                  className="absolute inset-x-0 top-0 h-px"
-                  style={{ background: `linear-gradient(90deg, transparent, ${modelBanner.family_color}, transparent)` }}
-                />
-                <div className="flex items-start gap-2.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full mt-0.5 flex-shrink-0"
-                    style={{ background: modelBanner.family_color }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-[13px] font-semibold" style={{ color: modelBanner.family_color }}>
-                        {prettyModelName(modelBanner.name)}
-                      </span>
-                      {modelBanner.badge && BADGE_STYLE[modelBanner.badge as keyof typeof BADGE_STYLE] && (
-                        <span
-                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm"
-                          style={{
-                            background: BADGE_STYLE[modelBanner.badge as keyof typeof BADGE_STYLE].bg,
-                            color:      BADGE_STYLE[modelBanner.badge as keyof typeof BADGE_STYLE].text,
-                          }}
-                        >
-                          {modelBanner.badge}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] leading-relaxed mb-2" style={{ color: "#94a3b8" }}>
-                      {modelBanner.description}
-                    </p>
-                    {/* Capability pills */}
-                    <div className="flex flex-wrap gap-1">
-                      {modelBanner.capabilities.durations.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          ⏱ {modelBanner.capabilities.durations[0]}–{modelBanner.capabilities.durations[modelBanner.capabilities.durations.length - 1]}s
-                        </span>
-                      )}
-                      {modelBanner.capabilities.resolutions.map(r => (
-                        <span key={r} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          {r}
-                        </span>
-                      ))}
-                      {modelBanner.capabilities.requires_image && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          🖼 Image req.
-                        </span>
-                      )}
-                      {modelBanner.capabilities.max_reference_images > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          Max {modelBanner.capabilities.max_reference_images} refs
-                        </span>
-                      )}
-                      {modelBanner.capabilities.aspect_ratios.length > 0 && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          {modelBanner.capabilities.aspect_ratios.length} ratios
-                        </span>
-                      )}
-                      {modelBanner.capabilities.has_sound && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#64748b" }}>
-                          🔊 Audio
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { setModelBanner(null); if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current); }}
-                    className="flex-shrink-0 mt-0.5 hover:opacity-70 transition-opacity"
-                  >
-                    <X size={11} style={{ color: "#475569" }} />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
 
           {/* -- Motion Control inputs (video + character) ----------------- */}
           {showVideoInput && (
