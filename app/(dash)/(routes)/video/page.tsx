@@ -2060,12 +2060,12 @@ function VideoPageInner() {
           ? (kling30MultiMode === "auto"
               ? true // auto builds prompts automatically
               : kling30CustomShots.some(s => s.prompt.trim()) && kling30CustomDurationValid)
-          : hasMainPrompt) &&
+          : (hasMainPrompt || caps.requires_video)) &&
         hasRequiredImageInput &&
         hasRequiredVideoInput
       )
     : (
-        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt)) &&
+        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt) || caps.requires_video) &&
         hasRequiredImageInput &&
         hasRequiredVideoInput
       );

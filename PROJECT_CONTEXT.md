@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Removed model switch info banner popup from video page (2026-07-12)
+
+- Status:
+  Removed the `modelBanner` popup info box that used to appear when switching models in `app/(dash)/(routes)/video/page.tsx` to declutter the user interface.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - User requested removal of this switch details popup banner to simplify the interface.
+- Remaining:
+  - None.
+
 ## Latest task: Removed NewModelsBanner and switch button from video page (2026-07-12)
 
 - Status:
