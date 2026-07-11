@@ -2,6 +2,7 @@ import * as fsp from "fs/promises";
 import * as path from "path";
 import { getGlobalAppDataDir } from "../workspace-manager.js";
 import { ResearchGatewayService } from "./research-gateway.js";
+import { RequestRoutingService } from "./request-routing.js";
 
 export type DecisionOutcome =
   | "ANSWER"
@@ -49,6 +50,7 @@ export class ExecutionPolicyService {
     let reason = "The request is informational and can be answered without modifying the project.";
     let workflow = "casual_discussion";
     const evidenceStatus: "VERIFIED" | "NOT_VERIFIED" = workspacePath ? "VERIFIED" : "NOT_VERIFIED";
+    const requestRoute = RequestRoutingService.classify(userFacingPrompt);
 
     const isLocalImageClassification = this.isLocalImageClassificationRequest(
       normalizedPrompt,
@@ -66,7 +68,7 @@ export class ExecutionPolicyService {
       normalizedPrompt,
       normalizedArabicPrompt
     );
-    const isProjectAuditOrRepair = this.isProjectAuditOrRepairInstruction(
+    const isProjectAuditOrRepair = requestRoute.kind === "engineering_review" || requestRoute.kind === "engineering_modify" || this.isProjectAuditOrRepairInstruction(
       normalizedPrompt,
       normalizedArabicPrompt
     );
@@ -75,6 +77,8 @@ export class ExecutionPolicyService {
       isModificationRequired = true;
     }
     const isExternalResearchRequired = !isProjectAuditOrRepair && !isUrlContentRead && (
+      requestRoute.kind === "external_research"
+      ||
       isUrlScopedExternalSearch
       || ResearchGatewayService.isMediaSearchRequest(userFacingPrompt)
       || ResearchGatewayService.isSocialProfileSearchRequest(userFacingPrompt)
@@ -99,10 +103,10 @@ export class ExecutionPolicyService {
       workflow = "safety_rejection";
     } else if (isProjectAuditOrRepair) {
       riskLevel = "low";
-      workflow = "engineering_review";
-      decision = "ANALYZE";
-      requiresApproval = false;
-      reason = "Project audit requested; inspect and report before making changes.";
+      workflow = requestRoute.kind === "engineering_modify" ? "engineering_workflow" : "engineering_review";
+      decision = requestRoute.kind === "engineering_modify" ? "PLAN" : "ANALYZE";
+      requiresApproval = requestRoute.kind === "engineering_modify" && approvalMode === "ask";
+      reason = requestRoute.reason || "Project audit or repair requested.";
     } else if (isExternalResearchRequired) {
       riskLevel = "medium";
       workflow = "external_research";

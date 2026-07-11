@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed KIE validation error for motion control without prompt (2026-07-12)
+
+- Status:
+  Fixed a 502 Bad Gateway submission error from KIE's API gateway for `kling-3.0/motion-control` ("This field is required"). The gateway's schema parser strictly requires the `prompt` key to be present in the payload. Updated `app/api/video/route.ts` to always pass `prompt: ""` when no text prompt is provided instead of omitting it.
+- Affected files:
+  - `app/api/video/route.ts`
+- Verification:
+  - Verified compilation via `npx tsc --noEmit` which completed successfully with no errors.
+- Decision:
+  - KIE's schema parser returns a validation rejection if the `prompt` field is completely missing from the request object, even though it accepts an empty string. Always passing `prompt: ""` bypasses this check.
+- Remaining:
+  - None.
+
 ## Latest task: Fixed early return guard in handleGenerate for motion control models (2026-07-12)
 
 - Status:

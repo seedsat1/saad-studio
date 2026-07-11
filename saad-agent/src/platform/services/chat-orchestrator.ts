@@ -27,6 +27,7 @@ import { DeterministicCommandService } from "./deterministic-command-service.js"
 import { DocumentTextExtractor } from "./document-text-extractor.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
 import { CreativeService } from "./creative.js";
+import { RequestRoutingService } from "./request-routing.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -1579,6 +1580,19 @@ export class ChatOrchestratorService {
 
   private static detectIntent(prompt: string, sessionId: string): IntentClassificationResult {
     const normalized = this.normalizeArabic(prompt);
+    const route = RequestRoutingService.classify(prompt);
+    if (route.kind !== "conversation" && route.kind !== "deterministic_answer" && route.kind !== "inline_image_generation" && route.kind !== "image_prompt_draft" && route.kind !== "url_read") {
+      return {
+        intent: route.intent,
+        confidence: route.confidence,
+        source: "pattern",
+        language: /[\u0600-\u06FF]/.test(prompt) ? "ar" : "en",
+        matchedPattern: `request-routing:${route.kind}`,
+        reason: route.reason,
+        selectedPipeline: route.pipeline,
+        selectedTools: route.tools
+      };
+    }
     
     // Explicit Dialect / Direct mapping check (Section 3 & 8)
     const n = normalized;

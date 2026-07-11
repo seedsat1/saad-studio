@@ -16,6 +16,7 @@ import { DeepResearchProvider } from "./platform/services/deep-research-provider
 import { SessionSearchProvider } from "./platform/services/session-search-provider.js";
 import { ModelClient } from "./platform/services/model-client.js";
 import { SettingsManager } from "./production/settings-manager.js";
+import { RequestRoutingService } from "./platform/services/request-routing.js";
 
 async function main() {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "saad-chat-orchestrator-"));
@@ -99,6 +100,74 @@ async function main() {
   };
 
   try {
+    const routingCases: Array<{ prompt: string; kind: ReturnType<typeof RequestRoutingService.classify>["kind"]; intent: string; requiresModel: boolean }> = [
+      {
+        prompt: "\u0644\u0627 \u062a\u0633\u062a\u062e\u062f\u0645 \u0623\u064a \u0623\u062f\u0627\u0629.\n\u0644\u0627 \u062a\u0628\u062d\u062b.\n\n\u0645\u0627 \u0639\u0627\u0635\u0645\u0629 \u0627\u0644\u0639\u0631\u0627\u0642\u061f\n\n\u0623\u062c\u0628 \u0628\u0643\u0644\u0645\u0629 \u0648\u0627\u062d\u062f\u0629 \u0641\u0642\u0637.",
+        kind: "deterministic_answer",
+        intent: "conversation",
+        requiresModel: false
+      },
+      {
+        prompt: "\u062a\u0630\u0643\u0631 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u062a\u0627\u0644\u064a:\n\n582941\n\n\u0644\u0627 \u062a\u0631\u062f.",
+        kind: "memory_save",
+        intent: "memory_save",
+        requiresModel: false
+      },
+      {
+        prompt: "\u0645\u0627 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0630\u064a \u0637\u0644\u0628\u062a \u0645\u0646\u0643 \u062a\u0630\u0643\u0631\u0647\u061f",
+        kind: "memory_recall",
+        intent: "memory_recall",
+        requiresModel: false
+      },
+      {
+        prompt: "\u0627\u0634\u0631\u062d\u0644\u064a \u0645\u0646 \u0645\u0639\u0631\u0641\u062a\u0643 \u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0629 \u0639\u0646 image search thumbnails",
+        kind: "knowledge_lookup",
+        intent: "knowledge_lookup",
+        requiresModel: false
+      },
+      {
+        prompt: "\u0627\u0628\u062d\u062b\u0644\u064a \u0639\u0646 \u0635\u0648\u0631 \u0646\u0648\u0631 \u0632\u0647\u064a\u0631",
+        kind: "external_research",
+        intent: "external_research",
+        requiresModel: false
+      },
+      {
+        prompt: "\u0627\u0641\u062a\u062d \u0647\u0630\u0627 \u0627\u0644\u0645\u0648\u0642\u0639 \u0648\u0627\u0642\u0631\u0623\u0647 https://example.com/article",
+        kind: "url_read",
+        intent: "conversation",
+        requiresModel: true
+      },
+      {
+        prompt: "\u0627\u0631\u064a\u062f \u062a\u0635\u0645\u064a\u0645 \u0644\u0648\u0643\u0633 \u0635\u0648\u0631\u0629 \u0627\u0639\u0631\u0636\u0647\u0627 \u0647\u0646\u0627",
+        kind: "inline_image_generation",
+        intent: "image_generation",
+        requiresModel: false
+      },
+      {
+        prompt: "\u0627\u0643\u062a\u0628\u0644\u064a \u0628\u0631\u0648\u0645\u0628\u062a \u0635\u0648\u0631\u0629 \u0644\u0648\u0643\u0633",
+        kind: "image_prompt_draft",
+        intent: "conversation",
+        requiresModel: false
+      }
+    ];
+    const projectAuditRoute = RequestRoutingService.classify([
+      "\u0623\u0631\u064a\u062f\u0643 \u062a\u062a\u0639\u0627\u0645\u0644 \u0648\u064a\u0627 \u0647\u0630\u0627 \u0627\u0644\u0637\u0644\u0628 \u0643\u0648\u0643\u064a\u0644 \u062a\u0642\u0646\u064a \u0645\u0633\u0624\u0648\u0644 \u0639\u0646 \u0641\u062d\u0635 \u0648\u062a\u0639\u062f\u064a\u0644 \u0645\u0634\u0631\u0648\u0639 \u0648\u064a\u0628 \u062d\u0642\u064a\u0642\u064a.",
+      "1- \u0627\u0641\u062d\u0635 \u0628\u0646\u064a\u0629 \u0627\u0644\u0645\u0634\u0631\u0648\u0639.",
+      "2- \u0644\u0627 \u062a\u0639\u062f\u0644 \u0623\u064a \u0645\u0644\u0641 \u0628\u0627\u0644\u0628\u062f\u0627\u064a\u0629. \u0623\u0648\u0644\u0627 \u0623\u0639\u0637\u0646\u064a \u062a\u0642\u0631\u064a\u0631 \u0645\u062e\u062a\u0635\u0631.",
+      "3- \u0628\u0639\u062f \u0627\u0644\u062a\u0642\u0631\u064a\u0631 \u0623\u0635\u0644\u062d Loading \u0648 Generate \u0648 Gallery \u0648 API fallback."
+    ].join("\n"));
+    assert.strictEqual(projectAuditRoute.kind, "engineering_review");
+    assert.strictEqual(projectAuditRoute.intent, "code_review");
+    assert.strictEqual(projectAuditRoute.allowsTrainingFallback, false);
+
+    for (const testCase of routingCases) {
+      const route = RequestRoutingService.classify(testCase.prompt);
+      assert.strictEqual(route.kind, testCase.kind, `wrong route kind for: ${testCase.prompt}`);
+      assert.strictEqual(route.intent, testCase.intent, `wrong route intent for: ${testCase.prompt}`);
+      assert.strictEqual(route.requiresModel, testCase.requiresModel, `wrong model requirement for: ${testCase.prompt}`);
+      assert.strictEqual(route.allowsTrainingFallback, false, `training fallback must stay disabled for routed case: ${testCase.prompt}`);
+    }
+
     const saveResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u062d\u0641\u0638 \u0627\u0633\u0645\u064a \u0633\u0639\u062f \u0645\u0635\u0645\u0645 \u0643\u0631\u0627\u0641\u064a\u0643 \u0648\u0645\u0635\u0645\u0645 \u0645\u0648\u0642\u0639 \u0633\u0639\u062f \u0633\u062a\u0648\u062f\u064a\u0648 \u0648\u0645\u0635\u0645\u0645 \u0647\u0630\u0627 \u0627\u0644\u0627\u062c\u064a\u0646\u062a",
       workspacePath: workspace,
