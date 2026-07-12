@@ -1,4 +1,5 @@
 import { ApprovalPolicyService, type ApprovalAction, type ApprovalMode, type ApprovalRequest } from "./approval-policy.js";
+import { CoreToolRegistryService } from "./core-tool-registry.js";
 import { ExecutionTraceEmitter } from "./execution-trace-emitter.js";
 import { EventBus } from "./event-bus.js";
 import { ToolManager } from "./tool-manager.js";
@@ -63,14 +64,17 @@ export class AgentLoopService {
     const conversationId = input.conversationId || "agent-loop";
     const maxIterations = Math.max(1, Math.min(input.maxIterations || 6, 12));
     const observations: AgentLoopObservation[] = [];
+    const registeredCoreTools = CoreToolRegistryService.ensureRegistered();
 
     await EventBus.publish("AgentLoopStarted", {
       taskId,
       goalLength: input.goal.length,
-      maxIterations
+      maxIterations,
+      registeredCoreTools
     });
     this.emitTrace(taskId, conversationId, "agent_loop", "active", "Agent loop started", {
-      maxIterations
+      maxIterations,
+      registeredCoreTools
     });
 
     for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
@@ -196,16 +200,16 @@ export class AgentLoopService {
     safeDetails?: any,
     error?: string
   ) {
-    ExecutionTraceEmitter.emit({
+    const event = {
       taskId,
       conversationId,
       phase,
       status,
       label,
       safeDetails,
-      error,
       sourceService: "AgentLoopService"
-    });
+    };
+    ExecutionTraceEmitter.emit(error ? { ...event, error } : event);
   }
 
   private static errorMessage(error: unknown): string {

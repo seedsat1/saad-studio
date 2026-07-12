@@ -1980,6 +1980,12 @@ function VideoPageInner() {
         return;
       }
 
+      // Update local credits display in header instantly
+      if (typeof window !== "undefined" && gate.currentBalance != null) {
+        const newBalance = Math.max(0, gate.currentBalance - estimatedCredits);
+        window.dispatchEvent(new CustomEvent("saad-credits-updated", { detail: { balance: newBalance } }));
+      }
+
       // Show the ratio the user explicitly requested. Kling frames are normalized
       // to this ratio before submit, so the pending/result card should match it.
       const isKling30 = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";

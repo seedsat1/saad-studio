@@ -36,6 +36,7 @@
 - Hooks: partially present through `EventBus`, `ExecutionTraceEmitter`, and `ContextManager.registerCompressionHook`. Missing: unified `beforePrompt`, `afterPrompt`, `beforeTool`, `afterTool`, and `onError` hook contracts.
 - Planner: present through `ExecutionSessionManager`, `ReasoningEngine.generateStructuredPlan`, rule-based fallback plans, approval states, validation steps, and recovery/self-fix flows.
 - Priority order after daily-maintenance phases: build a bounded `AgentLoopService`, then durable context summarization, then real specialist sub-agent execution, then unified hook lifecycle.
+- Agent loop phase 1 is implemented in `AgentLoopService`: it runs a bounded decide -> approval -> registered tool -> observation -> repeat/finish loop using existing `ToolManager`, `ApprovalPolicyService`, `ExecutionTraceEmitter`, and `EventBus`. It does not bypass approvals, does not invent unregistered tools, and is not yet the default execution route for all chat requests.
 
 ## Saad Agent central request-routing behavior (2026-07-12)
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
