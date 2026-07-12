@@ -2362,7 +2362,7 @@ export async function POST(req: Request) {
         }).catch(() => {});
       }
       const rawError = providerFailureMessage(createJson, createRes.status);
-      let publicError = VIDEO_PROVIDER_BUSY_MESSAGE;
+      let publicError = `Debug: ${rawError} | Payload: ${JSON.stringify(createBody).slice(0, 300)}`;
 
       if (/safety|policy|violat|censor|moderation|sensitive|block|flagged|nsfw/i.test(rawError)) {
         publicError = "فشل التوليد لأن الصورة المرفقة أو الوصف ينتهك سياسات الأمان والمحتوى الخاصة بمزود الخدمة.";

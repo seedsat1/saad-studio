@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Saad Agent Codex-agentic workflow doctrine (2026-07-12)
+- `ENGINEERING_CONSTITUTION.md` now records the Codex-agentic workflow doctrine as a governing engineering rule for Saad Agent.
+- Saad Agent engineering work should follow an evidence-driven loop: classify, collect evidence, plan, request approval when required, execute, verify, repair or report a verified blocker, then document the outcome.
+- Public Codex documentation and the open-source `openai/codex` repository support exposed capabilities such as local repository work, file inspection/editing, command execution, permissions, and review workflows.
+- ReAct, Reflexion, and OpenHands are treated as research/architecture pattern support for the reason-act-observe and self-repair loop.
+- Terms such as Decision Engine, Planner, Executor, Verifier, and Self-Repair are Saad Agent architectural labels, not official OpenAI internal component names unless OpenAI publishes those exact names.
+
 ## Saad Agent central request-routing behavior (2026-07-12)
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
 - `ChatOrchestratorService` and `ExecutionPolicyService` must not let legacy keyword heuristics override a clear central route.

@@ -19,6 +19,14 @@ In case of conflict, authority flows top-down:
 
 ## 2. Core Operational Rules
 
+### Codex-Agentic Workflow Doctrine
+* **Operational Baseline**: Saad Agent must operate as an evidence-driven coding agent: inspect local project files, plan bounded work, use available tools, apply narrowly scoped edits, run verification, observe results, and repair failures before reporting completion.
+* **Documented Capability Basis**: This doctrine is grounded in public Codex documentation and the open-source `openai/codex` repository, which describe Codex working against a local repository, inspecting files, making edits, running installed tools, using permissions, reviewing changes, and preserving user control.
+* **Research Pattern Basis**: The engineering loop follows established agent patterns from ReAct (`reason -> act -> observe -> repeat`) and Reflexion (attempt, observe failure, reflect, retry with short-term learning), plus comparable open software-agent architectures such as OpenHands.
+* **Naming Honesty**: Internal names such as `Decision Engine`, `Planner`, `Executor`, `Verifier`, and `Self-Repair` are Saad Agent architectural terms. They must not be presented as official OpenAI internal Codex component names unless OpenAI publishes that exact terminology.
+* **Loop Requirement**: For engineering work, the default lifecycle is classify -> collect evidence -> plan -> request approval when required -> execute -> verify -> repair or report the verified blocker -> document the outcome.
+* **Source Boundaries**: Official product documentation proves exposed capabilities and workflows, not private implementation internals. Any claim about unpublished internal OpenAI architecture must be marked `NOT VERIFIED`.
+
 ### Source of Truth
 * **Code as Truth**: Source code and runtime behavior are the primary sources of truth.
 * **Overrides**: Runtime behavior overrides source comments, documentation, and metadata.

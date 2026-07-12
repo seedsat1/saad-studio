@@ -1,5 +1,25 @@
 # Saad Studio Project Context Update
 
+## Latest task: Added Codex-agentic workflow doctrine to engineering constitution (2026-07-12)
+
+- Status:
+  Reviewed the user's proposed Codex/agent architecture notes and recorded them as a formal Saad Agent engineering doctrine. The constitution now states that Saad Agent should follow an evidence-driven inspect/plan/act/observe/verify/repair loop, while staying honest that terms such as Decision Engine, Planner, Executor, Verifier, and Self-Repair are Saad Agent architectural labels, not published OpenAI internal component names.
+- Affected files:
+  - `ENGINEERING_CONSTITUTION.md`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read `AGENTS.md`, `PROJECT_CONTEXT.md`, `saad-agent/SAAD_AGENT_CONTEXT.md`, and `docs/saad-studio-premiere-reference-ar.md` before the task.
+  - Read `ENGINEERING_CONSTITUTION.md`, `ENGINEERING_CONTRACTS.md`, and `OPERATING_POLICIES.md`.
+  - Attempted the OpenAI Codex manual helper; sandboxed network failed, escalated network succeeded far enough to reach the remote host but the helper rejected the response because the expected `x-content-sha256` header was missing.
+  - Cross-checked public source availability via official Codex pages and the `openai/codex` repository through web lookup.
+  - Added the same doctrine summary to `docs/saad-studio-premiere-reference-ar.md` because it documents architecture/behavior.
+- Decisions:
+  - Added the doctrine to `ENGINEERING_CONSTITUTION.md` because the user explicitly asked to treat the reviewed material as a constitution.
+  - Preserved source-honesty: public Codex docs support capabilities and workflows, while unpublished component names remain local architectural terminology unless officially documented.
+- Remaining:
+  - None.
+
 ## Latest task: Saad Agent central request-routing contract hardening (2026-07-12)
 
 - Status:
