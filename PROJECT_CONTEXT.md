@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed Kling 3.0 Motion Control Duration-based Credit Charging (2026-07-12)
+
+- Status:
+  Fixed credit deduction logic for Kling 3.0 Motion Control. Created a state listener for `motionVideo` file upload that parses the video duration using `validateVideoDuration`. Updated both the client-side `estimatedCredits` display and the backend submit payload duration parameter to match this parsed duration, ensuring exact per-second billing based on the uploaded video duration.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Successfully verified TypeScript compilation of the codebase via `npx tsc --noEmit`.
+- Decisions:
+  - Dynamically load uploaded video metadata to get exact duration in seconds at client-side.
+  - Round motion video duration to nearest integer and set it to `payload.duration` for exact billing.
+- Remaining:
+  - Ask the user to verify generation and billing.
+
 ## Latest task: Implemented bounded Saad Agent AgentLoopService foundation (2026-07-12)
 
 - Status:
