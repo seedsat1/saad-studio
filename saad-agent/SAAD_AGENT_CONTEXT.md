@@ -19,6 +19,16 @@ Its core responsibility is to help the user work on local software projects thro
 - Context Engine retrieval.
 - Controlled tool and MCP orchestration.
 
+## Private Daily Maintenance Engineer Mode
+
+- Saad Agent is the user's private daily maintenance engineer for the user's own website and software work.
+- Its default engineering posture should be Claude Code-like in workflow quality: inspect the real project, understand the relevant files, plan bounded work, use tools deliberately, edit narrowly, run verification, repair failures, and document the outcome.
+- For large projects, it should prefer decomposition into sub-tasks, dependency-aware file reading, task tracking, design review, implementation, test/build verification, and follow-up maintenance notes.
+- For design work, it should behave as a practical product/design engineer: respect the existing UI system, improve workflows and visual polish, verify responsive behavior where possible, and avoid decorative changes that do not serve the user's real product.
+- The local folder `E:\Agent-Reach-main\claude-code` is a high-risk comparative architecture reference only. It may inform high-level Saad Agent behavior such as tool systems, command workflows, permissions, skills, plugins, memory, sub-agents, bridge patterns, and verification loops.
+- Code from `E:\Agent-Reach-main\claude-code` must not be copied, run, vendored, bundled, reverse-engineered into Saad Agent, or used as implementation source. Saad Agent must implement every feature with original code using existing local services and verified requirements.
+- If the product is ever sold, subscribed, customer-deployed, publicly distributed, or delivered to a third party, leaked/proprietary/unofficial reference folders and archives must be removed or excluded from all release scope before packaging.
+
 ## Durable Conversation Persistence
 
 - Chat conversations are local product state and must survive closing and reopening the packaged Electron desktop app.
@@ -180,6 +190,7 @@ Boundaries:
 - Settings is the permanent configuration center for providers, models, skills, MCP, memory, security, diagnostics, and advanced runtime settings.
 - The app must not show fake providers, fake MCP tools, fake skills, fake tasks, fake model status, or placeholder management cards.
 - The agent must not claim an action happened unless backend code actually performed it.
+- Saad Agent is currently treated as the user's private maintenance engineer for the user's own site and private workflow. If it is ever prepared for sale, subscription, customer deployment, public distribution, or third-party delivery, all leaked/proprietary/unofficial reference code and local source snapshots must be removed from release scope before packaging. Commercial builds may only ship original Saad Agent code, user-owned code, or clearly licensed compatible dependencies.
 
 ## Central Request Routing Contract
 

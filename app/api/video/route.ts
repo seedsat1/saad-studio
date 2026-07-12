@@ -1252,6 +1252,7 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
       out.background_source = "input_video";
     }
 
+    return out;
   }
 
   // ── Gemini Omni Video — KIE flat input shape ──────────────────────────────

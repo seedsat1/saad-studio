@@ -7,6 +7,19 @@
 - ReAct, Reflexion, and OpenHands are treated as research/architecture pattern support for the reason-act-observe and self-repair loop.
 - Terms such as Decision Engine, Planner, Executor, Verifier, and Self-Repair are Saad Agent architectural labels, not official OpenAI internal component names unless OpenAI publishes those exact names.
 
+## Saad Agent Claude Code comparative-reference safety (2026-07-12)
+- Claude Code is an important comparative coding-agent reference for patterns such as terminal operation, codebase reading, file editing, command execution, permission modes, MCP/tools, skills, memory, subagents, worktrees, reviews, and verification loops.
+- The user-provided `tanbiralam/claude-code`, `fazxes/Claude-code`, and `Njengah/claude-code-source-code-leak` repositories describe themselves as leaked/proprietary or mirrored Claude Code source snapshots. They must not be copied, vendored, run, or reverse-engineered into Saad Agent.
+- Any Claude Code-inspired pattern must be validated through official Claude Code documentation or independent public research before becoming a Saad Agent product rule.
+- The allowed use is architectural comparison only: observe high-level product patterns, then implement original Saad Agent behavior through existing local services and verified requirements.
+- If Saad Agent becomes a sold, subscription, public, customer-facing, or third-party distributed product, these local leaked/proprietary reference folders and archives must be deleted or excluded from all repositories, build inputs, training bundles, release packages, and shipped artifacts before packaging.
+
+## Saad Agent private daily maintenance engineer behavior (2026-07-12)
+- Saad Agent is the user's private maintenance engineer for the user's own site and software projects, not a subscriber-facing public assistant by default.
+- The local folder `E:\Agent-Reach-main\claude-code` is treated as the active high-risk Claude Code comparative reference path. It may guide high-level behavior for large-project maintenance, design workflows, command systems, tool orchestration, permission modes, memory, plugins, skills, sub-agents, bridge patterns, and verification loops.
+- Saad Agent should be Claude-first in operating style for design and large projects, but Saad-original in implementation. No leaked/proprietary source files from that folder may be copied, run, bundled, imported, vendored, or reverse-engineered into the product.
+- Daily maintenance tasks should follow an inspect -> plan -> act -> verify -> repair -> document loop, with design review and responsive-quality checks when the task touches UI.
+
 ## Saad Agent central request-routing behavior (2026-07-12)
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
 - `ChatOrchestratorService` and `ExecutionPolicyService` must not let legacy keyword heuristics override a clear central route.

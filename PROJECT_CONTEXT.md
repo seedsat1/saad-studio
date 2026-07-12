@@ -1,5 +1,98 @@
 # Saad Studio Project Context Update
 
+## Latest task: Adopted local Claude Code folder as comparison-only daily engineer reference (2026-07-12)
+
+- Status:
+  Recorded `E:\Agent-Reach-main\claude-code` as the active local Claude Code comparative reference path for strengthening Saad Agent's private daily maintenance engineer behavior. Saad Agent should be Claude-first in workflow style for design and large projects, while remaining Saad-original in implementation.
+- Affected files:
+  - `ENGINEERING_CONSTITUTION.md`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Confirmed the local folder contains three Claude Code reference archives/folders, including `claude-code-source-code-leak-main`.
+  - Read only the top-level README files from the local reference folders, not implementation source files.
+  - The README files identify the material as leaked/proprietary or source snapshots for research and describe high-level architecture patterns such as tools, commands, services, bridge, permissions, skills, plugins, memory, tasks, sub-agents, MCP/LSP, and verification loops.
+  - Confirmed the constitution already contains the commercial release cleanliness gate.
+- Decisions:
+  - Use `E:\Agent-Reach-main\claude-code` as a high-risk comparison-only architecture reference because the user could not move it into the project.
+  - Do not copy, run, vendor, bundle, import, or reverse-engineer any code from that folder into Saad Agent.
+  - Add `Private Daily Maintenance Engineer Mode` to Saad Agent context so the agent's default role is explicit: private site maintenance, design help, large-project decomposition, verification, repair, and documentation.
+- Remaining:
+  - Implement concrete product features for daily maintenance/design workflows in Saad Agent with original code in later approved engineering tasks.
+
+## Latest task: Reconfirmed tanbiralam Claude Code leak reference (2026-07-12)
+
+- Status:
+  Re-reviewed the user-provided `tanbiralam/claude-code` GitHub repository after the user repeated the link. The repository is already recorded in the Saad Agent Claude Code comparative-reference safety rule as a high-risk comparison-only source. No architecture or behavior rule changed.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Used the `agent-reach` skill route for the GitHub/web URL; `agent-reach doctor --json` remains unavailable locally (`agent-reach` command not found), so web lookup was used as fallback.
+  - Re-opened the repository page and confirmed it still describes the source as leaked via a `.map` file from the npm registry and states the original source code is Anthropic property.
+  - Confirmed no code was copied, downloaded, run, vendored, or reverse-engineered.
+- Decisions:
+  - Keep `ENGINEERING_CONSTITUTION.md` and `docs/saad-studio-premiere-reference-ar.md` unchanged because `tanbiralam/claude-code` is already explicitly listed under the existing comparison-only leak safety rule.
+- Remaining:
+  - None.
+
+## Latest task: Added third Claude Code leak-source snapshot reference (2026-07-12)
+
+- Status:
+  Reviewed the user-provided `Njengah/claude-code-source-code-leak` GitHub repository and treated it as a third high-importance Claude Code comparative reference. The repository states it mirrors a publicly exposed Claude Code source snapshot, says the original source remains Anthropic property, and frames the archive as educational/security research. The existing constitution leak boundary remains sufficient; the Arabic reference now lists all three user-provided Claude Code repositories as comparison-only warning sources.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Used the `agent-reach` skill route for the GitHub/web URL; `agent-reach doctor --json` remains unavailable locally (`agent-reach` command not found), so web lookup was used as fallback.
+  - Reviewed the GitHub repository page and confirmed it identifies the content as a mirrored source snapshot from a source map exposure and states the original code is Anthropic property.
+  - Confirmed no code was copied, downloaded, run, vendored, or reverse-engineered.
+- Decisions:
+  - Keep `ENGINEERING_CONSTITUTION.md` unchanged because `Comparative Agent References` and `Leak Safety Boundary` already cover this repository class.
+  - Update the Arabic reference to explicitly list `Njengah/claude-code-source-code-leak` alongside the previous two repositories.
+- Remaining:
+  - None.
+
+## Latest task: Added second Claude Code leak-reference confirmation (2026-07-12)
+
+- Status:
+  Reviewed the user-provided `fazxes/Claude-code` GitHub repository and treated it as a second high-importance Claude Code comparative architecture reference with stronger leak/proprietary warnings. The existing constitution rule already blocks copying, vendoring, reverse-engineering, or treating leaked/proprietary/unofficial source as licensed implementation material; the Arabic reference now names both user-provided repositories as warning-marked comparison-only sources.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Used the `agent-reach` skill route for the GitHub/web URL; `agent-reach doctor --json` remains unavailable locally (`agent-reach` command not found), so web lookup was used as fallback.
+  - Reviewed `fazxes/Claude-code`, whose README states it was rebuilt from leaked source, contains proprietary Anthropic source, and is not affiliated with or authorized by Anthropic.
+  - Confirmed no code was copied, downloaded, run, vendored, or reverse-engineered.
+- Decisions:
+  - Keep `ENGINEERING_CONSTITUTION.md` unchanged because the existing `Leak Safety Boundary` already covers this repository class.
+  - Update the Arabic reference to explicitly list both `tanbiralam/claude-code` and `fazxes/Claude-code` as comparison-only, high-risk source references.
+- Remaining:
+  - None.
+
+## Latest task: Added Claude Code comparative-reference safety rule (2026-07-12)
+
+- Status:
+  Reviewed the user-provided `tanbiralam/claude-code` GitHub repository as an important comparative agent-architecture reference. Added a constitution rule allowing Claude Code and similar systems to inform high-level architecture patterns while explicitly blocking copying, vendoring, or reverse-engineering leaked/proprietary/unofficial source material.
+- Affected files:
+  - `ENGINEERING_CONSTITUTION.md`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Used the `agent-reach` skill route for the GitHub/web URL. `agent-reach doctor --json` was unavailable locally (`agent-reach` command not found), so web lookup was used as fallback.
+  - Reviewed the GitHub repository page, which describes itself as leaked Claude Code source and lists architecture concepts such as tools, commands, services, bridge, permissions, skills, plugins, memory, tasks, and subagents.
+  - Cross-checked official Claude Code documentation, which publicly describes Claude Code as reading codebases, editing files, running commands, planning, testing, using permissions, MCP, skills/hooks, memory, subagents, worktrees, reviews, and verification-style workflows.
+- Decisions:
+  - Treat the repository as a warning-marked comparative architecture signal, not as licensed source material.
+  - Prefer official Claude Code documentation and public research as validation for any architecture pattern before adopting it into Saad Agent.
+- Remaining:
+  - None.
+
 ## Latest task: Added Codex-agentic workflow doctrine to engineering constitution (2026-07-12)
 
 - Status:

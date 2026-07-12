@@ -85,3 +85,6 @@ adobe/New\ folder/*.msi
 *.bak
 
 .env*
+
+# Electron release folders
+**/release-production-v4/
