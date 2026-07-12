@@ -732,6 +732,7 @@ function VideoPageInner() {
   const [startFramePreview, setStartFramePreview] = useState<string | null>(null);
   const [endFramePreview, setEndFramePreview] = useState<string | null>(null);
   const [motionVideoPreview, setMotionVideoPreview] = useState<string | null>(null);
+  const [motionVideoDuration, setMotionVideoDuration] = useState<number | null>(null);
   // Detected aspect ratio of the uploaded start frame (Kling 3.0 i2v auto-adapts to this)
   const [startFrameRatio, setStartFrameRatio] = useState<string | null>(null);
   const [referencePreviews, setReferencePreviews] = useState<string[]>([]);
@@ -743,6 +744,16 @@ function VideoPageInner() {
   const [lipsyncAudioFile, setLipsyncAudioFile] = useState<File | null>(null);
   const [lipsyncAudioPreview, setLipsyncAudioPreview] = useState<string | null>(null);
   const lipsyncAudioRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (motionVideo) {
+      validateVideoDuration(motionVideo, 3, 30)
+        .then((dur) => setMotionVideoDuration(dur))
+        .catch(() => setMotionVideoDuration(null));
+    } else {
+      setMotionVideoDuration(null);
+    }
+  }, [motionVideo]);
 
   useEffect(() => {
     if (!lipsyncAudioFile) {
@@ -1392,8 +1403,10 @@ function VideoPageInner() {
     if (activeTool === "lipsync") {
       return 17;
     }
-    // Veo 3.1 supports 4/6/8 — use whatever the user picked (defaults to 8).
-    const pricingDuration = isVeo31FixedEightSecond ? 8 : (duration ?? (isVeo31Model ? 8 : 5));
+    const isMotionControl = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/motion-control";
+    const pricingDuration = isMotionControl
+      ? (motionVideoDuration ? Math.round(motionVideoDuration) : 5)
+      : (isVeo31FixedEightSecond ? 8 : (duration ?? (isVeo31Model ? 8 : 5)));
     // NOTE: capturedDuration below also defaults to 8 if duration is null.
     const base = getGenerationCostSync(
       selectedModel.api_route,
@@ -1704,6 +1717,10 @@ function VideoPageInner() {
       // Duration
       if (durationChoices.length > 0 && duration != null) {
         payload.duration = isVeo31FixedEightSecond ? 8 : duration;
+      }
+      const isMotionControl = selectedModel.api_route === "kwaivgi/kling-v3.0-pro/motion-control";
+      if (isMotionControl) {
+        payload.duration = motionVideoDuration ? Math.round(motionVideoDuration) : 5;
       }
 
       // Quality / Resolution

@@ -3,9 +3,10 @@
 ## Latest task: Implemented bounded Saad Agent AgentLoopService foundation (2026-07-12)
 
 - Status:
-  Implemented the first concrete original Saad Agent agent-loop foundation. `AgentLoopService` now provides a bounded decide -> approve -> execute registered tool -> observe -> continue/finish loop over the existing `ToolManager`, `ApprovalPolicyService`, `ExecutionTraceEmitter`, and `EventBus`. This is a safe service foundation, not a duplicate chat orchestrator and not an approval bypass.
+  Implemented the first concrete original Saad Agent agent-loop foundation. `AgentLoopService` now provides a bounded decide -> approve -> execute registered tool -> observe -> continue/finish loop over the existing `ToolManager`, `ApprovalPolicyService`, `ExecutionTraceEmitter`, and `EventBus`. Added `CoreToolRegistryService` so the loop explicitly registers the real core tools before execution instead of relying on test-only side-effect imports. This is a safe service foundation, not a duplicate chat orchestrator and not an approval bypass.
 - Affected files:
   - `saad-agent/src/platform/services/agent-loop.ts`
+  - `saad-agent/src/platform/services/core-tool-registry.ts`
   - `saad-agent/src/test-agent-loop.ts`
   - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
   - `PROJECT_CONTEXT.md`
@@ -14,18 +15,19 @@
 - Verification:
   - Read the required project memory files before acting.
   - `npm.cmd run build` in `saad-agent` passed.
-  - `node dist/test-agent-loop.js` passed after the build, covering safe read-tool completion, write-tool approval stop in ask mode, missing-tool deterministic failure, and lifecycle events.
+  - `node dist/test-agent-loop.js` passed after the build, covering safe read-tool completion, core tool registration, write-tool approval stop in ask mode, missing-tool deterministic failure, and lifecycle events.
+  - `node dist/test-tools.js` passed, confirming the real core tools register and execute their integration checks.
   - `node dist/test-chat-orchestrator.js` passed, confirming existing routing/orchestration regressions still work. Sandbox still blocks audit/policy log writes to `C:\Users\PC\.saad-agent`, but assertions pass.
   - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
-  - Extracted the repacked archive and verified packaged `dist/platform/services/agent-loop.js` and `dist/test-agent-loop.js` exist and contain `AgentLoopService` / `AgentLoopApprovalRequired` markers.
+  - Extracted the repacked archive and verified packaged `dist/platform/services/core-tool-registry.js`, `dist/platform/services/agent-loop.js`, and `dist/test-agent-loop.js` exist and contain the expected registration/loop markers.
 - Decisions:
   - The loop uses caller-provided decisions for this phase so it does not guess model tool calls or duplicate `ReasoningEngine` planning.
+  - Core tools are registered through a named service (`CoreToolRegistryService`) so production execution can rehydrate the registry deterministically after a clear/reset.
   - Every tool action checks `ApprovalPolicyService` before execution and passes registered tool permissions back through `ToolManager.execute`.
   - Tool execution emits `ExecutionTraceEmitter` phases and `EventBus` lifecycle events so future UI/debug layers can observe it without tight coupling.
   - This phase does not yet route ordinary chat or daily maintenance requests through `AgentLoopService`; integration will be a later bounded migration.
 - Remaining:
   - Integrate `AgentLoopService` behind a narrow approved engineering/daily-maintenance path.
-  - Add default registered tools for read/search/validation so the loop can execute real project-inspection steps without custom test tools.
   - Add durable loop observation summaries as the next context-compression phase.
 
 ## Latest task: Fixed Kling 3.0 Motion Control API & Added Optional Video upload for Gemini Omni Flash (2026-07-12)
