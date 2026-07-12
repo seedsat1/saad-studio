@@ -2376,6 +2376,7 @@ export async function POST(req: Request) {
         providerStatus: createRes.status,
         providerModel: kieModel,
         modelRoute,
+        debugRequest: createBody,
       };
       await completeIdempotency({
         userId,

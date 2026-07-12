@@ -193,7 +193,7 @@ export class RequestRoutingService {
   private static isStrictLocalAnswerRequest(prompt: string, normalized: string): boolean {
     const lower = prompt.toLowerCase();
     const combined = `${normalized} ${lower}`;
-    return /\u0644\u0627\s+\u062a\u0628\u062d\u062b|\u0628\u062f\u0648\u0646\s+\u0628\u062d\u062b|\u0644\u0627\s+\u062a\u0633\u062a\u062e\u062f\u0645\s+(?:\u0627\u064a|\u0623\u064a)?\s*(?:\u0627\u062f\u0627\u0647|\u0623\u062f\u0627\u0629)/i.test(combined)
+    return /\u0644\u0627\s+\u062a\u0628\u062d\u062b|\u0628\u062f\u0648\u0646\s+\u0628\u062d\u062b|\u0644\u0627\s+\u062a\u0633\u062a\u062e\u062f\u0645.{0,30}(?:\u0628\u062d\u062b|\u0627\u062f\u0627\u0647|\u0623\u062f\u0627\u0629|\u0627\u062f\u0648\u0627\u062a|\u0623\u062f\u0648\u0627\u062a)/i.test(combined)
       || /\bdo not use (?:any )?tools?\b|\bdon't use (?:any )?tools?\b|\bdo not search\b|\bno search\b|\bwithout tools?\b/i.test(combined)
       || /(?:\u0627\u0644\u0646\u062a\u064a\u062c\u0647\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0647|\u0627\u0644\u0646\u062a\u064a\u062c\u0629\s+\u0627\u0644\u0646\u0647\u0627\u0626\u064a\u0629).{0,30}\u0641\u0642\u0637/i.test(combined)
       || /\u0627\u062c\u0628.{0,30}\u0641\u0642\u0637|\u0623\u062c\u0628.{0,30}\u0641\u0642\u0637/i.test(combined)

@@ -181,6 +181,14 @@ Boundaries:
 - The app must not show fake providers, fake MCP tools, fake skills, fake tasks, fake model status, or placeholder management cards.
 - The agent must not claim an action happened unless backend code actually performed it.
 
+## Central Request Routing Contract
+
+- `RequestRoutingService` is the central top-level classifier for deterministic answers, memory save/recall, saved knowledge lookup, training ingest, URL read, external research, engineering review/modify, inline image generation, image prompt drafting, and ordinary conversation.
+- `ChatOrchestratorService` and `ExecutionPolicyService` must trust this central route before legacy heuristics. Legacy search/media/project heuristics may only fill gaps when the central route is `conversation`.
+- Explicit local constraints such as `لا تبحث`, `بدون بحث`, `لا تستخدم بحث`, `لا تستخدم أدوات`, `do not search`, and `do not use tools` must block external research and trained-knowledge fallback unless another earlier deterministic handler intentionally answers locally.
+- Requests that explicitly ask from saved/stored/training knowledge must stay local; topic words like `image search` inside that request must not trigger live image search.
+- The packaged `app.asar` must include `dist/platform/services/request-routing.js`; otherwise the runtime is stale even if the source build passes.
+
 ## Local Image Classification Routing
 
 Local image folder classification requests must be routed locally before any text-model call.

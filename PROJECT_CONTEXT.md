@@ -1,5 +1,26 @@
 # Saad Studio Project Context Update
 
+## Latest task: Saad Agent central request-routing contract hardening (2026-07-12)
+
+- Status:
+  Hardened Saad Agent's central request-routing contract so explicit local/no-tool/no-search prompts cannot be reclassified by legacy search heuristics. The packaged runtime now includes `RequestRoutingService` inside `app.asar`, and `ChatOrchestratorService` / `ExecutionPolicyService` trust the central route before legacy fallbacks.
+- Affected files:
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/execution-policy.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-skills.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it to verify packaged `request-routing.js`, `execution-policy.js`, and `chat-orchestrator.js` contain the central routing markers.
+- Decision:
+  - One central routing contract must decide the top-level request family before model, RAG, search, or engineering fallback. Legacy search heuristics may only run when the central router leaves the request as ordinary conversation.
+- Remaining:
+  - Restart the packaged desktop app before retesting so Electron loads the repacked archive.
+
 ## Latest task: Fixed KIE validation error for motion control without prompt (2026-07-12)
 
 - Status:

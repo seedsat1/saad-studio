@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Saad Agent central request-routing behavior (2026-07-12)
+- Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
+- `ChatOrchestratorService` and `ExecutionPolicyService` must not let legacy keyword heuristics override a clear central route.
+- Local/no-tool/no-search constraints such as `لا تبحث`, `لا تستخدم بحث`, `لا تستخدم أدوات`, and `do not use tools` must block live search and unrelated trained-knowledge fallback.
+- Legacy search heuristics may only run when the central route remains ordinary `conversation`.
+- Packaged releases must include `dist/platform/services/request-routing.js` inside `app.asar`.
+
 ## Saad Agent image prompt drafting routing behavior (2026-07-11)
 - طلبات كتابة أو تصميم برومبت صورة مثل `اريد تصميم لوكس برومبيت صورة اعرضها هنا` هي طلبات صياغة نصية وليست بحث صور.
 - وجود كلمة `صورة` داخل طلب برومبت لا يكفي لتشغيل Brave Image Search أو طلب موافقة بحث.
