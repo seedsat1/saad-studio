@@ -1,5 +1,24 @@
 # Saad Studio Project Context Update
 
+## Latest task: Fixed Kling 3.0 Motion Control API & Added Optional Video upload for Gemini Omni Flash (2026-07-12)
+
+- Status:
+  Resolved the 502 Bad Gateway error on Kling 3.0 Motion Control generation, caused by missing return statement inside KIE mapping and incorrect mode parameter formatting. Added optional video input capability and upload slot for Gemini Omni Flash.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `lib/video-model-registry.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Successfully verified TypeScript compilation of the codebase via `npx tsc --noEmit`.
+  - Added git tracking ignores to `.gitignore` for unpacked Electron build directories to keep git index performance clean.
+- Decisions:
+  - Return early inside the specific KIE mapping blocks in `mapToKieInput` to prevent fallthrough to the general mapper.
+  - Map Kling 3.0 resolution options to "720p" and "1080p" strings for mode inside KIE API body instead of "std"/"pro".
+  - Add `optional_video: true` capability to Gemini Omni Flash to enable Video-to-Video generation in client UI.
+- Remaining:
+  - Ask the user to verify generation and upload.
+
 ## Latest task: Audited Claude/Codex-style agent architecture ideas against Saad Agent (2026-07-12)
 
 - Status:
