@@ -1,5 +1,6 @@
 import { ResearchGatewayService } from "./research-gateway.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
+import { DailyEngineerService } from "./daily-engineer.js";
 import type { SupportedIntent } from "./intent-engine.js";
 
 export type RequestRouteKind =
@@ -36,6 +37,22 @@ export class RequestRoutingService {
 
     if (ModelExpertiseExtractionService.isExtractionRequest(raw)) {
       return this.route("training_ingest", "training_ingest", "training.expertise.extract", ["ModelExpertiseExtractionService"], "Expertise extraction must use its provider-aware training pipeline.", 0.99, true, false);
+    }
+
+    const dailyEngineer = DailyEngineerService.classifyRequest(raw);
+    if (dailyEngineer) {
+      return this.route(
+        dailyEngineer.reviewOnly ? "engineering_review" : "engineering_modify",
+        dailyEngineer.reviewOnly ? "code_review" : "code_modification",
+        dailyEngineer.pipeline,
+        dailyEngineer.reviewOnly
+          ? ["DailyEngineerService", "ContextEngine", "ValidationPipeline"]
+          : ["DailyEngineerService", "ContextEngine", "Filesystem", "ValidationPipeline"],
+        dailyEngineer.reason,
+        0.985,
+        true,
+        false
+      );
     }
 
     if (this.isProjectAuditOrRepairInstruction(raw, normalized)) {

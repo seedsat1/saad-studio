@@ -28,6 +28,7 @@ import { DocumentTextExtractor } from "./document-text-extractor.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
 import { CreativeService } from "./creative.js";
 import { RequestRoutingService } from "./request-routing.js";
+import { DailyEngineerService } from "./daily-engineer.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -518,6 +519,8 @@ export class ChatOrchestratorService {
       effectiveApprovalMode,
       conversationId
     );
+    const requestRoute = RequestRoutingService.classify(userRequestText);
+    const dailyEngineerWorkflow = DailyEngineerService.classifyRequest(userRequestText);
 
     await TaskStateStore.transitionTask(taskId, "CLASSIFIED", `Decision evaluated: ${decisionResult.decision}`);
 
@@ -544,7 +547,7 @@ export class ChatOrchestratorService {
       await this.transitionToApproval(taskId, `Requires approval: ${decisionResult.reason}`);
       const approvalReason = this.formatApprovalReason(decisionResult.reason);
       const approvalAction = /Internet access/i.test(decisionResult.reason) ? "use_internet" : "write_file";
-      if (/Project modification/i.test(decisionResult.reason)) {
+      if (/Project modification|Daily maintenance engineer/i.test(decisionResult.reason)) {
         ConversationStateEngine.updateState(sessionId, {
           lastIntent: "code_generation",
           activeWorkflow: "code_generation",
@@ -819,6 +822,7 @@ export class ChatOrchestratorService {
         "Work only inside the provided trusted workspace.",
         "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
         "Use the project rules and context below before acting.",
+        dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
         "",
         "Saad Agent pre-answer context:",
         preAnswerReview.finalContext,
@@ -904,7 +908,7 @@ export class ChatOrchestratorService {
     if ((decisionResult.decision === "PLAN" || decisionResult.decision === "WAIT_FOR_APPROVAL") && decisionResult.workflow === "engineering_workflow") {
       ConversationStateEngine.updateState(sessionId, {
         lastIntent: intent,
-        activeWorkflow: "engineering_workflow",
+        activeWorkflow: dailyEngineerWorkflow ? "daily_maintenance_engineer" : "engineering_workflow",
         activeTask: userRequestText
       });
 
@@ -956,6 +960,7 @@ export class ChatOrchestratorService {
         "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
         "Use the project rules and context below before acting.",
         "For project modifications, inspect the codebase first, edit only the required files, and run available verification.",
+        dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
         "",
         "Saad Agent pre-answer context:",
         preAnswerReview.finalContext,
@@ -981,7 +986,9 @@ export class ChatOrchestratorService {
         return {
           intent,
           usedModel: false,
-          response: "Codex runtime needs approval before executing this engineering task.",
+          response: dailyEngineerWorkflow
+            ? "Daily Maintenance Engineer runtime needs approval before executing this project task."
+            : "Codex runtime needs approval before executing this engineering task.",
           approvalRequest: codexResult.approvalRequest
         };
       }
@@ -1238,6 +1245,14 @@ export class ChatOrchestratorService {
             const chunkText = m.chunks && m.chunks.length > 0 ? m.chunks.map(c => c.content).join("\n") : m.item.summary;
             return `Trained Rule ${idx + 1} (${(m.item as any).title || (m.item as any).fileName || m.item.filePath}):\n${chunkText}`;
           }).join("\n\n");
+      }
+      if (dailyEngineerWorkflow && requestRoute.pipeline.startsWith("daily_maintenance.")) {
+        promptAugmentationText = [
+          promptAugmentationText,
+          "",
+          "DAILY MAINTENANCE ENGINEER CONTRACT:",
+          dailyEngineerWorkflow.runtimeInstructions
+        ].filter(Boolean).join("\n");
       }
 
       ExecutionTraceEmitter.emit({

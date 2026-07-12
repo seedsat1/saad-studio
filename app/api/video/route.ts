@@ -1228,15 +1228,12 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     if (startImage) out.input_urls = [startImage];
     if (motionVideo) out.video_urls = [motionVideo];
 
-    // resolution ("720p"|"1080p") → mode ("std"|"pro")
+    // resolution ("720p"|"1080p") → mode ("720p"|"1080p")
     const res = typeof input.resolution === "string" ? input.resolution.toLowerCase() : "";
-    const modeFromInput = typeof input.mode === "string" ? input.mode.toLowerCase() : "";
-    if (modeFromInput === "std" || modeFromInput === "pro") {
-      out.mode = modeFromInput;
-    } else if (res.includes("1080")) {
-      out.mode = "pro";
-    } else if (res.includes("720")) {
-      out.mode = "std";
+    if (res.includes("1080")) {
+      out.mode = "1080p";
+    } else {
+      out.mode = "720p";
     }
 
     // orientation ("video"|"image") → character_orientation
