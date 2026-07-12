@@ -1,5 +1,115 @@
 # Saad Studio Project Context Update
 
+## Latest task: Audited Claude/Codex-style agent architecture ideas against Saad Agent (2026-07-12)
+
+- Status:
+  Reviewed the user's proposed agent-architecture checklist and mapped it to the current Saad Agent implementation. The ideas are useful as architecture patterns, but they must remain original Saad Agent implementations and not copied from leaked/proprietary Claude Code material.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Inspected current services covering routing/orchestration, tool registry, model/query handling, memory, context compression hooks, sub-agents, approvals, skills, planning, validation, and event hooks.
+  - Confirmed existing implementation signals in `ChatOrchestratorService`, `ExecutionPolicyService`, `RequestRoutingService`, `ReasoningEngine`, `ModelClient`, `ToolManager`, `ContextManager`, `AgentMemoryStore`, `ProjectMemoryStore`, `PreAnswerReviewService`, `AgentRegistry`, `ApprovalPolicyService`, `SkillRegistry`, `Planner`, `EventBus`, and `ValidationPipelineService`.
+- Findings:
+  - Strongly useful and already substantially present: routing, planner, approval policy, memory layers, skills, validation, model client retries/timeouts, sub-agent registry, and tool registry.
+  - Partially present: context compression exists as hooks and pruning, but not yet as durable long-conversation summarization across hours of work.
+  - Partially present: sub-agents are registered but mostly advisory/stub-like; they are not yet independent specialist workers with real isolated tool loops.
+  - Partially present: hooks exist through `EventBus` and `ContextManager` compression hooks, but not yet as a unified before/after tool/prompt hook bus.
+  - Not yet fully present: a generic model-driven agent loop that repeatedly asks the model whether to call a tool, executes that tool, observes the result, and repeats until completion. Saad Agent currently has orchestrated routes and workflow-specific execution paths instead.
+- Decisions:
+  - Adopt the checklist as an architecture adoption matrix for future Saad Agent work.
+  - Prioritize next implementation phases in this order: unified tool-call loop, durable context compression, real specialist sub-agent execution, and unified hook lifecycle.
+  - Keep Claude Code references comparison-only; implement all behavior through original Saad Agent services.
+- Remaining:
+  - Implement the first concrete upgrade from this matrix, preferably a bounded `AgentLoopService` that can run approved tool iterations over the existing `ToolManager`, `ApprovalPolicyService`, and `ExecutionTraceEmitter`.
+
+## Latest task: Persisted Saad Agent Daily Maintenance state through Electron (2026-07-12)
+
+- Status:
+  Implemented phase 3 of the private daily maintenance engineer workflow. The Daily Maintenance panel now loads and saves its checklist, last prompt mode, and saved timestamp through Electron IPC into the app user-data `state/daily-maintenance.json` file, while keeping `localStorage` as a renderer fallback.
+- Affected files:
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/desktop/preload.ts`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/dist`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent/ui` passed after cleaning `ui/dist`; Vite still reports the existing CSS `@import` ordering warning and bundle-size warning.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed. Audit/policy log writes still warn under sandbox because they cannot write to `C:\Users\PC\.saad-agent`, but assertions pass.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `main.js` contains `daily-maintenance:save` and `daily-maintenance.json`, packaged `preload.cjs` contains `loadDailyMaintenanceState`, and the packaged UI contains the bridge and `daily-maintenance-meta` CSS.
+- Decisions:
+  - Store the maintenance panel state in the same Electron user-data `state` folder pattern used for durable conversations.
+  - Normalize accepted checklist keys to `inspect`, `plan`, `implement`, `verify`, and `document` only.
+  - Keep this as real local state persistence, not a fake scheduler or silent autonomous execution path.
+- Remaining:
+  - Restart the packaged desktop app before retesting so Electron loads the updated `app.asar`.
+  - A future phase can add real daily maintenance session history and scheduled/manual run records.
+
+## Latest task: Added visible Saad Agent Daily Maintenance panel (2026-07-12)
+
+- Status:
+  Implemented phase 2 of the private daily maintenance engineer workflow in the Saad Agent renderer. The right panel now includes a visible Daily Maintenance card with progress, persistent checklist steps, and quick prompt-preparation actions for review, maintenance, and design work. The controls prepare bounded Arabic maintenance prompts; they do not bypass the existing approval or execution gates.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/dist`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent/ui` passed. Vite still reports the existing CSS `@import` ordering warning and chunk-size warning.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Rebuilt `saad-agent/ui/dist` from a clean folder to remove stale hashed Vite assets.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified the packaged UI contains `Daily Maintenance`, `Reset checklist`, `saad-agent.dailyMaintenanceChecklist.v1`, `daily-maintenance-panel`, and `daily-maintenance-checklist`.
+- Decisions:
+  - Added a renderer-side checklist using `localStorage` so daily progress remains visible between app sessions without introducing a backend schema change.
+  - Kept the buttons as prompt-preparation shortcuts instead of silent auto-execution.
+  - Preserved the existing right-panel structure and visual system rather than adding a separate dashboard.
+- Remaining:
+  - Restart the packaged desktop app before visual retesting so Electron loads the latest `app.asar`.
+  - A future phase can add backend task history, scheduled maintenance runs, or a full Electron visual regression check.
+
+## Latest task: Implemented Saad Agent Daily Maintenance Engineer routing (2026-07-12)
+
+- Status:
+  Implemented the first concrete Saad Agent daily maintenance engineer behavior in original project code. Daily maintenance, private maintenance engineer, design-improvement, large-project, review-only, and repair wording now routes through a dedicated `DailyEngineerService` contract before generic chat/search fallback. Modification requests use the existing engineering approval/runtime path, while review-only requests route to engineering review with the maintenance contract injected into the Coding prompt.
+- Affected files:
+  - `saad-agent/src/platform/services/daily-engineer.ts`
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including new daily maintenance engineer routing and approval regressions.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive to verify packaged `daily-engineer.js`, `request-routing.js`, and `chat-orchestrator.js` contain the daily maintenance engineer markers.
+  - Test audit logging still warns under sandbox when it cannot write to `C:\Users\PC\.saad-agent`, but tests continue and assertions pass.
+- Decisions:
+  - Reused the existing engineering review/modification intent family instead of creating a parallel execution product path.
+  - Added a dedicated `DailyEngineerService` contract that classifies maintenance/design/large-project/bug-fix/review requests and injects inspect -> plan -> act -> verify -> repair -> document instructions.
+  - Kept the implementation original. No Claude Code source from `E:\Agent-Reach-main\claude-code` was copied, run, bundled, imported, or reverse-engineered.
+- Remaining:
+  - Restart the packaged desktop app before retesting `win-unpacked` so Electron loads the repacked `app.asar`.
+  - Later phases can add a visible Daily Maintenance UI panel and persistent task checklist.
+
 ## Latest task: Adopted local Claude Code folder as comparison-only daily engineer reference (2026-07-12)
 
 - Status:

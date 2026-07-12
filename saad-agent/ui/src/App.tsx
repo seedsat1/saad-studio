@@ -7,7 +7,7 @@ import type { Attachment } from "./attachments.js";
 import { ContextCards } from "./components/ContextCards.js";
 import { SettingsModal } from "./components/SettingsModal.js";
 import { PromptBox } from "./components/PromptBox";
-import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, LoaderCircle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, ListChecks, LoaderCircle, Palette, RotateCcw, SearchCheck, ShieldCheck, Wrench } from "lucide-react";
 type SettingsTab = "general" | "workspace" | "models" | "providers" | "agents" | "skills" | "tools" | "connectors" | "mcp" | "creative" | "vision" | "knowledge" | "execution" | "security" | "backups" | "diagnostics" | "advanced";
 type RuntimeModelRole = {
   role: string;
@@ -34,6 +34,7 @@ type PersistedConversationPayload = {
 };
 type ExecutionTraceMode = "simple" | "developer" | "verbose" | "hidden";
 type ApprovalMode = "ask" | "approve_for_me" | "full_access";
+type DailyMaintenancePromptMode = "review" | "repair" | "design";
 type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
 type ExecutionTraceRunStatus = "running" | "waiting_approval" | "completed" | "failed";
 type ExecutionTraceStage = {
@@ -71,6 +72,56 @@ const CONVERSATIONS_STORAGE_KEY = "saad-agent.conversations.v1";
 const ACTIVE_CONVERSATION_STORAGE_KEY = "saad-agent.activeConversationId.v1";
 const TRACE_MODE_STORAGE_KEY = "saad-agent.executionTraceMode.v4";
 const APPROVAL_MODE_STORAGE_KEY = "saad-agent.approvalMode.v1";
+const DAILY_MAINTENANCE_CHECKLIST_STORAGE_KEY = "saad-agent.dailyMaintenanceChecklist.v1";
+
+const DAILY_MAINTENANCE_STEPS = [
+  { id: "inspect", label: "Inspect", detail: "Read project evidence" },
+  { id: "plan", label: "Plan", detail: "Bound the work" },
+  { id: "implement", label: "Implement", detail: "Edit narrowly" },
+  { id: "verify", label: "Verify", detail: "Run checks" },
+  { id: "document", label: "Document", detail: "Save outcome" },
+] as const;
+
+type DailyMaintenanceStepId = typeof DAILY_MAINTENANCE_STEPS[number]["id"];
+type DailyMaintenanceChecklist = Record<DailyMaintenanceStepId, boolean>;
+type DailyMaintenanceState = {
+  checklist: DailyMaintenanceChecklist;
+  lastPromptMode: DailyMaintenancePromptMode | null;
+  updatedAt: string | null;
+};
+
+const createDefaultDailyMaintenanceChecklist = (): DailyMaintenanceChecklist => ({
+  inspect: false,
+  plan: false,
+  implement: false,
+  verify: false,
+  document: false,
+});
+
+const loadDailyMaintenanceChecklist = (): DailyMaintenanceChecklist => {
+  if (typeof window === "undefined") return createDefaultDailyMaintenanceChecklist();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(DAILY_MAINTENANCE_CHECKLIST_STORAGE_KEY) || "{}");
+    return {
+      ...createDefaultDailyMaintenanceChecklist(),
+      ...(parsed && typeof parsed === "object" ? parsed : {}),
+    };
+  } catch {
+    return createDefaultDailyMaintenanceChecklist();
+  }
+};
+
+const normalizeDailyMaintenanceChecklist = (value: unknown): DailyMaintenanceChecklist => {
+  const raw = value && typeof value === "object" ? value as Partial<Record<DailyMaintenanceStepId, unknown>> : {};
+  return DAILY_MAINTENANCE_STEPS.reduce((next, step) => {
+    next[step.id] = Boolean(raw[step.id]);
+    return next;
+  }, createDefaultDailyMaintenanceChecklist());
+};
+
+const normalizeDailyMaintenancePromptMode = (value: unknown): DailyMaintenancePromptMode | null => {
+  return value === "review" || value === "repair" || value === "design" ? value : null;
+};
 
 const traceModeLabels: Record<ExecutionTraceMode, string> = {
   simple: "Simple",
@@ -466,6 +517,10 @@ export default function App() {
   const [activeRuntimeRole, setActiveRuntimeRole] = useState("Chat");
   const [activeRuntimeSkill, setActiveRuntimeSkill] = useState("Auto");
   const [activeMcpTool, setActiveMcpTool] = useState("None");
+  const [dailyMaintenanceChecklist, setDailyMaintenanceChecklist] = useState<DailyMaintenanceChecklist>(() => loadDailyMaintenanceChecklist());
+  const [dailyMaintenanceLastPromptMode, setDailyMaintenanceLastPromptMode] = useState<DailyMaintenancePromptMode | null>(null);
+  const [dailyMaintenanceSavedAt, setDailyMaintenanceSavedAt] = useState<string | null>(null);
+  const dailyMaintenanceStoreReadyRef = useRef(!(window as any).electronAPI?.loadDailyMaintenanceState);
   const [activeApprovalMode, setActiveApprovalMode] = useState<ApprovalMode>(() => {
     if (typeof window === "undefined") return "approve_for_me";
     return normalizeApprovalMode(window.localStorage.getItem(APPROVAL_MODE_STORAGE_KEY));
@@ -496,6 +551,11 @@ export default function App() {
   const handleStopGeneration = () => {
     setIsGenerating(false);
   };
+  const completedDailyMaintenanceSteps = DAILY_MAINTENANCE_STEPS.filter((step) => dailyMaintenanceChecklist[step.id]).length;
+  const dailyMaintenanceProgress = Math.round((completedDailyMaintenanceSteps / DAILY_MAINTENANCE_STEPS.length) * 100);
+  const dailyMaintenanceStatusLabel = dailyMaintenanceSavedAt
+    ? `Saved ${new Date(dailyMaintenanceSavedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+    : "Local state";
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) || conversations[0];
   const messages = activeConversation?.messages || [];
 
@@ -564,6 +624,34 @@ export default function App() {
 
 
   useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api?.loadDailyMaintenanceState) {
+      dailyMaintenanceStoreReadyRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    api.loadDailyMaintenanceState()
+      .then((result: any) => {
+        if (cancelled || !result?.success) return;
+        setDailyMaintenanceChecklist(normalizeDailyMaintenanceChecklist(result.checklist));
+        setDailyMaintenanceLastPromptMode(normalizeDailyMaintenancePromptMode(result.lastPromptMode));
+        setDailyMaintenanceSavedAt(typeof result.updatedAt === "string" ? result.updatedAt : null);
+      })
+      .catch((error: unknown) => {
+        console.warn("Failed to load daily maintenance state", error);
+      })
+      .finally(() => {
+        if (!cancelled) dailyMaintenanceStoreReadyRef.current = true;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  useEffect(() => {
     try {
       const activeIdForStorage = activeConversationId || conversations[0]?.id || "";
       const payload = { version: 1, conversations, activeId: activeIdForStorage || null };
@@ -592,6 +680,30 @@ export default function App() {
       console.warn("Failed to save approval mode", error);
     }
   }, [activeApprovalMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DAILY_MAINTENANCE_CHECKLIST_STORAGE_KEY, JSON.stringify(dailyMaintenanceChecklist));
+      const payload: DailyMaintenanceState = {
+        checklist: dailyMaintenanceChecklist,
+        lastPromptMode: dailyMaintenanceLastPromptMode,
+        updatedAt: dailyMaintenanceSavedAt,
+      };
+      if (dailyMaintenanceStoreReadyRef.current) {
+        void (window as any).electronAPI?.saveDailyMaintenanceState?.(payload)
+          ?.then((result: any) => {
+            if (result?.success && typeof result.updatedAt === "string") {
+              setDailyMaintenanceSavedAt(result.updatedAt);
+            }
+          })
+          ?.catch((error: unknown) => {
+            console.warn("Failed to persist daily maintenance state", error);
+          });
+      }
+    } catch (error) {
+      console.warn("Failed to save daily maintenance checklist", error);
+    }
+  }, [dailyMaintenanceChecklist, dailyMaintenanceLastPromptMode]);
 
   useEffect(() => {
     if ((window as any).electronAPI && (window as any).electronAPI.onMenuNavigate) {
@@ -2597,6 +2709,39 @@ export default function App() {
     }
   };
 
+  const toggleDailyMaintenanceStep = (stepId: DailyMaintenanceStepId) => {
+    setDailyMaintenanceChecklist((previous) => ({
+      ...previous,
+      [stepId]: !previous[stepId],
+    }));
+  };
+
+  const resetDailyMaintenanceChecklist = () => {
+    setDailyMaintenanceChecklist(createDefaultDailyMaintenanceChecklist());
+  };
+
+  const prepareDailyMaintenancePrompt = (mode: DailyMaintenancePromptMode) => {
+    const promptByMode = {
+      review: [
+        "اعمل كمهندس الصيانة اليومية الخاص بموقعي.",
+        "راجع المشروع فقط ولا تعدل أي ملف الآن.",
+        "أريد تقرير مختصر يتضمن: الملفات المهمة، المشاكل، مستوى الخطورة، وخطة التنفيذ التالية.",
+      ].join("\n"),
+      repair: [
+        "اعمل كمهندس الصيانة اليومية الخاص بموقعي.",
+        "افحص المشروع، خطط بتعديلات محدودة، نفذ الإصلاحات المطلوبة، شغل التحقق المناسب، ثم وثق النتيجة.",
+        "لا تنسخ أي كود خارجي أو مسرب، ولا تقرأ أو تعرض الأسرار.",
+      ].join("\n"),
+      design: [
+        "اعمل كمهندس الصيانة والتصميم اليومي لموقعي.",
+        "افحص الواجهة الحالية، حسّن تجربة الاستخدام والتصميم بما يناسب نظام الواجهة الموجود، وتحقق من السلوك المتجاوب قدر الإمكان.",
+        "نفذ بتعديلات محدودة ووثق الملفات والاختبارات.",
+      ].join("\n"),
+    };
+    setDailyMaintenanceLastPromptMode(mode);
+    setInputValue(promptByMode[mode]);
+  };
+
   const activeComposerModel = runtimeModels.find(model => model.role === activeRuntimeRole) || runtimeModels[0];
   const activeProviderName = activeComposerModel?.providerName || "Provider not set";
   const activeModelName = activeComposerModel?.modelName || "Model not set";
@@ -3156,6 +3301,49 @@ export default function App() {
                 </div>
                 <button className="small-action-btn" onClick={() => { setSettingsModalTab("workspace"); setIsSettingsModalOpen(true); }}>
                   Manage workspace settings
+                </button>
+              </div>
+            </div>
+
+            <div className="panel-section open daily-maintenance-panel">
+              <div className="panel-section-header">
+                <span className="panel-title-with-icon"><Wrench size={14} /> Daily Maintenance</span>
+                <span className="daily-maintenance-progress">{dailyMaintenanceProgress}%</span>
+              </div>
+              <div className="panel-section-content">
+                <div className="daily-maintenance-meter" aria-hidden="true">
+                  <span style={{ width: `${dailyMaintenanceProgress}%` }} />
+                </div>
+                <div className="daily-maintenance-meta">
+                  <span>{dailyMaintenanceStatusLabel}</span>
+                  {dailyMaintenanceLastPromptMode && <span>Last: {dailyMaintenanceLastPromptMode}</span>}
+                </div>
+                <div className="daily-maintenance-actions">
+                  <button type="button" className="small-action-btn" onClick={() => prepareDailyMaintenancePrompt("review")}>
+                    <SearchCheck size={13} /> Review
+                  </button>
+                  <button type="button" className="small-action-btn" onClick={() => prepareDailyMaintenancePrompt("repair")}>
+                    <ListChecks size={13} /> Maintain
+                  </button>
+                  <button type="button" className="small-action-btn" onClick={() => prepareDailyMaintenancePrompt("design")}>
+                    <Palette size={13} /> Design
+                  </button>
+                </div>
+                <div className="daily-maintenance-checklist">
+                  {DAILY_MAINTENANCE_STEPS.map((step) => (
+                    <label key={step.id} className={`daily-maintenance-step ${dailyMaintenanceChecklist[step.id] ? "done" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={dailyMaintenanceChecklist[step.id]}
+                        onChange={() => toggleDailyMaintenanceStep(step.id)}
+                      />
+                      <span className="daily-step-main">{step.label}</span>
+                      <span className="daily-step-detail">{step.detail}</span>
+                    </label>
+                  ))}
+                </div>
+                <button type="button" className="daily-maintenance-reset" onClick={resetDailyMaintenanceChecklist}>
+                  <RotateCcw size={13} /> Reset checklist
                 </button>
               </div>
             </div>

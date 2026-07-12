@@ -148,6 +148,12 @@ async function main() {
         kind: "image_prompt_draft",
         intent: "conversation",
         requiresModel: false
+      },
+      {
+        prompt: "\u0627\u0639\u0645\u0644 \u0643\u0645\u0647\u0646\u062f\u0633 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a\u0629 \u0644\u0645\u0648\u0642\u0639\u064a: \u0627\u0641\u062d\u0635 \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0648\u062d\u0633\u0646 \u0627\u0644\u062a\u0635\u0645\u064a\u0645 \u0648\u0627\u0635\u0644\u062d \u0627\u0644\u0623\u062e\u0637\u0627\u0621",
+        kind: "engineering_modify",
+        intent: "code_modification",
+        requiresModel: true
       }
     ];
     const projectAuditRoute = RequestRoutingService.classify([
@@ -159,6 +165,15 @@ async function main() {
     assert.strictEqual(projectAuditRoute.kind, "engineering_review");
     assert.strictEqual(projectAuditRoute.intent, "code_review");
     assert.strictEqual(projectAuditRoute.allowsTrainingFallback, false);
+
+    const dailyEngineerReviewRoute = RequestRoutingService.classify(
+      "\u0627\u0646\u062a \u0645\u0647\u0646\u062f\u0633 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a\u0629 \u0644\u0645\u0648\u0642\u0639\u064a. \u0631\u0627\u062c\u0639 \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0641\u0642\u0637 \u0648\u0644\u0627 \u062a\u0639\u062f\u0644."
+    );
+    assert.strictEqual(dailyEngineerReviewRoute.kind, "engineering_review");
+    assert.strictEqual(dailyEngineerReviewRoute.intent, "code_review");
+    assert.strictEqual(dailyEngineerReviewRoute.pipeline, "daily_maintenance.review");
+    assert.ok(dailyEngineerReviewRoute.tools.includes("DailyEngineerService"));
+    assert.strictEqual(dailyEngineerReviewRoute.allowsTrainingFallback, false);
 
     for (const testCase of routingCases) {
       const route = RequestRoutingService.classify(testCase.prompt);
@@ -229,6 +244,18 @@ async function main() {
     } finally {
       ReasoningEngine.requestCompletion = requestCompletionBeforeProjectAudit;
     }
+
+    const dailyMaintenanceApprovalResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0639\u0645\u0644 \u0643\u0645\u0647\u0646\u062f\u0633 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a\u0629 \u0644\u0645\u0648\u0642\u0639\u064a: \u0627\u0641\u062d\u0635 \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0648\u062d\u0633\u0646 \u0627\u0644\u062a\u0635\u0645\u064a\u0645 \u0648\u0627\u0635\u0644\u062d \u0627\u0644\u0623\u062e\u0637\u0627\u0621",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "ask",
+      sessionId: "daily-maintenance-approval-test"
+    });
+    assert.strictEqual(dailyMaintenanceApprovalResult.intent, "code_generation");
+    assert.strictEqual(dailyMaintenanceApprovalResult.usedModel, false);
+    assert.ok(dailyMaintenanceApprovalResult.approvalRequest, "daily maintenance modification must require approval in ask mode");
+    assert.ok(dailyMaintenanceApprovalResult.response.includes("Daily Maintenance Engineer"));
 
     const pollutedTrainingMemory = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u062d\u0641\u0638 \u062a\u062f\u0631\u0628 \u0639\u0644\u0649 \u0647\u0630\u0627 # Saad Agent Core Training Protocol v1.0\nRule 1: Learn Before Answering.",

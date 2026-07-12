@@ -41,6 +41,12 @@ function getConversationStorePath(): string {
   return path.join(storeDir, "conversations.json");
 }
 
+function getDailyMaintenanceStorePath(): string {
+  const storeDir = path.join(app.getPath("userData"), "state");
+  fs.mkdirSync(storeDir, { recursive: true });
+  return path.join(storeDir, "daily-maintenance.json");
+}
+
 function normalizeStoredConversations(value: any): { conversations: any[]; activeId: string | null } {
   const rawConversations = Array.isArray(value) ? value : Array.isArray(value?.conversations) ? value.conversations : [];
   const conversations = rawConversations
@@ -64,6 +70,20 @@ function normalizeStoredConversations(value: any): { conversations: any[]; activ
   return { conversations, activeId };
 }
 
+function normalizeDailyMaintenanceState(value: any): { checklist: Record<string, boolean>; lastPromptMode: string | null; updatedAt: string | null } {
+  const rawChecklist = value && typeof value.checklist === "object" && !Array.isArray(value.checklist) ? value.checklist : {};
+  const allowedSteps = ["inspect", "plan", "implement", "verify", "document"];
+  const checklist = allowedSteps.reduce((next: Record<string, boolean>, step) => {
+    next[step] = Boolean(rawChecklist[step]);
+    return next;
+  }, {});
+  const lastPromptMode = typeof value?.lastPromptMode === "string" && ["review", "repair", "design"].includes(value.lastPromptMode)
+    ? value.lastPromptMode
+    : null;
+  const updatedAt = typeof value?.updatedAt === "string" ? value.updatedAt : null;
+  return { checklist, lastPromptMode, updatedAt };
+}
+
 function loadPersistedConversations(): { conversations: any[]; activeId: string | null } {
   const storePath = getConversationStorePath();
   if (!fs.existsSync(storePath)) return { conversations: [], activeId: null };
@@ -84,6 +104,35 @@ function savePersistedConversations(payload: any): { conversations: any[]; activ
     savedAt: new Date().toISOString(),
     activeId: normalized.activeId,
     conversations: normalized.conversations
+  };
+  if (fs.existsSync(storePath)) {
+    fs.copyFileSync(storePath, backupPath);
+  }
+  fs.writeFileSync(tempPath, JSON.stringify(nextPayload, null, 2), "utf8");
+  fs.renameSync(tempPath, storePath);
+  return normalized;
+}
+
+function loadDailyMaintenanceState(): { checklist: Record<string, boolean>; lastPromptMode: string | null; updatedAt: string | null } {
+  const storePath = getDailyMaintenanceStorePath();
+  if (!fs.existsSync(storePath)) {
+    return normalizeDailyMaintenanceState({});
+  }
+  const parsed = JSON.parse(fs.readFileSync(storePath, "utf8"));
+  return normalizeDailyMaintenanceState(parsed);
+}
+
+function saveDailyMaintenanceState(payload: any): { checklist: Record<string, boolean>; lastPromptMode: string | null; updatedAt: string | null } {
+  const normalized = normalizeDailyMaintenanceState({
+    ...payload,
+    updatedAt: new Date().toISOString()
+  });
+  const storePath = getDailyMaintenanceStorePath();
+  const tempPath = `${storePath}.tmp`;
+  const backupPath = `${storePath}.bak`;
+  const nextPayload = {
+    version: 1,
+    ...normalized
   };
   if (fs.existsSync(storePath)) {
     fs.copyFileSync(storePath, backupPath);
@@ -513,6 +562,24 @@ ipcMain.handle("conversations:save", async (_event, payload) => {
     return { success: true, ...saved };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to save conversations." };
+  }
+});
+
+ipcMain.handle("daily-maintenance:load", async () => {
+  try {
+    const payload = loadDailyMaintenanceState();
+    return { success: true, ...payload };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to load daily maintenance state." };
+  }
+});
+
+ipcMain.handle("daily-maintenance:save", async (_event, payload) => {
+  try {
+    const saved = saveDailyMaintenanceState(payload);
+    return { success: true, ...saved };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to save daily maintenance state." };
   }
 });
 

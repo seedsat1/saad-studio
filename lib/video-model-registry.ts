@@ -33,6 +33,8 @@ export interface VideoModelCapabilities {
   optional_image: boolean;
   /** Video input is REQUIRED (motion-control models) */
   requires_video: boolean;
+  /** Video input is OPTIONAL (like Gemini Omni Flash) */
+  optional_video?: boolean;
   /** End-frame / last_image / end_image parameter exists */
   has_end_frame: boolean;
 
@@ -120,6 +122,7 @@ function t2vCaps(overrides: Partial<VideoModelCapabilities> = {}): VideoModelCap
     requires_image:     false,
     optional_image:     false,
     requires_video:     false,
+    optional_video:     false,
     has_end_frame:      false,
     aspect_ratios:      [],
     sizes:              [],
@@ -409,6 +412,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     route_confirmed: true,
     capabilities: t2vCaps({
       optional_image: true,
+      optional_video: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
       durations:     [3, 4, 5, 6, 7, 8, 9, 10],

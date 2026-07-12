@@ -1667,7 +1667,7 @@ function VideoPageInner() {
       } else if ((caps.requires_image || caps.optional_image) && characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
         payload[isSeedanceV2 ? "first_frame_url" : "image"] = selectedCharacter.referenceUrls[0];
       }
-      if (caps.requires_video && motionVideo) {
+      if ((caps.requires_video || caps.optional_video) && motionVideo) {
         payload.video = await fileToDataURL(motionVideo);
       }
       if (caps.has_end_frame && endFrame && referenceImages.length === 0) {
@@ -2065,7 +2065,7 @@ function VideoPageInner() {
         hasRequiredVideoInput
       )
     : (
-        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt) || caps.requires_video) &&
+        (hasMainPrompt || (multiShotEnabled && hasMultiPrompt) || caps.requires_video || !!motionVideo) &&
         hasRequiredImageInput &&
         hasRequiredVideoInput
       );
@@ -2893,6 +2893,64 @@ function VideoPageInner() {
               )}
             </button>
             </>
+          )}
+
+          {/* -- Optional Video Input (for Video-to-Video models like Gemini Omni Flash) -- */}
+          {caps.optional_video && (
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => openMediaPicker("motionVideo")}
+                onDragOver={allowDrop}
+                onDragEnter={(event) => markDropZone(event, "motionVideo")}
+                onDragLeave={(event) => clearDropZone(event, "motionVideo")}
+                onDrop={(event) => handleDropSingleVideo(event, setMotionVideo)}
+                className="relative w-full h-[70px] rounded-xl border border-dashed transition-all flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-cyan-500 hover:border-cyan-500/50 bg-black/40 hover:bg-cyan-950/10"
+                style={{
+                  borderColor: motionVideo ? hexA(selectedModel.family_color, 0.5) : "rgba(255,255,255,0.08)",
+                  background:  motionVideo ? hexA(selectedModel.family_color, 0.07) : "rgba(255,255,255,0.02)",
+                }}
+              >
+                <input
+                  ref={motionVideoRef}
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={e => setMotionVideo(e.target.files?.[0] ?? null)}
+                />
+                {motionVideo ? (
+                  <>
+                    {motionVideoPreview && (
+                      <video
+                        src={motionVideoPreview}
+                        className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                        muted
+                        playsInline
+                        autoPlay
+                        loop
+                      />
+                    )}
+                    <button
+                      className="absolute top-2 left-2 z-10 rounded-full p-1"
+                      style={{ background: "rgba(0,0,0,0.75)" }}
+                      onClick={e => { e.stopPropagation(); setMotionVideo(null); }}
+                    >
+                      <X size={11} style={{ color: "#fff" }} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Film size={15} className="text-slate-400" />
+                    <span className="text-[10px] font-semibold text-slate-400">Upload Input Video (Optional)</span>
+                    <span className="text-[9px] text-slate-600">MP4, MOV (3-10 seconds)</span>
+                  </>
+                )}
+                {activeDropZone === "motionVideo" && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-cyan-500/15 text-[12px] font-semibold text-cyan-300">
+                    Drop video here
+                  </span>
+                )}
+              </button>
+            </div>
           )}
 
           {/* -- Image inputs (Start / End frame) -------------------------- */}

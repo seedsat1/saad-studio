@@ -56,6 +56,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("conversations:load"),
   saveConversations: (payload: any) =>
     ipcRenderer.invoke("conversations:save", payload),
+  loadDailyMaintenanceState: () =>
+    ipcRenderer.invoke("daily-maintenance:load"),
+  saveDailyMaintenanceState: (payload: any) =>
+    ipcRenderer.invoke("daily-maintenance:save", payload),
   storeAttachment: (filename: string, mimeType: string, dataBase64: string, source: "upload" | "clipboard" | "drag_drop", workspaceId: string) =>
     ipcRenderer.invoke("attachments-store", { filename, mimeType, dataBase64, source, workspaceId }),
   analyzeImage: (localPath: string, mimeType: string) =>

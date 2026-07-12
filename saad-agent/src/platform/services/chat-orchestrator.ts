@@ -3186,6 +3186,9 @@ export class ChatOrchestratorService {
   }
 
   private static formatApprovalReason(reason: string): string {
+    if (/Daily maintenance engineer/i.test(reason)) {
+      return "Daily Maintenance Engineer Mode يحتاج موافقتك قبل فحص/تعديل المشروع. بعد الموافقة سيقرأ الملفات المهمة، يخطط، ينفذ بتعديلات محدودة، يتحقق، ثم يوثق النتيجة.";
+    }
     if (/Internet access/i.test(reason)) {
       return "هذا الطلب يحتاج استخدام الإنترنت، وما راح أطلع نتائج أو روابط وهمية. وافق على البحث حتى أنفذه فعلياً.";
     }

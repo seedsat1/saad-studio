@@ -19,6 +19,23 @@
 - The local folder `E:\Agent-Reach-main\claude-code` is treated as the active high-risk Claude Code comparative reference path. It may guide high-level behavior for large-project maintenance, design workflows, command systems, tool orchestration, permission modes, memory, plugins, skills, sub-agents, bridge patterns, and verification loops.
 - Saad Agent should be Claude-first in operating style for design and large projects, but Saad-original in implementation. No leaked/proprietary source files from that folder may be copied, run, bundled, imported, vendored, or reverse-engineered into the product.
 - Daily maintenance tasks should follow an inspect -> plan -> act -> verify -> repair -> document loop, with design review and responsive-quality checks when the task touches UI.
+- Implementation phase 1 is active in code: `DailyEngineerService` detects daily maintenance/private engineer/design/large-project/bug-fix/review-only wording, `RequestRoutingService` maps it to `daily_maintenance.review` or `daily_maintenance.modify`, and `ChatOrchestratorService` injects the maintenance contract before Coding/Codex runtime execution. Modification requests still pass through the existing approval gate.
+- Implementation phase 2 is active in the renderer: the right panel includes a Daily Maintenance card with review, maintenance, and design prompt shortcuts plus a persistent inspect -> plan -> implement -> verify -> document checklist stored in local browser state. The card prepares prompts only and does not bypass approval or execution policy.
+- Implementation phase 3 is active in Electron: the Daily Maintenance panel state is durable app state saved through `daily-maintenance:load` / `daily-maintenance:save` IPC to app user-data `state/daily-maintenance.json`. The stored state includes checklist flags, last prompt mode, and saved timestamp; `localStorage` remains only a renderer fallback.
+
+## Saad Agent Claude/Codex-style architecture adoption matrix (2026-07-12)
+- The user's checklist is useful as architecture guidance, not as source code. Saad Agent may adopt the concepts with original implementation only.
+- Agent Loop: partially present through `ChatOrchestratorService`, `ExecutionPolicyService`, workflow routing, and approval-aware execution. Missing: one generic iterative model -> tool -> observation -> repeat loop for approved tasks.
+- Tool System: present through `ToolManager`, `MCPClient`, `PluginSDK`, and trusted workspace commands. Next improvement: make all tool execution pass through one lifecycle with approval and trace hooks.
+- Query Engine: present through `ReasoningEngine` and `ModelClient`, including provider role selection, provider health, request timeout, retry, Gemini/OpenAI-compatible handling, JSON parsing, and repair. Streaming is not confirmed as a unified product path.
+- Memory: present across `UserMemoryService`, `EngineeringMemory`, `AgentMemoryStore`, `ProjectMemoryStore`, `TaskMemoryService`, `DecisionMemoryService`, durable conversations, and training knowledge. Long-session compressed memory is only partial.
+- Context Compression: partially present through `ContextManager` compression hooks, context-engine token limits, pruning, and summaries. Missing: durable rolling summarization of old conversation/tool observations for hours-long runs.
+- Sub Agents: present as `AgentRegistry` with Architect, Backend, Frontend, AI Integration, Testing, and Reviewer agents. Current implementation is mostly routing/advisory; next phase should make them real bounded workers with task inputs, tool permissions, evidence, and reports.
+- Permission System: present through `ApprovalPolicyService`, `ExecutionPolicyService`, MCP tool permissions, trusted workspace runtime checks, and sensitive-path blocking.
+- Skill System: present through `SkillRegistry`, built-in/custom skill manifests, matching, Settings toggles, and conversational/engineering pre-answer loading.
+- Hooks: partially present through `EventBus`, `ExecutionTraceEmitter`, and `ContextManager.registerCompressionHook`. Missing: unified `beforePrompt`, `afterPrompt`, `beforeTool`, `afterTool`, and `onError` hook contracts.
+- Planner: present through `ExecutionSessionManager`, `ReasoningEngine.generateStructuredPlan`, rule-based fallback plans, approval states, validation steps, and recovery/self-fix flows.
+- Priority order after daily-maintenance phases: build a bounded `AgentLoopService`, then durable context summarization, then real specialist sub-agent execution, then unified hook lifecycle.
 
 ## Saad Agent central request-routing behavior (2026-07-12)
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.

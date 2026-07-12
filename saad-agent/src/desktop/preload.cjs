@@ -31,6 +31,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   chatComplete: (prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval) => ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }),
   loadConversations: () => ipcRenderer.invoke("conversations:load"),
   saveConversations: (payload) => ipcRenderer.invoke("conversations:save", payload),
+  loadDailyMaintenanceState: () => ipcRenderer.invoke("daily-maintenance:load"),
+  saveDailyMaintenanceState: (payload) => ipcRenderer.invoke("daily-maintenance:save", payload),
   storeAttachment: (filename, mimeType, dataBase64, source, workspaceId) => ipcRenderer.invoke("attachments-store", { filename, mimeType, dataBase64, source, workspaceId }),
   analyzeImage: (localPath, mimeType) => ipcRenderer.invoke("vision-analyze", { localPath, mimeType }),
   retrieveContext: (query, workspacePath, tokenLimit) => ipcRenderer.invoke("context-retrieve", { query, workspacePath, tokenLimit }),
