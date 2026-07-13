@@ -132,6 +132,12 @@ export function PromptBox({
     }
   }, [files, longPasteNotice]);
 
+  useEffect(() => {
+    if (!longPasteNotice) return;
+    const timer = window.setTimeout(() => setLongPasteNotice(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [longPasteNotice]);
+
   function submitAndClearTransientNotice() {
     if (!canSubmit) return;
     setLongPasteNotice(null);

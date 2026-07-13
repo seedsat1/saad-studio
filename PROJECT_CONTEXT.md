@@ -1,5 +1,31 @@
 # Saad Studio Project Context Update
 
+## Latest task: Overhauled Favicons and PWA App Icons (2026-07-13)
+
+- Status:
+  Fully updated all app icons and favicons across the workspace to resolve the cached old "SA" brand logo. Ran a Python generator script to extract the new blue-purple swirl icon from the source PDF and overwrite:
+  - `app/favicon.ico` (resolving default Next.js route favicon caching)
+  - `public/favicon-v2.ico`
+  - `public/apple-touch-icon.png`
+  - `public/icon-192.png`
+  - `public/icon-512.png`
+  - `favicon.png` in root
+  Also incremented the version query string for layout metadata icons (`?v=3` in `app/layout.tsx`) to force browser cache busting.
+- Affected files:
+  - `app/layout.tsx`
+  - `app/favicon.ico`
+  - `public/favicon-v2.ico`
+  - `public/apple-touch-icon.png`
+  - `public/icon-192.png`
+  - `public/icon-512.png`
+  - `favicon.png`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Overwrote both `app/favicon.ico` and `public/` assets so that the system-wide favicon and taskbar/PWA shortcuts load the correct swirl logo.
+- Remaining:
+  - Ask the user to perform a hard refresh or clear browser cache to view the updated favicons and taskbar shortcuts.
+
 ## Latest task: Saad Agent long-paste notice and attachment badge fix (2026-07-13)
 
 - Status:
@@ -5569,3 +5595,29 @@
   - If the current message is only an attached-file follow-up, the previous active engineering task may be used to preserve intent.
 - Remaining:
   - Restart the packaged app before retesting the Seedream/OpenAPI attached-file scenario.
+
+## Latest task: Saad Agent attachment chip and long-paste UI hardening (2026-07-13)
+
+- Status:
+  Hardened the chat attachment UI after a user report that `pasted-config.txt` was still shown with a `PDF` badge and that the long-paste notice remained visible in the prompt box. The sent attachment badge now prefers the real filename extension and MIME type before falling back to legacy `attachment.type`, so old persisted messages with an incorrect `type: "pdf"` but a `.txt/.yaml/.json` filename display the correct badge. The long-paste notice now also auto-dismisses after a short delay and still clears on submit or attachment removal.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/components/PromptBox.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required memory files before acting.
+  - `npm.cmd run build` in `saad-agent/ui` passed after cleaning stale UI assets.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+  - Confirmed the running process uses the same packaged path and restarted it after repacking to avoid a locked `app.asar`.
+  - Confirmed `app-asar-work/ui/dist/assets` contains only the current JS/CSS pair.
+- Findings:
+  - The app had been running while `app.asar` was being replaced, causing a file-lock warning and making visual verification unreliable.
+  - Persisted conversation messages can contain old attachment metadata, so display code must be defensive and should not trust `attachment.type` over filename/MIME evidence.
+- Decisions:
+  - Attachment badges are presentation labels, not security/runtime classification. Filename extension and MIME type are the most useful display signals.
+  - Long-paste banners are transient UI notices and must not remain as persistent clutter after the user has attached or submitted content.
+- Remaining:
+  - Retest in the restarted app with a newly pasted long YAML/OpenAPI text and verify the badge shows `TXT` or `YML`, not `PDF`, and the notice disappears automatically.

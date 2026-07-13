@@ -1556,3 +1556,10 @@
 - Long pasted content that becomes an attachment such as `pasted-config.txt` must still participate in routing decisions.
 - If the current attached-file message is only a short follow-up, the previous active engineering task can be used to preserve the intended task.
 - Exact OpenAPI/model values must come from the attachment. Do not invent endpoints, fields, enum values, qualities, or polling routes.
+
+## Saad Agent attachment UI display behavior (2026-07-13)
+
+- Attachment chips in chat must label files from the strongest visible evidence: filename extension first, then MIME type, then legacy attachment type.
+- A persisted `.txt`, `.yaml`, `.json`, or `.md` attachment must not show a `PDF` badge merely because older metadata stored `type: "pdf"`.
+- Long-paste notices are temporary composer hints. They clear on submit, clear when the related queued attachment disappears, and auto-dismiss after a short delay.
+- Desktop package verification must include restarting the running app after replacing `resources/app.asar`; a locked or already-loaded package can make the UI appear unchanged even after a successful build.

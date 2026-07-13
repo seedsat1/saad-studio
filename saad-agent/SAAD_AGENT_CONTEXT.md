@@ -1082,3 +1082,10 @@ flowchart TD
 - The router should evaluate both the user prompt and readable attachment context. If the prompt is only a short attached-file follow-up, preserve the previous active engineering task when it exists.
 - Exact API specs must be mapped from the attachment; do not invent missing endpoints, fields, enum values, durations, qualities, or polling routes.
 - Provider/runtime failures from Chat are not acceptable for these cases; the correct blocker, if any, belongs to the engineering runtime or approval gate.
+
+## Saad Agent attachment chip and long-paste notice behavior (2026-07-13)
+
+- Sent attachment badges must prefer filename extension and MIME type before legacy `attachment.type`. This keeps old persisted messages from showing `PDF` for files such as `pasted-config.txt`, `.yaml`, `.json`, or `.md`.
+- The badge is a UI label only; it must not be used as the authoritative runtime classification.
+- Long-paste notices in the prompt box are transient. They should clear on submit, clear when the related attachment is removed, and auto-dismiss after a short delay so they do not remain as visual clutter.
+- When repacking the desktop app, close/restart the running `Saad Agent.exe` process if `app.asar` is locked; otherwise the user may still see stale UI behavior.
