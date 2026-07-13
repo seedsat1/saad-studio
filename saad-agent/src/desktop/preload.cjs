@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   orchestratorConnectConnector: (id, credentials) => ipcRenderer.invoke("orchestrator-connect-connector", { id, credentials }),
   orchestratorDisconnectConnector: (id) => ipcRenderer.invoke("orchestrator-disconnect-connector", id),
   orchestratorRefreshConnector: (id) => ipcRenderer.invoke("orchestrator-refresh-connector", id),
-  chatComplete: (prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval) => ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }),
+  chatComplete: (prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval, history) => ipcRenderer.invoke("chat-complete", { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval, history }),
   loadConversations: () => ipcRenderer.invoke("conversations:load"),
   saveConversations: (payload) => ipcRenderer.invoke("conversations:save", payload),
   loadDailyMaintenanceState: () => ipcRenderer.invoke("daily-maintenance:load"),

@@ -10,6 +10,7 @@ import {
   MessageCircle, CreditCard,
 } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
+import { useLanguage } from "@/lib/use-language";
 
 /* ─── CMS types (shared with pricing CMS) ─── */
 interface CmsPlan { _id: string; id: string; monthlyPrice: number; annualDiscount: number; credits: string; creditsNum: number; badge: string; }
@@ -90,9 +91,110 @@ function cleanPaymentOrderId(input: string | null | undefined) {
 
 // ─── StepBar ─────────────────────────────────────────────────────────────────
 
+function usePaymentTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Step Bar
+      "Select Order": "تحديد الطلب",
+      "Payment": "الدفع",
+      "Status": "الحالة",
+      
+      // Hero
+      "Payment Verification": "تأكيد الدفع",
+      "Please complete your payment and upload proof of transfer for approval.": "يرجى إكمال عملية الدفع ورفع إثبات التحويل للموافقة عليه.",
+      
+      // Step 1
+      "What would you like to purchase?": "ماذا ترغب في الشراء؟",
+      "Subscription Plan": "خطة اشتراك",
+      "Credit Top-up": "شحن نقاط",
+      "Monthly credit bundle": "حزمة نقاط شهرية",
+      "One-time credit refill": "شحن نقاط لمرة واحدة",
+      
+      // Plan levels
+      "Try": "تجريبي",
+      "Starter": "مبتدئ",
+      "Plus": "بلاس",
+      "Pro": "برو",
+      "Max": "ماكس",
+      "credits / mo": "نقطة / شهر",
+      
+      // Actions
+      "Continue": "متابعة",
+      "← Back": "← رجوع",
+      "Submit for Verification": "إرسال للتحقق",
+      "Submitting...": "جاري الإرسال...",
+      
+      // Step 2 Review
+      "Complete checkout": "إكمال الدفع",
+      "Review your order and enter your card details": "راجع طلبك وأدخل تفاصيل البطاقة",
+      "Plan": "خطة",
+      "Credits": "نقاط",
+      "Total due now:": "الإجمالي المستحق الآن:",
+      
+      // ZainCash Online Form
+      "Card details": "تفاصيل البطاقة",
+      "Email": "البريد الإلكتروني",
+      "Card information": "معلومات البطاقة",
+      "Cardholder name": "اسم صاحب البطاقة",
+      "Country or region": "البلد أو المنطقة",
+      "Iraq": "العراق",
+      "Order": "الطلب",
+      "Pay": "دفع",
+      
+      // Transfer Instructions
+      "Transfer Instructions": "تعليمات التحويل",
+      "Account / Number": "الحساب / الرقم",
+      "Copied!": "تم النسخ!",
+      "Copy": "نسخ",
+      "Send Confirmation on WhatsApp": "إرسال التأكيد على واتساب",
+      
+      // Proof Upload
+      "Drag and drop proof of transfer or click to browse": "اسحب وأفلت إثبات التحويل أو انقر للتصفح",
+      "Supports PNG, JPG, or PDF up to 10 MB": "يدعم ملفات PNG أو JPG أو PDF حتى 10 ميجابايت",
+      "File exceeds the 10 MB limit.": "الملف يتجاوز الحد الأقصى 10 ميجابايت.",
+      "Only PNG, JPG, or PDF files are accepted.": "يتم قبول ملفات PNG أو JPG أو PDF فقط.",
+      "Proof of Transfer": "إثبات التحويل",
+      "Upload Transfer Receipt": "رفع إيصال التحويل",
+      
+      // Verification Status configs
+      "Pending Verification": "قيد التحقق",
+      "Your payment is under review. We typically verify within 1–4 hours during business hours.": "عملية الدفع الخاصة بك قيد المراجعة. نتحقق عادةً خلال 1-4 ساعات خلال ساعات العمل.",
+      "Payment Approved!": "تمت الموافقة على الدفع!",
+      "Your subscription is active. Credits are available in your wallet.": "اشتراكك نشط الآن. النقاط متوفرة في محفظتك.",
+      "Payment Rejected": "تم رفض الدفع",
+      "Reason:": "السبب:",
+      "Resubmit": "إعادة الإرسال",
+      "New Order": "طلب جديد",
+      
+      // Helpers
+      "Contact on WhatsApp": "تواصل عبر واتساب",
+      "Demo status:": "حالة العرض التجريبي:",
+      "Order ID:": "رقم الطلب:",
+      "pending": "قيد الانتظار",
+      "approved": "مقبول",
+      "rejected": "مرفوض",
+      
+      // Suffixes
+      "/yr": " / سنوياً",
+      "/mo": " / شهرياً",
+      "annual": "سنوي",
+      "monthly": "شهري",
+      "Credits Top-up": "شحن نقاط إضافية",
+      "off": "خصم"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 const STEP_LABELS = ["Select Order", "Payment", "Status"];
 
 function StepBar({ step }: { step: Step }) {
+  const { t } = usePaymentTranslation();
   return (
     <div className="flex items-center gap-0 mb-10">
       {STEP_LABELS.map((label, i) => {
@@ -106,7 +208,7 @@ function StepBar({ step }: { step: Step }) {
                 ${done ? "bg-emerald-500 text-white" : active ? "bg-violet-600 text-white ring-2 ring-violet-400/50" : "bg-slate-800 text-slate-500 border border-slate-700"}`}>
                 {done ? <Check className="w-4 h-4" /> : n}
               </div>
-              <span className={`text-[10px] font-medium whitespace-nowrap hidden sm:block ${active ? "text-violet-300" : done ? "text-emerald-400" : "text-slate-600"}`}>{label}</span>
+              <span className={`text-[10px] font-medium whitespace-nowrap hidden sm:block ${active ? "text-violet-300" : done ? "text-emerald-400" : "text-slate-600"}`}>{t(label)}</span>
             </div>
             {i < STEP_LABELS.length - 1 && (
               <div className={`flex-1 h-px mx-1 transition-all duration-300 ${done ? "bg-emerald-500/60" : "bg-slate-800"}`} />
@@ -125,6 +227,7 @@ function PaymentMethodCard({
 }: {
   method: typeof METHODS[0]; selected: boolean; onSelect: () => void;
 }) {
+  const { t } = usePaymentTranslation();
   return (
     <button
       onClick={onSelect}
@@ -136,7 +239,7 @@ function PaymentMethodCard({
           {method.logoText}
         </div>
         <div className="flex-1">
-          <p className="font-bold text-white text-base">{method.name}</p>
+          <p className="font-bold text-white text-base">{t(method.name)}</p>
           <p className="text-sm text-slate-400 mt-0.5">{method.account}</p>
         </div>
         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? "border-white bg-white/20" : "border-slate-600"}`}>
@@ -150,25 +253,29 @@ function PaymentMethodCard({
 // ─── TransferInstructions ─────────────────────────────────────────────────────
 
 function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: { method: typeof METHODS[0]; orderId: string; orderLabel: string; whatsappNumber: string }) {
+  const { t, lang } = usePaymentTranslation();
   const [copiedAccount, setCopiedAccount] = useState(false);
 
   const copy = (text: string, setter: (v: boolean) => void) => {
     navigator.clipboard.writeText(text).then(() => { setter(true); setTimeout(() => setter(false), 2000); });
   };
 
-  const waMsg = encodeURIComponent(`Hello SAAD STUDIO,\nI made a payment via ${method.name}.\nService: ${orderLabel}\nOrder ID: ${orderId}\nPlease verify my payment. Thank you!`);
+  const waMsgText = lang === "ar"
+    ? `مرحباً SAAD STUDIO،\nلقد قمت بالدفع عبر ${t(method.name)}.\nالخدمة: ${orderLabel}\nرقم الطلب: ${orderId}\nيرجى تأكيد الدفع الخاص بي. شكراً لكم!`
+    : `Hello SAAD STUDIO,\nI made a payment via ${method.name}.\nService: ${orderLabel}\nOrder ID: ${orderId}\nPlease verify my payment. Thank you!`;
+  const waMsg = encodeURIComponent(waMsgText);
 
   return (
     <div className="mt-5 p-5 rounded-2xl bg-slate-800/60 border border-slate-700 space-y-4">
       <p className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-        <FileText className="w-4 h-4 text-violet-400" /> Transfer Instructions
+        <FileText className="w-4 h-4 text-violet-400" /> {t("Transfer Instructions")}
       </p>
       <div>
-        <p className="text-xs text-slate-500 mb-1.5">Account / Number</p>
+        <p className="text-xs text-slate-500 mb-1.5">{t("Account / Number")}</p>
         <div className="flex items-center gap-2">
           <code className="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white font-mono">{method.account}</code>
           <button onClick={() => copy(method.account, setCopiedAccount)} className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-xs text-slate-300 flex items-center gap-1.5 transition-colors whitespace-nowrap">
-            {copiedAccount ? <><Check className="w-3 h-3 text-emerald-400" />Copied!</> : <><Copy className="w-3 h-3" />Copy</>}
+            {copiedAccount ? <><Check className="w-3 h-3 text-emerald-400" />{t("Copied!")}</> : <><Copy className="w-3 h-3" />{t("Copy")}</>}
           </button>
         </div>
       </div>
@@ -180,7 +287,7 @@ function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: {
           className="flex items-center justify-center gap-2.5 w-full py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20b85a] text-white text-sm font-bold transition-all duration-200 hover:scale-[1.02] active:scale-100"
         >
           <MessageCircle className="w-4 h-4" />
-          Send Confirmation on WhatsApp
+          {t("Send Confirmation on WhatsApp")}
         </a>
       </div>
     </div>
@@ -190,6 +297,7 @@ function TransferInstructions({ method, orderId, orderLabel, whatsappNumber }: {
 // ─── ProofUpload ──────────────────────────────────────────────────────────────
 
 function CardCheckoutForm({ orderId, amount }: { orderId: string; amount: number }) {
+  const { t } = usePaymentTranslation();
   const [message, setMessage] = useState("");
 
   const handleCardSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -200,20 +308,20 @@ function CardCheckoutForm({ orderId, amount }: { orderId: string; amount: number
   return (
     <form onSubmit={handleCardSubmit} className="mt-5 p-5 rounded-2xl bg-slate-900/70 border border-slate-700 space-y-4">
       <p className="text-sm font-semibold text-white flex items-center gap-2">
-        <CreditCard className="w-4 h-4 text-violet-300" /> Card details
+        <CreditCard className="w-4 h-4 text-violet-300" /> {t("Card details")}
       </p>
       <div className="grid gap-3">
         <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
-          Email
+          {t("Email")}
           <input
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder={t("you@example.com")}
             className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
           />
         </label>
         <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
-          Card information
+          {t("Card information")}
           <input
             inputMode="numeric"
             autoComplete="cc-number"
@@ -236,25 +344,25 @@ function CardCheckoutForm({ orderId, amount }: { orderId: string; amount: number
           </div>
         </label>
         <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
-          Cardholder name
+          {t("Cardholder name")}
           <input
             autoComplete="cc-name"
-            placeholder="Name on card"
+            placeholder={t("Name on card")}
             className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
           />
         </label>
         <label className="grid gap-1.5 text-xs font-semibold text-slate-300">
-          Country or region
+          {t("Country or region")}
           <select
             defaultValue="IQ"
             className="h-11 rounded-xl border border-slate-700 bg-slate-950 px-3 text-sm text-white outline-none focus:border-violet-500"
           >
-            <option value="IQ">Iraq</option>
+            <option value="IQ">{t("Iraq")}</option>
           </select>
         </label>
       </div>
       <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-400">
-        <span>Order</span>
+        <span>{t("Order")}</span>
         <code className="font-mono text-slate-200">{orderId}</code>
       </div>
       {message && <p className="text-xs text-amber-300">{message}</p>}
@@ -262,7 +370,7 @@ function CardCheckoutForm({ orderId, amount }: { orderId: string; amount: number
         type="submit"
         className="w-full rounded-2xl bg-emerald-500 py-3.5 text-sm font-bold text-slate-950 transition-colors hover:bg-emerald-400"
       >
-        Pay ${amount.toLocaleString()}
+        {t("Pay")} ${amount.toLocaleString()}
       </button>
     </form>
   );
@@ -319,6 +427,7 @@ function VerificationStatus({
   onResubmit: () => void;
   onNew: () => void;
 }) {
+  const { t } = usePaymentTranslation();
   const configs = {
     pending:  { Icon: Clock,         iconColor: "text-amber-400",   iconBg: "bg-amber-500/15",   title: "Pending Verification",   desc: "Your payment is under review. We typically verify within 1–4 hours during business hours.", border: "border-amber-500/30",   bg: "bg-amber-500/5"   },
     approved: { Icon: CheckCircle2,  iconColor: "text-emerald-400", iconBg: "bg-emerald-500/15", title: "Payment Approved!",       desc: "Your subscription is active. Credits are available in your wallet.",                      border: "border-emerald-500/30", bg: "bg-emerald-500/5" },
@@ -332,22 +441,22 @@ function VerificationStatus({
       <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${c.iconBg} mb-4`}>
         <c.Icon className={`w-8 h-8 ${c.iconColor}`} />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">{c.title}</h3>
-      {c.desc && <p className="text-sm text-slate-400 max-w-sm mx-auto">{c.desc}</p>}
+      <h3 className="text-xl font-bold text-white mb-2">{t(c.title)}</h3>
+      {c.desc && <p className="text-sm text-slate-400 max-w-sm mx-auto">{t(c.desc)}</p>}
       {status === "rejected" && (
         <div className="mt-4 p-4 rounded-xl bg-slate-800/60 border border-red-500/20 text-left">
-          <p className="text-xs font-semibold text-red-400 mb-1">Reason:</p>
+          <p className="text-xs font-semibold text-red-400 mb-1">{t("Reason:")}</p>
           <p className="text-sm text-slate-300">{rejectionReason}</p>
         </div>
       )}
       <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
         {status === "rejected" && (
           <button onClick={onResubmit} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors">
-            <RefreshCw className="w-4 h-4" />Resubmit
+            <RefreshCw className="w-4 h-4" />{t("Resubmit")}
           </button>
         )}
         <button onClick={onNew} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium transition-colors">
-          <Zap className="w-4 h-4" />New Order
+          <Zap className="w-4 h-4" />{t("New Order")}
         </button>
       </div>
     </motion.div>
@@ -357,12 +466,16 @@ function VerificationStatus({
 // ─── WhatsAppButton ───────────────────────────────────────────────────────────
 
 function WhatsAppButton({ orderId, whatsappNumber }: { orderId: string; whatsappNumber: string }) {
-  const msg = encodeURIComponent(`Hello SAAD STUDIO, I need help with my payment. Order ID: ${orderId || "N/A"}`);
+  const { t, lang } = usePaymentTranslation();
+  const msgText = lang === "ar"
+    ? `مرحباً SAAD STUDIO، أحتاج إلى مساعدة بشأن عملية الدفع الخاصة بي. رقم الطلب: ${orderId || "غير متوفر"}`
+    : `Hello SAAD STUDIO, I need help with my payment. Order ID: ${orderId || "N/A"}`;
+  const msg = encodeURIComponent(msgText);
   return (
     <a href={`https://wa.me/${whatsappNumber}?text=${msg}`} target="_blank" rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20b85a] text-white text-sm font-bold shadow-2xl shadow-green-500/30 transition-all duration-200 hover:scale-105">
       <MessageCircle className="w-5 h-5" />
-      Contact on WhatsApp
+      {t("Contact on WhatsApp")}
     </a>
   );
 }
@@ -385,6 +498,7 @@ const inputCls = (err?: string) =>
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function PaymentPageContent() {
+  const { t, lang } = usePaymentTranslation();
   const searchParams = useSearchParams();
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
   const [step, setStep]                     = useState<Step>(1);
@@ -524,17 +638,17 @@ function PaymentPageContent() {
       return {
         usd: Math.round(yearlyBaseUsd * (1 - discount / 100)),
         previousUsd: yearlyBaseUsd,
-        suffix: "/yr",
-        creditsText: `${plan.credits.toLocaleString()} credits / mo`,
-        periodText: `Billed yearly (${discount}% off)`,
+        suffix: t("/yr"),
+        creditsText: `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
+        periodText: t("Billed yearly") + ` (${discount}% ${t("off")})`,
       };
     }
     return {
       usd: monthlyUsd,
       previousUsd: null,
-      suffix: "/mo",
-      creditsText: `${plan.credits.toLocaleString()} credits / mo`,
-      periodText: "Billed monthly",
+      suffix: t("/mo"),
+      creditsText: `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
+      periodText: t("Billed monthly"),
     };
   };
 
@@ -560,8 +674,8 @@ function PaymentPageContent() {
 
   const orderLabel =
     effectiveOrderType === "plan"
-      ? `${selectedPlan?.label ?? ""} Plan — ${selectedPlanBilling?.creditsText ?? ""} (${selectedPlanBilling?.suffix === "/yr" ? "annual" : "monthly"})`
-      : `+${(selectedItem as typeof liveTopups[0])?.credits?.toLocaleString() ?? ""} Credits Top-up`;
+      ? `${t(selectedPlan?.label ?? "")} ${t("Plan")} — ${selectedPlanBilling?.creditsText ?? ""} (${selectedPlanBilling?.suffix === t("/yr") ? t("annual") : t("monthly")})`
+      : `+${(selectedItem as typeof liveTopups[0])?.credits?.toLocaleString() ?? ""} ${t("Credits Top-up")}`;
 
   const goStep2 = () => {
     if (effectiveOrderType === "plan" && !effectivePlanId) return;
@@ -753,13 +867,13 @@ function PaymentPageContent() {
 
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{livePaymentHero.heading}</h1>
-          <p className="text-sm text-slate-400 mt-1">{livePaymentHero.subtitle}</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{t(livePaymentHero.heading)}</h1>
+          <p className="text-sm text-slate-400 mt-1">{t(livePaymentHero.subtitle)}</p>
         </div>
 
         {/* Order ID */}
         <div className="flex items-center gap-2 mb-6 text-xs text-slate-600">
-          <span className="font-medium text-slate-500">Order ID:</span>
+          <span className="font-medium text-slate-500">{t("Order ID:")}</span>
           <code className="text-slate-400 font-mono">{orderId}</code>
         </div>
 
@@ -770,7 +884,7 @@ function PaymentPageContent() {
           {/* ── STEP 1 ── */}
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} className="space-y-6">
-              <h2 className="text-lg font-bold text-white">What would you like to purchase?</h2>
+              <h2 className="text-lg font-bold text-white">{t("What would you like to purchase?")}</h2>
 
               {/* Type toggle */}
               <div className="grid grid-cols-2 gap-3">
@@ -781,8 +895,8 @@ function PaymentPageContent() {
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-2 ${orderType === ot ? "bg-violet-500/20" : "bg-slate-800"}`}>
                       {ot === "plan" ? <Star className={`w-4 h-4 ${orderType === ot ? "text-violet-400" : "text-slate-500"}`} /> : <Zap className={`w-4 h-4 ${orderType === ot ? "text-violet-400" : "text-slate-500"}`} />}
                     </div>
-                    <p className="font-bold text-sm text-white">{ot === "plan" ? "Subscription Plan" : "Credit Top-up"}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{ot === "plan" ? "Monthly credit bundle" : "One-time credit refill"}</p>
+                    <p className="font-bold text-sm text-white">{ot === "plan" ? t("Subscription Plan") : t("Credit Top-up")}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{ot === "plan" ? t("Monthly credit bundle") : t("One-time credit refill")}</p>
                   </button>
                 ))}
               </div>
@@ -801,8 +915,8 @@ function PaymentPageContent() {
                         <p.Icon className={`w-5 h-5 ${p.color}`} />
                       </div>
                       <div className="flex-1 text-left">
-                        <p className="font-bold text-white">{p.label}</p>
-                        <p className="text-xs text-slate-500">{p.credits.toLocaleString()} credits / mo</p>
+                        <p className="font-bold text-white">{t(p.label)}</p>
+                        <p className="text-xs text-slate-500">{p.credits.toLocaleString()} {t("credits / mo")}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         {billing.previousUsd ? (
@@ -825,7 +939,7 @@ function PaymentPageContent() {
                       className={`p-3.5 rounded-2xl border text-center transition-all duration-200
                         ${selectedTopupId === tp.id ? "border-violet-500 bg-violet-500/10 shadow-[0_0_16px_rgba(139,92,246,0.2)]" : "border-slate-800 bg-slate-900/60 hover:border-slate-700"}`}>
                       <p className="text-sm font-extrabold text-white">+{tp.credits.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">credits</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{t("credits")}</p>
                       <p className="text-base font-black text-white mt-1">${tp.usd}</p>
                     </button>
                   ))}
@@ -834,7 +948,7 @@ function PaymentPageContent() {
 
               <button onClick={goStep2} disabled={orderType === "plan" ? !selectedPlanId : !selectedTopupId}
                 className="w-full py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-violet-500/25">
-                Continue <ChevronRight className="w-4 h-4" />
+                {t("Continue")} <ChevronRight className="w-4 h-4" />
               </button>
             </motion.div>
           )}
@@ -843,8 +957,8 @@ function PaymentPageContent() {
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }} className="space-y-5">
               <div>
-                <h2 className="text-lg font-bold text-white">Complete checkout</h2>
-                <p className="text-sm text-slate-400 mt-1">Review your order and enter your card details</p>
+                <h2 className="text-lg font-bold text-white">{t("Complete checkout")}</h2>
+                <p className="text-sm text-slate-400 mt-1">{t("Review your order and enter your card details")}</p>
               </div>
 
               {/* Order summary */}
@@ -854,8 +968,8 @@ function PaymentPageContent() {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-white">
                       {effectiveOrderType === "plan"
-                        ? `${selectedPlan!.label} Plan — ${selectedPlanBilling!.creditsText}`
-                        : `+${(selectedItem as typeof TOPUPS[0]).credits.toLocaleString()} Credits`}
+                        ? `${t(selectedPlan!.label)} ${t("Plan")} — ${selectedPlanBilling!.creditsText}`
+                        : `+${(selectedItem as typeof TOPUPS[0]).credits.toLocaleString()} ${t("Credits")}`}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {effectiveOrderType === "plan"
@@ -863,7 +977,7 @@ function PaymentPageContent() {
                         : `$${(selectedItem as { usd: number }).usd}`}
                     </p>
                     {effectiveOrderType === "plan" && (
-                      <p className="text-[11px] text-violet-300 mt-1">{selectedPlanBilling!.periodText} • Total due now: ${selectedPlanBilling!.usd.toLocaleString()}</p>
+                      <p className="text-[11px] text-violet-300 mt-1">{t(selectedPlanBilling!.periodText)} • {t("Total due now:")} ${selectedPlanBilling!.usd.toLocaleString()}</p>
                     )}
                   </div>
                 </div>
@@ -896,13 +1010,13 @@ function PaymentPageContent() {
               {submitError && <p className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{submitError}</p>}
 
               <div className="flex gap-3">
-                <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors">← Back</button>
+                <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-2xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition-colors">{t("← Back")}</button>
                 {!isZainCashOnline && (
                   <button onClick={handleSubmit} disabled={loading}
                     className="flex-[4] py-3.5 rounded-2xl bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-lg shadow-violet-500/25">
                     {loading
-                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Submitting...</>
-                      : <>Submit for Verification <ChevronRight className="w-4 h-4" /></>}
+                      ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t("Submitting...")}</>
+                      : <>{t("Submit for Verification")} <ChevronRight className="w-4 h-4" /></>}
                   </button>
                 )}
               </div>
@@ -915,9 +1029,9 @@ function PaymentPageContent() {
               <VerificationStatus status={status} rejectionReason={rejectionReason} onResubmit={handleResubmit} onNew={handleNew} />
               {/* Demo toggle */}
               <div className="mt-6 flex gap-2 flex-wrap justify-center opacity-30 hover:opacity-100 transition-opacity">
-                <span className="text-xs text-slate-600">Demo status:</span>
+                <span className="text-xs text-slate-600">{t("Demo status:")}</span>
                 {(["pending", "approved", "rejected"] as Status[]).map((s) => (
-                  <button key={s} onClick={() => setStatus(s)} className={`text-xs px-2.5 py-1 rounded-lg border ${status === s ? "border-violet-500 text-violet-400 bg-violet-500/10" : "border-slate-700 text-slate-500"}`}>{s}</button>
+                  <button key={s} onClick={() => setStatus(s)} className={`text-xs px-2.5 py-1 rounded-lg border ${status === s ? "border-violet-500 text-violet-400 bg-violet-500/10" : "border-slate-700 text-slate-500"}`}>{t(s)}</button>
                 ))}
               </div>
             </motion.div>

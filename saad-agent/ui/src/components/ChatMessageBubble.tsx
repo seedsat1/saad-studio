@@ -139,13 +139,11 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           return (
             <div
               key={index}
-              dir={hasArabic ? "rtl" : "ltr"}
-              className={`text-segment leading-relaxed break-words text-slate-100 ${
-                hasArabic ? "text-right dir-rtl" : "text-left dir-ltr"
-              }`}
+              dir="ltr"
+              className="text-segment leading-relaxed break-words text-slate-100 text-left dir-ltr"
               style={{
-                textAlign: hasArabic ? "right" : "left",
-                direction: hasArabic ? "rtl" : "ltr",
+                textAlign: "left",
+                direction: "ltr",
                 lineHeight: "1.65",
                 whiteSpace: "pre-wrap",
                 fontFamily: hasArabic

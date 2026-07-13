@@ -584,6 +584,53 @@ body {
   background: rgba(15, 23, 42, 0.95);
 }
 
+.message-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  margin-top: -3px;
+  color: rgba(148, 163, 184, 0.78);
+}
+
+.message-wrapper.user .message-footer-actions {
+  justify-content: flex-end;
+}
+
+.message-icon-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.82);
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.message-icon-btn:hover,
+.message-icon-btn:focus-visible {
+  color: rgba(226, 232, 240, 0.98);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.message-icon-btn:active {
+  transform: translateY(1px);
+}
+
+.message-icon-btn.active {
+  color: #e5e7eb;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.22);
+}
+
 .message-bubble {
   font-size: 16px;
   line-height: 1.72;
@@ -2360,6 +2407,24 @@ body {
   overflow: hidden;
 }
 
+.sent-attachment-image-card {
+  position: relative;
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+}
+
+.sent-attachment-image-button {
+  display: block;
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: zoom-in;
+}
+
 .sent-attachment-img {
   width: 84px;
   height: 84px;
@@ -2373,9 +2438,112 @@ body {
   transition: opacity 0.2s ease, border-color 0.2s ease;
 }
 
-.sent-attachment-img:hover {
+.sent-attachment-image-button:hover .sent-attachment-img {
   opacity: 0.9;
   border-color: rgba(56, 189, 248, 0.42);
+}
+
+.sent-attachment-copy-btn {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 7px;
+  background: rgba(2, 6, 23, 0.82);
+  color: #dbeafe;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.16s ease, transform 0.16s ease, border-color 0.16s ease;
+}
+
+.sent-attachment-image-card:hover .sent-attachment-copy-btn,
+.sent-attachment-copy-btn:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sent-attachment-copy-btn:hover {
+  border-color: rgba(56, 189, 248, 0.52);
+}
+
+.image-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(2, 6, 23, 0.84);
+  backdrop-filter: blur(10px);
+}
+
+.image-preview-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1040px, 94vw);
+  max-height: 92vh;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: rgba(8, 13, 26, 0.96);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.48);
+  padding: 12px;
+}
+
+.image-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.image-preview-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #e5edf8;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-preview-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.image-preview-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.84);
+  color: #dbeafe;
+  cursor: pointer;
+}
+
+.image-preview-action:hover {
+  border-color: rgba(56, 189, 248, 0.48);
+}
+
+.image-preview-full {
+  display: block;
+  width: 100%;
+  max-height: calc(92vh - 82px);
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.72);
 }
 
 .sent-attachment-pdf {
@@ -2403,13 +2571,9 @@ body {
   background: rgba(56, 189, 248, 0.08);
   border: 1px solid rgba(56, 189, 248, 0.18);
   color: var(--accent-cyan);
-  font-size: 0;
-}
-
-.sent-pdf-icon::after {
-  content: "PDF";
   font-size: 10px;
   font-weight: 800;
+  letter-spacing: 0;
 }
 
 .sent-pdf-info {

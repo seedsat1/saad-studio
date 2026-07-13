@@ -9,6 +9,7 @@ import {
   ModelBadge,
   getModelFamilies,
 } from "@/lib/video-models";
+import { useLanguage } from "@/lib/use-language";
 
 interface ModelDropdownProps {
   selected: VideoModel;
@@ -35,7 +36,52 @@ function BadgePill({ badge }: { badge: ModelBadge }) {
   );
 }
 
+function useModelDropdownTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Search models...": "البحث عن النماذج...",
+      "No models found": "لم يتم العثور على نماذج",
+      "Direct Google video generation with image guidance": "توليد فيديو مباشر من Google بتوجيه الصور",
+      "Ultra-fast direct Google video generation & editing": "توليد وتعديل فيديو مباشر فائق السرعة من Google",
+      "15s cinematic with character lock & native audio": "فيديو سينمائي 15 ثانية مع قفل الشخصية والصوت الأصلي",
+      "Precise character actions & expressions up to 30s": "حركات وتعبيرات دقيقة للشخصية حتى 30 ثانية",
+      "Kling V3 Turbo auto-routing model": "نموذج توجيه تلقائي Kling V3 Turbo",
+      "Fast turbo text to video generation": "توليد نص إلى فيديو سريع وتوربو",
+      "Fast turbo image to video generation": "توليد صورة إلى فيديو سريع وتوربو",
+      "Latest Hailuo image to video pro quality": "أحدث جودة احترافية صورة إلى فيديو من Hailuo",
+      "Standard quality image to video": "صورة إلى فيديو بجودة قياسية",
+      "Pro text to video generation": "توليد نص إلى فيديو احترافي",
+      "Pro image to video generation": "توليد صورة إلى فيديو احترافي",
+      "Standard text to video, fast & affordable": "نص إلى فيديو قياسي وسريع وموفر",
+      "Cinematic image to video generation": "توليد صورة إلى فيديو سينمائي",
+      "Cinematic text to video generation": "توليد نص إلى فيديو سينمائي",
+      "Pro quality cinematic image to video": "جودة احترافية سينمائية صورة إلى فيديو",
+      "Pro quality cinematic text to video": "جودة احترافية سينمائية نص إلى فيديو",
+      "Video-to-video editing & transformation": "تعديل وتحويل فيديو إلى فيديو",
+      "Fast high-quality image to video": "صورة إلى فيديو سريعة وعالية الجودة",
+      "Hollywood-style T2V or I2V with up to 4 reference images": "أسلوب هوليوود نص إلى فيديو أو صورة إلى فيديو مع ما يصل إلى 4 صور مرجعية",
+      "Cinematic video with synced voice & emotion": "فيديو سينمائي مع صوت ومشاعر متزامنة",
+      "Image to video with intelligent camera work": "صورة إلى فيديو مع عمل كاميرا ذكي",
+      "Dance and motion specialized generation": "توليد متخصص للرقص والحركة",
+      "Full multimodal with 12 input assets": "متعدد الوسائط بالكامل مع 12 أصل مدخلات",
+      "Fast multimodal generation": "توليد متعدد الوسائط سريع",
+      "Ultra-fast image to video": "صورة إلى فيديو فائقة السرعة",
+      "Pro quality image to video": "جودة احترافية صورة إلى فيديو",
+      "Pro quality text to video": "جودة احترافية نص إلى فيديو",
+      "Lite fast image to video": "صورة إلى فيديو خفيفة وسريعة",
+      "Lite fast text to video": "نص إلى فيديو خفيفة وسريعة"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function ModelDropdown({ selected, onSelect }: ModelDropdownProps) {
+  const { t, lang } = useModelDropdownTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +166,7 @@ export default function ModelDropdown({ selected, onSelect }: ModelDropdownProps
                   ref={searchRef}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search models..."
+                  placeholder={t("Search models...")}
                   className="flex-1 bg-transparent text-xs text-slate-300 placeholder:text-slate-600 outline-none"
                 />
                 {search && (
@@ -134,7 +180,7 @@ export default function ModelDropdown({ selected, onSelect }: ModelDropdownProps
             {/* Model list */}
             <div className="max-h-[380px] overflow-y-auto px-2 pb-3">
               {filteredFamilies.length === 0 && (
-                <p className="text-center text-xs text-slate-600 py-6">No models found</p>
+                <p className="text-center text-xs text-slate-600 py-6">{t("No models found")}</p>
               )}
               {filteredFamilies.map((fam, fi) => (
                 <div key={fam.name} className={fi > 0 ? "mt-3" : ""}>
@@ -153,7 +199,7 @@ export default function ModelDropdown({ selected, onSelect }: ModelDropdownProps
                       </span>
                     </div>
                     <span className="text-[10px] text-slate-600">
-                      {fam.models.length} models
+                      {lang === "ar" ? `${fam.models.length} نموذج` : `${fam.models.length} models`}
                     </span>
                   </div>
 
@@ -182,14 +228,14 @@ export default function ModelDropdown({ selected, onSelect }: ModelDropdownProps
                             {m.name}
                           </p>
                           <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
-                            {m.description}
+                            {t(m.description)}
                           </p>
                         </div>
 
                         {/* Badge + credit */}
                         <div className="shrink-0 flex flex-col items-end gap-1">
                           <BadgePill badge={m.badge} />
-                          <span className="text-[10px] text-slate-500">{m.creditCost} cr</span>
+                          <span className="text-[10px] text-slate-500">{m.creditCost} {lang === "ar" ? "رصيد" : "cr"}</span>
                         </div>
                       </button>
                     );

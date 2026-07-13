@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { VideoModel } from "@/lib/video-models";
 import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import ModelDropdown from "./ModelDropdown";
 import UpwardDropdown, { DropdownOption } from "./UpwardDropdown";
+import { useLanguage } from "@/lib/use-language";
 
 // ── All known aspect ratio options (used as a lookup) ────────────────────────
 const ALL_ASPECT_OPTIONS: DropdownOption[] = [
@@ -176,6 +177,101 @@ interface VideoComposerProps {
   onGenerate: () => void;
 }
 
+function useVideoComposerTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Widescreen (landscape)": "شاشة عريضة (أفقي)",
+      "Portrait (TikTok/Reels)": "عمودي (تيك توك/ريلز)",
+      "Square (Instagram)": "مربع (إنستغرام)",
+      "Classic": "كلاسيكي",
+      "Portrait classic": "عمودي كلاسيكي",
+      "Ultra-wide (cinematic)": "عريض جداً (سينمائي)",
+      "Portrait (wide)": "عمودي (عريض)",
+      "Landscape (wide)": "أفقي (عريض)",
+      "Horizontal": "أفقي",
+      "Vertical": "عمودي",
+      "Auto-detect from content": "كشف تلقائي من المحتوى",
+      "Std": "قياسي",
+      "Pro": "احترافي",
+      "720p Standard": "دقة 720p قياسية",
+      "1080p Pro": "دقة 1080p احترافية",
+      "SD (480p)": "دقة عادية (480p)",
+      "HD (720p)": "دقة عالية (720p)",
+      "SD (512p)": "دقة عادية (512p)",
+      "HD (768p)": "دقة عالية (768p)",
+      "FHD (1080p)": "دقة كاملة (1080p)",
+      "Normal": "طبيعي",
+      "Standard quality": "جودة قياسية",
+      "Fun": "مرح",
+      "Creative & playful": "إبداعي ولعوب",
+      "Spicy": "حار",
+      "More intense content": "محتوى أكثر حدة",
+      "Static": "ثابت",
+      "No camera movement": "بدون حركة كاميرا",
+      "Zoom In": "تقريب (Zoom In)",
+      "Gradual zoom toward subject": "تقريب تدريجي نحو الهدف",
+      "Zoom Out": "إبعاد (Zoom Out)",
+      "Pull back from subject": "إبعاد تدريجي عن الهدف",
+      "Pan Left": "تحريك لليسار (Pan Left)",
+      "Horizontal left sweep": "مسح أفقي لليسار",
+      "Pan Right": "تحريك لليمين (Pan Right)",
+      "Horizontal right sweep": "مسح أفقي لليمين",
+      "Tilt Up": "إمالة لأعلى (Tilt Up)",
+      "Vertical upward tilt": "إمالة رأسية لأعلى",
+      "Tilt Down": "إمالة لأسفل (Tilt Down)",
+      "Vertical downward tilt": "إمالة رأسية لأسفل",
+      "Dolly In": "تتبع للداخل (Dolly In)",
+      "Push forward on rails": "دفع للأمام على سكة",
+      "Dolly Out": "تتبع للخارج (Dolly Out)",
+      "Pull back on rails": "سحب للخلف على سكة",
+      "Orbit CW": "دوران مع عقارب الساعة (Orbit CW)",
+      "Clockwise rotation": "دوران باتجاه عقارب الساعة",
+      "Orbit CCW": "دوران عكس عقارب الساعة (Orbit CCW)",
+      "Counter-clockwise rotation": "دوران عكس اتجاه عقارب الساعة",
+      "FPV Drone": "طائرة درون (FPV)",
+      "First-person flying view": "رؤية طيران من منظور الشخص الأول",
+      "Crash Zoom": "تقريب مفاجئ (Crash Zoom)",
+      "Dramatic fast zoom": "تقريب سريع ودرامي",
+      "Whip Pan": "بان سريع (Whip Pan)",
+      "Ultra-fast horizontal pan": "حركة بان أفقية فائقة السرعة",
+      "Vertigo": "تأثير الدوار (Vertigo)",
+      "Zoom + dolly (Hitchcock)": "تقريب + تتبع (تأثير هيتشكوك)",
+      "BASIC": "أساسي",
+      "PAN & TILT": "بان وإمالة",
+      "CINEMATIC": "سينمائي",
+      "DYNAMIC": "ديناميكي",
+      "Quick": "سريع",
+      "Standard": "قياسي",
+      "Extended": "ممتد",
+      "Long": "طويل",
+      "Maximum": "الحد الأقصى",
+      "Quick clip": "مقطع سريع",
+      "Short form": "محتوى قصير",
+      "Long form": "محتوى طويل",
+      "Enhance": "تحسين",
+      "Start Frame ✓": "إطار البداية ✓",
+      "+ Start Frame": "+ إطار البداية",
+      "End Frame ✓": "إطار النهاية ✓",
+      "+ End Frame": "+ إطار النهاية",
+      "+ Video": "+ فيديو",
+      "Soul ID ✓": "معرف الملامح ✓",
+      "Soul ID": "معرف الملامح",
+      "Negative ✓": "سلبي ✓",
+      "Negative": "سلبي",
+      "Negative prompt:": "الوصف السلبي:",
+      "Describe your video — scene, camera, mood, action...": "صف الفيديو الخاص بك — المشهد، الكاميرا، الحالة المزاجية، الحركة...",
+      "Generating...": "جاري التوليد...",
+      "Generate": "توليد"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function VideoComposer({
   selectedModel, setSelectedModel,
   prompt, setPrompt,
@@ -191,6 +287,7 @@ export default function VideoComposer({
   negativePrompt, setNegativePrompt,
   isGenerating, onGenerate,
 }: VideoComposerProps) {
+  const { t, lang } = useVideoComposerTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSoraModel = selectedModel.family === "Sora" || selectedModel.id.includes("sora-2");
 
@@ -207,6 +304,12 @@ export default function VideoComposer({
         );
   const showAspectRatio = aspectOptions.length > 0;
 
+  const translatedAspectOptions = aspectOptions.map(o => ({
+    ...o,
+    label: t(o.label),
+    description: o.description ? t(o.description) : undefined
+  }));
+
   // Duration: undefined = clamp to maxDuration, [] = hide, [...] = exact values
   const durationOptions: DropdownOption[] =
     isSoraModel
@@ -217,6 +320,12 @@ export default function VideoComposer({
         ? buildExactDurationOptions(selectedModel.durations)
         : [];
   const showDuration = durationOptions.length > 0;
+
+  const translatedDurationOptions = durationOptions.map(o => ({
+    ...o,
+    label: t(o.label),
+    description: o.description ? t(o.description) : undefined
+  }));
 
   // Resolution: undefined = hide, [...] = show those options
   const resolutionOptions: DropdownOption[] | null =
@@ -229,8 +338,29 @@ export default function VideoComposer({
       : null;
   const showResolution = !!resolutionOptions;
 
+  const translatedResolutionOptions = resolutionOptions
+    ? resolutionOptions.map(o => ({
+        ...o,
+        label: t(o.label),
+        description: o.description ? t(o.description) : undefined
+      }))
+    : null;
+
   // Camera: hide for motion-control (it uses video input, not prompt-based camera)
   const showCamera = !selectedModel.id.includes("motion-control");
+
+  const translatedCameraOptions = CAMERA_OPTIONS.map(o => ({
+    ...o,
+    label: t(o.label),
+    description: o.description ? t(o.description) : undefined,
+    group: o.group ? t(o.group) : undefined
+  }));
+
+  const translatedGrokOptions = GROK_MODE_OPTIONS.map(o => ({
+    ...o,
+    label: t(o.label),
+    description: o.description ? t(o.description) : undefined
+  }));
 
   const totalCredit = getVideoCreditsByModelId(selectedModel.id, {
     duration,
@@ -273,7 +403,7 @@ export default function VideoComposer({
           {/* Aspect ratio — hidden when [] */}
           {showAspectRatio && (
             <UpwardDropdown
-              options={aspectOptions}
+              options={translatedAspectOptions}
               value={aspectRatio}
               onChange={setAspectRatio}
               width={60}
@@ -285,7 +415,7 @@ export default function VideoComposer({
           {/* Resolution — shown only when model has real API resolutions */}
           {showResolution && (
             <UpwardDropdown
-              options={resolutionOptions!}
+              options={translatedResolutionOptions!}
               value={resolution}
               onChange={setResolution}
               width={60}
@@ -297,7 +427,7 @@ export default function VideoComposer({
           {/* Duration — hidden when [] */}
           {showDuration && (
             <UpwardDropdown
-              options={durationOptions}
+              options={translatedDurationOptions}
               value={String(duration)}
               onChange={(v) => setDuration(Number(v))}
               width={52}
@@ -309,7 +439,7 @@ export default function VideoComposer({
           {/* Grok mode — shown only for Grok models */}
           {selectedModel.grokMode && (
             <UpwardDropdown
-              options={GROK_MODE_OPTIONS}
+              options={translatedGrokOptions}
               value={grokMode}
               onChange={setGrokMode}
               width={70}
@@ -321,7 +451,7 @@ export default function VideoComposer({
           {/* Camera — hidden for motion-control */}
           {showCamera && (
             <UpwardDropdown
-              options={CAMERA_OPTIONS}
+              options={translatedCameraOptions}
               value={camera}
               onChange={setCamera}
               width={80}
@@ -341,12 +471,12 @@ export default function VideoComposer({
             )}
           >
             <Zap className="h-3 w-3" />
-            Enhance
+            {t("Enhance")}
           </button>
 
           {/* Credit cost right-aligned */}
           <span className="ml-auto shrink-0 text-sm font-semibold" style={{ color: "#fbb11f" }}>
-            {totalCredit} cr
+            {totalCredit} {lang === "ar" ? "رصيد" : "cr"}
           </span>
         </div>
 
@@ -358,13 +488,13 @@ export default function VideoComposer({
             <>
               <AttachButton
                 icon={<Paperclip className="h-3 w-3" />}
-                label={startFrame ? "Start Frame ✓" : "+ Start Frame"}
+                label={startFrame ? t("Start Frame ✓") : t("+ Start Frame")}
                 active={startFrame}
                 onClick={() => setStartFrame(!startFrame)}
               />
               <AttachButton
                 icon={<Paperclip className="h-3 w-3" />}
-                label={endFrame ? "End Frame ✓" : "+ End Frame"}
+                label={endFrame ? t("End Frame ✓") : t("+ End Frame")}
                 active={endFrame}
                 onClick={() => setEndFrame(!endFrame)}
               />
@@ -372,7 +502,7 @@ export default function VideoComposer({
               {selectedModel.accepts?.includes("video") && (
                 <AttachButton
                   icon={<ImageIcon className="h-3 w-3" />}
-                  label="+ Video"
+                  label={t("+ Video")}
                   active={false}
                   onClick={() => {}}
                 />
@@ -384,7 +514,7 @@ export default function VideoComposer({
           {selectedModel.accepts?.includes("multi-image") && (
             <AttachButton
               icon={<ImageIcon className="h-3 w-3" />}
-              label={`+ Images (max ${selectedModel.maxImages ?? 9})`}
+              label={lang === "ar" ? `+ صور (بحد أقصى ${selectedModel.maxImages ?? 9})` : `+ Images (max ${selectedModel.maxImages ?? 9})`}
               active={false}
               onClick={() => {}}
             />
@@ -396,7 +526,7 @@ export default function VideoComposer({
             !selectedModel.accepts?.includes("multi-image") && (
             <AttachButton
               icon={<ImageIcon className="h-3 w-3" />}
-              label="+ Reference Image"
+              label={lang === "ar" ? "+ صورة مرجعية" : "+ Reference Image"}
               active={false}
               onClick={() => {}}
             />
@@ -407,7 +537,7 @@ export default function VideoComposer({
             !selectedModel.accepts && (
             <AttachButton
               icon={<ImageIcon className="h-3 w-3" />}
-              label="+ Image"
+              label={lang === "ar" ? "+ صورة" : "+ Image"}
               active={false}
               onClick={() => {}}
             />
@@ -415,16 +545,16 @@ export default function VideoComposer({
 
           <AttachButton
             icon={<User className="h-3 w-3" />}
-            label={soulId ? "Soul ID ✓" : "Soul ID"}
+            label={soulId ? t("Soul ID ✓") : t("Soul ID")}
             active={soulId}
             onClick={() => setSoulId(!soulId)}
           />
           <AttachButton
             icon={<Ban className="h-3 w-3" />}
-            label={negativePrompt.length > 0 ? "Negative ✓" : "Negative"}
+            label={negativePrompt.length > 0 ? t("Negative ✓") : t("Negative")}
             active={negativePrompt.length > 0}
             onClick={() => {
-              const val = window.prompt("Negative prompt:", negativePrompt);
+              const val = window.prompt(t("Negative prompt:"), negativePrompt);
               if (val !== null) setNegativePrompt(val);
             }}
           />
@@ -441,7 +571,7 @@ export default function VideoComposer({
               onKeyDown={handleKeyDown}
               rows={1}
               maxLength={500}
-              placeholder="Describe your video — scene, camera, mood, action..."
+              placeholder={t("Describe your video — scene, camera, mood, action...")}
               className="w-full resize-none rounded-xl px-4 py-2.5 text-[13px] text-slate-200 placeholder:text-slate-600 outline-none transition-colors"
               style={{
                 background: "rgba(15,26,53,0.6)",
@@ -477,12 +607,12 @@ export default function VideoComposer({
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 text-white animate-spin" />
-                <span className="text-[10px] text-cyan-100/70">Generating...</span>
+                <span className="text-[10px] text-cyan-100/70">{t("Generating...")}</span>
               </>
             ) : (
               <>
-                <span className="text-sm font-semibold text-white">Generate</span>
-                <span className="text-[10px]" style={{ color: "#fbb11f" }}>{totalCredit} cr</span>
+                <span className="text-sm font-semibold text-white">{t("Generate")}</span>
+                <span className="text-[10px]" style={{ color: "#fbb11f" }}>{totalCredit} {lang === "ar" ? "رصيد" : "cr"}</span>
               </>
             )}
           </motion.button>

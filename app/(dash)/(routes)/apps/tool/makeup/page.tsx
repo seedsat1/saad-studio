@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import {
   ArrowLeft,
   Upload,
@@ -21,8 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+
 
 const CREDIT_COST = 2;
 
@@ -187,7 +185,7 @@ export default function MakeupPage() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} min-h-screen relative`}
+      className="min-h-screen relative"
       style={{ background: "#060c18", color: "#e2e8f0", fontFamily: "var(--font-body, sans-serif)" }}
     >
       {/* ─── Layered background ─── */}

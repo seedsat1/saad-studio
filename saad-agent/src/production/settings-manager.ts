@@ -87,6 +87,7 @@ export interface ProviderSettings {
   name: string;
   type: ProviderType;
   endpointUrl: string;
+  localRuntime?: LocalRuntimeSettings;
   organization?: string;
   enabled: boolean;
   isDefault: boolean;
@@ -101,6 +102,17 @@ export interface ProviderSettings {
   lastModelDiscoveryAt?: string;
   lastSuccessfulConnectionAt?: string;
   modelCount?: number;
+}
+
+export interface LocalRuntimeSettings {
+  mode: "llama-server";
+  executablePath: string;
+  modelPath: string;
+  port: number;
+  contextWindow: number;
+  gpuLayers: number;
+  threads: number;
+  extraArgs: string[];
 }
 
 export interface DiscoveredModel {
@@ -236,6 +248,8 @@ export class SettingsManager {
   private static legacyWorkspaceSettingsFile = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "settings.json");
   private static workspaceSkillsDir = () => path.join(CONFIG.PROJECT_ROOT, ".saad-agent", "skills");
   private static cachedSettings: AppSettings | null = null;
+  private static readonly cloudLlmProviderIds = new Set(["openai", "anthropic", "gemini", "google", "openrouter", "saad-studio"]);
+  private static readonly nonLlmProviderIds = new Set(["brave-answers"]);
 
   static clearCache(): void {
     this.cachedSettings = null;
@@ -255,21 +269,42 @@ export class SettingsManager {
         indexingMode: "balanced",
       },
       providers: [
-        { id: "ollama", name: "Ollama", type: "local", endpointUrl: "http://localhost:11434/v1", enabled: true, isDefault: false, priority: 2, fallbackProvider: "lm-studio", healthStatus: "unknown" },
-        { id: "lm-studio", name: "LM Studio", type: "local", endpointUrl: "http://localhost:1234/v1", enabled: true, isDefault: true, priority: 1, fallbackProvider: "ollama", healthStatus: "unknown" },
-        { id: "openai", name: "OpenAI", type: "cloud", endpointUrl: "https://api.openai.com/v1", enabled: false, isDefault: false, priority: 3, fallbackProvider: "openrouter", healthStatus: "unknown" },
-        { id: "anthropic", name: "Anthropic", type: "cloud", endpointUrl: "https://api.anthropic.com/v1", enabled: false, isDefault: false, priority: 4, fallbackProvider: "openrouter", healthStatus: "unknown" },
-        { id: "gemini", name: "Gemini", type: "cloud", endpointUrl: "https://generativelanguage.googleapis.com/v1beta", enabled: false, isDefault: false, priority: 5, fallbackProvider: "openrouter", healthStatus: "unknown" },
-        { id: "openrouter", name: "OpenRouter", type: "cloud", endpointUrl: "https://openrouter.ai/api/v1", enabled: false, isDefault: false, priority: 6, fallbackProvider: "lm-studio", healthStatus: "unknown" },
-        { id: "saad-studio", name: "Saad Studio", type: "first_party", endpointUrl: "https://www.saadstudio.app/api/agent/v1", organization: "Saad Studio", enabled: false, isDefault: false, priority: 7, fallbackProvider: "lm-studio", healthStatus: "unknown" },
-        { id: "brave-answers", name: "Brave Answers", type: "cloud", endpointUrl: "https://api.search.brave.com/res/v1/web/search", enabled: true, isDefault: false, priority: 8, fallbackProvider: "lm-studio", healthStatus: "online", apiKeySecretRef: "provider:brave-answers:api-key" },
+        { id: "gemini", name: "Gemini", type: "cloud", endpointUrl: "https://generativelanguage.googleapis.com/v1beta", enabled: false, isDefault: false, priority: 1, fallbackProvider: "openrouter", healthStatus: "unknown" },
+        { id: "openai", name: "OpenAI", type: "cloud", endpointUrl: "https://api.openai.com/v1", enabled: false, isDefault: false, priority: 2, fallbackProvider: "openrouter", healthStatus: "unknown" },
+        { id: "anthropic", name: "Anthropic", type: "cloud", endpointUrl: "https://api.anthropic.com/v1", enabled: false, isDefault: false, priority: 3, fallbackProvider: "openrouter", healthStatus: "unknown" },
+        { id: "openrouter", name: "OpenRouter", type: "cloud", endpointUrl: "https://openrouter.ai/api/v1", enabled: false, isDefault: false, priority: 4, fallbackProvider: "gemini", healthStatus: "unknown" },
+        { id: "saad-studio", name: "Saad Studio", type: "first_party", endpointUrl: "https://www.saadstudio.app/api/agent/v1", organization: "Saad Studio", enabled: false, isDefault: false, priority: 5, fallbackProvider: "gemini", healthStatus: "unknown" },
+        { id: "ollama", name: "Ollama", type: "local", endpointUrl: "http://localhost:11434/v1", enabled: false, isDefault: false, priority: 6, fallbackProvider: "gemini", healthStatus: "unknown" },
+        { id: "lm-studio", name: "LM Studio", type: "local", endpointUrl: "http://localhost:1234/v1", enabled: false, isDefault: false, priority: 7, fallbackProvider: "gemini", healthStatus: "unknown" },
+        {
+          id: "saad-local-direct",
+          name: "Saad Local Direct",
+          type: "local",
+          endpointUrl: "http://127.0.0.1:18765/v1",
+          enabled: false,
+          isDefault: false,
+          priority: 8,
+          fallbackProvider: "gemini",
+          healthStatus: "unknown",
+          localRuntime: {
+            mode: "llama-server",
+            executablePath: "",
+            modelPath: "",
+            port: 18765,
+            contextWindow: 8192,
+            gpuLayers: 0,
+            threads: 0,
+            extraArgs: [],
+          },
+        },
+        { id: "brave-answers", name: "Brave Answers", type: "cloud", endpointUrl: "https://api.search.brave.com/res/v1/web/search", enabled: true, isDefault: false, priority: 9, fallbackProvider: "gemini", healthStatus: "online", apiKeySecretRef: "provider:brave-answers:api-key" },
       ],
       models: {
-        Chat: { role: "Chat", providerId: "lm-studio", modelName: CONFIG.ROLES.Coding, temperature: 0.3, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 1 },
-        Coding: { role: "Coding", providerId: "lm-studio", modelName: CONFIG.ROLES.Coding, temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
-        Vision: { role: "Vision", providerId: "lm-studio", modelName: CONFIG.ROLES.Vision, temperature: 0.1, maxTokens: 4096, detectedContextWindow: 16384, streaming: false, timeoutMs: 120000, retryCount: 1 },
-        Reviewer: { role: "Reviewer", providerId: "ollama", modelName: CONFIG.ROLES.Reviewer, temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 90000, retryCount: 2 },
-        Fast: { role: "Fast", providerId: "ollama", modelName: CONFIG.ROLES.Fast, temperature: 0.2, maxTokens: 4096, detectedContextWindow: 8192, streaming: true, timeoutMs: 45000, retryCount: 1 },
+        Chat: { role: "Chat", providerId: "lm-studio", modelName: "qwen/qwen3-coder-30b", temperature: 0.3, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 1 },
+        Coding: { role: "Coding", providerId: "lm-studio", modelName: "qwen/qwen3-coder-30b", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
+        Vision: { role: "Vision", providerId: "lm-studio", modelName: "qwen/qwen3-coder-30b", temperature: 0.1, maxTokens: 4096, detectedContextWindow: 32768, streaming: false, timeoutMs: 120000, retryCount: 1 },
+        Reviewer: { role: "Reviewer", providerId: "lm-studio", modelName: "qwen/qwen3-coder-30b", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 90000, retryCount: 2 },
+        Fast: { role: "Fast", providerId: "lm-studio", modelName: "qwen/qwen3-coder-30b", temperature: 0.2, maxTokens: 4096, detectedContextWindow: 32768, streaming: true, timeoutMs: 45000, retryCount: 1 },
       },
       skills: {
         disabledSkillIds: [],
@@ -286,8 +321,8 @@ export class SettingsManager {
       diagnostics: { logLevel: "info", exportRedactedOnly: true },
       advanced: { developerMode: false, experimentalMcp: false },
       theme: "dark_glass",
-      defaultProvider: CONFIG.PROVIDER || "LM Studio",
-      defaultModel: CONFIG.MODEL_NAME || "Qwen3-Coder-30B-Instruct-GGUF",
+      defaultProvider: "",
+      defaultModel: "qwen/qwen3-coder-30b",
       autoCheckpoints: true,
       logLevel: "info",
       autoBackupOnUpgrade: true
@@ -309,6 +344,22 @@ export class SettingsManager {
       }
     };
     scrub(cloned);
+    const providers: ProviderSettings[] = Array.isArray(cloned.providers) ? cloned.providers : [];
+    const eligibleDefaultProviders = providers
+      .filter(provider =>
+        provider?.enabled
+        && this.isLlmProvider(provider)
+      )
+      .sort((a, b) => a.priority - b.priority);
+    const currentDefault = providers.find(provider => provider.isDefault);
+    const currentDefaultEligible = currentDefault
+      && eligibleDefaultProviders.some(provider => provider.id === currentDefault.id);
+    const selectedDefault = currentDefaultEligible ? currentDefault : eligibleDefaultProviders[0];
+    cloned.providers = providers.map(provider => ({
+      ...provider,
+      isDefault: Boolean(selectedDefault && provider.id === selectedDefault.id)
+    }));
+    cloned.defaultProvider = selectedDefault?.id || "";
     return cloned;
   }
 
@@ -521,14 +572,32 @@ export class SettingsManager {
       } catch {
         errors.push(`Invalid endpoint URL for ${provider.name}.`);
       }
+      if (provider.id === "saad-local-direct" && provider.enabled) {
+        const runtime = provider.localRuntime;
+        if (!runtime) {
+          errors.push(`${provider.name} requires local runtime settings before it can be enabled.`);
+        } else {
+          if (!runtime.executablePath.trim()) errors.push(`${provider.name} requires a llama-server executable path.`);
+          else if (!fsSync.existsSync(runtime.executablePath)) errors.push(`${provider.name} executable path does not exist.`);
+          if (!runtime.modelPath.trim()) errors.push(`${provider.name} requires a GGUF model file path.`);
+          else if (!fsSync.existsSync(runtime.modelPath)) errors.push(`${provider.name} model file path does not exist.`);
+          if (!Number.isFinite(runtime.port) || runtime.port < 1024 || runtime.port > 65535) {
+            errors.push(`${provider.name} port must be between 1024 and 65535.`);
+          }
+          if (!Number.isFinite(runtime.contextWindow) || runtime.contextWindow < 1024) {
+            errors.push(`${provider.name} context window must be at least 1024 tokens.`);
+          }
+        }
+      }
       if (provider.type !== "local" && provider.enabled && !provider.apiKeySecretRef) {
         errors.push(`${provider.name} requires a stored API key before it can be enabled.`);
       }
     }
     for (const role of Object.keys(settings.models) as ModelRoleName[]) {
       const model = settings.models[role];
+      const provider = settings.providers.find(item => item.id === model.providerId);
       if (!ids.has(model.providerId)) errors.push(`${role} model maps to unknown provider ${model.providerId}.`);
-      if (!model.modelName.trim()) errors.push(`${role} model name is required.`);
+      if (!model.modelName.trim() && provider?.type === "local") errors.push(`${role} model name is required.`);
       if (model.temperature < 0 || model.temperature > 2) errors.push(`${role} temperature must be between 0 and 2.`);
       if (model.maxTokens < 1) errors.push(`${role} max tokens must be positive.`);
     }
@@ -581,7 +650,13 @@ export class SettingsManager {
     await SecretsManager.setSecret(ref, apiKey);
     const settings = await this.getSettings();
     const providers = settings.providers.map((provider) =>
-      provider.id === providerId ? { ...provider, apiKeySecretRef: ref, enabled: provider.id === "gemini" ? true : provider.enabled } : provider
+      provider.id === providerId
+        ? {
+            ...provider,
+            apiKeySecretRef: ref,
+            enabled: (provider.type === "cloud" || provider.type === "first_party") && provider.id !== "brave-answers" ? true : provider.enabled
+          }
+        : provider
     );
     await this.replaceSettings({ ...settings, providers });
     return ref;
@@ -598,10 +673,26 @@ export class SettingsManager {
     if (provider.id === "gemini") {
       return process.env["GEMINI_API_KEY"] || process.env["GOOGLE_API_KEY"] || process.env["GOOGLE_AI_API_KEY"];
     }
+    if (provider.id === "openai") {
+      return process.env["OPENAI_API_KEY"] || process.env["SAAD_OPENAI_API_KEY"];
+    }
+    if (provider.id === "anthropic") {
+      return process.env["ANTHROPIC_API_KEY"] || process.env["CLAUDE_API_KEY"];
+    }
+    if (provider.id === "openrouter") {
+      return process.env["OPENROUTER_API_KEY"];
+    }
+    if (provider.id === "saad-studio") {
+      return process.env["SAAD_STUDIO_API_KEY"] || process.env["SAAD_AGENT_API_KEY"];
+    }
     return undefined;
   }
 
   private static normalizeProviderEndpoint(provider: ProviderSettings): string {
+    if (provider.id === "saad-local-direct") {
+      const port = provider.localRuntime?.port || 18765;
+      return `http://127.0.0.1:${port}/v1`;
+    }
     let endpoint = provider.endpointUrl.trim().replace(/\/+$/, "");
     endpoint = endpoint.replace("http://localhost:", "http://127.0.0.1:");
     if (provider.id === "lm-studio" && /^http:\/\/127\.0\.0\.1:1234$/i.test(endpoint)) {
@@ -672,6 +763,24 @@ export class SettingsManager {
     const apiKey = await this.getProviderApiKey(provider);
     if (provider.type !== "local" && !apiKey) {
       throw new Error("API key is required for this provider.");
+    }
+
+    if (provider.id === "saad-local-direct") {
+      const runtime = provider.localRuntime;
+      if (!runtime?.executablePath || !runtime?.modelPath) {
+        throw new Error("Saad Local Direct requires llama-server executablePath and GGUF modelPath in provider settings.");
+      }
+      if (!fsSync.existsSync(runtime.executablePath)) throw new Error("Configured llama-server executable was not found.");
+      if (!fsSync.existsSync(runtime.modelPath)) throw new Error("Configured GGUF model file was not found.");
+      return {
+        models: [{
+          id: path.basename(runtime.modelPath),
+          name: path.basename(runtime.modelPath),
+          contextWindow: runtime.contextWindow || 8192,
+          ownedBy: "local",
+        }],
+        latencyMs: Date.now() - start,
+      };
     }
 
     if (provider.id === "brave-answers") {
@@ -790,13 +899,100 @@ ${parsedError}`;
     return undefined;
   }
 
+  private static isLlmProvider(provider?: ProviderSettings): boolean {
+    if (!provider || !provider.enabled) return false;
+    if (this.nonLlmProviderIds.has(provider.id)) return false;
+    return provider.type === "local"
+      || provider.type === "first_party"
+      || provider.type === "cloud"
+      || this.cloudLlmProviderIds.has(provider.id);
+  }
+
+  private static isCloudLlmProvider(provider?: ProviderSettings): boolean {
+    if (!provider || !provider.enabled) return false;
+    if (this.nonLlmProviderIds.has(provider.id)) return false;
+    return provider.type === "first_party" || this.cloudLlmProviderIds.has(provider.id) || provider.type === "cloud";
+  }
+
+  private static setupRequiredMessage(role: ModelRoleName, selectedProvider?: ProviderSettings): string {
+    const selected = selectedProvider ? `${selectedProvider.name} (${selectedProvider.id})` : "missing provider";
+    return [
+      `Local-first model policy is active for ${role}.`,
+      `The selected provider is ${selected}, but it is not ready as a callable LLM runtime.`,
+      "Configure LM Studio, Ollama, or Saad Local Direct in Settings > Providers, run Discover / Fetch Models, then select a discovered model in Settings > Models.",
+      "Cloud providers remain optional fallbacks only when you explicitly configure them with a real API key."
+    ].join(" ");
+  }
+
+  private static async findConfiguredModelRuntime(
+    settings: AppSettings,
+    role: ModelRoleName,
+    currentModel: ModelRoleSettings
+  ): Promise<{ model: ModelRoleSettings; provider: ProviderSettings; apiKey?: string } | null> {
+    const candidates = settings.providers
+      .filter(provider => this.isLlmProvider(provider))
+      .sort((a, b) => {
+        const localWeight = (provider: ProviderSettings) => provider.type === "local" ? 0 : 1;
+        const byLocal = localWeight(a) - localWeight(b);
+        return byLocal || a.priority - b.priority;
+      });
+
+    for (const provider of candidates) {
+      const apiKey = await this.getProviderApiKey(provider);
+      if (!apiKey && provider.type !== "local" && provider.type !== "first_party") continue;
+      const discovered = provider.discoveredModels || [];
+      const selectedModel = currentModel.providerId === provider.id && currentModel.modelName
+        ? discovered.find(item => item.id === currentModel.modelName) || { id: currentModel.modelName, name: currentModel.modelName }
+        : discovered[0];
+      if (!selectedModel?.id) continue;
+      const runtimeModel: ModelRoleSettings = {
+        ...currentModel,
+        role,
+        providerId: provider.id,
+        modelName: selectedModel.id
+      };
+      const detectedContextWindow = selectedModel.contextWindow || currentModel.detectedContextWindow || this.detectContextWindow(selectedModel.id);
+      if (detectedContextWindow) runtimeModel.detectedContextWindow = detectedContextWindow;
+      const runtimeProvider = { ...provider, endpointUrl: this.normalizeProviderEndpoint(provider) };
+      if (apiKey) {
+        return {
+          model: runtimeModel,
+          provider: runtimeProvider,
+          apiKey
+        };
+      }
+      return {
+        model: runtimeModel,
+        provider: runtimeProvider
+      };
+    }
+
+    return null;
+  }
+
   static async getModelRuntime(role: ModelRoleName): Promise<{ model: ModelRoleSettings; provider: ProviderSettings; apiKey?: string }> {
     const settings = await this.getSettings();
     const model = settings.models[role];
-    const provider = settings.providers.find(p => p.id === model.providerId && p.enabled);
-    if (!provider) throw new Error(`Enabled provider for ${role} model is not configured.`);
+    const selectedProvider = settings.providers.find(p => p.id === model.providerId);
+    const provider = selectedProvider?.enabled ? selectedProvider : undefined;
+    if (!this.isLlmProvider(provider)) {
+      const configuredRuntime = await this.findConfiguredModelRuntime(settings, role, model);
+      if (configuredRuntime) return configuredRuntime;
+      throw new Error(this.setupRequiredMessage(role, selectedProvider));
+    }
+    if (!model.modelName?.trim()) {
+      const configuredRuntime = await this.findConfiguredModelRuntime(settings, role, model);
+      if (configuredRuntime) return configuredRuntime;
+      throw new Error(this.setupRequiredMessage(role, selectedProvider));
+    }
+    if (!provider) throw new Error(this.setupRequiredMessage(role, selectedProvider));
     const runtimeProvider = { ...provider, endpointUrl: this.normalizeProviderEndpoint(provider) };
     const apiKey = await this.getProviderApiKey(provider);
+    if (!apiKey && provider.type !== "local" && provider.type !== "first_party") {
+      const configuredRuntime = await this.findConfiguredModelRuntime(settings, role, model);
+      if (configuredRuntime) return configuredRuntime;
+      throw new Error(this.setupRequiredMessage(role, selectedProvider));
+    }
     return apiKey ? { model, provider: runtimeProvider, apiKey } : { model, provider: runtimeProvider };
   }
 

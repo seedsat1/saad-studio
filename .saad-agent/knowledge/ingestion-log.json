@@ -568,5 +568,167 @@
     "timestamp": "2026-07-10T00:28:16.554Z",
     "filesIndexed": 9,
     "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:31:44.492Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:31:44.693Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:31:44.853Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:33:39.621Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:33:39.725Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:33:39.815Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:33:39.892Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:10.652Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:10.734Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:10.823Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:10.912Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:45.785Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:34:58.469Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:35:39.886Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:35:39.974Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:35:40.057Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:35:40.141Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:36:10.727Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:36:21.768Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:36:21.871Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:36:21.954Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:36:22.038Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:37:06.875Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:37:06.957Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:37:07.037Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:37:07.110Z",
+    "filesIndexed": 10,
+    "chunksIndexed": 19
+  },
+  {
+    "event": "training-ingestion-completed",
+    "timestamp": "2026-07-12T13:40:11.092Z",
+    "filesIndexed": 9,
+    "chunksIndexed": 18
   }
 ]

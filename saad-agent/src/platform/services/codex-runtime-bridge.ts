@@ -68,6 +68,41 @@ function redactOutput(value: string): string {
 }
 
 function normalizeCodexError(message: string): string {
+  const extracted = extractRuntimeErrorMessage(message);
+  if (extracted && extracted !== message) {
+    return normalizeCodexError(extracted);
+  }
+  if (/operation not allowed/i.test(message)) {
+    return [
+      "تعذر تشغيل مهمة الصيانة لأن مزود النموذج المحلي رفض العملية: Operation not allowed.",
+      "Ollama يعمل، لكن جسر Pi/Codex لم يحصل على سماح أو إعداد مزود صحيح لتنفيذ طلب LLM/Tools.",
+      "الحل: تأكد أن نموذج Coding مضبوط على Ollama ونموذج موجود، ثم أعد المحاولة. إذا استمر الخطأ استخدم وضع Ask للموافقة اليدوية أو بدّل Coding إلى نموذج آخر."
+    ].join("\n");
+  }
+  if (/cloud-only provider policy|configured Cloud provider|Local providers such as LM Studio/i.test(message)) {
+    return [
+      "Local-first model policy is active.",
+      "The current Coding provider is not fully configured as a callable local/runtime model.",
+      "Configure LM Studio, Ollama, or Saad Local Direct in Settings > Providers, run Discover / Fetch Models, then select a discovered model in Settings > Models.",
+      "No files were modified."
+    ].join("\n");
+  }
+  if (/unknown provider\s+["']?ollama["']?|pi\/codex runtime does not support ollama/i.test(message)) {
+    return [
+      "Pi/Codex runtime does not support Ollama as a direct provider for engineering tool execution.",
+      "Ollama can stay enabled for Chat, but Coding execution through Pi should use LM Studio, or Saad Local Direct with a real llama-server.exe and GGUF model.",
+      "No files were modified."
+    ].join("\n");
+  }
+  const unknownProviderMatch = message.match(/unknown provider\s+["']?([^"'\s.]+)["']?/i);
+  if (unknownProviderMatch) {
+    const providerName = unknownProviderMatch[1] || "selected-provider";
+    return [
+      `Pi/Codex runtime does not recognize provider "${providerName}" for engineering tool execution.`,
+      `Run pi --list-models and confirm the provider appears there. If Pi reports a models.json parse error, repair C:\\Users\\PC\\.pi\\agent\\models.json first.`,
+      "No files were modified."
+    ].join("\n");
+  }
   if (/access is denied|spawn EPERM|operation not permitted/i.test(message)) {
     return [
       "خطأ تشغيل: Windows رفض تشغيل عملية التشفير/الترميز من Saad Agent: Access is denied.",
@@ -82,6 +117,28 @@ function normalizeCodexError(message: string): string {
     ].join("\n");
   }
   return message;
+}
+
+function extractRuntimeErrorMessage(value: string): string {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const tryParse = (candidate: string): any => {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      return null;
+    }
+  };
+  const direct = tryParse(text);
+  const payload = direct || tryParse((text.match(/\{[\s\S]*\}/)?.[0] || ""));
+  if (!payload) return text;
+  const firstMessage = payload?.error?.message || payload?.message || payload?.error;
+  if (typeof firstMessage === "string") {
+    const nested = tryParse(firstMessage.trim());
+    if (nested) return extractRuntimeErrorMessage(JSON.stringify(nested));
+    return firstMessage.trim();
+  }
+  return text;
 }
 
 export class CodexRuntimeBridge {
@@ -157,20 +214,76 @@ export class CodexRuntimeBridge {
 
     let piProvider = "";
     let piModel = "";
+    let unsupportedPiProvider = "";
 
     try {
-      const settings = await SettingsManager.getSettings();
-      const codingModel = settings?.models?.["Coding"];
-      if (codingModel) {
-        if (["google", "openai", "anthropic", "deepseek", "groq", "openrouter"].includes(codingModel.providerId)) {
-          piProvider = codingModel.providerId;
-          piModel = codingModel.modelName;
-        } else if (codingModel.providerId === "local") {
-          piProvider = "lm-studio";
-          piModel = codingModel.modelName;
-        }
+      const runtime = await SettingsManager.getModelRuntime("Coding");
+      const providerId = runtime.provider.id === "gemini" ? "google" : runtime.provider.id;
+      if (providerId === "lm-studio") {
+        piProvider = "lm-studio";
+        piModel = runtime.model.modelName;
+      } else if (runtime.provider.type === "local") {
+        unsupportedPiProvider = runtime.provider.id;
+      } else if (["google", "openai", "anthropic", "deepseek", "groq", "openrouter"].includes(providerId)) {
+        piProvider = providerId;
+        piModel = runtime.model.modelName;
+      } else {
+        unsupportedPiProvider = runtime.provider.id;
       }
-    } catch {}
+    } catch (err: any) {
+      const error = normalizeCodexError(err?.message || String(err));
+      ExecutionTraceEmitter.emit({
+        taskId: request.taskId,
+        conversationId: request.conversationId,
+        phase: "codex_runtime",
+        status: "failed",
+        label: "Model runtime setup required",
+        error,
+        safeDetails: {
+          durationMs: Date.now() - startedAt
+        },
+        sourceService: "CodexRuntimeBridge"
+      });
+      return {
+        success: false,
+        available: true,
+        command,
+        args: ["-p", "--tools", sandboxMode === "read-only" ? "read,grep,find,ls" : "read,bash,edit,write,grep,find,ls", "[PROMPT]"],
+        cwd,
+        durationMs: Date.now() - startedAt,
+        stdout: "",
+        stderr: "",
+        error
+      };
+    }
+
+    if (unsupportedPiProvider) {
+      const error = normalizeCodexError(`Unknown provider "${unsupportedPiProvider}". Pi/Codex runtime cannot use this provider for engineering tool execution.`);
+      ExecutionTraceEmitter.emit({
+        taskId: request.taskId,
+        conversationId: request.conversationId,
+        phase: "codex_runtime",
+        status: "failed",
+        label: "Pi runtime provider unsupported",
+        error,
+        safeDetails: {
+          provider: unsupportedPiProvider,
+          durationMs: Date.now() - startedAt
+        },
+        sourceService: "CodexRuntimeBridge"
+      });
+      return {
+        success: false,
+        available: true,
+        command,
+        args: ["-p", "--tools", sandboxMode === "read-only" ? "read,grep,find,ls" : "read,bash,edit,write,grep,find,ls", "[PROMPT]"],
+        cwd,
+        durationMs: Date.now() - startedAt,
+        stdout: "",
+        stderr: "",
+        error
+      };
+    }
 
     const piTools = sandboxMode === "read-only" 
       ? "read,grep,find,ls" 
@@ -247,6 +360,35 @@ export class CodexRuntimeBridge {
 
       const stdout = redactOutput(String(result.stdout || ""));
       const stderr = redactOutput(String(result.stderr || ""));
+      const runtimeError = extractRuntimeErrorMessage(stdout || stderr);
+      if (/operation not allowed|llm_call_failed/i.test(`${stdout}\n${stderr}\n${runtimeError}`)) {
+        const error = normalizeCodexError(runtimeError || stdout || stderr);
+        ExecutionTraceEmitter.emit({
+          taskId: request.taskId,
+          conversationId: request.conversationId,
+          phase: "codex_runtime",
+          status: "failed",
+          label: isPi ? "Pi runtime failed" : "Codex runtime failed",
+          error,
+          safeDetails: {
+            stdoutLength: stdout.length,
+            stderrLength: stderr.length,
+            durationMs: Date.now() - startedAt
+          },
+          sourceService: "CodexRuntimeBridge"
+        });
+        return {
+          success: false,
+          available: true,
+          command,
+          args: args.slice(0, -1).concat("[PROMPT]"),
+          cwd,
+          durationMs: Date.now() - startedAt,
+          stdout,
+          stderr,
+          error
+        };
+      }
 
       ExecutionTraceEmitter.emit({
         taskId: request.taskId,

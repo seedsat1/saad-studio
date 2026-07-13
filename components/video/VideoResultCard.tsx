@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Play, Download, Plus, ArrowUp, RefreshCw, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 import { ModelBadge } from "@/lib/video-models";
 
 export interface GeneratedVideo {
@@ -45,8 +46,29 @@ function BadgePill({ badge }: { badge: ModelBadge }) {
   );
 }
 
+function useVideoResultCardTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Generating...": "جاري التوليد...",
+      "Download": "تحميل",
+      "+5s Extend": "تمديد +5ث",
+      "4K Upscale": "ترقية الدقة لـ 4K",
+      "Remix": "إعادة تصميم",
+      "Delete": "حذف",
+      "LATEST": "الأحدث",
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 // Skeleton loading card
 function SkeletonCard({ isHero, modelName }: { isHero?: boolean; modelName?: string }) {
+  const { t } = useVideoResultCardTranslation();
   return (
     <div
       className={cn(
@@ -68,7 +90,7 @@ function SkeletonCard({ isHero, modelName }: { isHero?: boolean; modelName?: str
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
         <Zap className="h-6 w-6 text-cyan-500/40 animate-pulse" />
-        <p className="text-xs text-slate-500">Generating...</p>
+        <p className="text-xs text-slate-500">{t("Generating...")}</p>
         {modelName && (
           <div className="flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
             <span className="text-[10px] text-slate-400">{modelName}</span>
@@ -87,16 +109,18 @@ export default function VideoResultCard({
   onClick,
   onDelete,
 }: VideoResultCardProps) {
+  const { t, lang } = useVideoResultCardTranslation();
+
   if (isSkeleton) {
     return <SkeletonCard isHero={isHero} modelName={skeletonModelName} />;
   }
 
   const actions = [
-    { icon: <Download className="h-3 w-3" />, label: "Download", onClick: (e: React.MouseEvent) => e.stopPropagation() },
-    { icon: <Plus className="h-3 w-3" />,     label: "+5s Extend", onClick: (e: React.MouseEvent) => e.stopPropagation() },
-    { icon: <ArrowUp className="h-3 w-3" />,  label: "4K Upscale", onClick: (e: React.MouseEvent) => e.stopPropagation() },
-    { icon: <RefreshCw className="h-3 w-3" />,label: "Remix",      onClick: (e: React.MouseEvent) => e.stopPropagation() },
-    { icon: <Trash2 className="h-3 w-3" />,   label: "Delete",     onClick: (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(result.id); } },
+    { icon: <Download className="h-3 w-3" />, label: t("Download"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: <Plus className="h-3 w-3" />,     label: t("+5s Extend"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: <ArrowUp className="h-3 w-3" />,  label: t("4K Upscale"), onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: <RefreshCw className="h-3 w-3" />,label: t("Remix"),      onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: <Trash2 className="h-3 w-3" />,   label: t("Delete"),     onClick: (e: React.MouseEvent) => { e.stopPropagation(); onDelete?.(result.id); } },
   ];
 
   return (
@@ -117,7 +141,7 @@ export default function VideoResultCard({
       {isHero && (
         <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[9px] font-bold uppercase tracking-wider text-white/80">LATEST</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-white/80">{t("LATEST")}</span>
         </div>
       )}
 

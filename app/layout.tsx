@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
+import { Cairo } from "next/font/google";
+import localFont from "next/font/local";
 import Script from "next/script";
 import {
   ClerkProvider,
@@ -14,18 +15,23 @@ import { AvatarProvider } from "@/lib/avatar-context";
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 
 
-const outfit = Outfit({
-  subsets: ["latin"],
+const nexaBold = localFont({
+  src: "../public/fonts/Nexa-Bold.otf",
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const nexaLight = localFont({
+  src: "../public/fonts/Nexa-Light.otf",
   variable: "--font-body",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+});
+
+const cairo = Cairo({
+  subsets: ["arabic"],
+  variable: "--font-cairo",
+  display: "swap",
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app");
@@ -48,9 +54,9 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon-v2.ico",
-    shortcut: "/favicon-v2.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon-v2.ico?v=2",
+    shortcut: "/favicon-v2.ico?v=2",
+    apple: "/apple-touch-icon.png?v=2",
   },
 };
 
@@ -113,7 +119,7 @@ export default function RootLayout({
           <link rel="dns-prefetch" href="//fonts.googleapis.com" />
           <link rel="dns-prefetch" href="//fonts.gstatic.com" />
         </head>
-        <body className={`${outfit.variable} ${plusJakarta.variable} font-body bg-[#060c18] text-[#e2e8f0] antialiased`}>
+        <body className={`${nexaBold.variable} ${nexaLight.variable} ${cairo.variable} font-body bg-[#060c18] text-[#e2e8f0] antialiased`}>
           <Script id="saad-theme-init" strategy="beforeInteractive">
             {`
               try {
@@ -126,9 +132,9 @@ export default function RootLayout({
                   document.documentElement.classList.remove('saad-light');
                   document.documentElement.setAttribute('data-theme', 'dark');
                 }
+                document.documentElement.setAttribute('dir', 'ltr'); // Always LTR
                 if (languagePref === 'ar' || languagePref === 'en') {
                   document.documentElement.setAttribute('lang', languagePref);
-                  document.documentElement.setAttribute('dir', languagePref === 'ar' ? 'rtl' : 'ltr');
                 }
               } catch (_) {}
             `}

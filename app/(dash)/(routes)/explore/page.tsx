@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { usePromoMedia, promoUrl } from "@/hooks/use-promo-media";
 import { usePromoContent, promoText } from "@/hooks/use-promo-content";
 import { DEFAULT_EXPLORE_MODULES, type ExploreMedia, type ExploreModule } from "@/lib/explore-cms";
+import { useLanguage } from "@/lib/use-language";
 
 // ─── Types and Constants ───
 
@@ -276,6 +277,7 @@ const BLUEPRINTS = [
 // ─── Sub-Components for Official Ads/Banners ───
 
 function GptImage2ModelAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/gpt-image-2";
@@ -310,13 +312,13 @@ function GptImage2ModelAd() {
           <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden border-b border-white/10 px-6 py-9 text-center lg:border-b-0 lg:border-r">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_78%,rgba(255,255,255,0.14),transparent_23%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.48))]" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">{badge}</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/45">{t(badge)}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">{subtitle}</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(title)}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-400">{t(subtitle)}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Sparkles className="h-4 w-4" />
-                {cta}
+                {t(cta)}
               </span>
             </div>
             <img
@@ -363,6 +365,7 @@ function GptImage2ModelAd() {
 }
 
 function CanvasModelAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/canvas";
@@ -392,7 +395,7 @@ function CanvasModelAd() {
                 {title}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                {cta}
+                {t(cta)}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -404,6 +407,7 @@ function CanvasModelAd() {
 }
 
 function Seedance2ModelAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/seedance-2";
@@ -472,13 +476,13 @@ function Seedance2ModelAd() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/72" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-transparent to-black/20" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{t(badge)}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-teal-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(title)}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{t(subtitle)}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                {cta}
+                {t(cta)}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
@@ -490,6 +494,7 @@ function Seedance2ModelAd() {
 }
 
 function NextSceneEngineAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/next-scene-engine";
@@ -519,7 +524,7 @@ function NextSceneEngineAd() {
                 {title}
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                {cta}
+                {t(cta)}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -531,6 +536,7 @@ function NextSceneEngineAd() {
 }
 
 function TransitionsModelAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/transitions";
@@ -570,13 +576,13 @@ function TransitionsModelAd() {
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/76 via-black/20 to-black/78" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{t(badge)}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-blue-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(title)}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{t(subtitle)}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                {cta}
+                {t(cta)}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
@@ -617,6 +623,7 @@ function TransitionsModelAd() {
 }
 
 function NanoBananaAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/nano-banana";
@@ -646,7 +653,7 @@ function NanoBananaAd() {
                 نانوبنانا
               </span>
               <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                {cta}
+                {t(cta)}
                 <ArrowUpRight className="h-4 w-4" />
               </span>
             </div>
@@ -658,6 +665,7 @@ function NanoBananaAd() {
 }
 
 function Kling3ModelAd() {
+  const { t } = useExploreTranslation();
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/kling-3";
@@ -726,13 +734,13 @@ function Kling3ModelAd() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-black/18 to-black/76" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
             <div className="relative z-10">
-              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{badge}</div>
+              <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{t(badge)}</div>
               <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-violet-200/50 to-transparent" />
-              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{title}</h2>
-              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{subtitle}</p>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(title)}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{t(subtitle)}</p>
               <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
                 <Play className="h-4 w-4 fill-current" />
-                {cta}
+                {t(cta)}
               </span>
             </div>
             <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black via-black/25 to-transparent" />
@@ -781,6 +789,7 @@ const DYNAMIC_GALLERY_LAYOUTS = [
 ];
 
 function DynamicGallery({ module, reverse = false }: { module: ExploreModule; reverse?: boolean }) {
+  const { t } = useExploreTranslation();
   const gallery = module.gallery.length ? module.gallery : [module.hero];
   const heroPanel = (
     <div className="relative flex min-h-[430px] flex-col items-center justify-start overflow-hidden px-6 py-9 text-center">
@@ -792,14 +801,14 @@ function DynamicGallery({ module, reverse = false }: { module: ExploreModule; re
       <div className="absolute inset-0 bg-gradient-to-b from-black/74 via-black/18 to-black/76" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-transparent to-black/35" />
       <div className="relative z-10">
-        {module.badge ? <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{module.badge}</div> : null}
+        {module.badge ? <div className="text-[11px] font-black uppercase tracking-[0.26em] text-white/55">{t(module.badge)}</div> : null}
         <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-white/50 to-transparent" />
-        <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{module.title}</h2>
-        {module.subtitle ? <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{module.subtitle}</p> : null}
+        <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-4xl">{t(module.title)}</h2>
+        {module.subtitle ? <p className="mt-3 max-w-sm text-sm leading-6 text-slate-300">{t(module.subtitle)}</p> : null}
         {module.cta ? (
           <span className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-black text-slate-950 transition group-hover:scale-[1.03]">
             <Play className="h-4 w-4 fill-current" />
-            {module.cta}
+            {t(module.cta)}
           </span>
         ) : null}
       </div>
@@ -831,7 +840,7 @@ function DynamicGallery({ module, reverse = false }: { module: ExploreModule; re
       {module.cta ? (
         <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
           <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-            {module.cta}
+            {t(module.cta)}
             <ArrowUpRight className="h-4 w-4" />
           </span>
         </div>
@@ -865,6 +874,7 @@ function DynamicGallery({ module, reverse = false }: { module: ExploreModule; re
 }
 
 function DynamicBanner({ module }: { module: ExploreModule }) {
+  const { t } = useExploreTranslation();
   return (
     <section className="w-full px-5 pb-8 md:px-10 lg:px-14 xl:px-20 max-w-[1600px] mx-auto">
       <Link
@@ -882,15 +892,15 @@ function DynamicBanner({ module }: { module: ExploreModule }) {
           <div className="relative flex min-h-[430px] items-end px-7 py-10 md:px-12 lg:px-16">
             <div className="flex max-w-2xl flex-wrap items-center gap-3">
               <span className="inline-flex rounded-lg border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-2xl shadow-black/40 backdrop-blur">
-                {module.title}
+                {t(module.title)}
               </span>
               {module.cta ? (
                 <span className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-2xl shadow-black/45 transition group-hover:scale-[1.04] group-hover:bg-slate-100">
-                  {module.cta}
+                  {t(module.cta)}
                   <ArrowUpRight className="h-4 w-4" />
                 </span>
               ) : null}
-              {module.subtitle ? <p className="basis-full text-sm leading-6 text-white/75">{module.subtitle}</p> : null}
+              {module.subtitle ? <p className="basis-full text-sm leading-6 text-white/75">{t(module.subtitle)}</p> : null}
             </div>
           </div>
         </div>
@@ -1050,6 +1060,7 @@ function ReelCard({
   onAutoplayRequest: (key: string) => void;
   className?: string;
 }) {
+  const { t } = useExploreTranslation();
   const [durationSec, setDurationSec] = useState<number | null>(null);
   const [hovered, setHovered] = useState(false);
   const [inView, setInView] = useState(false);
@@ -1116,7 +1127,7 @@ function ReelCard({
           {item.featured && (
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-200/35 bg-amber-300/15 px-2.5 py-1 text-[11px] font-bold text-amber-100 backdrop-blur">
               <Star className="h-3 w-3" />
-              Featured
+              {t("Featured")}
             </span>
           )}
           <span className="rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[11px] font-bold text-white/90 backdrop-blur">
@@ -1130,11 +1141,11 @@ function ReelCard({
           <div className="flex items-center justify-between gap-3">
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-200/90">{item.creator}</div>
             <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
-              {item.type === "video" ? formatDuration(durationSec || 0) : "Image"}
+              {item.type === "video" ? formatDuration(durationSec || 0) : t("Image")}
             </div>
           </div>
-          <h3 className="mt-2 text-xl font-black leading-tight text-white">{item.title}</h3>
-          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">{item.prompt}</p>
+          <h3 className="mt-2 text-xl font-black leading-tight text-white">{t(item.title)}</h3>
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-300">{t(item.prompt)}</p>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-white/80">
             {item.kind === "showcase" ? (
               <>
@@ -1148,7 +1159,7 @@ function ReelCard({
                 </button>
                 {item.tags.slice(0, 2).map((tag) => (
                   <span key={tag} className="rounded-full bg-white/10 px-2 py-1">
-                    {tag}
+                    {t(tag)}
                   </span>
                 ))}
               </>
@@ -1184,6 +1195,7 @@ function DiscoverSection({
   autoplayKey: string | null;
   onAutoplayRequest: (key: string) => void;
 }) {
+  const { t } = useExploreTranslation();
   const gridItems = items.slice(0, 6);
 
   return (
@@ -1192,8 +1204,8 @@ function DiscoverSection({
         <div className={cn("relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-7 shadow-2xl shadow-black/40 lg:col-span-4", accentClassName)}>
           <div className="relative z-10">
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-white/70">{kicker}</div>
-            <div className="mt-4 text-2xl font-black leading-tight text-white">{title}</div>
-            <div className="mt-3 text-sm leading-6 text-slate-200/90">{subtitle}</div>
+            <div className="mt-4 text-2xl font-black leading-tight text-white">{t(title)}</div>
+            <div className="mt-3 text-sm leading-6 text-slate-200/90">{t(subtitle)}</div>
             <button className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:scale-[1.02]">
               <Sparkles className="h-4 w-4" />
               {ctaLabel}
@@ -1201,15 +1213,15 @@ function DiscoverSection({
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
                 <Play className="h-3.5 w-3.5" />
-                Demos
+                {t("Demos")}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
                 <ScrollText className="h-3.5 w-3.5" />
-                Tutorials
+                {t("Tutorials")}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-xs font-bold text-white/75 backdrop-blur">
                 <Zap className="h-3.5 w-3.5" />
-                Best settings
+                {t("Best settings")}
               </span>
             </div>
           </div>
@@ -1249,7 +1261,124 @@ function DiscoverSection({
 
 // ─── Main Page Component ───
 
+function useExploreTranslation() {
+  const { lang } = useLanguage();
+
+  const dict: Record<string, Record<string, string>> = {
+    en: {
+      "Ratio: ": "Ratio: ",
+      "Style: ": "Style: ",
+      "Sort: ": "Sort: ",
+      "Image": "Image",
+      "Video": "Video"
+    },
+    ar: {
+      "YOURS TO CREATE": "أنشئه كما تريد",
+      "ASK ME AND I'LL GIVE YOU WHAT YOU WANT": "اطلب وسأصنع لك ما تريد",
+      "Type a prompt...": "اكتب فكرة أو توجيه...",
+      "Image": "صورة",
+      "Video": "فيديو",
+      "Ratio: ": "الأبعاد: ",
+      "Style: ": "النمط: ",
+      "Generate": "توليد",
+      "Demos": "عروض تجريبية",
+      "Tutorials": "شروحات",
+      "Best settings": "أفضل الإعدادات",
+      "Try this model": "جرب هذا النموذج",
+      "Studio Creations": "أعمال الاستوديو",
+      "Live Feed": "تحديثات مباشرة",
+      "latest": "الأحدث",
+      "featured": "المميزة",
+      "trending": "الالرائجة",
+      "Loading creations...": "جاري تحميل الأعمال...",
+      "No creations published yet.": "لم يتم نشر أي أعمال بعد.",
+      "Search Iraq gallery...": "البحث في معرض العراق...",
+      "All": "الكل",
+      "Architecture": "الهندسة المعمارية",
+      "Sci-Fi": "الخيال العلمي",
+      "Photography": "التصوير الفوتوغرافي",
+      "History": "التاريخ",
+      "Nature": "الطبيعة",
+      "Sort: ": "ترتيب: ",
+      "Trending": "الرائج",
+      "Likes": "الإعجابات",
+      "Views": "المشاهدات",
+      "No results found matching your search filters.": "لم يتم العثور على نتائج تطابق فلاتر البحث.",
+      "Copy Prompt": "نسخ التوجيه",
+      "Copied!": "تم النسخ!",
+      "Community Creations (Iraq & Baghdad)": "أعمال المجتمع (العراق وبغداد)",
+      "Featured Blueprints": "مخططات مميزة",
+      "Templates": "قوالب",
+      "View More": "عرض المزيد",
+      "Create Preset": "إنشاء نمط",
+      "Clear History": "مسح المحادثة",
+      "Clear History (مسح المحادثة)": "مسح المحادثة",
+      "Smart Explore Assistant": "مساعد الاستكشاف الذكي",
+      "مساعد الاستكشاف الذكي": "مساعد الاستكشاف الذكي",
+      "Thinking and writing...": "جاري التفكير والكتابة...",
+      "جاري التفكير والكتابة...": "جاري التفكير والكتابة...",
+      "Smart redirect incoming": "توجيه ذكي وشيك",
+      "توجيه ذكي وشيك": "توجيه ذكي وشيك",
+      "Cancel Redirect": "إلغاء التوجيه",
+      "إلغاء التوجيه": "إلغاء التوجيه",
+      "Featured": "مميز",
+      "Iraq Space Center & Observatory": "مركز العراق للفضاء والمرصد",
+      "Mesopotamian Eco-City Marshes": "أهوار المدينة البيئية الرافدينية",
+      "Zaha Hadid Baghdad Cultural Center": "مركز زها حديد الثقافي في بغداد",
+      "Modern Tigris Riverwalk": "ممشى دجلة الحديث",
+      "Futuristic Babylon City": "مدينة بابل المستقبلية",
+      "Baghdad Metro Station": "محطة مترو بغداد",
+      "Mesopotamian Future Museum": "متحف الرافدين المستقبلي",
+      "Futuristic Baghdad Skyline": "أفق بغداد المستقبلي",
+      "3D Reference View Creator": "منشئ مرجع العرض ثلاثي الأبعاد",
+      "Motion Product Showcase": "معرض المنتجات الحركية",
+      "Cinematic Scenario Product Film": "فيلم سيناريو سينمائي للمنتجات",
+      "Mesopotamian Cyberpunk Style": "نمط السايبربانك بلاد الرافدين",
+      "Tilt-Shift Miniature Effect": "تأثير المنمنمات (Tilt-Shift)",
+      "Eco-City Architecture Render": "رندر العمارة للمدينة البيئية",
+      "NEW MODEL": "نموذج جديد",
+      "Meet GPT Image 2": "تعرف على GPT Image 2",
+      "4K images with near-perfect text rendering": "صور بدقة 4K مع كتابة نصوص مثالية تقريباً",
+      "Try Model": "تجربة النموذج",
+      "Canvas": "الكانفاس",
+      "Open": "فتح",
+      "VIDEO MODEL": "نموذج فيديو",
+      "Seedance 2": "سيدانس 2",
+      "Fast cinematic video generation with smooth motion and flexible references.": "توليد سريع للفيديو السينمائي مع حركة سلسة ومراجع مرنة.",
+      "NEXT SCENE ENGINE": "محرك المشهد التالي",
+      "VIDEO TOOL": "أداة الفيديو",
+      "Transitions": "الانتقالات",
+      "Create stylized scene changes and motion bridges between your clips.": "إنشاء تغييرات مشاهد مميزة وجسور حركية بين مقاطعك.",
+      "Nano Banana": "نانو بنانا",
+      "Kling 3.0": "كلينغ 3.0",
+      "Cinematic motion, strong scene continuity, and polished video generation.": "حركة سينمائية، استمرارية قوية للمشهد، وتوليد فيديو مصقول.",
+      "Open Tool": "فتح الأداة",
+      "Image Gen": "توليد الصور",
+      "Video Gen": "توليد الفيديو",
+      "3D Gen": "توليد ثلاثي الأبعاد",
+      "Blueprints": "مخططات",
+      "Realtime": "الوقت الفعلي",
+      "Flow": "التدفق",
+      "Upscaler": "محسن الدقة",
+      "Draw": "رسم",
+      "Hot": "شائع",
+      "New": "جديد",
+      "MODEL": "نموذج",
+      "هيرو للموديل + مصغرات لأعماله + مواد تعليمية وإعدادات موصى بها.": "نموذج البطل + مصغرات الأعمال + الشروحات والإعدادات الموصى بها."
+    }
+  };
+
+  const t = (key: string) => {
+    if (!key) return "";
+    const cleanKey = key.trim();
+    return dict[lang]?.[cleanKey] || key;
+  };
+
+  return { t, lang };
+}
+
 export default function ExplorePage() {
+  const { t, lang } = useExploreTranslation();
   const router = useRouter();
 
   // CMS & API States
@@ -1578,7 +1707,7 @@ export default function ExplorePage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.4 }}
                 >
-                  {heroTexts[heroTextIndex]}
+                  {t(heroTexts[heroTextIndex])}
                 </motion.span>
               </AnimatePresence>
             </h1>
@@ -1600,9 +1729,9 @@ export default function ExplorePage() {
                     onClick={() => setChatHistory([])}
                     className="hover:text-zinc-300 transition"
                   >
-                    Clear History (مسح المحادثة)
+                    {t("Clear History (مسح المحادثة)")}
                   </button>
-                  <span>مساعد الاستكشاف الذكي</span>
+                  <span>{t("Smart Explore Assistant")}</span>
                 </div>
 
                 <div className="flex flex-col gap-2.5">
@@ -1633,7 +1762,7 @@ export default function ExplorePage() {
                   {isAgentTyping && (
                     <div className="self-start flex items-center gap-2 bg-violet-600/[0.01] border border-violet-500/5 rounded-xl rounded-tl-none p-3 text-zinc-500 text-xs">
                       <Loader2 size={12} className="animate-spin text-violet-500 shrink-0" />
-                      <span>جاري التفكير والكتابة...</span>
+                      <span>{t("Thinking and writing...")}</span>
                     </div>
                   )}
                 </div>
@@ -1645,7 +1774,7 @@ export default function ExplorePage() {
                 <Search className="w-5 h-5 text-zinc-500 shrink-0" />
                 <input
                   type="text"
-                  placeholder="Type a prompt..."
+                  placeholder={t("Type a prompt...")}
                   value={promptText}
                   onChange={(e) => setPromptText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
@@ -1663,7 +1792,7 @@ export default function ExplorePage() {
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Image
+                  {t("Image")}
                 </button>
                 <button
                   type="button"
@@ -1673,7 +1802,7 @@ export default function ExplorePage() {
                   }`}
                 >
                   <Video className="w-3.5 h-3.5" />
-                  Video
+                  {t("Video")}
                 </button>
               </div>
             </div>
@@ -1690,7 +1819,7 @@ export default function ExplorePage() {
                     className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition"
                   >
                     <LayoutGrid className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Ratio: {aspectRatio}</span>
+                    <span>{t("Ratio: ")}{aspectRatio}</span>
                     <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${showAspectDropdown ? "rotate-180" : ""}`} />
                   </button>
                   
@@ -1730,7 +1859,7 @@ export default function ExplorePage() {
                     className="flex items-center gap-1.5 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition"
                   >
                     <Star className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Style: {selectedStyle}</span>
+                    <span>{t("Style: ")}{t(selectedStyle)}</span>
                     <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 transition-transform ${showStyleDropdown ? "rotate-180" : ""}`} />
                   </button>
 
@@ -1770,7 +1899,7 @@ export default function ExplorePage() {
                 className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 rounded-xl text-xs font-extrabold text-black shadow-lg shadow-cyan-500/25 transition-all duration-300 transform active:scale-95 shrink-0"
               >
                 <Wand2 className="w-3.5 h-3.5" />
-                Generate
+                {t("Generate")}
               </button>
 
             </div>
@@ -1783,8 +1912,8 @@ export default function ExplorePage() {
                     {countdown}
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-bold text-zinc-200 block">توجيه ذكي وشيك</span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">سيتم نقلك للأداة المطلوبة خلال {countdown} ثوانٍ.</span>
+                    <span className="text-xs font-bold text-zinc-200 block">{t("Smart redirect incoming")}</span>
+                    <span className="text-[10px] text-zinc-500 mt-0.5">{lang === "ar" ? `سيتم نقلك للأداة المطلوبة خلال ${countdown} ثوانٍ.` : `You will be redirected in ${countdown} seconds.`}</span>
                   </div>
                 </div>
 
@@ -1793,7 +1922,7 @@ export default function ExplorePage() {
                   onClick={handleCancelRedirect}
                   className="px-3.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-[11px] font-bold text-red-400 transition"
                 >
-                  إلغاء التوجيه
+                  {t("Cancel Redirect")}
                 </button>
               </div>
             )}
@@ -1821,7 +1950,7 @@ export default function ExplorePage() {
                   )}
                 </div>
                 <span className="text-[10px] sm:text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">
-                  {tool.label}
+                  {t(tool.label)}
                 </span>
               </Link>
             ))}
@@ -1837,9 +1966,9 @@ export default function ExplorePage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-2.5">
             <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-            <h2 className="text-xl font-bold tracking-tight text-white">Studio Creations</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">{t("Studio Creations")}</h2>
             <span className="text-[10px] bg-cyan-400/10 border border-cyan-400/20 rounded-full px-2.5 py-0.5 font-bold text-cyan-200 uppercase tracking-wider">
-              Live Feed
+              {t("Live Feed")}
             </span>
           </div>
           <div className="flex bg-white/5 rounded-xl p-1 border border-white/5 self-end sm:self-auto">
@@ -1852,7 +1981,7 @@ export default function ExplorePage() {
                   activeFeed === feed ? "bg-white/10 text-white shadow-sm" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                {feed}
+                {t(feed)}
               </button>
             ))}
           </div>
@@ -1861,11 +1990,11 @@ export default function ExplorePage() {
         {loadingCreations ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
             <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mb-3" />
-            <p className="text-sm text-zinc-400 font-medium">Loading creations...</p>
+            <p className="text-sm text-zinc-400 font-medium">{t("Loading creations...")}</p>
           </div>
         ) : (activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).length === 0 ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
-            <p className="text-sm text-zinc-500 font-medium">No creations published yet.</p>
+            <p className="text-sm text-zinc-500 font-medium">{t("No creations published yet.")}</p>
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
@@ -1972,12 +2101,12 @@ export default function ExplorePage() {
                           {copiedId === item.id ? (
                             <>
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400">Copied!</span>
+                              <span className="text-emerald-400">{t("Copied!")}</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3.5 h-3.5" />
-                              <span>Copy Prompt</span>
+                              <span>{t("Copy Prompt")}</span>
                             </>
                           )}
                         </button>
@@ -2064,12 +2193,12 @@ export default function ExplorePage() {
                       {copiedId === activeMediaItem.id ? (
                         <>
                           <Check className="w-4 h-4 text-emerald-400" />
-                          <span className="text-emerald-400">Prompt Copied!</span>
+                          <span className="text-emerald-400">Prompt {t("Copied!")}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          <span>Copy Prompt</span>
+                          <span>{t("Copy Prompt")}</span>
                         </>
                       )}
                     </button>
@@ -2104,13 +2233,13 @@ export default function ExplorePage() {
         
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-white">Featured Blueprints</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">{t("Featured Blueprints")}</h2>
             <span className="text-[10px] bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5 font-bold text-zinc-400">
-              Templates
+              {t("Templates")}
             </span>
           </div>
           <Link href="/image-presets" className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1">
-            View More
+            {t("View More")}
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -2135,18 +2264,18 @@ export default function ExplorePage() {
               <div className="absolute left-3 top-3 flex items-center gap-2">
                 {bp.badge && (
                   <span className="bg-emerald-500 text-[9px] font-black text-black px-2 py-0.5 rounded-md uppercase tracking-wider">
-                    {bp.badge}
+                    {t(bp.badge)}
                   </span>
                 )}
                 <span className="bg-black/50 border border-white/10 text-[9px] font-black text-zinc-200 px-2 py-0.5 rounded-md uppercase backdrop-blur-md">
-                  {bp.tag}
+                  {t(bp.tag)}
                 </span>
               </div>
 
               {/* Title & Overlay button */}
               <div className="absolute inset-x-0 bottom-0 p-4">
                 <h3 className="text-base font-bold leading-tight text-white mb-2 group-hover:text-cyan-300 transition-colors">
-                  {bp.title}
+                  {t(bp.title)}
                 </h3>
                 <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-cyan-400 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
                   <span>Create Preset</span>
@@ -2195,14 +2324,14 @@ export default function ExplorePage() {
         <div className="flex flex-col gap-6 border-b border-white/5 pb-6 mb-8">
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-xl font-bold tracking-tight text-white">Community Creations (Iraq & Baghdad)</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">{t("Community Creations (Iraq & Baghdad)")}</h2>
             
             {/* Search Input bar */}
             <div className="relative max-w-sm w-full">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <input
                 type="text"
-                placeholder="Search Iraq gallery..."
+                placeholder={t("Search Iraq gallery...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-white/20 transition text-zinc-200"
@@ -2226,7 +2355,7 @@ export default function ExplorePage() {
                       : "text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent"
                   }`}
                 >
-                  {cat}
+                  {t(cat)}
                 </button>
               ))}
             </div>
@@ -2238,7 +2367,7 @@ export default function ExplorePage() {
                 onClick={() => setShowSortDropdown(!showSortDropdown)}
                 className="flex items-center gap-1.5 px-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white transition"
               >
-                <span>Sort: {sortBy}</span>
+                <span>{t("Sort: ")}{t(sortBy)}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
               </button>
 
@@ -2262,7 +2391,7 @@ export default function ExplorePage() {
                           sortBy === mode ? "bg-white/10 text-white font-bold" : "text-zinc-400 hover:bg-white/5 hover:text-white"
                         }`}
                       >
-                        {mode}
+                        {t(mode)}
                       </button>
                     ))}
                   </motion.div>
@@ -2277,7 +2406,7 @@ export default function ExplorePage() {
         {filteredIraqImages.length === 0 ? (
           <div className="w-full py-20 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
             <Info className="w-8 h-8 text-zinc-500 mb-3" />
-            <p className="text-sm text-zinc-400 font-medium">No results found matching your search filters.</p>
+            <p className="text-sm text-zinc-400 font-medium">{t("No results found matching your search filters.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2311,11 +2440,11 @@ export default function ExplorePage() {
                         </span>
                       </div>
                       
-                      <h4 className="text-sm font-bold text-zinc-100 leading-snug">{item.title}</h4>
+                      <h4 className="text-sm font-bold text-zinc-100 leading-snug">{t(item.title)}</h4>
                       
                       {/* Small Prompt Display box */}
                       <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono">
-                        {item.prompt}
+                        {t(item.prompt)}
                       </p>
 
                       {/* Interactive Bottom Bar */}
@@ -2344,12 +2473,12 @@ export default function ExplorePage() {
                           {copiedId === item.id ? (
                             <>
                               <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400">Copied!</span>
+                              <span className="text-emerald-400">{t("Copied!")}</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3.5 h-3.5" />
-                              <span>Copy Prompt</span>
+                              <span>{t("Copy Prompt")}</span>
                             </>
                           )}
                         </button>

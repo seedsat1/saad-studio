@@ -26,6 +26,9 @@ import { DeterministicCommandService } from "./deterministic-command-service.js"
 import { DocumentTextExtractor } from "./document-text-extractor.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
 import { CreativeService } from "./creative.js";
+import { RequestRoutingService } from "./request-routing.js";
+import { DailyEngineerService } from "./daily-engineer.js";
+import { AgentLoopService } from "./agent-loop.js";
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
     ".txt",
@@ -156,6 +159,22 @@ export class ChatOrchestratorService {
             : userRequestText;
         const conversationState = ConversationStateEngine.getState(sessionId);
         const externalResearchText = ChatOrchestratorService.resolveExternalResearchText(userRequestText, conversationState.history || []);
+        const phaseTwoPrompt = ChatOrchestratorService.resolveDailyMaintenancePhaseTwoPrompt(userRequestText, conversationState.activeTask, conversationState.history || []);
+        if (phaseTwoPrompt) {
+            ConversationStateEngine.updateState(sessionId, {
+                lastIntent: "code_generation",
+                activeWorkflow: "daily_maintenance_engineer",
+                activeTask: phaseTwoPrompt
+            });
+            return await ChatOrchestratorService.executeDirectChat({
+                ...input,
+                prompt: phaseTwoPrompt,
+                sessionId,
+                conversationId,
+                approvalMode: effectiveApprovalMode,
+                approved: true
+            });
+        }
         if (!normalizedAttachments.length) {
             const normalizedRequest = ChatOrchestratorService.normalizeArabic(userRequestText);
             if (ModelExpertiseExtractionService.isExtractionRequest(userRequestText)) {
@@ -430,6 +449,8 @@ export class ChatOrchestratorService {
             await ApprovalPolicyService.rememberAlwaysAllow(conversationId, "import_knowledge");
         }
         const decisionResult = await ExecutionPolicyService.evaluateDecision(userRequestText, activeWorkspace, effectiveApprovalMode, conversationId);
+        const requestRoute = RequestRoutingService.classify(userRequestText);
+        const dailyEngineerWorkflow = DailyEngineerService.classifyRequest(userRequestText);
         await TaskStateStore.transitionTask(taskId, "CLASSIFIED", `Decision evaluated: ${decisionResult.decision}`);
         if (decisionResult.decision === "REJECT") {
             await TaskStateStore.transitionTask(taskId, "FAILED", `Execution policy rejected: ${decisionResult.reason}`);
@@ -448,14 +469,18 @@ export class ChatOrchestratorService {
                 response: clarification
             };
         }
-        if (decisionResult.requiresApproval && !input.approved) {
+        const dailyMaintenanceNeedsManualApproval = dailyEngineerWorkflow
+            && !dailyEngineerWorkflow.reviewOnly
+            && !input.approved
+            && ChatOrchestratorService.hasDailyMaintenanceManualApprovalLanguage(userRequestText);
+        if ((decisionResult.requiresApproval || dailyMaintenanceNeedsManualApproval) && !input.approved) {
             await this.transitionToApproval(taskId, `Requires approval: ${decisionResult.reason}`);
             const approvalReason = this.formatApprovalReason(decisionResult.reason);
             const approvalAction = /Internet access/i.test(decisionResult.reason) ? "use_internet" : "write_file";
-            if (/Project modification/i.test(decisionResult.reason)) {
+            if (/Project modification|Daily maintenance engineer/i.test(decisionResult.reason)) {
                 ConversationStateEngine.updateState(sessionId, {
                     lastIntent: "code_generation",
-                    activeWorkflow: "code_generation",
+                    activeWorkflow: dailyEngineerWorkflow ? "daily_maintenance_engineer" : "code_generation",
                     activeTask: userRequestText
                 });
             }
@@ -698,6 +723,8 @@ export class ChatOrchestratorService {
                 "Work only inside the provided trusted workspace.",
                 "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
                 "Use the project rules and context below before acting.",
+                dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+                ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
                 "",
                 "Saad Agent pre-answer context:",
                 preAnswerReview.finalContext,
@@ -753,6 +780,14 @@ export class ChatOrchestratorService {
                         response: internalResult.response
                     };
                 }
+                if (dailyEngineerWorkflow && ChatOrchestratorService.isRuntimeProviderDeniedFailure(codexResult)) {
+                    await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Local coding runtime provider refused the operation");
+                    return {
+                        intent,
+                        usedModel: false,
+                        response: ChatOrchestratorService.formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult)
+                    };
+                }
                 await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
             }
             const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "ماكو output رجع من Codex runtime.";
@@ -778,7 +813,7 @@ export class ChatOrchestratorService {
         if ((decisionResult.decision === "PLAN" || decisionResult.decision === "WAIT_FOR_APPROVAL") && decisionResult.workflow === "engineering_workflow") {
             ConversationStateEngine.updateState(sessionId, {
                 lastIntent: intent,
-                activeWorkflow: "engineering_workflow",
+                activeWorkflow: dailyEngineerWorkflow ? "daily_maintenance_engineer" : "engineering_workflow",
                 activeTask: userRequestText
             });
             if (InternalWorkspaceExecutor.canHandle(userRequestText)) {
@@ -819,12 +854,23 @@ export class ChatOrchestratorService {
             await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying approval policy before runtime execution");
             await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing execution runtime envelope");
             await TaskStateStore.transitionTask(taskId, "PLANNING", "Delegating engineering request to Codex runtime bridge");
+            const dailyMaintenanceAgentLoopContext = dailyEngineerWorkflow
+                ? await ChatOrchestratorService.runDailyMaintenanceAgentLoopPreflight({
+                    taskId,
+                    conversationId,
+                    goal: userRequestText,
+                    approvalMode: effectiveApprovalMode
+                })
+                : "";
             const codexPrompt = [
                 "You are running as the Codex execution runtime behind Saad Studio Agent.",
                 "Work only inside the provided trusted workspace.",
                 "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
                 "Use the project rules and context below before acting.",
                 "For project modifications, inspect the codebase first, edit only the required files, and run available verification.",
+                dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+                ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
+                dailyMaintenanceAgentLoopContext,
                 "",
                 "Saad Agent pre-answer context:",
                 preAnswerReview.finalContext,
@@ -848,7 +894,9 @@ export class ChatOrchestratorService {
                 return {
                     intent,
                     usedModel: false,
-                    response: "Codex runtime needs approval before executing this engineering task.",
+                    response: dailyEngineerWorkflow
+                        ? "Daily Maintenance Engineer runtime needs approval before executing this project task."
+                        : "Codex runtime needs approval before executing this engineering task.",
                     approvalRequest: codexResult.approvalRequest
                 };
             }
@@ -878,6 +926,14 @@ export class ChatOrchestratorService {
                         intent,
                         usedModel: false,
                         response: internalResult.response
+                    };
+                }
+                if (dailyEngineerWorkflow && ChatOrchestratorService.isRuntimeProviderDeniedFailure(codexResult)) {
+                    await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Local coding runtime provider refused the operation");
+                    return {
+                        intent,
+                        usedModel: false,
+                        response: ChatOrchestratorService.formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult)
                     };
                 }
                 await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
@@ -1106,6 +1162,14 @@ export class ChatOrchestratorService {
                         const chunkText = m.chunks && m.chunks.length > 0 ? m.chunks.map(c => c.content).join("\n") : m.item.summary;
                         return `Trained Rule ${idx + 1} (${m.item.title || m.item.fileName || m.item.filePath}):\n${chunkText}`;
                     }).join("\n\n");
+            }
+            if (dailyEngineerWorkflow && requestRoute.pipeline.startsWith("daily_maintenance.")) {
+                promptAugmentationText = [
+                    promptAugmentationText,
+                    "",
+                    "DAILY MAINTENANCE ENGINEER CONTRACT:",
+                    dailyEngineerWorkflow.runtimeInstructions
+                ].filter(Boolean).join("\n");
             }
             ExecutionTraceEmitter.emit({
                 taskId,
@@ -1409,6 +1473,19 @@ export class ChatOrchestratorService {
     }
     static detectIntent(prompt, sessionId) {
         const normalized = this.normalizeArabic(prompt);
+        const route = RequestRoutingService.classify(prompt);
+        if (route.kind !== "conversation") {
+            return {
+                intent: route.intent,
+                confidence: route.confidence,
+                source: "pattern",
+                language: /[\u0600-\u06FF]/.test(prompt) ? "ar" : "en",
+                matchedPattern: `request-routing:${route.kind}`,
+                reason: route.reason,
+                selectedPipeline: route.pipeline,
+                selectedTools: route.tools
+            };
+        }
         // Explicit Dialect / Direct mapping check (Section 3 & 8)
         const n = normalized;
         if (n.includes("احفظ هذا") || n.includes("احفظ هذه القاعده") || n.includes("احفظ هذه القاعدة") || n.includes("خزن هذا")) {
@@ -1559,6 +1636,8 @@ export class ChatOrchestratorService {
         return `${previousText} ${userRequestText}`.trim();
     }
     static isMemorySave(prompt, normalized) {
+        if (DailyEngineerService.classifyRequest(prompt))
+            return false;
         if (this.isProjectAuditOrRepairInstruction(prompt, normalized))
             return false;
         const lower = prompt.toLowerCase();
@@ -2719,6 +2798,158 @@ export class ChatOrchestratorService {
         const greeting = this.isSimpleGreeting(prompt);
         return isShort && (thanks || ok || smallTalk || greeting);
     }
+    static resolveDailyMaintenancePhaseTwoPrompt(prompt, activeTask, history = []) {
+        const normalized = this.normalizeArabic(prompt || "");
+        const lower = String(prompt || "").toLowerCase();
+        const asksPhaseTwo = /(?:\u0627\u0644\u0641\u062d\u0635\s+\u0646\u062c\u062d|\u0646\u062c\u062d\s+\u0627\u0644\u0641\u062d\u0635|\u0627\u0628\u062f\u0627\s+\u0627\u0644\u0645\u0631\u062d\u0644\u0647\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0647|\u0627\u0628\u062f\u0623\s+\u0627\u0644\u0645\u0631\u062d\u0644\u0629\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0629|\u0627\u0644\u0645\u0631\u062d\u0644\u0647\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0647|\u0627\u0644\u0645\u0631\u062d\u0644\u0629\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0629|\u0646\u0641\u0630\s+\u0627\u0644\u0627\u0635\u0644\u0627\u062d|\u0646\u0641\u0651\u0630\s+\u0627\u0644\u0627\u0635\u0644\u0627\u062d)/.test(normalized)
+            || /\b(?:inspection passed|start phase two|start phase 2|begin phase two|begin phase 2|execute the fix)\b/i.test(lower);
+        if (!asksPhaseTwo)
+            return null;
+        const task = String(activeTask || "").trim() || this.findLastDailyMaintenanceModifyTask(history);
+        if (!task)
+            return null;
+        const workflow = DailyEngineerService.classifyRequest(task);
+        if (!workflow || workflow.reviewOnly)
+            return null;
+        return task;
+    }
+    static findLastDailyMaintenanceModifyTask(history) {
+        for (let index = history.length - 2; index >= 0; index -= 1) {
+            const message = history[index];
+            if (!message || message.role !== "user")
+                continue;
+            const candidate = message.content.trim();
+            if (!candidate)
+                continue;
+            const workflow = DailyEngineerService.classifyRequest(candidate);
+            if (workflow && !workflow.reviewOnly) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+    static hasDailyMaintenanceManualApprovalLanguage(prompt) {
+        const normalized = this.normalizeArabic(prompt || "");
+        const lower = String(prompt || "").toLowerCase();
+        const raw = String(prompt || "");
+        const arabicApprovalNearGate = /(?:\u0628\u0639\u062f|\u0642\u0628\u0644|\u0627\u0637\u0644\u0628|\u0644\u0627\s+\u062a\u0628\u062f[\u0623\u0627])[\s\S]{0,48}\u0645\u0648\u0627\u0641\u0642(?:\u062a\u064a|\u0629|\u062a\u0643)?/i.test(raw)
+            || /\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+(?:\u0627\u0644\u0623\u0648\u0644\u0649|\u0627\u0644\u0627\u0648\u0644\u0649|\u0627\u0648\u0644\u0649|\u0623\u0648\u0644\u0649|\u0627\u0644\u0627\u0648\u0644\u064a)/.test(raw);
+        return /(?:\u0628\u0639\u062f\s+\u0645\u0648\u0627\u0641\u0642\u062a\u064a|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0639\u062f\u064a\u0644|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0637\u0644\u0628\s+\u0645\u0648\u0627\u0641\u0642\u062a\u064a|\u0644\u0627\s+\u062a\u0628\u062f\u0627\s+\u0627\u0644\u062a\u0646\u0641\u064a\u0630|\u0644\u0627\s+\u062a\u0628\u062f\u0623\s+\u0627\u0644\u062a\u0646\u0641\u064a\u0630|\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+\u0627\u0644\u0627\u0648\u0644\u064a|\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+\u0627\u0644\u0627\u0648\u0644\u0649)/.test(normalized)
+            || arabicApprovalNearGate
+            || /\b(?:after my approval|before my approval|ask my approval|ask for my approval|request my approval|before executing|before implementation)\b/i.test(lower);
+    }
+    static isRuntimeProviderDeniedFailure(codexResult) {
+        const combined = [
+            codexResult.error || "",
+            codexResult.stdout || "",
+            codexResult.stderr || ""
+        ].join("\n");
+        return /operation not allowed|llm_call_failed|local coding runtime provider refused/i.test(combined);
+    }
+    static formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult) {
+        const extracted = ChatOrchestratorService.extractRuntimeErrorMessage([codexResult.error || "", codexResult.stdout || "", codexResult.stderr || ""].join("\n"));
+        return [
+            "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+            "",
+            "\u0627\u0644\u0633\u0628\u0628: " + (extracted || "Operation not allowed"),
+            "",
+            "\u0627\u0644\u062e\u0644\u0627\u0635\u0629:",
+            "- Ollama \u0645\u062a\u0635\u0644 \u0648\u064a\u0646\u0641\u0639 \u0644\u0644\u0645\u062d\u0627\u062f\u062b\u0629\u060c \u0644\u0643\u0646 \u0645\u0633\u0627\u0631 Pi/Codex \u0627\u0644\u062a\u0646\u0641\u064a\u0630\u064a \u0631\u0641\u0636 \u062a\u0634\u063a\u064a\u0644 LLM/Tools \u0628\u0647\u0630\u0627 \u0627\u0644\u0645\u0632\u0648\u062f.",
+            "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0645\u0644\u0641.",
+            "",
+            "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+            "1. \u0625\u0630\u0627 \u062a\u0631\u064a\u062f \u062a\u0646\u0641\u064a\u0630 \u0647\u0646\u062f\u0633\u064a \u0627\u0644\u0622\u0646: \u063a\u064a\u0631 Settings > Models > Coding \u0625\u0644\u0649 LM Studio \u0623\u0648 Gemini/OpenAI \u0627\u0644\u0645\u0643\u0648\u0646.",
+            "2. \u0625\u0630\u0627 \u062a\u0631\u064a\u062f \u0646\u0645\u0648\u0630\u062c\u0627 \u0645\u062d\u0644\u064a\u0627 \u0628\u062f\u0648\u0646 LM Studio: \u0636\u0628\u0637 Saad Local Direct \u0628\u0645\u0633\u0627\u0631 llama-server.exe \u062d\u0642\u064a\u0642\u064a \u0648\u0645\u0644\u0641 GGUF.",
+            "3. \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u0627\u0644\u0623\u0646\u0633\u0628 \u0645\u0646 \u0645\u0644\u0641\u0627\u062a\u0643: E:\\mod\\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf."
+        ].join("\n");
+    }
+    static buildDailyMaintenanceApprovalScope(workflow, approved) {
+        if (!workflow || workflow.reviewOnly || !approved)
+            return "";
+        return [
+            "USER APPROVAL SCOPE FOR THIS DAILY MAINTENANCE RUN:",
+            "The user explicitly approved executing this daily-maintenance task after Saad Agent's approval gate.",
+            "This approval covers small, reversible, in-scope edits discovered during inspection, such as stale text replacement, minor UI copy/style polish, syntax-safe local corrections, and narrow bug fixes in files directly related to the request.",
+            "Do not stop for a second approval for those bounded low-risk edits.",
+            "Stop and request a specific second approval before destructive actions, deleting user data, dependency installs, environment/secret/auth/billing/payment changes, schema migrations, large refactors, cross-workspace writes, network actions, or unclear/out-of-scope work.",
+            "Keep the touched file set minimal, run the most relevant available verification, and report files touched, verification, failures, and remaining work."
+        ].join("\n");
+    }
+    static async runDailyMaintenanceAgentLoopPreflight(input) {
+        const result = await AgentLoopService.run({
+            taskId: `${input.taskId}-daily-loop-preflight`,
+            conversationId: input.conversationId,
+            goal: input.goal,
+            approvalMode: input.approvalMode,
+            maxIterations: 4,
+            decideNextAction: ({ observations, iteration }) => {
+                if (iteration === 1) {
+                    return {
+                        type: "tool",
+                        toolName: "search-tool",
+                        args: {
+                            action: "file-search",
+                            query: "package.json",
+                            targetDir: "."
+                        },
+                        reason: "Read-only daily-maintenance preflight: locate package manifests before runtime delegation."
+                    };
+                }
+                if (iteration === 2) {
+                    return {
+                        type: "tool",
+                        toolName: "search-tool",
+                        args: {
+                            action: "file-search",
+                            query: "AGENTS.md",
+                            targetDir: "."
+                        },
+                        reason: "Read-only daily-maintenance preflight: locate project instruction files before runtime delegation."
+                    };
+                }
+                if (iteration === 3) {
+                    return {
+                        type: "tool",
+                        toolName: "search-tool",
+                        args: {
+                            action: "text-search",
+                            query: "Daily Maintenance",
+                            extensions: ["ts", "tsx", "md"],
+                            targetDir: "."
+                        },
+                        reason: "Read-only daily-maintenance preflight: collect existing maintenance markers without editing files."
+                    };
+                }
+                return {
+                    type: "finish",
+                    answer: ChatOrchestratorService.formatAgentLoopPreflightObservations(observations)
+                };
+            }
+        });
+        return [
+            "SAAD AGENT LOOP PREFLIGHT OBSERVATIONS:",
+            result.answer || ChatOrchestratorService.formatAgentLoopPreflightObservations(result.observations),
+            `Agent loop status: ${result.status}`,
+            result.failedReason ? `Agent loop failure: ${result.failedReason}` : ""
+        ].filter(Boolean).join("\n");
+    }
+    static formatAgentLoopPreflightObservations(observations) {
+        if (!observations.length)
+            return "- No preflight observations were collected.";
+        return observations.map((observation) => {
+            const result = observation.result;
+            const matches = Array.isArray(result?.matches) ? result.matches : [];
+            const matchSummary = matches.slice(0, 8).map((match) => {
+                const location = match.file || match.path || "unknown";
+                return match.line ? `${location}:${match.line}` : String(location);
+            }).join(", ");
+            return [
+                `- Iteration ${observation.iteration}: ${observation.toolName} ${observation.ok ? "ok" : "failed"}`,
+                matchSummary ? `; matches: ${matchSummary}` : "",
+                observation.error ? `; error: ${observation.error}` : ""
+            ].join("");
+        }).join("\n");
+    }
     static isAffirmativeOnly(prompt) {
         const normalized = this.normalizeArabic(prompt || "");
         const lower = String(prompt || "").trim().toLowerCase();
@@ -2864,6 +3095,9 @@ export class ChatOrchestratorService {
         return knownPage?.[0] || null;
     }
     static formatApprovalReason(reason) {
+        if (/Daily maintenance engineer/i.test(reason)) {
+            return "Daily Maintenance Engineer Mode يحتاج موافقتك قبل فحص/تعديل المشروع. بعد الموافقة سيقرأ الملفات المهمة، يخطط، ينفذ بتعديلات محدودة، يتحقق، ثم يوثق النتيجة.";
+        }
         if (/Internet access/i.test(reason)) {
             return "هذا الطلب يحتاج استخدام الإنترنت، وما راح أطلع نتائج أو روابط وهمية. وافق على البحث حتى أنفذه فعلياً.";
         }
@@ -2986,6 +3220,9 @@ export class ChatOrchestratorService {
     }
     static sanitizeResponseForUser(response, userRequestText = "") {
         const text = String(response || "");
+        const runtimeErrorResponse = ChatOrchestratorService.formatRawRuntimeErrorResponse(text);
+        if (runtimeErrorResponse)
+            return runtimeErrorResponse;
         const expertiseResponse = ChatOrchestratorService.formatCleanExpertiseExtractionResponse(text);
         if (expertiseResponse)
             return expertiseResponse;
@@ -2995,6 +3232,59 @@ export class ChatOrchestratorService {
             cleaned = cleaned.replace(/دفعة استخراج خبرات من\s+الموديل المحلي/gi, "دفعة استخراج خبرات من Gemini");
         }
         return cleaned.trim() || text.trim();
+    }
+    static formatRawRuntimeErrorResponse(response) {
+        const text = String(response || "").trim();
+        if (!text || !/llm_call_failed|Operation not allowed|"\s*error\s*"/i.test(text))
+            return "";
+        const extracted = ChatOrchestratorService.extractRuntimeErrorMessage(text);
+        if (!/operation not allowed|llm_call_failed/i.test(`${text}\n${extracted}`))
+            return "";
+        return [
+            "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+            "",
+            `\u0627\u0644\u0633\u0628\u0628: ${extracted || "Operation not allowed"}`,
+            "",
+            "\u0627\u0644\u062e\u0644\u0627\u0635\u0629:",
+            "- Ollama \u0645\u062a\u0635\u0644 \u0648\u064a\u0646\u0641\u0639 \u0644\u0644\u0645\u062d\u0627\u062f\u062b\u0629\u060c \u0644\u0643\u0646 \u0645\u0633\u0627\u0631 Pi/Codex \u0627\u0644\u062a\u0646\u0641\u064a\u0630\u064a \u0631\u0641\u0636 \u062a\u0634\u063a\u064a\u0644 LLM/Tools \u0628\u0647\u0630\u0627 \u0627\u0644\u0645\u0632\u0648\u062f.",
+            "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0645\u0644\u0641.",
+            "",
+            "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+            "1. \u0644\u0644\u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0647\u0646\u062f\u0633\u064a \u0627\u0644\u0622\u0646: \u0627\u062c\u0639\u0644 Settings > Models > Coding \u0639\u0644\u0649 LM Studio \u0623\u0648 Gemini/OpenAI \u0627\u0644\u0645\u0643\u0648\u0646.",
+            "2. \u0644\u0644\u062a\u0634\u063a\u064a\u0644 \u0628\u062f\u0648\u0646 LM Studio: \u0636\u0628\u0637 Saad Local Direct \u0628\u0645\u0633\u0627\u0631 llama-server.exe \u0648\u0645\u0644\u0641 GGUF.",
+            "3. \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u0627\u0644\u0623\u0646\u0633\u0628 \u0645\u0646 \u0645\u0644\u0641\u0627\u062a\u0643: E:\\mod\\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf."
+        ].join("\n");
+        return [
+            "تعذر تشغيل مهمة الصيانة لأن مزود النموذج المحلي رفض العملية.",
+            "",
+            `السبب: ${extracted || "Operation not allowed"}`,
+            "",
+            "ما يعنيه هذا:",
+            "- Ollama متصل، لكن جسر التنفيذ حاول عملية LLM/Tool غير مسموحة أو غير مدعومة في الإعداد الحالي.",
+            "- تأكد أن Settings > Models > Coding يستخدم نموذج Ollama موجود فعلاً، مثل `saadcoder:latest`، وأن Max output tokens أقل من نافذة السياق.",
+            "- إذا استمر الخطأ، استخدم وضع Ask للموافقة اليدوية أو بدّل نموذج Coding مؤقتاً."
+        ].join("\n");
+    }
+    static extractRuntimeErrorMessage(value) {
+        const text = String(value || "").trim();
+        const parse = (candidate) => {
+            try {
+                return JSON.parse(candidate);
+            }
+            catch {
+                return null;
+            }
+        };
+        const payload = parse(text) || parse(text.match(/\{[\s\S]*\}/)?.[0] || "");
+        if (!payload)
+            return text.replace(/^"+|"+$/g, "");
+        const message = payload?.error?.message || payload?.message || payload?.error;
+        if (typeof message !== "string")
+            return text;
+        const nested = parse(message.trim());
+        if (nested)
+            return ChatOrchestratorService.extractRuntimeErrorMessage(JSON.stringify(nested));
+        return message.trim();
     }
     static formatCleanExpertiseExtractionResponse(response) {
         const text = String(response || "");

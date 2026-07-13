@@ -4,6 +4,7 @@ import { motion, type Variants } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState, type ElementType, type ReactNode } from "react";
 import Link from "next/link";
 import { useClerk, useUser } from "@clerk/nextjs";
+import { useLanguage } from "@/lib/use-language";
 import {
   Settings,
   User,
@@ -23,6 +24,121 @@ import {
   Save,
   Loader2,
 } from "lucide-react";
+
+function useSettingsTranslation() {
+  const { lang, changeLanguage } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Page titles
+      "Settings": "الإعدادات",
+      "Manage your account, security, and preferences.": "إدارة حسابك والأمان والتفضيلات.",
+      
+      // Sections
+      "Subscription": "الاشتراك",
+      "Profile Information": "بيانات الحساب",
+      "Security": "الأمان",
+      "Notifications": "الإشعارات",
+      "Appearance & Language": "المظهر واللغة",
+      "Danger Zone": "منطقة الخطر",
+      
+      // Subscription
+      "Free Plan": "الخطة المجانية",
+      "Starter Plan": "خطة المبتدئ",
+      "Pro Plan": "خطة برو",
+      "Max Plan": "خطة ماكس",
+      "Plan": "خطة",
+      "Next billing:": "الفوترة القادمة:",
+      "No active billing cycle": "لا توجد دورة فوترة نشطة",
+      "Upgrade Plan": "ترقية الخطة",
+      "Buy Credits": "شراء النقاط",
+      "Credits": "النقاط",
+      
+      // Early credits request
+      "Early monthly credits": "نقاط شهرية مبكرة",
+      "deductionMessage": "سيتم خصم {num} نقاط من تجديدك القادم.",
+      "requestMessage": "طلب {num} نقاط من تجديدك السنوي القادم.",
+      "Database setup is required before early credits can be requested.": "مطلب إعداد قاعدة البيانات قبل طلب النقاط المبكرة.",
+      "Already requested": "تم الطلب بالفعل",
+      "Setup required": "مطلب الإعداد",
+      "Unavailable": "غير متوفر",
+      "Requesting...": "جاري الطلب...",
+      "Request early credits": "طلب نقاط مبكرة",
+      "Early credits added. They will be deducted from your next annual refresh.": "تم إضافة النقاط المبكرة. سيتم خصمها من التحديث السنوي القادم.",
+      
+      // Profile Info
+      "Display Name": "الاسم المستعار",
+      "Email Address": "البريد الإلكتروني",
+      "Phone Number": "رقم الهاتف",
+      "Saving...": "جاري الحفظ...",
+      "Saved!": "تم الحفظ!",
+      "Save Changes": "حفظ التغييرات",
+      
+      // Security
+      "Current Password": "كلمة المرور الحالية",
+      "New Password": "كلمة المرور الجديدة",
+      "Confirm New Password": "تأكيد كلمة المرور الجديدة",
+      "Enter current password": "أدخل كلمة المرور الحالية",
+      "Enter new password": "أدخل كلمة المرور الجديدة",
+      "Confirm new password": "تأكيد كلمة المرور الجديدة",
+      "Updating...": "جاري التحديث...",
+      "Password Updated": "تم تحديث كلمة المرور",
+      "Update Password": "تحديث كلمة المرور",
+      "Reset Password Flow": "إعادة تعيين كلمة المرور",
+      
+      // Password validations
+      "All password fields are required.": "جميع حقول كلمة المرور مطلوبة.",
+      "New password must be at least 8 characters.": "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.",
+      "New password and confirmation do not match.": "كلمة المرور الجديدة والتأكيد غير متطابقين.",
+      "New password must be different from current password.": "يجب أن تكون كلمة المرور الجديدة مختلفة عن كلمة المرور الحالية.",
+      "Password update is unavailable for this login method. Use Forgot password from login.": "تحديث كلمة المرور غير متوفر لطريقة تسجيل الدخول هذه. استخدم نسيت كلمة المرور من صفحة الدخول.",
+      
+      // Notifications
+      "Email Receipts": "إيصالات البريد الإلكتروني",
+      "Receive email confirmation for every payment.": "تلقي تأكيد بريد إلكتروني لكل عملية دفع.",
+      "Credit Alerts": "تنبيهات النقاط",
+      "Get notified when your credits are running low.": "الحصول على تنبيه عندما تكون نقاطك منخفضة.",
+      "Payment Status": "حالة الدفع",
+      "Notify me when payment is approved or rejected.": "إعلامي عندما يتم قبول الدفع أو رفضه.",
+      "Product Updates": "تحديثات المنتجات",
+      "New AI models, features, and announcements.": "نماذج الذكاء الاصطناعي الجديدة والميزات والإعلانات.",
+      "Weekly Digest": "الملخص الأسبوعي",
+      "A summary of your usage every week.": "ملخص استخدامك كل أسبوع.",
+      
+      // Appearance & Language
+      "Dark Mode": "الوضع الداكن",
+      "Recommended for AI studio work.": "موصى به للعمل في استوديو الذكاء الاصطناعي.",
+      "Interface Language": "لغة الواجهة",
+      "English": "الإنجليزية",
+      "Arabic": "العربية",
+      
+      // Danger zone
+      "Deleting your account is permanent. All your data, credits, and history will be lost.": "حذف حسابك نهائي. ستفقد كل بياناتك ونقاطك وسجل أعمالك.",
+      "Delete My Account": "حذف حسابي",
+      "Delete account permanently? This action cannot be undone.": "حذف الحساب بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.",
+      
+      // General errors
+      "Failed to save preferences.": "فشل حفظ التفضيلات.",
+      "Failed to request early credits.": "فشل طلب النقاط المبكرة.",
+      "Failed to save profile.": "فشل حفظ الملف الشخصي.",
+      "Failed to delete account.": "فشل حذف الحساب.",
+      "Failed to update password.": "فشل تحديث كلمة المرور.",
+      "Failed to load settings.": "فشل تحميل الإعدادات.",
+      "Failed to save notification preferences.": "فشل حفظ تفضيلات الإشعارات.",
+      
+      // Plan Names
+      "Free": "مجاني",
+      "Starter": "مبتدئ",
+      "Plus": "بلاس",
+      "Pro": "برو",
+      "Max": "ماكس"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang, changeLanguage };
+}
 
 type SettingsApiResponse = {
   profile: {
@@ -198,6 +314,7 @@ function Toggle({
 }
 
 export default function SettingsPage() {
+  const { t, lang, changeLanguage } = useSettingsTranslation();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
 
@@ -268,7 +385,7 @@ export default function SettingsPage() {
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(payload?.error || "Failed to save notification preferences.");
+          throw new Error(payload?.error || t("Failed to save notification preferences."));
         }
 
         const unsafe = (user.unsafeMetadata ?? {}) as Record<string, unknown>;
@@ -279,7 +396,7 @@ export default function SettingsPage() {
           },
         });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to save preferences.";
+        const msg = e instanceof Error ? e.message : t("Failed to save preferences.");
         setSettingsError(msg);
       } finally {
         setSavingPrefs(false);
@@ -316,7 +433,7 @@ export default function SettingsPage() {
       try {
         const res = await fetch("/api/profile/settings", { cache: "no-store" });
         const data = (await res.json().catch(() => ({}))) as SettingsApiResponse & { error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to load settings.");
+        if (!res.ok) throw new Error(data.error || t("Failed to load settings."));
         if (disposed) return;
 
         setName(data.profile?.name || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.username || "");
@@ -355,7 +472,7 @@ export default function SettingsPage() {
     if (!user) return;
     const res = await fetch("/api/profile/settings", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as SettingsApiResponse & { error?: string };
-    if (!res.ok) throw new Error(data.error || "Failed to load settings.");
+    if (!res.ok) throw new Error(data.error || t("Failed to load settings."));
 
     setPlan((data.subscription?.plan as "Free" | "Starter" | "Pro" | "Max") || "Free");
     setNextBilling(data.subscription?.nextBillingAt ?? null);
@@ -374,12 +491,12 @@ export default function SettingsPage() {
     }
   }, [prefs.darkMode, applyThemeMode]);
   useEffect(() => {
-    applyLanguage(prefs.language);
     try {
       window.localStorage.setItem("saad_language", prefs.language);
     } catch {
       // ignore localStorage write issues
     }
+    applyLanguage(prefs.language);
   }, [prefs.language, applyLanguage]);
 
   const handleUpgrade = async () => {
@@ -411,10 +528,10 @@ export default function SettingsPage() {
       if (!res.ok) {
         throw new Error(typeof data?.error === "string" ? data.error : "Credit advance is not available.");
       }
-      setAdvanceMessage("Early credits added. They will be deducted from your next annual refresh.");
+      setAdvanceMessage(t("Early credits added. They will be deducted from your next annual refresh."));
       await reloadSettings();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to request early credits.";
+      const msg = e instanceof Error ? e.message : t("Failed to request early credits.");
       setSettingsError(msg);
     } finally {
       setAdvanceBusy(false);
@@ -432,11 +549,11 @@ export default function SettingsPage() {
         body: JSON.stringify({ name, email, phone }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Failed to save profile.");
+      if (!res.ok) throw new Error(data?.error || t("Failed to save profile."));
       setProfileSaved(true);
       window.setTimeout(() => setProfileSaved(false), 2500);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to save profile.";
+      const msg = e instanceof Error ? e.message : t("Failed to save profile.");
       setSettingsError(msg);
     } finally {
       setSavingProfile(false);
@@ -445,7 +562,7 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     if (!user) return;
-    const ok = window.confirm("Delete account permanently? This action cannot be undone.");
+    const ok = window.confirm(t("Delete account permanently? This action cannot be undone."));
     if (!ok) return;
     setDeleteBusy(true);
     setSettingsError("");
@@ -453,11 +570,11 @@ export default function SettingsPage() {
       const res = await fetch("/api/profile/settings", { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error((data as { error?: string })?.error || "Failed to delete account.");
+        throw new Error((data as { error?: string })?.error || t("Failed to delete account."));
       }
       await signOut({ redirectUrl: "/" });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to delete account.";
+      const msg = e instanceof Error ? e.message : t("Failed to delete account.");
       setSettingsError(msg);
       setDeleteBusy(false);
     }
@@ -469,19 +586,19 @@ export default function SettingsPage() {
     setPasswordSaved(false);
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError("All password fields are required.");
+      setPasswordError(t("All password fields are required."));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError("New password must be at least 8 characters.");
+      setPasswordError(t("New password must be at least 8 characters."));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("New password and confirmation do not match.");
+      setPasswordError(t("New password and confirmation do not match."));
       return;
     }
     if (newPassword === currentPassword) {
-      setPasswordError("New password must be different from current password.");
+      setPasswordError(t("New password must be different from current password."));
       return;
     }
 
@@ -492,7 +609,7 @@ export default function SettingsPage() {
       };
 
       if (typeof userWithPasswordApi.updatePassword !== "function") {
-        setPasswordError("Password update is unavailable for this login method. Use Forgot password from login.");
+        setPasswordError(t("Password update is unavailable for this login method. Use Forgot password from login."));
         return;
       }
 
@@ -507,7 +624,7 @@ export default function SettingsPage() {
       setPasswordSaved(true);
       window.setTimeout(() => setPasswordSaved(false), 2500);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to update password.";
+      const msg = e instanceof Error ? e.message : t("Failed to update password.");
       setPasswordError(msg);
     } finally {
       setPasswordBusy(false);
@@ -523,14 +640,14 @@ export default function SettingsPage() {
   const showCreditAdvancePanel = subscriptionActive && billingInterval === "annual";
   const canRequestCreditAdvance = Boolean(showCreditAdvancePanel && creditAdvance?.available && creditAdvance.amount > 0);
   const creditAdvanceButtonLabel = advanceBusy
-    ? "Requesting..."
+    ? t("Requesting...")
     : canRequestCreditAdvance
-      ? "Request early credits"
+      ? t("Request early credits")
       : creditAdvance?.needsMigration
-        ? "Setup required"
+        ? t("Setup required")
         : creditAdvance?.balance
-          ? "Already requested"
-          : "Unavailable";
+          ? t("Already requested")
+          : t("Unavailable");
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -545,9 +662,9 @@ export default function SettingsPage() {
             <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center">
               <Settings className="w-4 h-4 text-violet-400" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Settings</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{t("Settings")}</h1>
           </div>
-          <p className="text-sm text-slate-500 ml-12">Manage your account, security, and preferences.</p>
+          <p className="text-sm text-slate-500 ml-12">{t("Manage your account, security, and preferences.")}</p>
         </motion.div>
 
         {settingsError && (
@@ -557,23 +674,23 @@ export default function SettingsPage() {
         )}
 
         <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-6">
-          <SectionCard title="Subscription" icon={Zap}>
+          <SectionCard title={t("Subscription")} icon={Zap}>
             <div className={`flex items-center justify-between p-4 rounded-xl border ${planBg}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${planBg}`}>
                   <PlanIcon className={`w-5 h-5 ${planColor}`} />
                 </div>
                 <div>
-                  <p className="font-bold text-white">{normalizedPlan} Plan</p>
+                  <p className="font-bold text-white">{t(normalizedPlan)} {t("Plan")}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {nextBilling
-                      ? `Next billing: ${new Date(nextBilling).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-                      : "No active billing cycle"}
+                      ? t("Next billing:") + " " + new Date(nextBilling).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US", { month: "long", day: "numeric", year: "numeric" })
+                      : t("No active billing cycle")}
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-500 mb-0.5">Credits</p>
+                <p className="text-xs text-slate-500 mb-0.5">{t("Credits")}</p>
                 <p className="font-extrabold text-white">{credits.toLocaleString()}</p>
               </div>
             </div>
@@ -582,21 +699,21 @@ export default function SettingsPage() {
                 onClick={handleUpgrade}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold transition-colors"
               >
-                <Zap className="w-4 h-4" /> Upgrade Plan
+                <Zap className="w-4 h-4" /> {t("Upgrade Plan")}
               </button>
               <Link href="/pricing" className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium transition-colors">
-                <CreditCard className="w-4 h-4" /> Buy Credits
+                <CreditCard className="w-4 h-4" /> {t("Buy Credits")}
               </Link>
             </div>
             {showCreditAdvancePanel && (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-bold text-amber-100">Early monthly credits</p>
+                    <p className="text-sm font-bold text-amber-100">{t("Early monthly credits")}</p>
                     <p className="mt-0.5 text-xs text-amber-100/70">
                       {creditAdvance?.balance
-                        ? `${creditAdvance.balance.toLocaleString()} credits will be deducted from your next refresh.`
-                        : `Request ${creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
+                        ? t("deductionMessage").replace("{num}", creditAdvance.balance.toLocaleString())
+                        : t("requestMessage").replace("{num}", (creditAdvance?.amount.toLocaleString() ?? "0"))}
                     </p>
                   </div>
                   <button
@@ -610,17 +727,17 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 {creditAdvance?.needsMigration && (
-                  <p className="mt-2 text-xs text-amber-100/80">Database setup is required before early credits can be requested.</p>
+                  <p className="mt-2 text-xs text-amber-100/80">{t("Database setup is required before early credits can be requested.")}</p>
                 )}
                 {advanceMessage && <p className="mt-2 text-xs text-amber-100/80">{advanceMessage}</p>}
               </div>
             )}
           </SectionCard>
 
-          <SectionCard title="Profile Information" icon={User}>
-            <InputField label="Display Name" value={name} onChange={setName} placeholder="Your name" disabled={loading} />
-            <InputField label="Email Address" value={email} onChange={setEmail} type="email" placeholder="you@example.com" disabled={loading} />
-            <InputField label="Phone Number" value={phone} onChange={setPhone} placeholder="+964 7XX XXX XXXX" disabled={loading} />
+          <SectionCard title={t("Profile Information")} icon={User}>
+            <InputField label={t("Display Name")} value={name} onChange={setName} placeholder="Your name" disabled={loading} />
+            <InputField label={t("Email Address")} value={email} onChange={setEmail} type="email" placeholder="you@example.com" disabled={loading} />
+            <InputField label={t("Phone Number")} value={phone} onChange={setPhone} placeholder="+964 7XX XXX XXXX" disabled={loading} />
             <button
               onClick={handleSaveProfile}
               disabled={loading || savingProfile}
@@ -628,43 +745,43 @@ export default function SettingsPage() {
             >
               {savingProfile ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                  <Loader2 className="w-4 h-4 animate-spin" /> t("Saving...")
                 </>
               ) : profileSaved ? (
                 <>
-                  <Check className="w-4 h-4" /> Saved!
+                  <Check className="w-4 h-4" /> t("Saved!")
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4" /> Save Changes
+                  <Save className="w-4 h-4" /> t("Save Changes")
                 </>
               )}
             </button>
           </SectionCard>
 
-          <SectionCard title="Security" icon={Shield}>
+          <SectionCard title={t("Security")} icon={Shield}>
             <InputField
-              label="Current Password"
+              label={t("Current Password")}
               value={currentPassword}
               onChange={setCurrentPassword}
               type="password"
-              placeholder="Enter current password"
+              placeholder={t("Enter current password")}
               disabled={passwordBusy}
             />
             <InputField
-              label="New Password"
+              label={t("New Password")}
               value={newPassword}
               onChange={setNewPassword}
               type="password"
-              placeholder="Enter new password"
+              placeholder={t("Enter new password")}
               disabled={passwordBusy}
             />
             <InputField
-              label="Confirm New Password"
+              label={t("Confirm New Password")}
               value={confirmPassword}
               onChange={setConfirmPassword}
               type="password"
-              placeholder="Confirm new password"
+              placeholder={t("Confirm new password")}
               disabled={passwordBusy}
             />
             {passwordError && <p className="text-xs text-rose-400">{passwordError}</p>}
@@ -676,15 +793,15 @@ export default function SettingsPage() {
               >
                 {passwordBusy ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Updating...
+                    <Loader2 className="w-4 h-4 animate-spin" /> t("Updating...")
                   </>
                 ) : passwordSaved ? (
                   <>
-                    <Check className="w-4 h-4" /> Password Updated
+                    <Check className="w-4 h-4" /> t("Password Updated")
                   </>
                 ) : (
                   <>
-                    <Lock className="w-4 h-4" /> Update Password
+                    <Lock className="w-4 h-4" /> t("Update Password")
                   </>
                 )}
               </button>
@@ -692,79 +809,83 @@ export default function SettingsPage() {
                 href="/?auth=login"
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-medium transition-colors"
               >
-                <Shield className="w-4 h-4" /> Reset Password Flow
+                <Shield className="w-4 h-4" /> {t("Reset Password Flow")}
               </Link>
             </div>
           </SectionCard>
 
-          <SectionCard title="Notifications" icon={Bell}>
+          <SectionCard title={t("Notifications")} icon={Bell}>
             <Toggle
               enabled={prefs.emailReceipts}
               onToggle={() => updatePrefs({ emailReceipts: !prefs.emailReceipts })}
-              label="Email Receipts"
-              description="Receive email confirmation for every payment."
+              label={t("Email Receipts")}
+              description={t("Receive email confirmation for every payment.")}
               disabled={savingPrefs}
             />
             <Toggle
               enabled={prefs.creditAlerts}
               onToggle={() => updatePrefs({ creditAlerts: !prefs.creditAlerts })}
-              label="Credit Alerts"
-              description="Get notified when your credits are running low."
+              label={t("Credit Alerts")}
+              description={t("Get notified when your credits are running low.")}
               disabled={savingPrefs}
             />
             <Toggle
               enabled={prefs.paymentConfirm}
               onToggle={() => updatePrefs({ paymentConfirm: !prefs.paymentConfirm })}
-              label="Payment Status"
-              description="Notify me when payment is approved or rejected."
+              label={t("Payment Status")}
+              description={t("Notify me when payment is approved or rejected.")}
               disabled={savingPrefs}
             />
             <Toggle
               enabled={prefs.productUpdates}
               onToggle={() => updatePrefs({ productUpdates: !prefs.productUpdates })}
-              label="Product Updates"
-              description="New AI models, features, and announcements."
+              label={t("Product Updates")}
+              description={t("New AI models, features, and announcements.")}
               disabled={savingPrefs}
             />
             <Toggle
               enabled={prefs.weeklyDigest}
               onToggle={() => updatePrefs({ weeklyDigest: !prefs.weeklyDigest })}
-              label="Weekly Digest"
-              description="A summary of your usage every week."
+              label={t("Weekly Digest")}
+              description={t("A summary of your usage every week.")}
               disabled={savingPrefs}
             />
           </SectionCard>
 
-          <SectionCard title="Appearance & Language" icon={Globe}>
+          <SectionCard title={t("Appearance & Language")} icon={Globe}>
             <Toggle
               enabled={prefs.darkMode}
               onToggle={() => updatePrefs({ darkMode: !prefs.darkMode })}
-              label="Dark Mode"
-              description="Recommended for AI studio work."
+              label={t("Dark Mode")}
+              description={t("Recommended for AI studio work.")}
               disabled={savingPrefs}
             />
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Interface Language</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("Interface Language")}</label>
               <select
                 value={prefs.language}
-                onChange={(e) => updatePrefs({ language: e.target.value as "en" | "ar" })}
+                onChange={(e) => {
+                  const nextLang = e.target.value as "en" | "ar";
+                  updatePrefs({ language: nextLang });
+                  changeLanguage(nextLang);
+                }}
                 disabled={savingPrefs}
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 focus:border-violet-500/60 text-sm text-slate-100 outline-none transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <option value="en">English</option>
-                <option value="ar">Arabic</option>
+                <option value="en">{t("English")}</option>
+                <option value="ar">{t("Arabic")}</option>
               </select>
             </div>
           </SectionCard>
 
-          <SectionCard title="Danger Zone" icon={Trash2}>
-            <p className="text-sm text-slate-400">Deleting your account is permanent. All your data, credits, and history will be lost.</p>
+          <SectionCard title={t("Danger Zone")} icon={Trash2}>
+            <p className="text-sm text-slate-400">{t("Deleting your account is permanent. All your data, credits, and history will be lost.")}</p>
             <button
               onClick={handleDeleteAccount}
               disabled={deleteBusy}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 text-sm font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Delete My Account
+              {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} {t("Delete My Account")}
             </button>
           </SectionCard>
         </motion.div>

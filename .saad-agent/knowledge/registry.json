@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-10T00:28:16.572Z",
+  "generatedAt": "2026-07-12T13:40:11.092Z",
   "items": [
     {
       "id": "training:97ef4f0e",
@@ -26,7 +26,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.572Z"
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:1da2dc88",
@@ -55,7 +55,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.572Z"
+      "lastUsedDate": "2026-07-12T13:37:07.055Z"
     },
     {
       "id": "training:24525945",
@@ -84,7 +84,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.482Z"
+      "lastUsedDate": "2026-07-12T13:37:07.055Z"
     },
     {
       "id": "training:59e9c88c",
@@ -113,7 +113,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 2,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:9bbca61d",
@@ -142,7 +142,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.482Z"
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:e2d37fd5",
@@ -171,7 +171,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:262a3eec",
@@ -200,7 +200,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": null
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:e7a5c68e",
@@ -229,7 +229,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 1,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.482Z"
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     },
     {
       "id": "training:e28b8440",
@@ -258,7 +258,7 @@
       "indexedStatus": "indexed",
       "chunkCount": 3,
       "embeddingStatus": "indexed",
-      "lastUsedDate": "2026-07-10T00:28:16.572Z"
+      "lastUsedDate": "2026-07-12T13:37:07.126Z"
     }
   ]
 }

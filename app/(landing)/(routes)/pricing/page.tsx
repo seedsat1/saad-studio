@@ -8,6 +8,7 @@ import {
   Video, ImageIcon, Infinity, ShoppingCart,
 } from "lucide-react";
 import { useCmsData } from "@/lib/use-cms-data";
+import { useLanguage } from "@/lib/use-language";
 
 /* ─── CMS types (must match admin/cms/pricing) ─── */
 interface CmsPlan {
@@ -241,15 +242,7 @@ const parsePlanCredits = (plan: { credits: string; creditsNum?: number }): numbe
 
 const formatCount = (value: number): string => value.toLocaleString("en-US");
 
-const getPlanGenerationAllowance = (plan: { credits: string; creditsNum?: number }): string => {
-  const credits = parsePlanCredits(plan);
-  if (!credits) return "";
-
-  const imageCount = Math.floor(credits / NANO_BANANA_PRO_CREDITS);
-  const videoCount = Math.floor(credits / KLING_3_15S_CREDITS);
-
-  return `Up to ${formatCount(imageCount)} Nano Banana Pro images OR ${formatCount(videoCount)} Kling 3.0 videos`;
-};
+// getPlanGenerationAllowance moved inside PricingPage component
 
 const MODEL_COSTS = {
   video: [
@@ -278,8 +271,154 @@ const slideUp: Variants = {
 
 // â”€â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+function usePricingTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Hero Texts
+      "Credits-Based - Cancel Anytime": "نظام النقاط - إلغاء في أي وقت",
+      "Choose Your": "اختر",
+      "Creative Plan": "خطتك الإبداعية",
+      "One credit balance. All AI models. No hidden fees. Top up anytime - credits never expire.": "رصيد نقاط موحد. جميع نماذج الذكاء الاصطناعي. لا توجد رسوم خفية. اشحن رصيدك في أي وقت - النقاط لا تنتهي صلاحيتها أبداً.",
+      
+      // Toggle
+      "Monthly": "شهرياً",
+      "Annual": "سنوياً",
+      
+      // Plans
+      "Try": "تجريبي",
+      "Test the studio with one quick taste": "اختبر الاستوديو بتجربة سريعة واحدة",
+      "70 credits / mo": "70 نقطة / شهر",
+      "Try for $5": "جرب مقابل $5",
+      
+      "Starter": "مبتدئ",
+      "For first-time AI content creators": "لصناع محتوى الذكاء الاصطناعي الجدد",
+      "300 credits / mo": "300 نقطة / شهر",
+      "Get Starter": "احصل على باقة المبتدئ",
+      
+      "Plus": "بلاس",
+      "For consistent AI creation": "لإنشاء محتوى الذكاء الاصطناعي المستمر",
+      "800 credits / mo": "800 نقطة / شهر",
+      "Get Plus": "احصل على باقة بلاس",
+      
+      "Pro": "برو",
+      "For serious AI content studios": "لاستوديوهات محتوى الذكاء الاصطناعي الجادة",
+      "1,800 credits / mo": "1,800 نقطة / شهر",
+      "Get Pro - Most Popular": "احصل على برو - الأكثر شعبية",
+      
+      "Max": "ماكس",
+      "For high-volume studios & agencies": "للاستوديوهات والوكالات ذات الإنتاج العالي",
+      "2,700 credits / mo": "2,700 نقطة / شهر",
+      "Get Max": "احصل على باقة ماكس",
+      
+      // Features
+      "Try the full studio with a small credit pack": "جرب الاستوديو الكامل مع حزمة نقاط صغيرة",
+      "Selected model access": "الوصول إلى نماذج محددة",
+      "Up to 1 video or 2 image parallel generations": "توليد متوازي يصل إلى فيديو 1 أو صورتين",
+      "Best to evaluate quality before committing": "الأفضل لتقييم الجودة قبل الالتزام",
+      "Up to 2 video or 4 image parallel generations": "توليد متوازي يصل إلى فيديوهين أو 4 صور",
+      "Credit-based usage across supported tools": "استخدام قائم على النقاط عبر جميع الأدوات المدعومة",
+      "Good for light monthly creation": "جيد للإنشاء الشهري الخفيف",
+      "Standard model access": "الوصول إلى النماذج القياسية",
+      "Up to 3 video or 6 image parallel generations": "توليد متوازي يصل إلى 3 فيديوهات أو 6 صور",
+      "Faster queue priority": "أولوية طابور أسرع",
+      "Email support": "الدعم عبر البريد الإلكتروني",
+      "Premium model access": "الوصول إلى النماذج المميزة (Premium)",
+      "Up to 5 video or 10 image parallel generations": "توليد متوازي يصل إلى 5 فيديوهات أو 10 صور",
+      "Priority generation queue": "أولوية طابور التوليد",
+      "Commercial usage rights": "حقوق الاستخدام التجاري",
+      "Early access to new models": "وصول مبكر للنماذج الجديدة",
+      "Access to all available models": "الوصول إلى جميع النماذج المتاحة",
+      "Up to 10 video or 20 image parallel generations": "توليد متوازي يصل إلى 10 فيديوهات أو 20 صورة",
+      "Dedicated priority queue": "طابور أولوية مخصص",
+      "Dedicated account manager": "مدير حساب مخصص",
+      "Team collaboration features": "ميزات التعاون الجماعي",
+      "Full API access": "وصول كامل للـ API",
+      
+      // Subscriptions labels
+      "Most Popular": "الأكثر شعبية",
+      "Current Plan": "الخطة الحالية",
+      "Manage Subscription": "إدارة الاشتراك",
+      "Annual Unlimited Images": "صور غير محدودة سنوياً",
+      "Unlimited Included": "مشمول بشكل غير محدود",
+      "Coming Soon": "قريباً",
+      "Not Unlimited": "ليس غير محدود",
+      "Unlimited": "غير محدود",
+      
+      // Billing Cycles
+      "/ mo": " / شهرياً",
+      "billed yearly": "مفوتر سنوياً",
+      "billed monthly": "مفوتر شهرياً",
+      "monthly only": "شهري فقط",
+      "per month": "لكل شهر",
+      
+      // Topup Hero
+      "Need More Power?": "هل تحتاج إلى المزيد من القوة؟",
+      "Buy Extra Credits": "اشترِ نقاطاً إضافية",
+      "Top up your balance anytime. Credits stack with your plan and never expire.": "اشحن رصيدك في أي وقت. تتراكم النقاط مع خطتك ولا تنتهي صلاحيتها أبداً.",
+      "Best Value": "أفضل قيمة",
+      "Buy Credits": "شراء النقاط",
+      "credit": "نقطة",
+      
+      // Topups
+      "+75 Credits": "+75 نقطة",
+      "+160 Credits": "+160 نقطة",
+      "+250 Credits": "+250 نقطة",
+      "+330 Credits": "+330 نقطة",
+      "+500 Credits": "+500 نقطة",
+      
+      // Model costs guide
+      "What Does": "ماذا توفر لك",
+      "1 Credit": "نقطة واحدة",
+      "Get You?": "؟",
+      "Approximate credit pricing per generation. No surprises.": "التسعير التقريبي للنقاط لكل عملية توليد. لا مفاجآت.",
+      "Video Models": "نماذج الفيديو",
+      "Image Models": "نماذج الصور",
+      "Approx. credit cost per generation": "التكلفة التقريبية للنقاط لكل عملية توليد",
+      
+      // Model Costs Video
+      "Kling 3.0": "Kling 3.0",
+      "Wan 2.6": "Wan 2.6",
+      "Seedance 2.0": "Seedance 2.0",
+      "17.5+ Credits": "17.5+ نقطة",
+      "8 Credits": "8 نقاط",
+      "32 / 120 Credits": "32 / 120 نقطة",
+      "5s 720p, duration based": "5 ثوانٍ بدقة 720p، حسب المدة",
+      "per video": "لكل فيديو",
+      "4s / 15s": "4 ثوانٍ / 15 ثانية",
+      
+      // Model Costs Image
+      "Nano Banana Pro": "Nano Banana Pro",
+      "Flux.2 Pro 1K": "Flux.2 Pro 1K",
+      "GPT Image 2": "GPT Image 2",
+      "3.07+ Credits": "3.07+ نقطة",
+      "0.52 Credits": "0.52 نقطة",
+      "1.03+ Credits": "1.03+ نقطة",
+      "1K image": "صورة بدقة 1K"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+  const { t, lang } = usePricingTranslation();
+  const getPlanGenerationAllowance = (plan: { credits: string; creditsNum?: number }): string => {
+    const credits = parsePlanCredits(plan);
+    if (!credits) return "";
+
+    const imageCount = Math.floor(credits / NANO_BANANA_PRO_CREDITS);
+    const videoCount = Math.floor(credits / KLING_3_15S_CREDITS);
+    const imgStr = formatCount(imageCount);
+    const vidStr = formatCount(videoCount);
+    return lang === "ar" 
+      ? `حتى ${imgStr} صورة Nano Banana Pro أو ${vidStr} فيديو Kling 3.0` 
+      : `Up to ${imgStr} Nano Banana Pro images OR ${vidStr} Kling 3.0 videos`;
+  };
   const { data: cms } = useCmsData<PricingCmsData>("pricing");
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
@@ -333,7 +472,7 @@ export default function PricingPage() {
         accentBorder: accent.border,
         ctaStyle: accent.ctaStyle,
         price: `$${cp.monthlyPrice}`,
-        period: "per month",
+        period: t("per month"),
         _monthlyPrice: cp.monthlyPrice,
         _annualDiscount: cp.annualDiscount,
         unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] },
@@ -362,8 +501,8 @@ export default function PricingPage() {
         return {
           amount: formatUsd(discountedMonthly),
           previousAmount: formatUsd(monthly),
-          suffix: "/ mo",
-          period: `billed yearly (${discount}% off)`,
+          suffix: t("/ mo"),
+          period: t("billed yearly") + ` (${discount}% ${t("off")})`,
           cycle: "annual" as const,
         };
       }
@@ -371,8 +510,8 @@ export default function PricingPage() {
       return {
         amount: formatUsd(monthly),
         previousAmount: "",
-        suffix: "/ mo",
-        period: plan.id === "starter" && billingCycle === "annual" ? "monthly only" : "billed monthly",
+        suffix: t("/ mo"),
+        period: plan.id === "starter" && billingCycle === "annual" ? t("monthly only") : t("billed monthly"),
         cycle: "monthly" as const,
       };
     };
@@ -398,16 +537,16 @@ export default function PricingPage() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-sm font-medium mb-2">
             <Zap className="w-3.5 h-3.5 fill-violet-400 text-violet-400" />
-            {heroData.badge}
+            {t(heroData.badge)}
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">
-            {heroData.heading}{" "}
+            {t(heroData.heading)}{" "}
             <span className="bg-gradient-to-r from-violet-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              {heroData.headingHighlight}
+              {t(heroData.headingHighlight)}
             </span>
           </h1>
           <p className="text-lg text-slate-400 max-w-xl mx-auto">
-            {heroData.subtitle}
+            {t(heroData.subtitle)}
           </p>
         </motion.div>
 
@@ -421,7 +560,7 @@ export default function PricingPage() {
                   : "text-slate-300 hover:text-white"
               }`}
             >
-              Monthly
+              {t("Monthly")}
             </button>
             <button
               onClick={() => setBillingCycle("annual")}
@@ -431,7 +570,7 @@ export default function PricingPage() {
                   : "text-slate-300 hover:text-white"
               }`}
             >
-              Annual
+              {t("Annual")}
             </button>
           </div>
         </div>
@@ -466,12 +605,12 @@ export default function PricingPage() {
                 {/* Popular badge */}
                 {plan.highlight && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-500 to-violet-600 text-xs font-bold text-white shadow-lg whitespace-nowrap">
-                    Most Popular
+                    {t("Most Popular")}
                   </div>
                 )}
                 {isCurrent && (
                   <div className="absolute -top-3.5 left-4 px-3 py-1 rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg whitespace-nowrap">
-                    Current Plan
+                    {t("Current Plan")}
                   </div>
                 )}
 
@@ -479,8 +618,8 @@ export default function PricingPage() {
                 <div className={`flex items-center gap-3 mb-4 p-3 rounded-2xl ${plan.accentBg} border ${plan.accentBorder}`}>
                   <plan.Icon className={`w-5 h-5 ${plan.iconColor}`} />
                   <div>
-                    <p className="text-sm font-bold text-white">{plan.badge}</p>
-                    <p className="text-xs text-slate-500 leading-tight">{plan.tagline}</p>
+                    <p className="text-sm font-bold text-white">{t(plan.badge)}</p>
+                    <p className="text-xs text-slate-500 leading-tight">{t(plan.tagline)}</p>
                   </div>
                 </div>
 
@@ -497,7 +636,7 @@ export default function PricingPage() {
                 <p className="text-xs text-slate-500 mb-4">{pricing.period}</p>
                 {/* Credits callout */}
                 <div className={`rounded-xl px-3 py-2.5 mb-2 border ${plan.accentBg} ${plan.accentBorder}`}>
-                  <p className="text-sm font-bold text-white">{plan.credits}</p>
+                  <p className="text-sm font-bold text-white">{t(plan.credits)}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{getPlanGenerationAllowance(plan)}</p>
                 </div>
 
@@ -507,14 +646,14 @@ export default function PricingPage() {
                     href="/settings"
                     className="block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/25"
                   >
-                    Manage Subscription
+                    {t("Manage Subscription")}
                   </Link>
                 ) : (
                   <Link
                     href={`/payment?type=plan&id=${plan.id}&cycle=${pricing.cycle}`}
                     className={`block w-full mt-3 py-3 rounded-2xl text-sm font-bold text-center transition-all duration-200 ${plan.ctaStyle}`}
                   >
-                    {plan.cta}
+                    {t(plan.cta)}
                   </Link>
                 )}
 
@@ -523,9 +662,9 @@ export default function PricingPage() {
                 {/* Features */}
                 <ul className="space-y-2 mb-5">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                    <li key={t(f)} className="flex items-start gap-2 text-sm text-slate-300">
                       <Check className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      {f}
+                      {t(f)}
                     </li>
                   ))}
                 </ul>
@@ -534,22 +673,22 @@ export default function PricingPage() {
                   <div className="mb-5 rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-cyan-100">
-                        Annual Unlimited Images
+                        {t("Annual Unlimited Images")}
                       </p>
                       <span className="rounded-full bg-cyan-300 px-2 py-0.5 text-[9px] font-black uppercase text-slate-950">
-                        Unlimited
+                        {t("Unlimited")}
                       </span>
                     </div>
 
                     <div className="space-y-1.5">
                       {(plan.id === "max" ? MAX_ANNUAL_UNLIMITED_IMAGE_MODELS : ANNUAL_UNLIMITED_IMAGE_MODELS).map((model) => (
-                        <div key={model.name} className="flex items-center justify-between gap-2 text-xs text-slate-200">
+                        <div key={t(model.name)} className="flex items-center justify-between gap-2 text-xs text-slate-200">
                           <span className="flex items-center gap-1.5">
                             <Check className="h-3 w-3 text-emerald-300" />
-                            {model.name}
+                            {t(model.name)}
                           </span>
                           <span className="rounded-full bg-cyan-300 px-1.5 py-0.5 text-[9px] font-black text-slate-950">
-                            {model.badge}
+                            {t(model.badge)}
                           </span>
                         </div>
                       ))}
@@ -562,12 +701,12 @@ export default function PricingPage() {
                   {plan.unlimited.active.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-emerald-400 mb-1.5 flex items-center gap-1">
-                        <Infinity className="w-3 h-3" /> Unlimited Included
+                        <Infinity className="w-3 h-3" /> {t("Unlimited Included")}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {plan.unlimited.active.map((m) => (
-                          <span key={m} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
-                            {m}
+                          <span key={t(m)} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                            {t(m)}
                           </span>
                         ))}
                       </div>
@@ -578,8 +717,8 @@ export default function PricingPage() {
                       <p className="text-xs font-semibold text-amber-400 mb-1.5">Coming Soon</p>
                       <div className="flex flex-wrap gap-1.5">
                         {plan.unlimited.coming.map((m) => (
-                          <span key={m} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300">
-                            {m}
+                          <span key={t(m)} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-300">
+                            {t(m)}
                           </span>
                         ))}
                       </div>
@@ -588,12 +727,12 @@ export default function PricingPage() {
                   {plan.unlimited.none.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-red-400 mb-1.5 flex items-center gap-1">
-                        <X className="w-3 h-3" /> Not Unlimited
+                        <X className="w-3 h-3" /> {t("Not Unlimited")}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {plan.unlimited.none.map((m) => (
-                          <span key={m} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-300">
-                            {m}
+                          <span key={t(m)} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-300">
+                            {t(m)}
                           </span>
                         ))}
                       </div>
@@ -619,13 +758,13 @@ export default function PricingPage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-              {topupHeroData.heading}{" "}
+              {t(topupHeroData.heading)}{" "}
               <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
-                {topupHeroData.headingHighlight}
+                {t(topupHeroData.headingHighlight)}
               </span>
             </h2>
             <p className="text-slate-400 text-base max-w-lg mx-auto">
-              {topupHeroData.subtitle}
+              {t(topupHeroData.subtitle)}
             </p>
           </motion.div>
 
@@ -636,42 +775,42 @@ export default function PricingPage() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            {liveTopups.map((t) => (
+            {liveTopups.map((topup) => (
               <motion.div
-                key={t.credits}
+                key={topup.credits}
                 variants={slideUp}
                 className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border backdrop-blur-sm text-center transition-all duration-200 hover:scale-[1.04]
-                  ${t.popular
+                  ${topup.popular
                     ? "bg-amber-500/10 border-amber-500/40 shadow-[0_0_24px_rgba(245,158,11,0.2)]"
                     : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
                   }`}
               >
-                {t.popular && (
+                {topup.popular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-amber-500 text-[10px] font-bold text-white whitespace-nowrap">
-                    Best Value
+                    {t("Best Value")}
                   </span>
                 )}
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${t.popular ? "bg-amber-500/20" : "bg-slate-800"}`}>
-                  <Zap className={`w-5 h-5 ${t.popular ? "text-amber-400" : "text-slate-400"}`} />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${topup.popular ? "bg-amber-500/20" : "bg-slate-800"}`}>
+                  <Zap className={`w-5 h-5 ${topup.popular ? "text-amber-400" : "text-slate-400"}`} />
                 </div>
                 <div>
-                  <p className="text-base font-extrabold text-white">{t.credits}</p>
-                  <p className="text-2xl font-black text-white mt-1">{t.price}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{t.pricePerCredit} / credit</p>
-                  {"savings" in t && t.savings && (
+                  <p className="text-base font-extrabold text-white">{t(topup.credits)}</p>
+                  <p className="text-2xl font-black text-white mt-1">{t(topup.price)}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{t(topup.pricePerCredit)} / {t("credit")}</p>
+                  {"savings" in topup && topup.savings && (
                     <span className="mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400">
-                      {t.savings}
+                      {t(topup.savings)}
                     </span>
                   )}
                 </div>
                 <Link
-                  href={`/payment?type=topup&credits=${t.credits.replace(/[^0-9,]/g, "")}`}
+                  href={`/payment?type=topup&credits=${topup.credits.replace(/[^0-9,]/g, "")}`}
                   className={`block w-full py-2 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5
-                  ${t.popular
+                  ${topup.popular
                     ? "bg-amber-500 hover:bg-amber-400 text-white shadow-lg shadow-amber-500/30"
                     : "bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white"
                   }`}>
-                  <ShoppingCart className="w-3.5 h-3.5" /> Buy Credits
+                  <ShoppingCart className="w-3.5 h-3.5" /> {t("Buy Credits")}
                 </Link>
               </motion.div>
             ))}
@@ -690,14 +829,14 @@ export default function PricingPage() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-              {modelCostHeroData.heading}{" "}
+              {t(modelCostHeroData.heading)}{" "}
               <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-                {modelCostHeroData.headingHighlight}
+                {t(modelCostHeroData.headingHighlight)}
               </span>{" "}
-              Get You?
+              {t("Get You?")}
             </h2>
             <p className="text-slate-400 text-base max-w-lg mx-auto">
-              {modelCostHeroData.subtitle}
+              {t(modelCostHeroData.subtitle)}
             </p>
           </motion.div>
 
@@ -715,8 +854,8 @@ export default function PricingPage() {
                   <Video className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Video Models</h3>
-                  <p className="text-xs text-slate-500">Approx. credit cost per generation</p>
+                  <h3 className="text-base font-bold text-white">{t("Video Models")}</h3>
+                  <p className="text-xs text-slate-500">{t("Approx. credit cost per generation")}</p>
                 </div>
               </div>
               <div className="space-y-3">
@@ -724,11 +863,11 @@ export default function PricingPage() {
                   <div key={m.name} className="flex items-center justify-between p-3.5 rounded-2xl border bg-blue-500/10 border-blue-500/20">
                     <div className="flex items-center gap-3">
                       <Video className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm font-semibold text-slate-200">{m.name}</span>
+                      <span className="text-sm font-semibold text-slate-200">{t(m.name)}</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-extrabold text-blue-400">{m.cost}</p>
-                      <p className="text-[10px] text-slate-500">{m.per}</p>
+                      <p className="text-sm font-extrabold text-blue-400">{t(m.cost)}</p>
+                      <p className="text-[10px] text-slate-500">{t(m.per)}</p>
                     </div>
                   </div>
                 ))}
@@ -742,8 +881,8 @@ export default function PricingPage() {
                   <ImageIcon className="w-5 h-5 text-violet-400" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Image Models</h3>
-                  <p className="text-xs text-slate-500">Approx. credit cost per generation</p>
+                  <h3 className="text-base font-bold text-white">{t("Image Models")}</h3>
+                  <p className="text-xs text-slate-500">{t("Approx. credit cost per generation")}</p>
                 </div>
               </div>
               <div className="space-y-3">
@@ -751,11 +890,11 @@ export default function PricingPage() {
                   <div key={m.name} className="flex items-center justify-between p-3.5 rounded-2xl border bg-violet-500/10 border-violet-500/20">
                     <div className="flex items-center gap-3">
                       <ImageIcon className="w-4 h-4 text-violet-400" />
-                      <span className="text-sm font-semibold text-slate-200">{m.name}</span>
+                      <span className="text-sm font-semibold text-slate-200">{t(m.name)}</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-extrabold text-violet-400">{m.cost}</p>
-                      <p className="text-[10px] text-slate-500">{m.per}</p>
+                      <p className="text-sm font-extrabold text-violet-400">{t(m.cost)}</p>
+                      <p className="text-[10px] text-slate-500">{t(m.per)}</p>
                     </div>
                   </div>
                 ))}

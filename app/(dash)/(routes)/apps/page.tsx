@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import { APP_CATEGORIES, TOTAL_TOOLS, type AppTool, type AppCategory } from "@/lib/apps-data";
 import { FloatingParticles } from "@/components/FloatingParticles";
 import { AppsSearchBar } from "@/components/AppsSearchBar";
@@ -12,18 +11,6 @@ import { AppToolCard } from "@/components/AppToolCard";
 import { usePageLayout } from "@/lib/use-page-layout";
 import { useCmsData } from "@/lib/use-cms-data";
 import { normalizeMediaUrl } from "@/lib/storage";
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-});
 
 interface CmsAppsTool {
   _id?: string;
@@ -120,7 +107,7 @@ export default function AppsPage() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} min-h-screen relative`}
+      className="min-h-screen relative"
       style={{ background: "#060c18", fontFamily: "var(--font-body, sans-serif)" }}
       lang="en"
       dir="ltr"

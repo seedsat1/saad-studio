@@ -7,7 +7,7 @@ import type { Attachment } from "./attachments.js";
 import { ContextCards } from "./components/ContextCards.js";
 import { SettingsModal } from "./components/SettingsModal.js";
 import { PromptBox } from "./components/PromptBox";
-import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, ListChecks, LoaderCircle, Palette, RotateCcw, SearchCheck, ShieldCheck, Wrench } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, Copy, ExternalLink, ListChecks, LoaderCircle, Palette, RefreshCw, RotateCcw, SearchCheck, ShieldCheck, ThumbsDown, ThumbsUp, Volume2, Wrench, X } from "lucide-react";
 type SettingsTab = "general" | "workspace" | "models" | "providers" | "agents" | "skills" | "tools" | "connectors" | "mcp" | "creative" | "vision" | "knowledge" | "execution" | "security" | "backups" | "diagnostics" | "advanced";
 type RuntimeModelRole = {
   role: string;
@@ -37,6 +37,7 @@ type ApprovalMode = "ask" | "approve_for_me" | "full_access";
 type DailyMaintenancePromptMode = "review" | "repair" | "design";
 type ExecutionTraceStatus = "pending" | "active" | "done" | "skipped" | "failed";
 type ExecutionTraceRunStatus = "running" | "waiting_approval" | "completed" | "failed";
+type MessageFeedback = "up" | "down";
 type ExecutionTraceStage = {
   id: string;
   label: string;
@@ -586,6 +587,18 @@ export default function App() {
   const setMessages = (updater: MessageUpdater) => {
     if (!activeConversationId) return;
     updateConversationMessages(activeConversationId, updater);
+  };
+
+  const buildBackendConversationHistory = (conversationId: string | null, extraMessages: Message[] = []) => {
+    const baseMessages = conversations.find((conversation) => conversation.id === conversationId)?.messages || [];
+    return [...baseMessages, ...extraMessages]
+      .filter((message) => message.sender === "user" || message.sender === "agent")
+      .filter((message) => typeof message.content === "string" && message.content.trim())
+      .slice(-20)
+      .map((message) => ({
+        role: message.sender === "agent" ? "assistant" : "user",
+        content: message.content,
+      }));
   };
 
 
@@ -1194,6 +1207,9 @@ export default function App() {
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [spokenMessageId, setSpokenMessageId] = useState<string | null>(null);
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, MessageFeedback>>({});
+  const [imagePreview, setImagePreview] = useState<Attachment | null>(null);
   const [longTextBypassValue, setLongTextBypassValue] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -1329,7 +1345,8 @@ export default function App() {
         approvalData.attachments || [],
         approvalData.approvalMode,
         approvalData.conversationId,
-        { approved: true, alwaysAllow }
+        { approved: true, alwaysAllow },
+        buildBackendConversationHistory(conversationId)
       );
       setIsGenerating(false);
       updateConversationMessages(conversationId, (previous) => previous.filter((message) => message.id !== loaderMsgId), {
@@ -1530,6 +1547,70 @@ export default function App() {
     return "File";
   };
 
+  const getAttachmentBadgeLabel = (attachment: Attachment) => {
+    const filename = (attachment.name || attachment.originalFilename || "").toLowerCase();
+    const extension = filename.includes(".") ? filename.split(".").pop() || "" : "";
+    if (extension) {
+      const normalized = extension === "yaml" ? "YML" : extension.toUpperCase();
+      if (normalized.length <= 5) return normalized;
+    }
+    const mimeType = (attachment.mimeType || "").toLowerCase();
+    if (mimeType === "application/pdf" || attachment.type === "pdf") return "PDF";
+    if (mimeType.includes("json")) return "JSON";
+    if (mimeType.includes("yaml") || mimeType.includes("yml")) return "YML";
+    if (mimeType.includes("markdown")) return "MD";
+    if (mimeType.startsWith("text/")) return "TXT";
+    return attachment.type === "file" ? "FILE" : attachment.type.toUpperCase();
+  };
+
+  const getAttachmentImageSource = (attachment: Attachment) => {
+    if (attachment.previewUrl) return attachment.previewUrl;
+    if (attachment.source?.startsWith("data:") || attachment.source?.startsWith("blob:")) return attachment.source;
+    if (attachment.source && attachment.mimeType) return `data:${attachment.mimeType};base64,${attachment.source}`;
+    return "";
+  };
+
+  const copyAttachmentImage = async (attachment: Attachment) => {
+    const imageSource = getAttachmentImageSource(attachment);
+    if (!imageSource) {
+      setErrorMsg("Image is not available to copy.");
+      return;
+    }
+
+    try {
+      const clipboardApi = navigator.clipboard as Clipboard & {
+        write?: (items: ClipboardItem[]) => Promise<void>;
+      };
+      const ClipboardItemCtor = (window as any).ClipboardItem as typeof ClipboardItem | undefined;
+
+      if (clipboardApi?.write && ClipboardItemCtor) {
+        const response = await fetch(imageSource);
+        const blob = await response.blob();
+        const type = blob.type || attachment.mimeType || "image/png";
+        await clipboardApi.write([new ClipboardItemCtor({ [type]: blob })]);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(imageSource);
+      } else {
+        setErrorMsg("Clipboard image copy is not available in this shell.");
+        return;
+      }
+      setStatusMsg("Image copied.");
+      window.setTimeout(() => setStatusMsg((current) => (current === "Image copied." ? null : current)), 1400);
+    } catch {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(imageSource);
+          setStatusMsg("Image link copied.");
+          window.setTimeout(() => setStatusMsg((current) => (current === "Image link copied." ? null : current)), 1400);
+          return;
+        }
+      } catch {
+        // Fall through to user-facing error.
+      }
+      setErrorMsg("Failed to copy image.");
+    }
+  };
+
   const handleCopyMessage = async (message: Message) => {
     const cardText = message.cardType ? `\n\n[${message.cardType}]` : "";
     const attachmentText = message.attachments?.length
@@ -1557,6 +1638,47 @@ export default function App() {
     } catch {
       setErrorMsg("Failed to copy message.");
     }
+  };
+
+  const handleSpeakMessage = (message: Message) => {
+    const text = message.content.trim();
+    if (!text) return;
+    if (!("speechSynthesis" in window)) {
+      setErrorMsg("Text-to-speech is not available in this browser shell.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = /[\u0600-\u06FF]/.test(text) ? "ar-IQ" : "en-US";
+    utterance.onend = () => setSpokenMessageId((current) => (current === message.id ? null : current));
+    utterance.onerror = () => setSpokenMessageId((current) => (current === message.id ? null : current));
+    setSpokenMessageId(message.id);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleMessageFeedback = (messageId: string, value: MessageFeedback) => {
+    setMessageFeedback((previous) => {
+      const next = { ...previous };
+      if (next[messageId] === value) {
+        delete next[messageId];
+      } else {
+        next[messageId] = value;
+      }
+      return next;
+    });
+  };
+
+  const handleRegenerateMessage = (message: Message) => {
+    const index = messages.findIndex((item) => item.id === message.id);
+    const previousUserMessage = index > 0
+      ? [...messages.slice(0, index)].reverse().find((item) => item.sender === "user" && item.content.trim())
+      : null;
+    if (!previousUserMessage) {
+      setErrorMsg("No previous user request found to regenerate from.");
+      return;
+    }
+    setInputValue(previousUserMessage.content);
+    setStatusMsg("Previous request restored. Press Send to regenerate safely.");
   };
 
   const handleNewConversation = () => {
@@ -1733,6 +1855,10 @@ export default function App() {
         .replace(/\u0629/g, "\u0647");
       const imageWords = /(?:\u0627\u0644\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0647|\u0633\u0643\u0631\u064a\u0646|\u0644\u0642\u0637\u0647|screenshot|image|picture)/i;
       const analysisWords = /(?:\u062d\u0644\u0644|\u0627\u0641\u062d\u0635|\u0641\u062d\u0635|\u0634\u0648\u0641|\u0627\u0646\u0638\u0631|\u0627\u0642\u0631\u0627|\u0627\u0633\u062a\u062e\u0631\u062c|analyze|analyse|inspect|read|extract|describe|check)/i;
+      const engineeringReferenceWords = /(?:\u0635\u0645\u0645|\u062a\u0635\u0645\u064a\u0645|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0628\u0646\u064a|\u0628\u0646\u0627\u0621|\u0627\u0635\u0646\u0639|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0645\u0634\u0631\u0648\u0639|\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0643\u0631\u0648\u062a|\u0643\u0627\u0631\u062f|\u0646\u0627\u0641\u0628\u0627\u0631|\u0634\u0628\u064a\u0647|\u0645\u062b\u0644\s+\u0627\u0644\u0635\u0648\u0631|\bbuild\b|\bcreate\b|\bdesign\b|\bimplement\b|\bpage\b|\bsite\b|\bui\b|\bnavbar\b|\bcards?\b|\blike\s+(?:the\s+)?(?:image|screenshot|picture)\b)/i;
+      if (imageWords.test(normalized) && engineeringReferenceWords.test(normalized)) {
+        return false;
+      }
       return (imageWords.test(normalized) && analysisWords.test(normalized))
         || /\b(?:what is in|what's in|describe)\s+(?:this\s+)?(?:image|screenshot|picture)\b/i.test(text);
     };
@@ -1766,7 +1892,16 @@ export default function App() {
         });
 
         setIsGenerating(true);
-        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments, activeApprovalMode, targetConversationId).then((res: any) => {
+        (window as any).electronAPI.chatComplete(
+          executionPrompt,
+          workspacePath,
+          projectName,
+          savedAttachments,
+          activeApprovalMode,
+          targetConversationId,
+          undefined,
+          buildBackendConversationHistory(targetConversationId, [userMsg])
+        ).then((res: any) => {
           setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           appendMessageToConversation({
@@ -1863,7 +1998,16 @@ export default function App() {
         });
 
         setIsGenerating(true);
-        (window as any).electronAPI.chatComplete(executionPrompt, workspacePath, projectName, savedAttachments, activeApprovalMode, targetConversationId).then((res: any) => {
+        (window as any).electronAPI.chatComplete(
+          executionPrompt,
+          workspacePath,
+          projectName,
+          savedAttachments,
+          activeApprovalMode,
+          targetConversationId,
+          undefined,
+          buildBackendConversationHistory(targetConversationId, [userMsg])
+        ).then((res: any) => {
           setIsGenerating(false);
           removeMessageFromConversation(loaderMsgId);
           const agentMsgId = `msg-agent-${Date.now()}`;
@@ -3160,17 +3304,6 @@ export default function App() {
                 <div className="message-meta">
                   <span className="message-sender">{msg.sender === "user" ? "Developer" : "Saad Agent"}</span>
                   <span className="message-time">{msg.timestamp}</span>
-                  <span className="message-actions">
-                    <button
-                      type="button"
-                      className="message-action-btn"
-                      onClick={() => handleCopyMessage(msg)}
-                      title="Copy message"
-                      aria-label="Copy message"
-                    >
-                      {copiedMessageId === msg.id ? "Copied" : "Copy"}
-                    </button>
-                  </span>
                 </div>
                 <div className="message-bubble">{renderMessageWithLinks(msg.content)}</div>
                 
@@ -3179,16 +3312,33 @@ export default function App() {
                   <div className="message-attachments">
                     {msg.attachments.map((att) => (
                       att.type === "image" ? (
-                        <img
-                          key={att.id}
-                          src={att.previewUrl}
-                          alt={att.name}
-                          className="sent-attachment-img"
-                          title={`${att.name} (${(att.size / 1024).toFixed(1)} KB)`}
-                        />
+                        <div key={att.id} className="sent-attachment-image-card">
+                          <button
+                            type="button"
+                            className="sent-attachment-image-button"
+                            onClick={() => setImagePreview(att)}
+                            title={`Open ${att.name} (${(att.size / 1024).toFixed(1)} KB)`}
+                            aria-label={`Open image ${att.name}`}
+                          >
+                            <img
+                              src={getAttachmentImageSource(att)}
+                              alt={att.name}
+                              className="sent-attachment-img"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            className="sent-attachment-copy-btn"
+                            onClick={() => copyAttachmentImage(att)}
+                            title="Copy image"
+                            aria-label={`Copy image ${att.name}`}
+                          >
+                            <Copy size={13} />
+                          </button>
+                        </div>
                       ) : (
                         <div key={att.id} className="sent-attachment-pdf" title={`${att.name} (${(att.size / 1024).toFixed(1)} KB)`}>
-                          <span className="sent-pdf-icon">{att.type === "pdf" ? "PDF" : "TXT"}</span>
+                          <span className="sent-pdf-icon">{getAttachmentBadgeLabel(att)}</span>
                           <div className="sent-pdf-info">
                             <span className="sent-pdf-name">{att.name}</span>
                             <span className="sent-pdf-size">{getAttachmentKindLabel(att)} - {formatAttachmentSize(att.size)}</span>
@@ -3200,6 +3350,56 @@ export default function App() {
                 )}
 
                 {renderCard(msg)}
+                <div className="message-footer-actions" aria-label="Message actions">
+                  <button
+                    type="button"
+                    className="message-icon-btn"
+                    onClick={() => handleCopyMessage(msg)}
+                    title={copiedMessageId === msg.id ? "Copied" : "Copy"}
+                    aria-label={copiedMessageId === msg.id ? "Copied" : "Copy message"}
+                  >
+                    {copiedMessageId === msg.id ? <Check size={15} /> : <Copy size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    className={`message-icon-btn ${spokenMessageId === msg.id ? "active" : ""}`}
+                    onClick={() => handleSpeakMessage(msg)}
+                    title={spokenMessageId === msg.id ? "Speaking" : "Read aloud"}
+                    aria-label="Read message aloud"
+                    aria-pressed={spokenMessageId === msg.id}
+                  >
+                    <Volume2 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`message-icon-btn ${messageFeedback[msg.id] === "up" ? "active" : ""}`}
+                    onClick={() => handleMessageFeedback(msg.id, "up")}
+                    title="Good response"
+                    aria-label="Mark response as good"
+                    aria-pressed={messageFeedback[msg.id] === "up"}
+                  >
+                    <ThumbsUp size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`message-icon-btn ${messageFeedback[msg.id] === "down" ? "active" : ""}`}
+                    onClick={() => handleMessageFeedback(msg.id, "down")}
+                    title="Bad response"
+                    aria-label="Mark response as bad"
+                    aria-pressed={messageFeedback[msg.id] === "down"}
+                  >
+                    <ThumbsDown size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="message-icon-btn"
+                    onClick={() => handleRegenerateMessage(msg)}
+                    title="Regenerate"
+                    aria-label="Regenerate from previous prompt"
+                  >
+                    <RefreshCw size={15} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -3407,6 +3607,36 @@ export default function App() {
             )}
           </div>
         </aside>
+      )}
+      {imagePreview && (
+        <div className="image-preview-overlay" role="dialog" aria-modal="true" aria-label={imagePreview.name} onClick={() => setImagePreview(null)}>
+          <div className="image-preview-dialog" onClick={(event) => event.stopPropagation()}>
+            <div className="image-preview-toolbar">
+              <span className="image-preview-title" title={imagePreview.name}>{imagePreview.name}</span>
+              <div className="image-preview-actions">
+                <button
+                  type="button"
+                  className="image-preview-action"
+                  onClick={() => copyAttachmentImage(imagePreview)}
+                  title="Copy image"
+                  aria-label="Copy image"
+                >
+                  <Copy size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="image-preview-action"
+                  onClick={() => setImagePreview(null)}
+                  title="Close"
+                  aria-label="Close image preview"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+            <img className="image-preview-full" src={getAttachmentImageSource(imagePreview)} alt={imagePreview.name} />
+          </div>
+        </div>
       )}
       <SettingsModal 
         isOpen={isSettingsModalOpen} 

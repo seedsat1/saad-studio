@@ -594,7 +594,7 @@ ipcMain.handle("orchestrator-create-session", async (event, taskText) => {
   }
 });
 
-ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval }) => {
+ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectName, attachments, approvalMode, conversationId, approval, history }) => {
   try {
     const deterministicCommand = DeterministicCommandService.resolve(String(prompt || ""));
     if (deterministicCommand) {
@@ -612,6 +612,7 @@ ipcMain.handle("chat-complete", async (event, { prompt, workspacePath, projectNa
       attachments,
       approvalMode,
       conversationId,
+      history,
       approved: approval?.approved
     });
     return {

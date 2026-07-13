@@ -1,4 +1,23 @@
 # مرجع Saad Studio لتكامل Premiere وReap
+## Saad Agent attachment-only OpenAPI/spec continuation (2026-07-13)
+- UI messages that contain only `Attached long pasted content as file.` with a readable OpenAPI/API/config attachment are not ordinary chat messages.
+- If recent conversation history contains a prior engineering request such as model integration, provider wiring, API panel creation, or page implementation, `ChatOrchestratorService` must combine that previous task with the attachment context and route through engineering execution.
+- If no prior engineering task is available, Saad Agent must answer locally with a short clarification request and must not call Gemini, LM Studio, Ollama, Pi/Codex, or any other provider.
+- This prevents local-provider timeouts caused by sending large pasted config/spec files to `/api/v1/chat` without a real engineering prompt.
+- The prompt UI must clear the long-paste notice after the file is removed or sent. Sent attachment chips must display the real file badge (`TXT`, `YML`, `JSON`, etc.) and must not force a `PDF` label through CSS.
+
+## Saad Agent local image assets in page-build prompts (2026-07-13)
+- Prompts that ask Saad Agent to build/design/implement a page and use existing local images from a folder are engineering file tasks, not inline image-generation tasks.
+- Example: if the user targets `C:\Users\PC\Desktop\lang` and says to use images from `C:\Users\PC\Desktop\lang\New folder`, runtime execution must target `C:\Users\PC\Desktop\lang`; the `New folder` path is only an asset source.
+- These prompts must not call `CreativeService`, must not require `SAAD_AGENT_IMAGE_GENERATION_ENDPOINT` or `KIE_API_KEY`, and must not return `No real image generator is configured`.
+- Path scoring must prefer explicit workspace cues such as `اشتغل فقط داخل هذا المسار` / `work only inside this path` over asset cues such as `استخدم الصور الموجودة هنا` / `use images here`.
+
+## Saad Agent explicit design target path behavior (2026-07-13)
+- Explicit target paths inside design/build prompts outrank copied active-workspace paths. If the text mentions `TEST ANG` but says the design should go to `E:\Agent-Reach-main\claude-code`, the latter is the execution workspace.
+- Local-path AI Studio/SaaS/page implementation requests route to `engineering.modify` before generic inspect/audit review, training ingest, or memory-save shortcuts.
+- In these requests, inspect-first wording means inspect before implementing; it must not convert the task into review-only daily maintenance.
+- Safety constraints like `لا تثبت مكتبات` and `لا تحذف ملفات` stay attached to the engineering task and must not be interpreted as memory-save/training commands.
+- `E:\Agent-Reach-main\claude-code` remains a comparative reference path only. It may be a target workspace if the user explicitly asks to write there, but Saad Agent must not copy, run, vendor, or reverse-engineer source from it.
 
 ## Saad Agent Codex-agentic workflow doctrine (2026-07-12)
 - `ENGINEERING_CONSTITUTION.md` now records the Codex-agentic workflow doctrine as a governing engineering rule for Saad Agent.
@@ -22,6 +41,9 @@
 - Implementation phase 1 is active in code: `DailyEngineerService` detects daily maintenance/private engineer/design/large-project/bug-fix/review-only wording, `RequestRoutingService` maps it to `daily_maintenance.review` or `daily_maintenance.modify`, and `ChatOrchestratorService` injects the maintenance contract before Coding/Codex runtime execution. Modification requests still pass through the existing approval gate.
 - Implementation phase 2 is active in the renderer: the right panel includes a Daily Maintenance card with review, maintenance, and design prompt shortcuts plus a persistent inspect -> plan -> implement -> verify -> document checklist stored in local browser state. The card prepares prompts only and does not bypass approval or execution policy.
 - Implementation phase 3 is active in Electron: the Daily Maintenance panel state is durable app state saved through `daily-maintenance:load` / `daily-maintenance:save` IPC to app user-data `state/daily-maintenance.json`. The stored state includes checklist flags, last prompt mode, and saved timestamp; `localStorage` remains only a renderer fallback.
+- Daily maintenance scoped approval is active: after a direct manual approval for a non-review maintenance task, the runtime prompt authorizes only small, reversible, in-scope edits without a second approval. Destructive operations, user-data deletion, dependency installs, environment/secret/auth/billing/payment changes, schema migrations, large refactors, cross-workspace writes, network actions, and unclear/out-of-scope work still require a specific second approval.
+- Daily-maintenance prompts must outrank memory-save keyword detection. Safety wording such as `لا تثبت مكتبات` or `لا تحذف ملفات` is a constraint on the engineering task, not a request to save memory.
+- Daily-maintenance prompts that explicitly mention manual approval, such as `بعد موافقتي`, must show an approval card before execution even if the global approval mode would otherwise auto-approve.
 
 ## Saad Agent Claude/Codex-style architecture adoption matrix (2026-07-12)
 - The user's checklist is useful as architecture guidance, not as source code. Saad Agent may adopt the concepts with original implementation only.
@@ -37,6 +59,18 @@
 - Planner: present through `ExecutionSessionManager`, `ReasoningEngine.generateStructuredPlan`, rule-based fallback plans, approval states, validation steps, and recovery/self-fix flows.
 - Priority order after daily-maintenance phases: build a bounded `AgentLoopService`, then durable context summarization, then real specialist sub-agent execution, then unified hook lifecycle.
 - Agent loop phase 1 is implemented in `AgentLoopService`: it runs a bounded decide -> approval -> registered tool -> observation -> repeat/finish loop using existing `ToolManager`, `ApprovalPolicyService`, `ExecutionTraceEmitter`, and `EventBus`. `CoreToolRegistryService` registers the real core tools deterministically before execution. It does not bypass approvals, does not invent unregistered tools, and is not yet the default execution route for all chat requests.
+- Agent loop phase 2 is integrated into daily maintenance continuation: a follow-up such as `الفحص نجح، ابدأ المرحلة الثانية` resumes the stored non-review daily-maintenance task as explicit one-shot approval, then runs a read-only `AgentLoopService` preflight before runtime delegation. The preflight uses registered tools for evidence collection and does not edit files.
+- Phase-two continuation must survive restored conversations: if in-memory `activeTask` is unavailable, `ChatOrchestratorService` may scan prior user history and resume only the latest non-review daily-maintenance task.
+- Agent loop phase 3 adds scoped approval instructions to approved daily-maintenance runtime prompts: bounded low-risk edits should proceed after the first manual approval, while high-risk, destructive, network, environment, dependency, schema, secret, or out-of-scope work must stop for a second explicit approval.
+- Daily-maintenance runtime output contract is active: successful maintenance execution should return a clean Arabic report with result, files examined/touched, verification, failures, and remaining step. The UI response must hide internal runtime details such as `Codex Runtime completed`, `Command:`, `Workspace:`, provider diagnostics, and `pi.cmd` command lines.
+- Approved daily-maintenance execution includes a workspace execution contract: the runtime current working directory is the trusted project root, so it must use read/search/list tools before asking the user for files. If no files can be read, it must report a verified tool/workspace access failure instead of claiming a successful inspection.
+- Local-first operating preference is active: normal Saad Agent work should use configured local providers for chat, maintenance, coding, review, design, vision, and fast helper roles. LM Studio, Ollama, and Saad Local Direct are first-class local paths; Cloud providers are optional configured fallbacks only.
+- The user's "Claude/كلاود" intent refers to Claude Code-style execution quality, not a Cloud provider requirement. Saad Agent should keep the inspect -> plan -> tool -> observe -> verify -> repair -> document loop while implementing everything with original Saad Agent code.
+- Local-first runtime enforcement is active: `SettingsManager.getModelRuntime(...)` allows local providers and falls back to configured local runtimes before paid Cloud providers. `CodexRuntimeBridge` supports LM Studio for Pi/Codex execution when Pi's own provider registry lists the selected model; Ollama remains valid for Chat but this Pi bridge cannot use Ollama directly for engineering tool execution.
+- Short direct chat prompts now use a minimal Cloud prompt context. Smoke tests such as `اكتب لي جملة قصيرة: اختبار كلاود فقط` must not send raw conversation history, training knowledge, coding-session history, or pre-answer context to Gemini/OpenAI/Anthropic/OpenRouter. Contextual retrieval remains for explicit memory, saved-knowledge, project, file, inspection, personal-detail, or training requests.
+- Daily-maintenance review-only inspection is a local evidence path, not a model path. Prompts that say to inspect/read project files only and not edit must collect bounded safe files from the active workspace, skip secrets and heavy folders, report the exact files read, and return 0 files touched without calling Gemini, Cloud, Pi/Codex, training knowledge, or pre-answer review.
+
+- Disabled Gemini or any disabled provider must not be callable and must not keep the default marker. If the selected provider is disabled or incomplete, Saad Agent should prefer a configured local runtime and otherwise return local setup guidance.
 
 ## Saad Agent central request-routing behavior (2026-07-12)
 - Saad Agent uses `RequestRoutingService` as the central top-level route contract before model, RAG, external research, or engineering fallbacks.
@@ -44,6 +78,11 @@
 - Local/no-tool/no-search constraints such as `لا تبحث`, `لا تستخدم بحث`, `لا تستخدم أدوات`, and `do not use tools` must block live search and unrelated trained-knowledge fallback.
 - Legacy search heuristics may only run when the central route remains ordinary `conversation`.
 - Packaged releases must include `dist/platform/services/request-routing.js` inside `app.asar`.
+
+## Saad Agent chat message footer actions (2026-07-12)
+- Each chat message shows a compact footer action row with copy, read aloud, thumbs up, thumbs down, and regenerate icons.
+- Copy and read aloud are local UI actions. Thumbs up/down are local visual feedback only in this phase.
+- Regenerate restores the previous user prompt into the composer for explicit resend; it must not silently re-run model/tool execution.
 
 ## Saad Agent image prompt drafting routing behavior (2026-07-11)
 - طلبات كتابة أو تصميم برومبت صورة مثل `اريد تصميم لوكس برومبيت صورة اعرضها هنا` هي طلبات صياغة نصية وليست بحث صور.
@@ -1445,3 +1484,75 @@
 - Missing `Chat` inherits the current `Coding` provider/model so normal conversation does not fall back to an obsolete hard-coded model id.
 - If a provider has discovered models and a role references an unavailable model id, the role is repaired to a discovered model id. For `Chat`, the Coding model is preferred when available on the same provider.
 - Obsolete default model ids such as `lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF` must not remain active when LM Studio reports a different available model list.
+
+## Saad Agent direct local model runtime behavior (2026-07-12)
+- `Saad Local Direct` is the app-managed local inference provider path.
+- It launches a configured `llama-server` executable with a configured local GGUF model file and serves it on `http://127.0.0.1:<port>/v1`.
+- It is not a bundled model and does not download model weights; the user must provide a compatible local runtime and model file.
+- Settings validation blocks enabling the provider when the executable path, GGUF model path, port, or context window are invalid.
+- The existing OpenAI-compatible chat client is reused after the local runtime is ready, so LM Studio is no longer required for this provider path.
+- Prompt fitting is mandatory for local-compatible providers: reserve output tokens, fit system/user context into the detected/configured window, and compress middle context when the prompt is too large.
+- This prevents local failures like `n_keep >= n_ctx` from oversized initial prompts.
+- Ollama remains a valid local provider for normal Chat/model calls, but the installed Pi CLI does not support `--provider ollama` for engineering tool execution. When Coding is set to Ollama and the bridge is Pi, Saad Agent must stop before constructing the command and show configuration guidance instead of dumping the full runtime prompt.
+- LM Studio can be a valid Coding execution provider only when Pi's own external registry `C:\Users\PC\.pi\agent\models.json` parses successfully and lists the selected model id. A valid Saad Settings connection is not enough by itself; `pi --list-models` is the source of truth for the Pi bridge.
+- `Unknown provider "<name>"` from Pi is a provider-registry/configuration blocker. Saad Agent should format it as concise guidance that mentions `models.json`/`pi --list-models`, and must not print the raw command, workspace, full prompt, or unrelated retrieved context.
+- Private narrative / sensitive relationship training cards are scoped knowledge, not global engineering context. `PreAnswerReviewService` must filter them out of ordinary engineering, provider, page-generation, and daily-maintenance prompts before building the Codex/Pi runtime context. Explicit private/story/saved-knowledge prompts may still retrieve them.
+- Nested `llm_call_failed` provider JSON, including `Operation not allowed`, must be normalized into a human-readable Saad Agent error before reaching chat.
+- Daily-maintenance execution must treat `Operation not allowed` from the local coding runtime as a verified provider-bridge blocker, not as a completed task. The user-facing response must state that no files were edited and point to the supported fixes: switch Coding to LM Studio or a configured cloud provider, or configure Saad Local Direct with a real `llama-server.exe` and GGUF model.
+- Manual Arabic approval phrases such as `بعد موافقتي الأولى` must force the daily-maintenance approval gate before execution, regardless of broad auto-approve UI mode.
+- Inspected GGUF model paths under `E:\mod` and `C:\Users\PC\.lmstudio\models\lmstudio-community` are model files only; they still require a runtime executable such as `llama-server.exe`.
+- ComfyUI portable's embedded Python is useful for image workflows but is not a substitute for a text LLM runtime executable.
+## Saad Agent immediate session-history behavior (2026-07-12)
+- Same-chat recall questions such as `ماذا رسلت لك في الرسالة السابقة؟` are answered locally from `conversationState.history` before model routing.
+- The assistant must not claim there is no memory of the previous message when that message exists in the current session history.
+- Certainty follow-ups after maintenance reports, such as `هل انت متاكد؟`, must avoid unsupported certainty and ask for/read verification evidence instead.
+- This behavior belongs to `ChatOrchestratorService` as deterministic conversation handling with `usedModel: false`.
+
+## Saad Agent self-workspace and Arabic direction behavior (2026-07-13)
+- Requests that explicitly target Saad Agent itself, the agent app, or the agent UI must route to the real `saad-agent` workspace when no explicit path is supplied.
+- The active external workspace is not enough evidence for agent self-modification. If the active workspace is `TEST ANG`, an `الاجينت` UI request must not edit `TEST ANG`.
+- Arabic localization and RTL layout are separate. Arabic text must not move the UI, flip message direction, or change alignment unless the user explicitly asks for RTL.
+- Chat message text that contains Arabic remains `dir="ltr"` and left-aligned under the no-RTL policy.
+
+## Saad Agent persisted conversation history behavior (2026-07-13)
+- The UI may restore conversations from durable storage after app/computer restart, while backend session memory starts empty.
+- Every `chatComplete` request must include recent visible conversation history so the backend can hydrate `ConversationStateEngine` before handling the new prompt.
+- Previous-message follow-ups such as `انا اعطيتك امر في الرسالة السابقة` must resolve from hydrated persisted history with `usedModel: false`.
+- Approval continuations must pass the same recent history to avoid losing the original task context after restart.
+
+## Saad Agent image-reference engineering routing behavior (2026-07-13)
+- A screenshot attached to a prompt that asks to design/build/implement a page is a design reference for engineering execution, not a standalone vision-analysis request.
+- The UI should not route such prompts to the Vision Provider merely because the prompt mentions `الصورة` and `افحص`.
+- Engineering terms such as `صمم`, `نفذ`, `صفحة`, `واجهة`, `مثل الصورة`, `design`, `build`, `implement`, `page`, `UI`, `navbar`, and `cards` keep the request on the engineering/chat path.
+- Explicit image-only analysis prompts still use Vision.
+
+## Saad Agent attachment preview and prompt-copy behavior (2026-07-13)
+
+- صور المرفقات داخل المحادثة يجب أن تكون قابلة للفتح في عارض كبير، وليست مجرد صورة صغيرة ثابتة.
+- يجب توفير زر نسخ للصورة من المصغّر ومن عارض الصورة.
+- نسخ الصورة يستخدم Clipboard API عندما تكون متاحة، مع fallback ينسخ مصدر الصورة عند تعذر نسخ Blob الصورة مباشرة.
+- صندوق كتابة البرومبت يجب ألا يمنع قائمة كليك يمين الأصلية، ويجب توفير زر نسخ صريح لنص البرومبت عند وجود نص.
+- هذه السلوكيات لا تغيّر اتجاه الواجهة ولا تطبق RTL على العربي.
+
+## Saad Agent engineering follow-up target behavior (2026-07-13)
+
+- إذا أرسل المستخدم طلب تصميم/تنفيذ طويل ثم أرسل متابعة قصيرة مثل `ضع الصفحة هنا E:\...\New folder`، يجب اعتبار المتابعة تحديث مسار/نطاق لنفس الطلب السابق.
+- لا يجوز تحويل المتابعة القصيرة إلى صفحة عينة أو طلب جديد عام.
+- يجب دمج الطلب السابق مع المتابعة وإرسال الوصف الكامل إلى مسار التنفيذ.
+- علامة `FOLLOW-UP TARGET UPDATE` تمنع اعتراض الطلب بواسطة مسارات blueprint أو توليد الصور أو تعليمات النص المباشرة.
+- الهدف هو الحفاظ على مواصفات التصميم السابقة، خصوصًا طلبات صفحات SaaS / AI Studio مع صور مرفقة أو شروط LTR/no RTL.
+
+## Saad Agent self-contained design path routing behavior (2026-07-13)
+
+- إذا احتوى الطلب على مسار محلي مع مواصفات تصميم/تنفيذ صفحة، فهو طلب هندسي لتعديل/إنشاء ملفات.
+- عبارة `الصورة المرفقة السابقة كمرجع` داخل طلب تنفيذ صفحة لا تعني تدريب معرفة ولا يجب أن تؤدي إلى رد `ارفع الملف أولاً`.
+- مسار التنفيذ الهندسي له أولوية على تدريب المرفقات عندما توجد إشارات مثل SaaS / AI Studio، صفحة، Navbar، كروت، responsive، ومسار محلي.
+- الهدف منع ضياع الطلب بين training ingest وimage/reference wording عندما المستخدم يريد إنشاء صفحة فعلية.
+
+## Saad Agent attached OpenAPI/spec engineering routing behavior (2026-07-13)
+
+- A readable attachment containing OpenAPI, Swagger, API schema, endpoint, requestBody, schemas, Bearer auth, model enum, `createTask`, or `taskId` is implementation evidence when the user asks to link, add, integrate, update, or implement a model/page/API.
+- These requests must route to engineering execution through `CodexRuntimeBridge` after the approval policy. They must not call the normal Chat/Reasoning provider first.
+- Long pasted content that becomes an attachment such as `pasted-config.txt` must still participate in routing decisions.
+- If the current attached-file message is only a short follow-up, the previous active engineering task can be used to preserve the intended task.
+- Exact OpenAPI/model values must come from the attachment. Do not invent endpoints, fields, enum values, qualities, or polling routes.

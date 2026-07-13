@@ -28,7 +28,8 @@ import { DocumentTextExtractor } from "./document-text-extractor.js";
 import { ModelExpertiseExtractionService } from "./model-expertise-extraction.js";
 import { CreativeService } from "./creative.js";
 import { RequestRoutingService } from "./request-routing.js";
-import { DailyEngineerService } from "./daily-engineer.js";
+import { DailyEngineerService, type DailyEngineerWorkflow } from "./daily-engineer.js";
+import { AgentLoopService, type AgentLoopObservation } from "./agent-loop.js";
 
 const MAX_READABLE_ATTACHMENT_BYTES = 180_000;
 const READABLE_ATTACHMENT_EXTENSIONS = new Set([
@@ -67,6 +68,7 @@ export class ChatOrchestratorService {
     projectName?: string;
     sessionId?: string;
     conversationId?: string;
+    history?: Array<{ role: "user" | "assistant"; content: string }>;
     approvalMode?: ApprovalMode;
     approved?: boolean;
     alwaysAllow?: boolean;
@@ -77,6 +79,7 @@ export class ChatOrchestratorService {
     const sessionId = input.sessionId || input.conversationId || "desktop-chat";
     const userRequestText = ChatOrchestratorService.extractUserRequest(prompt);
     const conversationState = ConversationStateEngine.getState(sessionId);
+    ChatOrchestratorService.hydrateConversationHistoryFromInput(conversationState, input.history);
 
     // 1. Record user message in history
     if (!conversationState.history) {
@@ -143,14 +146,31 @@ export class ChatOrchestratorService {
     const sessionId = input.sessionId || input.conversationId || "desktop-chat";
     const conversationId = input.conversationId || sessionId;
     const effectiveApprovalMode = ApprovalPolicyService.normalizeMode(input.approvalMode);
-    const userRequestText = ChatOrchestratorService.extractUserRequest(prompt);
+    const originalUserRequestText = ChatOrchestratorService.extractUserRequest(prompt);
+    let userRequestText = originalUserRequestText;
     const activeWorkspace = await ChatOrchestratorService.resolveWorkspaceFromPrompt(
-      userRequestText,
+      originalUserRequestText,
       input.workspacePath || CONFIG.PROJECT_ROOT
     );
     await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
     const normalizedAttachments = ChatOrchestratorService.normalizeRuntimeAttachments(input.attachments);
     input.attachments = normalizedAttachments;
+    const conversationState = ConversationStateEngine.getState(sessionId);
+    const immediateHistoryResponse = ChatOrchestratorService.resolveImmediateConversationHistoryResponse(
+      userRequestText,
+      conversationState.history || []
+    );
+    if (immediateHistoryResponse) {
+      return {
+        intent: "conversation",
+        usedModel: false,
+        response: immediateHistoryResponse
+      };
+    }
+    userRequestText = ChatOrchestratorService.resolveEngineeringFollowUpText(
+      originalUserRequestText,
+      conversationState.history || []
+    );
     if (!normalizedAttachments.length) {
       const directNonModelResponse = await ChatOrchestratorService.resolveDirectNonModelResponse(
         userRequestText,
@@ -201,11 +221,68 @@ export class ChatOrchestratorService {
     const reviewRequestText = readableAttachmentContext
       ? [userRequestText, readableAttachmentContext].join("\n\n")
       : userRequestText;
-    const conversationState = ConversationStateEngine.getState(sessionId);
+    const attachedSpecTaskContext = ChatOrchestratorService.resolveAttachedSpecTaskContext(
+      userRequestText,
+      conversationState.activeTask || "",
+      conversationState.history || []
+    );
+    const attachedSpecEngineeringRequest = ChatOrchestratorService.isAttachedSpecEngineeringRequest(
+      userRequestText,
+      normalizedAttachments,
+      readableAttachmentContext,
+      attachedSpecTaskContext
+    );
+    if (
+      !attachedSpecEngineeringRequest
+      && ChatOrchestratorService.isAttachmentOnlySpecWithoutEngineeringTask(
+        userRequestText,
+        normalizedAttachments,
+        readableAttachmentContext
+      )
+    ) {
+      return {
+        intent: "conversation",
+        usedModel: false,
+        response: [
+          "وصلني ملف مواصفات/إعدادات فقط، ولم أجد طلبًا هندسيًا سابقًا واضحًا أربطه به.",
+          "اكتب المطلوب بكلمة واحدة مثل: اربط هذا الموديل، أو أنشئ لوحة إعدادات له، أو افحص المواصفات فقط.",
+          "لن أرسل هذا المرفق إلى مزود الشات المحلي بدون مهمة واضحة."
+        ].join("\n")
+      };
+    }
+    const policyRequestText = attachedSpecEngineeringRequest
+      ? ChatOrchestratorService.buildAttachedSpecEngineeringPolicyPrompt(
+          userRequestText,
+          readableAttachmentContext,
+          activeWorkspace,
+          attachedSpecTaskContext
+        )
+      : userRequestText;
     const externalResearchText = ChatOrchestratorService.resolveExternalResearchText(
       userRequestText,
       conversationState.history || []
     );
+
+    const phaseTwoPrompt = ChatOrchestratorService.resolveDailyMaintenancePhaseTwoPrompt(
+      userRequestText,
+      conversationState.activeTask,
+      conversationState.history || []
+    );
+    if (phaseTwoPrompt) {
+      ConversationStateEngine.updateState(sessionId, {
+        lastIntent: "code_generation",
+        activeWorkflow: "daily_maintenance_engineer",
+        activeTask: phaseTwoPrompt
+      });
+      return await ChatOrchestratorService.executeDirectChat({
+        ...input,
+        prompt: phaseTwoPrompt,
+        sessionId,
+        conversationId,
+        approvalMode: effectiveApprovalMode,
+        approved: true
+      });
+    }
 
     if (!normalizedAttachments.length) {
       const normalizedRequest = ChatOrchestratorService.normalizeArabic(userRequestText);
@@ -345,7 +422,7 @@ export class ChatOrchestratorService {
       }
     }
 
-    if (ChatOrchestratorService.isPageBlueprintRequest(userRequestText)) {
+    if (!userRequestText.includes("FOLLOW-UP TARGET UPDATE") && ChatOrchestratorService.isPageBlueprintRequest(userRequestText)) {
       const response = ChatOrchestratorService.formatPageBlueprintResponse(userRequestText, conversationState.activeTask);
       ConversationStateEngine.setPendingClarification(sessionId, {
         id: `clarify-page-blueprint-${Date.now()}`,
@@ -446,9 +523,7 @@ export class ChatOrchestratorService {
       && !ChatOrchestratorService.isTranslationRequest(userRequestText)
       && ChatOrchestratorService.isSimpleGeneralQuestion(userRequestText)) {
       try {
-        const historyBlock = ChatOrchestratorService.formatConversationHistory(
-          ConversationStateEngine.getState(sessionId).history || []
-        );
+        const historyBlock = "";
         const response = await ReasoningEngine.requestCompletion({
           role: "Chat",
           systemPrompt: [
@@ -460,7 +535,7 @@ export class ChatOrchestratorService {
             "Do not refuse just because a topic is personal or intimate. Ask a short clarifying question only when the request is genuinely unclear or unsafe.",
             "Do not lecture, moralize, or say you cannot discuss family/private topics. Stay supportive while avoiding claims that you are a real human spouse or lover.",
             "This is a simple general question. Do not inspect project files, workspace context, tools, MCP, or training knowledge.",
-            "Use the provided conversation history when it exists.",
+            "Answer only from the latest user request; no prior conversation history is provided.",
             "Answer directly, briefly, respectfully, and clearly. Keep the answer compact."
           ].join("\n"),
           userPrompt: [
@@ -514,12 +589,12 @@ export class ChatOrchestratorService {
       await ApprovalPolicyService.rememberAlwaysAllow(conversationId, "import_knowledge");
     }
     const decisionResult = await ExecutionPolicyService.evaluateDecision(
-      userRequestText,
+      policyRequestText,
       activeWorkspace,
       effectiveApprovalMode,
       conversationId
     );
-    const requestRoute = RequestRoutingService.classify(userRequestText);
+    const requestRoute = RequestRoutingService.classify(policyRequestText);
     const dailyEngineerWorkflow = DailyEngineerService.classifyRequest(userRequestText);
 
     await TaskStateStore.transitionTask(taskId, "CLASSIFIED", `Decision evaluated: ${decisionResult.decision}`);
@@ -543,14 +618,20 @@ export class ChatOrchestratorService {
       };
     }
 
-    if (decisionResult.requiresApproval && !input.approved) {
+    const dailyMaintenanceNeedsManualApproval =
+      dailyEngineerWorkflow
+      && !dailyEngineerWorkflow.reviewOnly
+      && !input.approved
+      && ChatOrchestratorService.hasDailyMaintenanceManualApprovalLanguage(userRequestText);
+
+    if ((decisionResult.requiresApproval || dailyMaintenanceNeedsManualApproval) && !input.approved) {
       await this.transitionToApproval(taskId, `Requires approval: ${decisionResult.reason}`);
       const approvalReason = this.formatApprovalReason(decisionResult.reason);
       const approvalAction = /Internet access/i.test(decisionResult.reason) ? "use_internet" : "write_file";
       if (/Project modification|Daily maintenance engineer/i.test(decisionResult.reason)) {
         ConversationStateEngine.updateState(sessionId, {
           lastIntent: "code_generation",
-          activeWorkflow: "code_generation",
+          activeWorkflow: dailyEngineerWorkflow ? "daily_maintenance_engineer" : "code_generation",
           activeTask: userRequestText
         });
       }
@@ -574,6 +655,45 @@ export class ChatOrchestratorService {
     await TaskStateStore.transitionTask(taskId, "ANALYZING", "Request is classified and allowed to proceed");
 
     const showDiagnostics = this.wantsDiagnostics(userRequestText);
+
+    if (dailyEngineerWorkflow?.reviewOnly && requestRoute.pipeline === "daily_maintenance.review") {
+      ConversationStateEngine.updateState(sessionId, {
+        lastIntent: "code_review",
+        activeWorkflow: "daily_maintenance_engineer",
+        activeTask: userRequestText
+      });
+
+      ExecutionTraceEmitter.emit({
+        taskId,
+        conversationId,
+        phase: "evidence_collection",
+        status: "done",
+        label: "Daily maintenance read-only inspection routed",
+        safeDetails: {
+          modelInvocation: "blocked",
+          workflow: requestRoute.pipeline
+        },
+        sourceService: "ChatOrchestratorService"
+      });
+
+      await TaskStateStore.transitionTask(taskId, "EVIDENCE_COLLECTION", "Reading safe project files without model context");
+      const report = await ChatOrchestratorService.runDailyMaintenanceReadOnlyInspection(activeWorkspace);
+      await TaskStateStore.transitionTask(taskId, "VALIDATING", "Read-only inspection report prepared");
+      await TaskStateStore.transitionTask(taskId, "GAP_ANALYSIS", "No model or provider needed for read-only maintenance review");
+      await TaskStateStore.transitionTask(taskId, "IMPACT_ANALYSIS", "Read-only inspection has no file-change impact");
+      await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Safe project files only; secrets and heavy folders skipped");
+      await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Formatting five-line maintenance report");
+      await TaskStateStore.transitionTask(taskId, "PLANNING", "No edits planned");
+      await TaskStateStore.transitionTask(taskId, "IMPLEMENTING", "No file writes performed");
+      await TaskStateStore.transitionTask(taskId, "VERIFYING", "Read-only report verified against inspected file list");
+      await TaskStateStore.transitionTask(taskId, "COMPLETED", "Daily maintenance read-only inspection completed");
+
+      return {
+        intent: "code_review",
+        usedModel: false,
+        response: report
+      };
+    }
 
     if (decisionResult.workflow === "local_image_classification") {
       ConversationStateEngine.updateState(sessionId, {
@@ -823,6 +943,9 @@ export class ChatOrchestratorService {
         "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
         "Use the project rules and context below before acting.",
         dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+        ChatOrchestratorService.buildDailyMaintenanceWorkspaceExecutionContract(dailyEngineerWorkflow, activeWorkspace),
+        ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
+        ChatOrchestratorService.buildDailyMaintenanceRuntimeOutputContract(dailyEngineerWorkflow),
         "",
         "Saad Agent pre-answer context:",
         preAnswerReview.finalContext,
@@ -881,10 +1004,27 @@ export class ChatOrchestratorService {
           };
         }
 
+        if (dailyEngineerWorkflow && ChatOrchestratorService.isRuntimeProviderDeniedFailure(codexResult)) {
+          await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Local coding runtime provider refused the operation");
+          return {
+            intent,
+            usedModel: false,
+            response: ChatOrchestratorService.formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult)
+          };
+        }
+
         await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
       }
 
       const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "ماكو output رجع من Codex runtime.";
+      if (dailyEngineerWorkflow && codexResult.success) {
+        return {
+          intent,
+          usedModel: false,
+          response: ChatOrchestratorService.formatDailyMaintenanceRuntimeSuccessResponse(codexResult)
+        };
+      }
+
       return {
         intent,
         usedModel: false,
@@ -953,6 +1093,14 @@ export class ChatOrchestratorService {
       await TaskStateStore.transitionTask(taskId, "RISK_ASSESSMENT", "Applying approval policy before runtime execution");
       await TaskStateStore.transitionTask(taskId, "SOLUTION_DESIGN", "Preparing execution runtime envelope");
       await TaskStateStore.transitionTask(taskId, "PLANNING", "Delegating engineering request to Codex runtime bridge");
+      const dailyMaintenanceAgentLoopContext = dailyEngineerWorkflow
+        ? await ChatOrchestratorService.runDailyMaintenanceAgentLoopPreflight({
+            taskId,
+            conversationId,
+            goal: userRequestText,
+            approvalMode: effectiveApprovalMode
+          })
+        : "";
 
       const codexPrompt = [
         "You are running as the Codex execution runtime behind Saad Studio Agent.",
@@ -961,6 +1109,10 @@ export class ChatOrchestratorService {
         "Use the project rules and context below before acting.",
         "For project modifications, inspect the codebase first, edit only the required files, and run available verification.",
         dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+        ChatOrchestratorService.buildDailyMaintenanceWorkspaceExecutionContract(dailyEngineerWorkflow, activeWorkspace),
+        ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
+        ChatOrchestratorService.buildDailyMaintenanceRuntimeOutputContract(dailyEngineerWorkflow),
+        dailyMaintenanceAgentLoopContext,
         "",
         "Saad Agent pre-answer context:",
         preAnswerReview.finalContext,
@@ -1021,10 +1173,27 @@ export class ChatOrchestratorService {
           };
         }
 
+        if (dailyEngineerWorkflow && ChatOrchestratorService.isRuntimeProviderDeniedFailure(codexResult)) {
+          await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Local coding runtime provider refused the operation");
+          return {
+            intent,
+            usedModel: false,
+            response: ChatOrchestratorService.formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult)
+          };
+        }
+
         await TaskStateStore.transitionTask(taskId, "FAILED", codexResult.error || "Codex runtime failed");
       }
 
       const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "No output returned from Codex runtime.";
+      if (dailyEngineerWorkflow && codexResult.success) {
+        return {
+          intent,
+          usedModel: false,
+          response: ChatOrchestratorService.formatDailyMaintenanceRuntimeSuccessResponse(codexResult)
+        };
+      }
+
       return {
         intent,
         usedModel: false,
@@ -1334,11 +1503,16 @@ export class ChatOrchestratorService {
           "If a provider/model/runtime problem prevents completion, explain the exact problem."
         ].join("\n");
 
+        const shortContextFreeConversation = userRequestText.length <= 120
+          && !/(\u0630\u0627\u0643\u0631\u0629|\u062a\u0630\u0643\u0631|\u0646\u0641\u0633\u064a|\u0645\u064a\u0648\u0644\u064a|\u0627\u0633\u0645\u064a|\u0645\u0639\u0631\u0641\u0629|\u0627\u0644\u0645\u062d\u0641\u0648\u0638|\u0627\u0644\u0645\u062e\u0632\u0648\u0646|\u0627\u0644\u062a\u062f\u0631\u064a\u0628|\u0645\u0644\u0641|\u0645\u0634\u0631\u0648\u0639|\u0627\u0641\u062d\u0635|\u0631\u0627\u062c\u0639|\u0627\u0628\u062d\u062b)/.test(ChatOrchestratorService.normalizeArabic(userRequestText));
+        const useMinimalProviderContext = isConversational
+          && (ChatOrchestratorService.shouldUseMinimalProviderContext(userRequestText) || shortContextFreeConversation);
+
         let userPrompt = "";
         if (isConversational) {
-          const history = conversationState.history || [];
+          const history: Array<{ role: "user" | "assistant"; content: string }> = [];
           const safePreAnswerContext = ChatOrchestratorService.sanitizeProviderContextBlock(
-            preAnswerReview.finalContext,
+            useMinimalProviderContext ? "" : preAnswerReview.finalContext,
             userRequestText
           );
           if (history.length > 0) {
@@ -1771,7 +1945,58 @@ export class ChatOrchestratorService {
     return `${previousText} ${userRequestText}`.trim();
   }
 
+  private static resolveEngineeringFollowUpText(
+    userRequestText: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>
+  ): string {
+    const text = String(userRequestText || "").trim();
+    if (!text) return userRequestText;
+
+    const normalized = this.normalizeArabic(text);
+    const lower = text.toLowerCase();
+    const hasPath = /[a-zA-Z]:[\\/][^\r\n]+/.test(text)
+      || /\b(?:folder|directory|path|workspace)\b/i.test(lower)
+      || /(?:\u0641\u0648\u0644\u062f\u0631|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631)/.test(normalized);
+    const isPlacementFollowUp = hasPath && (
+      /(?:\u0636\u0639|\u062d\u0637|\u062e\u0644\u064a|\u0627\u0646\u0642\u0644|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a).{0,80}(?:\u0647\u0646\u0627|\u062f\u0627\u062e\u0644|\u0641\u064a|\u0628)/.test(normalized)
+      || /(?:\u0647\u0646\u0627|\u062f\u0627\u062e\u0644|\u0641\u064a|\u0628).{0,80}(?:\u0641\u0648\u0644\u062f\u0631|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631)/.test(normalized)
+      || /\b(?:put|place|move|copy|create|implement|build|make)\b.{0,80}\b(?:here|in|inside|to)\b/i.test(lower)
+    );
+    if (!isPlacementFollowUp || text.length > 260) return userRequestText;
+
+    const previousUserRequest = [...(history || [])]
+      .slice(0, -1)
+      .reverse()
+      .find((message) => {
+        if (message.role !== "user") return false;
+        const previous = String(message.content || "").trim();
+        return previous && this.isEngineeringDesignImplementationRequest(previous);
+      });
+    const previousText = previousUserRequest?.content?.trim();
+    if (!previousText) return userRequestText;
+
+    return [
+      previousText,
+      "",
+      "FOLLOW-UP TARGET UPDATE:",
+      "The user is continuing the previous engineering/design request. Do not replace the previous specification with a generic sample.",
+      "Use the following message only as the new target location/scope for the same page/task:",
+      text
+    ].join("\n");
+  }
+
+  private static isEngineeringDesignImplementationRequest(text: string): boolean {
+    const normalized = this.normalizeArabic(text);
+    const lower = String(text || "").toLowerCase();
+    const designSignals = /(?:\u0635\u0645\u0645|\u062a\u0635\u0645\u064a\u0645|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0643\u0631\u0648\u062a|\u0643\u0627\u0631\u062f|\u0646\u0627\u0641\u0628\u0627\u0631|\u0634\u0628\u064a\u0647|\u0645\u062b\u0644\s+\u0627\u0644\u0635\u0648\u0631)/.test(normalized)
+      || /\b(?:design|build|implement|create|make|page|site|ui|navbar|cards?|dashboard|studio|landing)\b/i.test(lower);
+    const projectSignals = /(?:\u062f\u0627\u062e\u0644\s+\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0645\u0644\u0641|\u0645\u0644\u0641\u0627\u062a|html|css|js|tsx|jsx|react|vite|next)/i.test(`${normalized} ${lower}`);
+    return designSignals && (projectSignals || text.length > 180);
+  }
+
   private static isMemorySave(prompt: string, normalized: string): boolean {
+    if (this.isEngineeringDesignImplementationRequest(prompt)) return false;
+    if (DailyEngineerService.classifyRequest(prompt)) return false;
     if (this.isProjectAuditOrRepairInstruction(prompt, normalized)) return false;
 
     const lower = prompt.toLowerCase();
@@ -1857,6 +2082,7 @@ export class ChatOrchestratorService {
   }
 
   private static isTrainingIngestRequest(prompt: string, normalized: string): boolean {
+    if (this.isEngineeringDesignImplementationRequest(prompt)) return false;
     const lower = prompt.toLowerCase();
     return /\b(train|training|learn from|use as reference|save as reference)\b/i.test(lower)
       || /(?:درب|درّب|تدريب).*(?:نفسك|الملف|هذا الملف|هذه الملف|المرفق|الصوره|الصورة)/.test(normalized)
@@ -1984,16 +2210,27 @@ export class ChatOrchestratorService {
   ): Promise<ChatOrchestrationResult> {
     let preAnswerReview: Awaited<ReturnType<typeof PreAnswerReviewService.review>> | null = null;
     try {
-      preAnswerReview = await PreAnswerReviewService.review(
-        userRequestText,
-        activeWorkspace,
-        undefined,
-        false
-      );
+      const useMinimalProviderContext = ChatOrchestratorService.shouldUseMinimalProviderContext(userRequestText)
+        || userRequestText.length <= 120;
+      preAnswerReview = useMinimalProviderContext
+        ? {
+            diagnostics: "Minimal direct chat mode: memory, training knowledge, and history skipped",
+            finalContext: "",
+            knowledgeMatches: [],
+            skillsLoaded: [],
+            projectContextLoaded: false,
+            noKnowledgeNotice: null
+          }
+        : await PreAnswerReviewService.review(
+            userRequestText,
+            activeWorkspace,
+            undefined,
+            false
+          );
       const trainingNotice = preAnswerReview.knowledgeMatches.length
         ? `Matched trained knowledge files: ${preAnswerReview.knowledgeMatches.length}`
         : "No matching trained knowledge found. Answering from model knowledge only.";
-      const historyBlock = ChatOrchestratorService.formatConversationHistory(history);
+      const historyBlock = useMinimalProviderContext ? "" : ChatOrchestratorService.formatConversationHistory(history);
       const response = await ReasoningEngine.requestCompletion({
         role: "Chat",
         systemPrompt: [
@@ -2434,6 +2671,7 @@ export class ChatOrchestratorService {
   }
 
   private static async resolveDirectNonModelResponse(prompt: string, workspacePath: string): Promise<string | null> {
+    if (prompt.includes("FOLLOW-UP TARGET UPDATE")) return null;
     const explicitUnknownFallback = this.resolveStrictUnknownFallback(prompt);
     if (explicitUnknownFallback) return explicitUnknownFallback;
 
@@ -2471,7 +2709,90 @@ export class ChatOrchestratorService {
     return null;
   }
 
+  private static resolveImmediateConversationHistoryResponse(
+    prompt: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>
+  ): string | null {
+    const normalized = this.normalizeArabic(prompt);
+    const lower = String(prompt || "").toLowerCase();
+    const haystack = `${normalized} ${lower}`;
+
+    const asksPreviousUserMessage = /(?:\u0645\u0627\u0630\u0627|\u0634\u0646\u0648|\u0627\u064a\u0634|\u0648\u0634).{0,24}(?:\u0631\u0633\u0644\u062a|\u0643\u062a\u0628\u062a|\u0642\u0644\u062a|\u0637\u0644\u0628\u062a|\u0627\u0639\u0637\u064a\u062a\u0643|\u0623\u0639\u0637\u064a\u062a\u0643).{0,40}(?:\u0627\u0644\u0631\u0633\u0627\u0644\u0647|\u0627\u0644\u0631\u0633\u0627\u0644\u0629|\u0627\u0644\u0633\u0627\u0628\u0642\u0647|\u0627\u0644\u0633\u0627\u0628\u0642\u0629|\u0642\u0628\u0644)/i.test(haystack)
+      || /(?:\u0627\u0646\u0627|\u0623\u0646\u0627).{0,20}(?:\u0627\u0639\u0637\u064a\u062a\u0643|\u0623\u0639\u0637\u064a\u062a\u0643|\u0631\u0633\u0644\u062a|\u0643\u062a\u0628\u062a|\u0642\u0644\u062a).{0,24}(?:\u0627\u0645\u0631|\u0623\u0645\u0631|\u0637\u0644\u0628|\u0631\u0633\u0627\u0644\u0647|\u0631\u0633\u0627\u0644\u0629).{0,40}(?:\u0627\u0644\u0633\u0627\u0628\u0642\u0647|\u0627\u0644\u0633\u0627\u0628\u0642\u0629|\u0642\u0628\u0644)/i.test(haystack)
+      || /(?:\u0648\u0634|\u0634\u0646\u0648|\u0627\u064a\u0634).{0,18}(?:\u0627\u0644\u0627\u0645\u0631|\u0627\u0644\u0623\u0645\u0631|\u0627\u0644\u0637\u0644\u0628).{0,30}(?:\u0627\u0644\u0633\u0627\u0628\u0642|\u0642\u0628\u0644)/i.test(haystack)
+      || /\b(?:what did i send|what did i write|what did i ask|what was my previous request|previous message|last message|previous request|last request)\b/i.test(lower);
+    if (asksPreviousUserMessage) {
+      const previous = this.findPreviousUserMessageBeforeCurrent(history, prompt);
+      if (!previous) {
+        return "\u0644\u0627 \u0623\u062c\u062f \u0631\u0633\u0627\u0644\u0629 \u0633\u0627\u0628\u0642\u0629 \u0645\u0646\u0643 \u062f\u0627\u062e\u0644 \u0647\u0630\u0647 \u0627\u0644\u062c\u0644\u0633\u0629.";
+      }
+      return `\u0631\u0633\u0627\u0644\u062a\u0643 \u0627\u0644\u0633\u0627\u0628\u0642\u0629 \u0643\u0627\u0646\u062a:\n"${previous}"`;
+    }
+
+    const asksForCertainty = /(?:\u0647\u0644\s+\u0627\u0646\u062a|\u0647\u0644\s+\u0623\u0646\u062a|\u0627\u0646\u062a|\u0623\u0646\u062a).{0,12}(?:\u0645\u062a\u0627\u0643\u062f|\u0645\u062a\u0623\u0643\u062f)|\bare you sure\b/i.test(haystack);
+    if (asksForCertainty) {
+      const lastAssistant = this.findLastAssistantBeforeLatestUser(history);
+      if (this.assistantClaimedMaintenanceExecution(lastAssistant)) {
+        return [
+          "\u0644\u0627 \u0623\u0642\u062f\u0631 \u0623\u0624\u0643\u062f \u0645\u0646 \u0627\u0644\u0643\u0644\u0627\u0645 \u0648\u062d\u062f\u0647.",
+          "\u0622\u062e\u0631 \u062a\u0642\u0631\u064a\u0631 \u0641\u064a \u0627\u0644\u0645\u062d\u0627\u062f\u062b\u0629 \u0627\u062f\u0639\u0649 \u0623\u0646\u0647 \u0641\u062d\u0635 \u0623\u0648 \u0639\u062f\u0644 \u0645\u0644\u0641\u0627\u062a\u060c \u0644\u0643\u0646 \u0627\u0644\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0635\u062d\u064a\u062d \u064a\u062d\u062a\u0627\u062c \u0641\u062d\u0635 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0623\u0648 \u0633\u062c\u0644 \u0627\u0644\u062a\u0639\u062f\u064a\u0644\u0627\u062a \u0641\u0639\u0644\u064a\u0627\u064b.",
+          "\u0627\u0644\u0631\u062f \u0627\u0644\u0635\u062d\u064a\u062d \u0644\u0647\u0630\u0627 \u0627\u0644\u0633\u0624\u0627\u0644 \u0647\u0648: \u0623\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627\u064b\u060c \u0648\u0644\u0627 \u0623\u062f\u0639\u064a \u0627\u0644\u064a\u0642\u064a\u0646 \u0628\u062f\u0648\u0646 \u062f\u0644\u064a\u0644."
+        ].join("\n");
+      }
+    }
+
+    return null;
+  }
+
+  private static hydrateConversationHistoryFromInput(
+    conversationState: { history?: Array<{ role: "user" | "assistant"; content: string }> },
+    inputHistory?: Array<{ role: "user" | "assistant"; content: string }>
+  ): void {
+    if (!Array.isArray(inputHistory) || inputHistory.length === 0) return;
+    const normalized = inputHistory
+      .map((message) => ({
+        role: message?.role === "assistant" ? "assistant" as const : "user" as const,
+        content: ChatOrchestratorService.sanitizeModelVisibleText(
+          EngineeringMemory.scrubSecrets(String(message?.content || ""))
+        ).trim()
+      }))
+      .filter((message) => message.content && !ChatOrchestratorService.isMostlyMojibake(message.content))
+      .slice(-20);
+    if (!normalized.length) return;
+
+    const current = Array.isArray(conversationState.history) ? conversationState.history : [];
+    if (current.length >= normalized.length) return;
+    conversationState.history = normalized;
+  }
+
+  private static findPreviousUserMessageBeforeCurrent(
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+    currentPrompt: string
+  ): string | null {
+    const current = String(currentPrompt || "").trim();
+    const lastIndex = history.length - 1;
+    const start = history[lastIndex]?.role === "user"
+      && String(history[lastIndex]?.content || "").trim() === current
+      ? lastIndex - 1
+      : lastIndex;
+
+    for (let index = start; index >= 0; index -= 1) {
+      const message = history[index];
+      if (message?.role !== "user") continue;
+      const content = ChatOrchestratorService.sanitizeModelVisibleText(message.content).trim();
+      if (content) return content;
+    }
+    return null;
+  }
+
+  private static assistantClaimedMaintenanceExecution(text: string): boolean {
+    const cleaned = `${this.normalizeArabic(text)} ${String(text || "").toLowerCase()}`;
+    return /(?:\u062a\u0645\s+\u062a\u0646\u0641\u064a\u0630\s+\u0641\u062d\u0635\s+\u0627\u0644\u0635\u064a\u0627\u0646\u0629|\u062a\u0645\s+\u0625\u062c\u0631\u0627\u0621\s+\u062a\u0639\u062f\u064a\u0644\u0627\u062a|\u062a\u0645\s+\u0627\u062c\u0631\u0627\u0621\s+\u062a\u0639\u062f\u064a\u0644\u0627\u062a|\u0627\u0644\u0645\u0644\u0641\u0627\u062a\s+\u0627\u0644\u062a\u064a\s+\u062a\u0645\s+\u062a\u0639\u062f\u064a\u0644\u0647\u0627|\u0627\u0644\u0645\u0644\u0641\u0627\u062a\s+\u0627\u0644\u062a\u064a\s+\u062a\u0645\s+\u0641\u062d\u0635\u0647\u0627|\u0627\u0644\u062a\u062d\u0642\u0642)|\b(files touched|files modified|verification|index\.html|styles\.css)\b/i.test(cleaned);
+  }
+
   private static async resolveInlineImageGenerationRequest(prompt: string, workspacePath: string): Promise<string | null> {
+    if (prompt.includes("FOLLOW-UP TARGET UPDATE")) return null;
+    if (this.isLocalImageAssetPageImplementationRequest(prompt)) return null;
     const normalized = this.normalizeArabic(prompt);
     const lower = String(prompt || "").toLowerCase();
     const haystack = `${normalized} ${lower}`;
@@ -2503,6 +2824,16 @@ export class ChatOrchestratorService {
       const message = error instanceof Error ? error.message : String(error || "\u062e\u0637\u0623 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641");
       return `\u062a\u0639\u0630\u0631 \u062a\u0648\u0644\u064a\u062f \u0627\u0644\u0635\u0648\u0631\u0629: ${message}`;
     }
+  }
+
+  private static isLocalImageAssetPageImplementationRequest(prompt: string): boolean {
+    const normalized = this.normalizeArabic(prompt);
+    const lower = String(prompt || "").toLowerCase();
+    const haystack = `${normalized} ${lower}`;
+    const hasLocalPath = /[a-z]:[\\/]/i.test(prompt);
+    const localAssetSignal = /(?:\u0627\u0644\u0635\u0648\u0631\s+\u0627\u0644\u0645\u0648\u062c\u0648\u062f|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a\u0629|\u0627\u0633\u062a\u062e\u062f\u0645\s+\u0627\u0644\u0635\u0648\u0631|\u0627\u0631\u0628\u0637\s+\u0627\u0644\u0635\u0648\u0631|\buse\s+(?:the\s+)?(?:local\s+)?images?\b|\blink\s+(?:the\s+)?images?\b|\bimage\s+assets?\b|\bassets?\b)/i.test(haystack);
+    const pageFileSignal = /(?:index\.html|styles?\.css|script\.js|\bhtml\b|\bcss\b|\bjavascript\b|\bjs\b|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0647\u064a\u0631\u0648|\bhero\b|\bsidebar\b|\bcards?\b|\bnavbar\b)/i.test(haystack);
+    return hasLocalPath && localAssetSignal && pageFileSignal;
   }
 
   private static buildImageGenerationPrompt(subject: string, prompt: string): string {
@@ -3029,6 +3360,455 @@ export class ChatOrchestratorService {
     return isShort && (thanks || ok || smallTalk || greeting);
   }
 
+  private static resolveDailyMaintenancePhaseTwoPrompt(
+    prompt: string,
+    activeTask?: string | null,
+    history: Array<{ role: "user" | "assistant"; content: string }> = []
+  ): string | null {
+    const normalized = this.normalizeArabic(prompt || "");
+    const lower = String(prompt || "").toLowerCase();
+    const asksPhaseTwo = /(?:\u0627\u0644\u0641\u062d\u0635\s+\u0646\u062c\u062d|\u0646\u062c\u062d\s+\u0627\u0644\u0641\u062d\u0635|\u0627\u0628\u062f\u0627\s+\u0627\u0644\u0645\u0631\u062d\u0644\u0647\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0647|\u0627\u0628\u062f\u0623\s+\u0627\u0644\u0645\u0631\u062d\u0644\u0629\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0629|\u0627\u0644\u0645\u0631\u062d\u0644\u0647\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0647|\u0627\u0644\u0645\u0631\u062d\u0644\u0629\s+\u0627\u0644\u062b\u0627\u0646\u064a\u0629|\u0646\u0641\u0630\s+\u0627\u0644\u0627\u0635\u0644\u0627\u062d|\u0646\u0641\u0651\u0630\s+\u0627\u0644\u0627\u0635\u0644\u0627\u062d)/.test(normalized)
+      || /\b(?:inspection passed|start phase two|start phase 2|begin phase two|begin phase 2|execute the fix)\b/i.test(lower);
+    if (!asksPhaseTwo) return null;
+    const task = String(activeTask || "").trim() || this.findLastDailyMaintenanceModifyTask(history);
+    if (!task) return null;
+    const workflow = DailyEngineerService.classifyRequest(task);
+    if (!workflow || workflow.reviewOnly) return null;
+    return task;
+  }
+
+  private static findLastDailyMaintenanceModifyTask(
+    history: Array<{ role: "user" | "assistant"; content: string }>
+  ): string {
+    for (let index = history.length - 2; index >= 0; index -= 1) {
+      const message = history[index];
+      if (!message || message.role !== "user") continue;
+      const candidate = message.content.trim();
+      if (!candidate) continue;
+      const workflow = DailyEngineerService.classifyRequest(candidate);
+      if (workflow && !workflow.reviewOnly) {
+        return candidate;
+      }
+    }
+    return "";
+  }
+
+  private static hasDailyMaintenanceManualApprovalLanguage(prompt: string): boolean {
+    const normalized = this.normalizeArabic(prompt || "");
+    const lower = String(prompt || "").toLowerCase();
+    const raw = String(prompt || "");
+    const arabicApprovalNearGate =
+      /(?:\u0628\u0639\u062f|\u0642\u0628\u0644|\u0627\u0637\u0644\u0628|\u0644\u0627\s+\u062a\u0628\u062f[\u0623\u0627])[\s\S]{0,48}\u0645\u0648\u0627\u0641\u0642(?:\u062a\u064a|\u0629|\u062a\u0643)?/i.test(raw)
+      || /\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+(?:\u0627\u0644\u0623\u0648\u0644\u0649|\u0627\u0644\u0627\u0648\u0644\u0649|\u0627\u0648\u0644\u0649|\u0623\u0648\u0644\u0649|\u0627\u0644\u0627\u0648\u0644\u064a)/.test(raw);
+    return /(?:\u0628\u0639\u062f\s+\u0645\u0648\u0627\u0641\u0642\u062a\u064a|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0639\u062f\u064a\u0644|\u0642\u0628\u0644\s+\u0627\u064a\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0637\u0644\u0628\s+\u0645\u0648\u0627\u0641\u0642\u062a\u064a|\u0644\u0627\s+\u062a\u0628\u062f\u0627\s+\u0627\u0644\u062a\u0646\u0641\u064a\u0630|\u0644\u0627\s+\u062a\u0628\u062f\u0623\s+\u0627\u0644\u062a\u0646\u0641\u064a\u0630|\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+\u0627\u0644\u0627\u0648\u0644\u064a|\u0645\u0648\u0627\u0641\u0642\u062a\u064a\s+\u0627\u0644\u0627\u0648\u0644\u0649)/.test(normalized)
+      || arabicApprovalNearGate
+      || /\b(?:after my approval|before my approval|ask my approval|ask for my approval|request my approval|before executing|before implementation)\b/i.test(lower);
+  }
+
+  private static async runDailyMaintenanceReadOnlyInspection(workspacePath: string): Promise<string> {
+    const inspected = await this.collectDailyMaintenanceReadableFiles(workspacePath);
+    const notes: string[] = [];
+
+    for (const item of inspected) {
+      const ext = path.extname(item.relativePath).toLowerCase();
+      if (item.content.trim().length === 0) {
+        notes.push(`${item.relativePath}: ملف فارغ.`);
+      }
+      if (ext === ".json") {
+        try {
+          JSON.parse(item.content);
+        } catch {
+          notes.push(`${item.relativePath}: JSON غير صالح.`);
+        }
+      }
+      if (ext === ".html" && !/<meta\s+[^>]*name=["']viewport["']/i.test(item.content)) {
+        notes.push(`${item.relativePath}: HTML بلا meta viewport.`);
+      }
+      if (/\b(?:TODO|FIXME)\b/i.test(item.content)) {
+        notes.push(`${item.relativePath}: يحتوي TODO/FIXME.`);
+      }
+      if (/\bconsole\.log\s*\(/.test(item.content) && /\.(?:js|jsx|ts|tsx|mjs|cjs)$/i.test(item.relativePath)) {
+        notes.push(`${item.relativePath}: يحتوي console.log للمراجعة.`);
+      }
+    }
+
+    const fileList = inspected.length
+      ? inspected.map((item) => item.relativePath).slice(0, 8).join("، ")
+      : "لم أجد ملفات قابلة للقراءة ضمن حدود الفحص الآمن";
+    const issueLine = notes.length
+      ? `هل توجد مشكلة: نعم، أبرز ملاحظة: ${notes[0]}`
+      : "هل توجد مشكلة: لا توجد مشكلة واضحة من الفحص السريع بالأدوات المحلية.";
+
+    return [
+      "نتيجة الفحص: قرأت ملفات المشروع فعليا بأدوات قراءة فقط وبدون استدعاء مزود سحابي.",
+      `الملفات التي قرأتها: ${fileList}.`,
+      issueLine,
+      "هل تم تعديل ملفات: لا، 0 ملفات.",
+      inspected.length
+        ? "الخطوة التالية: إذا تريد إصلاح أو تحسين، أرسل موافقة تنفيذ واضحة أو حدد الملف المطلوب."
+        : "الخطوة التالية: افتح workspace يحتوي ملفات مشروع قابلة للقراءة أو حدد مسار المشروع الصحيح."
+    ].join("\n");
+  }
+
+  private static async collectDailyMaintenanceReadableFiles(
+    workspacePath: string,
+    maxFiles = 8,
+    maxDepth = 3
+  ): Promise<Array<{ relativePath: string; content: string }>> {
+    const candidates: string[] = [];
+    const preferredNames = new Set([
+      "package.json",
+      "index.html",
+      "app.html",
+      "style.css",
+      "styles.css",
+      "script.js",
+      "main.js",
+      "app.js",
+      "README.md",
+      "AGENTS.md",
+      "PROJECT_CONTEXT.md"
+    ]);
+
+    const visit = async (dir: string, depth: number): Promise<void> => {
+      if (depth > maxDepth || candidates.length >= 80) return;
+      let entries: Array<import("fs").Dirent>;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      const sorted = entries.sort((a, b) => {
+        const aPreferred = preferredNames.has(a.name) ? 0 : 1;
+        const bPreferred = preferredNames.has(b.name) ? 0 : 1;
+        return aPreferred - bPreferred || a.name.localeCompare(b.name);
+      });
+
+      for (const entry of sorted) {
+        if (candidates.length >= 80) break;
+        const fullPath = path.join(dir, entry.name);
+        const relative = path.relative(workspacePath, fullPath).replace(/\\/g, "/");
+        if (this.isDailyMaintenanceExcludedPath(relative, entry.name)) continue;
+        if (entry.isDirectory()) {
+          await visit(fullPath, depth + 1);
+        } else if (entry.isFile() && this.isDailyMaintenanceReadableFile(relative)) {
+          candidates.push(fullPath);
+        }
+      }
+    };
+
+    await visit(workspacePath, 0);
+
+    const ranked = candidates
+      .sort((a, b) => this.rankDailyMaintenanceFile(workspacePath, a) - this.rankDailyMaintenanceFile(workspacePath, b))
+      .slice(0, maxFiles);
+    const inspected: Array<{ relativePath: string; content: string }> = [];
+
+    for (const filePath of ranked) {
+      try {
+        const stat = await fs.stat(filePath);
+        if (stat.size > 180_000) continue;
+        const content = await fs.readFile(filePath, "utf8");
+        inspected.push({
+          relativePath: path.relative(workspacePath, filePath).replace(/\\/g, "/"),
+          content
+        });
+      } catch {
+        // Skip unreadable files; the final report only names files actually read.
+      }
+    }
+
+    return inspected;
+  }
+
+  private static isDailyMaintenanceExcludedPath(relativePath: string, name: string): boolean {
+    const normalized = relativePath.replace(/\\/g, "/").toLowerCase();
+    const lowerName = name.toLowerCase();
+    const blockedDir = new Set([
+      ".git",
+      ".agents",
+      ".codex",
+      ".saad-agent",
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      "release-production-v4",
+      "win-unpacked",
+      "app-asar-work",
+      "out",
+      "tmp",
+      "temp"
+    ]);
+    if (blockedDir.has(lowerName)) return true;
+    return /(?:^|\/)(?:\.env|.*secret.*|.*token.*|.*credential.*|.*cookie.*|.*\.pem|.*\.key)(?:$|\/)/i.test(normalized);
+  }
+
+  private static isDailyMaintenanceReadableFile(relativePath: string): boolean {
+    if (this.isDailyMaintenanceExcludedPath(relativePath, path.basename(relativePath))) return false;
+    const ext = path.extname(relativePath).toLowerCase();
+    return new Set([
+      ".html",
+      ".css",
+      ".js",
+      ".jsx",
+      ".ts",
+      ".tsx",
+      ".mjs",
+      ".cjs",
+      ".json",
+      ".md",
+      ".txt",
+      ".yml",
+      ".yaml"
+    ]).has(ext);
+  }
+
+  private static rankDailyMaintenanceFile(workspacePath: string, filePath: string): number {
+    const relative = path.relative(workspacePath, filePath).replace(/\\/g, "/").toLowerCase();
+    const name = path.basename(relative);
+    const preferred: Record<string, number> = {
+      "package.json": 0,
+      "index.html": 1,
+      "app.html": 2,
+      "script.js": 3,
+      "main.js": 4,
+      "app.js": 5,
+      "styles.css": 6,
+      "style.css": 7,
+      "readme.md": 8,
+      "agents.md": 9,
+      "project_context.md": 10
+    };
+    if (preferred[name] !== undefined) return preferred[name];
+    if (relative.startsWith("src/")) return 20;
+    if (relative.startsWith("app/")) return 25;
+    if (relative.startsWith("ui/src/")) return 30;
+    return 60;
+  }
+
+  private static isRuntimeProviderDeniedFailure(codexResult: {
+    stdout?: string;
+    stderr?: string;
+    error?: string;
+  }): boolean {
+    const combined = [
+      codexResult.error || "",
+      codexResult.stdout || "",
+      codexResult.stderr || ""
+    ].join("\n");
+    return /operation not allowed|llm_call_failed|local coding runtime provider refused|cloud-only provider policy|local-first model policy|configured cloud provider|local providers such as lm studio|callable local\/runtime model|unknown provider\s+["']?[^"'\s.]+["']?|does not support ollama|models\.json parse error|failed to parse models\.json/i.test(combined);
+  }
+
+  private static formatDailyMaintenanceRuntimeProviderDeniedResponse(codexResult: {
+    stdout?: string;
+    stderr?: string;
+    error?: string;
+  }): string {
+    const extracted = ChatOrchestratorService.extractRuntimeErrorMessage(
+      [codexResult.error || "", codexResult.stdout || "", codexResult.stderr || ""].join("\n")
+    );
+    const providerMatch = extracted.match(/unknown provider\s+["']?([^"'\s.]+)["']?/i);
+    const providerName = providerMatch?.[1] || "";
+    const providerLabel = providerName.toLowerCase() === "ollama" ? "Ollama" : providerName;
+    const isUnknownProvider = Boolean(providerName);
+    const isModelSetupRequired = /cloud-only provider policy|local-first model policy|configured cloud provider|local providers such as lm studio|callable local\/runtime model/i.test(extracted);
+    if (isModelSetupRequired) {
+      return [
+        "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+        "",
+        "\u0627\u0644\u0633\u0628\u0628: \u0633\u064a\u0627\u0633\u0629 Local-first \u0641\u0639\u0627\u0644\u0629\u060c \u0644\u0643\u0646 \u0645\u0632\u0648\u062f Coding \u0627\u0644\u062d\u0627\u0644\u064a \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644 \u0643\u0645\u0633\u0627\u0631 \u062a\u0646\u0641\u064a\u0630.",
+        "",
+        "\u0627\u0644\u062e\u0644\u0627\u0635\u0629:",
+        "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0634\u063a\u064a\u0644 \u0623\u062f\u0648\u0627\u062a \u0627\u0644\u062a\u0639\u062f\u064a\u0644.",
+        "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0645\u0644\u0641.",
+        "",
+        "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+        "1. Settings > Providers: \u0641\u0639\u0644 LM Studio \u0623\u0648 Saad Local Direct.",
+        "2. \u0627\u0636\u063a\u0637 Discover / Fetch Models \u0644\u0646\u0641\u0633 \u0627\u0644\u0645\u0632\u0648\u062f.",
+        "3. Settings > Models: \u0627\u062c\u0639\u0644 Coding \u0639\u0644\u0649 \u0645\u0648\u062f\u064a\u0644 \u0645\u062d\u0644\u064a \u0645\u0643\u062a\u0634\u0641. Ollama \u064a\u0646\u0641\u0639 \u0644\u0644\u0645\u062d\u0627\u062f\u062b\u0629\u060c \u0644\u0643\u0646 \u062c\u0633\u0631 Pi \u064a\u0641\u0636\u0644 LM Studio."
+      ].join("\n");
+    }
+    return [
+      "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+      "",
+      "\u0627\u0644\u0633\u0628\u0628: " + (extracted || "Operation not allowed"),
+      "",
+      "\u0627\u0644\u062e\u0644\u0627\u0635\u0629:",
+      isUnknownProvider
+        ? `- Pi/Codex \u0644\u0627 \u064a\u062a\u0639\u0631\u0641 \u0639\u0644\u0649 \u0645\u0632\u0648\u062f Coding \u0627\u0644\u062d\u0627\u0644\u064a (${providerLabel}) \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0645\u0632\u0648\u062f\u0627\u062a\u0647.`
+        : "- \u0645\u0632\u0648\u062f Coding \u0627\u0644\u062d\u0627\u0644\u064a \u0645\u062a\u0635\u0644 \u0644\u0644\u0645\u062d\u0627\u062f\u062b\u0629 \u0623\u0648 \u0627\u0644\u0641\u062d\u0635\u060c \u0644\u0643\u0646 \u0645\u0633\u0627\u0631 Pi/Codex \u0627\u0644\u062a\u0646\u0641\u064a\u0630\u064a \u0631\u0641\u0636 \u062a\u0634\u063a\u064a\u0644 LLM/Tools \u0628\u0647\u0630\u0627 \u0627\u0644\u0645\u0632\u0648\u062f.",
+      "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0645\u0644\u0641.",
+      "",
+      "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+      isUnknownProvider
+        ? "1. \u0623\u0635\u0644\u062d \u0642\u0627\u0626\u0645\u0629 Pi \u0644\u0644\u0645\u0632\u0648\u062f\u0627\u062a: \u0634\u063a\u0644 pi --list-models \u0648\u062a\u0623\u0643\u062f \u0623\u0646 C:\\Users\\PC\\.pi\\agent\\models.json \u064a\u064f\u0642\u0631\u0623 \u0628\u062f\u0648\u0646 \u062e\u0637\u0623\u060c \u0648\u0623\u0646 LM Studio \u0648\u0645\u0648\u062f\u064a\u0644 Coding \u0645\u0648\u062c\u0648\u062f\u0627\u0646."
+        : "1. \u0641\u0639\u0644 LM Studio \u0623\u0648 Saad Local Direct \u0645\u0646 Settings > Providers.",
+      "2. \u0634\u063a\u0644 Discover / Fetch Models.",
+      "3. \u0627\u062e\u062a\u0631 \u0645\u0648\u062f\u064a\u0644 \u0645\u062d\u0644\u064a \u0645\u0643\u062a\u0634\u0641 \u0644\u062f\u0648\u0631 Coding \u0645\u0646 Settings > Models."
+    ].join("\n");
+  }
+
+  private static buildDailyMaintenanceRuntimeOutputContract(workflow: DailyEngineerWorkflow | null): string {
+    if (!workflow) return "";
+    return [
+      "SAAD DAILY MAINTENANCE OUTPUT CONTRACT:",
+      "Reply in Arabic unless the user explicitly asks for another language.",
+      "Return only the maintenance report. Do not include command lines, workspace paths, provider names, runtime diagnostics, or wrapper text.",
+      "Use this compact structure: result, files examined, files touched, verification, failures found, remaining next step.",
+      "If no files were edited, say that clearly. If a file was edited, mention only the relative file path and the practical change.",
+      "Do not claim verification was run unless you actually ran or performed it."
+    ].join("\n");
+  }
+
+  private static formatDailyMaintenanceRuntimeSuccessResponse(codexResult: {
+    stdout?: string;
+    stderr?: string;
+  }): string {
+    const rawOutput = (codexResult.stdout || codexResult.stderr || "").trim();
+    const cleanedOutput = EngineeringMemory.scrubSecrets(rawOutput)
+      .split(/\r?\n/)
+      .map((line) => line.trimEnd())
+      .filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        if (/^Codex Runtime (completed|failed|[\s\S]*returned this result)/i.test(trimmed)) return false;
+        if (/^(Command|Workspace|Output|Reason):\s*$/i.test(trimmed)) return false;
+        if (/^[A-Z]:\\.*\\pi(?:\.cmd)?\b/i.test(trimmed)) return false;
+        if (/^\s*pi(?:\.cmd)?\s+-/i.test(trimmed)) return false;
+        if (/^Workspace:\s*/i.test(trimmed)) return false;
+        if (/^Command:\s*/i.test(trimmed)) return false;
+        return true;
+      })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    return [
+      "\u062a\u0645 \u062a\u0646\u0641\u064a\u0630 \u0641\u062d\u0635 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a.",
+      "",
+      cleanedOutput || "\u0627\u0643\u062a\u0645\u0644 \u0627\u0644\u062a\u0646\u0641\u064a\u0630\u060c \u0648\u0644\u0645 \u064a\u0631\u062c\u0639 \u0627\u0644\u0640 Runtime \u062a\u0641\u0627\u0635\u064a\u0644 \u0625\u0636\u0627\u0641\u064a\u0629.",
+      "",
+      "\u0645\u0644\u0627\u062d\u0638\u0629: \u062a\u0645 \u0625\u062e\u0641\u0627\u0621 \u0623\u0645\u0631 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0648\u0645\u0633\u0627\u0631 \u0627\u0644\u0639\u0645\u0644 \u0644\u0623\u0646\u0647\u0627 \u062a\u0641\u0627\u0635\u064a\u0644 Runtime \u062f\u0627\u062e\u0644\u064a\u0629."
+    ].join("\n");
+  }
+
+  private static buildDailyMaintenanceWorkspaceExecutionContract(
+    workflow: DailyEngineerWorkflow | null,
+    workspacePath: string
+  ): string {
+    if (!workflow || workflow.reviewOnly) return "";
+    return [
+      "SAAD DAILY MAINTENANCE WORKSPACE EXECUTION CONTRACT:",
+      `The trusted workspace root is already mounted as the runtime current working directory: ${workspacePath}`,
+      "Do not ask the user to provide project files, file names, or extra project details before inspecting.",
+      "Start by using the available read/search/list tools against the current working directory.",
+      "Inspect likely entry files first: package manifests, README, index/html/css/js/ts/tsx files, and nearby UI/style files.",
+      "If the workspace appears empty, run a second shallow listing/search before reporting that no files were found.",
+      "A successful maintenance report must name at least one file actually read, unless the workspace truly has no readable project files.",
+      "If you cannot access tools or files, report that as a runtime/tool-access failure and do not claim the inspection succeeded."
+    ].join("\n");
+  }
+
+  private static buildDailyMaintenanceApprovalScope(
+    workflow: DailyEngineerWorkflow | null,
+    approved: boolean
+  ): string {
+    if (!workflow || workflow.reviewOnly || !approved) return "";
+    return [
+      "USER APPROVAL SCOPE FOR THIS DAILY MAINTENANCE RUN:",
+      "The user explicitly approved executing this daily-maintenance task after Saad Agent's approval gate.",
+      "This approval covers small, reversible, in-scope edits discovered during inspection, such as stale text replacement, minor UI copy/style polish, syntax-safe local corrections, and narrow bug fixes in files directly related to the request.",
+      "Do not stop for a second approval for those bounded low-risk edits.",
+      "Stop and request a specific second approval before destructive actions, deleting user data, dependency installs, environment/secret/auth/billing/payment changes, schema migrations, large refactors, cross-workspace writes, network actions, or unclear/out-of-scope work.",
+      "Keep the touched file set minimal, run the most relevant available verification, and report files touched, verification, failures, and remaining work."
+    ].join("\n");
+  }
+
+  private static async runDailyMaintenanceAgentLoopPreflight(input: {
+    taskId: string;
+    conversationId: string;
+    goal: string;
+    approvalMode: ApprovalMode;
+  }): Promise<string> {
+    const result = await AgentLoopService.run({
+      taskId: `${input.taskId}-daily-loop-preflight`,
+      conversationId: input.conversationId,
+      goal: input.goal,
+      approvalMode: input.approvalMode,
+      maxIterations: 4,
+      decideNextAction: ({ observations, iteration }) => {
+        if (iteration === 1) {
+          return {
+            type: "tool",
+            toolName: "search-tool",
+            args: {
+              action: "file-search",
+              query: "package.json",
+              targetDir: "."
+            },
+            reason: "Read-only daily-maintenance preflight: locate package manifests before runtime delegation."
+          };
+        }
+        if (iteration === 2) {
+          return {
+            type: "tool",
+            toolName: "search-tool",
+            args: {
+              action: "file-search",
+              query: "AGENTS.md",
+              targetDir: "."
+            },
+            reason: "Read-only daily-maintenance preflight: locate project instruction files before runtime delegation."
+          };
+        }
+        if (iteration === 3) {
+          return {
+            type: "tool",
+            toolName: "search-tool",
+            args: {
+              action: "text-search",
+              query: "Daily Maintenance",
+              extensions: ["ts", "tsx", "md"],
+              targetDir: "."
+            },
+            reason: "Read-only daily-maintenance preflight: collect existing maintenance markers without editing files."
+          };
+        }
+        return {
+          type: "finish",
+          answer: ChatOrchestratorService.formatAgentLoopPreflightObservations(observations)
+        };
+      }
+    });
+
+    return [
+      "SAAD AGENT LOOP PREFLIGHT OBSERVATIONS:",
+      result.answer || ChatOrchestratorService.formatAgentLoopPreflightObservations(result.observations),
+      `Agent loop status: ${result.status}`,
+      result.failedReason ? `Agent loop failure: ${result.failedReason}` : ""
+    ].filter(Boolean).join("\n");
+  }
+
+  private static formatAgentLoopPreflightObservations(observations: AgentLoopObservation[]): string {
+    if (!observations.length) return "- No preflight observations were collected.";
+    return observations.map((observation) => {
+      const result = observation.result as any;
+      const matches = Array.isArray(result?.matches) ? result.matches : [];
+      const matchSummary = matches.slice(0, 8).map((match: any) => {
+        const location = match.file || match.path || "unknown";
+        return match.line ? `${location}:${match.line}` : String(location);
+      }).join(", ");
+      return [
+        `- Iteration ${observation.iteration}: ${observation.toolName} ${observation.ok ? "ok" : "failed"}`,
+        matchSummary ? `; matches: ${matchSummary}` : "",
+        observation.error ? `; error: ${observation.error}` : ""
+      ].join("");
+    }).join("\n");
+  }
+
   private static isAffirmativeOnly(prompt: string): boolean {
     const normalized = this.normalizeArabic(prompt || "");
     const lower = String(prompt || "").trim().toLowerCase();
@@ -3301,6 +4081,8 @@ export class ChatOrchestratorService {
 
   private static sanitizeResponseForUser(response: string, userRequestText = ""): string {
     const text = String(response || "");
+    const runtimeErrorResponse = ChatOrchestratorService.formatRawRuntimeErrorResponse(text);
+    if (runtimeErrorResponse) return runtimeErrorResponse;
     const expertiseResponse = ChatOrchestratorService.formatCleanExpertiseExtractionResponse(text);
     if (expertiseResponse) return expertiseResponse;
     let cleaned = ChatOrchestratorService.sanitizeModelVisibleText(text);
@@ -3309,6 +4091,67 @@ export class ChatOrchestratorService {
       cleaned = cleaned.replace(/دفعة استخراج خبرات من\s+الموديل المحلي/gi, "دفعة استخراج خبرات من Gemini");
     }
     return cleaned.trim() || text.trim();
+  }
+
+  private static formatRawRuntimeErrorResponse(response: string): string {
+    const text = String(response || "").trim();
+    if (!text || !/llm_call_failed|Operation not allowed|Cloud-only provider policy|Local-first model policy|"\s*error\s*"/i.test(text)) return "";
+    const extracted = ChatOrchestratorService.extractRuntimeErrorMessage(text);
+    if (/cloud-only provider policy|local-first model policy|configured cloud provider|local providers such as lm studio|callable local\/runtime model/i.test(`${text}\n${extracted}`)) {
+      return [
+        "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+        "",
+        "\u0627\u0644\u0633\u0628\u0628: \u0633\u064a\u0627\u0633\u0629 Local-first \u0641\u0639\u0627\u0644\u0629 \u0648\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0632\u0648\u062f \u0645\u062d\u0644\u064a \u0645\u0643\u062a\u0645\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u062f\u0648\u0631.",
+        "",
+        "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+        "1. Settings > Providers: \u0641\u0639\u0644 LM Studio \u0623\u0648 Saad Local Direct.",
+        "2. \u0634\u063a\u0644 Discover / Fetch Models.",
+        "3. Settings > Models: \u0627\u062e\u062a\u0631 \u0645\u0648\u062f\u064a\u0644 \u0645\u062d\u0644\u064a \u0645\u0643\u062a\u0634\u0641 \u0644\u062f\u0648\u0631 Coding."
+      ].join("\n");
+    }
+    if (!/operation not allowed|llm_call_failed/i.test(`${text}\n${extracted}`)) return "";
+    return [
+      "\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0642\u0628\u0644 \u0623\u064a \u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+      "",
+      `\u0627\u0644\u0633\u0628\u0628: ${extracted || "Operation not allowed"}`,
+      "",
+      "\u0627\u0644\u062e\u0644\u0627\u0635\u0629:",
+      "- Ollama \u0645\u062a\u0635\u0644 \u0648\u064a\u0646\u0641\u0639 \u0644\u0644\u0645\u062d\u0627\u062f\u062b\u0629\u060c \u0644\u0643\u0646 \u0645\u0633\u0627\u0631 Pi/Codex \u0627\u0644\u062a\u0646\u0641\u064a\u0630\u064a \u0631\u0641\u0636 \u062a\u0634\u063a\u064a\u0644 LLM/Tools \u0628\u0647\u0630\u0627 \u0627\u0644\u0645\u0632\u0648\u062f.",
+      "- \u0644\u0645 \u064a\u062a\u0645 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0645\u0644\u0641.",
+      "",
+      "\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u0635\u062d\u064a\u062d\u0629:",
+      "1. \u0644\u0644\u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0647\u0646\u062f\u0633\u064a \u0627\u0644\u0622\u0646: \u0627\u062c\u0639\u0644 Settings > Models > Coding \u0639\u0644\u0649 LM Studio \u0623\u0648 Gemini/OpenAI \u0627\u0644\u0645\u0643\u0648\u0646.",
+      "2. \u0644\u0644\u062a\u0634\u063a\u064a\u0644 \u0628\u062f\u0648\u0646 LM Studio: \u0636\u0628\u0637 Saad Local Direct \u0628\u0645\u0633\u0627\u0631 llama-server.exe \u0648\u0645\u0644\u0641 GGUF.",
+      "3. \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u0627\u0644\u0623\u0646\u0633\u0628 \u0645\u0646 \u0645\u0644\u0641\u0627\u062a\u0643: E:\\mod\\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf."
+    ].join("\n");
+    return [
+      "تعذر تشغيل مهمة الصيانة لأن مزود النموذج المحلي رفض العملية.",
+      "",
+      `السبب: ${extracted || "Operation not allowed"}`,
+      "",
+      "ما يعنيه هذا:",
+      "- Ollama متصل، لكن جسر التنفيذ حاول عملية LLM/Tool غير مسموحة أو غير مدعومة في الإعداد الحالي.",
+      "- تأكد أن Settings > Models > Coding يستخدم نموذج Ollama موجود فعلاً، مثل `saadcoder:latest`، وأن Max output tokens أقل من نافذة السياق.",
+      "- إذا استمر الخطأ، استخدم وضع Ask للموافقة اليدوية أو بدّل نموذج Coding مؤقتاً."
+    ].join("\n");
+  }
+
+  private static extractRuntimeErrorMessage(value: string): string {
+    const text = String(value || "").trim();
+    const parse = (candidate: string): any => {
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        return null;
+      }
+    };
+    const payload = parse(text) || parse(text.match(/\{[\s\S]*\}/)?.[0] || "");
+    if (!payload) return text.replace(/^"+|"+$/g, "");
+    const message = payload?.error?.message || payload?.message || payload?.error;
+    if (typeof message !== "string") return text;
+    const nested = parse(message.trim());
+    if (nested) return ChatOrchestratorService.extractRuntimeErrorMessage(JSON.stringify(nested));
+    return message.trim();
   }
 
   private static formatCleanExpertiseExtractionResponse(response: string): string {
@@ -3370,6 +4213,19 @@ export class ChatOrchestratorService {
         return true;
       });
     return lines.join("\n").trim();
+  }
+
+  private static shouldUseMinimalProviderContext(prompt: string): boolean {
+    const raw = String(prompt || "").trim();
+    if (!raw || raw.length > 220) return false;
+    const lower = raw.toLowerCase();
+    const normalized = this.normalizeArabic(raw);
+    const requestsSavedContext = /\b(memory|remember|saved|stored|training|knowledge|history|workspace|project|file|attachment|analy[sz]e|inspect|review|search|internet|web|url|http|github|code|debug|fix|implement|design|maintenance|agent)\b/i.test(lower)
+      || /(\u0630\u0627\u0643\u0631\u0629|\u062a\u0630\u0643\u0631|\u0627\u0644\u0645\u062d\u0641\u0648\u0638|\u0627\u0644\u0645\u062e\u0632\u0648\u0646|\u0627\u0644\u062a\u062f\u0631\u064a\u0628|\u0645\u0639\u0631\u0641\u0629|\u0627\u0644\u0645\u0634\u0631\u0648\u0639|\u0645\u0644\u0641|\u0645\u0644\u0641\u0627\u062a|\u0627\u0641\u062d\u0635|\u0631\u0627\u062c\u0639|\u0627\u0628\u062d\u062b|\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0627\u0635\u0644\u062d|\u0635\u0645\u0645|\u0635\u064a\u0627\u0646\u0629|\u0627\u062c\u064a\u0646\u062a|\u0646\u0641\u0633\u064a|\u0645\u064a\u0648\u0644\u064a|\u062e\u0627\u0635|\u0639\u0646\u064a|\u0627\u0633\u0645\u064a)/.test(normalized);
+    if (requestsSavedContext) return false;
+    return /\b(test|smoke|ping|hello|say|write|reply|sentence|short|only|cloud|gemini)\b/i.test(lower)
+      || /(\u0627\u062e\u062a\u0628\u0627\u0631|\u0627\u0643\u062a\u0628|\u062c\u0645\u0644\u0629|\u0642\u0635\u064a\u0631\u0629|\u0641\u0642\u0637|\u0643\u0644\u0627\u0648\u062f|\u063a\u064a\u0645\u0646\u064a|\u0642\u0644|\u0631\u062f)/.test(normalized)
+      || raw.length <= 120;
   }
 
   private static sanitizeModelVisibleText(text: string): string {
@@ -3457,6 +4313,107 @@ export class ChatOrchestratorService {
     if (mimeType.startsWith("text/")) return true;
     if (mimeType.includes("json") || mimeType.includes("yaml") || mimeType.includes("xml") || mimeType.includes("markdown")) return true;
     return READABLE_ATTACHMENT_EXTENSIONS.has(ext);
+  }
+
+  private static isAttachedSpecEngineeringRequest(
+    prompt: string,
+    attachments: Attachment[],
+    readableAttachmentContext: string,
+    activeTask?: string
+  ): boolean {
+    if (!attachments.length || !readableAttachmentContext.trim()) return false;
+    const requestText = `${prompt || ""}\n${activeTask || ""}`;
+    const lowerRequest = requestText.toLowerCase();
+    const normalizedRequest = this.normalizeArabic(requestText);
+    const requestHaystack = `${normalizedRequest} ${lowerRequest}`;
+    const context = readableAttachmentContext.toLowerCase();
+    const attachmentNames = attachments.map((item) => `${item.filename || ""} ${item.mimeType || ""}`).join(" ").toLowerCase();
+
+    const specAttachmentSignal = /\b(openapi|swagger|requestbody|responses?|schemas?|bearer|authorization|endpoint|api\/v\d+|createTask|taskId|seedream|image-to-image|model enum|application\/json)\b/i.test(context)
+      || /\b(?:openapi|swagger|api|config|schema|spec)\b/i.test(attachmentNames);
+    if (!specAttachmentSignal) return false;
+
+    const engineeringIntent = /(?:\u0627\u0631\u0628\u0637|\u0631\u0628\u0637|\u0631\u0628\u0637\u0644\u064a|\u0627\u062f\u0645\u062c|\u062f\u0645\u062c|\u0627\u0636\u0641|\u0623\u0636\u0641|\u0636\u064a\u0641|\u0632\u062f|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0637\u0628\u0642|\u0639\u062f\u0644|\u0635\u0644\u062d|\u0635\u0645\u0645|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\bconnect\b|\bwire\b|\bintegrate\b|\bimplement\b|\badd\b|\bupdate\b|\bmodify\b|\bbuild\b|\bcreate\b|\bmake\b)/i.test(requestHaystack);
+    const engineeringTarget = /(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0643\u0648\u062f|\u0645\u0644\u0641|\u0645\u0634\u0631\u0648\u0639|\u0645\u0648\u062f\u064a\u0644|\u0645\u0648\u062f\u0644|\u0646\u0645\u0648\u0630\u062c|\u062e\u0635\u0627\u0626\u0635|\u0645\u0632\u0648\u062f|\bpage\b|\bui\b|\bhtml\b|\bcss\b|\bscript\b|\bapi\b|\bmodel\b|\bprovider\b|\bform\b|\bpanel\b|\bfields?\b|\bproperties\b|\bendpoint\b)/i.test(requestHaystack);
+    const fileAttachmentOnlyFollowUp = this.isAttachmentOnlyPlaceholder(prompt)
+      && Boolean(activeTask && this.isEngineeringDesignImplementationRequest(activeTask));
+
+    return (engineeringIntent && engineeringTarget) || fileAttachmentOnlyFollowUp;
+  }
+
+  private static isAttachmentOnlySpecWithoutEngineeringTask(
+    prompt: string,
+    attachments: Attachment[],
+    readableAttachmentContext: string
+  ): boolean {
+    if (!this.isAttachmentOnlyPlaceholder(prompt)) return false;
+    return this.hasReadableSpecAttachment(attachments, readableAttachmentContext);
+  }
+
+  private static resolveAttachedSpecTaskContext(
+    prompt: string,
+    activeTask: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>
+  ): string {
+    const active = String(activeTask || "").trim();
+    if (active && this.isEngineeringDesignImplementationRequest(active)) return active;
+    if (!this.isAttachmentOnlyPlaceholder(prompt)) return active;
+
+    const previousUserRequest = [...(history || [])]
+      .slice(0, -1)
+      .reverse()
+      .find((message) => {
+        if (message.role !== "user") return false;
+        const previous = String(message.content || "").trim();
+        if (!previous || this.isAttachmentOnlyPlaceholder(previous)) return false;
+        const previousHaystack = `${this.normalizeArabic(previous)} ${previous.toLowerCase()}`;
+        return this.isEngineeringDesignImplementationRequest(previous)
+          || /(?:\u0627\u0631\u0628\u0637|\u0631\u0628\u0637|\u062f\u0645\u062c|\u0627\u062f\u0645\u062c|\u0645\u0648\u062f\u064a\u0644|\u0645\u0648\u062f\u0644|\u0646\u0645\u0648\u0630\u062c|\u0645\u0632\u0648\u062f|\u062e\u0635\u0627\u0626\u0635|\bopenapi\b|\bswagger\b|\bapi\b|\bmodel\b|\bprovider\b|\bintegrate\b|\bwire\b|\bconnect\b|\bimplement\b)/i.test(previousHaystack);
+      });
+    return previousUserRequest?.content?.trim() || active;
+  }
+
+  private static isAttachmentOnlyPlaceholder(prompt: string): boolean {
+    const text = String(prompt || "").trim();
+    if (!text) return true;
+    const lower = text.toLowerCase();
+    const normalized = this.normalizeArabic(text);
+    return /^(?:attached long pasted content as file\.?|long pasted content was attached as a file\.?|attached pasted content as file\.?|attached long pasted content as a file\.?)$/i.test(lower)
+      || /^(?:\u062a\u0645\s+)?(?:\u0627\u0631\u0641\u0627\u0642|\u0625\u0631\u0641\u0627\u0642|\u0631\u0641\u0642|\u0645\u0631\u0641\u0642).{0,80}(?:\u0645\u0644\u0641|\u0627\u0644\u0645\u062d\u062a\u0648\u0649|\u0627\u0644\u0646\u0635)/.test(normalized);
+  }
+
+  private static hasReadableSpecAttachment(
+    attachments: Attachment[],
+    readableAttachmentContext: string
+  ): boolean {
+    if (!attachments.length || !readableAttachmentContext.trim()) return false;
+    const context = readableAttachmentContext.toLowerCase();
+    const attachmentNames = attachments.map((item) => `${item.filename || ""} ${item.mimeType || ""}`).join(" ").toLowerCase();
+    return /\b(openapi|swagger|requestbody|responses?|schemas?|bearer|authorization|endpoint|api\/v\d+|createtask|taskid|seedream|image-to-image|model enum|application\/json)\b/i.test(context)
+      || /\b(?:openapi|swagger|api|config|schema|spec|yaml|yml|json)\b/i.test(attachmentNames);
+  }
+
+  private static buildAttachedSpecEngineeringPolicyPrompt(
+    prompt: string,
+    readableAttachmentContext: string,
+    activeWorkspace: string,
+    activeTask?: string
+  ): string {
+    const taskContext = activeTask && activeTask.trim() && !prompt.includes(activeTask)
+      ? `Previous active engineering task:\n${activeTask.trim()}\n\n`
+      : "";
+    return [
+      "Local engineering modification request.",
+      `Workspace path: ${activeWorkspace}`,
+      "This request includes a readable API/OpenAPI/specification attachment and must be routed to the engineering runtime, not answered by the chat model.",
+      "Implement or update the local project files using the attached specification. Inspect files first, avoid guessing unsupported API fields, and run available verification.",
+      "",
+      taskContext,
+      "User request:",
+      prompt,
+      "",
+      readableAttachmentContext
+    ].filter(Boolean).join("\n");
   }
 
   private static async buildReadableAttachmentContext(attachments?: Attachment[]): Promise<string> {
@@ -3557,18 +4514,60 @@ export class ChatOrchestratorService {
   }
 
   private static extractFirstLocalPath(prompt: string): string | null {
-    const match = prompt.match(/[a-zA-Z]:[\\/][^\r\n"'<>|]+/);
-    if (!match) return null;
-    return match[0]
+    const paths = ChatOrchestratorService.extractPreferredLocalPaths(prompt);
+    if (!paths.length) return null;
+    return paths[0] || null;
+  }
+
+  private static extractPreferredLocalPaths(prompt: string): string[] {
+    const text = String(prompt || "");
+    const matches = Array.from(text.matchAll(/[a-zA-Z]:[\\/](?:(?!\s+[a-zA-Z]:[\\/])[^\r\n"'<>|])+/g));
+    const scored = matches.map((match, order) => {
+      const raw = match[0];
+      const start = match.index || 0;
+      const before = text.slice(Math.max(0, start - 100), start).toLowerCase();
+      const after = text.slice(start + raw.length, start + raw.length + 40).toLowerCase();
+      const cueWindow = `${before} ${after}`;
+      const workspaceCue = /(?:\u0627\u0634\u062a\u063a\u0644\s+\u0641\u0642\u0637\s+\u062f\u0627\u062e\u0644|\u0627\u0634\u062a\u063a\u0644.*\u0627\u0644\u0645\u0633\u0627\u0631|\u062f\u0627\u062e\u0644\s+\u0647\u0630\u0627\s+\u0627\u0644\u0645\u0633\u0627\u0631|\u0627\u0644\u0645\u0633\u0627\u0631\s+\u0627\u0644\u0647\u062f\u0641|\u0627\u0644\u0645\u0633\u0627\u0631\s*:$|\bwork\s+only\s+inside\b|\btarget\s+(?:path|folder|workspace)\b|\bworkspace\b)/i.test(cueWindow);
+      const targetCue = workspaceCue || /(?:\u062f\u0627\u062e\u0644\s+\u0647\u0630\u0627\s+\u0627\u0644\u0645\u0633\u0627\u0631|\u0627\u0644\u0645\u0633\u0627\u0631|\u0647\u0646\u0627|\u0627\u0644\u0649|\u0625\u0644\u0649|\u0636\u0639|\u062d\u0637|\btarget\b|\bpath\b|\bfolder\b|\bdirectory\b|\bworkspace\b|\bput\b|\bplace\b|\binto\b|\bhere\b|\bto\b)/i.test(cueWindow);
+      const assetCue = /(?:\u0627\u0633\u062a\u062e\u062f\u0645\s+\u0627\u0644\u0635\u0648\u0631|\u0627\u0644\u0635\u0648\u0631\s+\u0627\u0644\u0645\u0648\u062c\u0648\u062f|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a\u0629|\u0645\u062c\u0644\u062f\s+\u0627\u0644\u0635\u0648\u0631|\u0641\u0648\u0644\u062f\u0631\s+\u0627\u0644\u0635\u0648\u0631|\buse\s+(?:the\s+)?(?:local\s+)?images?\b|\bimages?\s+(?:are\s+)?(?:here|inside|in)\b|\basset\s+folder\b|\bassets?\b)/i.test(cueWindow);
+      const activeCue = /(?:active\s+workspace|workspace:\s*$|current\s+workspace|\bcommand\b|\bcwd\b|\boutput\b|\btrace\b)/i.test(before);
+      return {
+        value: ChatOrchestratorService.cleanLocalPathCandidate(raw),
+        score: (workspaceCue ? 1600 : targetCue ? 1000 : 0) - (assetCue ? 700 : 0) - (activeCue ? 500 : 0) + order
+      };
+    });
+
+    return scored
+      .filter((entry) => entry.value.length > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.value)
+      .filter((value, index, values) => values.indexOf(value) === index);
+  }
+
+  private static cleanLocalPathCandidate(candidate: string): string {
+    return String(candidate || "")
       .replace(/[`"'<>]+/g, "")
       .replace(/[.،,؛;؟?!]+$/g, "")
       .trim();
   }
 
   private static async resolveWorkspaceFromPrompt(prompt: string, fallbackWorkspace: string): Promise<string> {
-    const candidate = ChatOrchestratorService.extractFirstLocalPath(prompt);
-    if (!candidate) return fallbackWorkspace;
+    const candidates = ChatOrchestratorService.extractPreferredLocalPaths(prompt);
+    if (!candidates.length) {
+      const selfWorkspace = await ChatOrchestratorService.resolveSaadAgentSelfWorkspace(prompt, fallbackWorkspace);
+      return selfWorkspace || fallbackWorkspace;
+    }
 
+    for (const candidate of candidates) {
+      const resolved = await ChatOrchestratorService.resolveWorkspaceFromLocalPathCandidate(candidate);
+      if (resolved) return resolved;
+    }
+
+    return fallbackWorkspace;
+  }
+
+  private static async resolveWorkspaceFromLocalPathCandidate(candidate: string): Promise<string | null> {
     let current = candidate;
     while (current.length > 3) {
       const stat = await fs.stat(current).catch(() => null);
@@ -3587,7 +4586,30 @@ export class ChatOrchestratorService {
       current = parent;
     }
 
-    return fallbackWorkspace;
+    return null;
+  }
+  private static async resolveSaadAgentSelfWorkspace(prompt: string, fallbackWorkspace: string): Promise<string | null> {
+    const normalized = ChatOrchestratorService.normalizeArabic(prompt);
+    const lower = String(prompt || "").toLowerCase();
+    const asksForAgentItself = /(?:\bsaad agent\b|\bsaad studio agent\b|\bagent ui\b|\bagent app\b|\bthis agent\b)/i.test(lower)
+      || /(?:الاجينت|الأجينت|اجينت|سعد اجينت|سعد ايجنت|تطبيق الاجينت|واجهة الاجينت|هذا الاجينت|الوكيل نفسه)/i.test(normalized);
+    const wantsEngineeringChange = /(?:زر|لغة|عربي|انكليزي|إنكليزي|english|arabic|button|ui|واجهة|اعدادات|إعدادات|ترجم|ترجمة|فعل|فعّل|اضف|أضف|عدل|عدّل|نفذ|اصلح|implement|add|fix|edit|settings)/i.test(`${normalized} ${lower}`);
+    if (!asksForAgentItself || !wantsEngineeringChange) return null;
+
+    const candidates = [
+      path.join(CONFIG.PROJECT_ROOT, "saad-agent"),
+      path.join(fallbackWorkspace, "saad-agent"),
+      fallbackWorkspace
+    ];
+    for (const candidate of candidates) {
+      const packageJson = path.join(candidate, "package.json");
+      const uiSource = path.join(candidate, "ui", "src");
+      const packageExists = await fs.stat(packageJson).then((stat) => stat.isFile()).catch(() => false);
+      const uiExists = await fs.stat(uiSource).then((stat) => stat.isDirectory()).catch(() => false);
+      if (packageExists && uiExists) return candidate;
+    }
+
+    return null;
   }
 
   static async detectAndReadLocalPaths(prompt: string): Promise<string> {

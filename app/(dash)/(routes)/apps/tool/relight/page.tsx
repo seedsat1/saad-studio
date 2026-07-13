@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import {
   ArrowLeft,
   Upload,
@@ -21,9 +20,9 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+
 
 const CREDIT_COST = 5;
 
@@ -39,6 +38,7 @@ function LightingSphere({
   onChange: (angle: number) => void;
   thumbnailUrl: string | null;
 }) {
+  const { t } = useRelightTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -85,7 +85,7 @@ function LightingSphere({
   return (
     <div className="flex flex-col items-center gap-3">
       <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider text-center">
-        Hold and drag to change light direction
+        {t("Hold and drag to change light direction")}
       </span>
       <div className="relative w-48 h-48 flex items-center justify-center select-none">
         
@@ -195,8 +195,46 @@ function compressImage(dataUrl: string, maxBytes = 2_500_000): Promise<string> {
   });
 }
 
+function useRelightTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Apps": "التطبيقات",
+      "Relight": "إعادة الإضاءة",
+      "Applying AI studio relight...": "جاري تطبيق إعادة الإضاءة بالذكاء الاصطناعي...",
+      "Uploading photo to secure cloud storage...": "جاري رفع الصورة للتخزين السحابي الآمن...",
+      "Drag & drop or browse": "سحب وإفلات أو تصفح",
+      "Upload a photo to start relighting": "ارفع صورة لبدء إعادة الإضاءة",
+      "Relight Applied": "تم تطبيق الإضاءة",
+      "Original View": "العرض الأصلي",
+      "Download Result": "تحميل النتيجة",
+      "Quick select": "اختيار سريع",
+      "Top": "أعلى",
+      "Front": "أمام",
+      "Right": "يمين",
+      "Left": "يسار",
+      "Back": "خلف",
+      "Bottom": "أسفل",
+      "Light settings": "إعدادات الضوء",
+      "soft": "ناعم",
+      "hard": "حاد",
+      "Brightness": "السطوع",
+      "Color": "اللون",
+      "Generate": "توليد",
+      "5 Free Gens": "5 توليدات مجانية",
+      "Hold and drag to change light direction": "اضغط واسحب لتغيير اتجاه الضوء"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function RelightPage(props: any) {
   const isEmbedded = props?.isEmbedded === true;
+  const { t } = useRelightTranslation();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -404,8 +442,6 @@ export default function RelightPage(props: any) {
   return (
     <div
       className={cn(
-        outfit.variable,
-        plusJakarta.variable,
         "flex overflow-hidden bg-[#03060d] text-white select-none",
         isEmbedded ? "h-full flex-1" : "h-screen"
       )}
@@ -422,10 +458,10 @@ export default function RelightPage(props: any) {
         {!isEmbedded && (
           <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
             <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
-              Apps
+              {t("Apps")}
             </Link>
             <span className="text-zinc-600 text-xs">/</span>
-            <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Relight</span>
+            <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">{t("Relight")}</span>
           </div>
         )}
 
@@ -435,14 +471,14 @@ export default function RelightPage(props: any) {
           {isGenerating && (
             <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
               <div className="h-10 w-10 rounded-full border-2 border-t-amber-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-              <span className="text-sm font-bold text-zinc-300">Applying AI studio relight...</span>
+              <span className="text-sm font-bold text-zinc-300">{t("Applying AI studio relight...")}</span>
             </div>
           )}
 
           {isUploading && (
             <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-amber-500" />
-              <span className="text-sm font-bold text-zinc-300">Uploading photo to secure cloud storage...</span>
+              <span className="text-sm font-bold text-zinc-300">{t("Uploading photo to secure cloud storage...")}</span>
             </div>
           )}
 
@@ -454,8 +490,8 @@ export default function RelightPage(props: any) {
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-amber-500/10 to-orange-500/10 border border-amber-500/20 flex items-center justify-center mb-4">
                 <Upload className="h-6 w-6 text-amber-500" />
               </div>
-              <p className="text-sm font-extrabold text-zinc-200">Drag & drop or browse</p>
-              <p className="text-xs text-zinc-500 mt-1.5">Upload a photo to start relighting</p>
+              <p className="text-sm font-extrabold text-zinc-200">{t("Drag & drop or browse")}</p>
+              <p className="text-xs text-zinc-500 mt-1.5">{t("Upload a photo to start relighting")}</p>
             </div>
           ) : (
             <div
@@ -496,7 +532,7 @@ export default function RelightPage(props: any) {
               <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg px-2.5 py-1 flex items-center gap-1.5 z-20">
                 <div className={cn("h-1.5 w-1.5 rounded-full", resultUrl ? "bg-emerald-500" : "bg-amber-500")} />
                 <span className="text-[10px] text-zinc-400 font-mono">
-                  {resultUrl ? "Relight Applied" : "Original View"}
+                  {resultUrl ? t("Relight Applied") : t("Original View")}
                 </span>
               </div>
 
@@ -516,7 +552,7 @@ export default function RelightPage(props: any) {
                   className="absolute top-4 right-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5 shrink-0" />
-                  <span>Download Result</span>
+                  <span>{t("Download Result")}</span>
                 </button>
               )}
             </div>
@@ -583,7 +619,7 @@ export default function RelightPage(props: any) {
               <Sun className="h-4 w-4 text-amber-500" />
             </div>
             <div>
-              <p className="text-base font-bold text-zinc-200">Relight</p>
+              <p className="text-base font-bold text-zinc-200">{t("Relight")}</p>
             </div>
           </div>
         </div>
@@ -594,12 +630,12 @@ export default function RelightPage(props: any) {
           {/* Quick select */}
           <div className="space-y-3">
             <span className="text-[11px] font-bold text-zinc-400 block">
-              Quick select
+              {t("Quick select")}
             </span>
             <div className="grid grid-cols-3 gap-2">
               {presets.map((preset) => (
                 <button
-                  key={preset.label}
+                  key={t(preset.label)}
                   type="button"
                   onClick={() => setLightAngle(preset.angle)}
                   className={cn(
@@ -609,7 +645,7 @@ export default function RelightPage(props: any) {
                       : "bg-[#0b1225]/40 text-zinc-400 border-white/5 hover:text-zinc-200 hover:bg-[#0b1225]/60"
                   )}
                 >
-                  {preset.label}
+                  {t(preset.label)}
                 </button>
               ))}
             </div>
@@ -629,14 +665,14 @@ export default function RelightPage(props: any) {
           {/* Light settings */}
           <div className="space-y-5">
             <span className="text-[11px] font-bold text-zinc-400 block">
-              Light settings
+              {t("Light settings")}
             </span>
             
             {/* Soft vs Hard toggle */}
             <div className="grid grid-cols-2 gap-1.5 bg-zinc-950 border border-white/5 rounded-xl p-1">
               {(["soft", "hard"] as const).map((type) => (
                 <button
-                  key={type}
+                  key={t(type)}
                   type="button"
                   onClick={() => setLightType(type)}
                   className={cn(
@@ -646,7 +682,7 @@ export default function RelightPage(props: any) {
                       : "text-zinc-400 hover:text-zinc-200"
                   )}
                 >
-                  {type}
+                  {t(type)}
                 </button>
               ))}
             </div>
@@ -654,7 +690,7 @@ export default function RelightPage(props: any) {
             {/* Brightness slider */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-[11px] text-zinc-400 font-bold uppercase tracking-wider">
-                <span>Brightness</span>
+                <span>{t("Brightness")}</span>
                 <span className="text-zinc-300">{brightness}%</span>
               </div>
               <input
@@ -670,7 +706,7 @@ export default function RelightPage(props: any) {
             {/* Color picker */}
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-zinc-400 block">
-                Color
+                {t("Color")}
               </span>
               <div className="flex items-center gap-2">
                 <div
@@ -718,9 +754,9 @@ export default function RelightPage(props: any) {
                 : "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black border-transparent shadow-lg shadow-amber-500/10"
             )}
           >
-            <span>Generate</span>
+            <span>{t("Generate")}</span>
             <span className="inline-flex items-center text-[10px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
-              5 Free Gens
+              {t("5 Free Gens")}
             </span>
           </button>
 

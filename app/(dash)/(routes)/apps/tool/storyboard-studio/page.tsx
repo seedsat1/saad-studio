@@ -3,7 +3,7 @@
 // Trigger Vercel build: settings sidebar integrated directly
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { Outfit, Plus_Jakarta_Sans, Caveat } from "next/font/google";
+import { Caveat } from "next/font/google";
 import {
   ArrowLeft,
   Upload,
@@ -39,8 +39,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
 const caveat = Caveat({ subsets: ["latin"], variable: "--font-handwritten", display: "swap" });
 
 const STORYBOARD_TYPES = [
@@ -737,7 +735,7 @@ export default function StoryboardProductionPage() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} ${caveat.variable} fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#030610] text-slate-100 font-sans`}
+      className={`${caveat.variable} fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-[#030610] text-slate-100 font-sans`}
       style={{ fontFamily: "var(--font-body, sans-serif)" }}
     >
       {/* Global page scroll lock */}

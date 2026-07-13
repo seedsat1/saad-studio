@@ -142,12 +142,12 @@ async function runTests() {
     defaults.providers.push({
       id: "test-provider",
       name: "Test Provider",
-      type: "local",
+      type: "cloud",
       endpointUrl: server.url,
-      enabled: true,
+      enabled: false,
       isDefault: true,
       priority: 0,
-      fallbackProvider: "lm-studio",
+      fallbackProvider: "gemini",
       healthStatus: "unknown",
     });
     defaults.models.Coding = {
@@ -214,6 +214,68 @@ async function runTests() {
     const directResponse = await ModelClient.chatCompletion("Return JSON.", "Use selected model.", runtime.model.modelName, runtime);
     assert(directResponse.includes("ok"), "Direct inference request did not return the provider response.");
     assert(server.getLastChatModel() === "test-coder", "Direct inference did not use the selected discovered model.");
+
+    const localBlockedSettings = await SettingsManager.getSettings();
+    localBlockedSettings.providers = localBlockedSettings.providers.map(provider =>
+      provider.id === "test-provider" || provider.id === "gemini"
+        ? { ...provider, enabled: false }
+        : provider.id === "lm-studio"
+          ? { ...provider, enabled: true }
+          : provider
+    );
+    localBlockedSettings.models.Coding = {
+      ...localBlockedSettings.models.Coding,
+      providerId: "lm-studio",
+      modelName: "qwen/qwen3-coder-30b",
+    };
+    await SettingsManager.replaceSettings(localBlockedSettings);
+    SettingsManager.clearCache();
+    const localCodingRuntime = await SettingsManager.getModelRuntime("Coding");
+    assert(localCodingRuntime.provider.id === "lm-studio", "Local-first runtime policy should allow LM Studio for Coding.");
+    assert(localCodingRuntime.model.modelName === "qwen/qwen3-coder-30b", "Local-first runtime policy should keep the selected LM Studio model.");
+
+    const disabledGeminiSettings = await SettingsManager.getSettings();
+    disabledGeminiSettings.providers = disabledGeminiSettings.providers.map(provider =>
+      provider.id === "gemini"
+        ? { ...provider, enabled: false, isDefault: true }
+        : provider.id === "test-provider"
+          ? { ...provider, enabled: false, isDefault: false }
+          : provider.id === "lm-studio"
+            ? { ...provider, enabled: true, isDefault: false }
+            : { ...provider, isDefault: false }
+    );
+    disabledGeminiSettings.models.Chat = {
+      ...disabledGeminiSettings.models.Chat,
+      providerId: "gemini",
+      modelName: "gemini-test-flash",
+    };
+    await SettingsManager.replaceSettings(disabledGeminiSettings);
+    SettingsManager.clearCache();
+    const sanitizedDisabledGeminiSettings = await SettingsManager.getSettings();
+    assert(!sanitizedDisabledGeminiSettings.providers.find(provider => provider.id === "gemini")?.isDefault, "Disabled Gemini must not remain the default provider.");
+    const disabledGeminiFallbackRuntime = await SettingsManager.getModelRuntime("Chat");
+    assert(disabledGeminiFallbackRuntime.provider.id === "lm-studio", "Disabled Gemini model mapping should fall back to the configured local-first runtime.");
+    assert(disabledGeminiFallbackRuntime.model.modelName === "qwen/qwen3-coder-30b", "Disabled Gemini fallback should use a discovered local model instead of contacting Gemini.");
+
+    const restoredCloudSettings = await SettingsManager.getSettings();
+    restoredCloudSettings.providers = restoredCloudSettings.providers.map(provider =>
+      provider.id === "test-provider"
+        ? { ...provider, enabled: true, isDefault: true }
+        : provider.id === "lm-studio"
+          ? { ...provider, enabled: false, isDefault: false }
+          : { ...provider, isDefault: false }
+    );
+    restoredCloudSettings.models.Coding = {
+      ...restoredCloudSettings.models.Coding,
+      providerId: "test-provider",
+      modelName: "test-coder",
+    };
+    restoredCloudSettings.models.Chat = {
+      ...restoredCloudSettings.models.Chat,
+      providerId: "test-provider",
+      modelName: "test-coder",
+    };
+    await SettingsManager.replaceSettings(restoredCloudSettings);
 
     const geminiRuntime = {
       provider: {

@@ -1,5 +1,6 @@
 import { CONFIG } from "../../config.js";
 import type { ModelRoleSettings, ProviderSettings } from "../../production/settings-manager.js";
+import { LocalModelRuntime } from "./local-model-runtime.js";
 
 export interface ModelRuntimeOptions {
   provider?: ProviderSettings;
@@ -34,6 +35,42 @@ export class ModelClient {
       normalized = `${normalized}/v1`;
     }
     return normalized;
+  }
+
+  private static getRuntimeContextWindow(runtime?: ModelRuntimeOptions): number {
+    return runtime?.provider?.localRuntime?.contextWindow
+      || runtime?.model?.detectedContextWindow
+      || 8192;
+  }
+
+  private static estimateTokens(text: string): number {
+    return Math.ceil(String(text || "").length / 4);
+  }
+
+  private static trimToTokenBudget(text: string, tokenBudget: number): string {
+    if (tokenBudget <= 0) return "";
+    if (this.estimateTokens(text) <= tokenBudget) return text;
+    const maxChars = Math.max(256, tokenBudget * 4);
+    const headChars = Math.floor(maxChars * 0.25);
+    const tailChars = maxChars - headChars;
+    const head = text.slice(0, headChars);
+    const tail = text.slice(-tailChars);
+    return `${head}\n\n[Saad Agent compressed local-model context: middle content omitted to fit the configured context window.]\n\n${tail}`;
+  }
+
+  private static fitPromptToRuntime(
+    systemPrompt: string,
+    userPrompt: string,
+    runtime?: ModelRuntimeOptions
+  ): { systemPrompt: string; userPrompt: string } {
+    const contextWindow = Math.max(1024, this.getRuntimeContextWindow(runtime));
+    const outputReserve = Math.min(Math.max(runtime?.model?.maxTokens || 1024, 512), Math.floor(contextWindow * 0.45));
+    const inputBudget = Math.max(512, contextWindow - outputReserve - 384);
+    const systemBudget = Math.min(Math.max(Math.floor(inputBudget * 0.25), 256), 2048);
+    const fittedSystem = this.trimToTokenBudget(systemPrompt, systemBudget);
+    const remaining = Math.max(256, inputBudget - this.estimateTokens(fittedSystem));
+    const fittedUser = this.trimToTokenBudget(userPrompt, remaining);
+    return { systemPrompt: fittedSystem, userPrompt: fittedUser };
   }
 
   private static endpointOrigin(baseUrl: string): string {
@@ -266,6 +303,10 @@ export class ModelClient {
 
     const content = this.extractText(payload);
     if (!content) {
+      const blockReason = payload?.promptFeedback?.blockReason || payload?.candidates?.[0]?.finishReason;
+      if (blockReason) {
+        throw new Error(`Gemini returned no message content because the provider blocked the submitted prompt context (${blockReason}).`);
+      }
       throw new Error(`Gemini returned no message content: ${JSON.stringify(payload).slice(0, 240)}`);
     }
     return content;
@@ -295,18 +336,21 @@ export class ModelClient {
     }
 
     const isLms = CONFIG.PROVIDER === "lm-studio";
-    const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const rawBaseUrl = runtime?.provider && LocalModelRuntime.isDirectLocalProvider(runtime.provider)
+      ? await LocalModelRuntime.ensureReady(runtime.provider)
+      : runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
     const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);
     const apiKey = runtime?.apiKey || (isLms ? CONFIG.LM_STUDIO_API_KEY : CONFIG.OLLAMA_API_KEY);
     const temperature = runtime?.model?.temperature ?? CONFIG.TEMPERATURE;
     const maxTokens = runtime?.model?.maxTokens;
 
     try {
+      const fitted = this.fitPromptToRuntime(systemPrompt, userPrompt, runtime);
       const body: any = {
         model: modelName,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "system", content: fitted.systemPrompt },
+          { role: "user", content: fitted.userPrompt },
         ],
         temperature,
         max_tokens: maxTokens,
@@ -352,21 +396,24 @@ export class ModelClient {
     }
 
     const isLms = CONFIG.PROVIDER === "lm-studio";
-    const rawBaseUrl = runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
+    const rawBaseUrl = runtime?.provider && LocalModelRuntime.isDirectLocalProvider(runtime.provider)
+      ? await LocalModelRuntime.ensureReady(runtime.provider)
+      : runtime?.provider?.endpointUrl || (isLms ? CONFIG.LM_STUDIO_BASE_URL : CONFIG.OLLAMA_BASE_URL);
     const isLmStudio = this.isLmStudioRuntime(runtime, rawBaseUrl);
     const apiKey = runtime?.apiKey || (isLms ? CONFIG.LM_STUDIO_API_KEY : CONFIG.OLLAMA_API_KEY);
     const temperature = runtime?.model?.temperature ?? CONFIG.TEMPERATURE;
     const maxTokens = runtime?.model?.maxTokens;
 
     try {
+      const fitted = this.fitPromptToRuntime(systemPrompt, userPrompt, runtime);
       const body: any = {
         model: modelName,
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: fitted.systemPrompt },
           {
             role: "user",
             content: [
-              { type: "text", text: userPrompt },
+              { type: "text", text: fitted.userPrompt },
               { type: "image_url", image_url: { url: imageUrl } }
             ]
           },

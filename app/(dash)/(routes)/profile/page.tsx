@@ -4,12 +4,118 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import { useLanguage } from "@/lib/use-language";
 import { useAvatar, PRESET_AVATARS } from "@/lib/avatar-context";
 import {
   User, Mail, Zap, Star, ImageIcon, VideoIcon, Music, Box,
   Shield, Bell, CreditCard, Calendar, TrendingUp, Clock,
   Edit3, Camera, Upload, X, Check, AtSign,
 } from "lucide-react";
+
+function useProfileTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Avatar modal
+      "Change Profile Picture": "تغيير صورة الملف الشخصي",
+      "Preview": "معاينة",
+      "Choose Style": "اختر نمطاً",
+      "Upload Photo": "رفع صورة",
+      "Drop your photo here": "أفلت صورتك هنا",
+      "or click to browse — JPG, PNG, WebP": "أو انقر للتصفح - JPG, PNG, WebP",
+      "Photo ready": "الصورة جاهزة",
+      "Save Changes": "حفظ التغييرات",
+      
+      // Edit Profile
+      "Edit Profile": "تعديل الملف الشخصي",
+      "Display Name": "الاسم المستعار",
+      "Email Address": "البريد الإلكتروني",
+      "Your name": "اسمك",
+      "Name is required.": "الاسم مطلوب.",
+      "Email is required.": "البريد الإلكتروني مطلوب.",
+      "Enter a valid email.": "أدخل بريد إلكتروني صالح.",
+      "Cancel": "إلغاء",
+      
+      // Details
+      "Joined": "انضم في",
+      "Change profile picture": "تغيير صورة الملف الشخصي",
+      "Credits": "النقاط",
+      "Generations": "التوليدات",
+      "Projects": "المشاريع",
+      
+      // Early credits
+      "Early monthly credits": "نقاط شهرية مبكرة",
+      "deductionMessage": "سيتم خصم {num} نقاط من تجديدك القادم.",
+      "requestMessage": "طلب {num} نقاط من تجديدك السنوي القادم.",
+      "Database setup is required before early credits can be requested.": "مطلب إعداد قاعدة البيانات قبل طلب النقاط المبكرة.",
+      
+      "Already requested": "تم الطلب بالفعل",
+      "Setup required": "مطلوب الإعداد",
+      "Unavailable": "غير متوفر",
+      "Requesting...": "جاري الطلب...",
+      "Request early credits": "طلب نقاط مبكرة",
+      
+      "Monthly credits added early. They will be deducted from the next annual refresh.": "تم إضافة النقاط الشهرية مبكراً. سيتم خصمها من التحديث السنوي القادم.",
+      "Could not request credit advance right now.": "تعذر طلب النقاط المبكرة في الوقت الحالي.",
+      "Credit advance is not available.": "النقاط المبكرة غير متوفرة.",
+      
+      // Usage breakdown
+      "Usage Breakdown": "تفاصيل الاستخدام",
+      "Images Generated": "الصور المولدة",
+      "Videos Created": "الفيديوهات المنشأة",
+      "Music Tracks": "المقاطع الموسيقية",
+      "3D Models": "نماذج ثلاثية الأبعاد",
+      
+      // Types
+      "Image": "صورة",
+      "Video": "فيديو",
+      "Audio": "صوت",
+      "3D": "ثلاثي الأبعاد",
+      
+      // Recent Activity
+      "Recent Activity": "النشاطات الأخيرة",
+      "No recent activity yet.": "لا توجد نشاطات أخيرة بعد.",
+      
+      // Account settings links
+      "Account": "الحساب",
+      "Personal Information": "المعلومات الشخصية",
+      "Update your name and email": "تحديث اسمك وبريدك الإلكتروني",
+      "Security & Password": "الأمان وكلمة المرور",
+      "Manage login and 2FA": "إدارة تسجيل الدخول والمصادقة الثنائية",
+      "Billing & Subscription": "الفواتير والاشتراكات",
+      "View plan and payment history": "عرض الخطة وسجل الدفع",
+      "Notifications": "الإشعارات",
+      "Control email and push alerts": "التحكم في تنبيهات البريد والإشعارات",
+      
+      // Plan intervals & levels
+      "Annual": "سنوي",
+      "Monthly": "شهري",
+      "Member": "عضو",
+      "Free": "مجاني",
+      "Try": "تجريبي",
+      "Starter": "مبتدئ",
+      "Plus": "بلاس",
+      "Pro": "برو",
+      "Max": "ماكس",
+      "Free Member": "عضو مجاني",
+      "Try Monthly": "تجريبي شهري",
+      "Try Annual": "تجريبي سنوي",
+      "Starter Monthly": "مبتدئ شهري",
+      "Starter Annual": "مبتدئ سنوي",
+      "Plus Monthly": "بلاس شهري",
+      "Plus Annual": "بلاس سنوي",
+      "Pro Monthly": "برو شهري",
+      "Pro Annual": "برو سنوي",
+      "Max Monthly": "ماكس شهري",
+      "Max Annual": "ماكس سنوي"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
 
 const TYPE_COLORS: Record<string, string> = {
   Image: "text-violet-400 bg-violet-500/10 border-violet-500/30",
@@ -59,28 +165,7 @@ type ProfileOverview = {
   }>;
 };
 
-function formatPlanBadge(overview: ProfileOverview | null, fallbackRole?: unknown) {
-  if (overview?.subscription?.active && overview.subscription.planId) {
-    const planName = overview.subscription.planId.charAt(0).toUpperCase() + overview.subscription.planId.slice(1);
-    const interval = overview.subscription.billingInterval === "annual" ? "Annual" : "Monthly";
-    return `${planName} ${interval}`;
-  }
-  return `${typeof fallbackRole === "string" && fallbackRole ? fallbackRole : "Free"} Member`;
-}
-
-function formatTimeAgo(iso: string) {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diffSec = Math.max(1, Math.floor((now - then) / 1000));
-
-  if (diffSec < 60) return "just now";
-  const mins = Math.floor(diffSec / 60);
-  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
+// formatPlanBadge and formatTimeAgo relocated inside ProfilePage
 
 const stagger: Variants = {
   hidden:  { opacity: 0 },
@@ -98,6 +183,7 @@ function AvatarPickerModal({
   initials: string; currentPhoto: string | null; currentPreset: number;
   onClose: () => void; onSave: (photo: string | null, preset: number) => void;
 }) {
+  const { t } = useProfileTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<"presets" | "upload">("presets");
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(currentPhoto);
@@ -141,7 +227,7 @@ function AvatarPickerModal({
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-          <h2 className="text-base font-semibold text-white">Change Profile Picture</h2>
+          <h2 className="text-base font-semibold text-white">{t("Change Profile Picture")}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
@@ -155,12 +241,12 @@ function AvatarPickerModal({
             <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full ring-4 ring-slate-900" />
           </div>
         </div>
-        <p className="text-center text-xs text-slate-500 mb-4">Preview</p>
+        <p className="text-center text-xs text-slate-500 mb-4">{t("Preview")}</p>
 
         <div className="flex mx-6 mb-4 bg-slate-800/60 rounded-xl p-1 gap-1">
-          {(["presets", "upload"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === t ? "bg-violet-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}>
-              {t === "presets" ? "Choose Style" : "Upload Photo"}
+          {(["presets", "upload"] as const).map((tabType) => (
+            <button key={tabType} onClick={() => setTab(tabType)} className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition-all ${tab === tabType ? "bg-violet-600 text-white shadow" : "text-slate-400 hover:text-slate-200"}`}>
+              {tabType === "presets" ? t("Choose Style") : t("Upload Photo")}
             </button>
           ))}
         </div>
@@ -185,15 +271,15 @@ function AvatarPickerModal({
                 className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-all duration-200 ${dragging ? "border-violet-500 bg-violet-500/10" : "border-slate-700 hover:border-violet-500/60 hover:bg-slate-800/40"}`}>
                 <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center"><Upload className="w-5 h-5 text-violet-400" /></div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-slate-200">Drop your photo here</p>
-                  <p className="text-xs text-slate-500 mt-0.5">or click to browse — JPG, PNG, WebP</p>
+                  <p className="text-sm font-medium text-slate-200">{t("Drop your photo here")}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{t("or click to browse — JPG, PNG, WebP")}</p>
                 </div>
               </div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               {previewPhoto && (
                 <div className="flex items-center gap-3 p-3 bg-slate-800/60 rounded-xl border border-slate-700">
                   <img src={previewPhoto} alt="Uploaded" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                  <p className="text-sm text-slate-300 flex-1 truncate">Photo ready</p>
+                  <p className="text-sm text-slate-300 flex-1 truncate">{t("Photo ready")}</p>
                   <button onClick={() => setPreviewPhoto(null)} className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"><X className="w-3.5 h-3.5" /></button>
                 </div>
               )}
@@ -202,7 +288,7 @@ function AvatarPickerModal({
 
           <button onClick={() => onSave(tab === "upload" ? previewPhoto : null, selectedPreset)}
             className="mt-5 w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all duration-200 shadow-lg shadow-violet-500/20">
-            Save Changes
+            {t("Save Changes")}
           </button>
         </div>
       </motion.div>
@@ -217,15 +303,16 @@ function EditProfileModal({
   onClose: () => void;
   onSave: (name: string, email: string) => void;
 }) {
+  const { t } = useProfileTranslation();
   const [draftName,  setDraftName]  = useState(name);
   const [draftEmail, setDraftEmail] = useState(email);
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
 
   const validate = () => {
     const e: { name?: string; email?: string } = {};
-    if (!draftName.trim())  e.name  = "Name is required.";
-    if (!draftEmail.trim()) e.email = "Email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draftEmail)) e.email = "Enter a valid email.";
+    if (!draftName.trim())  e.name  = t("Name is required.");
+    if (!draftEmail.trim()) e.email = t("Email is required.");
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draftEmail)) e.email = t("Enter a valid email.");
     return e;
   };
 
@@ -244,29 +331,29 @@ function EditProfileModal({
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-          <h2 className="text-base font-semibold text-white">Edit Profile</h2>
+          <h2 className="text-base font-semibold text-white">{t("Edit Profile")}</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-6 py-6 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Display Name</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("Display Name")}</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="text" value={draftName} onChange={(e) => { setDraftName(e.target.value); setErrors((p) => ({ ...p, name: undefined })); }}
-                placeholder="Your name"
+                placeholder={t("Your name")}
                 className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-800 border ${ errors.name ? "border-red-500/60" : "border-slate-700 focus:border-violet-500/60" } text-sm text-slate-100 placeholder-slate-600 outline-none transition-colors`}
               />
             </div>
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Email Address</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">{t("Email Address")}</label>
             <div className="relative">
               <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 type="email" value={draftEmail} onChange={(e) => { setDraftEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
-                placeholder="you@example.com"
+                placeholder={t("you@example.com")}
                 className={`w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-800 border ${ errors.email ? "border-red-500/60" : "border-slate-700 focus:border-violet-500/60" } text-sm text-slate-100 placeholder-slate-600 outline-none transition-colors`}
               />
             </div>
@@ -274,10 +361,10 @@ function EditProfileModal({
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all duration-200">
-              Cancel
+              {t("Cancel")}
             </button>
             <button onClick={handleSubmit} className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-all duration-200 shadow-lg shadow-violet-500/20">
-              Save Changes
+              {t("Save Changes")}
             </button>
           </div>
         </div>
@@ -287,6 +374,39 @@ function EditProfileModal({
 }
 
 export default function ProfilePage() {
+  const { t, lang } = useProfileTranslation();
+  const formatPlanBadge = (overviewData: ProfileOverview | null, fallbackRoleName?: unknown) => {
+    if (overviewData?.subscription?.active && overviewData.subscription.planId) {
+      const planName = overviewData.subscription.planId.charAt(0).toUpperCase() + overviewData.subscription.planId.slice(1);
+      const interval = overviewData.subscription.billingInterval === "annual" ? "Annual" : "Monthly";
+      return `${t(planName)} ${t(interval)}`;
+    }
+    return `${typeof fallbackRoleName === "string" && fallbackRoleName ? t(fallbackRoleName) : t("Free")} ${t("Member")}`;
+  };
+
+  const formatTimeAgo = (iso: string, language: "en" | "ar") => {
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const diffSec = Math.max(1, Math.floor((now - then) / 1000));
+
+    if (language === "ar") {
+      if (diffSec < 60) return "الآن";
+      const mins = Math.floor(diffSec / 60);
+      if (mins < 60) return `منذ ${mins} دقيقة`;
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return `منذ ${hours} ساعة`;
+      const days = Math.floor(hours / 24);
+      return `منذ ${days} يوم`;
+    }
+
+    if (diffSec < 60) return "just now";
+    const mins = Math.floor(diffSec / 60);
+    if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days === 1 ? "" : "s"} ago`;
+  };
   const { user, isLoaded } = useUser();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [realCreditBalance, setRealCreditBalance] = useState<number | null>(null);
@@ -341,15 +461,15 @@ export default function ProfilePage() {
       if (!res.ok) {
         setAdvanceStatus({
           loading: false,
-          message: typeof data?.error === "string" ? data.error : "Credit advance is not available.",
+          message: typeof data?.error === "string" ? data.error : t("Credit advance is not available."),
         });
         return;
       }
 
-      setAdvanceStatus({ loading: false, message: "Monthly credits added early. They will be deducted from the next annual refresh." });
+      setAdvanceStatus({ loading: false, message: t("Monthly credits added early. They will be deducted from the next annual refresh.") });
       await loadOverview();
     } catch {
-      setAdvanceStatus({ loading: false, message: "Could not request credit advance right now." });
+      setAdvanceStatus({ loading: false, message: t("Could not request credit advance right now.") });
     }
   }, [advanceStatus.loading, loadOverview, overview?.creditAdvance]);
 
@@ -409,12 +529,12 @@ export default function ProfilePage() {
   const creditAdvanceButtonLabel = advanceStatus.loading
     ? "Requesting..."
     : canRequestCreditAdvance
-      ? "Request early credits"
+      ? t("Request early credits")
       : overview?.creditAdvance?.needsMigration
-        ? "Setup required"
+        ? t("Setup required")
         : overview?.creditAdvance?.balance
-          ? "Already requested"
-          : "Unavailable";
+          ? t("Already requested")
+          : t("Unavailable");
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -452,12 +572,12 @@ export default function ProfilePage() {
                 <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Joined {joinedDate}</span>
               </div>
               <button onClick={() => setPickerOpen(true)} className="mt-3 flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors">
-                <Camera className="w-3.5 h-3.5" /> Change profile picture
+                <Camera className="w-3.5 h-3.5" /> {t("Change profile picture")}
               </button>
             </div>
 
             <Link href="/settings" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all duration-200">
-              <Edit3 className="w-3.5 h-3.5" /> Edit Profile
+              <Edit3 className="w-3.5 h-3.5" /> {t("Edit Profile")}
             </Link>
           </div>
 
@@ -465,17 +585,17 @@ export default function ProfilePage() {
             <div className="col-span-2 md:col-span-1 flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
               <Zap className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
-                <p className="text-xs text-slate-500">Credits</p>
+                <p className="text-xs text-slate-500">{t("Credits")}</p>
                 <p className="text-lg font-bold text-amber-300">
                   {realCreditBalance !== null ? realCreditBalance.toLocaleString() : "—"}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-violet-500/10 border border-violet-500/20 rounded-xl px-4 py-3">
-              <TrendingUp className="w-5 h-5 text-violet-400 flex-shrink-0" /><div><p className="text-xs text-slate-500">Generations</p><p className="text-lg font-bold text-violet-300">{overview?.topStats.generations ?? 0}</p></div>
+              <TrendingUp className="w-5 h-5 text-violet-400 flex-shrink-0" /><div><p className="text-xs text-slate-500">{t("Generations")}</p><p className="text-lg font-bold text-violet-300">{overview?.topStats.generations ?? 0}</p></div>
             </div>
             <div className="flex items-center gap-3 bg-sky-500/10 border border-sky-500/20 rounded-xl px-4 py-3">
-              <Star className="w-5 h-5 text-sky-400 flex-shrink-0" /><div><p className="text-xs text-slate-500">Projects</p><p className="text-lg font-bold text-sky-300">{overview?.topStats.projects ?? 0}</p></div>
+              <Star className="w-5 h-5 text-sky-400 flex-shrink-0" /><div><p className="text-xs text-slate-500">{t("Projects")}</p><p className="text-lg font-bold text-sky-300">{overview?.topStats.projects ?? 0}</p></div>
             </div>
           </div>
 
@@ -483,11 +603,11 @@ export default function ProfilePage() {
             <div className="mt-4 rounded-xl border border-amber-500/20 bg-slate-950/40 px-4 py-3">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-100">Early monthly credits</p>
+                  <p className="text-sm font-semibold text-slate-100">{t("Early monthly credits")}</p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {overview.creditAdvance?.balance
-                      ? `${overview.creditAdvance.balance.toLocaleString()} credits will be deducted from your next refresh.`
-                      : `Request ${overview.creditAdvance?.amount.toLocaleString() ?? 0} credits from your next annual refresh.`}
+                      ? `t("deductionMessage").replace("{num}", overview.creditAdvance.balance.toLocaleString())`
+                      : `t("requestMessage").replace("{num}", (overview.creditAdvance?.amount.toLocaleString() ?? "0"))`}
                   </p>
                 </div>
                 <button
@@ -501,7 +621,7 @@ export default function ProfilePage() {
                 </button>
               </div>
               {overview.creditAdvance?.needsMigration && (
-                <p className="mt-2 text-xs text-amber-300">Database setup is required before early credits can be requested.</p>
+                <p className="mt-2 text-xs text-amber-300">{t("Database setup is required before early credits can be requested.")}</p>
               )}
               {advanceStatus.message && (
                 <p className="mt-2 text-xs text-slate-400">{advanceStatus.message}</p>
@@ -511,13 +631,13 @@ export default function ProfilePage() {
         </motion.div>
 
         <section>
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">Usage Breakdown</h2>
+          <h2 className="text-lg font-semibold text-slate-100 mb-4">{t("Usage Breakdown")}</h2>
           <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-4" variants={stagger} initial="hidden" animate="visible">
             {usageStats.map((stat) => (
-              <motion.div key={stat.label} variants={slideUp} className={`${stat.bg} border ${stat.border} rounded-2xl p-5 backdrop-blur-sm`}>
+              <motion.div key={t(stat.label)} variants={slideUp} className={`${stat.bg} border ${stat.border} rounded-2xl p-5 backdrop-blur-sm`}>
                 <div className={`p-2 rounded-xl ${stat.bg} border ${stat.border} w-fit mb-3`}><stat.icon className={`w-4 h-4 ${stat.color}`} /></div>
                 <p className={`text-3xl font-bold ${stat.color}`}>{stat.value.toLocaleString()}</p>
-                <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+                <p className="text-xs text-slate-500 mt-1">{t(stat.label)}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -526,10 +646,10 @@ export default function ProfilePage() {
         <div className="grid md:grid-cols-2 gap-6 pb-10">
           <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
             className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
-            <h2 className="text-base font-semibold text-slate-100 mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-violet-400" /> Recent Activity</h2>
+            <h2 className="text-base font-semibold text-slate-100 mb-4 flex items-center gap-2"><Clock className="w-4 h-4 text-violet-400" /> {t("Recent Activity")}</h2>
             <div className="space-y-3">
               {(overview?.recentActivity ?? []).length === 0 ? (
-                <div className="text-sm text-slate-500">No recent activity yet.</div>
+                <div className="text-sm text-slate-500">{t("No recent activity yet.")}</div>
               ) : (
                 (overview?.recentActivity ?? []).map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
@@ -537,8 +657,8 @@ export default function ProfilePage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-slate-200 truncate">{item.label}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md border ${TYPE_COLORS[item.type]}`}>{item.type}</span>
-                        <span className="text-xs text-slate-500">{formatTimeAgo(item.createdAt)}</span>
+                        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-md border ${TYPE_COLORS[item.type]}`}>{t(item.type)}</span>
+                        <span className="text-xs text-slate-500">{formatTimeAgo(item.createdAt, lang)}</span>
                       </div>
                     </div>
                   </div>
@@ -549,7 +669,7 @@ export default function ProfilePage() {
 
           <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
             className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 backdrop-blur-sm">
-            <h2 className="text-base font-semibold text-slate-100 mb-4 flex items-center gap-2"><User className="w-4 h-4 text-sky-400" /> Account</h2>
+            <h2 className="text-base font-semibold text-slate-100 mb-4 flex items-center gap-2"><User className="w-4 h-4 text-sky-400" /> {t("Account")}</h2>
             <div className="space-y-2">
               {[
                 { icon: User,       label: "Personal Information",   sub: "Update your name and email",    color: "text-violet-400",  href: "/settings" },
@@ -560,8 +680,8 @@ export default function ProfilePage() {
                 <a key={item.label} href={item.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800/60 transition-all duration-200 group cursor-pointer border border-transparent hover:border-slate-700/50">
                   <div className="p-2 rounded-lg bg-slate-800/80 group-hover:bg-slate-700/80 transition-colors"><item.icon className={`w-4 h-4 ${item.color}`} /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{item.label}</p>
-                    <p className="text-xs text-slate-500 truncate">{item.sub}</p>
+                    <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{t(item.label)}</p>
+                    <p className="text-xs text-slate-500 truncate">{t(item.sub)}</p>
                   </div>
                   <svg className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

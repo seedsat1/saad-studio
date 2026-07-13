@@ -1,6 +1,8 @@
 import { RuntimeManager } from "../runtime/runtime-manager.js";
 import { CONFIG } from "../../config.js";
 import * as http from "http";
+import { SettingsManager } from "../../production/settings-manager.js";
+import { LocalModelRuntime } from "./local-model-runtime.js";
 
 export interface ProviderHealthStatus {
   name: string;
@@ -32,6 +34,19 @@ export class ProviderHealthMonitor {
     }
     if (name === "ollama") {
       return this.pingUrl(CONFIG.OLLAMA_BASE_URL, "Ollama");
+    }
+    if (name === "saad-local-direct") {
+      const settings = await SettingsManager.getSettings();
+      const provider = settings.providers.find((item) => item.id === "saad-local-direct");
+      if (!provider) {
+        return { name: "Saad Local Direct", status: "offline", details: "Provider settings are missing." };
+      }
+      const health = await LocalModelRuntime.checkHealth(provider);
+      return {
+        name: "Saad Local Direct",
+        status: health.online ? "online" : "offline",
+        details: health.details,
+      };
     }
     if (name === "node") {
       const health = await RuntimeManager.checkHealth("node");

@@ -32,6 +32,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/use-language";
 import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
@@ -305,18 +306,20 @@ function ToolButton({ active, icon: Icon, label, onClick }: { active: boolean; i
 }
 
 function SliderField({ label, value, onChange, min = 0, max = 100 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
+  const { t, lang } = useImageTranslation();
   return (
     <section className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs text-zinc-400"><span>{label}</span><span>{value}</span></div>
+      <div className="flex items-center justify-between text-xs text-zinc-400"><span>{t(label)}</span><span>{value}</span></div>
       <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-pink-500" />
     </section>
   );
 }
 
 function ToggleField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const { t, lang } = useImageTranslation();
   return (
     <button onClick={() => onChange(!checked)} className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300">
-      <span>{label}</span>
+      <span>{t(label)}</span>
       <span className={cn("inline-flex h-5 w-9 items-center rounded-full p-0.5 transition", checked ? "bg-pink-500" : "bg-zinc-700")}>
         <span className={cn("h-4 w-4 rounded-full bg-white transition", checked ? "translate-x-4" : "translate-x-0")} />
       </span>
@@ -325,9 +328,10 @@ function ToggleField({ label, checked, onChange }: { label: string; checked: boo
 }
 
 function CountSelector({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  const { t, lang } = useImageTranslation();
   return (
     <section className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(label)}</p>
       <div className="grid grid-cols-4 gap-2">
         {[1, 2, 3, 4].map((n) => (
           <button key={n} onClick={() => onChange(n)} className={cn("rounded-lg border py-2 text-sm", value === n ? "border-pink-400 bg-pink-500/10 text-pink-300" : "border-white/10 bg-white/5 text-zinc-400")}>{n}</button>
@@ -338,6 +342,7 @@ function CountSelector({ label, value, onChange }: { label: string; value: numbe
 }
 
 function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect: (m: ImageModel) => void }) {
+  const { t, lang } = useImageTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -421,13 +426,13 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
               <div className="border-b border-white/10 p-2">
                 <div className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 ring-1 ring-white/10">
                   <Search className="h-3.5 w-3.5 text-zinc-500" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search model" className="w-full bg-transparent text-xs text-white placeholder:text-zinc-500 focus:outline-none" />
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Search model")} className="w-full bg-transparent text-xs text-white placeholder:text-zinc-500 focus:outline-none" />
                 </div>
               </div>
               <div className="max-h-[320px] overflow-y-auto">
                 {grouped.map(([group, models], gi) => (
                   <div key={group} className={cn(gi > 0 && "border-t border-white/10")}>
-                    <p className="px-3 pt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-500">{group}</p>
+                    <p className="px-3 pt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(group)}</p>
                     {models.map((model) => (
                       <button key={model.id} onClick={() => { onSelect(model); setOpen(false); }} className={cn("flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.07]", selected.id === model.id && "bg-white/10")}>
                         <div className="min-w-0 flex-1">
@@ -452,6 +457,7 @@ function ModelDropdown({ selected, onSelect }: { selected: ImageModel; onSelect:
 }
 
 function UploadBox({ label, file, onFile, required = false, accept = "image/*" }: { label: string; file: File | null; onFile: (f: File | null) => void; required?: boolean; accept?: string }) {
+  const { t, lang } = useImageTranslation();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
@@ -488,7 +494,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
 
   return (
     <div className="space-y-1.5">
-      {label ? <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{label}{required ? " *" : ""}</p> : null}
+      {label ? <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{t(label)}{required ? " *" : ""}</p> : null}
       <div
         role="button"
         tabIndex={0}
@@ -530,6 +536,7 @@ function UploadBox({ label, file, onFile, required = false, accept = "image/*" }
 }
 
 function SettingsAccordion({ label, summary, children, defaultOpen = false }: { label: string; summary?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const { t, lang } = useImageTranslation();
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.03]">
@@ -563,6 +570,7 @@ function SettingsAccordion({ label, summary, children, defaultOpen = false }: { 
 
 /* ─── Gateway card — leads to /image-presets ───────────────────────── */
 function StyleLibraryGatewayCard() {
+  const { t, lang } = useImageTranslation();
   return (
     <a
       href="/image-presets"
@@ -585,21 +593,20 @@ function StyleLibraryGatewayCard() {
       <div className="px-3 pb-3 pt-2.5">
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-200 ring-1 ring-amber-400/40">
-            New
+            {t("New")}
           </span>
           <span className="text-[10px] uppercase tracking-wider text-amber-300/70">
-            18 styles
+            {t("18 styles")}
           </span>
         </div>
         <h3 className="mt-1.5 text-sm font-black text-white">
-          Style Library
+          {t("Style Library")}
         </h3>
         <p className="mt-0.5 text-[11px] leading-5 text-zinc-400">
-          Tap a curated style — the prompt, model, and aspect ratio
-          apply instantly.
+          {t("Tap a curated style — the prompt, model, and aspect ratio apply instantly.")}
         </p>
         <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 group-hover:text-amber-200">
-          Browse styles
+          {t("Browse styles")}
           <span className="transition-transform group-hover:translate-x-0.5">→</span>
         </div>
       </div>
@@ -623,6 +630,7 @@ function CompareSlider({ before, after }: { before: string; after: string }) {
 }
 
 function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }: { items: ResultItem[]; onInspect: (asset: Asset) => void; onRemix: (item: ResultItem) => void; onUse: (item: ResultItem) => void; onDelete: (id: string) => void; onBulkDelete: (ids: string[]) => void }) {
+  const { t, lang } = useImageTranslation();
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
@@ -720,7 +728,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
     }
   }, [isBulkDownloading, items, selectedIds]);
 
-  if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">Start generating to see results.</div>;
+  if (!items.length) return <div className="flex h-full items-center justify-center text-sm text-zinc-500">{t("Start generating to see results.")}</div>;
 
   return (
     <>
@@ -770,14 +778,14 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
           )}
         >
           <Check className="h-3 w-3" />
-          {selectionMode ? "Exit selection" : "Select"}
+          {selectionMode ? t("Exit selection") : t("Select")}
         </button>
         {selectionMode && (
           <>
             <button onClick={toggleSelectAll} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10">
-              {allSelected ? "Unselect all" : "Select all"}
+              {allSelected ? t("Unselect all") : t("Select all")}
             </button>
-            <span className="text-[11px] text-zinc-400">{selectedIds.size} selected</span>
+            <span className="text-[11px] text-zinc-400">{selectedIds.size} {t("selected")}</span>
             {selectedIds.size > 0 && (
               <>
                 <button
@@ -785,13 +793,13 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                   disabled={isBulkDownloading}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] text-zinc-200 hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
                 >
-                  <Download className="h-3 w-3" /> {isBulkDownloading ? "Preparing ZIP..." : "Download"}
+                  <Download className="h-3 w-3" /> {isBulkDownloading ? t("Preparing ZIP...") : t("Download")}
                 </button>
                 <button onClick={() => setShowAlbumPicker(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-100 hover:bg-amber-500/20">
-                  <FolderPlus className="h-3 w-3" /> Add to album
+                  <FolderPlus className="h-3 w-3" /> {t("Add to album")}
                 </button>
                 <button onClick={handleBulkDelete} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-200 hover:bg-red-500/20">
-                  <X className="h-3 w-3" /> Delete selected
+                  <X className="h-3 w-3" /> {t("Delete selected")}
                 </button>
               </>
             )}
@@ -831,7 +839,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                     transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                    <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">Generating...</div>
+                    <div className="rounded-full bg-pink-500/20 px-3 py-1 text-[11px] font-semibold text-pink-300 ring-1 ring-pink-400/30">{t("Generating...")}</div>
                     <div className="text-[11px] text-zinc-400">{item.model}</div>
                   </div>
                 </div>
@@ -850,7 +858,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                       : "border-white/30 bg-black/60 text-white/80 opacity-0 group-hover:opacity-100",
                     selectionMode && "opacity-100",
                   )}
-                  title={isSelected ? "Unselect" : "Select"}
+                  title={isSelected ? t("Unselect") : t("Select")}
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -858,11 +866,11 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
               {!item.isPending && !selectionMode ? (
                 <div className="absolute inset-0 flex items-end justify-center gap-2 bg-black/0 pb-3 opacity-0 transition duration-200 group-hover:bg-black/45 group-hover:opacity-100">
-                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Preview"><Eye className="h-4 w-4" /></button>
-                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title="Download"><Download className="h-4 w-4" /></a>
-                  <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title="Use as reference image"><Wand2 className="h-3.5 w-3.5" /> Use</button>
-                  <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Remix</button>
-                  <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">Delete</button>
+                  <button onClick={(e) => { e.stopPropagation(); onInspect({ type: "image", url: item.url, prompt: item.prompt, model: item.model, title: "Generated image" }); }} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Preview")}><Eye className="h-4 w-4" /></button>
+                  <a href={item.url} download onClick={(e) => e.stopPropagation()} className="rounded-lg bg-white/15 p-2 text-white ring-1 ring-white/20" title={t("Download")}><Download className="h-4 w-4" /></a>
+                  <button onClick={(e) => { e.stopPropagation(); onUse(item); }} className="flex items-center gap-1 rounded-lg bg-pink-500/80 px-3 py-2 text-xs font-semibold text-white ring-1 ring-pink-300/40 hover:bg-pink-500" title={t("Use as reference image")}><Wand2 className="h-3.5 w-3.5" /> {t("Use")}</button>
+                  <button onClick={(e) => { e.stopPropagation(); onRemix(item); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Remix")}</button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} className="rounded-lg bg-white/15 px-3 py-2 text-xs font-semibold text-white ring-1 ring-white/20">{t("Delete")}</button>
                 </div>
               ) : null}
             </motion.div>
@@ -886,12 +894,13 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
 // Album Picker modal — shared visual with /gallery
 function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Album[]; count: number; onPick: (id: string) => void; onCreate: (name: string) => void; onClose: () => void }) {
+  const { t, lang } = useImageTranslation();
   const [newName, setNewName] = useState("");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0b1222] p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Add {count} item(s) to album</h3>
+          <h3 className="text-lg font-semibold">{lang === "ar" ? "إضافة العناصر المحددة للألبوم" : `Add ${count} item(s) to album`}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
 
@@ -907,19 +916,19 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
         )}
 
         <div className="space-y-2 pt-2 border-t border-white/10">
-          <label className="text-xs text-slate-400">Create new album</label>
+          <label className="text-xs text-slate-400">{t("Create new album")}</label>
           <div className="flex gap-2">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") onCreate(newName); }}
-              placeholder="Album name"
+              placeholder={t("Album name")}
               className="flex-1 rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm placeholder-slate-500 focus:outline-none focus:border-amber-400/50"
             />
             <button onClick={() => onCreate(newName)} disabled={!newName.trim()} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-amber-400/40 bg-amber-500/20 text-sm text-amber-100 hover:bg-amber-500/30 disabled:opacity-40 disabled:cursor-not-allowed">
               <FolderPlus className="h-3.5 w-3.5" />
-              Create
+              {t("Create")}
             </button>
           </div>
         </div>
@@ -929,6 +938,7 @@ function AlbumPicker({ albums, count, onPick, onCreate, onClose }: { albums: Alb
 }
 
 function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVersion, setMaskVersion, registerMaskExporter }: { source: File | null; setSource: (f: File | null) => void; brushSize: number; setBrushSize: (v: number) => void; maskVersion: number; setMaskVersion: Dispatch<SetStateAction<number>>; registerMaskExporter: (fn: () => string | null) => void; }) {
+  const { t, lang } = useImageTranslation();
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -1036,15 +1046,15 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
     <div className="h-full min-h-[320px] space-y-3">
       <UploadBox label="Upload image" file={source} onFile={setSource} required />
       <div className="flex items-center gap-2">
-        <button onClick={undo} className="rounded-lg bg-white/7 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/10">Undo</button>
-        <button onClick={clearMask} className="rounded-lg bg-white/7 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/10">Clear Mask</button>
-        <div className="ml-auto flex items-center gap-2 text-xs text-zinc-400">Brush
+        <button onClick={undo} className="rounded-lg bg-white/7 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/10">{t("Undo")}</button>
+        <button onClick={clearMask} className="rounded-lg bg-white/7 px-3 py-1.5 text-xs text-zinc-300 ring-1 ring-white/10">{t("Clear Mask")}</button>
+        <div className="ml-auto flex items-center gap-2 text-xs text-zinc-400">{t("Brush")}
           <input type="range" min={5} max={100} value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="w-28 accent-pink-500" />
           <span>{brushSize}px</span>
         </div>
       </div>
       <div className="flex h-[420px] items-center justify-center overflow-auto rounded-2xl border border-white/10 bg-black/40 p-4">
-        {!source ? <p className="text-sm text-zinc-500">Upload image to start painting mask.</p> : null}
+        {!source ? <p className="text-sm text-zinc-500">{t("Upload image to start painting mask.")}</p> : null}
         <div className={cn("relative shrink-0", !source && "hidden")}>
           <canvas ref={baseCanvasRef} className="block" />
           <canvas
@@ -1062,7 +1072,156 @@ function InpaintWorkspace({ source, setSource, brushSize, setBrushSize, maskVers
   );
 }
 
+function useImageTranslation() {
+  const { lang } = useLanguage();
+
+  const dict: Record<string, Record<string, string>> = {
+    en: {
+      "Ratio: ": "Ratio: ",
+      "Style: ": "Style: ",
+      "Sort: ": "Sort: ",
+      "Image": "Image",
+      "Video": "Video"
+    },
+    ar: {
+      // Sidebar Accordion Headers
+      "Model": "النموذج",
+      "Character Reference": "مرجع الشخصية",
+      "Aspect Ratio": "الأبعاد",
+      "Number of Images": "عدد الصور",
+      "Resolution": "الدقة",
+      "Quality": "الجودة",
+
+      // Workspace status messages
+      "ENHANCE — Photo Restoration": "التحسين — ترميم الصور",
+      "Upload a photo in the settings panel → click Enhance Photo": "ارفع صورة في لوحة الإعدادات ← اضغط على زر تحسين الصورة",
+      "Uses true image-to-image AI to preserve identity while improving quality": "يستخدم الذكاء الاصطناعي الفعلي (صورة إلى صورة) للحفاظ على الملامح مع تحسين الجودة",
+      "Upload image and relight": "ارفع صورة واضبط الإضاءة",
+      "Upload media and upscale": "ارفع الوسائط وكبّر دقتها",
+      "Upload source and target images": "ارفع الصور المصدر والهدف لتبديل الوجه",
+      "Start generating to see results.": "ابدأ التوليد لرؤية النتائج.",
+      "Upload image to start painting mask.": "ارفع صورة للبدء في رسم القناع.",
+
+      // Sidebar Right Panel Settings
+      "New from Saad Studio": "جديد من استوديو سعد",
+      "No saved character": "لا توجد شخصية محفوظة",
+      "Create a reusable character": "إنشاء شخصية قابلة للاستخدام",
+      "This model does not accept reference images. Choose an image-to-image model to use this character.": "هذا النموذج لا يقبل صوراً مرجعية. اختر نموذج صورة إلى صورة لاستخدام هذه الشخصية.",
+      "Upload image to relight": "ارفع صورة لضبط الإضاءة",
+      "Lighting Preset": "قالب الإضاءة",
+      "Brightness": "السطوع",
+      "Contrast": "التباين",
+      "Temperature": "درجة حرارة اللون",
+      "Shadow Intensity": "شدة الظلال",
+      "Light Direction": "اتجاه الضوء",
+      "Number of Variations": "عدد المتغيرات",
+      "Edit Model": "نموذج التعديل",
+      "Brush Size": "حجم الفرشاة",
+      "Enhancement Model": "نموذج التحسين",
+      "Input Images": "الصور المدخلة",
+      "Required": "مطلوب",
+      "Optional": "اختياري",
+      "✦ True Image-to-Image": "✦ صورة إلى صورة فعلي",
+      "ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.": "خاصية التحسين ترسل صورتك مباشرة كمدخل للذكاء الاصطناعي للحفاظ على الملامح بدقة، بخلاف خاصية الإنشاء التي تستخدمها كمجرد إلهام.",
+      "Upload image": "ارفع صورة",
+      "Scale Factor": "معامل التكبير",
+      "Denoise": "إزالة الضوضاء",
+      "Sharpen": "زيادة الحدة",
+      "Face Enhancement": "تحسين ملامح الوجه",
+      "Color Enhancement": "تحسين الألوان",
+      "Output Format": "صيغة المخرجات",
+      "Source face": "الوجه المصدر",
+      "Target image": "الصورة الهدف",
+      "Face Blend": "دمج الوجه",
+      "Keep target expression": "الحفاظ على تعابير الوجه الهدف",
+      "Match skin tones": "مطابقة لون البشرة",
+      "Target Face Index": "مؤشر الوجه المستهدف",
+
+      // Selection toolbar
+      "Exit selection": "إلغاء التحديد",
+      "Select": "تحديد",
+      "Unselect all": "إلغاء تحديد الكل",
+      "Select all": "تحديد الكل",
+      "selected": "محدد",
+      "Preparing ZIP...": "جاري التجهيز...",
+      "Download": "تحميل",
+      "Add to album": "إضافة إلى الألبوم",
+      "Delete selected": "حذف المحدد",
+
+      // Album Picker Modal
+      "Add {count} item(s) to album": "إضافة العناصر المحددة للألبوم",
+      "Create new album": "إنشاء ألبوم جديد",
+      "Album name": "اسم الألبوم",
+      "Create": "إنشاء",
+
+      // Tool buttons
+      "CREATE": "إنشاء",
+      "ENHANCE": "تحسين",
+      "RELIGHT": "إضاءة",
+      "INPAINT": "تعديل الرسم",
+      "UPSCALE": "تكبير الدقة",
+      "FACE SWAP": "تبديل الوجه",
+
+      // Main UI Controls
+      "Add character": "إضافة شخصية",
+      "Unlimited": "غير محدود",
+      "Drop images here to add as reference": "أفلت الصور هنا لإضافتها كمرجع",
+      "Describe what you want to generate...": "صف ما تريد توليده...",
+      "Generate Image - Unlimited": "توليد صورة - غير محدود",
+      "Generate Image": "توليد صورة",
+      "Generate another": "توليد صورة أخرى",
+      "cr": "نقطة",
+      "Image Settings": "إعدادات الصورة",
+      "Enhance Settings": "إعدادات التحسين",
+      "Relight Settings": "إعدادات الإضاءة",
+      "Inpaint Workspace": "مساحة تعديل الرسم",
+      "Inpaint Settings": "إعدادات تعديل الرسم",
+      "Upscale Settings": "إعدادات تكبير الدقة",
+      "Face Swap Settings": "إعدادات تبديل الوجه",
+      "Settings": "الإعدادات",
+      "Undo": "تراجع",
+      "Clear Mask": "مسح القناع",
+      "Brush": "الفرشاة",
+      "Upload or drag media": "ارفع أو اسحب الوسائط هنا",
+      "Upload or drag image": "ارفع أو اسحب الصورة هنا",
+      "Drop here": "أفلته هنا",
+      "Style Library": "مكتبة الأنماط",
+      "Tap a curated style — the prompt, model, and aspect ratio apply instantly.": "اضغط على نمط منسق — سيتم تطبيق الوصف والنموذج والأبعاد فوراً.",
+      "Browse styles": "تصفح الأنماط",
+      "New": "جديد",
+      "18 styles": "18 نمطاً",
+      "Preview": "معاينة",
+      "Unselect": "إلغاء التحديد",
+      "Use": "استخدام",
+      "Remix": "ريمكس",
+      "Delete": "حذف",
+      "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...": "تعليمات التحسين (اختياري) — مثل: سينمائي، بدقة 8K، حاد...",
+      "Enhance Photo": "تحسين الصورة",
+      "Describe the lighting you want...": "صف الإضاءة التي تريدها...",
+      "Describe what should replace the painted area...": "صف ما يجب أن يحل محل المنطقة المرسومة...",
+      "Swap Face": "تبديل الوجه",
+      "Search model": "البحث عن نموذج",
+      
+      // Model families
+      "Cinema Studio": "سينما استوديو",
+      "Nano Banana": "نانو بنانا",
+      "Seedance": "سيدانس",
+      "Kling": "كلينغ",
+      "GPT Image": "GPT صور"
+    }
+  };
+
+  const t = (key: string) => {
+    if (!key) return "";
+    const cleanKey = key.trim();
+    return dict[lang]?.[cleanKey] || key;
+  };
+
+  return { t, lang };
+}
+
 export default function ImageWorkspacePage() {
+  const { t, lang } = useImageTranslation();
   const searchParams = useSearchParams();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   const { addAsset } = useAssetStore();
@@ -1342,16 +1501,16 @@ export default function ImageWorkspacePage() {
   const composer = useMemo(() => {
     if (activeTool === "create") {
       if (isAnnualUnlimitedCreate) {
-        return { placeholder: "Describe what you want to generate...", button: "Generate Image - Unlimited", promptEnabled: true };
+        return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image - Unlimited"), promptEnabled: true };
       }
       const credits = getImageCreditCost(selectedModel, numImages, selectedQuality);
-      return { placeholder: "Describe what you want to generate...", button: `Generate Image · ${credits} cr`, promptEnabled: true };
+      return { placeholder: t("Describe what you want to generate..."), button: t("Generate Image") + " · " + credits + " " + t("cr"), promptEnabled: true };
     }
-    if (activeTool === "enhance") return { placeholder: "Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"...", button: "Enhance Photo · 2 cr", promptEnabled: true };
-    if (activeTool === "relight") return { placeholder: "Describe the lighting you want...", button: `Relight Image ✦ ${3 * relightVariations}`, promptEnabled: true };
-    if (activeTool === "inpaint") return { placeholder: "Describe what should replace the painted area...", button: `Inpaint ✦ ${3 * inpaintVariations}`, promptEnabled: true };
-    if (activeTool === "upscale") return { placeholder: "Upload media to upscale", button: "Upscale Image ✦ 2", promptEnabled: false };
-    return { placeholder: "Upload source face and target above", button: "Swap Face ✦ 4", promptEnabled: false };
+    if (activeTool === "enhance") return { placeholder: t("Enhancement instructions (optional) — e.g. \"cinematic, 8K, sharp\"..."), button: t("Enhance Photo") + " · 2 " + t("cr"), promptEnabled: true };
+    if (activeTool === "relight") return { placeholder: t("Describe the lighting you want..."), button: t("Relight Image") + " ✦ " + (3 * relightVariations), promptEnabled: true };
+    if (activeTool === "inpaint") return { placeholder: t("Describe what should replace the painted area..."), button: t("Inpaint") + " ✦ " + (3 * inpaintVariations), promptEnabled: true };
+    if (activeTool === "upscale") return { placeholder: t("Upload media to upscale"), button: t("Upscale Image") + " ✦ 2", promptEnabled: false };
+    return { placeholder: t("Upload source face and target above"), button: t("Swap Face") + " ✦ 4", promptEnabled: false };
   }, [activeTool, inpaintVariations, isAnnualUnlimitedCreate, numImages, relightVariations, selectedModel, selectedQuality]);
 
   useEffect(() => {
@@ -1620,7 +1779,7 @@ export default function ImageWorkspacePage() {
     const pendingCount = activeTool === "create" ? numImages : activeTool === "relight" ? relightVariations : activeTool === "inpaint" ? inpaintVariations : 1;
     const pendingModel = activeTool === "create" ? selectedModel.label : activeTool === "enhance" ? (ENHANCE_MODELS.find((m) => m.id === enhanceModelId)?.label ?? enhanceModelId) : activeTool === "relight" ? "Seedream 4.5 Edit" : activeTool === "inpaint" ? inpaintModelId : activeTool === "upscale" ? "Upscaler" : "Face Swap";
     const pendingAspect = activeTool === "create" ? aspectRatio : "source";
-    const pendingPrompt = prompt || "Generating...";
+    const pendingPrompt = prompt || t("Generating...");
     const placeholders: ResultItem[] = Array.from({ length: pendingCount }, () => ({
       id: uid("pending"),
       url: "",
@@ -1739,13 +1898,13 @@ export default function ImageWorkspacePage() {
       return <div className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-amber-500/30 bg-amber-500/5 text-zinc-400">
         <Zap className="h-10 w-10 text-amber-400/60" />
         <div className="text-center">
-          <p className="text-sm font-semibold text-amber-300">ENHANCE — Photo Restoration</p>
-          <p className="mt-1 text-xs text-zinc-500">Upload a photo in the settings panel → click Enhance Photo</p>
-          <p className="mt-1 text-xs text-zinc-600">Uses true image-to-image AI to preserve identity while improving quality</p>
+          <p className="text-sm font-semibold text-amber-300">{t("ENHANCE — Photo Restoration")}</p>
+          <p className="mt-1 text-xs text-zinc-500">{t("Upload a photo in the settings panel → click Enhance Photo")}</p>
+          <p className="mt-1 text-xs text-zinc-600">{t("Uses true image-to-image AI to preserve identity while improving quality")}</p>
         </div>
       </div>;
     }
-    return <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-zinc-500">{activeTool === "relight" ? "Upload image and relight" : activeTool === "upscale" ? "Upload media and upscale" : "Upload source and target images"}</div>;
+    return <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 text-zinc-500">{activeTool === "relight" ? t("Upload image and relight") : activeTool === "upscale" ? t("Upload media and upscale") : t("Upload source and target images")}</div>;
   };
 
   const renderRightPanel = () => {
@@ -1755,7 +1914,7 @@ export default function ImageWorkspacePage() {
           <div className="mb-2 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-500/[0.10] via-pink-500/[0.08] to-sky-500/[0.10] px-3 py-2.5">
             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-pink-200/90">
               <Sparkles className="h-3.5 w-3.5" />
-              New from Saad Studio
+              {t("New from Saad Studio")}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {IMAGE_MODELS.filter((m) => m.id === "gpt-image-2-text-to-image" || m.id === "gpt-image-2-image-to-image").map((m) => (
@@ -1780,7 +1939,7 @@ export default function ImageWorkspacePage() {
               onChange={(e) => setSelectedCharacterId(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500"
             >
-              <option value="">No saved character</option>
+              <option value="">{t("No saved character")}</option>
               {characters.map((character) => (
                 <option key={character.id} value={character.id}>{character.name}</option>
               ))}
@@ -1804,13 +1963,13 @@ export default function ImageWorkspacePage() {
                 </div>
                 {selectedModel.maxRefImages <= 0 ? (
                   <p className="mt-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-200">
-                    This model does not accept reference images. Choose an image-to-image model to use this character.
+                    {t("This model does not accept reference images. Choose an image-to-image model to use this character.")}
                   </p>
                 ) : null}
               </div>
             ) : (
               <a href="/character" className="flex items-center justify-center rounded-xl border border-dashed border-white/15 px-3 py-3 text-xs font-semibold text-zinc-400 hover:border-fuchsia-400/50 hover:text-fuchsia-200">
-                Create a reusable character
+                {t("Create a reusable character")}
               </a>
             )}
           </div>
@@ -1914,7 +2073,7 @@ export default function ImageWorkspacePage() {
                     {preview ? (
                       <img src={preview} alt="" className="h-full w-full rounded-xl object-cover" />
                     ) : (
-                      <><UploadCloud className="mb-1 h-5 w-5" /><span>{i === 0 ? "Required" : "Optional"}</span></>
+                      <><UploadCloud className="mb-1 h-5 w-5" /><span>{i === 0 ? t("Required") : t("Optional")}</span></>
                     )}
                     <input
                       type="file" accept="image/*" className="hidden"
@@ -1945,8 +2104,8 @@ export default function ImageWorkspacePage() {
         </section>
 
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-relaxed text-amber-200">
-          <strong className="text-amber-300">✦ True Image-to-Image</strong><br />
-          ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.
+          <strong className="text-amber-300">{t("✦ True Image-to-Image")}</strong><br />
+          {t("ENHANCE sends your photo directly as input to the AI — preserves identity. Unlike CREATE which uses it as loose inspiration.")}
         </div>
       </>;
     }
@@ -2027,7 +2186,7 @@ export default function ImageWorkspacePage() {
       <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 pb-[60px] md:pb-0">
         <aside className="hidden w-20 shrink-0 flex-col items-center gap-1 border-r border-white/10 bg-black/30 py-4 md:flex">
           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-pink-600/80 to-violet-600/80"><Camera className="h-4 w-4 text-white" /></div>
-          {TOOLS.map((tool) => <ToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={tool.label} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
+          {TOOLS.map((tool) => <ToolButton key={tool.id} active={activeTool === tool.id} icon={tool.icon} label={t(tool.label)} onClick={() => { setActiveTool(tool.id); setCompare(null); }} />)}
         </aside>
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -2042,7 +2201,7 @@ export default function ImageWorkspacePage() {
               onDrop={handleComposerDrop}
             >
               {composerDragActive ? (
-                <div className="mb-2 flex items-center justify-center rounded-xl border border-dashed border-pink-400/50 bg-pink-500/5 py-2 text-xs text-pink-300">Drop images here to add as reference</div>
+                <div className="mb-2 flex items-center justify-center rounded-xl border border-dashed border-pink-400/50 bg-pink-500/5 py-2 text-xs text-pink-300">{t("Drop images here to add as reference")}</div>
               ) : (
                 <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
                   {activeTool === "create" ? (
@@ -2077,7 +2236,7 @@ export default function ImageWorkspacePage() {
                         title="Create a character reference"
                       >
                         <ScanFace className="h-4 w-4 text-fuchsia-300" />
-                        <span className="font-semibold">Add character</span>
+                        <span className="font-semibold">{t("Add character")}</span>
                       </a>
                     )
                   ) : null}
@@ -2094,7 +2253,7 @@ export default function ImageWorkspacePage() {
                       )}
                       title={annualUnlimitedEnabled ? "Unlimited generation enabled" : "Use credits instead of unlimited"}
                     >
-                      <span>Unlimited</span>
+                      <span>{t("Unlimited")}</span>
                       <span
                         className={cn(
                           "relative h-5 w-9 rounded-full transition",
@@ -2135,23 +2294,23 @@ export default function ImageWorkspacePage() {
                   </>
                 ) : null}
                 <button onClick={handleGenerate} disabled={!canGenerate} className={cn("flex h-9 w-9 items-center justify-center rounded-xl", canGenerate ? "bg-pink-600 text-white" : "bg-white/5 text-zinc-600")}><ArrowUp className="h-4 w-4" /></button>
-                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2.5 text-sm", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? "Generate another" : composer.button}</button>
+                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2.5 text-sm", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? t("Generate another") : composer.button}</button>
               </div>
             </div>
           </div>
         </main>
 
         <aside className="hidden w-[320px] shrink-0 flex-col border-l border-white/10 bg-black/25 lg:flex">
-          <div className="border-b border-white/10 px-4 py-3"><div className="flex items-center gap-2 text-sm font-semibold text-white"><SlidersHorizontal className="h-4 w-4 text-pink-400" /> {activeTool === "create" ? "Image Settings" : activeTool === "enhance" ? "Enhance Settings" : activeTool === "relight" ? "Relight Settings" : activeTool === "inpaint" ? "Inpaint Settings" : activeTool === "upscale" ? "Upscale Settings" : "Face Swap Settings"}</div></div>
+          <div className="border-b border-white/10 px-4 py-3"><div className="flex items-center gap-2 text-sm font-semibold text-white"><SlidersHorizontal className="h-4 w-4 text-pink-400" /> {activeTool === "create" ? t("Image Settings") : activeTool === "enhance" ? t("Enhance Settings") : activeTool === "relight" ? t("Relight Settings") : activeTool === "inpaint" ? t("Inpaint Settings") : activeTool === "upscale" ? t("Upscale Settings") : t("Face Swap Settings")}</div></div>
           <div className="flex-1 space-y-4 overflow-y-auto p-4">{renderRightPanel()}</div>
         </aside>
 
         <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-white/10 bg-black/90 p-1.5 md:hidden">
-          {TOOLS.map((tool) => { const Icon = tool.icon; return <button key={tool.id} onClick={() => { setActiveTool(tool.id); setCompare(null); }} className={cn("rounded-xl px-2 py-1.5 text-[9px]", activeTool === tool.id ? "bg-white/10 text-pink-300" : "text-zinc-500")}><Icon className="mx-auto mb-0.5 h-4 w-4" />{tool.label}</button>; })}
-          <button onClick={() => setMobileSettingsOpen(true)} className="rounded-xl px-2 py-1.5 text-[9px] text-zinc-500"><Settings2 className="mx-auto mb-0.5 h-4 w-4" />Settings</button>
+          {TOOLS.map((tool) => { const Icon = tool.icon; return <button key={tool.id} onClick={() => { setActiveTool(tool.id); setCompare(null); }} className={cn("rounded-xl px-2 py-1.5 text-[9px]", activeTool === tool.id ? "bg-white/10 text-pink-300" : "text-zinc-500")}><Icon className="mx-auto mb-0.5 h-4 w-4" />{t(tool.label)}</button>; })}
+          <button onClick={() => setMobileSettingsOpen(true)} className="rounded-xl px-2 py-1.5 text-[9px] text-zinc-500"><Settings2 className="mx-auto mb-0.5 h-4 w-4" />{t("Settings")}</button>
         </div>
 
-        <AnimatePresence>{mobileSettingsOpen ? <><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/70 md:hidden" onClick={() => setMobileSettingsOpen(false)} /><motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed bottom-0 left-0 right-0 z-50 h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-slate-950 p-4 md:hidden"><div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-white">Settings</p><button onClick={() => setMobileSettingsOpen(false)} className="rounded-lg bg-white/5 p-2 text-zinc-400"><X className="h-4 w-4" /></button></div><div className="space-y-4">{renderRightPanel()}</div></motion.div></> : null}</AnimatePresence>
+        <AnimatePresence>{mobileSettingsOpen ? <><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/70 md:hidden" onClick={() => setMobileSettingsOpen(false)} /><motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed bottom-0 left-0 right-0 z-50 h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-slate-950 p-4 md:hidden"><div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-white">{t("Settings")}</p><button onClick={() => setMobileSettingsOpen(false)} className="rounded-lg bg-white/5 p-2 text-zinc-400"><X className="h-4 w-4" /></button></div><div className="space-y-4">{renderRightPanel()}</div></motion.div></> : null}</AnimatePresence>
       </div>
 
       <AnimatePresence>{inspectorAsset ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}><motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}><AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} /></motion.div></motion.div> : null}</AnimatePresence>

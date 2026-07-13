@@ -116,7 +116,7 @@ const Footer = () => {
   const tagline = footer?.tagline || "The world's most powerful AI creative studio.";
   const email = footer?.email || "support@saadstudio.app";
   const phone = "009647755815500";
-  const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png";
+  const logoUrl = footer?.logoUrl || "/logo-saad-transparent.png?v=2";
   const sections = (footer?.sections?.length ? footer.sections : DEFAULT_SECTIONS)
     .map((section) => ({
       ...section,

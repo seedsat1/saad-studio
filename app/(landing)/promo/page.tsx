@@ -304,7 +304,7 @@ export default function PromoPage() {
   };
 
   return (
-    <div className="relative min-h-screen text-[#e2e8f0] pb-20 overflow-x-hidden font-body" style={{ direction: lang === "ar" ? "rtl" : "ltr" }}>
+    <div className="relative min-h-screen text-[#e2e8f0] pb-20 overflow-x-hidden font-body" style={{ direction: "ltr" }}>
       
       {/* Background elements */}
       <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-indigo-950/20 via-transparent to-transparent pointer-events-none" />
@@ -871,7 +871,7 @@ export default function PromoPage() {
                           ? "bg-slate-800/80 border-slate-700 shadow-md " + tool.glow
                           : "bg-slate-900/40 border-slate-900/60 hover:bg-slate-800/30 text-slate-400 hover:text-slate-200"
                       )}
-                      style={{ direction: lang === "ar" ? "rtl" : "ltr" }}
+                      style={{ direction: "ltr" }}
                     >
                       <div className="flex items-center gap-2">
                         <Icon className={cn("h-4.5 w-4.5", isSelected ? tool.color : "text-slate-500")} />
@@ -1034,7 +1034,7 @@ export default function PromoPage() {
                               "w-full text-right py-2 px-3 rounded border text-xs transition cursor-pointer select-none",
                               inpaintPrompt === "emerald necklace" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                             )}
-                            style={{ direction: lang === "ar" ? "rtl" : "ltr" }}
+                            style={{ direction: "ltr" }}
                           >
                             🟢 {lang === "ar" ? "عقد ملكي من الزمرد" : "Royal Emerald Necklace"}
                           </button>
@@ -1044,7 +1044,7 @@ export default function PromoPage() {
                               "w-full text-right py-2 px-3 rounded border text-xs transition cursor-pointer select-none",
                               inpaintPrompt === "red velvet dress" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                             )}
-                            style={{ direction: lang === "ar" ? "rtl" : "ltr" }}
+                            style={{ direction: "ltr" }}
                           >
                             🔴 {lang === "ar" ? "فستان مخملي أحمر" : "Red Velvet Dress"}
                           </button>
@@ -1054,7 +1054,7 @@ export default function PromoPage() {
                               "w-full text-right py-2 px-3 rounded border text-xs transition cursor-pointer select-none",
                               inpaintPrompt === "gold earrings & necklace" ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200"
                             )}
-                            style={{ direction: lang === "ar" ? "rtl" : "ltr" }}
+                            style={{ direction: "ltr" }}
                           >
                             🟡 {lang === "ar" ? "مجوهرات وأقراط ذهبية" : "Gold Earrings & Necklace"}
                           </button>

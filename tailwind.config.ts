@@ -60,8 +60,8 @@ const config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "sans-serif"],
-        body: ["var(--font-body)", "sans-serif"],
+        display: ["var(--font-display)", "var(--font-cairo)", "sans-serif"],
+        body: ["var(--font-body)", "var(--font-cairo)", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

@@ -13,6 +13,7 @@ import { cn, getFallbackUrls } from "@/lib/utils";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { useToast } from "@/components/ui/use-toast";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { useLanguage } from "@/lib/use-language";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-function AppSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+function AppSelect({ value, onChange, options, t }: { value: string; onChange: (v: string) => void; options: string[]; t?: (k: string) => string }) {
   return (
     <div className="relative">
       <select
@@ -173,7 +174,7 @@ function AppSelect({ value, onChange, options }: { value: string; onChange: (v: 
         onChange={e => onChange(e.target.value)}
         className="w-full appearance-none rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2.5 pr-8 text-sm font-medium text-zinc-100 focus:outline-none cursor-pointer"
       >
-        {options.map(o => <option key={o} value={o} className="bg-zinc-950 text-zinc-100">{o}</option>)}
+        {options.map(o => <option key={o} value={o} className="bg-zinc-950 text-zinc-100">{t ? t(o) : o}</option>)}
       </select>
       <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
     </div>
@@ -262,7 +263,136 @@ function compressImage(file: File, maxW = 800, maxH = 800, quality = 0.75): Prom
   });
 }
 
+function useAudioTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Audio Suite": "جناح الصوت",
+      "Sound Studio": "استوديو الصوت",
+      "Create Your Song": "أنشئ أغنيتك",
+      "Production Library": "مكتبة الإنتاج",
+      
+      // Library
+      "Refresh": "تحديث",
+      "Loading library assets...": "جاري تحميل أصول المكتبة...",
+      "No audio assets found": "لم يتم العثور على أصول صوتية",
+      "Generate your first track in the \"Create Your Song\" tab": "قم بتوليد أول مقطع صوتي لك في علامة تبويب \"أنشئ أغنيتك\"",
+      "Create Now": "أنشئ الآن",
+      "Delete": "حذف",
+      "Download": "تحميل",
+      
+      // Header
+      "Saad Studio": "سعد ستوديو",
+      "Powered by": "بدعم من",
+      "Reset": "إعادة تعيين",
+      "AI Audio": "الصوت بالذكاء الاصطناعي",
+      
+      // Create Song Intro
+      "Create studio-quality music from text prompts or images using state-of-the-art AI.": "أنشئ موسيقى بجودة الاستوديو من النصوص أو الصور باستخدام الذكاء الاصطناعي الحديث.",
+      
+      // Prompt/Lyrics Tabs
+      "Prompt": "الوصف",
+      "Custom Lyrics": "كلمات مخصصة",
+      "Describe your music... e.g. An uplifting orchestral piece with soaring violins, building percussion and a triumphant brass finale": "صف موسيقاك... مثلاً: قطعة أوركسترالية مبهجة مع كمانات متصاعدة، إيقاع متزايد ونهاية نحاسية منتصرة",
+      "Copied": "تم النسخ",
+      "Copied!": "تم النسخ!",
+      "Copy": "نسخ",
+      "Clear": "مسح",
+      "Clear All": "مسح الكل",
+      "Copy All Lyrics": "نسخ كل الكلمات",
+      "chars": "حرف",
+      "Verse": "المقطع الأول (Verse)",
+      "Chorus": "اللازمة (Chorus)",
+      "Bridge": "الجسر (Bridge)",
+      "Write your verse lyrics here...": "اكتب كلمات المقطع الأول هنا...",
+      "Write your chorus lyrics here — this is the hook...": "اكتب كلمات اللازمة هنا — هذه هي القطعة الجاذبة...",
+      "Write your bridge lyrics here...": "اكتب كلمات الجسر هنا...",
+      
+      // Style Suggestions
+      "Style Suggestions": "اقتراحات الأنماط",
+      
+      // Chips
+      "Cinematic": "سينمائي",
+      "Lo-Fi": "لو-فاي",
+      "EDM": "إلكتروني",
+      "Pop": "بوب",
+      "Jazz": "جاز",
+      "Arabic": "عربي",
+      "Ambient": "محيط",
+      "Synthwave": "سينث-ويف",
+      "Gaming": "ألعاب",
+      
+      // Genres
+      "Classical": "كلاسيكي",
+      "R&B": "آر أند بي",
+      "Rock": "روك",
+      "Hip-Hop": "هيب هوب",
+      "Country": "ريفي",
+      
+      // Moods
+      "Uplifting": "مبهج",
+      "Melancholic": "كئيب",
+      "Energetic": "نشط",
+      "Peaceful": "هادئ",
+      "Epic": "ملحمي",
+      "Dark": "مظلم",
+      "Romantic": "رومانسي",
+      "Mysterious": "غامض",
+      "Playful": "مرح",
+      "Tense": "متوتر",
+      
+      // Image Reference
+      "Image Reference ": "مرجع الصورة ",
+      "(optional · max 10)": "(اختياري · بحد أقصى 10)",
+      "Clear all": "مسح الكل",
+      "Drop images here or click to upload": "أفلت الصور هنا أو انقر للرفع",
+      "PNG, JPG, WEBP — up to 10 images": "PNG, JPG, WEBP — ما يصل إلى 10 صور",
+      
+      // Generate button
+      "Generating Your Track...": "جاري توليد مقطعك الصوتي...",
+      "Generate Music · 20 cr": "توليد الموسيقى · 20 نقطة",
+      
+      // Progress
+      "AI is crafting your music...": "الذكاء الاصطناعي يصنع موسيقاك...",
+      "Preparing": "جاري التحضير",
+      "Composing": "جاري التأليف",
+      "Rendering": "جاري التصدير",
+      "Finalizing": "جاري الإنهاء",
+      
+      // Player
+      "Copy prompt": "نسخ الوصف",
+      "Share": "مشاركة",
+      "Export": "تصدير",
+      "Copy Prompt": "نسخ الوصف",
+      
+      // Settings Box
+      "Settings": "الإعدادات",
+      "Model": "النموذج",
+      "Fast": "سريع",
+      "Pro": "احترافي",
+      "Google · Fast Preview": "Google · معاينة سريعة",
+      "Google · Pro Preview": "Google · معاينة احترافية",
+      "Genre": "النوع",
+      "Mood": "الحالة المزاجية",
+      "BPM": "سرعة الإيقاع (BPM)",
+      "Duration": "المدة",
+      "Instrumental Only": "موسيقى فقط",
+      "No vocals": "بدون غناء",
+      
+      // History Box
+      "Generation History": "سجل التوليد",
+      "Are you sure you want to delete this track?": "هل أنت متأكد من رغبتك في حذف هذا المقطع؟"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function AudioPage() {
+  const { t, lang } = useAudioTranslation();
   const proModal = useProModal();
   const { toast } = useToast();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
@@ -608,7 +738,7 @@ export default function AudioPage() {
       <div className="flex items-center justify-between border-b border-[#0d1b2e] bg-[#03070c] px-4 py-2">
         <div className="flex items-center gap-2">
           <Volume2 className="h-5 w-5 text-cyan-500" />
-          <span className="text-sm font-bold text-white uppercase tracking-wider hidden sm:block">Audio Suite</span>
+          <span className="text-sm font-bold text-white uppercase tracking-wider hidden sm:block">{t("Audio Suite")}</span>
         </div>
         <div className="flex bg-white/5 rounded-xl p-1 gap-1 border border-white/10">
           <button
@@ -621,7 +751,7 @@ export default function AudioPage() {
             )}
           >
             <Sliders className="h-3.5 w-3.5" />
-            Sound Studio
+            {t("Sound Studio")}
           </button>
           <button
             onClick={() => setSuiteTab("create-song")}
@@ -633,7 +763,7 @@ export default function AudioPage() {
             )}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            Create Your Song
+            {t("Create Your Song")}
           </button>
           <button
             onClick={() => setSuiteTab("library")}
@@ -645,7 +775,7 @@ export default function AudioPage() {
             )}
           >
             <List className="h-3.5 w-3.5" />
-            Production Library
+            {t("Production Library")}
           </button>
         </div>
         <div className="w-10 sm:w-20" /> {/* Spacer */}
@@ -665,8 +795,8 @@ export default function AudioPage() {
             <div className="max-w-[1400px] mx-auto space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">Production Library</h1>
-                  <p className="text-sm text-slate-400 mt-1">Manage and listen to all your generated audio tracks</p>
+                  <h1 className="text-2xl font-bold text-white tracking-tight">{t("Production Library")}</h1>
+                  <p className="text-sm text-slate-400 mt-1">{t("Manage and listen to all your generated audio tracks")}</p>
                 </div>
                 <button
                   onClick={loadLibrary}
@@ -674,14 +804,14 @@ export default function AudioPage() {
                   className="flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white transition-colors"
                 >
                   <RefreshCw className={cn("h-3.5 w-3.5", loadingLibrary ? "animate-spin" : "")} />
-                  Refresh
+                  {t("Refresh")}
                 </button>
               </div>
 
               {loadingLibrary ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <RefreshCw className="h-8 w-8 text-cyan-500 animate-spin" />
-                  <p className="text-sm text-slate-400">Loading library assets...</p>
+                  <p className="text-sm text-slate-400">{t("Loading library assets...")}</p>
                 </div>
               ) : libraryAssets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[#1e2d3d] rounded-3xl bg-[#090f1b]/50 gap-4">
@@ -689,15 +819,15 @@ export default function AudioPage() {
                     <Music2 className="h-6 w-6" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-white">No audio assets found</p>
-                    <p className="text-xs text-slate-400 mt-1">Generate your first track in the "Create Your Song" tab</p>
+                    <p className="text-sm font-semibold text-white">{t("No audio assets found")}</p>
+                    <p className="text-xs text-slate-400 mt-1">{t("Generate your first track in the \"Create Your Song\" tab")}</p>
                   </div>
                   <button
                     onClick={() => setSuiteTab("create-song")}
                     className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors shadow-lg"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Create Now
+                    {t("Create Now")}
                   </button>
                 </div>
               ) : (
@@ -725,7 +855,7 @@ export default function AudioPage() {
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={async () => {
-                                  if (confirm("Are you sure you want to delete this track?")) {
+                                  if (confirm(t("Are you sure you want to delete this track?"))) {
                                     try {
                                       const res = await fetch("/api/assets", {
                                         method: "DELETE",
@@ -746,7 +876,7 @@ export default function AudioPage() {
                                   }
                                 }}
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                                title="Delete"
+                                title={t("Delete")}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -811,7 +941,7 @@ export default function AudioPage() {
                                 handleDownloadTrack(targetTrack);
                               }}
                               className="h-8 w-8 rounded-xl bg-[#0d1b2e] border border-[#1e2d3d] text-slate-300 hover:text-white flex items-center justify-center transition-all shadow-md"
-                              title="Download"
+                              title={t("Download")}
                             >
                               <Download className="h-3.5 w-3.5" />
                             </button>
@@ -837,19 +967,19 @@ export default function AudioPage() {
                   >
                     <Music2 className="h-4 w-4 text-white" />
                   </div>
-                  <span className="font-semibold text-zinc-100 text-[15px] hidden sm:block">Saad Studio</span>
+                  <span className="font-semibold text-zinc-100 text-[15px] hidden sm:block">{t("Saad Studio")}</span>
                   <ChevronRight className="h-4 w-4 text-zinc-500 hidden sm:block" />
-                  <span className="text-[15px] text-zinc-100 font-medium">Create Your Song</span>
+                  <span className="text-[15px] text-zinc-100 font-medium">{t("Create Your Song")}</span>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-950/20 text-cyan-400 text-xs font-semibold">
                     <Zap className="h-3.5 w-3.5" />
-                    <span className="hidden sm:block">Powered by</span> AI Audio
+                    <span className="hidden sm:block">{t("Powered by")}</span> {t("AI Audio")}
                   </div>
                   <button
                     className="h-9 w-9 rounded-full bg-[#0d1b2e] border border-[#1e2d3d] flex items-center justify-center hover:bg-slate-800 transition-colors"
-                    title="Reset"
+                    title={t("Reset")}
                     onClick={() => { setPrompt(""); setCurrentTrack(null); setImages([]); setIsPlaying(false); setCurrentTime(0); }}
                   >
                     <RotateCcw className="h-4 w-4 text-slate-400" />
@@ -873,9 +1003,9 @@ export default function AudioPage() {
 
                   {/* ── Page intro ─────────────────────────────────────────────────── */}
                   <div>
-                    <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Create Your Song</h1>
+                    <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">{t("Create Your Song")}</h1>
                     <p className="text-sm text-zinc-400 mt-1">
-                      Create studio-quality music from text prompts or images using state-of-the-art AI.
+                      {t("Create studio-quality music from text prompts or images using state-of-the-art AI.")}
                     </p>
                   </div>
 
@@ -884,8 +1014,8 @@ export default function AudioPage() {
                     {/* Tab strip */}
                     <div className="flex items-center gap-1 p-3 pb-0 border-b border-[#0d1b2e] bg-[#03070c]/30">
                       {[
-                        { id: "prompt", icon: <Sparkles className="h-3.5 w-3.5" />, label: "Prompt" },
-                        { id: "lyrics", icon: <AlignLeft className="h-3.5 w-3.5" />, label: "Custom Lyrics" },
+                        { id: "prompt", icon: <Sparkles className="h-3.5 w-3.5" />, label: t("Prompt") },
+                        { id: "lyrics", icon: <AlignLeft className="h-3.5 w-3.5" />, label: t("Custom Lyrics") },
                       ].map(tab => (
                         <button
                           key={tab.id}
@@ -914,7 +1044,7 @@ export default function AudioPage() {
                           <textarea
                             value={prompt}
                             onChange={e => setPrompt(e.target.value.slice(0, 500))}
-                            placeholder="Describe your music... e.g. An uplifting orchestral piece with soaring violins, building percussion and a triumphant brass finale"
+                            placeholder={t("Describe your music... e.g. An uplifting orchestral piece with soaring violins, building percussion and a triumphant brass finale")}
                             rows={6}
                             className="w-full px-5 py-4 text-[15px] text-zinc-100 placeholder:text-zinc-500 bg-transparent resize-none focus:outline-none leading-relaxed"
                           />
@@ -933,13 +1063,13 @@ export default function AudioPage() {
                                     className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
                                   >
                                     {copied === "main-prompt" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                                    {copied === "main-prompt" ? "Copied" : "Copy"}
+                                    {copied === "main-prompt" ? t("Copied") : t("Copy")}
                                   </button>
                                   <button
                                     onClick={() => setPrompt("")}
                                     className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
                                   >
-                                    <X className="h-3 w-3" /> Clear
+                                    <X className="h-3 w-3" /> {t("Clear")}
                                   </button>
                                 </>
                               )}
@@ -956,14 +1086,14 @@ export default function AudioPage() {
                           className="p-5 space-y-4"
                         >
                           {[
-                            { label: "Verse", value: verse, onChange: setVerse, placeholder: "Write your verse lyrics here..." },
-                            { label: "Chorus", value: chorus, onChange: setChorus, placeholder: "Write your chorus lyrics here — this is the hook..." },
-                            { label: "Bridge", value: bridge, onChange: setBridge, placeholder: "Write your bridge lyrics here..." },
+                            { label: "Verse", value: verse, onChange: setVerse, placeholder: t("Write your verse lyrics here...") },
+                            { label: "Chorus", value: chorus, onChange: setChorus, placeholder: t("Write your chorus lyrics here — this is the hook...") },
+                            { label: "Bridge", value: bridge, onChange: setBridge, placeholder: t("Write your bridge lyrics here...") },
                           ].map(section => (
                             <div key={section.label}>
                               <div className="flex items-center justify-between mb-1.5">
-                                <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">{section.label}</label>
-                                <span className="text-[10px] text-zinc-500">{section.value.length} chars</span>
+                                <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">{t(section.label)}</label>
+                                <span className="text-[10px] text-zinc-500">{section.value.length} {t("chars")}</span>
                               </div>
                               <textarea
                                 value={section.value}
@@ -981,13 +1111,13 @@ export default function AudioPage() {
                               className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors border border-zinc-800"
                             >
                               {copied === "all-lyrics" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                              {copied === "all-lyrics" ? "Copied!" : "Copy All Lyrics"}
+                              {copied === "all-lyrics" ? t("Copied!") : t("Copy All Lyrics")}
                             </button>
                             <button
                               onClick={() => { setVerse(""); setChorus(""); setBridge(""); }}
                               className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors border border-zinc-800"
                             >
-                              <X className="h-3 w-3" /> Clear All
+                              <X className="h-3 w-3" /> {t("Clear")} All
                             </button>
                           </div>
                         </motion.div>
@@ -997,7 +1127,7 @@ export default function AudioPage() {
 
                   {/* ── Genre chips ────────────────────────────────────────────────── */}
                   <div>
-                    <p className="text-[10px] font-bold text-zinc-450 uppercase tracking-widest mb-2.5">Style Suggestions</p>
+                    <p className="text-[10px] font-bold text-zinc-450 uppercase tracking-widest mb-2.5">{t("Style Suggestions")}</p>
                     <div className="flex flex-wrap gap-2">
                       {GENRE_CHIPS.map(chip => (
                         <button
@@ -1015,7 +1145,7 @@ export default function AudioPage() {
                               : "border-[#0d1b2e] bg-[#090f1b] text-zinc-400 hover:border-cyan-500/40 hover:text-cyan-400 hover:bg-cyan-950/10"
                           )}
                         >
-                          {chip}
+                          {t(chip)}
                         </button>
                       ))}
                     </div>
@@ -1025,14 +1155,14 @@ export default function AudioPage() {
                   <div>
                     <div className="flex items-center justify-between mb-2.5">
                       <p className="text-[10px] font-bold text-zinc-450 uppercase tracking-widest">
-                        Image Reference <span className="normal-case font-normal text-[10px]">(optional · max 10)</span>
+                        {t("Image Reference ")} <span className="normal-case font-normal text-[10px]">{t("(optional · max 10)")}</span>
                       </p>
                       {images.length > 0 && (
                         <button
                           onClick={() => setImages([])}
                           className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
                         >
-                          Clear all
+                          {t("Clear all")}
                         </button>
                       )}
                     </div>
@@ -1055,8 +1185,8 @@ export default function AudioPage() {
                           <div className="h-12 w-12 rounded-2xl bg-zinc-900 flex items-center justify-center mx-auto mb-3">
                             <Upload className="h-5 w-5 text-zinc-400" />
                           </div>
-                          <p className="text-sm font-medium text-zinc-200 mb-1">Drop images here or click to upload</p>
-                          <p className="text-xs text-zinc-400">PNG, JPG, WEBP — up to 10 images</p>
+                          <p className="text-sm font-medium text-zinc-200 mb-1">{t("Drop images here or click to upload")}</p>
+                          <p className="text-xs text-zinc-400">{t("PNG, JPG, WEBP — up to 10 images")}</p>
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-3" onClick={e => e.stopPropagation()}>
@@ -1091,9 +1221,9 @@ export default function AudioPage() {
                   >
                     <span className="flex items-center justify-center gap-2.5">
                       {isGenerating ? (
-                        <><RefreshCw className="h-5 w-5 animate-spin" /> Generating Your Track...</>
+                        <><RefreshCw className="h-5 w-5 animate-spin" /> {t("Generating Your Track...")}</>
                       ) : (
-                        <><Sparkles className="h-5 w-5" /> Generate Music · 20 cr</>
+                        <><Sparkles className="h-5 w-5" /> {t("Generate Music · 20 cr")}</>
                       )}
                     </span>
                   </button>
@@ -1124,8 +1254,8 @@ export default function AudioPage() {
                               <Music2 className="h-5 w-5 text-white" />
                             </motion.div>
                             <div>
-                              <p className="text-sm font-semibold text-zinc-200">{GEN_STEPS[genStep]}</p>
-                              <p className="text-xs text-zinc-400">AI is crafting your music...</p>
+                              <p className="text-sm font-semibold text-zinc-200">{t(GEN_STEPS[genStep])}</p>
+                              <p className="text-xs text-zinc-400">{t("AI is crafting your music...")}</p>
                             </div>
                           </div>
                           <span className="text-lg font-bold text-cyan-400 tabular-nums">{Math.round(genProgress)}%</span>
@@ -1145,7 +1275,7 @@ export default function AudioPage() {
                             const isDone = i < genStep;
                             const isActive = i === genStep;
                             return (
-                              <div key={step} className="flex flex-col items-center gap-1.5">
+                              <div key={t(step)} className="flex flex-col items-center gap-1.5">
                                 <div
                                   className={cn(
                                     "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
@@ -1162,7 +1292,7 @@ export default function AudioPage() {
                                   "text-[10px] font-semibold text-center leading-tight",
                                   isActive ? "text-cyan-400" : isDone ? "text-zinc-200" : "text-zinc-500"
                                 )}>
-                                  {step}
+                                  {t(step)}
                                 </span>
                               </div>
                             );
@@ -1334,13 +1464,13 @@ export default function AudioPage() {
                               <button
                                 onClick={() => copyText(currentTrack.prompt, "player-prompt")}
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
-                                title="Copy prompt"
+                                title={t("Copy prompt")}
                               >
                                 {copied === "player-prompt" ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                               </button>
                               <button
                                 className="h-9 w-9 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-800 transition-colors"
-                                title="Share"
+                                title={t("Share")}
                               >
                                 <Share2 className="h-4 w-4" />
                               </button>
@@ -1363,7 +1493,7 @@ export default function AudioPage() {
 
                           {/* Export strip */}
                           <div className="mt-4 pt-4 border-t border-zinc-800/80 flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-1">Export</span>
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mr-1">{t("Export")}</span>
                             {["MP3", "WAV"].map(fmt => (
                               <button
                                 key={fmt}
@@ -1384,7 +1514,7 @@ export default function AudioPage() {
                               className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 transition-colors"
                             >
                               {copied === "export-prompt" ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                              {copied === "export-prompt" ? "Copied!" : "Copy Prompt"}
+                              {copied === "export-prompt" ? t("Copied!") : t("Copy Prompt")}
                             </button>
                           </div>
                         </div>
@@ -1399,13 +1529,13 @@ export default function AudioPage() {
                   <div className="bg-[#090f1b] rounded-3xl border border-[#0d1b2e] shadow-sm overflow-hidden">
                     <div className="px-5 py-4 border-b border-[#0d1b2e] flex items-center gap-2 bg-[#03070c]/20">
                       <Settings2 className="h-4 w-4 text-zinc-400" />
-                      <span className="text-sm font-bold text-zinc-100">Settings</span>
+                      <span className="text-sm font-bold text-zinc-100">{t("Settings")}</span>
                     </div>
 
                     <div className="p-5 space-y-5">
                       {/* Model */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">Model</label>
+                        <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-2">{t("Model")}</label>
                         <div className="grid grid-cols-2 gap-2">
                           {[
                             { id: "clip" as const, name: "Fast", full: "Google Lyria", desc: "Google · Fast Preview" },
@@ -1422,10 +1552,10 @@ export default function AudioPage() {
                               )}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-xs font-bold text-zinc-100">{m.name}</span>
+                                <span className="text-xs font-bold text-zinc-100">{t(m.name)}</span>
                                 {selectedModel === m.id && <div className="h-2 w-2 rounded-full bg-cyan-500" />}
                               </div>
-                              <span className="text-[10px] text-zinc-400 leading-snug block">{m.desc}</span>
+                              <span className="text-[10px] text-zinc-400 leading-snug block">{t(m.desc)}</span>
                             </button>
                           ))}
                         </div>
@@ -1433,20 +1563,20 @@ export default function AudioPage() {
 
                       {/* Genre */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">Genre</label>
-                        <AppSelect value={genre} onChange={setGenre} options={GENRES} />
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Genre")}</label>
+                        <AppSelect value={genre} onChange={setGenre} options={GENRES} t={t} />
                       </div>
 
                       {/* Mood */}
                       <div>
-                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">Mood</label>
-                        <AppSelect value={mood} onChange={setMood} options={MOODS} />
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-2">{t("Mood")}</label>
+                        <AppSelect value={mood} onChange={setMood} options={MOODS} t={t} />
                       </div>
 
                       {/* BPM */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">BPM</label>
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("BPM")}</label>
                           <span className="text-sm font-bold text-zinc-100 tabular-nums">{bpm}</span>
                         </div>
                         <RangeSlider value={bpm} onChange={setBpm} min={60} max={200} />
@@ -1455,7 +1585,7 @@ export default function AudioPage() {
                       {/* Duration */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Duration</label>
+                          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{t("Duration")}</label>
                           <span className="text-sm font-bold text-zinc-100 tabular-nums">{formatTime(dur)}</span>
                         </div>
                         <RangeSlider value={dur} onChange={setDur} min={30} max={300} />
@@ -1464,7 +1594,7 @@ export default function AudioPage() {
                       {/* Toggles */}
                       <div className="space-y-4 pt-2">
                         {[
-                          { label: "Instrumental Only", desc: "No vocals", value: instrumental, onChange: setInstrumental },
+                          { label: t("Instrumental Only"), desc: t("No vocals"), value: instrumental, onChange: setInstrumental },
                         ].map(t => (
                           <div key={t.label} className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
@@ -1483,14 +1613,14 @@ export default function AudioPage() {
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
                         <Clock className="h-4 w-4 text-zinc-400" />
-                        Generation History
+                        {t("Generation History")}
                         <span className="text-xs px-1.5 py-0.5 rounded-md bg-zinc-900 text-zinc-450 font-medium">{history.length}</span>
                       </h2>
                       <button
                         onClick={() => setHistory([])}
                         className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
                       >
-                        Clear all
+                        {t("Clear all")}
                       </button>
                     </div>
 

@@ -50,6 +50,19 @@ export class RequestRoutingService {
           : ["DailyEngineerService", "ContextEngine", "Filesystem", "ValidationPipeline"],
         dailyEngineer.reason,
         0.985,
+        !dailyEngineer.reviewOnly,
+        false
+      );
+    }
+
+    if (this.isEngineeringDesignImplementationRequest(raw, normalized)) {
+      return this.route(
+        "engineering_modify",
+        "code_modification",
+        "engineering.modify",
+        ["ContextEngine", "Filesystem", "ValidationPipeline"],
+        "Design/build implementation request with local project or path scope.",
+        0.975,
         true,
         false
       );
@@ -157,10 +170,21 @@ export class RequestRoutingService {
   }
 
   private static isTrainingIngestRequest(prompt: string, normalized: string): boolean {
+    if (this.isEngineeringDesignImplementationRequest(prompt, normalized)) return false;
     const lower = prompt.toLowerCase();
     return /\b(train|training|learn from|use as reference|save as reference|store as reference)\b/i.test(lower)
       || /(?:^|\s)(?:\u062f\u0631\u0628|\u062f\u0631\u0651\u0628|\u062a\u062f\u0631\u064a\u0628).*(?:\u0646\u0641\u0633\u0643|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0645\u0631\u0641\u0642|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629)/.test(normalized)
       || /(?:\u0647\u0630\u0627|\u0647\u0630\u0647|\u0647\u0630\u064a|\u0647\u0627\u064a|\u0627\u0644\u0645\u0644\u0641|\u0627\u0644\u0635\u0648\u0631\u0647|\u0627\u0644\u0635\u0648\u0631\u0629|\u0627\u0644\u0645\u0631\u0641\u0642).*(?:\u0644\u0644\u062a\u062f\u0631\u064a\u0628|\u0645\u0631\u062c\u0639)/.test(normalized);
+  }
+
+  private static isEngineeringDesignImplementationRequest(prompt: string, normalized: string): boolean {
+    const lower = prompt.toLowerCase();
+    const combined = `${normalized} ${lower}`;
+    const hasLocalScope = this.hasLocalScope(prompt, normalized);
+    const designOrPage = /(?:\u0635\u0645\u0645|\u062a\u0635\u0645\u064a\u0645|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0639\u062f\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0646\u0627\u0641\u0628\u0627\u0631|\u0643\u0631\u0648\u062a|\u062f\u0627\u0634\u0628\u0648\u0631\u062f|\u0633\u062a\u0648\u062f\u064a\u0648|\u0645\u0648\u062f\u064a\u0644|\u0645\u0648\u062f\u0644|\u0646\u0645\u0648\u0630\u062c|\u0645\u0632\u0648\u062f|\u062e\u0635\u0627\u0626\u0635|\bdesign\b|\bbuild\b|\bimplement\b|\bcreate\b|\bpage\b|\bsite\b|\bui\b|\bnavbar\b|\bcards?\b|\bdashboard\b|\bstudio\b|\bapi\b|\bopenapi\b|\bswagger\b|\bendpoint\b|\bmodel\b|\bprovider\b|\bform\b|\bpanel\b|\bfields?\b|\bproperties\b)/i.test(combined);
+    const executionVerb = /(?:\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0639\u062f\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0635\u0646\u0639|\u0627\u0628\u0646\u064a|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0636\u0641|\u0623\u0636\u0641|\u0636\u064a\u0641|\u0627\u0631\u0628\u0637|\u0631\u0628\u0637|\u0627\u062f\u0645\u062c|\u062f\u0645\u062c|\u0636\u0639|\u062d\u0637|\bimplement\b|\bbuild\b|\bcreate\b|\bmake\b|\bput\b|\bplace\b|\badd\b|\bupdate\b|\bconnect\b|\bwire\b|\bintegrate\b)/i.test(combined);
+    const explicitStudioSpec = /\b(?:saas|ai\s+studio|choose\s+your\s+studio|built\s+for\s+real\s+outputs|no\s+rtl|openapi|swagger|seedream|createTask)\b/i.test(lower);
+    return hasLocalScope && designOrPage && (executionVerb || explicitStudioSpec);
   }
 
   private static isSavedKnowledgeLookupRequest(prompt: string, normalized: string): boolean {
@@ -199,12 +223,22 @@ export class RequestRoutingService {
   }
 
   private static isInlineImageGenerationRequest(prompt: string, normalized: string): boolean {
+    if (this.isLocalImageAssetPageImplementationRequest(prompt, normalized)) return false;
     const lower = prompt.toLowerCase();
     const haystack = `${normalized} ${lower}`;
     const imageTerm = /(?:\u0635\u0648\u0631|\u0635\u0648\u0631\u0647|\u0635\u0648\u0631\u0629|\bimage\b|\bphoto\b|\bpicture\b)/i.test(haystack);
     const generationIntent = /(?:\u0648\u0644\u062f|\u0648\u0644\u0651\u062f|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0635\u0646\u0639|\u0627\u0631\u0633\u0645|\u0635\u0645\u0645|\u0633\u0648\u064a|\u0627\u0639\u0645\u0644|\u0627\u0639\u0631\u0636\u0647\u0627|\u0627\u0639\u0631\u0636\s+\u0635\u0648\u0631\u0629|\bgenerate\b|\bcreate\b|\bmake\b|\bdraw\b|\brender\b|\bshow\b)/i.test(haystack);
     const explicitSearch = /(?:\u0627\u0628\u062d\u062b|\u062f\u0648\u0631|\u0641\u062a\u0634|\u0628\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\u0645\u0646\s+\u0627\u0644\u0627\u0646\u062a\u0631\u0646\u062a|\bsearch\b|\bfind\b|\binternet\b|\bonline\b)/i.test(haystack);
     return imageTerm && generationIntent && !explicitSearch;
+  }
+
+  private static isLocalImageAssetPageImplementationRequest(prompt: string, normalized: string): boolean {
+    const lower = prompt.toLowerCase();
+    const haystack = `${normalized} ${lower}`;
+    const hasLocalPath = /[a-z]:[\\/]/i.test(prompt);
+    const localAssetSignal = /(?:\u0627\u0644\u0635\u0648\u0631\s+\u0627\u0644\u0645\u0648\u062c\u0648\u062f|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a|\u0635\u0648\u0631\s+\u0645\u062d\u0644\u064a\u0629|\u0627\u0633\u062a\u062e\u062f\u0645\s+\u0627\u0644\u0635\u0648\u0631|\u0627\u0631\u0628\u0637\s+\u0627\u0644\u0635\u0648\u0631|\buse\s+(?:the\s+)?(?:local\s+)?images?\b|\blink\s+(?:the\s+)?images?\b|\bimage\s+assets?\b|\bassets?\b)/i.test(haystack);
+    const pageFileSignal = /(?:index\.html|styles?\.css|script\.js|\bhtml\b|\bcss\b|\bjavascript\b|\bjs\b|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0647\u064a\u0631\u0648|\bhero\b|\bsidebar\b|\bcards?\b|\bnavbar\b)/i.test(haystack);
+    return hasLocalPath && localAssetSignal && pageFileSignal;
   }
 
   private static isStrictLocalAnswerRequest(prompt: string, normalized: string): boolean {

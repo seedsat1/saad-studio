@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Upload, AlertCircle, Sparkles, Check, Download } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 
 const CREDIT_COST = 4;
 
@@ -17,8 +18,44 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function useFaceSwapTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Apps": "التطبيقات",
+      "Face Swap": "تبديل الوجه",
+      "Uploading...": "جاري الرفع...",
+      "Swapping portrait face...": "جاري تبديل وجه الصورة الشخصية...",
+      "Target Image": "الصورة الهدف",
+      "Upload the photo with face to replace": "ارفع الصورة التي تحتوي على الوجه المراد استبداله",
+      "Drag & drop or browse": "سحب وإفلات أو تصفح",
+      "Source Photo": "الصورة المصدر",
+      "Upload the face you want to insert": "ارفع صورة الوجه الذي تريد إدخاله",
+      "Swapping...": "جاري التبديل...",
+      "Face Swap for Free": "تبديل الوجه مجاناً",
+      "SWAP APPLIED": "تم تطبيق التبديل",
+      "PREVIEW MATCH": "معاينة المطابقة",
+      "Download Result": "تحميل النتيجة",
+      "How to face swap any photo or video in 3 steps": "كيفية تبديل الوجه في أي صورة أو فيديو في 3 خطوات",
+      "1. Upload your target": "1. ارفع هدفك",
+      "Choose the photo or video you want to swap a face onto.": "اختر الصورة أو الفيديو الذي تريد استبدال وجه فيه.",
+      "2. Upload your source face": "2. ارفع صورة الوجه المصدر",
+      "Select a clear photo of the face you want to insert.": "حدد صورة واضحة للوجه الذي تريد إدخاله.",
+      "3. Generate your swap": "3. ولد التبديل الخاص بك",
+      "Click \"Generate\" and let our face swap AI work its magic.": "انقر على \"توليد\" ودع ذكاء تبديل الوجه الاصطناعي يقوم بعمله السحري.",
+      "Final Output": "النتيجة النهائية"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function FaceSwapPage(props: any) {
   const isEmbedded = props?.isEmbedded === true;
+  const { t } = useFaceSwapTranslation();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
   
   const fileInputTargetRef = useRef<HTMLInputElement>(null);
@@ -199,7 +236,7 @@ export default function FaceSwapPage(props: any) {
                 Apps
               </Link>
               <span className="text-zinc-600 text-xs">/</span>
-              <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Face Swap</span>
+              <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider">{t("Face Swap")}</span>
             </div>
           </div>
         )}
@@ -348,12 +385,12 @@ export default function FaceSwapPage(props: any) {
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                    <span>Swapping...</span>
+                    <span>{t("Swapping...")}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4.5 w-4.5" />
-                    <span>Face Swap for Free</span>
+                    <span>{t("Face Swap for Free")}</span>
                   </>
                 )}
               </button>
@@ -384,7 +421,7 @@ export default function FaceSwapPage(props: any) {
               {isGenerating ? (
                 <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
                   <div className="h-10 w-10 rounded-full border-2 border-t-cyan-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-                  <span className="text-sm font-bold text-zinc-300">Swapping portrait face...</span>
+                  <span className="text-sm font-bold text-zinc-300">{t("Swapping portrait face...")}</span>
                 </div>
               ) : resultUrl ? (
                 <img src={resultUrl} alt="Result" className="w-full h-full object-cover" />
@@ -413,12 +450,12 @@ export default function FaceSwapPage(props: any) {
                 {resultUrl ? (
                   <>
                     <Check className="h-3 w-3 text-emerald-400 animate-pulse" />
-                    <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">SWAP APPLIED</span>
+                    <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">{t("SWAP APPLIED")}</span>
                   </>
                 ) : (
                   <>
                     <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                    <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">PREVIEW MATCH</span>
+                    <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">{t("PREVIEW MATCH")}</span>
                   </>
                 )}
               </div>
@@ -439,7 +476,7 @@ export default function FaceSwapPage(props: any) {
                   className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5 shrink-0" />
-                  <span>Download Result</span>
+                  <span>{t("Download Result")}</span>
                 </button>
               )}
             </div>
@@ -450,46 +487,46 @@ export default function FaceSwapPage(props: any) {
         {/* 3-Steps Guide illustration layout */}
         <div className="border-t border-white/5 pt-10 mt-12 space-y-8">
           <h2 className="text-sm font-black text-zinc-400 text-center tracking-widest uppercase">
-            How to face swap any photo or video in 3 steps
+            {t("How to face swap any photo or video in 3 steps")}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Step 1 */}
             <div className="bg-[#0b1225]/40 border border-white/5 rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-1">
-                <h3 className="text-xs font-black uppercase text-zinc-200">1. Upload your target</h3>
+                <h3 className="text-xs font-black uppercase text-zinc-200">{t("1. Upload your target")}</h3>
                 <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
-                  Choose the photo or video you want to swap a face onto.
+                  {t("Choose the photo or video you want to swap a face onto.")}
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
                 <img src="/explore/face-swap-target.png" alt="Step 1 Preview" className="h-full w-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-                <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">Target Image</div>
+                <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">{t("Target Image")}</div>
               </div>
             </div>
 
             {/* Step 2 */}
             <div className="bg-[#0b1225]/40 border border-white/5 rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-1">
-                <h3 className="text-xs font-black uppercase text-zinc-200">2. Upload your source face</h3>
+                <h3 className="text-xs font-black uppercase text-zinc-200">{t("2. Upload your source face")}</h3>
                 <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
-                  Select a clear photo of the face you want to insert.
+                  {t("Select a clear photo of the face you want to insert.")}
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
                 <img src="/explore/face-swap-source.png" alt="Step 2 Preview" className="h-full w-full object-cover opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 to-transparent" />
-                <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">Source Photo</div>
+                <div className="absolute border border-dashed border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold text-zinc-400 bg-black/60">{t("Source Photo")}</div>
               </div>
             </div>
 
             {/* Step 3 */}
             <div className="bg-[#0b1225]/40 border border-white/5 rounded-2xl p-5 space-y-4 flex flex-col justify-between">
               <div className="space-y-1">
-                <h3 className="text-xs font-black uppercase text-zinc-200">3. Generate your swap</h3>
+                <h3 className="text-xs font-black uppercase text-zinc-200">{t("3. Generate your swap")}</h3>
                 <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
-                  Click &quot;Generate&quot; and let our face swap AI work its magic.
+                  {t("Click \"Generate\" and let our face swap AI work its magic.")}
                 </p>
               </div>
               <div className="h-28 rounded-xl bg-zinc-950/60 border border-white/5 overflow-hidden flex items-center justify-center relative">
@@ -499,7 +536,7 @@ export default function FaceSwapPage(props: any) {
                 <div className="absolute bottom-2 left-2">
                   <img src="/explore/face-swap-source.png" alt="Mini overlay" className="w-6 h-6 rounded-md border border-white object-cover" />
                 </div>
-                <div className="absolute border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black text-cyan-400 bg-black/60">Final Output</div>
+                <div className="absolute border border-cyan-500/30 px-3 py-1.5 rounded-lg text-[9px] font-black text-cyan-400 bg-black/60">{t("Final Output")}</div>
               </div>
             </div>
 

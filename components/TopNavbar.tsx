@@ -6,7 +6,7 @@ import { useAvatar, PRESET_AVATARS } from "@/lib/avatar-context";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Montserrat } from "next/font/google";
+import { useLanguage } from "@/lib/use-language";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthModal } from "@/hooks/use-auth-modal";
 import {
@@ -68,7 +68,58 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
+const getTranslation = (key: string, lang: "en" | "ar") => {
+  if (lang !== "ar") return key;
+  const dict: Record<string, string> = {
+    "Explore": "استكشف",
+    "Image": "الصور",
+    "Video": "الفيديو",
+    "Audio": "الصوت",
+    "Edit": "التعديل",
+    "Apps": "التطبيقات",
+    "Gallery": "المعرض",
+    "My Assets": "أصولي",
+    "Price Plans": "خطط الأسعار",
+    "Pricing": "الأسعار",
+    "Upgrade to Pro": "الترقية إلى برو",
+    "Image Studio": "استوديو الصور",
+    "Open Image Studio": "افتح استوديو الصور",
+    "Video Studio": "استوديو الفيديو",
+    "Open Video Studio": "افتح استوديو الفيديو",
+    "Audio Studio": "استوديو الصوت",
+    "Open Audio Studio": "افتح استوديو الصوت",
+    "Features": "الميزات",
+    "Models": "النماذج",
+    "Studio": "الاستوديو",
+    "Cinematic Styles": "الأنماط السينمائية",
+    "Transitions": "الانتقالات",
+    "Storyboard": "القصة المصورة",
+    "Storyboard Studio": "استوديو القصة المصورة",
+    "Credit Balance": "رصيد النقاط",
+    "My Profile": "ملفي الشخصي",
+    "Settings": "الإعدادات",
+    "Upgrade Plan": "ترقية الخطة",
+    "Logout": "تسجيل الخروج",
+    "Sign In": "تسجيل الدخول",
+    "Sign Up Free": "تسجيل مجاني",
+    "Sign Up": "تسجيل مجاني",
+    "Credits": "النقاط",
+  };
+  return dict[key] || key;
+};
+
+const LanguageSwitcher = () => {
+  const { lang, changeLanguage } = useLanguage();
+  return (
+    <button
+      onClick={() => changeLanguage(lang === "ar" ? "en" : "ar")}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all select-none"
+    >
+      <Globe className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+      <span>{lang === "ar" ? "العربية" : "English"}</span>
+    </button>
+  );
+};
 
 
 
@@ -481,21 +532,17 @@ const ListItem = ({
 );
 
 const Logo = () => (
-  <Link href="/" className="group flex items-center gap-2 shrink-0">
-    <div className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+  <Link href="/" className="group flex items-center shrink-0">
+    <div className="relative h-9 w-9">
       <Image
-        src="/apple-touch-icon.png"
+        src="/icon-192.png"
         alt="Saad Studio"
         fill
-        sizes="32px"
+        sizes="36px"
         className="object-contain"
         priority
       />
     </div>
-    <span className={cn("text-xl font-bold tracking-tight", montserrat.className)}>
-      <span className="bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">Saad</span>
-      <span className="bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent"> Studio</span>
-    </span>
   </Link>
 );
 
@@ -523,6 +570,7 @@ const PricingButton = () => (
 
 const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }) => {
   const { user } = useUser();
+  const { lang } = useLanguage();
   const { signOut } = useClerk();
   const { uploadedPhoto, activePreset } = useAvatar();
   const activeGradient = PRESET_AVATARS.find((p) => p.id === activePreset)?.gradient ?? "from-violet-600 to-indigo-600";
@@ -567,7 +615,7 @@ const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }
           <div className="mt-3 flex items-center justify-between rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-3 py-2 ring-1 ring-amber-500/20">
             <div className="flex items-center gap-1.5">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <span className="text-xs font-medium text-amber-200">Credit Balance</span>
+              <span className="text-xs font-medium text-amber-200">{getTranslation("Credit Balance", lang)}</span>
             </div>
             <span className="text-sm font-bold text-amber-400">
               {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
@@ -577,17 +625,17 @@ const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }
         <DropdownMenuSeparator className="my-1 bg-white/10" />
         <DropdownMenuItem asChild>
           <Link href="/profile" className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors focus:bg-white/10 focus:text-white">
-            <User className="h-4 w-4 text-violet-400" />My Profile
+            <User className="h-4 w-4 text-violet-400" />{getTranslation("My Profile", lang)}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings" className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors focus:bg-white/10 focus:text-white">
-            <Settings className="h-4 w-4 text-zinc-400" />Settings
+            <Settings className="h-4 w-4 text-zinc-400" />{getTranslation("Settings", lang)}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/pricing" className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors focus:bg-white/10 focus:text-white">
-            <CreditCard className="h-4 w-4 text-emerald-400" />Upgrade Plan
+            <CreditCard className="h-4 w-4 text-emerald-400" />{getTranslation("Upgrade Plan", lang)}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-1 bg-white/10" />
@@ -595,7 +643,7 @@ const UserProfileDropdown = ({ creditBalance }: { creditBalance: number | null }
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
             className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors focus:bg-red-500/10 focus:text-red-300">
-            <LogOut className="h-4 w-4" />Logout
+            <LogOut className="h-4 w-4" />{getTranslation("Logout", lang)}
           </button>
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -752,9 +800,11 @@ const HoverNavItem = ({
 // ─── AUTH NAV BUTTONS ─────────────────────────────────────────────────────────
 const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => {
   const { isSignedIn } = useAuth();
+  const { lang } = useLanguage();
   const { onOpen } = useAuthModal();
   return (
     <div className="flex items-center gap-2">
+      <LanguageSwitcher />
       <PricingButton />
       {isSignedIn ? (
         <div className="hidden 2xl:block">
@@ -766,7 +816,7 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
             onClick={() => onOpen("login")}
             className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 hover:text-white border border-white/15 hover:border-white/30 hover:bg-white/10 transition-all"
           >
-            Sign In
+            {getTranslation("Sign In", lang)}
           </button>
           <button
             onClick={() => onOpen("signup")}
@@ -776,7 +826,7 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
               boxShadow: "0 2px 16px rgba(124,58,237,0.45)",
             }}
           >
-            Sign Up Free
+            {getTranslation("Sign Up Free", lang)}
           </button>
         </div>
       )}
@@ -785,6 +835,7 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
 };
 const TopNavbar = () => {
   const pathname = usePathname();
+  const { lang } = useLanguage();
   const { isSignedIn } = useAuth();
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -892,11 +943,11 @@ const TopNavbar = () => {
                   pathname === "/dash" ? "text-white bg-white/[0.08]" : "text-zinc-300 hover:text-white"
                 )}
               >
-                <Globe className="h-3 w-3 text-sky-400" />Explore
+                <Globe className="h-3 w-3 text-sky-400" />{getTranslation("Explore", lang)}
               </Link>
 
               {/* Image */}
-              <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label="Image">
+              <HoverNavItem href="/image" icon={<ImageIcon className="h-3 w-3 text-pink-400" />} label={getTranslation("Image", lang)}>
                 <div className="w-[min(860px,calc(100vw-2rem))] p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -955,7 +1006,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Video */}
-              <HoverNavItem href="/video" icon={<VideoIcon className="h-3 w-3 text-orange-400" />} label="Video">
+              <HoverNavItem href="/video" icon={<VideoIcon className="h-3 w-3 text-orange-400" />} label={getTranslation("Video", lang)}>
                 <div className="w-[min(960px,calc(100vw-2rem))] p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1013,7 +1064,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Audio */}
-              <HoverNavItem href="/audio" icon={<Music className="h-3 w-3 text-emerald-400" />} label="Audio">
+              <HoverNavItem href="/audio" icon={<Music className="h-3 w-3 text-emerald-400" />} label={getTranslation("Audio", lang)}>
                 <div className="w-[340px] p-4">
                   <div>
                     <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</h3>
@@ -1027,7 +1078,7 @@ const TopNavbar = () => {
               </HoverNavItem>
 
               {/* Edit */}
-              <HoverNavItem href="/edit" icon={<Scissors className="h-3 w-3 text-cyan-400" />} label="Edit">
+              <HoverNavItem href="/edit" icon={<Scissors className="h-3 w-3 text-cyan-400" />} label={getTranslation("Edit", lang)}>
                 <div className="w-[340px] p-4">
                   <div>
                     <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</h3>
@@ -1052,14 +1103,14 @@ const TopNavbar = () => {
                       )}
                     >
                       <link.icon className={cn("h-3.5 w-3.5", link.color)} />
-                      <span className="hidden 2xl:inline">{link.label}</span>
+                      <span className="hidden 2xl:inline">{getTranslation(link.label, lang)}</span>
                     </Link>
                   </span>
                 ))}
               </div>
 
               {SHOW_EXPERIMENTAL_NAV && (
-                <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label="Apps">
+                <HoverNavItem href="/apps" icon={<LayoutGrid className="h-3 w-3 text-indigo-400" />} label={getTranslation("Apps", lang)}>
                   <div className="w-[min(760px,calc(100vw-2rem))] p-5">
                     <div className="mb-4 flex items-center gap-2">
                       <LayoutGrid className="h-4 w-4 text-indigo-400" />
@@ -1090,7 +1141,7 @@ const TopNavbar = () => {
               {/* Assist | Gallery | Connect Claude */}
               <div className="flex items-center">
                 <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
-                  <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />Gallery
+                  <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />{getTranslation("Gallery", lang)}
                 </Link>
               </div>
 
@@ -1144,7 +1195,7 @@ const TopNavbar = () => {
                   </div>
                 </div>
                 <div className="mt-2.5 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-1.5 ring-1 ring-amber-500/20">
-                  <span className="text-xs text-amber-200 flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Credits</span>
+                  <span className="text-xs text-amber-200 flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {getTranslation("Credits", lang)}</span>
                   <span className="text-sm font-bold text-amber-400">
                     {creditBalance !== null ? `${creditBalance.toLocaleString()} cr` : "—"}
                   </span>
@@ -1158,7 +1209,7 @@ const TopNavbar = () => {
                     className="flex items-center justify-center gap-1.5 rounded-lg bg-white/5 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ring-1 ring-white/10"
                   >
                     <User className="h-3.5 w-3.5 text-violet-400" />
-                    My Profile
+                    {getTranslation("My Profile", lang)}
                   </Link>
                   <button
                     onClick={() => {
@@ -1168,7 +1219,7 @@ const TopNavbar = () => {
                     className="flex items-center justify-center gap-1.5 rounded-lg bg-red-500/10 py-2 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors ring-1 ring-red-500/20"
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    Logout
+                    {getTranslation("Logout", lang)}
                   </button>
                 </div>
               </div>
@@ -1406,7 +1457,7 @@ const TopNavbar = () => {
                       className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                         pathname === link.href ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white")}>
                       <link.icon className={cn("h-4 w-4 shrink-0", link.color)} />
-                      <span className="truncate text-xs">{link.label}</span>
+                      <span className="truncate text-xs">{getTranslation(link.label, lang)}</span>
                     </Link>
                   ))}
                 </div>
@@ -1452,17 +1503,17 @@ const TopNavbar = () => {
             </nav>
             <div className="border-t border-white/10 p-4 space-y-2">
               <Link href="/pricing" className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all">
-                <Zap className="h-4 w-4" /> Upgrade to Pro
+                <Zap className="h-4 w-4" /> {getTranslation("Upgrade to Pro", lang)}
               </Link>
               {isSignedIn && (
                 <>
                   <Link href="/settings" className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white transition-colors">
-                    <Settings className="h-4 w-4" /> Settings
+                    <Settings className="h-4 w-4" /> {getTranslation("Settings", lang)}
                   </Link>
                   <button
                     onClick={() => signOut({ redirectUrl: "/" })}
                     className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
-                    <LogOut className="h-4 w-4" /> Logout
+                    <LogOut className="h-4 w-4" /> {getTranslation("Logout", lang)}
                   </button>
                 </>
               )}

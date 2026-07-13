@@ -33,6 +33,11 @@ export class DailyEngineerService {
     const lower = raw.toLowerCase();
     const haystack = `${normalized} ${lower}`;
     const reviewOnly = this.isReviewOnlyRequest(haystack);
+    const explicitDailyEngineer = this.hasExplicitDailyEngineerSignal(haystack);
+
+    if (!explicitDailyEngineer && this.isLocalDesignImplementationRequest(raw, normalized)) {
+      return null;
+    }
 
     if (!this.hasDailyEngineerSignal(haystack)) return null;
 
@@ -106,6 +111,22 @@ export class DailyEngineerService {
     const maintenanceAction = /(?:افحص|راجع|حلل|اصلح|صلح|حدث|نظف|رتب|حسن|طور|نفذ|طبق|audit|review|inspect|fix|maintain|improve|refactor|polish)/i.test(haystack)
       && /(?:مشروع|موقعي|الموقع|كود|ملفات|workspace|codebase|project|app)/i.test(haystack);
     return privateEngineer || designOrLargeProject || maintenanceAction;
+  }
+
+  private static hasExplicitDailyEngineerSignal(haystack: string): boolean {
+    return /(?:\u0645\u0647\u0646\u062f\u0633\s+\u0627\u0644\u0635\u064a\u0627\u0646\u0647|\u0645\u0647\u0646\u062f\u0633\s+\u0627\u0644\u0635\u064a\u0627\u0646\u0629|\u0627\u0644\u0635\u064a\u0627\u0646\u0647\s+\u0627\u0644\u064a\u0648\u0645\u064a\u0647|\u0627\u0644\u0635\u064a\u0627\u0646\u0629\s+\u0627\u0644\u064a\u0648\u0645\u064a\u0629|\u0635\u064a\u0627\u0646\u0629\s+\u064a\u0648\u0645\u064a\u0629|\u0648\u0643\u064a\u0644\s+\u0627\u0644\u0635\u064a\u0627\u0646\u0647|\u0648\u0643\u064a\u0644\s+\u0627\u0644\u0635\u064a\u0627\u0646\u0629|daily\s+maintenance|maintenance\s+engineer|private\s+engineer)/i.test(haystack);
+  }
+
+  private static isLocalDesignImplementationRequest(prompt: string, normalized: string): boolean {
+    const lower = String(prompt || "").toLowerCase();
+    const combined = `${normalized} ${lower}`;
+    const hasLocalPath = /[a-z]:[\\/]/i.test(prompt)
+      || /\b(?:workspace|codebase|folder|directory|local files|project files)\b/i.test(lower)
+      || /(?:\u0641\u0648\u0644\u062f\u0631|\u0645\u062c\u0644\u062f|\u0645\u0633\u0627\u0631|\u062f\u0627\u062e\u0644\s+\u0647\u0630\u0627\s+\u0627\u0644\u0645\u0633\u0627\u0631)/i.test(normalized);
+    const designOrPage = /(?:\u0635\u0645\u0645|\u062a\u0635\u0645\u064a\u0645|\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0646\u0627\u0641\u0628\u0627\u0631|\u0643\u0631\u0648\u062a|\u062f\u0627\u0634\u0628\u0648\u0631\u062f|\u0633\u062a\u0648\u062f\u064a\u0648|\bdesign\b|\bbuild\b|\bimplement\b|\bcreate\b|\bpage\b|\bsite\b|\bui\b|\bnavbar\b|\bcards?\b|\bdashboard\b|\bstudio\b)/i.test(combined);
+    const executionVerb = /(?:\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0639\u062f\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0636\u0639|\u062d\u0637|\bimplement\b|\bbuild\b|\bcreate\b|\bmake\b|\bput\b|\bplace\b)/i.test(combined);
+    const explicitStudioSpec = /\b(?:saas|ai\s+studio|choose\s+your\s+studio|built\s+for\s+real\s+outputs|no\s+rtl)\b/i.test(lower);
+    return hasLocalPath && designOrPage && (executionVerb || explicitStudioSpec);
   }
 
   private static isReviewOnlyRequest(haystack: string): boolean {

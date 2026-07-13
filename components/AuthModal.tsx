@@ -20,6 +20,7 @@ import {
 import { useSignIn, useSignUp } from "@clerk/nextjs";
 import { useAuthModal } from "@/hooks/use-auth-modal";
 import { useCmsData } from "@/lib/use-cms-data";
+import { useLanguage } from "@/lib/use-language";
 
 // ─── CMS TYPES ───────────────────────────────────────────────────────────────
 
@@ -115,8 +116,97 @@ function InputField({
   );
 }
 
+function useAuthTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Slides tags
+      "🎬 AI Video Generation": "🎬 توليد الفيديو بالذكاء الاصطناعي",
+      "🖼️ Flux & Seedance Models": "🖼️ نماذج Flux و Seedance",
+      
+      // Slides headlines
+      "Unlock the Power of AI Generation": "أطلق العنان لقوة توليد الذكاء الاصطناعي",
+      "Create Stunning Visuals in Seconds": "أنشئ مرئيات مذهلة في ثوانٍ",
+      
+      // Slides descriptions
+      "Sign up to generate cinematic videos, photorealistic images, and immersive audio across 20+ AI models.": "سجل الآن لتوليد فيديوهات سينمائية وصور واقعية ومقاطع صوتية غامرة عبر أكثر من 20 نموذج ذكاء اصطناعي.",
+      "Access 20+ cutting-edge AI models including GPT Image 1.5, FLUX.2, Imagen 4, Nano Banana Pro.": "وصول إلى أكثر من 20 نموذج ذكاء اصطناعي رائد بما في ذلك GPT Image 1.5 و FLUX.2 و Imagen 4 و Nano Banana Pro.",
+      
+      // Slides CTA
+      "Get Started →": "ابدأ الآن ←",
+      "Explore Models →": "استكشف النماذج ←",
+      
+      // Stats chips
+      "20+ AI Models": "20+ نموذج ذكاء اصطناعي",
+      "17 Video Engines": "17 محرك فيديو",
+      "85+ Tools": "85+ أداة",
+      
+      // Branding
+      "Saad Studio AI": "سعد استوديو AI",
+      "PRO": "برو",
+      "AI Creative Studio": "استوديو الإبداع بالذكاء الاصطناعي",
+      "Saad Studio": "سعد استوديو",
+      
+      // Headings & Subtitles
+      "Create your account": "إنشاء حسابك",
+      "Create your account to start generating — no card needed to sign up.": "أنشئ حسابك للبدء في التوليد - لا حاجة لبطاقة ائتمان للتسجيل.",
+      "Welcome back": "مرحباً بك مجدداً",
+      "Sign in to continue creating with AI.": "سجل الدخول للمتابعة في الإنشاء بالذكاء الاصطناعي.",
+      
+      // Placeholders
+      "Full Name": "الاسم الكامل",
+      "Email address": "البريد الإلكتروني",
+      "Password": "كلمة المرور",
+      "Verification code (from email)": "رمز التحقق (من البريد الإلكتروني)",
+      "Your email address": "عنوان بريدك الإلكتروني",
+      "Reset code (from email)": "رمز إعادة التعيين (من البريد الإلكتروني)",
+      "New password": "كلمة المرور الجديدة",
+      
+      // Labels / CTAs
+      "Forgot password?": "نسيت كلمة المرور؟",
+      "Login": "تسجيل الدخول",
+      "Create Account": "إنشاء الحساب",
+      "or continue with": "أو المتابعة باستخدام",
+      "Verify Email": "التحقق من البريد",
+      "Send Reset Code": "إرسال رمز إعادة التعيين",
+      "Reset Password": "إعادة تعيين كلمة المرور",
+      "Google": "جوجل",
+      
+      // Footers
+      "Already have an account?": "هل لديك حساب بالفعل؟",
+      "Don't have an account?": "ليس لديك حساب؟",
+      "Sign up": "إنشاء حساب",
+      "By continuing, you agree to our Terms and Privacy Policy": "بالاستمرار، فإنك توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا",
+      
+      // Intermediate screen texts
+      "Verify your email": "التحقق من بريدك الإلكتروني",
+      "We sent a verification code to {email}": "لقد أرسلنا رمز التحقق إلى {email}",
+      "Reset your password": "إعادة تعيين كلمة المرور",
+      "Enter reset code": "أدخل رمز إعادة التعيين",
+      "We'll send a reset code to your email.": "سنرسل رمز إعادة التعيين إلى بريدك الإلكتروني.",
+      "Code sent to {email}": "تم إرسال رمز إعادة التعيين إلى {email}",
+      "Back": "العودة",
+      "Back to login": "العودة لتسجيل الدخول",
+      "Password reset! Redirecting…": "تمت إعادة تعيين كلمة المرور! جاري التوجيه...",
+      
+      // Clerk Errors fallback
+      "Something went wrong": "حدث خطأ ما",
+      "Invalid code or password": "رمز أو كلمة مرور غير صالحة",
+      "Invalid code": "رمز غير صالح"
+    }
+  };
+  const t = (key: string): string => {
+    if (!key) return "";
+    const cleanKey = key.trim();
+    return dict[lang]?.[cleanKey] ?? key;
+  };
+  return { t, lang };
+}
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function AuthModal() {
+  const { t } = useAuthTranslation();
   const { isOpen, view, onClose, setView } = useAuthModal();
   const router = useRouter();
   const { signIn, isLoaded: signInLoaded, setActive: setSignInActive } = useSignIn();
@@ -149,26 +239,26 @@ export default function AuthModal() {
 
   // CMS-aware data
   const PROMO_SLIDES = cms?.promoSlides?.length
-    ? cms.promoSlides.map((s, i) => ({ id: i + 1, bg: s.bgUrl, tag: s.tag, headline: s.headline, sub: s.sub, cta: s.cta, accent: s.accent }))
-    : DEFAULT_PROMO_SLIDES;
+    ? cms.promoSlides.map((s, i) => ({ id: i + 1, bg: s.bgUrl, tag: t(s.tag), headline: t(s.headline), sub: t(s.sub), cta: t(s.cta), accent: s.accent }))
+    : DEFAULT_PROMO_SLIDES.map(s => ({ ...s, tag: t(s.tag), headline: t(s.headline), sub: t(s.sub), cta: t(s.cta) }));
 
   const STATS = cms?.stats?.length
-    ? cms.stats.map((s) => ({ icon: ICON_MAP[s.icon] || Video, label: s.label }))
-    : DEFAULT_STATS;
+    ? cms.stats.map((s) => ({ icon: ICON_MAP[s.icon] || Video, label: t(s.label) }))
+    : DEFAULT_STATS.map(s => ({ ...s, label: t(s.label) }));
 
-  const brandBadgeName = cms?.branding?.badgeName ?? "Saad Studio AI";
-  const brandBadgeLabel = cms?.branding?.badgeLabel ?? "PRO";
-  const brandRating = cms?.branding?.rating ?? "AI Creative Studio";
-  const brandName = cms?.branding?.brandName ?? "Saad Studio";
-  const signupHeading = cms?.signup?.heading ?? "Create your account";
-  const signupSubtitle = cms?.signup?.subtitle ?? "Create your account to start generating — no card needed to sign up.";
-  const signupButton = cms?.signup?.buttonText ?? "Create Account";
-  const loginHeading = cms?.login?.heading ?? "Welcome back";
-  const loginSubtitle = cms?.login?.subtitle ?? "Sign in to continue creating with AI.";
-  const loginButton = cms?.login?.buttonText ?? "Login";
-  const footerSignupToggle = cms?.footer?.signupToggle ?? "Already have an account?";
-  const footerLoginToggle = cms?.footer?.loginToggle ?? "Don't have an account?";
-  const footerTerms = cms?.footer?.termsText ?? "By continuing, you agree to our Terms and Privacy Policy";
+  const brandBadgeName = t(cms?.branding?.badgeName ?? "Saad Studio AI");
+  const brandBadgeLabel = t(cms?.branding?.badgeLabel ?? "PRO");
+  const brandRating = t(cms?.branding?.rating ?? "AI Creative Studio");
+  const brandName = t(cms?.branding?.brandName ?? "Saad Studio");
+  const signupHeading = t(cms?.signup?.heading ?? "Create your account");
+  const signupSubtitle = t(cms?.signup?.subtitle ?? "Create your account to start generating — no card needed to sign up.");
+  const signupButton = t(cms?.signup?.buttonText ?? "Create Account");
+  const loginHeading = t(cms?.login?.heading ?? "Welcome back");
+  const loginSubtitle = t(cms?.login?.subtitle ?? "Sign in to continue creating with AI.");
+  const loginButton = t(cms?.login?.buttonText ?? "Login");
+  const footerSignupToggle = t(cms?.footer?.signupToggle ?? "Already have an account?");
+  const footerLoginToggle = t(cms?.footer?.loginToggle ?? "Don't have an account?");
+  const footerTerms = t(cms?.footer?.termsText ?? "By continuing, you agree to our Terms and Privacy Policy");
 
   // Active promo slide
   const promo = PROMO_SLIDES[isSignup ? 0 : 1] ?? PROMO_SLIDES[0];
@@ -446,18 +536,18 @@ export default function AuthModal() {
                     </div>
                     <h1 className="text-2xl font-extrabold text-white leading-tight">
                       {isVerify
-                        ? "Verify your email"
+                        ? t("Verify your email")
                         : isForgot
-                        ? forgotStep === "email" ? "Reset your password" : "Enter reset code"
+                        ? forgotStep === "email" ? t("Reset your password") : t("Enter reset code")
                         : isSignup ? signupHeading : loginHeading}
                     </h1>
                     <p className="text-sm text-slate-400 mt-1.5">
                       {isVerify
-                        ? `We sent a verification code to ${email}`
+                        ? t("We sent a verification code to {email}").replace("{email}", email)
                         : isForgot
                         ? forgotStep === "email"
-                          ? "We'll send a reset code to your email."
-                          : `Code sent to ${forgotEmail}`
+                          ? t("We'll send a reset code to your email.")
+                          : t("Code sent to {email}").replace("{email}", forgotEmail)
                         : isSignup
                         ? signupSubtitle
                         : loginSubtitle}
@@ -472,13 +562,13 @@ export default function AuthModal() {
                       <InputField
                         id="verify-code"
                         type="text"
-                        placeholder="Verification code (from email)"
+                        placeholder={t("Verification code (from email)")}
                         value={verifyCode}
                         onChange={setVerifyCode}
                         icon={Mail}
                         autoComplete="one-time-code"
                       />
-                      {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
+                      {verifyError && <p className="text-xs text-red-400">{t(verifyError)}</p>}
                       <button
                         type="submit"
                         disabled={loading || !verifyCode}
@@ -486,13 +576,13 @@ export default function AuthModal() {
                         style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
                       >
                         <span className="relative flex items-center justify-center gap-2">
-                          {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Verify Email <ArrowRight className="w-4 h-4" /></>}
+                          {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>{t("Verify Email")} <ArrowRight className="w-4 h-4" /></>}
                         </span>
                       </button>
                     </form>
                     <p className="text-center text-sm text-slate-500">
                       <button type="button" onClick={() => setView("signup")} className="text-violet-400 font-semibold hover:text-violet-300 transition-colors">
-                        ← Back
+                        ← {t("Back")}
                       </button>
                     </p>
                   </div>
@@ -504,20 +594,20 @@ export default function AuthModal() {
                     {forgotSuccess ? (
                       <div className="text-center py-8">
                         <div className="text-4xl mb-3">✅</div>
-                        <p className="text-green-400 font-semibold">Password reset! Redirecting…</p>
+                        <p className="text-green-400 font-semibold">{t("Password reset! Redirecting…")}</p>
                       </div>
                     ) : forgotStep === "email" ? (
                       <form onSubmit={handleForgotSendCode} className="space-y-4">
                         <InputField
                           id="forgot-email"
                           type="email"
-                          placeholder="Your email address"
+                          placeholder={t("Your email address")}
                           value={forgotEmail}
                           onChange={setForgotEmail}
                           icon={Mail}
                           autoComplete="email"
                         />
-                        {forgotError && <p className="text-xs text-red-400">{forgotError}</p>}
+                        {forgotError && <p className="text-xs text-red-400">{t(forgotError)}</p>}
                         <button
                           type="submit"
                           disabled={loading || !forgotEmail}
@@ -525,7 +615,7 @@ export default function AuthModal() {
                           style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
                         >
                           <span className="relative flex items-center justify-center gap-2">
-                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Send Reset Code <ArrowRight className="w-4 h-4" /></>}
+                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>{t("Send Reset Code")} <ArrowRight className="w-4 h-4" /></>}
                           </span>
                         </button>
                       </form>
@@ -534,7 +624,7 @@ export default function AuthModal() {
                         <InputField
                           id="forgot-code"
                           type="text"
-                          placeholder="Reset code (from email)"
+                          placeholder={t("Reset code (from email)")}
                           value={forgotCode}
                           onChange={setForgotCode}
                           icon={Mail}
@@ -543,13 +633,13 @@ export default function AuthModal() {
                         <InputField
                           id="forgot-new-password"
                           type="password"
-                          placeholder="New password"
+                          placeholder={t("New password")}
                           value={forgotNewPassword}
                           onChange={setForgotNewPassword}
                           icon={Lock}
                           autoComplete="new-password"
                         />
-                        {forgotError && <p className="text-xs text-red-400">{forgotError}</p>}
+                        {forgotError && <p className="text-xs text-red-400">{t(forgotError)}</p>}
                         <button
                           type="submit"
                           disabled={loading || !forgotCode || !forgotNewPassword}
@@ -557,14 +647,14 @@ export default function AuthModal() {
                           style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)", boxShadow: "0 4px 32px rgba(124,58,237,0.5)" }}
                         >
                           <span className="relative flex items-center justify-center gap-2">
-                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>Reset Password <ArrowRight className="w-4 h-4" /></>}
+                            {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <>{t("Reset Password")} <ArrowRight className="w-4 h-4" /></>}
                           </span>
                         </button>
                       </form>
                     )}
                     <p className="text-center text-sm text-slate-500">
                       <button type="button" onClick={() => setView("login")} className="text-violet-400 font-semibold hover:text-violet-300 transition-colors">
-                        ← Back to login
+                        ← {t("Back")} to login
                       </button>
                     </p>
                   </div>
@@ -588,7 +678,7 @@ export default function AuthModal() {
                         <InputField
                           id="name"
                           type="text"
-                          placeholder="Full Name"
+                          placeholder={t("Full Name")}
                           value={name}
                           onChange={setName}
                           icon={User}
@@ -599,7 +689,7 @@ export default function AuthModal() {
                       <InputField
                         id="email"
                         type="email"
-                        placeholder="Email address"
+                        placeholder={t("Email address")}
                         value={email}
                         onChange={setEmail}
                         icon={Mail}
@@ -609,7 +699,7 @@ export default function AuthModal() {
                       <InputField
                         id="password"
                         type="password"
-                        placeholder="Password"
+                        placeholder={t("Password")}
                         value={password}
                         onChange={setPassword}
                         icon={Lock}
@@ -626,13 +716,13 @@ export default function AuthModal() {
                         onClick={() => { setForgotEmail(email); setForgotStep("email"); setForgotError(""); setForgotSuccess(false); setView("forgot"); }}
                         className="text-xs text-violet-400 hover:text-violet-300 transition-colors"
                       >
-                        Forgot password?
+                        {t("Forgot password?")}
                       </button>
                     </div>
                   )}
 
                   {/* Submit CTA */}
-                  {formError && <p className="text-xs text-red-400 mt-1">{formError}</p>}
+                  {formError && <p className="text-xs text-red-400 mt-1">{t(formError)}</p>}
                   <button
                     type="submit"
                     disabled={loading}
@@ -660,7 +750,7 @@ export default function AuthModal() {
                 {/* Divider */}
                 <div className="flex items-center gap-3 my-5">
                   <div className="flex-1 h-px bg-slate-800" />
-                  <span className="text-xs text-slate-600 font-medium">or continue with</span>
+                  <span className="text-xs text-slate-600 font-medium">{t("or continue with")}</span>
                   <div className="flex-1 h-px bg-slate-800" />
                 </div>
 
@@ -706,7 +796,7 @@ export default function AuthModal() {
                     onClick={switchView}
                     className="text-violet-400 font-semibold hover:text-violet-300 transition-colors"
                   >
-                    {isSignup ? "Login" : "Sign up"}
+                    {isSignup ? t("Login") : t("Sign up")}
                   </button>
                 </p>
 

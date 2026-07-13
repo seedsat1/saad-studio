@@ -17,12 +17,20 @@ import { SessionSearchProvider } from "./platform/services/session-search-provid
 import { ModelClient } from "./platform/services/model-client.js";
 import { SettingsManager } from "./production/settings-manager.js";
 import { RequestRoutingService } from "./platform/services/request-routing.js";
+import { CodexRuntimeBridge } from "./platform/services/codex-runtime-bridge.js";
 
 async function main() {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "saad-chat-orchestrator-"));
   setProjectRoot(workspace);
   await fs.writeFile(path.join(workspace, "AGENTS.md"), "Test project rules.", "utf8");
   await fs.writeFile(path.join(workspace, "PROJECT_CONTEXT.md"), "Test project context.", "utf8");
+  await fs.writeFile(
+    path.join(workspace, "index.html"),
+    "<!doctype html><html><head><title>Test</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body><script src=\"script.js\"></script></body></html>",
+    "utf8"
+  );
+  await fs.writeFile(path.join(workspace, "script.js"), "const ready = true;\n", "utf8");
+  await fs.writeFile(path.join(workspace, "styles.css"), "body { margin: 0; }\n@media (max-width: 760px) { body { padding: 12px; } }\n", "utf8");
   const trainingLessonsDir = path.join(workspace, ".saad-agent", "training", "lessons");
   await fs.mkdir(trainingLessonsDir, { recursive: true });
   await fs.writeFile(
@@ -144,6 +152,22 @@ async function main() {
         requiresModel: false
       },
       {
+        prompt: [
+          "لا تعتمد على أي رسالة سابقة. اشتغل فقط داخل:",
+          path.join(workspace, "lang"),
+          "",
+          "استخدم الصور الموجودة هنا:",
+          path.join(workspace, "lang", "New folder"),
+          "",
+          "صمم صفحة HTML/CSS/JS تشبه الصورة المرفقة: SAAD STUDIO داكنة وفخمة، Navbar، Hero كبير، Sidebar AI Tools، شبكة منتجات 3 أعمدة.",
+          "أنشئ أو عدّل فقط: index.html styles.css script.js",
+          "لا تولد صور جديدة، اربط الصور المحلية داخل الصفحة."
+        ].join("\n"),
+        kind: "engineering_modify",
+        intent: "code_modification",
+        requiresModel: true
+      },
+      {
         prompt: "\u0627\u0643\u062a\u0628\u0644\u064a \u0628\u0631\u0648\u0645\u0628\u062a \u0635\u0648\u0631\u0629 \u0644\u0648\u0643\u0633",
         kind: "image_prompt_draft",
         intent: "conversation",
@@ -173,7 +197,33 @@ async function main() {
     assert.strictEqual(dailyEngineerReviewRoute.intent, "code_review");
     assert.strictEqual(dailyEngineerReviewRoute.pipeline, "daily_maintenance.review");
     assert.ok(dailyEngineerReviewRoute.tools.includes("DailyEngineerService"));
+    assert.strictEqual(dailyEngineerReviewRoute.requiresModel, false);
     assert.strictEqual(dailyEngineerReviewRoute.allowsTrainingFallback, false);
+
+    const requestCompletionBeforeReadOnlyMaintenance = ReasoningEngine.requestCompletion;
+    let readOnlyMaintenanceModelCalls = 0;
+    ReasoningEngine.requestCompletion = async () => {
+      readOnlyMaintenanceModelCalls += 1;
+      throw new Error("daily maintenance read-only inspection must not call the model");
+    };
+    try {
+      const readOnlyMaintenanceResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0643\u0645\u0647\u0646\u062f\u0633 \u0635\u064a\u0627\u0646\u0629 \u064a\u0648\u0645\u064a \u0627\u0641\u062d\u0635 \u0645\u0644\u0641\u0627\u062a \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0641\u0639\u0644\u064a\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0623\u062f\u0648\u0627\u062a \u0627\u0644\u0642\u0631\u0627\u0621\u0629 \u0641\u0642\u0637. \u0644\u0627 \u062a\u0639\u062f\u0644 \u0623\u064a \u0645\u0644\u0641. \u0627\u0630\u0643\u0631 \u0623\u0633\u0645\u0627\u0621 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u062a\u064a \u0642\u0631\u0623\u062a\u0647\u0627\u060c \u062b\u0645 \u0623\u0639\u0637\u0646\u064a \u062a\u0642\u0631\u064a\u0631 \u0645\u062e\u062a\u0635\u0631 \u0645\u0646 5 \u0623\u0633\u0637\u0631.",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        sessionId: "daily-maintenance-read-only-inspection-test"
+      });
+      assert.strictEqual(readOnlyMaintenanceResult.intent, "code_review");
+      assert.strictEqual(readOnlyMaintenanceResult.usedModel, false);
+      assert.strictEqual(readOnlyMaintenanceModelCalls, 0);
+      assert.ok(readOnlyMaintenanceResult.response.includes("index.html"));
+      assert.ok(readOnlyMaintenanceResult.response.includes("script.js") || readOnlyMaintenanceResult.response.includes("styles.css"));
+      assert.ok(readOnlyMaintenanceResult.response.includes("0"));
+      assert.ok(!readOnlyMaintenanceResult.response.includes("PROHIBITED_CONTENT"));
+    } finally {
+      ReasoningEngine.requestCompletion = requestCompletionBeforeReadOnlyMaintenance;
+    }
 
     for (const testCase of routingCases) {
       const route = RequestRoutingService.classify(testCase.prompt);
@@ -256,6 +306,668 @@ async function main() {
     assert.strictEqual(dailyMaintenanceApprovalResult.usedModel, false);
     assert.ok(dailyMaintenanceApprovalResult.approvalRequest, "daily maintenance modification must require approval in ask mode");
     assert.ok(dailyMaintenanceApprovalResult.response.includes("Daily Maintenance Engineer"));
+
+    const dailyMaintenanceNegatedInstallPrompt = [
+      "كمهندس صيانة يومي افحص المشروع، وإذا وجدت مشكلة بسيطة في التصميم أو التجاوب أصلحها مباشرة بعد موافقتي الأولى.",
+      "لا تعمل أشياء كبيرة ولا تثبت مكتبات ولا تحذف ملفات."
+    ].join(" ");
+    const dailyMaintenanceNegatedInstallResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: dailyMaintenanceNegatedInstallPrompt,
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "ask",
+      sessionId: "daily-maintenance-negated-install-test"
+    });
+    assert.notStrictEqual(dailyMaintenanceNegatedInstallResult.intent, "memory_save");
+    assert.strictEqual(dailyMaintenanceNegatedInstallResult.intent, "code_generation");
+    assert.strictEqual(dailyMaintenanceNegatedInstallResult.usedModel, false);
+    assert.ok(dailyMaintenanceNegatedInstallResult.approvalRequest, "daily maintenance prompt with negated install/delete wording must still require approval");
+    assert.ok(!dailyMaintenanceNegatedInstallResult.response.includes("Memory ID"));
+
+    const rawRuntimeErrorBefore = ReasoningEngine.requestCompletion;
+    ReasoningEngine.requestCompletion = async () => ({
+      rawResponse: "{\"error\":{\"type\":\"llm_call_failed\",\"message\":\"{\\\"message\\\":\\\"Operation not allowed\\\"}\\n\"}}"
+    }) as any;
+    try {
+      const rawRuntimeErrorResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0627\u0643\u062a\u0628 \u062c\u0645\u0644\u0629 \u0642\u0635\u064a\u0631\u0629 \u0639\u0646 \u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u0645\u0648\u062f\u064a\u0644 \u0627\u0644\u0645\u062d\u0644\u064a",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        sessionId: "raw-runtime-error-format-test"
+      });
+      assert.ok(rawRuntimeErrorResult.response.includes("\u062a\u0648\u0642\u0641\u062a \u0645\u0647\u0645\u0629 \u0627\u0644\u0635\u064a\u0627\u0646\u0629"));
+      assert.ok(rawRuntimeErrorResult.response.includes("Operation not allowed"));
+      assert.ok(rawRuntimeErrorResult.response.includes("Saad Local Direct"));
+      assert.ok(!rawRuntimeErrorResult.response.trim().startsWith("{\"error\""), "raw llm_call_failed JSON must not be shown directly");
+    } finally {
+      ReasoningEngine.requestCompletion = rawRuntimeErrorBefore;
+    }
+
+    const dailyMaintenanceManualApprovalOverrideResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: dailyMaintenanceNegatedInstallPrompt,
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      approvalMode: "approve_for_me",
+      sessionId: "daily-maintenance-manual-approval-override-test"
+    });
+    assert.notStrictEqual(dailyMaintenanceManualApprovalOverrideResult.intent, "memory_save");
+    assert.strictEqual(dailyMaintenanceManualApprovalOverrideResult.intent, "code_generation");
+    assert.strictEqual(dailyMaintenanceManualApprovalOverrideResult.usedModel, false);
+    assert.ok(dailyMaintenanceManualApprovalOverrideResult.approvalRequest, "daily maintenance wording that says after my approval must force a manual approval gate");
+    assert.ok(!dailyMaintenanceManualApprovalOverrideResult.response.includes("Inspection Plan"));
+
+    const originalCodexRunTask = CodexRuntimeBridge.runTask;
+    ConversationStateEngine.updateState("daily-maintenance-approval-test", {
+      activeWorkflow: null,
+      activeTask: undefined
+    });
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      assert.ok(request.approved, "phase-two continuation must carry explicit approval into the runtime bridge");
+      assert.ok(request.prompt.includes("SAAD AGENT LOOP PREFLIGHT OBSERVATIONS"), "phase-two runtime prompt must include agent-loop preflight observations");
+      assert.ok(request.prompt.includes("SAAD DAILY MAINTENANCE WORKSPACE EXECUTION CONTRACT"), "daily-maintenance runtime prompt must include workspace execution guidance");
+      assert.ok(request.prompt.includes("Do not ask the user to provide project files"), "daily-maintenance runtime prompt must not ask the user for files when workspace is mounted");
+      assert.ok(request.prompt.includes("USER APPROVAL SCOPE FOR THIS DAILY MAINTENANCE RUN"), "approved daily-maintenance runtime prompt must include scoped approval guidance");
+      assert.ok(request.prompt.includes("SAAD DAILY MAINTENANCE OUTPUT CONTRACT"), "daily-maintenance runtime prompt must include the clean output contract");
+      assert.ok(request.prompt.includes("Do not stop for a second approval"), "approved daily-maintenance runtime prompt must allow bounded low-risk edits without repeated approval");
+      assert.ok(request.prompt.includes("Stop and request a specific second approval before destructive actions"), "approval scope must preserve high-risk second-approval guardrails");
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: workspace,
+        durationMs: 1,
+        stdout: "phase two runtime accepted",
+        stderr: ""
+      };
+    };
+    try {
+      const dailyMaintenancePhaseTwoResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0627\u0644\u0641\u062d\u0635 \u0646\u062c\u062d\u060c \u0627\u0628\u062f\u0623 \u0627\u0644\u0645\u0631\u062d\u0644\u0629 \u0627\u0644\u062b\u0627\u0646\u064a\u0629",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "ask",
+        sessionId: "daily-maintenance-approval-test"
+      });
+      assert.strictEqual(dailyMaintenancePhaseTwoResult.intent, "code_modification");
+      assert.strictEqual(dailyMaintenancePhaseTwoResult.usedModel, false);
+      assert.ok(dailyMaintenancePhaseTwoResult.response.includes("phase two runtime accepted"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTask;
+    }
+
+    const originalCodexRunTaskForCleanDailySuccess = CodexRuntimeBridge.runTask;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      assert.ok(request.prompt.includes("SAAD DAILY MAINTENANCE OUTPUT CONTRACT"));
+      assert.ok(request.prompt.includes("SAAD DAILY MAINTENANCE WORKSPACE EXECUTION CONTRACT"));
+      assert.ok(request.prompt.includes("A successful maintenance report must name at least one file actually read"));
+      return {
+        success: true,
+        available: true,
+        command: "C:\\Users\\PC\\AppData\\Roaming\\npm\\pi.cmd",
+        args: ["-p", "--provider", "lm-studio", "--model", "qwen/qwen3-coder-30b", "[PROMPT]"],
+        cwd: workspace,
+        durationMs: 1,
+        stdout: [
+          "I've reviewed the project files thoroughly.",
+          "",
+          "Files examined:",
+          "- index.html",
+          "- style.css",
+          "- script.js",
+          "",
+          "No changes were made."
+        ].join("\n"),
+        stderr: ""
+      };
+    };
+    try {
+      const cleanDailySuccessResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: dailyMaintenanceNegatedInstallPrompt,
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "daily-maintenance-clean-success-output-test"
+      });
+      assert.strictEqual(cleanDailySuccessResult.intent, "code_modification");
+      assert.strictEqual(cleanDailySuccessResult.usedModel, false);
+      assert.ok(cleanDailySuccessResult.response.includes("\u062a\u0645 \u062a\u0646\u0641\u064a\u0630 \u0641\u062d\u0635 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a"));
+      assert.ok(cleanDailySuccessResult.response.includes("Files examined:"));
+      assert.ok(!cleanDailySuccessResult.response.includes("Codex Runtime completed"));
+      assert.ok(!cleanDailySuccessResult.response.includes("Command:"));
+      assert.ok(!cleanDailySuccessResult.response.includes("Workspace:"));
+      assert.ok(!cleanDailySuccessResult.response.includes("pi.cmd"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForCleanDailySuccess;
+    }
+
+    const selfWorkspace = path.join(workspace, "saad-agent");
+    const wrongActiveWorkspace = path.join(workspace, "TEST ANG");
+    await fs.mkdir(path.join(selfWorkspace, "ui", "src"), { recursive: true });
+    await fs.mkdir(wrongActiveWorkspace, { recursive: true });
+    await fs.writeFile(path.join(selfWorkspace, "package.json"), JSON.stringify({ name: "saad-agent" }), "utf8");
+    await fs.writeFile(path.join(selfWorkspace, "ui", "src", "App.tsx"), "export default function App() { return null; }\n", "utf8");
+
+    const originalCodexRunTaskForSelfWorkspace = CodexRuntimeBridge.runTask;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      assert.strictEqual(
+        request.workspacePath,
+        selfWorkspace,
+        "requests that explicitly target Saad Agent must execute in the app workspace, not the currently selected external project"
+      );
+      assert.ok(!String(request.workspacePath || "").includes("TEST ANG"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: selfWorkspace,
+        durationMs: 1,
+        stdout: "Saad Agent self-workspace selected",
+        stderr: ""
+      };
+    };
+    try {
+    const selfWorkspaceRoutingResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0627\u0631\u064a\u062f \u0627\u0644\u0627\u0646 \u0627\u0644\u0627\u062c\u064a\u0646\u062a \u064a\u062a\u0641\u0639\u0644 \u0641\u064a\u0647 \u0632\u0631 \u0639\u0631\u0628\u064a \u0648 \u0627\u0646\u0643\u0644\u064a\u0632\u064a \u0643\u0644 \u0645\u0641\u0627\u0635\u0644 \u0627\u0644\u0627\u062c\u064a\u0646\u062a \u064a\u0639\u0645\u0644 \u0641\u064a\u0647 \u0632\u0631 \u0627\u0644\u0639\u0631\u0628\u064a \u0648 \u0627\u0644\u0627\u0646\u0643\u0644\u064a\u0632\u064a \u0644\u0627\u0643\u0646 \u0644\u0627 \u0627\u0631\u064a\u062f \u062a\u063a\u064a\u064a\u0631 \u0627\u0644\u0627\u062a\u062c\u0627\u0647",
+        workspacePath: wrongActiveWorkspace,
+        projectName: "TEST ANG",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "saad-agent-self-workspace-routing-test"
+      });
+      assert.strictEqual(selfWorkspaceRoutingResult.usedModel, false);
+      assert.ok(selfWorkspaceRoutingResult.response.includes("Saad Agent self-workspace selected"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForSelfWorkspace;
+    }
+
+    const followUpTargetWorkspace = path.join(workspace, "TEST ANG", "New folder");
+    await fs.mkdir(followUpTargetWorkspace, { recursive: true });
+    const originalCodexRunTaskForDesignFollowUp = CodexRuntimeBridge.runTask;
+    let designFollowUpRuntimeCalled = false;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      if (!request.approved) {
+        return {
+          success: false,
+          available: true,
+          command: "pi",
+          args: ["exec"],
+          cwd: request.workspacePath,
+          durationMs: 1,
+          stdout: "",
+          stderr: "",
+          approvalRequest: {
+            requiresApproval: true,
+            action: "run_command",
+            risk: "high",
+            reason: "test approval",
+            files: []
+          }
+        };
+      }
+      designFollowUpRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, followUpTargetWorkspace);
+      assert.ok(request.prompt.includes("Choose your studio"), "follow-up target prompt must preserve the previous page specification");
+      assert.ok(request.prompt.includes("Image Studio"), "follow-up target prompt must preserve card requirements");
+      assert.ok(request.prompt.includes("FOLLOW-UP TARGET UPDATE"), "follow-up prompt must explain that the short message is a target update");
+      assert.ok(request.prompt.includes("New folder"), "follow-up target path must remain visible to the runtime");
+      assert.ok(!/^.*Welcome to My Page.*$/m.test(request.prompt), "runtime prompt must not collapse to a generic sample page");
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: followUpTargetWorkspace,
+        durationMs: 1,
+        stdout: "Implemented SaaS AI Studio page in follow-up target workspace",
+        stderr: ""
+      };
+    };
+    try {
+      const designFollowUpSession = "design-page-follow-up-target-test";
+      const designPrompt = [
+        "اريدك تصمم وتنفذ صفحة داخل المشروع الحالي تشبه الصورة المرفقة من حيث الفكرة والأسلوب، وليس نسخاً حرفياً.",
+        "المطلوب:",
+        "- صفحة SaaS / AI Studio داكنة وفخمة.",
+        "- Navbar علوي فيه شعار، روابط أدوات، زر عربي/English، Pricing، تسجيل الدخول، وتسجيل مجاني.",
+        "- قسم رئيسي بعنوان: Choose your studio",
+        "- شبكة كروت كبيرة 3 أعمدة و2 صف: Image Studio, Video Studio, AI Canvas, Next Scene, Character, Apps",
+        "- كل كرت يحتوي صورة خلفية داكنة، تدرج أسود فوق الصورة، أيقونة صغيرة، عنوان، وصف قصير.",
+        "- قسم ثاني بعنوان: Built for real outputs",
+        "- لا تغيّر اتجاه الصفحة عند العربية. ممنوع RTL.",
+        "- لا تثبت مكتبات جديدة ولا تحذف ملفات.",
+        "- إذا كان الطلب سيعدل ملفات، اطلب موافقتي أولاً حسب سياسة Saad Agent."
+      ].join("\n");
+      const designApproval = await ChatOrchestratorService.handleDirectChat({
+        prompt: designPrompt,
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "ask",
+        sessionId: designFollowUpSession
+      });
+      assert.notStrictEqual(designApproval.intent, "memory_save", "initial page implementation request must remain an engineering/design conversation");
+
+      const designFollowUpResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: `ضع الصفحة هنا ${followUpTargetWorkspace}`,
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: designFollowUpSession
+      });
+      assert.strictEqual(designFollowUpResult.usedModel, false);
+      assert.ok(designFollowUpRuntimeCalled, `follow-up target request must reach the runtime with the merged previous design spec. Actual response:\n${designFollowUpResult.response}`);
+      assert.ok(designFollowUpResult.response.includes("Implemented SaaS AI Studio page"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForDesignFollowUp;
+    }
+
+    const originalCodexRunTaskForSelfContainedDesignPath = CodexRuntimeBridge.runTask;
+    let selfContainedDesignRuntimeCalled = false;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      selfContainedDesignRuntimeCalled = true;
+      assert.ok(String(request.workspacePath || "").endsWith(path.join("TEST ANG", "New folder")));
+      assert.ok(request.prompt.includes("SaaS / AI Studio"), "self-contained design path request must preserve SaaS/AI Studio spec");
+      assert.ok(request.prompt.includes("Choose your studio"), "self-contained design path request must preserve section spec");
+      assert.ok(request.prompt.includes("6 كروت"), "self-contained design path request must preserve cards spec");
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: request.workspacePath,
+        durationMs: 1,
+        stdout: "Implemented self-contained SaaS AI Studio page from path prompt",
+        stderr: ""
+      };
+    };
+    try {
+      const selfContainedDesignResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: [
+          "أعد تنفيذ نفس طلب صفحة SaaS / AI Studio بالكامل داخل هذا المسار:",
+          followUpTargetWorkspace,
+          "",
+          "لا تعتبر هذا طلباً جديداً. استخدم نفس المواصفات السابقة والصورة المرفقة السابقة كمرجع:",
+          "- صفحة داكنة فخمة",
+          "- Navbar",
+          "- Choose your studio",
+          "- 6 كروت",
+          "- Built for real outputs",
+          "- responsive",
+          "- زر عربي/English بدون RTL",
+          "- لا تثبت مكتبات ولا تحذف ملفات",
+          "",
+          "افحص الملفات أولاً، ثم نفذ، ثم تحقق."
+        ].join("\n"),
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "self-contained-design-path-not-training-test"
+      });
+      assert.strictEqual(selfContainedDesignResult.usedModel, false);
+      assert.ok(selfContainedDesignRuntimeCalled, "self-contained path design request must route to engineering runtime");
+      assert.ok(!selfContainedDesignResult.response.includes("ارفع الملف"));
+      assert.ok(!selfContainedDesignResult.response.includes("تدريب حقيقي"));
+      assert.ok(selfContainedDesignResult.response.includes("Implemented self-contained SaaS AI Studio page"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForSelfContainedDesignPath;
+    }
+
+    const localImageAssetWorkspace = path.join(workspace, "lang");
+    const localImageAssetFolder = path.join(localImageAssetWorkspace, "New folder");
+    await fs.mkdir(localImageAssetFolder, { recursive: true });
+    await fs.writeFile(path.join(localImageAssetFolder, "hero.jpg"), "fake image bytes", "utf8");
+    const originalCodexRunTaskForLocalImageAssets = CodexRuntimeBridge.runTask;
+    let localImageAssetRuntimeCalled = false;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      localImageAssetRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, localImageAssetWorkspace);
+      assert.ok(request.prompt.includes("New folder"));
+      assert.ok(request.prompt.includes("index.html"));
+      assert.ok(request.prompt.includes("script.js"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: localImageAssetWorkspace,
+        durationMs: 1,
+        stdout: "Implemented SAAD STUDIO page using local image assets",
+        stderr: ""
+      };
+    };
+    try {
+      const localImageAssetResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: [
+          "لا تعتمد على أي رسالة سابقة. هذا طلب جديد مستقل.",
+          "",
+          "اشتغل فقط داخل هذا المسار:",
+          localImageAssetWorkspace,
+          "",
+          "استخدم الصور الموجودة هنا داخل التصميم:",
+          localImageAssetFolder,
+          "",
+          "صمم ونفذ صفحة HTML/CSS/JS داخل هذا المجلد تشبه الصورة المرفقة من حيث التخطيط والأسلوب.",
+          "واجهة داكنة فخمة باسم SAAD STUDIO، Navbar، Hero كبير، Sidebar AI Tools، شبكة منتجات 3 أعمدة.",
+          "أنشئ أو عدّل فقط: index.html styles.css script.js",
+          "لا تولّد صور جديدة. اربط الصور الموجودة محلياً داخل HTML/CSS."
+        ].join("\n"),
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "local-image-assets-page-routing-test"
+      });
+      assert.strictEqual(localImageAssetResult.usedModel, false);
+      assert.ok(localImageAssetRuntimeCalled, "local image asset page requests must reach the engineering runtime");
+      assert.ok(localImageAssetResult.response.includes("local image assets"));
+      assert.ok(!localImageAssetResult.response.includes("No real image generator"));
+      assert.ok(!localImageAssetResult.response.includes("SAAD_AGENT_IMAGE_GENERATION_ENDPOINT"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForLocalImageAssets;
+    }
+
+    const attachedOpenApiSpec = path.join(workspace, "pasted-config.txt");
+    await fs.writeFile(
+      attachedOpenApiSpec,
+      [
+        "openapi: 3.0.1",
+        "servers:",
+        "  - url: https://api.kie.ai",
+        "paths:",
+        "  /api/v1/jobs/createTask:",
+        "    post:",
+        "      requestBody:",
+        "        required: true",
+        "components:",
+        "  schemas:",
+        "    SeedreamInput:",
+        "      properties:",
+        "        model:",
+        "          enum: [seedream/5-pro-image-to-image]",
+        "        prompt:",
+        "          maxLength: 5000",
+        "        image_urls:",
+        "          maxItems: 10",
+        "        aspect_ratio:",
+        "          enum: [1:1, 4:3, 3:4, 16:9, 9:16, 2:3, 3:2, 21:9]",
+        "        quality:",
+        "          enum: [basic, high]",
+        "        output_format:",
+        "          enum: [png, jpeg]"
+      ].join("\n"),
+      "utf8"
+    );
+    const attachedSpecRoute = RequestRoutingService.classify([
+      "Local engineering modification request.",
+      `Workspace path: ${workspace}`,
+      "\u0627\u0631\u0628\u0637 \u0645\u0648\u062f\u064a\u0644 Seedream \u0628\u0627\u0644\u0635\u0641\u062d\u0629 \u062d\u0633\u0628 \u0645\u0644\u0641 OpenAPI \u0627\u0644\u0645\u0631\u0641\u0642.",
+      "openapi: 3.0.1",
+      "seedream/5-pro-image-to-image"
+    ].join("\n"));
+    assert.strictEqual(attachedSpecRoute.kind, "engineering_modify");
+    const originalCodexRunTaskForAttachedSpec = CodexRuntimeBridge.runTask;
+    const originalRequestCompletionForAttachedSpec = ReasoningEngine.requestCompletion;
+    let attachedSpecRuntimeCalled = false;
+    ReasoningEngine.requestCompletion = async () => {
+      throw new Error("attached OpenAPI engineering requests must not call the chat model");
+    };
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      attachedSpecRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, workspace);
+      assert.ok(String(request.prompt || "").includes("seedream/5-pro-image-to-image"));
+      assert.ok(String(request.prompt || "").includes("/api/v1/jobs/createTask"));
+      assert.ok(String(request.prompt || "").includes("OpenAPI"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: workspace,
+        durationMs: 1,
+        stdout: "Integrated Seedream5 Pro model panel from attached OpenAPI spec",
+        stderr: ""
+      };
+    };
+    try {
+      const attachedSpecResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0627\u0633\u062a\u062e\u062f\u0645 \u0645\u0644\u0641 OpenAPI \u0627\u0644\u0645\u0631\u0641\u0642 \u0648\u0627\u0631\u0628\u0637 \u0645\u0648\u062f\u064a\u0644 Seedream5.0 Pro \u062f\u0627\u062e\u0644 \u0646\u0641\u0633 \u0627\u0644\u0635\u0641\u062d\u0629 \u0628\u0643\u0644 \u062e\u0635\u0627\u0626\u0635\u0647. \u0646\u0641\u0630 \u0643\u062a\u0639\u062f\u064a\u0644 \u0645\u0644\u0641\u0627\u062a.",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "attached-openapi-spec-engineering-routing-test",
+        attachments: [{
+          id: "att-openapi-spec",
+          filename: "pasted-config.txt",
+          mimeType: "text/plain",
+          size: 900,
+          localPath: attachedOpenApiSpec,
+          previewPath: attachedOpenApiSpec,
+          source: "clipboard",
+          timestamp: Date.now(),
+          workspaceId: "test-workspace"
+        }]
+      });
+      assert.strictEqual(attachedSpecResult.usedModel, false);
+      assert.ok(attachedSpecRuntimeCalled, "attached OpenAPI spec implementation must reach engineering runtime");
+      assert.ok(attachedSpecResult.response.includes("Seedream5 Pro"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForAttachedSpec;
+      ReasoningEngine.requestCompletion = originalRequestCompletionForAttachedSpec;
+    }
+
+    const originalCodexRunTaskForAttachedSpecFollowUp = CodexRuntimeBridge.runTask;
+    const originalRequestCompletionForAttachedSpecFollowUp = ReasoningEngine.requestCompletion;
+    let attachedSpecFollowUpRuntimeCalled = false;
+    ReasoningEngine.requestCompletion = async () => {
+      throw new Error("attachment-only OpenAPI follow-up must not call the chat model");
+    };
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      attachedSpecFollowUpRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, workspace);
+      const promptText = String(request.prompt || "");
+      assert.ok(promptText.includes("Previous active engineering task"));
+      assert.ok(promptText.includes("Seedream5.0 Pro"));
+      assert.ok(promptText.includes("seedream/5-pro-image-to-image"));
+      assert.ok(promptText.includes("/api/v1/jobs/createTask"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: workspace,
+        durationMs: 1,
+        stdout: "Integrated Seedream5 Pro from attachment-only follow-up",
+        stderr: ""
+      };
+    };
+    try {
+      const attachedSpecFollowUpResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "Attached long pasted content as file.",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "attached-openapi-file-only-followup-test",
+        history: [{
+          role: "user",
+          content: "\u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631 \u0627\u0644\u062b\u0627\u0646\u064a: \u0627\u0631\u0628\u0637 \u0645\u0648\u062f\u064a\u0644 Seedream5.0 Pro \u0628\u0644\u0643\u0627\u0645\u0644 \u0645\u0639 \u062c\u0645\u064a\u0639 \u062e\u0635\u0627\u0626\u0635\u0647 \u062f\u0627\u062e\u0644 \u0646\u0641\u0633 \u0627\u0644\u0635\u0641\u062d\u0629 \u062d\u0633\u0628 \u0645\u0644\u0641 OpenAPI."
+        }],
+        attachments: [{
+          id: "att-openapi-spec-follow-up",
+          filename: "pasted-config.txt",
+          mimeType: "text/yaml",
+          size: 900,
+          localPath: attachedOpenApiSpec,
+          previewPath: attachedOpenApiSpec,
+          source: "clipboard",
+          timestamp: Date.now(),
+          workspaceId: "test-workspace"
+        }]
+      });
+      assert.strictEqual(attachedSpecFollowUpResult.usedModel, false);
+      assert.ok(attachedSpecFollowUpRuntimeCalled, "attachment-only OpenAPI follow-up must use previous engineering task");
+      assert.ok(attachedSpecFollowUpResult.response.includes("Seedream5 Pro"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForAttachedSpecFollowUp;
+      ReasoningEngine.requestCompletion = originalRequestCompletionForAttachedSpecFollowUp;
+    }
+
+    const originalCodexRunTaskForDetachedSpec = CodexRuntimeBridge.runTask;
+    const originalRequestCompletionForDetachedSpec = ReasoningEngine.requestCompletion;
+    CodexRuntimeBridge.runTask = async () => {
+      throw new Error("detached spec without task must not run engineering runtime");
+    };
+    ReasoningEngine.requestCompletion = async () => {
+      throw new Error("detached spec without task must not call the chat model");
+    };
+    try {
+      const detachedSpecResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "Attached long pasted content as file.",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "detached-openapi-file-no-task-test",
+        attachments: [{
+          id: "att-openapi-spec-detached",
+          filename: "pasted-config.txt",
+          mimeType: "text/yaml",
+          size: 900,
+          localPath: attachedOpenApiSpec,
+          previewPath: attachedOpenApiSpec,
+          source: "clipboard",
+          timestamp: Date.now(),
+          workspaceId: "test-workspace"
+        }]
+      });
+      assert.strictEqual(detachedSpecResult.usedModel, false);
+      assert.ok(detachedSpecResult.response.includes("\u0645\u0644\u0641 \u0645\u0648\u0627\u0635\u0641\u0627\u062a"));
+      assert.ok(detachedSpecResult.response.includes("\u0644\u0646 \u0623\u0631\u0633\u0644"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForDetachedSpec;
+      ReasoningEngine.requestCompletion = originalRequestCompletionForDetachedSpec;
+    }
+
+    const claudeReferenceTargetWorkspace = path.join(workspace, "Agent-Reach-main", "claude-code");
+    const wrongCopiedWorkspace = path.join(workspace, "TEST ANG");
+    await fs.mkdir(claudeReferenceTargetWorkspace, { recursive: true });
+    await fs.mkdir(wrongCopiedWorkspace, { recursive: true });
+    const copiedLogDesignPrompt = [
+      `Active workspace: ${wrongCopiedWorkspace}`,
+      "لا يذهب التصميم الى هذا المسار القديم.",
+      `أعد تنفيذ صفحة SaaS / AI Studio بالكامل داخل هذا المسار: ${claudeReferenceTargetWorkspace}`,
+      "- Choose your studio",
+      "- 6 cards",
+      "- Built for real outputs",
+      "- responsive",
+      "- no RTL",
+      "افحص الملفات أولاً ثم نفذ ثم تحقق."
+    ].join("\n");
+    const copiedLogRoute = RequestRoutingService.classify(copiedLogDesignPrompt);
+    assert.strictEqual(copiedLogRoute.kind, "engineering_modify");
+    assert.notStrictEqual(copiedLogRoute.pipeline, "daily_maintenance.modify");
+    const originalCodexRunTaskForExplicitTargetPath = CodexRuntimeBridge.runTask;
+    let explicitTargetPathRuntimeCalled = false;
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      explicitTargetPathRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, claudeReferenceTargetWorkspace);
+      assert.ok(!String(request.workspacePath || "").includes("TEST ANG"));
+      assert.ok(request.prompt.includes("SaaS / AI Studio"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: claudeReferenceTargetWorkspace,
+        durationMs: 1,
+        stdout: "Implemented AI Studio page in explicit claude-code target workspace",
+        stderr: ""
+      };
+    };
+    try {
+      const explicitTargetPathResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: copiedLogDesignPrompt,
+        workspacePath: wrongCopiedWorkspace,
+        projectName: "TEST ANG",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "explicit-target-path-beats-active-workspace-test"
+      });
+      assert.strictEqual(explicitTargetPathResult.usedModel, false);
+      assert.ok(explicitTargetPathRuntimeCalled, "explicit local target path must reach coding runtime");
+      assert.ok(explicitTargetPathResult.response.includes("explicit claude-code target workspace"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForExplicitTargetPath;
+    }
+
+    const originalCodexRunTaskForUnknownProvider = CodexRuntimeBridge.runTask;
+    CodexRuntimeBridge.runTask = async () => ({
+      success: false,
+      available: true,
+      command: "pi",
+      args: ["-p", "--provider", "ollama", "[PROMPT]"],
+      cwd: workspace,
+      durationMs: 1,
+      stdout: "Error: Unknown provider \"ollama\". Use --list-models to see available providers/models.",
+      stderr: "",
+      error: "Error: Unknown provider \"ollama\". Use --list-models to see available providers/models."
+    });
+    try {
+      const unknownOllamaProviderResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: dailyMaintenanceNegatedInstallPrompt,
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "daily-maintenance-unknown-ollama-provider-test"
+      });
+      assert.strictEqual(unknownOllamaProviderResult.intent, "code_modification");
+      assert.strictEqual(unknownOllamaProviderResult.usedModel, false);
+      assert.ok(unknownOllamaProviderResult.response.includes("LM Studio") || unknownOllamaProviderResult.response.includes("Saad Local Direct"));
+      assert.ok(unknownOllamaProviderResult.response.includes("Ollama"));
+      assert.ok(!unknownOllamaProviderResult.response.includes("Codex Runtime failed"));
+      assert.ok(!unknownOllamaProviderResult.response.includes("Command:"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForUnknownProvider;
+    }
+
+    const originalCodexRunTaskForUnknownLmStudio = CodexRuntimeBridge.runTask;
+    CodexRuntimeBridge.runTask = async () => ({
+      success: false,
+      available: true,
+      command: "pi",
+      args: ["-p", "--provider", "lm-studio", "--model", "qwen/qwen3-coder-30b", "[PROMPT]"],
+      cwd: workspace,
+      durationMs: 1,
+      stdout: "Error: Unknown provider \"lm-studio\". Use --list-models to see available providers/models.",
+      stderr: "",
+      error: "Error: Unknown provider \"lm-studio\". Use --list-models to see available providers/models."
+    });
+    try {
+      const unknownLmStudioProviderResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: dailyMaintenanceNegatedInstallPrompt,
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "daily-maintenance-unknown-lm-studio-provider-test"
+      });
+      assert.strictEqual(unknownLmStudioProviderResult.intent, "code_modification");
+      assert.strictEqual(unknownLmStudioProviderResult.usedModel, false);
+      assert.ok(unknownLmStudioProviderResult.response.includes("lm-studio"));
+      assert.ok(unknownLmStudioProviderResult.response.includes("models.json"));
+      assert.ok(!unknownLmStudioProviderResult.response.includes("Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf"));
+      assert.ok(!unknownLmStudioProviderResult.response.includes("Codex Runtime failed"));
+      assert.ok(!unknownLmStudioProviderResult.response.includes("Command:"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForUnknownLmStudio;
+    }
 
     const pollutedTrainingMemory = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0627\u062d\u0641\u0638 \u062a\u062f\u0631\u0628 \u0639\u0644\u0649 \u0647\u0630\u0627 # Saad Agent Core Training Protocol v1.0\nRule 1: Learn Before Answering.",
@@ -505,6 +1217,35 @@ async function main() {
       ReasoningEngine.requestCompletion = requestCompletionBeforeCleanContext;
     }
 
+    const requestCompletionBeforeMinimalCloudSmoke = ReasoningEngine.requestCompletion;
+    ConversationStateEngine.getState("minimal-cloud-smoke-context-test").history = [
+      { role: "user", content: "old unrelated request" },
+      { role: "assistant", content: "Retrieved Knowledge: en.cuckold.info cuckold story private training noise" }
+    ];
+    ReasoningEngine.requestCompletion = async (request: any) => {
+      modelCalls += 1;
+      assert.strictEqual(request.role, "Chat", "short cloud smoke prompts must use the Chat model role");
+      const userPrompt = String(request.userPrompt || "");
+      assert.ok(userPrompt.includes("\u0627\u062e\u062a\u0628\u0627\u0631 \u0643\u0644\u0627\u0648\u062f \u0641\u0642\u0637"), "short cloud smoke prompt must keep the latest user request");
+      assert.ok(!userPrompt.includes("Conversation history:"), `short cloud smoke prompt must not send old conversation history. Actual prompt:\n${userPrompt}`);
+      assert.ok(!userPrompt.includes("Relevant private-agent context"), "short cloud smoke prompt must not send pre-answer context");
+      assert.ok(!/Retrieved Knowledge|en\.cuckold\.info|cuckold story/i.test(userPrompt), "short cloud smoke prompt must not send unrelated training noise");
+      return { rawResponse: "\u0627\u062e\u062a\u0628\u0627\u0631 \u0643\u0644\u0627\u0648\u062f \u0646\u0627\u062c\u062d" } as any;
+    };
+    try {
+      const minimalCloudSmokeResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "\u0627\u0643\u062a\u0628 \u0644\u064a \u062c\u0645\u0644\u0629 \u0642\u0635\u064a\u0631\u0629: \u0627\u062e\u062a\u0628\u0627\u0631 \u0643\u0644\u0627\u0648\u062f \u0641\u0642\u0637",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        sessionId: "minimal-cloud-smoke-context-test"
+      });
+      assert.strictEqual(minimalCloudSmokeResult.intent, "conversation");
+      assert.strictEqual(minimalCloudSmokeResult.usedModel, true);
+      assert.ok(minimalCloudSmokeResult.response.includes("\u0627\u062e\u062a\u0628\u0627\u0631 \u0643\u0644\u0627\u0648\u062f \u0646\u0627\u062c\u062d"), minimalCloudSmokeResult.response);
+    } finally {
+      ReasoningEngine.requestCompletion = requestCompletionBeforeMinimalCloudSmoke;
+    }
+
     const requestCompletionBeforeExpertiseBatch = ReasoningEngine.requestCompletion;
     ReasoningEngine.requestCompletion = async (request: any) => {
       modelCalls += 1;
@@ -651,6 +1392,67 @@ async function main() {
     assert.strictEqual(iraqiThanksResult.intent, "conversation");
     assert.strictEqual(iraqiThanksResult.usedModel, false);
     assert.strictEqual(modelCalls, 0, "Iraqi thanks must not call the model");
+
+    ConversationStateEngine.updateState("immediate-previous-user-message-test", {
+      history: [
+        { role: "user", content: "\u0647\u0644 \u0627\u0646\u062a \u0645\u062a\u0627\u0643\u062f" }
+      ]
+    });
+    const previousUserMessageResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0645\u0627\u0630\u0627 \u0631\u0633\u0644\u062a \u0644\u0643 \u0641\u064a \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0633\u0627\u0628\u0642\u0629",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      sessionId: "immediate-previous-user-message-test"
+    });
+    assert.strictEqual(previousUserMessageResult.intent, "conversation");
+    assert.strictEqual(previousUserMessageResult.usedModel, false);
+    assert.ok(previousUserMessageResult.response.includes("\u0647\u0644 \u0627\u0646\u062a \u0645\u062a\u0627\u0643\u062f"));
+    assert.ok(!previousUserMessageResult.response.includes("\u0645\u0627 \u0639\u0646\u062f\u064a\u0634 \u0630\u0627\u0643\u0631\u0629"));
+    assert.ok(!previousUserMessageResult.response.includes("\u0644\u0627 \u0623\u0645\u0644\u0643 \u0630\u0627\u0643\u0631\u0629"));
+    assert.strictEqual(modelCalls, 0, "previous-message recall must use session history without model fallback");
+
+    const persistedHistoryRecallResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0627\u0646\u0627 \u0627\u0639\u0637\u064a\u062a\u0643 \u0627\u0645\u0631 \u0641\u064a \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0627\u0644\u0633\u0627\u0628\u0642\u0629",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      sessionId: "persisted-history-after-restart-test",
+      history: [
+        {
+          role: "user",
+          content: "\u0627\u0631\u064a\u062f \u0627\u0644\u0627\u0646 \u0627\u0644\u0627\u062c\u064a\u0646\u062a \u0646\u0641\u0633\u0647 \u064a\u062a\u0641\u0639\u0644 \u0641\u064a\u0647 \u0632\u0631 \u0639\u0631\u0628\u064a \u0648 \u0627\u0646\u0643\u0644\u064a\u0632\u064a"
+        },
+        {
+          role: "assistant",
+          content: "\u0647\u0630\u0627 \u0627\u0644\u0625\u062c\u0631\u0627\u0621 \u064a\u062d\u062a\u0627\u062c \u0645\u0648\u0627\u0641\u0642\u0629 \u0642\u0628\u0644 \u0627\u0644\u062a\u0646\u0641\u064a\u0630."
+        }
+      ]
+    });
+    assert.strictEqual(persistedHistoryRecallResult.intent, "conversation");
+    assert.strictEqual(persistedHistoryRecallResult.usedModel, false);
+    assert.ok(persistedHistoryRecallResult.response.includes("\u0632\u0631 \u0639\u0631\u0628\u064a \u0648 \u0627\u0646\u0643\u0644\u064a\u0632\u064a"));
+    assert.ok(!persistedHistoryRecallResult.response.includes("\u0644\u0627 \u0623\u0639\u0631\u0641"));
+    assert.strictEqual(modelCalls, 0, "persisted conversation history must hydrate backend state after app restart");
+
+    ConversationStateEngine.updateState("maintenance-certainty-followup-test", {
+      history: [
+        {
+          role: "assistant",
+          content: "\u062a\u0645 \u062a\u0646\u0641\u064a\u0630 \u0641\u062d\u0635 \u0627\u0644\u0635\u064a\u0627\u0646\u0629 \u0627\u0644\u064a\u0648\u0645\u064a.\n\u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u0645 \u062a\u0639\u062f\u064a\u0644\u0647\u0627: index.html, styles.css\n\u0627\u0644\u062a\u062d\u0642\u0642: \u062a\u0645."
+        }
+      ]
+    });
+    const maintenanceCertaintyResult = await ChatOrchestratorService.handleDirectChat({
+      prompt: "\u0647\u0644 \u0627\u0646\u062a \u0645\u062a\u0627\u0643\u062f",
+      workspacePath: workspace,
+      projectName: "test-workspace",
+      sessionId: "maintenance-certainty-followup-test"
+    });
+    assert.strictEqual(maintenanceCertaintyResult.intent, "conversation");
+    assert.strictEqual(maintenanceCertaintyResult.usedModel, false);
+    assert.ok(maintenanceCertaintyResult.response.includes("\u0644\u0627 \u0623\u0642\u062f\u0631 \u0623\u0624\u0643\u062f"));
+    assert.ok(maintenanceCertaintyResult.response.includes("\u0623\u062a\u062d\u0642\u0642 \u0623\u0648\u0644\u0627"));
+    assert.ok(!maintenanceCertaintyResult.response.includes("\u0623\u0646\u0627 \u0645\u062a\u0623\u0643\u062f \u0645\u0646 \u0643\u0644 \u0645\u0627 \u0623\u0642\u0648\u0644\u0647"));
+    assert.strictEqual(modelCalls, 0, "maintenance certainty follow-up must not call the model");
 
     const arithmeticResult = await ChatOrchestratorService.handleDirectChat({
       prompt: "\u0643\u0645 \u064a\u0633\u0627\u0648\u064a 8 + 9\u061f",

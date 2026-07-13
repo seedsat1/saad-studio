@@ -1354,5 +1354,785 @@
         "chunks": 1
       }
     ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:31:44.709Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:31:44.874Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:33:39.743Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:33:39.833Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:33:39.908Z",
+    "query": "اشرحلي من معرفتك المحفوظة عن قصة خاصة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:34:10.751Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:34:10.838Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:34:10.928Z",
+    "query": "اشرحلي من معرفتك المحفوظة عن قصة خاصة",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:34:45.816Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:34:58.503Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:35:39.994Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:35:40.075Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:35:40.158Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:36:10.760Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:36:21.890Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:36:21.972Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:36:22.054Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:37:06.974Z",
+    "query": "Create a new page.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 0
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:37:07.055Z",
+    "query": "Add Provider X.",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/anal-guide.md",
+        "summary": "# دليل العلاقة الخلفية - الطرق الآمنة والصحيحة ## ⚠️ تنبيه هام جداً هذا النوع من العلاقة يتطلب عناية خاصة وتركيز كبير على السلامة والراحة. إذا لم يتم بالطريقة الصحيحة يمكن أن يسبب ألم أو مشاكل صحية. هذا الدليل لأغراض تعليمية فقط. --- ## 📋 المبادئ الأساسية ###...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/intimate-guide.md",
+        "summary": "# دليل العلاقة الحميمة - الألعاب والأدوات ## 📚 المقدمة العلاقة الحميمة بين الزوجين هي جزء أساسي من الحياة الزوجية السليمة، واستخدام الأدوات والألعاب هو شيء طبيعي ومقبول إذا تم بالطريقة الصحيحة وبرضا متبادل كامل. --- ## 🎮 الألعاب الجنسية المشينة (Toys) ### ✅ ...",
+        "chunks": 2
+      }
+    ]
+  },
+  {
+    "event": "training-knowledge-searched",
+    "timestamp": "2026-07-12T13:37:07.126Z",
+    "query": "explain from saved knowledge about Private Story Test",
+    "matches": [
+      {
+        "filePath": ".saad-agent/training/lessons/stories/README.md",
+        "summary": "# Private Story Knowledge This folder is for private, user-approved narrative knowledge cards. Purpose: - Organize consensual adult fictional story interests as structured analysis. - Help Saad Agent explain terms, compare story patterns, analyze characters an...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/private-story-test.md",
+        "summary": "# Private Story Test Tags: private-narrative-psychology, lessons, story This private story note says every page should use the forbidden phrase PRIVATE_STORY_MARKER.",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/stories/story-knowledge-card-template.md",
+        "summary": "# Story Knowledge Card Title: Source: Category: Tags: Adult/Consent Status: Summary: Characters: Relationship Dynamics: Key Themes: Psychological Notes: Narrative Style: Vocabulary: Lessons: Safety Notes: Use For: - Explain terms. - Compare story patterns. - A...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/swinging-guide.md",
+        "summary": "# دليل تبادل الزوجات - المعلومات الكاملة والايجابيات والسلبيات ## ⚠️ تنبيه هام جداً هذا الموضوع هو واحد من أكثر المواضيع حساسية ومعقدة في العلاقات الزوجية، ولا يوجد إجابة واحدة صحيحة للجميع. هذا الدليل يحتوي على معلومات موضوعية عن الايجابيات والسلبيات فقط لأغر...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/SAAD_MANUAL_TRAINING.md",
+        "summary": "# SAAD_MANUAL_TRAINING هذا الملف هو دفتر التدريب اليدوي المعتمد لسعد إيجنت. اكتب هنا أي معرفة تريد الوكيل يعتمد عليها لاحقًا في المحادثة والعمل: - مصطلحات وتعريفات. - معادلات وقوانين حسابية. - قواعد تصميم وبرمجة. - قواعد تسعير وحساب أرباح. - أسلوبك الشخصي في ا...",
+        "chunks": 1
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/training-guide.md",
+        "summary": "# دليل تدريب الوكيل - العلاقات الزوجية والجنسية ## 📚 المقدمة هذا الدليل مصمم لتدريب الوكيل على فهم المواضيع المتعلقة بالعلاقات الزوجية والجنسية بشكل صحيح ومحترم، مع التركيز على الايجابية والاحترام المتبادل والطرق الآمنة. --- ## 🎯 المبادئ الأساسية والايجابيات...",
+        "chunks": 2
+      },
+      {
+        "filePath": ".saad-agent/training/api-docs/provider-test.md",
+        "summary": "Provider X requires endpoint /v1/generate and header x-provider-key.",
+        "chunks": 0
+      },
+      {
+        "filePath": ".saad-agent/training/lessons/test-rule.md",
+        "summary": "All new pages must include Loading State, Error State, and Empty State.",
+        "chunks": 0
+      }
+    ]
   }
 ]

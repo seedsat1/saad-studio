@@ -1597,7 +1597,7 @@ A professional close-up of dark espresso pouring into a ceramic cup. Delicate wa
           <div className="flex items-center gap-2.5">
             <div className="relative h-7 w-7 rounded-lg overflow-hidden border border-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.2)] bg-slate-900/60 p-0.5 animate-pulse">
               <Image
-                src="/logo-saad-transparent.png"
+                src="/logo-saad-transparent.png?v=2"
                 alt="Saad Studio Logo"
                 width={28}
                 height={28}
@@ -3213,7 +3213,7 @@ A professional close-up of dark espresso pouring into a ceramic cup. Delicate wa
                 
                 <div className="flex items-center justify-center gap-8">
                   <div className="relative h-14 w-14 rounded-2xl border border-violet-500/20 bg-slate-950/40 p-2.5 flex items-center justify-center shadow-[0_0_24px_rgba(139,92,246,0.2)]">
-                    <Image src="/logo-saad-transparent.png" alt="Saad Studio Logo" width={40} height={40} className="object-contain" />
+                    <Image src="/logo-saad-transparent.png?v=2" alt="Saad Studio Logo" width={40} height={40} className="object-contain" />
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-violet-400 animate-ping" />

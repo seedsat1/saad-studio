@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 
 const CREDIT_COST = 3;
 
@@ -30,8 +31,39 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function useInpaintTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Apps": "التطبيقات",
+      "Nano Banana Pro Inpaint": "الرسم الذكي نانو بنانا برو",
+      "Google Nano Banana painting mask edits...": "جاري طلاء وتعديل قناع نانو بنانا من Google...",
+      "Paint Applied": "تم تطبيق الطلاء",
+      "Masking Ready": "القناع جاهز",
+      "Download Result": "تحميل النتيجة",
+      "Brush Tool": "أداة الفرشاة",
+      "Eraser Tool": "أداة الممحاة",
+      "Brush size": "حجم الفرشاة",
+      "px": "بكسل",
+      "Undo Stroke": "تراجع عن الضربة",
+      "Redo Stroke": "إعادة الضربة",
+      "Download Mask PNG": "تحميل القناع بصيغة PNG",
+      "Help / Guide": "المساعدة / الدليل",
+      "Describe what you want to generate in the painted mask region...": "صف ما تريد توليده في منطقة القناع الملونة...",
+      "Working": "جاري العمل...",
+      "Generate": "توليد"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function NanoBananaInpaintPage(props: any) {
   const isEmbedded = props?.isEmbedded === true;
+  const { t } = useInpaintTranslation();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -485,11 +517,11 @@ export default function NanoBananaInpaintPage(props: any) {
       {!isEmbedded && (
         <div className="absolute top-5 left-6 z-30 flex items-center gap-2">
           <Link href="/apps" className="text-xs text-zinc-500 hover:text-zinc-300 font-bold transition-colors uppercase tracking-wider">
-            Apps
+            {t("Apps")}
           </Link>
           <span className="text-zinc-600 text-xs">/</span>
           <span className="text-zinc-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-            Nano Banana Pro Inpaint
+            {t("Nano Banana Pro Inpaint")}
             <span className="text-zinc-500 font-mono text-[9px] ml-1">&gt;</span>
           </span>
         </div>
@@ -501,7 +533,7 @@ export default function NanoBananaInpaintPage(props: any) {
         {isProcessing && (
           <div className="absolute inset-0 bg-[#03060d]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center gap-4">
             <div className="h-10 w-10 rounded-full border-2 border-t-amber-500 border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-            <span className="text-sm font-bold text-zinc-300">Google Nano Banana painting mask edits...</span>
+            <span className="text-sm font-bold text-zinc-300">{t("Google Nano Banana painting mask edits...")}</span>
           </div>
         )}
 
@@ -536,12 +568,12 @@ export default function NanoBananaInpaintPage(props: any) {
             {showResult ? (
               <>
                 <Check className="h-3 w-3 text-emerald-400" />
-                <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">Paint Applied</span>
+                <span className="text-[10px] text-emerald-400 font-mono uppercase tracking-wider">{t("Paint Applied")}</span>
               </>
             ) : (
               <>
                 <div className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-                <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">Masking Ready</span>
+                <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">{t("Masking Ready")}</span>
               </>
             )}
           </div>
@@ -562,7 +594,7 @@ export default function NanoBananaInpaintPage(props: any) {
               className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
             >
               <Download className="h-3.5 w-3.5 shrink-0" />
-              <span>Download Result</span>
+              <span>{t("Download Result")}</span>
             </button>
           )}
 
@@ -572,7 +604,7 @@ export default function NanoBananaInpaintPage(props: any) {
               type="button"
               onClick={() => setIsEraser(false)}
               className={cn("p-2 rounded-lg transition-all", !isEraser ? "bg-white/10 text-white" : "text-zinc-400 hover:text-zinc-200")}
-              title="Brush Tool"
+              title={t("Brush Tool")}
             >
               <PenTool className="h-4 w-4" />
             </button>
@@ -580,7 +612,7 @@ export default function NanoBananaInpaintPage(props: any) {
               type="button"
               onClick={() => setIsEraser(true)}
               className={cn("p-2 rounded-lg transition-all", isEraser ? "bg-white/10 text-white" : "text-zinc-400 hover:text-zinc-200")}
-              title="Eraser Tool"
+              title={t("Eraser Tool")}
             >
               <Eraser className="h-4 w-4" />
             </button>
@@ -590,7 +622,7 @@ export default function NanoBananaInpaintPage(props: any) {
               type="button"
               onClick={cycleBrushSize}
               className="p-2 rounded-lg transition-all text-zinc-400 hover:text-zinc-200 flex items-center justify-center relative"
-              title={`Brush size: ${brushSize}px`}
+              title={`${t("Brush size")}: ${brushSize}${t("px")}`}
             >
               <div
                 className={cn(
@@ -608,7 +640,7 @@ export default function NanoBananaInpaintPage(props: any) {
               onClick={handleUndo}
               disabled={historyIndex <= 0}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none transition-all"
-              title="Undo Stroke"
+              title={t("Undo Stroke")}
             >
               <Undo2 className="h-4 w-4" />
             </button>
@@ -617,7 +649,7 @@ export default function NanoBananaInpaintPage(props: any) {
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 disabled:opacity-30 disabled:pointer-events-none transition-all"
-              title="Redo Stroke"
+              title={t("Redo Stroke")}
             >
               <Redo2 className="h-4 w-4" />
             </button>
@@ -628,14 +660,14 @@ export default function NanoBananaInpaintPage(props: any) {
               type="button"
               onClick={downloadMask}
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 transition-all"
-              title="Download Mask PNG"
+              title={t("Download Mask PNG")}
             >
               <Download className="h-4 w-4" />
             </button>
             <button
               type="button"
               className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 transition-all"
-              title="Help / Guide"
+              title={t("Help / Guide")}
             >
               <HelpCircle className="h-4 w-4" />
             </button>
@@ -704,7 +736,7 @@ export default function NanoBananaInpaintPage(props: any) {
             
             {/* Input field */}
             <textarea
-              placeholder="Describe what you want to generate in the painted mask region..."
+              placeholder={t("Describe what you want to generate in the painted mask region...")}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="w-full bg-transparent border-none text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0 resize-none h-16"
@@ -760,11 +792,11 @@ export default function NanoBananaInpaintPage(props: any) {
                 {isProcessing ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Working</span>
+                    <span>{t("Working")}</span>
                   </>
                 ) : (
                   <>
-                    <span>Generate</span>
+                    <span>{t("Generate")}</span>
                     <span className="font-sans font-black flex items-center gap-0.5 bg-black/10 px-1 py-0.5 rounded text-[10px]">
                       ✦ {CREDIT_COST}
                     </span>

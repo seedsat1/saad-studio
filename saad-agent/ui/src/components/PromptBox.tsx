@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
-import { Plus, ChevronDown, ArrowUp, Check, X, FileText, File as FileIcon, Hand, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Plus, ChevronDown, ArrowUp, Check, X, FileText, File as FileIcon, Hand, ShieldCheck, ShieldAlert, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 const ACCEPTED_TEXT = [".txt", ".md", ".csv", ".json", ".xml", ".yaml", ".yml", ".html", ".css", ".js", ".ts", ".jsx", ".tsx", ".py", ".java", ".c", ".cpp", ".rs", ".go", ".pdf", ".docx", ".rtf"];
@@ -116,11 +116,27 @@ export function PromptBox({
 }: PromptBoxProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [longPasteNotice, setLongPasteNotice] = useState<{ text: string; previousValue: string; attachmentId?: string } | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit = (value.trim().length > 0 || files.length > 0) && !isGenerating;
+
+  useEffect(() => {
+    if (!longPasteNotice) return;
+    if (!longPasteNotice.attachmentId) return;
+    const stillQueued = files.some((file) => file.id === longPasteNotice.attachmentId);
+    if (!stillQueued) {
+      setLongPasteNotice(null);
+    }
+  }, [files, longPasteNotice]);
+
+  function submitAndClearTransientNotice() {
+    if (!canSubmit) return;
+    setLongPasteNotice(null);
+    onSubmit();
+  }
 
   // Auto-resize textarea
   useEffect(() => {
@@ -144,7 +160,7 @@ export function PromptBox({
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (canSubmit) onSubmit();
+      submitAndClearTransientNotice();
     }
   }
 
@@ -184,6 +200,30 @@ export function PromptBox({
     const attached = onAttachCurrentTextAsFile();
     if (attached) {
       setLongPasteNotice(null);
+    }
+  }
+
+  async function handleCopyPrompt() {
+    const text = value.trim();
+    if (!text) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopiedPrompt(true);
+      window.setTimeout(() => setCopiedPrompt(false), 1400);
+    } catch {
+      setCopiedPrompt(false);
     }
   }
 
@@ -280,6 +320,7 @@ export function PromptBox({
             onChange={(e) => setValue(e.target.value)}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
+            onContextMenu={(event) => event.stopPropagation()}
             placeholder="Ask for follow-up changes"
             rows={1}
             className="w-full resize-none bg-transparent outline-none text-[14px] leading-[1.55] placeholder:text-[#666] text-[#d4d4d4]"
@@ -312,6 +353,21 @@ export function PromptBox({
             >
               <Plus size={16} strokeWidth={2} />
             </button>
+
+            {value.trim().length > 0 && (
+              <button
+                type="button"
+                onClick={handleCopyPrompt}
+                className="saad-prompt-icon-btn"
+                style={{ color: copiedPrompt ? "#5eead4" : "#9ca3af", background: "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                title={copiedPrompt ? "Copied" : "Copy prompt text"}
+                aria-label={copiedPrompt ? "Copied prompt text" : "Copy prompt text"}
+              >
+                {copiedPrompt ? <Check size={14} strokeWidth={2.6} /> : <Copy size={14} strokeWidth={1.9} />}
+              </button>
+            )}
 
             {value.trim().length > 0 && (
               <button
@@ -407,7 +463,7 @@ export function PromptBox({
               <motion.button
                 type="button"
                 onClick={() => {
-                  if (canSubmit) onSubmit();
+                  submitAndClearTransientNotice();
                 }}
                 disabled={!canSubmit}
                 whileTap={canSubmit ? { scale: 0.88 } : {}}

@@ -36,6 +36,7 @@ interface ProviderSettings {
   name: string;
   type: ProviderType;
   endpointUrl: string;
+  localRuntime?: LocalRuntimeSettings;
   organization?: string;
   enabled: boolean;
   isDefault: boolean;
@@ -50,6 +51,17 @@ interface ProviderSettings {
   lastModelDiscoveryAt?: string;
   lastSuccessfulConnectionAt?: string;
   modelCount?: number;
+}
+
+interface LocalRuntimeSettings {
+  mode: "llama-server";
+  executablePath: string;
+  modelPath: string;
+  port: number;
+  contextWindow: number;
+  gpuLayers: number;
+  threads: number;
+  extraArgs: string[];
 }
 
 interface DiscoveredModel {
@@ -232,11 +244,11 @@ const defaultSettings: AppSettings = {
   workspace: { restoreLastWorkspace: true, ignoredFolders: ["node_modules", ".git", "dist", "release"], indexingMode: "balanced" },
   providers: [],
   models: {
-    Chat: { role: "Chat", providerId: "lm-studio", modelName: "", temperature: 0.3, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 1 },
-    Coding: { role: "Coding", providerId: "lm-studio", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 120000, retryCount: 2 },
-    Vision: { role: "Vision", providerId: "lm-studio", modelName: "", temperature: 0.1, maxTokens: 4096, detectedContextWindow: 16384, streaming: false, timeoutMs: 120000, retryCount: 1 },
-    Reviewer: { role: "Reviewer", providerId: "ollama", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 32768, streaming: true, timeoutMs: 90000, retryCount: 2 },
-    Fast: { role: "Fast", providerId: "ollama", modelName: "", temperature: 0.2, maxTokens: 4096, detectedContextWindow: 8192, streaming: true, timeoutMs: 45000, retryCount: 1 },
+    Chat: { role: "Chat", providerId: "gemini", modelName: "", temperature: 0.3, maxTokens: 8192, detectedContextWindow: 1000000, streaming: true, timeoutMs: 120000, retryCount: 1 },
+    Coding: { role: "Coding", providerId: "gemini", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 1000000, streaming: true, timeoutMs: 120000, retryCount: 2 },
+    Vision: { role: "Vision", providerId: "gemini", modelName: "", temperature: 0.1, maxTokens: 4096, detectedContextWindow: 1000000, streaming: false, timeoutMs: 120000, retryCount: 1 },
+    Reviewer: { role: "Reviewer", providerId: "gemini", modelName: "", temperature: 0.1, maxTokens: 8192, detectedContextWindow: 1000000, streaming: true, timeoutMs: 90000, retryCount: 2 },
+    Fast: { role: "Fast", providerId: "gemini", modelName: "", temperature: 0.2, maxTokens: 4096, detectedContextWindow: 1000000, streaming: true, timeoutMs: 45000, retryCount: 1 },
   },
   skills: { disabledSkillIds: [], customSkills: [] },
   connectors: {},
@@ -252,13 +264,34 @@ const defaultSettings: AppSettings = {
 };
 
 const providerTemplates: ProviderSettings[] = [
-  { id: "ollama", name: "Ollama", type: "local", endpointUrl: "http://localhost:11434/v1", enabled: true, isDefault: false, priority: 2, fallbackProvider: "lm-studio", healthStatus: "unknown" },
-  { id: "lm-studio", name: "LM Studio", type: "local", endpointUrl: "http://localhost:1234/v1", enabled: true, isDefault: true, priority: 1, fallbackProvider: "ollama", healthStatus: "unknown" },
-  { id: "openai", name: "OpenAI", type: "cloud", endpointUrl: "https://api.openai.com/v1", enabled: false, isDefault: false, priority: 3, fallbackProvider: "openrouter", healthStatus: "unknown" },
-  { id: "anthropic", name: "Anthropic", type: "cloud", endpointUrl: "https://api.anthropic.com/v1", enabled: false, isDefault: false, priority: 4, fallbackProvider: "openrouter", healthStatus: "unknown" },
-  { id: "gemini", name: "Gemini", type: "cloud", endpointUrl: "https://generativelanguage.googleapis.com/v1beta", enabled: false, isDefault: false, priority: 5, fallbackProvider: "openrouter", healthStatus: "unknown" },
-  { id: "openrouter", name: "OpenRouter", type: "cloud", endpointUrl: "https://openrouter.ai/api/v1", enabled: false, isDefault: false, priority: 6, fallbackProvider: "lm-studio", healthStatus: "unknown" },
-  { id: "saad-studio", name: "Saad Studio", type: "first_party", endpointUrl: "https://www.saadstudio.app/api/agent/v1", organization: "Saad Studio", enabled: false, isDefault: false, priority: 7, fallbackProvider: "lm-studio", healthStatus: "unknown" },
+  { id: "gemini", name: "Gemini", type: "cloud", endpointUrl: "https://generativelanguage.googleapis.com/v1beta", enabled: false, isDefault: true, priority: 1, fallbackProvider: "openrouter", healthStatus: "unknown" },
+  { id: "openai", name: "OpenAI", type: "cloud", endpointUrl: "https://api.openai.com/v1", enabled: false, isDefault: false, priority: 2, fallbackProvider: "openrouter", healthStatus: "unknown" },
+  { id: "anthropic", name: "Anthropic", type: "cloud", endpointUrl: "https://api.anthropic.com/v1", enabled: false, isDefault: false, priority: 3, fallbackProvider: "openrouter", healthStatus: "unknown" },
+  { id: "openrouter", name: "OpenRouter", type: "cloud", endpointUrl: "https://openrouter.ai/api/v1", enabled: false, isDefault: false, priority: 4, fallbackProvider: "gemini", healthStatus: "unknown" },
+  { id: "saad-studio", name: "Saad Studio", type: "first_party", endpointUrl: "https://www.saadstudio.app/api/agent/v1", organization: "Saad Studio", enabled: false, isDefault: false, priority: 5, fallbackProvider: "gemini", healthStatus: "unknown" },
+  { id: "ollama", name: "Ollama", type: "local", endpointUrl: "http://localhost:11434/v1", enabled: false, isDefault: false, priority: 6, fallbackProvider: "gemini", healthStatus: "unknown" },
+  { id: "lm-studio", name: "LM Studio", type: "local", endpointUrl: "http://localhost:1234/v1", enabled: false, isDefault: false, priority: 7, fallbackProvider: "gemini", healthStatus: "unknown" },
+  {
+    id: "saad-local-direct",
+    name: "Saad Local Direct",
+    type: "local",
+    endpointUrl: "http://127.0.0.1:18765/v1",
+    enabled: false,
+    isDefault: false,
+    priority: 8,
+    fallbackProvider: "gemini",
+    healthStatus: "unknown",
+    localRuntime: {
+      mode: "llama-server",
+      executablePath: "",
+      modelPath: "",
+      port: 18765,
+      contextWindow: 8192,
+      gpuLayers: 0,
+      threads: 0,
+      extraArgs: [],
+    },
+  },
 ];
 
 const defaultMcpPermissions: MCPPermissions = {
@@ -355,7 +388,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
   const [activeTab, setActiveTab] = useState<SettingsTab>(resolveInitialTab(initialTab));
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const [skills, setSkills] = useState<ManagedSkill[]>([]);
-  const [selectedProviderId, setSelectedProviderId] = useState("lm-studio");
+  const [selectedProviderId, setSelectedProviderId] = useState("gemini");
   const [selectedSkillId, setSelectedSkillId] = useState("");
   const [skillSearch, setSkillSearch] = useState("");
   const [skillDomain, setSkillDomain] = useState("all");
@@ -448,7 +481,7 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
       setMcpTools((result.settings.mcp?.servers || []).flatMap(server => server.tools || []));
       setMcpResources((result.settings.mcp?.servers || []).flatMap(server => server.resources || []));
       setMcpPrompts((result.settings.mcp?.servers || []).flatMap(server => server.prompts || []));
-      setSelectedProviderId(result.settings.providers.find(provider => provider.isDefault)?.id || result.settings.providers[0]?.id || "lm-studio");
+      setSelectedProviderId(result.settings.providers.find(provider => provider.isDefault)?.id || result.settings.providers[0]?.id || "gemini");
       setStatus("Settings loaded.");
     } else {
       setBackendConnected(false);
@@ -630,6 +663,16 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
     setSettings(next);
     setProviderDirty(true);
     setStatus("Provider has unsaved changes.");
+  }
+
+  function updateLocalRuntime(providerId: string, patch: Partial<LocalRuntimeSettings>) {
+    const provider = settings.providers.find(item => item.id === providerId);
+    const current = provider?.localRuntime || providerTemplates.find(item => item.id === "saad-local-direct")?.localRuntime;
+    if (!current) return;
+    updateProvider(providerId, {
+      localRuntime: { ...current, ...patch },
+      endpointUrl: patch.port ? `http://127.0.0.1:${patch.port}/v1` : provider?.endpointUrl || "http://127.0.0.1:18765/v1",
+    });
   }
 
   function saveSelectedProvider() {
@@ -965,6 +1008,75 @@ export function SettingsModal({ isOpen, onClose, initialTab = "general" }: Setti
                       <label style={{ color: "#94a3b8", fontSize: "12px" }}>Enabled<div style={{ marginTop: "9px" }}><input type="checkbox" checked={selectedProvider.enabled} onChange={(e) => updateProvider(selectedProvider.id, { enabled: e.target.checked })} /></div></label>
                       <label style={{ color: "#94a3b8", fontSize: "12px" }}>API Key<input type="password" value={secretDraft} onChange={(e) => setSecretDraft(e.target.value)} placeholder={selectedProvider.apiKeySecretRef ? "Stored securely" : "Paste key to store securely"} style={{ ...fieldStyle, width: "100%", marginTop: "5px" }} /></label>
                     </div>
+                    {selectedProvider.id === "saad-local-direct" && (
+                      <div style={{ ...panelStyle, display: "flex", flexDirection: "column", gap: "12px", background: "rgba(2, 6, 23, 0.28)" }}>
+                        <div>
+                          <div style={{ color: "#f8fafc", fontWeight: 800, fontSize: "13px" }}>Direct Local Runtime</div>
+                          <div style={{ color: "#94a3b8", fontSize: "12px", marginTop: "4px", lineHeight: 1.45 }}>
+                            Starts a local llama.cpp compatible server from Saad Agent. Configure a local llama-server executable and GGUF model file; no LM Studio process is used.
+                          </div>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" }}>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>llama-server executable
+                            <input
+                              value={selectedProvider.localRuntime?.executablePath || ""}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { executablePath: e.target.value })}
+                              placeholder="C:\\llama.cpp\\llama-server.exe"
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>GGUF model file
+                            <input
+                              value={selectedProvider.localRuntime?.modelPath || ""}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { modelPath: e.target.value })}
+                              placeholder="D:\\models\\qwen-coder.gguf"
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>Port
+                            <input
+                              type="number"
+                              value={selectedProvider.localRuntime?.port || 18765}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { port: Number(e.target.value) })}
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>Context window
+                            <input
+                              type="number"
+                              value={selectedProvider.localRuntime?.contextWindow || 8192}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { contextWindow: Number(e.target.value) })}
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>GPU layers
+                            <input
+                              type="number"
+                              min={0}
+                              value={selectedProvider.localRuntime?.gpuLayers || 0}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { gpuLayers: Number(e.target.value) })}
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                          <label style={{ color: "#94a3b8", fontSize: "12px" }}>Threads
+                            <input
+                              type="number"
+                              min={0}
+                              value={selectedProvider.localRuntime?.threads || 0}
+                              onChange={(e) => updateLocalRuntime(selectedProvider.id, { threads: Number(e.target.value) })}
+                              style={{ ...fieldStyle, width: "100%", marginTop: "5px" }}
+                            />
+                          </label>
+                        </div>
+                        <label style={{ color: "#94a3b8", fontSize: "12px" }}>Extra llama-server arguments
+                          <TextListInput
+                            value={selectedProvider.localRuntime?.extraArgs || []}
+                            onChange={(extraArgs) => updateLocalRuntime(selectedProvider.id, { extraArgs })}
+                            placeholder="One argument per line, for example: --flash-attn"
+                          />
+                        </label>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
                       <div style={{ color: "#94a3b8", fontSize: "12px" }}>Last tested: {selectedProvider.lastTestedAt || "Never"} {selectedProvider.latencyMs ? `| ${selectedProvider.latencyMs}ms` : ""} {selectedProvider.lastError ? `| ${selectedProvider.lastError}` : ""}</div>
                       <button onClick={saveSecret} disabled={!secretDraft.trim()} style={{ ...fieldStyle, cursor: secretDraft.trim() ? "pointer" : "not-allowed" }}>Save API Key Securely</button>

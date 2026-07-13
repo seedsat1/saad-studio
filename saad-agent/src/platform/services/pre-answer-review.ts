@@ -25,7 +25,7 @@ export class PreAnswerReviewService {
         EngineeringMemory.searchMemory({}).then((result) =>
           result.knowledgeItems.filter((item) => item.area === "user-memory").slice(-8)
         ).catch(() => []),
-        KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 4).catch(() => []),
+        this.searchScopedTrainingKnowledge(workspacePath, safePrompt, 4, "conversation").catch(() => []),
         SessionSearchProvider.search(safePrompt, 3).catch(() => ({ hits: [] })),
         Promise.resolve(SkillRegistry.matchSkillsForTask(safePrompt).slice(0, 5))
       ]);
@@ -196,7 +196,8 @@ export class PreAnswerReviewService {
     })();
 
     const knowledgePromise = (async () => {
-      const res = await KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, safePrompt, 6).catch(() => []);
+      const detectedWorkflow = this.detectIntent(safePrompt);
+      const res = await this.searchScopedTrainingKnowledge(workspacePath, safePrompt, 6, detectedWorkflow).catch(() => []);
       if (traceContext) {
         ExecutionTraceEmitter.emit({
           taskId: traceContext.taskId,
@@ -206,6 +207,7 @@ export class PreAnswerReviewService {
           label: "Knowledge context loaded",
           safeDetails: {
             knowledgeMatchesCount: res.length,
+            knowledgeScope: detectedWorkflow,
           },
           sourceService: "KnowledgeIngestionService"
         });
@@ -342,6 +344,45 @@ export class PreAnswerReviewService {
     if (/(page|route|صفحة)/i.test(lower)) return "page-generation";
     if (/(test|اختبار)/i.test(lower)) return "test-generation";
     return "general-engineering";
+  }
+
+  private static async searchScopedTrainingKnowledge(
+    workspacePath: string,
+    prompt: string,
+    limit: number,
+    intent: string
+  ): Promise<TrainingKnowledgeMatch[]> {
+    const expandedLimit = Math.max(limit * 3, limit);
+    const matches = await KnowledgeIngestionService.searchTrainingKnowledge(workspacePath, prompt, expandedLimit);
+    return matches
+      .filter((match) => this.shouldIncludeTrainingMatch(prompt, intent, match))
+      .slice(0, limit);
+  }
+
+  private static shouldIncludeTrainingMatch(
+    prompt: string,
+    intent: string,
+    match: TrainingKnowledgeMatch
+  ): boolean {
+    if (!this.isPrivateNarrativeTrainingMatch(match)) return true;
+    return this.allowsPrivateNarrativeTraining(prompt, intent);
+  }
+
+  private static isPrivateNarrativeTrainingMatch(match: TrainingKnowledgeMatch): boolean {
+    const haystack = [
+      match.item.filePath,
+      match.item.fileName,
+      match.item.summary,
+      match.item.category,
+      ...(match.item.tags || [])
+    ].join(" ").toLowerCase();
+    return /private-narrative|private[-_\s]?story|adult[-_\s]?story|\/stories\/|cuckold|hotwife|autofellatio|orgasm|sperm|cum|insemination|sexual|nsfw|swinging|intimate|anal|oral|lingerie|زوجات|زوجية|جنسية|حميمة|العلاقة|علاقة/.test(haystack);
+  }
+
+  private static allowsPrivateNarrativeTraining(prompt: string, intent: string): boolean {
+    if (!["conversation", "knowledge_lookup"].includes(intent)) return false;
+    const lower = prompt.toLowerCase();
+    return /private[-_\s]?narrative|private[-_\s]?story|adult[-_\s]?story|story analysis|saved story|training story|fictional story|sexual psychology|relationship dynamics|cuckold|hotwife|nsfw|قصة|قصص|القصص|خاص|خاصة|معرفتك المحفوظة|التدريب المحفوظ|المعرفة المخزونة/i.test(lower);
   }
 
   private static async loadProjectRules(workspacePath: string): Promise<string> {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -11,6 +11,7 @@ import { getVideoCreditsByModelId } from "@/lib/credit-pricing";
 import VideoComposer from "@/components/video/VideoComposer";
 import VideoGallery from "@/components/video/VideoGallery";
 import { GeneratedVideo } from "@/components/video/VideoResultCard";
+import { useLanguage } from "@/lib/use-language";
 
 // ── Gradient palette per model family ────────────────────────────────────────
 const FAMILY_GRADIENTS: Record<string, string> = {
@@ -24,8 +25,27 @@ const FAMILY_GRADIENTS: Record<string, string> = {
   ByteDance: "from-sky-900 via-sky-800 to-slate-900",
 };
 
+function useCreateVideoTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "Back to Video": "العودة للفيديو",
+      "Create Video": "إنشاء فيديو",
+      "credits": "رصيد",
+      "Reference Image Loaded": "تم تحميل الصورة المرجعية",
+      "This image will be used as the source for Image-to-Video generation.": "سيتم استخدام هذه الصورة كمصدر لتوليد صورة إلى فيديو.",
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 // ── Inner component (needs useSearchParams wrapped in Suspense) ───────────────
 function CreateVideoInner() {
+  const { t, lang } = useCreateVideoTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -150,17 +170,17 @@ function CreateVideoInner() {
           className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Video
+          {t("Back to Video")}
         </Link>
 
         {/* Title */}
-        <h1 className="text-sm font-semibold text-white">Create Video</h1>
+        <h1 className="text-sm font-semibold text-white">{t("Create Video")}</h1>
 
         {/* Credits */}
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
           <Diamond className="h-3.5 w-3.5 text-cyan-400" />
           <span className="font-semibold text-white">1,250</span>
-          <span className="text-slate-600">credits</span>
+          <span className="text-slate-600">{t("credits")}</span>
         </div>
       </div>
 
@@ -177,9 +197,9 @@ function CreateVideoInner() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={refImageUrl} alt="Reference" className="h-12 w-12 rounded-lg object-cover ring-1 ring-violet-400/30 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-violet-200">Reference Image Loaded</p>
+              <p className="text-[11px] font-semibold text-violet-200">{t("Reference Image Loaded")}</p>
               <p className="text-[10px] text-violet-400/70 truncate">
-                This image will be used as the source for Image-to-Video generation.
+                {t("This image will be used as the source for Image-to-Video generation.")}
               </p>
             </div>
             <button

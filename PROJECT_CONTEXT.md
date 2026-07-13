@@ -1,5 +1,880 @@
 # Saad Studio Project Context Update
 
+## Latest task: Saad Agent long-paste notice and attachment badge fix (2026-07-13)
+
+- Status:
+  Fixed two UI issues in the Saad Agent prompt and sent-attachment display.
+- Affected files:
+  - `saad-agent/ui/src/components/PromptBox.tsx`
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Behavior:
+  - The `Long pasted content was attached as a file` notice now clears when the attached long-text file is removed or after sending the message.
+  - Sent non-image attachments now show a real badge derived from the extension/MIME type, such as `TXT`, `YML`, `JSON`, `MD`, or `PDF`.
+  - Removed the CSS pseudo-element that forced every text/config attachment icon to display `PDF`.
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui`
+  - `npm.cmd run build` in `saad-agent`
+  - `node dist\test-settings.js`
+  - Rebuilt `app.asar` and verified it contains only the current UI assets: `index-CoBU0SMX.js` and `index-D2LS1A9C.css`.
+- Errors recorded:
+  - The previous notice state was local to `PromptBox` and survived after parent attachment state was cleared.
+  - `.sent-pdf-icon::after { content: "PDF"; }` overrode the actual text label inside the badge.
+- Decisions:
+  - Attachment badges should represent the actual file type, not the generic attachment component style.
+  - Transient paste notices must follow the queued attachment lifecycle.
+- Remaining:
+  - Restart packaged Saad Agent and retest by pasting a long YAML/config text.
+
+## Latest task: Spaced Landing Hero Heading for Arabic (2026-07-13)
+
+- Status:
+  Adjusted the line-height configuration of the landing page hero title `h1` in `app/(landing)/page.tsx`. Changed the Arabic leading styling from `leading-[1.2]` to `leading-[1.35]` to provide a slight, clean vertical gap between "حوّل أفكارك إلى عوالم سينمائية" and the gradient "بالذكاء الاصطناعي" subtitle line.
+- Affected files:
+  - `app/(landing)/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Settled on `leading-[1.35]` to achieve the requested clean spacing without breaking the unified manchette styling.
+- Remaining:
+  - None.
+
+## Latest task: Expanded Hero Container Width to Prevent Line Wrap (2026-07-13)
+
+- Status:
+  Expanded the maximum width of the hero text copy container in `app/(landing)/page.tsx` from `max-w-4xl` to `max-w-6xl` (`1152px`). This ensures that there is enough horizontal viewport space for the entire first line "حوّل أفكارك إلى عوالم سينمائية" to render without "سينمائية" wrapping to the second line on desktop and tablet views.
+- Affected files:
+  - `app/(landing)/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Increased the container limit to `max-w-6xl` as a clean, responsive solution instead of scaling down font sizes.
+- Remaining:
+  - None.
+
+## Latest task: Saad Agent attachment-only OpenAPI routing guard (2026-07-13)
+
+- Status:
+  Fixed the failure where a long pasted spec/config attachment appeared as only `Attached long pasted content as file.` and was routed to the local chat provider, causing timeouts at `http://127.0.0.1:32768/api/v1/chat`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Behavior:
+  - If an attachment-only placeholder includes a readable API/OpenAPI/spec/config file and prior conversation history contains an engineering/model integration request, Saad Agent now rebuilds the engineering task context and routes it to the engineering runtime instead of the chat model.
+  - If there is no prior engineering task, Saad Agent returns a local clarification response and does not call Chat, Pi/Codex, Gemini, LM Studio, Ollama, or any provider.
+- Verification:
+  - `npm.cmd run build`
+  - `node dist\test-chat-orchestrator.js`
+  - `node dist\test-settings.js`
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+- Errors recorded:
+  - Previous packaged behavior let `Attached long pasted content as file.` fall into provider reasoning, which timed out on the local LM Studio-compatible endpoint.
+  - Test logs still show sandbox-only EPERM warnings for audit files under `C:\Users\PC\.saad-agent`; runtime decisions continue in memory during tests.
+- Decisions:
+  - Attachment-only spec messages are treated as incomplete engineering continuations, not ordinary chat.
+  - The agent must not ask the user to resend the whole pasted OpenAPI/config text when the attachment is already readable.
+- Remaining:
+  - Restart the packaged Saad Agent app and retest by sending the same attachment-only `pasted-config.txt` flow after a model-integration request.
+
+## Latest task: Updated Landing Hero Translation (2026-07-13)
+
+- Status:
+  Updated the landing page hero main heading translation inside `app/(landing)/page.tsx` and its local dictionary mapping. Changed the headline text to the user's requested Arabic phrasing: "حوّل أفكارك إلى عوالم سينمائية بالذكاء الاصطناعي" while preserving the beautiful multi-color gradient background overlay for the term "الذكاء الاصطناعي".
+- Affected files:
+  - `app/(landing)/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept the word break `<br />` immediately after "حوّل أفكارك إلى" to keep the layout proportional and prevent any overlapping issues.
+- Remaining:
+  - None.
+
+## Latest task: Adjusted Landing Hero Line-Height for Arabic (2026-07-13)
+
+- Status:
+  Adjusted the line-height configuration of the main landing page hero title `h1` dynamically in `app/(landing)/page.tsx`. Conditionally applied `leading-[1.2]` when in Arabic mode to provide sufficient vertical letter spacing and prevent high-ascender/descender characters from overlapping, while keeping `leading-[0.92]` for English to preserve the dense uppercase headline/manchette styling.
+- Affected files:
+  - `app/(landing)/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Separated line-height classes by language using the `cn` utility to ensure Arabic character readability without altering English headline aesthetics.
+- Remaining:
+  - Ask the user to verify the updated layout line spacing.
+
+## Latest task: Centered Landing Hero with Arabic Direction Guard (2026-07-13)
+
+- Status:
+  Centered the main landing page hero text copy block and action buttons globally in `app/(landing)/page.tsx`. Added `dir={lang === "ar" ? "rtl" : "ltr"}` to the main heading and description paragraph to resolve the bi-directional text rendering issues (ensuring the trailing period `.` renders on the correct end-of-sentence left side when in Arabic mode).
+- Affected files:
+  - `app/(landing)/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Applied layout centering globally on all screen sizes to create a clean, balanced landing page hero style.
+  - Handled Arabic text direction at the element level to avoid shifting parent layout grids.
+- Remaining:
+  - Ask the user to verify the centered text layout on the landing page.
+
+## Latest task: Icon-Only Header Logo (2026-07-13)
+
+- Status:
+  Modified the main navigation logo in `components/TopNavbar.tsx` to be icon-only. Removed the brand text name `SAAD STUDIO` from the top header by changing the logo container from horizontal layout (referencing `/logo-saad-horizontal.png`) to a clean square layout rendering `/icon-192.png` (`h-9 w-9`).
+- Affected files:
+  - `components/TopNavbar.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Left layout direction strictly to LTR globally for both languages to prevent any element shifting.
+- Remaining:
+  - Ask the user to verify the top header logo appearance.
+
+## Latest task: Bilingual Translation for the Auth Modal (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the Authentication modal (login, signup, password reset, and verification flows) in `components/AuthModal.tsx`.
+  Defined client-side translation hook `useAuthTranslation` linked directly to the `useLanguage` context.
+  Dynamically wrapped CMS page configurations (brand names, badge names, promo slides, stats chips, headings, and buttons) using the translation hook so that they translate in memory on the client side without altering database records or admin dashboard settings.
+  Translated all hardcoded user inputs, fields placeholders, sub-messages, error fallbacks, and Google social login buttons.
+- Affected files:
+  - `components/AuthModal.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept layout direction strictly to LTR globally for both languages to prevent any element shifting.
+  - Client-side only translations keep data models safe and preserve full admin CMS compatibility.
+- Remaining:
+  - Ask the user to verify the translations on the login and signup modals.
+
+## Latest task: Bilingual Translation for the Profile & Settings Pages (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the User Profile Page (`app/(dash)/(routes)/profile/page.tsx`) and the Account Settings Page (`app/(dash)/(routes)/settings/page.tsx`).
+  Defined client-side translation hooks (`useProfileTranslation` and `useSettingsTranslation`) linked directly to the `useLanguage` context.
+  Mapped Arabic translations for all headers, settings sections (Subscription, Profile Information, Security, Notifications, Appearance & Language, Danger Zone), input field labels and placeholders, toggles, buttons, success badges, and confirmation dialog boxes.
+  Fixed the language selection select dropdown reactivity lag by ensuring localStorage write occurs before the event dispatcher triggers other listeners, and directly calling `changeLanguage` inside the select element's `onChange`.
+  Moved external helpers (e.g. `formatPlanBadge`, `formatTimeAgo`) inside the component scope to inherit translation hooks. Renamed map parameters to prevent scope collisions with translation hooks.
+- Affected files:
+  - `app/(dash)/(routes)/profile/page.tsx`
+  - `app/(dash)/(routes)/settings/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept layout direction strictly to LTR globally for both languages to prevent any element shifting.
+  - Client-side only translations keep data models safe and preserve full admin CMS compatibility.
+- Remaining:
+  - Ask the user to verify the translations on the profile page, settings page, and user dropdown.
+
+## Latest task: Bilingual Translation for the Pricing & Payment Pages (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the main landing Pricing Page (`app/(landing)/(routes)/pricing/page.tsx`) and the Payment checkout/receipt verification wizard page (`app/(dash)/(routes)/payment/page.tsx`).
+  Defined client-side translation hooks (`usePricingTranslation` and `usePaymentTranslation`) dynamically linked to the `useLanguage` context.
+  Mapped Arabic translations for all plans (Try, Starter, Plus, Pro, Max), features lists, allowances, model costs guide sheets, payment methods cards, manual transfer instructions guides, Zain Cash online forms, drag-and-drop receipts upload zones, WhatsApp support messaging configurations, and verification status config cards.
+  Moved external helpers (e.g. `getPlanGenerationAllowance`) inside the component scope to inherit translation hooks. Renamed mapping variables to prevent local scope clashes with translation hooks.
+  Deduplicated dictionary keys and verified full project compilation.
+- Affected files:
+  - `app/(landing)/(routes)/pricing/page.tsx`
+  - `app/(dash)/(routes)/payment/page.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept layout direction strictly to LTR globally for both languages to prevent any element shifting.
+  - Client-side only translations keep data models safe and preserve full admin CMS compatibility.
+- Remaining:
+  - None. All pages translated successfully.
+- Affected files:
+  - `app/(landing)/(routes)/pricing/page.tsx`
+  - `app/(dash)/(routes)/payment/page.tsx`
+- Verification:
+  - Checked TypeScript compilation using `npx tsc --noEmit` which completed successfully with zero errors.
+- Decisions:
+  - Completely isolated translation mapping on the client-side view layer to guarantee zero interference with admin CMS page schemas, database collections, or payment gateways api payloads.
+  - Retained LTR layouts globally to prevent UI shifts when toggle switcher is clicked.
+- Remaining:
+  - Ask the user to verify the translations on the pricing page and payment page.
+
+## Latest task: Bilingual Translation for the Edit Page (صفحة التعديل) (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the main AI Edit Workspace page (`app/(dash)/(routes)/edit/page.tsx`) and its embedded tool subpages: Relight (`app/(dash)/(routes)/apps/tool/relight/page.tsx`), Face Swap (`app/(dash)/(routes)/apps/tool/face-swap/page.tsx`), and Inpaint (`app/(dash)/(routes)/apps/tool/nano-banana-pro-inpaint/page.tsx`).
+  Defined client-side translation hooks matching the `useLanguage` context.
+  Mapped Arabic keys for all sidebar tools (Upscale, Inpaint, Face Swap, Relight, Background Remover, Watermark Remover, style/sketch drawing, outpaint, motion tracking), parameters sliders, models options, upload zones, buttons, notifications, guides, and tips.
+  Verified safety of Admin CMS pages: all translations are view-only at render time, decoupled from CMS databases and backend API structures.
+- Affected files:
+  - `app/(dash)/(routes)/edit/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/relight/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/face-swap/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/nano-banana-pro-inpaint/page.tsx`
+- Verification:
+  - Verified Type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept layout locked to LTR to prevent visual shifts when toggling languages.
+  - View-layer only translation logic ensures admin CMS remains completely safe.
+- Remaining:
+  - Ask the user to verify the translations on the edit workspace page.
+
+## Previous task: Bilingual Translation for the Audio Page (صفحة الصوت) (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the Audio Workspace page (`app/(dash)/(routes)/audio/page.tsx`). Defined the non-exported `useAudioTranslation` hook matching the `useLanguage` context. Mapped Arabic keys for settings labels, presets, input components, chips, players, settings, library, and modals. Wrapped tab switcher, prompt textarea and custom lyrics textareas, character counters, style suggestion chips, image reference upload zone, active music player timeline, volume sliders, track actions (copy, share, MP3/WAV export), settings widgets (Model, Genre, Mood, BPM, Duration, toggles), and generation history items.
+- Affected files:
+  - `app/(dash)/(routes)/audio/page.tsx`
+- Verification:
+  - Verified Type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Maintain client-side React rendering translations to ensure compatibility without altering database or admin CMS schemas.
+  - Keep layout locked to LTR to prevent visual shifts when toggling languages.
+- Remaining:
+  - Ask the user to verify the translations on the audio page.
+
+## Latest task: Saad Agent local-image asset page routing guard (2026-07-13)
+
+- Status:
+  Fixed the failure where a page/design request that said to use existing local images from a folder, such as `C:\Users\PC\Desktop\lang\New folder`, was misrouted to inline image generation and returned `No real image generator is configured`. Local image-asset page requests now route to engineering file execution, and the target workspace resolver distinguishes the page destination folder from a separate image/assets folder.
+- Affected files:
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including regression coverage that a `SAAD STUDIO` HTML/CSS/JS page request using local images reaches the engineering runtime, not `CreativeService`.
+- Findings:
+  - The inline image-generation detector treated `صمم`/`create` plus `صور` as image generation even when the prompt clearly meant “build a page using local images”.
+  - Path scoring could incorrectly choose an assets folder (`New folder`) as the execution workspace instead of the explicit parent target folder.
+- Decisions:
+  - Local path + page files/HTML/CSS/JS + “use local/existing images” is an engineering modification request.
+  - Asset-folder cues such as “use the images here” are lower priority than workspace cues such as “work only inside this path”.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar`, restart the packaged app, and retest the exact `C:\Users\PC\Desktop\lang` scenario.
+
+## Latest task: Modify Storyboard translation to القصة المصورة (2026-07-13)
+
+- Status:
+  Completed the translation change for "Storyboard" to "القصة المصورة" in the navigation headers of the global `TopNavbar`. Added fallback translation support for "Storyboard Studio" to translate as "استوديو القصة المصورة".
+- Affected files:
+  - `components/TopNavbar.tsx`
+- Verification:
+  - Verified compilation and type checking using `npx tsc --noEmit` which completed successfully with zero errors.
+- Decisions:
+  - Updated the global key mapping for `"Storyboard"` in the `getTranslation` function so that it displays as "القصة المصورة" when the UI is toggled to Arabic.
+- Remaining:
+  - Ask the user to verify the updated label.
+
+## Latest task: Saad Agent explicit target-path routing for AI Studio page builds (2026-07-13)
+
+- Status:
+  Fixed the Saad Agent routing failure where a design/build prompt with an explicit target path such as `E:\Agent-Reach-main\claude-code` could still execute against the active workspace (`TEST ANG`) or be downgraded into Daily Maintenance / review / memory-save behavior. Explicit local target paths are now scored and preferred by target cues (`inside this path`, `here`, `to`, `ضع`, `هنا`, etc.), design/build prompts with local path scope route to `engineering.modify` before generic project-audit review, and AI Studio/SaaS specs no longer require a perfectly decoded Arabic execution verb to be treated as implementation work.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/daily-engineer.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - Read required project memory files before acting.
+  - Verified `E:\Agent-Reach-main\claude-code` exists as a local directory, but did not copy from or modify it.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including regression coverage that a copied/logged prompt containing both `TEST ANG` and an explicit `Agent-Reach-main\claude-code` target executes against the explicit target.
+  - `node dist/test-settings.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified packaged `request-routing.js`, `daily-engineer.js`, and `chat-orchestrator.js` contain the new explicit target-path routing markers.
+- Findings:
+  - `DailyEngineerService` was too broad and could classify ordinary page-design implementation as daily maintenance.
+  - `RequestRoutingService` let generic inspect/audit wording outrank a local-path AI Studio implementation request.
+  - `ChatOrchestratorService` selected only the first local path, which is unsafe when the prompt includes copied logs or an active-workspace path before the real target.
+  - Memory-save detection could still steal merged design prompts because of safety wording like `لا تثبت مكتبات`.
+- Decisions:
+  - Explicit local path + AI Studio/SaaS/page design signals is an engineering modification request, not memory save, training ingest, or review-only maintenance.
+  - Target-cued paths should outrank copied active-workspace paths.
+  - `E:\Agent-Reach-main\claude-code` remains a comparative reference path only; Saad Agent must not copy or run code from it.
+- Remaining:
+  - Restart the packaged Saad Agent app, select/confirm the intended workspace, then retest with a prompt that explicitly includes `E:\Agent-Reach-main\claude-code`.
+
+## Latest task: Bilingual Translation for the Video Page & Components (صفحة الفيديو) (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the Video Workspace page and related components. Added `useVideoComposerTranslation`, `useModelDropdownTranslation`, `useVideoResultCardTranslation`, and `useCreateVideoTranslation` hooks matching the `useLanguage` context. Mapped Arabic keys for settings labels, aspect ratios, durations, resolutions, camera movements, Grok modes, media reference buttons, and composer actions. Wrapped the desktop/mobile tool selectors, style library cards, prompt inputs, skeleton loader states, actions hover overlays (Download, Extend, Upscale, Remix, Delete), and the separate video creation workspace subpage.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/video/create-video/page.tsx`
+  - `components/video/VideoComposer.tsx`
+  - `components/video/ModelDropdown.tsx`
+  - `components/video/VideoGallery.tsx`
+  - `components/video/VideoResultCard.tsx`
+- Verification:
+  - Verified TypeScript compilation and production type checks with `npx tsc --noEmit` passing successfully with zero errors.
+- Decisions:
+  - Keep translation helpers entirely local and client-side to ensure compliance with Next.js page routing constraints and CMS database models safety.
+  - Translate option labels dynamically at rendering to keep core data structure schemas clean.
+- Remaining:
+  - Ask the user to verify the translations on the video workspace.
+
+## Latest task: Bilingual Translation for the Images Page (صفحة الصور) (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the Images Workspace page (`app/(dash)/(routes)/image/page.tsx`). Defined the non-exported `useImageTranslation` hook matching the `useLanguage` context. Mapped Arabic keys for settings labels, presets, input components, and modals. Wrapped accordion configs (Model, Aspect Ratio, Character Reference, Resolutions, Sliders), tool selectors (Create, Enhance, Relight, Inpaint, Upscale, Face Swap), ResultGrid preview cards and options, AlbumPicker modal, and Inpaint workspace canvas controls.
+- Affected files:
+  - `app/(dash)/(routes)/image/page.tsx`
+- Verification:
+  - Verified Type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Maintain client-side React rendering translations to ensure compatibility without altering database or admin CMS schemas.
+  - Implement hook calls inside all individual UI sub-components to propagate context cleanly.
+- Remaining:
+  - Ask the user to verify the translations on the images page.
+
+## Latest task: Dynamics Translation support for Discover/Explore Page (2026-07-13)
+
+- Status:
+  Completed client-side Arabic/English translation capability for the Discover/Explore page (`app/(dash)/(routes)/explore/page.tsx`). Added the `useExploreTranslation` hook mapped to the global `useLanguage` context. Refined Arabic translation keys for natural creative phrasing: mapped "YOURS TO CREATE" to "أنشئه كما تريد" and "ASK ME AND I'LL GIVE YOU WHAT YOU WANT" to "اطلب وسأصنع لك ما تريد". Deduplicated all dictionary keys, resolved Next.js compile constraints by defining the hook as a non-exported block, and dynamically wrapped all page headings, category pills, search input placeholders, sorting dropdowns, Quick Circles tool labels, official model showcase Kickers/Titles/Subtitles/CTAs, featured templates/blueprints, 7 sub-component official promo/ad banners, and community creations content.
+- Affected files:
+  - `app/(dash)/(routes)/explore/page.tsx`
+- Verification:
+  - Verified TypeScript compilation and production type checks with `npx tsc --noEmit` passing successfully with zero errors.
+- Decisions:
+  - Keep the translation logic entirely client-side (view layer) to guarantee that it is completely decoupled from the admin CMS database models, assuring that it will never break anything in the admin panel.
+  - Define the translation hook as local (non-exported) inside the file to satisfy Next.js page routing constraints which prohibit exporting arbitrary hooks/variables from page files.
+- Remaining:
+  - Ask the user to verify the translations on the explore page.
+
+## Latest task: Brand Overhaul, Fonts Configuration, and Bilingual LTR-only Toggle Switcher (2026-07-12)
+
+- Status:
+  Completed the logo asset overhaul by replacing old textured "SA" images and icons with the new blue-purple swirl icon and centered horizontal/vertical brand text layouts. Configured Nexa Bold for display text, Nexa Light for body text, and Cairo as the fallback font for Arabic. Cleaned up local font overrides on sub-pages so they inherit global styling. Implemented a custom reactive language toggle button (LanguageSwitcher) in TopNavbar alongside a dictionary-based translation helper that translates all header lists and profile dropdown items instantly. Locked layout direction strictly to LTR for both languages on initial load, page settings, and landing page layouts to prevent elements from flipping positions.
+- Affected files:
+  - `lib/use-language.ts`
+  - `components/TopNavbar.tsx`
+  - `app/layout.tsx`
+  - `tailwind.config.ts`
+  - `app/(dash)/(routes)/apps/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/makeup/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/relight/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/storyboard-studio/page.tsx`
+  - `app/(dash)/(routes)/apps/tool/style-snap/page.tsx`
+  - `app/(dash)/(routes)/lipsync/page.tsx`
+  - `app/(dash)/(routes)/settings/page.tsx`
+  - `app/(landing)/promo/page.tsx`
+  - `public/logo-saad-transparent.png`
+  - `public/logo saad.png`
+  - `public/apple-touch-icon.png`
+  - `public/icon-192.png`
+  - `public/icon-512.png`
+  - `public/favicon-v2.ico`
+  - `favicon.png`
+- Verification:
+  - Inspected the generated transparent logo and verified it matches guideline sizing, visual alignment, and spacing.
+  - Verified TypeScript compilation and production packaging of all files with `npm run build` passing cleanly.
+- Decisions:
+  - Enforce LTR layout configuration globally to fulfill the user's requirement that Arabic translation should not shift element positions.
+  - Use a custom React hook and event dispatch system for bilingual updates to avoid adding heavy internationalization libraries or rewriting 40 pages of routes.
+- Remaining:
+  - Ask the user to verify generation and billing.
+
+## Latest task: Saad Agent daily-maintenance approved runtime workspace contract (2026-07-12)
+
+- Status:
+  Fixed the packaged behavior shown in the user's test where the read-only daily maintenance inspection correctly read files, but the approved maintenance execution returned a generic message asking for project files instead of inspecting the mounted workspace. Daily-maintenance runtime prompts now include a dedicated workspace execution contract that tells the runtime the trusted workspace is already the current working directory, forbids asking the user for files before inspection, requires using read/search/list tools first, and requires naming at least one file actually read unless the workspace is truly empty.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed after build. Existing sandbox EPERM warnings for audit files under `C:\Users\PC\.saad-agent` remained non-fatal.
+- Findings:
+  - The runtime already received the workspace as `cwd`, but the prompt contract did not explicitly forbid the model from asking the user to provide files.
+  - The previous regression only checked clean output formatting, not that approved maintenance prompts force actual workspace inspection.
+- Decisions:
+  - Approved daily-maintenance execution must treat the mounted workspace as sufficient evidence source and start with tools.
+  - A successful maintenance report must name files actually read, or report a verified empty/unreadable workspace as a failure/blocker.
+- Remaining:
+  - Repack `release-production-v4/win-unpacked/resources/app.asar`, restart Saad Agent, and retest the approved maintenance prompt.
+
+## Latest task: Saad Agent local-first Claude-Code-style execution policy (2026-07-12)
+
+- Status:
+  Reversed the previous Cloud-only runtime enforcement after the user clarified that "Claude/كلاود" meant Claude Code-style engineering execution, not paid cloud providers. `SettingsManager.getModelRuntime(...)` now allows local LLM providers as first-class runtimes, prefers enabled local providers when falling back, and no longer blocks LM Studio/Ollama/Saad Local Direct for normal Chat/Coding roles. Defaults now point model roles to the local LM Studio model id `qwen/qwen3-coder-30b` instead of disabled Gemini. `CodexRuntimeBridge` supports `lm-studio` for Pi execution again, while still stopping clearly when Coding is set to Ollama because this Pi bridge cannot execute tools through Ollama directly.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including local-first LM Studio runtime selection and disabled-Gemini fallback to local runtime.
+  - `node dist/test-chat-orchestrator.js` passed. Sandbox EPERM warnings for audit files under `C:\Users\PC\.saad-agent` remained non-fatal.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and extracted it for verification. Packaged `settings-manager.js` contains `Local-first model policy`, local `qwen/qwen3-coder-30b` defaults, and `findConfiguredModelRuntime`; packaged `codex-runtime-bridge.js` contains `piProvider = "lm-studio"`.
+- Findings:
+  - The prior Cloud-only guard was based on a misunderstanding of the user's "Claude/كلاود" wording and caused Gemini/Cloud guidance even when the user wanted local cost control.
+  - Pi/Codex can use LM Studio when Pi's external provider registry supports it, but Ollama remains unsuitable for Pi tool execution in this installed bridge.
+- Decisions:
+  - Local-first is the active provider policy. Cloud providers are optional configured fallbacks, not the default work path.
+  - Claude Code remains a workflow inspiration only: inspect, plan, use tools, observe, verify, repair, and document with original Saad Agent code.
+  - Do not copy, run, vendor, or reverse-engineer code from `E:\Agent-Reach-main\claude-code`.
+- Remaining:
+  - Restart Saad Agent, set Settings > Models > Coding to LM Studio `qwen/qwen3-coder-30b`, then test a daily-maintenance prompt.
+
+## Latest task: Saad Agent strict Cloud-only provider default guard (2026-07-12)
+
+- Status:
+  Tightened the Cloud-only policy after the user clarified that Saad Agent must rely entirely on configured Cloud providers, but must not keep calling Gemini after Gemini is disabled or removed. `SettingsManager.sanitizeSettings(...)` now clears `isDefault` from disabled or non-LLM providers and only assigns default status to an enabled Cloud/first-party LLM provider. If a role such as `Chat` remains mapped to disabled Gemini and no other configured Cloud LLM is ready, runtime stops with Cloud-only setup guidance instead of contacting Gemini or falling back to local providers.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including a regression that disabled Gemini cannot remain default and does not get contacted by `getModelRuntime("Chat")`.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified packaged `settings-manager.js` contains `eligibleDefaultProviders` plus the Cloud-only setup guard.
+- Findings:
+  - Runtime selection already blocked local providers, but UI/default metadata could still mark disabled Gemini as default, making the app appear to rely on Gemini after the user disabled it.
+  - A disabled selected provider must be treated as setup-required, not as a callable fallback.
+- Decisions:
+  - Cloud-only means enabled/configured Cloud LLM only, not Gemini specifically.
+  - Disabled Gemini, disabled OpenAI/Anthropic/OpenRouter/Saad Studio, Brave Answers, and local providers must not be default model runtimes.
+- Remaining:
+  - Close all running Saad Agent processes, restart the packaged app, and select the intended Cloud LLM provider/model in Settings.
+
+## Latest task: Saad Agent read-only daily maintenance inspection without Cloud provider (2026-07-12)
+
+- Status:
+  Fixed the packaged failure where a read-only daily-maintenance prompt such as `كمهندس صيانة يومي افحص ملفات المشروع فعليا باستخدام أدوات القراءة فقط...` still reached Gemini and could be blocked as `PROHIBITED_CONTENT`. `daily_maintenance.review` now uses a local read-only inspection path inside `ChatOrchestratorService` before `PreAnswerReviewService`, before training/context injection, and before any Cloud/local model call. The report lists only files actually read, skips secrets and heavy build folders, performs bounded simple checks, and states that 0 files were modified.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that read-only daily maintenance does not call `ReasoningEngine` and names files actually read.
+  - `node dist/test-settings.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified packaged `chat-orchestrator.js` contains `runDailyMaintenanceReadOnlyInspection` and `request-routing.js` marks review-only daily maintenance as not requiring a model.
+- Findings:
+  - The route already classified the request as `daily_maintenance.review`, but the orchestrator still continued into pre-answer/model context before returning a report.
+  - The task-state machine requires the full lifecycle sequence from `VALIDATING` through `VERIFYING` before `COMPLETED`.
+- Decisions:
+  - Mark review-only daily maintenance as `requiresModel: false`.
+  - Keep modification/repair daily-maintenance tasks on the approval and runtime path.
+  - Read only bounded safe project files and avoid `.env`, credentials, tokens, private keys, build output, release folders, and dependency folders.
+- Remaining:
+  - Restart Saad Agent, then retest the same read-only prompt. Expected: a 5-line report with actual file names and no Gemini/Gemini blocked-context error.
+
+## Latest task: Saad Agent minimal Cloud prompt context for short chat tests (2026-07-12)
+
+- Status:
+  Fixed the packaged Cloud/Gemini smoke-test failure where a tiny prompt such as `اكتب لي جملة قصيرة: اختبار كلاود فقط` reached Gemini with old conversation history and pre-answer/training context, causing Gemini to return `PROHIBITED_CONTENT`. Short direct conversational prompts now use a minimal provider prompt: latest user request only, no raw conversation history, no training knowledge, and no `PreAnswerReview` context. Personal/saved-context prompts such as requests about memory, saved knowledge, files, project inspection, or the user's stored personal details still use the contextual paths.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that polluted history is not sent for the short Cloud smoke prompt.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified `chat-orchestrator.js` contains the minimal direct chat markers and `model-client.js` contains the cleaned Gemini blocked-context error.
+- Findings:
+  - Cloud routing was working; the failure was Gemini safety-blocking unrelated prompt context.
+  - The raw history entered through both the simple-general-question path and `answerQuietlyWithTrainingKnowledge`, before the main direct-chat prompt builder.
+- Decisions:
+  - Keep Cloud-only provider routing intact.
+  - Do not send raw conversation history to providers for simple general questions.
+  - For short direct chat prompts, skip memory/training/session context unless the prompt explicitly asks for saved/contextual knowledge.
+- Remaining:
+  - Restart Saad Agent, then retry `اكتب لي جملة قصيرة: اختبار كلاود فقط`. Expected: a short answer from the configured Cloud model without `PROHIBITED_CONTENT`.
+
+## Latest task: Packaged Cloud-only runtime smoke test (2026-07-12)
+
+- Status:
+  Tested the packaged/staged Saad Agent runtime after the Cloud-only enforcement change. `SettingsManager.getModelRuntime("Chat")` and `SettingsManager.getModelRuntime("Coding")` both refused the current LM Studio settings with the Cloud-only setup-required message. `CodexRuntimeBridge.runTask(...)` also stopped before Pi/LM Studio execution and returned the same Cloud-only setup guidance with empty stdout/stderr.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read required memory files before testing.
+  - Ran packaged/staged runtime smoke checks from `release-production-v4/win-unpacked/resources/app-asar-work/dist`.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed.
+- Findings:
+  - Current active settings still point Chat/Coding to LM Studio, but runtime code now blocks that path instead of sending requests to LM Studio.
+  - Sandbox warnings about audit logs under `C:\Users\PC\.saad-agent` are expected in this Codex environment and did not fail the tests.
+- Decisions:
+  - No code changes were needed for this test.
+- Remaining:
+  - Restart the packaged Saad Agent app and repeat the same chat prompt. Expected result: no new LM Studio log entry; Saad Agent should either use the configured Cloud model or show Cloud setup-required guidance.
+
+## Latest task: Saad Agent enforced Cloud-only model runtime (2026-07-12)
+
+- Status:
+  Completed and packaged the user's corrected policy as an execution guard, not just documentation. `SettingsManager.getModelRuntime(...)` now blocks LM Studio, Ollama, and Saad Local Direct for normal Chat, Coding, Vision, Reviewer, and Fast roles unless a future explicit local-only path is added. If no configured Cloud LLM provider with API key and discovered/selected model is ready, Saad Agent returns a setup-required error instead of silently falling back to LM Studio. `CodexRuntimeBridge` now calls the same runtime gate before building Pi arguments, so daily maintenance/Coding execution cannot bypass the Cloud-only policy by reading `settings.models.Coding` directly.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/ui/src/components/SettingsModal.tsx`
+  - `saad-agent/src/test-settings.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/dist`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed, including a regression that blocks LM Studio when no Cloud LLM runtime is configured.
+  - `node dist/test-chat-orchestrator.js` passed.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed with existing CSS import and chunk-size warnings only.
+  - Smoke-tested `CodexRuntimeBridge.runTask(...)` against the current local Coding settings; it returned `Cloud-only provider policy is active` before executing Pi/LM Studio.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `codex-runtime-bridge.js` contains `SettingsManager.getModelRuntime("Coding")` and the Cloud-only marker, packaged `settings-manager.js` contains `cloudLlmProviderIds` and the Cloud-only setup message, and packaged UI assets contain only `index-DuKYb7Mg.js` plus `index-CySwQUZn.css`.
+- Findings:
+  - The previous Cloud-only entry was only a policy note. Active settings still pointed Coding/Chat behavior at local providers, so LM Studio continued receiving requests.
+  - Settings validation needed to allow a saved Cloud provider before model discovery, while runtime execution still must fail until a real model is selected.
+- Decisions:
+  - Do not guess or hard-code Cloud model ids.
+  - Cloud provider setup can be saved in a partial state, but runtime calls require a configured Cloud provider, API key, and selected/discovered model.
+  - Local providers remain present in Settings as explicit local-test tools, but they are no longer defaults or normal execution fallbacks.
+- Remaining:
+  - Restart Saad Agent, configure a Cloud provider/model in Settings, then repeat the user's test. Expected: LM Studio logs should not receive the request. If no Cloud model is configured yet, Saad Agent should show the Cloud-only setup-required message.
+
+## Latest task: Saad Agent cloud-only operating preference (2026-07-12)
+
+- Status:
+  Recorded the user's corrected provider policy: all Saad Agent work should rely on configured cloud providers, not LM Studio/Ollama/local models, unless the user explicitly asks for a local-only test. This applies to chat, maintenance, coding, review, design, vision, and fast helper roles. Local providers remain technical options but must not be treated as the preferred or default work path.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Inspected current settings defaults and active workspace settings; both still contain LM Studio/Ollama local mappings, so this task records the policy without guessing a cloud model id.
+- Findings:
+  - Current project settings still map Coding/Vision to `lm-studio` and Reviewer/Fast to `ollama`.
+  - Forcing a specific cloud model in code without a discovered model/API key would be guesswork and could break execution.
+- Decisions:
+  - Treat Cloud as the authoritative operating preference for all future work.
+  - Do not hard-code guessed Gemini/OpenAI/Anthropic model ids; use provider discovery and saved API keys before switching roles.
+- Remaining:
+  - Next implementation step, if requested: add a real `Cloud-only` settings policy that blocks local roles, selects the configured cloud provider, and reports a setup-required message when no cloud provider/model is ready.
+
+## Latest task: Saad Agent clean daily-maintenance runtime success output (2026-07-12)
+
+- Status:
+  Completed the next repair after the LM Studio/Pi provider fix. Daily-maintenance Codex/Pi successes now return a clean user-facing maintenance report instead of exposing the internal wrapper (`Codex Runtime completed...`, `Command:`, `Workspace:`, and the `pi.cmd` command line). Runtime prompts for daily maintenance now include an explicit output contract requiring Arabic, concise maintenance reporting, and no internal diagnostics.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with a regression that verifies successful daily-maintenance output hides `Command:`, `Workspace:`, `pi.cmd`, and `Codex Runtime completed`.
+  - `node dist/test-training-knowledge.js`, `node dist/test-agent-loop.js`, and `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified the archive contains updated `dist/platform/services/chat-orchestrator.js` and `dist/test-chat-orchestrator.js`.
+- Findings:
+  - The user's latest packaged test proved the LM Studio provider and `qwen/qwen3-coder-30b` execution path now works, but the application still surfaced runtime scaffolding on success.
+  - Provider/runtime diagnostics are useful for failures, but successful maintenance runs should read like a report, not a developer trace.
+- Decisions:
+  - Keep raw command/workspace details hidden for successful daily-maintenance runs.
+  - Keep the runtime's actual report text visible, while stripping internal wrapper lines if they appear.
+- Remaining:
+  - Restart the packaged app, then repeat the same maintenance prompt. Expected: Arabic/clean report, no `Command` or `Workspace` block.
+
+## Latest task: Saad Agent scoped private-training knowledge for engineering context (2026-07-12)
+
+- Status:
+  Completed the next agreed repair after the LM Studio/Pi fix: `PreAnswerReviewService` now filters private narrative / sensitive relationship training matches out of ordinary engineering, provider, page-generation, and daily-maintenance pre-answer context. Explicit private/story/saved-knowledge requests can still retrieve those cards. This prevents unrelated private training material from being injected into the Codex/Pi prompt for maintenance work.
+- Affected files:
+  - `saad-agent/src/platform/services/pre-answer-review.ts`
+  - `saad-agent/src/test-training-knowledge.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-training-knowledge.js` passed, including a regression that blocks `PRIVATE_STORY_MARKER` and `swinging-guide` from engineering/provider context while allowing an explicit private story lookup.
+  - `node dist/test-chat-orchestrator.js`, `node dist/test-agent-loop.js`, and `node dist/test-tools.js` passed.
+  - The training-knowledge regression now uses a temporary workspace and no longer writes test files into the real project training vault.
+  - Removed the temporary `private-story-test.md` artifact created during development from the real workspace and reindexed the real training registry.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified it contains the updated `pre-answer-review.js` and `test-training-knowledge.js` markers.
+- Findings:
+  - The earlier failed maintenance prompt included unrelated private training because training retrieval ran before runtime delegation without scoping sensitive match categories.
+  - A broad ban on the word `story` would be risky for software projects that use "user stories", so the filter keys on private/sensitive tags, paths such as `/stories/`, and explicit sensitive relationship terms instead.
+- Decisions:
+  - Keep private/adult narrative knowledge in the vault, but require explicit user intent before injecting it into model/runtime context.
+  - Put the filter in `PreAnswerReviewService` so all engineering routes inherit the same scoping behavior.
+- Remaining:
+  - Restart the packaged app and retry the same daily-maintenance prompt. Expected: no unrelated private training sources inside runtime failure/output context.
+
+## Latest task: Saad Agent Pi LM Studio provider repair and unknown-provider cleanup (2026-07-12)
+
+- Status:
+  Fixed the current packaged daily-maintenance blocker where Pi returned `Error: Unknown provider "lm-studio"` after Coding was switched to LM Studio. The root cause was Pi's external `C:\Users\PC\.pi\agent\models.json`: it started with a UTF-8 BOM, so `pi --list-models` could not parse it and loaded no providers. Removed the BOM with backups, added the selected `qwen/qwen3-coder-30b` LM Studio model to the Pi model list, and verified a direct Pi call through `--provider lm-studio --model qwen/qwen3-coder-30b` returns `اختبار`.
+- Affected files:
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `C:\Users\PC\.pi\agent\models.json` (external Pi runtime config; backups created)
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `pi --list-models` now lists `lm-studio` and `qwen/qwen3-coder-30b`.
+  - `pi -p --tools read --provider lm-studio --model qwen/qwen3-coder-30b "اكتب كلمة اختبار فقط"` returned `اختبار`.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed with existing Vite CSS import and chunk-size warnings.
+  - `node dist/test-chat-orchestrator.js`, `node dist/test-agent-loop.js`, and `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` after cleaning stale UI assets; packaged archive now contains one UI JS bundle (`index-BAJWYOA1.js`) and one CSS bundle (`index-CySwQUZn.css`).
+- Findings:
+  - LM Studio was online in Saad settings, but Pi could not load any provider because of the BOM in its own `models.json`.
+  - After the BOM repair, the selected Saad model id still needed to be present in Pi's model registry.
+  - The failed runtime prompt still showed unrelated adult training context in an engineering request; this remains a separate context-pollution issue to clean next.
+- Decisions:
+  - Keep LM Studio as a Pi-supported Coding provider after Pi's model registry is repaired.
+  - Generalize Saad Agent's runtime failure cleanup so `Unknown provider "<name>"` is handled cleanly, not only Ollama.
+  - Keep external Pi config backups at `models.json.bak-20260712-provider-fix` and `models.json.bak-20260712-qwen3-model`.
+- Remaining:
+  - Restart the packaged app and retry the same daily-maintenance prompt.
+  - Next maintenance improvement: stop unrelated private/adult training knowledge from entering `general-engineering` pre-answer context.
+
+## Latest task: Saad Agent Pi provider guard for Ollama Coding (2026-07-12)
+
+- Status:
+  Fixed the packaged daily-maintenance failure where Pi returned `Error: Unknown provider "ollama"` after approval and printed the full runtime prompt, command, workspace, and unrelated pre-answer context. `CodexRuntimeBridge` now treats Ollama as unsupported for Pi engineering-tool execution before building the command, so it no longer passes `--provider ollama`. `ChatOrchestratorService` recognizes `Unknown provider "ollama"` as the same local-runtime bridge blocker family and returns the concise Saad Local Direct / LM Studio guidance instead of the raw `Codex Runtime failed` block.
+- Affected files:
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with a regression for `Unknown provider "ollama"` that asserts the user does not see `Codex Runtime failed` or `Command:` and does see Ollama/Saad Local Direct guidance.
+- Findings:
+  - Pi's installed provider list does not support `ollama`, even though Ollama itself works through the app's normal OpenAI-compatible model client.
+  - Passing `--provider ollama` caused the runtime to echo a large prompt and unrelated retrieved training context into the final error.
+- Decisions:
+  - Keep Ollama usable for Chat/model calls, but do not route Pi engineering-tool execution through `--provider ollama`.
+  - The correct local execution paths are LM Studio provider mapping or Saad Local Direct with `llama-server.exe`; cloud Coding providers remain valid if configured.
+- Remaining:
+  - Restart the packaged desktop app and repeat the approved daily-maintenance test. Expected result: no raw command/prompt dump; the app should stop with concise provider guidance unless Coding is moved to LM Studio/cloud/Saad Local Direct.
+
+## Latest task: Saad Agent daily-maintenance Ollama runtime blocker guidance (2026-07-12)
+
+- Status:
+  Tightened the daily-maintenance failure path shown in the user's screenshot. When Pi/Codex returns `llm_call_failed` / `Operation not allowed` while running a daily-maintenance engineering task through a local provider such as Ollama, `ChatOrchestratorService` now stops before returning raw command/output diagnostics and shows a precise Arabic configuration response: no files were modified, Ollama can still be used for chat, but the Pi/Codex execution bridge refused LLM/Tools with that provider and the user should switch Coding to a supported configured provider or configure Saad Local Direct with a real `llama-server.exe` plus GGUF model. Manual Arabic approval wording detection was also broadened for forms like `بعد موافقتي الأولى`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed. Sandbox warnings for audit writes under `C:\Users\PC\.saad-agent` remain expected in this environment.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains `isRuntimeProviderDeniedFailure`, `arabicApprovalNearGate`, `Saad Local Direct`, and `Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf`.
+- Findings:
+  - The visible JSON problem was fixed earlier, but the root runtime blocker remains a provider bridge/configuration mismatch: Ollama is online for chat, yet the Pi/Codex engineering runtime is still rejecting LLM/Tool execution with `Operation not allowed`.
+  - `E:\mod\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf` is still the preferred local coding model, but it needs a compatible `llama-server.exe` path for Saad Local Direct.
+- Decisions:
+  - Do not pretend the maintenance task executed when the coding runtime refused the provider operation.
+  - Keep the response actionable and configuration-focused instead of printing `Command`, `Workspace`, and raw nested provider JSON.
+- Remaining:
+  - Restart the packaged desktop app.
+  - For immediate engineering execution, set Settings > Models > Coding to LM Studio or a configured cloud provider.
+  - For direct local execution without LM Studio, provide a real `llama-server.exe` path in Settings > Providers > Saad Local Direct and use the inspected GGUF model path.
+
+## Latest task: Added ChatGPT-style message footer actions to Saad Agent UI (2026-07-12)
+
+- Status:
+  Added a compact icon action row at the end of each chat message in the Saad Agent renderer, matching the user's requested screenshot pattern: copy, read aloud, thumbs up, thumbs down, and regenerate. The old text-only `Copy` action in the message header was removed. Copy writes the message text to the clipboard, read aloud uses browser/Electron speech synthesis, thumbs up/down toggle local visual feedback state, and regenerate restores the previous user prompt into the composer so the user can resend it safely.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `saad-agent/ui/dist`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - Cleaned `saad-agent/ui/dist` before rebuilding to avoid stale Vite assets.
+  - `npm.cmd run build` in `saad-agent/ui` passed. Existing Vite warnings remain: CSS `@import` ordering and bundle size.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified it contains exactly one JS and one CSS UI asset, with packaged markers for `Read message aloud`, `Regenerate from previous prompt`, `message-footer-actions`, and `message-icon-btn`.
+- Decisions:
+  - Use `lucide-react` icons instead of text labels to match the requested visual style and the existing icon dependency.
+  - Keep regenerate safe by restoring the previous user prompt to the composer rather than silently re-running a tool or model request.
+  - Keep feedback local UI state only in this phase; no telemetry or persistence is added.
+- Remaining:
+  - Restart the packaged desktop app and confirm the five icons appear at the end of chat messages.
+
+## Latest task: Forced manual approval gate for daily-maintenance prompts that say after my approval (2026-07-12)
+
+- Status:
+  Fixed the packaged-app behavior shown in the user's screenshot where the daily-maintenance prompt no longer saved to memory but still answered with an advisory inspection plan instead of opening the approval gate. `ChatOrchestratorService` now detects manual-approval language inside non-review daily-maintenance prompts, such as `بعد موافقتي`, `قبل أي تعديل`, `قبل أي تنفيذ`, or `اطلب موافقتي`, and forces an approval request before execution even when the current approval mode is not `ask`.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with a regression using the screenshot prompt shape under `approve_for_me`; it asserts the result still returns an approval request and does not return an advisory `Inspection Plan`.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains `hasDailyMaintenanceManualApprovalLanguage` and `dailyMaintenanceNeedsManualApproval`, and packaged `test-chat-orchestrator.js` contains the manual approval regression marker.
+- Decisions:
+  - Explicit user wording about manual approval outranks the global approval-mode dropdown for private daily-maintenance execution.
+  - The first response for these prompts should be an approval card, not a model-written plan that asks for another next step.
+- Remaining:
+  - Restart the packaged app and resend the same screenshot prompt. Expected result: Saad Agent shows the approval card immediately.
+
+## Latest task: Fixed Daily Maintenance prompts being misrouted to memory save (2026-07-12)
+
+- Status:
+  Fixed the packaged-app behavior shown in the user's screenshot where a daily-maintenance test prompt containing negated safety wording such as `لا تثبت مكتبات ولا تحذف ملفات` was saved as a memory item. The legacy direct memory-save gate saw `تثبت/ثبت` and treated the request as `memory_save` before the engineering route could run. `ChatOrchestratorService.isMemorySave` now refuses memory-save classification when `DailyEngineerService.classifyRequest(prompt)` identifies a daily-maintenance workflow.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with a regression using the user's daily-maintenance prompt shape and negated install/delete wording; it asserts the result is not `memory_save`, does not include `Memory ID`, and still requests engineering approval.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains the daily-maintenance memory-save guard and packaged `test-chat-orchestrator.js` contains the regression marker.
+- Decisions:
+  - Daily-maintenance classification must outrank broad memory-save keyword detection in the direct chat path.
+  - Negated safety wording such as `لا تثبت` and `لا تحذف` must not become a memory-save trigger.
+- Remaining:
+  - Restart the packaged app and resend the screenshot prompt. Expected result: Saad Agent shows the approval gate for the daily-maintenance engineering task instead of saving the prompt to memory.
+
+## Latest task: Added scoped daily-maintenance approval for bounded low-risk edits (2026-07-12)
+
+- Status:
+  Implemented phase-three approval behavior for the private Daily Maintenance Engineer. After the user manually approves a non-review daily-maintenance task through Saad Agent's approval gate, the Codex runtime prompt now receives an explicit approval scope that allows small, reversible, in-scope edits discovered during inspection without stopping for a second approval. The same scope still requires a specific second approval for destructive work, deleting data, dependency installs, environment/secret/auth/billing/payment changes, schema migrations, large refactors, cross-workspace writes, network actions, or unclear/out-of-scope work.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with assertions that approved daily-maintenance runtime prompts include the scoped approval guidance, no-repeat-approval instruction for bounded edits, and high-risk second-approval guardrail.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains the phase-three approval-scope markers and packaged `test-chat-orchestrator.js` contains the regression marker.
+- Decisions:
+  - Treat the first manual approval as sufficient only for narrow low-risk edits inside the approved daily-maintenance task.
+  - Preserve the approval gate for high-risk operations instead of converting daily maintenance into unrestricted full-auto execution.
+  - Keep the touched file set minimal and require runtime reporting of touched files, verification, failures, and remaining work.
+- Remaining:
+  - Restart the packaged app and retest the same maintenance prompt flow from the UI. A good test is: ask for a daily maintenance fix with approval required, approve once, and confirm it edits a small stale-text issue without asking again while still asking for risky actions.
+
+## Latest task: Fixed Daily Maintenance phase-two continuation after app restart/history restore (2026-07-12)
+
+- Status:
+  Fixed the packaged-app behavior shown in the user's screenshot where `الفحص نجح، ابدا المرحلة الثانية` was treated as a contextless follow-up. The cause was that `resolveDailyMaintenancePhaseTwoPrompt` only used in-memory `activeTask`; after app restart or restored conversation history, the chat was visible but the runtime `activeTask` could be missing. The phase-two resolver now falls back to scanning prior user messages in conversation history and resumes the latest non-review daily-maintenance task.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed with a regression that clears `activeTask` but keeps conversation history before sending the phase-two follow-up.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains `findLastDailyMaintenanceModifyTask`, `resolveDailyMaintenancePhaseTwoPrompt`, and `SAAD AGENT LOOP PREFLIGHT OBSERVATIONS`.
+- Decisions:
+  - Preserve the scope guard: only prior non-review daily-maintenance tasks can be resumed from history.
+  - Do not treat arbitrary phase-two wording as approval unless a matching previous maintenance task exists.
+- Remaining:
+  - Restart the packaged app and retest the screenshot flow.
+
+## Latest task: Integrated Daily Maintenance phase-two continuation with AgentLoop preflight (2026-07-12)
+
+- Status:
+  Implemented the second daily-maintenance agent-loop integration. When the user confirms a previous approved maintenance task with wording such as `الفحص نجح، ابدأ المرحلة الثانية`, `ChatOrchestratorService` now resolves the stored daily-maintenance `activeTask`, treats the explicit text as one-shot approval for that task, and continues the original maintenance execution path instead of answering with a generic chat question. Approved daily-maintenance execution now also runs a read-only `AgentLoopService` preflight using `search-tool` before delegating to the runtime bridge, and injects the resulting observations into the runtime prompt.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read the required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-agent-loop.js` passed.
+  - `node dist/test-tools.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed after adding a regression for the exact Arabic phase-two follow-up.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the repacked archive and verified packaged `chat-orchestrator.js` contains `resolveDailyMaintenancePhaseTwoPrompt`, `runDailyMaintenanceAgentLoopPreflight`, and `SAAD AGENT LOOP PREFLIGHT OBSERVATIONS`.
+- Decisions:
+  - Treat phase-two follow-up text as manual human approval only when a previous stored active task is a non-review daily-maintenance workflow.
+  - Keep the AgentLoop preflight read-only: it locates package manifests, project instruction files, and daily-maintenance markers without editing files.
+  - Do not bypass the original runtime approval model for unrelated chat; this continuation is scoped to the existing daily-maintenance active task.
+- Remaining:
+  - Restart the packaged desktop app and retest the same two-message flow from the UI.
+  - Future work can persist richer maintenance session history and summarize loop observations durably.
+
 ## Latest task: Fixed Kling 3.0 Motion Control Duration-based Credit Charging (2026-07-12)
 
 - Status:
@@ -4343,6 +5218,60 @@
 - Remaining:
   - Restart the packaged desktop app before retesting the packaged build.
 
+## Latest task: Saad Agent Ollama/Pi runtime error cleanup (2026-07-12)
+
+- Status:
+  Fixed the packaged chat failure where a daily-maintenance request displayed raw JSON like `{"error":{"type":"llm_call_failed","message":"{\"message\":\"Operation not allowed\"}\n"}}`. The Codex/Pi runtime bridge now passes `ollama` as a supported provider when the Coding role is configured for Ollama, treats `llm_call_failed` / `Operation not allowed` JSON output as a real runtime failure instead of a successful stdout response, and formats the error as a clear Arabic provider/runtime message. The chat sanitizer also catches any raw `llm_call_failed` JSON that reaches the renderer path and replaces it with a human-readable explanation.
+- Affected files:
+  - `saad-agent/src/platform/services/codex-runtime-bridge.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that raw `llm_call_failed` JSON is not shown directly.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar` and verified the packaged archive includes updated `codex-runtime-bridge.js` and `chat-orchestrator.js`.
+  - Inspected local GGUF models in `C:\Users\PC\.lmstudio\models\lmstudio-community` and `E:\mod`.
+- Findings:
+  - Current Settings use Ollama for Chat/Coding (`saadcoder:latest`), not `Saad Local Direct`.
+  - `Saad Local Direct` has usable local model files available, especially `E:\mod\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf`, but `llama-server.exe` is not currently found in PATH.
+- Decisions:
+  - Keep Ollama supported in the Pi/Codex runtime bridge instead of silently dropping the provider mapping.
+  - Do not show nested provider JSON errors directly to the user.
+  - Recommend `Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf` for coding/maintenance if `Saad Local Direct` is configured later.
+- Remaining:
+  - Restart the packaged app and retest the daily-maintenance prompt.
+  - To use `Saad Local Direct`, install or provide a local `llama-server.exe` path, then use `E:\mod\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf` as the model path.
+
+## Latest task: Saad Agent direct local model runtime (2026-07-12)
+
+- Status:
+  Added a first direct-local model runtime path named `Saad Local Direct`. It can run a user-configured `llama-server` executable with a local GGUF model file from inside Saad Agent, then route model calls to the spawned local OpenAI-compatible endpoint. This removes the requirement to use LM Studio for that provider path. Also added prompt/context fitting before local-compatible model calls so small local context windows do not fail with `n_keep >= n_ctx`.
+- Affected files:
+  - `saad-agent/src/production/settings-manager.ts`
+  - `saad-agent/src/platform/services/local-model-runtime.ts`
+  - `saad-agent/src/platform/services/model-client.ts`
+  - `saad-agent/src/platform/services/health-monitor.ts`
+  - `saad-agent/ui/src/components/SettingsModal.tsx`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed with existing CSS import/chunk-size warnings only.
+  - Packaged `app.asar` was rebuilt and extracted for verification.
+  - Extracted package contains `local-model-runtime.js`, `Saad Local Direct`, `Direct Local Runtime`, and the local context compression marker.
+- Findings:
+  - The screenshot failure was caused by a local provider context mismatch: the initial prompt/context exceeded the configured model window (`n_keep` was larger than `n_ctx`).
+  - Existing local providers were endpoint-based (`LM Studio`, `Ollama`) and did not include an app-managed local runtime launcher.
+- Decisions:
+  - Do not bundle or download model weights automatically.
+  - Require the user to configure a real local `llama-server.exe` path and a real GGUF model path before enabling `Saad Local Direct`.
+  - Keep `Saad Local Direct` disabled by default until paths are configured and validated.
+  - Use a conservative prompt-fitting layer for local-compatible chat calls instead of guessing that every local model has a large context window.
+- Remaining:
+  - Restart the packaged desktop app.
+  - Configure Settings > Providers > Saad Local Direct with `llama-server.exe`, a GGUF model path, port, and context window.
+  - Fetch models, assign the provider to the desired Chat/Coding role, then test a short maintenance request.
+
 ## Latest task: Saad Agent project audit prompt routing fix (2026-07-11)
 
 - Status:
@@ -4459,3 +5388,184 @@
   - Do not hard-code Gemini model names; model discovery should read real Gemini models from the configured Google provider.
 - Remaining:
   - Restart the packaged desktop app, then set Settings > Models > Chat to Gemini if normal chat should use Gemini. Set Coding to Gemini separately only if engineering/coding should also use Gemini.
+## Latest task: Saad Agent immediate conversation-history guard (2026-07-12)
+
+- Status:
+  Added a deterministic in-session history guard before any model/provider call. Questions like `ماذا رسلت لك في الرسالة السابقة؟` now answer from `conversationState.history` inside the same chat, and follow-up certainty questions after a maintenance report no longer respond with blind confidence.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including no-model tests for previous-message recall and safe `هل انت متاكد` handling after a maintenance report.
+  - `node dist/test-settings.js` passed.
+  - Packaged `saad-agent/release-production-v4/win-unpacked/resources/app.asar` was rebuilt and verified to contain `resolveImmediateConversationHistoryResponse`.
+- Findings:
+  - The app already persisted short conversation history, but short/general conversational routing could still answer through generic model/fallback behavior instead of using that history.
+  - The unsafe response was not acceptable: inside the same conversation, Saad Agent must not claim it has no memory of the previous user message.
+- Decisions:
+  - Immediate user-message recall is a local deterministic chat behavior, not a model request.
+  - After a maintenance report, `هل انت متاكد؟` must answer cautiously and require file/diff verification instead of saying it is certainly correct from memory alone.
+- Remaining:
+  - Restart the packaged desktop app before retesting the conversation-history fix.
+## Latest task: Saad Agent self-workspace routing and no-RTL Arabic message display (2026-07-13)
+
+- Status:
+  Fixed the failure where a request targeting Saad Agent itself could be executed inside the currently selected external workspace such as `E:/TEST ANG`. Requests that explicitly mention modifying the agent/app/UI now resolve to the real `saad-agent` workspace when no explicit path is supplied. Arabic message text in the chat bubble now keeps the same LTR layout and left alignment instead of switching to RTL.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/ui/src/components/ChatMessageBubble.tsx`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression where the active workspace is `TEST ANG` but an agent-UI language request is routed to `saad-agent`.
+  - Packaged `saad-agent/release-production-v4/win-unpacked/resources/app.asar` was rebuilt and verified to contain `resolveSaadAgentSelfWorkspace` plus the current UI bundle.
+- Findings:
+  - The previous runtime answer was misleading because Pi executed in `E:/TEST ANG` and reported a `script.js` change, not a real Saad Agent application change.
+  - `ChatMessageBubble` still forced Arabic text to `dir="rtl"` and right alignment, violating the requirement that Arabic should change text only without moving layout direction.
+- Decisions:
+  - Self-modification requests for Saad Agent require a deterministic workspace guard before runtime delegation.
+  - Arabic UI/message display must not automatically flip direction; translation and layout direction are separate controls.
+- Remaining:
+  - Restart the packaged app before retesting.
+## Latest task: Saad Agent persisted conversation history hydration after restart (2026-07-13)
+
+- Status:
+  Fixed the gap where conversations were visible after restarting the computer/app, but the backend `ConversationStateEngine` did not remember them. The UI now sends the recent visible conversation history with every `chatComplete` call, including approval continuations, and `ChatOrchestratorService` hydrates its in-memory history before processing the new prompt.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/src/desktop/preload.cjs`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including persisted-history hydration for the Arabic prompt `انا اعطيتك امر في الرسالة السابقة`.
+  - `node dist/test-settings.js` passed.
+  - Packaged `saad-agent/release-production-v4/win-unpacked/resources/app.asar` was rebuilt and verified to contain `hydrateConversationHistoryFromInput`, IPC `history` forwarding, and the updated UI bundle.
+- Findings:
+  - The frontend persisted and displayed conversation messages, but IPC sent only the new prompt to the backend after restart.
+  - The previous local same-session guard was correct only while the process stayed alive; it was not enough after app/computer restart.
+- Decisions:
+  - Visible persisted conversation history is authoritative context for the next chat request and must be passed to the backend.
+  - Backend history hydration remains bounded to recent messages and runs before current prompt insertion.
+- Remaining:
+  - Restart the packaged app before retesting the after-restart memory behavior.
+## Latest task: Saad Agent image-reference engineering routing guard (2026-07-13)
+
+- Status:
+  Fixed the UI routing issue where prompts that attach an image as a design reference and ask to design/build/implement a page were incorrectly routed to the Vision Provider. Such prompts now continue to the normal engineering/chat execution path with the attachment metadata instead of failing as standalone image analysis.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+- Verification:
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `npm.cmd run build` in `saad-agent` passed.
+- Findings:
+  - The prompt contained both `الصورة` and `افحص`, so the UI classified it as image analysis even though the main intent was page implementation.
+  - A Vision timeout then blocked the whole request before any engineering runtime could plan or build the page.
+- Decisions:
+  - Image attachments are design references when the prompt includes engineering verbs such as design, build, implement, page, UI, navbar, cards, or `مثل الصورة`.
+  - Vision analysis remains available for explicit inspect/analyze/describe-image requests.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar` and restart the packaged app before retesting.
+
+## Latest task: Saad Agent attachment preview and prompt-copy UX (2026-07-13)
+
+- Status:
+  Fixed the chat UI behavior where image attachments appeared as small static thumbnails that could not be opened or copied. Sent image attachments now open in a centered preview dialog when clicked and expose a copy-image action on the thumbnail and in the preview. The prompt composer now preserves the native right-click context menu by not intercepting textarea context events and adds an explicit copy-prompt button when text is present.
+- Affected files:
+  - `saad-agent/ui/src/App.tsx`
+  - `saad-agent/ui/src/components/PromptBox.tsx`
+  - `saad-agent/ui/src/index.css`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `npm.cmd run build` in `saad-agent` passed.
+- Findings:
+  - Attachment thumbnails used a plain image element with pointer styling but no click handler, preview modal, or copy action.
+  - The prompt box had no explicit copy affordance for entered text.
+- Decisions:
+  - Treat sent image attachments as first-class interactive UI objects: click to preview, copy from thumbnail, copy from preview.
+  - Do not change Arabic direction or layout behavior while fixing copy/preview controls.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar`, restart the packaged app, and test with an attached screenshot.
+
+## Latest task: Saad Agent engineering follow-up target preservation (2026-07-13)
+
+- Status:
+  Fixed the failure where a short follow-up such as `ضع الصفحة هنا E:\TEST ANG\New folder` could lose the previous detailed page/design request and produce a generic sample page. Saad Agent now detects short placement/target follow-ups that include a folder/path, finds the previous user design/implementation request from conversation history, and merges it into the runtime prompt with a `FOLLOW-UP TARGET UPDATE` marker. This marker prevents direct blueprint, image-generation, and text-instruction shortcuts from stealing the request before engineering execution.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including regression coverage for a SaaS/AI Studio page request followed by `ضع الصفحة هنا <path>`.
+- Findings:
+  - The previous implementation only merged generic internet-search follow-ups, not engineering/design follow-ups.
+  - After merging, other direct-response shortcuts could still intercept the request because the previous prompt contained words like `الصورة` or `ضع`.
+- Decisions:
+  - Path-based follow-up messages are target updates when the previous user request is a design/build/implementation request.
+  - `FOLLOW-UP TARGET UPDATE` must force the request to continue through engineering execution instead of page-blueprint, image-generation, or text-only shortcut paths.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar` and restart the packaged app before retesting the exact user scenario.
+
+## Latest task: Saad Agent self-contained AI Studio path request routing (2026-07-13)
+
+- Status:
+  Fixed a misrouting where a self-contained page implementation prompt containing `SaaS / AI Studio`, a local target path, and the phrase `الصورة المرفقة السابقة كمرجع` was incorrectly treated as a training-ingest request and returned `ارفع الملف أولاً`. Request routing now recognizes design/build/page implementation requests with local path scope before training ingest, and both `RequestRoutingService` and `ChatOrchestratorService` suppress training classification for engineering design implementation prompts.
+- Affected files:
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression for the exact self-contained `أعد تنفيذ نفس طلب صفحة SaaS / AI Studio ... داخل هذا المسار` prompt.
+- Findings:
+  - The phrase `الصورة المرفقة السابقة كمرجع` matched the training-ingest detector before engineering execution routing.
+  - This produced a false `upload the file first` response even though the prompt had enough textual implementation details and a local target path.
+- Decisions:
+  - Local path + design/build/page execution signals take precedence over training-ingest/reference wording.
+  - Reference-image wording inside an engineering prompt should be treated as design context, not as a command to train on an attachment.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar` and restart the packaged app before retesting.
+
+## Latest task: Saad Agent attached OpenAPI/spec engineering routing guard (2026-07-13)
+
+- Status:
+  Fixed the failure where a long pasted OpenAPI/API specification attached as a file could be routed to the normal Chat/Reasoning provider first and fail with local-model timeout/unloaded errors before any engineering runtime could execute. Saad Agent now detects readable spec attachments plus implementation/linking/model/page intent and forces the request into the engineering runtime route after the normal approval policy.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Read required project memory files before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression proving an attached OpenAPI/Seedream spec reaches `CodexRuntimeBridge` and does not call `ReasoningEngine`.
+  - `node dist/test-settings.js` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-attached-spec-routing-20260713T223223.asar`.
+  - Extracted the rebuilt `app.asar` and verified `isAttachedSpecEngineeringRequest`, `buildAttachedSpecEngineeringPolicyPrompt`, and OpenAPI/API routing markers are present.
+- Findings:
+  - Long pasted content can arrive as a readable attachment while the visible prompt is short, so routing based only on the prompt can misclassify implementation work as normal chat.
+  - Local model failures such as unloaded model or `8192ms` timeout were symptoms of the wrong route, not the root cause.
+- Decisions:
+  - Readable attachments containing OpenAPI/Swagger/API schema markers are primary implementation evidence when the user asks to link, add, integrate, or implement a model/page/API.
+  - Such requests must be evaluated with attachment context for routing and must not enter normal Chat reasoning first.
+  - If the current message is only an attached-file follow-up, the previous active engineering task may be used to preserve intent.
+- Remaining:
+  - Restart the packaged app before retesting the Seedream/OpenAPI attached-file scenario.

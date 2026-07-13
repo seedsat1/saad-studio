@@ -41,6 +41,7 @@ import {
   Ban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 import { normalizeMediaUrl } from "@/lib/storage";
 import ToolShowcase from "@/components/ToolShowcase";
 import RelightPage from "../apps/tool/relight/page";
@@ -333,7 +334,134 @@ const toAbsoluteEditMediaUrl = (url: string): string => {
 };
 
 // ─── Page Component ────────────────────────────────────────────────────────────
+function useEditTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      // Sidebar Tools
+      "Background Remover": "مزيل الخلفية",
+      "Remove image backgrounds instantly and replace them with transparency or solid colors.": "أزل خلفيات الصور فوراً واستبدلها بالشفافية أو الألوان الصلبة.",
+      "Smart Inpaint": "الرسم الذكي (Inpaint)",
+      "Fill or restore masked areas using AI context from surrounding pixels.": "املأ أو استعد المناطق المقنعة باستخدام سياق الذكاء الاصطناعي من البكسلات المحيطة.",
+      "Object Remover": "مزيل الكائنات",
+      "Paint an object and specify a prompt to replace it with a new AI-generated element.": "قم بتلوين كائن وحدد وصفاً لاستبداله بعنصر جديد تم توليده بالذكاء الاصطناعي.",
+      "Face Swap Pro": "تبديل الوجوه الاحترافي",
+      "Instant online AI face swap for photos, delivering realistic, watermark-free results.": "تبديل فوري للوجوه بالذكاء الاصطناعي للصور، لنتائج واقعية وخالية من العلامات المائية.",
+      "AI Relight": "إعادة الإضاءة بالذكاء الاصطناعي",
+      "Non-destructively shift light direction, color, and intensity.": "غير اتجاه الضوء، لونه، وشدته دون إتلاف الصورة.",
+      "AI Upscale & Enhance": "تكبير وتحسين الصورة بالذكاء الاصطناعي",
+      "Enhance image resolution, restore clarity, and sharpen fine details using AI upscale.": "حسن دقة الصورة، استعد الوضوح، واشحذ التفاصيل الدقيقة باستخدام التكبير بالذكاء الاصطناعي.",
+      "Style Transfer": "نقل النمط",
+      "Apply modern artistic and cinematic styles to your images.": "طبق أنماطاً فنية وسينمائية حديثة على صورك.",
+      "Watermark Remover": "مزيل العلامة المائية",
+      "Remove watermarks, logos, captions, and unwanted text from videos.": "أزل العلامات المائية، الشعارات، التعليقات، والنصوص غير المرغوب فيها من مقاطع الفيديو.",
+      "Expand & Outpaint": "توسيع الصورة (Outpaint)",
+      "Extend images outwards beyond their original margins using generative fill.": "مدد الصور للخارج إلى ما بعد حوافها الأصلية باستخدام التعبئة التوليدية.",
+      "Draw to Edit": "الرسم للتعديل",
+      "Sketch and paint your edits directly onto the canvas to guide the generative process.": "ارسم خطوطك وتعديلاتك مباشرة على اللوحة لتوجيه العملية التوليدية.",
+      "Motion Track": "تتبع الحركة (Motion Track)",
+      "Track motion paths and generate camera movement patterns.": "تتبع مسارات الحركة وتوليد أنماط حركة الكاميرا.",
+      "Object Replace": "استبدال الكائنات",
+      "AI Editor": "محرر الذكاء الاصطناعي",
+      "AI image editing tool.": "أداة تعديل الصور بالذكاء الاصطناعي.",
+      
+      // Models
+      "Flux Kontext Pro": "فلوكس كونتكست برو",
+      "Flux Kontext · AI Image Edit": "Flux Kontext · تعديل الصور بالذكاء الاصطناعي",
+      "Flux Kontext Max": "فلوكس كونتكست ماكس",
+      "Flux Kontext · High Detail Edit": "Flux Kontext · تعديل عالي التفاصيل",
+      "Nano Banana Edit": "نانو بنانا إيديت",
+      "Google · Inpainting Engine": "Google · محرك الرسم الذكي",
+      "Seedream 4.5 Edit": "سي دريم 4.5 إيديت",
+      "Seedream · Creative Editing": "Seedream · التعديل الإبداعي",
+      "Kling 01 Edit": "كلينغ 01 إيديت",
+      "Kling · Motion-Aware Edit": "Kling · تعديل متوافق مع الحركة",
+      "FLUX.2 Pro I2I": "FLUX.2 برو I2I",
+      "FLUX.2 · Image-to-Image": "FLUX.2 · صورة إلى صورة",
+      "DEFAULT": "افتراضي",
+      "PRO": "برو",
+      "NEW": "جديد",
+      
+      // Actions/Labels
+      "EDIT": "تعديل",
+      "AI": "ذكاء اصطناعي",
+      "Undo": "تراجع",
+      "Redo": "إعادة",
+      "Clear Mask": "مسح القناع",
+      "Draw Mode": "وضع الرسم",
+      "Eraser Mode": "وضع الممحاة",
+      "Zoom In": "تكبير",
+      "Zoom Out": "تصغير",
+      "Uploading media to secure storage...": "جاري رفع الوسائط إلى التخزين الآمن...",
+      "browse": "تصفح",
+      "Supports high-res Images & Videos up to 25MB": "يدعم الصور والفيديوهات عالية الدقة حتى 25 ميجابايت",
+      "Download Result": "تحميل النتيجة",
+      "Applying AI Generation": "جاري تطبيق توليد الذكاء الاصطناعي",
+      "Upscale": "تكبير",
+      "Parameters & controls": "المعايير وعناصر التحكم",
+      "Reset": "إعادة تعيين",
+      "Change File": "تغيير الملف",
+      "Describe what to add, replace, or alter in the painted region...": "صف ما تريد إضافته أو استبداله أو تغييره في المنطقة الملونة...",
+      "Specify details about the object to remove or replace...": "حدد التفاصيل حول الكائن الذي تريد إزالته أو استبداله...",
+      "Brush Radius": "نصف قطر الفرشاة",
+      "Brush Opacity": "شفافية الفرشاة",
+      "Edit Strength": "قوة التعديل",
+      "Advanced AI Settings": "إعدادات الذكاء الاصطناعي المتقدمة",
+      "Sampling Steps": "خطوات أخذ العينات",
+      "CFG Scale": "مقياس التطابق (CFG)",
+      "Light Source Angle": "زاوية مصدر الضوء",
+      "Light Intensity": "شدة الضوء",
+      "Custom color": "لون مخصص",
+      "Relight Effect Strength": "قوة تأثير إعادة الإضاءة",
+      "Edge Feathering": "تنعيم الحواف",
+      "Expansion Quality": "جودة التوسيع",
+      "Style Influence": "تأثير النمط",
+      "Removal Influence": "تأثير الإزالة",
+      "Sketch Pen Size": "حجم قلم الرسم",
+      "Sketch Opacity": "شفافية الرسم",
+      "Drawing Influence": "تأثير الرسم",
+      "Motion Speed": "سرعة الحركة",
+      "Noise Reduction": "تقليل الضوضاء",
+      "Sharpness": "الحدة",
+      "Uploading face image...": "جاري رفع صورة الوجه...",
+      "Change": "تغيير",
+      "Pro Swap Tips": "نصائح التبديل الاحترافي",
+      "Use high-resolution, front-facing face portraits.": "استخدم صور وجوه شخصية عالية الدقة وتواجه الأمام.",
+      "Ensure consistent lighting between both images.": "تأكد من تناسق الإضاءة بين كلتا الصورتين.",
+      "Avoid angles, occlusions (hands, hair), or motion blur.": "تجنب الزوايا الحادة، الحجب (الأيدي، الشعر)، أو ضبابية الحركة.",
+      "Works best with human faces (anime results may vary).": "يعمل بشكل أفضل مع وجوه البشر (قد تختلف نتائج الأنمي).",
+      "Invalid Media Type": "نوع وسائط غير صالح",
+      "Billed Duration:": "المدة المحتسبة:",
+      "Pricing Rate:": "معدل التسعير:",
+      "Estimated Cost:": "التكلفة التقديرية:",
+      "Removal Guidelines": "إرشادات الإزالة",
+      "Temporal-aware inpainting avoids flickering and keeps motions stable.": "الرسم الذكي المتوافق مع الزمن يتجنب الارتجاف ويحافظ على استقرار الحركة.",
+      "Reconstructs textures, grains, and lighting beneath overlays.": "يعيد بناء القوام، الحبيبات، والإضاءة أسفل التراكبات.",
+      "Supports removing subtitles, lower-thirds, moving corner bugs, and logos.": "يدعم إزالة الترجمات المصاحبة، الثلث السفلي، العلامات المتحركة في الزوايا، والشعارات.",
+      "Supports video files up to 10 minutes in length.": "يدعم ملفات الفيديو حتى طول 10 دقائق.",
+      "Generation applied successfully!": "تم تطبيق التوليد بنجاح!",
+      "Auto-Saved": "تم الحفظ تلقائياً",
+      "GPU: 80%": "معالج الرسوميات: 80%",
+      "Version 1.2": "الإصدار 1.2",
+      
+      // Additional Action Labels
+      "Upscale ↗": "تكبير ↗",
+      "Remove Watermark": "إزالة العلامة المائية",
+      "Face Swap": "تبديل الوجه",
+      "Remove Background": "إزالة الخلفية",
+      "Apply Generation": "تطبيق التوليد",
+      "Upscale & Enhance": "تكبير وتحسين الصورة"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 export default function EditPage() {
+  const { t } = useEditTranslation();
   const searchParams = useSearchParams();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -1251,8 +1379,8 @@ export default function EditPage() {
       <aside className="w-[280px] shrink-0 bg-[#05070f] border-r border-white/[0.05] flex flex-col p-5 space-y-6 select-none z-30">
         <div>
           <h1 className="text-sm font-black tracking-wider uppercase flex items-center gap-1">
-            <span className="text-white">EDIT</span>
-            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">AI</span>
+            <span className="text-white">{t("EDIT")}</span>
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{t("AI")}</span>
           </h1>
         </div>
 
@@ -1282,7 +1410,7 @@ export default function EditPage() {
                   >
                     <tool.icon className="h-4 w-4" />
                   </div>
-                  <span>{tool.label}</span>
+                  <span>{t(tool.label)}</span>
                 </div>
                 {isActive && <span className="text-zinc-500 font-normal ml-2">&gt;</span>}
               </button>
@@ -1318,13 +1446,13 @@ export default function EditPage() {
               <div className="flex items-center gap-1.5 px-6 py-3 border-b border-white/5 bg-[#050914] shrink-0 z-10">
                 {activeTool !== "upscale" && (
                   <>
-                    <ToolbarBtn icon={RotateCcw} label="Undo" shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
-                    <ToolbarBtn icon={RotateCw} label="Redo" shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
+                    <ToolbarBtn icon={RotateCcw} label={t("Undo")} shortcut="Ctrl+Z" onClick={handleUndo} disabled={historyIndex <= 0} />
+                    <ToolbarBtn icon={RotateCw} label={t("Redo")} shortcut="Ctrl+Y" onClick={handleRedo} disabled={historyIndex >= history.length - 1} />
                     <div className="h-5 w-px bg-white/10 mx-1.5" />
-                    <ToolbarBtn icon={Eraser} label="Clear Mask" shortcut="Ctrl+D" onClick={handleClearMask} />
+                    <ToolbarBtn icon={Eraser} label={t("Clear Mask")} shortcut="Ctrl+D" onClick={handleClearMask} />
                     <ToolbarBtn
                       icon={isEraser ? PenTool : Eraser}
-                      label={isEraser ? "Draw Mode" : "Eraser Mode"}
+                      label={isEraser ? t("Draw Mode") : t("Eraser Mode")}
                       shortcut="E"
                       active={isEraser}
                       onClick={() => setIsEraser(!isEraser)}
@@ -1333,8 +1461,8 @@ export default function EditPage() {
                   </>
                 )}
                 
-                <ToolbarBtn icon={ZoomIn} label="Zoom In" shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
-                <ToolbarBtn icon={ZoomOut} label="Zoom Out" shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
+                <ToolbarBtn icon={ZoomIn} label={t("Zoom In")} shortcut="+" onClick={() => setScale((s) => Math.min(s + 0.1, 2.5))} />
+                <ToolbarBtn icon={ZoomOut} label={t("Zoom Out")} shortcut="-" onClick={() => setScale((s) => Math.max(s - 0.1, 0.5))} />
 
                 <div className="flex-1" />
 
@@ -1524,7 +1652,7 @@ export default function EditPage() {
                           className="absolute top-4 right-4 bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-black font-extrabold text-[10px] uppercase tracking-wider px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg z-30 transition-all hover:scale-105 active:scale-95 pointer-events-auto cursor-pointer"
                         >
                           <Download className="h-3.5 w-3.5 shrink-0" />
-                          <span>Download Result</span>
+                          <span>{t("Download Result")}</span>
                         </button>
                       </div>
                     ) : (
@@ -1602,7 +1730,7 @@ export default function EditPage() {
                               <Sparkles className="h-6 w-6 animate-pulse" style={{ color: currentTool.hex }} />
                               <span className="text-sm font-bold text-slate-100">Applying AI Generation</span>
                               <span className="text-[10px] text-zinc-500 font-mono tracking-wider uppercase">
-                                {selectedModel.label} · {currentTool.label}
+                                {t(selectedModel.label)} · {t(currentTool.label)}
                               </span>
                               <div className="flex gap-1 mt-1">
                                 {[0, 1, 2, 3].map((dot) => (
@@ -1724,7 +1852,7 @@ export default function EditPage() {
                       "text-zinc-200 font-extrabold",
                       activeTool === "upscale" ? "text-sm tracking-normal" : "text-xs font-black uppercase tracking-widest text-zinc-300"
                     )}>
-                      {activeTool === "upscale" ? "Upscale & Enhance" : currentTool.label}
+                      {activeTool === "upscale" ? t("Upscale & Enhance") : t(currentTool.label)}
                     </p>
                     {activeTool !== "upscale" && (
                       <p className="text-[10px] text-zinc-500 mt-0.5">Parameters & controls</p>
@@ -1740,7 +1868,7 @@ export default function EditPage() {
                   )}
                 >
                   <RotateCcw className="h-3 w-3" />
-                  <span>Reset</span>
+                  <span>{t("Reset")}</span>
                 </button>
               </div>
 
@@ -1826,7 +1954,7 @@ export default function EditPage() {
                         Prompt
                       </span>
                       <textarea
-                        placeholder="Describe what to add, replace, or alter in the painted region..."
+                        placeholder={t("Describe what to add, replace, or alter in the painted region...")}
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
@@ -1902,7 +2030,7 @@ export default function EditPage() {
                     <div className="border-t border-white/5" />
 
                     <PremiumSlider
-                      label="Brush Radius"
+                      label={t("Brush Radius")}
                       value={brushSize}
                       min={4}
                       max={80}
@@ -1912,7 +2040,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Brush Opacity"
+                      label={t("Brush Opacity")}
                       value={brushOpacity}
                       min={0.1}
                       max={1.0}
@@ -1922,7 +2050,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Edit Strength"
+                      label={t("Edit Strength")}
                       value={editStrength}
                       min={0.1}
                       max={1.0}
@@ -1962,7 +2090,7 @@ export default function EditPage() {
                         onClick={() => setAdvancedOpen(!advancedOpen)}
                         className="w-full flex items-center justify-between py-1 text-[11px] font-bold text-zinc-400 uppercase tracking-widest hover:text-zinc-200 transition-colors"
                       >
-                        <span>Advanced AI Settings</span>
+                        <span>{t("Advanced AI Settings")}</span>
                         <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-400 transition-transform duration-200", advancedOpen && "rotate-180")} />
                       </button>
                       
@@ -1976,7 +2104,7 @@ export default function EditPage() {
                             className="overflow-hidden space-y-4 pt-2 pb-1"
                           >
                             <PremiumSlider
-                              label="Sampling Steps"
+                              label={t("Sampling Steps")}
                               value={steps}
                               min={10}
                               max={50}
@@ -1985,7 +2113,7 @@ export default function EditPage() {
                               onChange={setSteps}
                             />
                             <PremiumSlider
-                              label="CFG Scale"
+                              label={t("CFG Scale")}
                               value={cfg}
                               min={1.0}
                               max={20.0}
@@ -2024,7 +2152,7 @@ export default function EditPage() {
                 {activeTool === "relight" && (
                   <div className="space-y-6">
                     <PremiumSlider
-                      label="Light Source Angle"
+                      label={t("Light Source Angle")}
                       value={lightAngle}
                       min={0}
                       max={360}
@@ -2034,7 +2162,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Light Intensity"
+                      label={t("Light Intensity")}
                       value={lightIntensity}
                       min={0.1}
                       max={2.0}
@@ -2072,7 +2200,7 @@ export default function EditPage() {
                           value={lightColor}
                           onChange={(e) => setLightColor(e.target.value)}
                           className="h-7 w-7 rounded-md cursor-pointer bg-transparent border-0"
-                          title="Custom color"
+                          title={t("Custom color")}
                         />
                       </div>
                     </div>
@@ -2080,7 +2208,7 @@ export default function EditPage() {
                     <div className="border-t border-white/5" />
 
                     <PremiumSlider
-                      label="Relight Effect Strength"
+                      label={t("Relight Effect Strength")}
                       value={editStrength}
                       min={0.1}
                       max={1.0}
@@ -2122,7 +2250,7 @@ export default function EditPage() {
                     </div>
 
                     <PremiumSlider
-                      label="Edge Feathering"
+                      label={t("Edge Feathering")}
                       value={bgFeather}
                       min={0}
                       max={10}
@@ -2311,7 +2439,7 @@ export default function EditPage() {
                     <div className="border-t border-white/5" />
 
                     <PremiumSlider
-                      label="Expansion Quality"
+                      label={t("Expansion Quality")}
                       value={editStrength}
                       min={0.1}
                       max={1.0}
@@ -2355,7 +2483,7 @@ export default function EditPage() {
                     </div>
 
                     <PremiumSlider
-                      label="Style Influence"
+                      label={t("Style Influence")}
                       value={styleStrength}
                       min={0.1}
                       max={1.0}
@@ -2374,7 +2502,7 @@ export default function EditPage() {
                         Removal Prompt
                       </span>
                       <textarea
-                        placeholder="Specify details about the object to remove or replace..."
+                        placeholder={t("Specify details about the object to remove or replace...")}
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 resize-none h-24"
@@ -2384,7 +2512,7 @@ export default function EditPage() {
                     <div className="border-t border-white/5" />
 
                     <PremiumSlider
-                      label="Brush Radius"
+                      label={t("Brush Radius")}
                       value={brushSize}
                       min={4}
                       max={80}
@@ -2394,7 +2522,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Removal Influence"
+                      label={t("Removal Influence")}
                       value={editStrength}
                       min={0.1}
                       max={1.0}
@@ -2439,7 +2567,7 @@ export default function EditPage() {
                     <div className="border-t border-white/5" />
 
                     <PremiumSlider
-                      label="Sketch Pen Size"
+                      label={t("Sketch Pen Size")}
                       value={brushSize}
                       min={4}
                       max={80}
@@ -2449,7 +2577,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Sketch Opacity"
+                      label={t("Sketch Opacity")}
                       value={brushOpacity}
                       min={0.1}
                       max={1.0}
@@ -2459,7 +2587,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Drawing Influence"
+                      label={t("Drawing Influence")}
                       value={editStrength}
                       min={0.1}
                       max={1.0}
@@ -2501,7 +2629,7 @@ export default function EditPage() {
                     </div>
 
                     <PremiumSlider
-                      label="Motion Speed"
+                      label={t("Motion Speed")}
                       value={motionSpeed}
                       min={1}
                       max={10}
@@ -2629,7 +2757,7 @@ export default function EditPage() {
 
                     {/* Custom Sliders for Noise and Sharpness */}
                     <PremiumSlider
-                      label="Noise Reduction"
+                      label={t("Noise Reduction")}
                       value={upscaleDenoise}
                       min={0.0}
                       max={1.0}
@@ -2639,7 +2767,7 @@ export default function EditPage() {
                     />
 
                     <PremiumSlider
-                      label="Sharpness"
+                      label={t("Sharpness")}
                       value={upscaleSharpness}
                       min={0.0}
                       max={1.0}
@@ -2742,10 +2870,10 @@ export default function EditPage() {
                         <span>Pro Swap Tips</span>
                       </p>
                       <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
-                        <li>Use high-resolution, front-facing face portraits.</li>
-                        <li>Ensure consistent lighting between both images.</li>
-                        <li>Avoid angles, occlusions (hands, hair), or motion blur.</li>
-                        <li>Works best with human faces (anime results may vary).</li>
+                        <li>{t("Use high-resolution, front-facing face portraits.")}</li>
+                        <li>{t("Ensure consistent lighting between both images.")}</li>
+                        <li>{t("Avoid angles, occlusions (hands, hair), or motion blur.")}</li>
+                        <li>{t("Works best with human faces (anime results may vary).")}</li>
                       </ul>
                     </div>
                   </div>
@@ -2801,10 +2929,10 @@ export default function EditPage() {
                         <span>Removal Guidelines</span>
                       </p>
                       <ul className="text-[9.5px] text-zinc-400 space-y-1 list-disc pl-3 leading-relaxed font-medium">
-                        <li>Temporal-aware inpainting avoids flickering and keeps motions stable.</li>
-                        <li>Reconstructs textures, grains, and lighting beneath overlays.</li>
-                        <li>Supports removing subtitles, lower-thirds, moving corner bugs, and logos.</li>
-                        <li>Supports video files up to 10 minutes in length.</li>
+                        <li>{t("Temporal-aware inpainting avoids flickering and keeps motions stable.")}</li>
+                        <li>{t("Reconstructs textures, grains, and lighting beneath overlays.")}</li>
+                        <li>{t("Supports removing subtitles, lower-thirds, moving corner bugs, and logos.")}</li>
+                        <li>{t("Supports video files up to 10 minutes in length.")}</li>
                       </ul>
                     </div>
                   </div>

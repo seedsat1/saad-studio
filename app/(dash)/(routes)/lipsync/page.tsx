@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
-import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import {
   ArrowLeft,
   Upload,
@@ -32,8 +31,7 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-display", display: "swap" });
-const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+
 
 // Helper to calculate transparent background opacity
 function hexA(hex: string, a: number): string {
@@ -718,7 +716,7 @@ function LipsyncStudioPageInner() {
 
   return (
     <div
-      className={`${outfit.variable} ${plusJakarta.variable} h-[calc(100vh-64px)] overflow-hidden flex flex-col justify-between relative`}
+      className="h-[calc(100vh-64px)] overflow-hidden flex flex-col justify-between relative"
       style={{ background: "#030712", color: "#e2e8f0", fontFamily: "var(--font-body, sans-serif)" }}
     >
       <style dangerouslySetInnerHTML={{ __html: `

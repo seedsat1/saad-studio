@@ -12,6 +12,8 @@ import {
   type LucideIcon, Languages,
 } from "lucide-react";
 
+import { useLanguage } from "@/lib/use-language";
+
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import {
@@ -51,7 +53,221 @@ function hexA(hex: string, a: number): string {
   return `rgba(${r},${g},${b},${a})`;
 }
 
+function useVideoTranslation() {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "New": "جديد",
+      "18 styles": "18 نمطاً",
+      "Style Library": "مكتبة الأنماط",
+      "Tap a curated style. The prompt, model, and aspect ratio apply instantly.": "اضغط على نمط مخصص. يتم تطبيق الوصف والنموذج والأبعاد فوراً.",
+      "Generation failed. Please try again.": "فشل التوليد. يرجى المحاولة مرة أخرى.",
+      "The model failed to execute your request. This is usually temporary — please try again.": "فشل النموذج في تنفيذ طلبك. هذا مؤقت عادةً — يرجى المحاولة مرة أخرى.",
+      "Video Tools": "أدوات الفيديو",
+      "Video Tools & Models": "أدوات ونماذج الفيديو",
+      "Video Engines": "محركات الفيديو",
+      "Model Settings": "إعدادات النموذج",
+      "Model": "النموذج",
+      "Create high fidelity cinematic videos and animations with top AI models.": "أنشئ فيديوهات ورسوم متحركة سينمائية عالية الدقة مع أفضل نماذج الذكاء الاصطناعي.",
+      
+      // Sidebar tool actions
+      "Text to Video": "نص إلى فيديو",
+      "Generate video clips using descriptive prompt text.": "توليد مقاطع فيديو باستخدام وصف نصي.",
+      "Image to Video": "صورة إلى فيديو",
+      "Animate a static image into a dynamic video clip.": "تحريك صورة ثابتة إلى مقطع فيديو ديناميكي.",
+      "Lipsync / Audio": "مزامنة الشفاه / الصوت",
+      "Match speaker avatar movement to any audio track.": "مطابقة حركة رمز المتحدث مع أي مسار صوتي.",
+      
+      // Sidebar headers & buttons
+      "Frames": "الإطارات",
+      "Start frame": "إطار البداية",
+      "End frame": "إطار النهاية",
+      "Upload image *": "تحميل صورة *",
+      "Drop image here": "أفلت الصورة هنا",
+      "Drop media here": "أفلت الوسائط هنا",
+      "Drop images here": "أفلت الصور هنا",
+      "Drop here": "أفلت هنا",
+      "Optional": "اختياري",
+      "Max ": "الحد الأقصى ",
+      "Reference media": "وسائط مرجعية",
+      "Reference images": "صور مرجعية",
+      "Reference images mode is active; first/last frame inputs will be ignored for this generation.": "وضع مراجع الصور نشط، وسيتم تجاهل إدخالات إطارات البداية والنهاية في هذا التوليد.",
+      "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references.": "استخدم @image1، @image2، @image3 داخل الوصف/لقطات الوصف لتفعيل المراجع.",
+      "Seedance maps @Image1..@Image9 from image references only; video and audio references are sent separately.": "سيدانس يقوم برسم @Image1..@Image9 من مراجع الصور فقط، ويتم إرسال مراجع الفيديو والصوت بشكل منفصل.",
+      "AI Model": "نموذج الذكاء الاصطناعي",
+      "Character Reference": "مرجع الشخصية",
+      "No saved character": "لا توجد شخصية محفوظة",
+      "Create a reusable character": "إنشاء شخصية قابلة للاستخدام",
+      "reusable character": "شخصية قابلة للاستخدام",
+      "reference image(s)": "صور مرجعية",
+      "reusable identity reference": "مرجع هوية قابل للاستخدام",
+      "Kling 3.0 Elements needs at least 2 reference images for this character.": "عناصر Kling 3.0 تحتاج إلى صورتين مرجعيتين على الأقل لهذه الشخصية.",
+      "Kling 3.0 Elements needs at least 3 reference images for this character.": "عناصر Kling 3.0 تحتاج إلى 3 صور مرجعية على الأقل لهذه الشخصية.",
+      "N/A in multi-shot": "غير متاح في اللقطات المتعددة",
+      "⚠ Both slots have the same image!": "⚠ كلا الحقلين يحتويان على نفس الصورة!",
+      "Duration": "المدة",
+      "Aspect Ratio": "الأبعاد",
+      "Resolution": "الدقة",
+      "Quality": "الجودة",
+      "Orientation": "الاتجاه",
+      "CFG Scale": "مقياس CFG",
+      "Flexible": "مرن",
+      "Strict": "دقيق",
+      "Shot Type": "نوع اللقطة",
+      "intelligent": "ذكية",
+      "customize": "مخصصة",
+      "Multi-shot": "لقطات متعددة",
+      "Multiple scenes in one video": "مشاهد متعددة في فيديو واحد",
+      "Shots": "لقطات",
+      "Duration per shot": "مدة اللقطة",
+      "each": "كل منها",
+      "Auto divides ": "التقسيم التلقائي يقسم ",
+      "s into ": " ثانية إلى ",
+      " scene": " مشهد",
+      " scenes using your prompt.": " مشاهد باستخدام الوصف الخاص بك.",
+      "matches target": "يطابق الهدف",
+      "remaining": "متبقي",
+      "over": "زائد",
+      "Shot": "لقطة",
+      "Scene ": "المشهد ",
+      " description…": " وصف…",
+      "description…": "وصف…",
+      "+ Add Shot": "+ إضافة لقطة",
+      "max": "كحد أقصى",
+      "Elements": "العناصر",
+      "+ Add Element": "+ إضافة عنصر",
+      "Elements let you reference consistent characters or objects using @element_name in your prompt.": "تسمح لك العناصر بالإشارة إلى شخصيات أو كائنات متسقة باستخدام @اسم_العنصر في الوصف الخاص بك.",
+      "✓ Ready": "✓ جاهز",
+      "⚠ Incomplete": "⚠ غير مكتمل",
+      "Name (letters/digits only — used as @name)": "الاسم (أحرف/أرقام فقط — يُسخدم كـ @الاسم)",
+      "Brief description of this element": "وصف قصير لهذا العنصر",
+      "Req.": "مطلوب",
+      "Opt.": "اختياري",
+      "Upload at least 2 images for this element.": "ارفع صورتين على الأقل لهذا العنصر.",
+      "⚠ Upload at least 2 images for this element.": "⚠ ارفع صورتين على الأقل لهذا العنصر.",
+      "✓ @": "✓ @",
+      " is in prompt": " موجود في الوصف",
+      "⚠ Add to prompt:": "⚠ أضف إلى الوصف:",
+      "+ Insert @": "+ إدراج @",
+      "Generate Sound": "توليد الصوت",
+      "AI-generated audio track - included": "مسار صوتي مولد بالذكاء الاصطناعي - متضمن",
+      "included": "متضمن",
+      "Negative Prompt": "الوصف السلبي (Negative Prompt)",
+      "Things to avoid…": "أشياء يجب تجنبها…",
+      "Each element needs 2–4 images. Reference it in your prompt as @element_name.": "يحتاج كل عنصر إلى 2-4 صور. أشر إليه في الوصف الخاص بك كـ @اسم_العنصر.",
+      "Name (e.g. hero, car, logo)": "الاسم (مثل: بطل، سيارة، شعار)",
+      "Required": "مطلوب",
+      "Generate Video": "توليد الفيديو",
+      "Generate Lipsync": "توليد مزامنة الشفاه",
+      "Sending…": "جاري الإرسال…",
+      "running": "قيد التشغيل",
+      "Select Video": "حدد الفيديو",
+      "Upload media - ": "رفع وسائط - ",
+      "Select Reference Image (": "حدد صورة مرجعية (",
+      "Select End Frame": "حدد إطار النهاية",
+      "Select Start Frame": "حدد إطار البداية",
+      "Device": "الجهاز",
+      "Generated Images": "الصور المولدة",
+      "Generated Videos": "الفيديوهات المولدة",
+      "Upload from device": "الرفع من الجهاز",
+      "PNG, JPG, WebP": "PNG, JPG, WebP",
+      "Image, Video or Audio": "صورة، فيديو أو صوت",
+      "MP4, MOV, WebM": "MP4, MOV, WebM",
+      "No generated images yet": "لا توجد صور مولدة بعد",
+      "No generated videos yet": "لا توجد فيديوهات مولدة بعد",
+      
+      // Right sidebar headers/placeholders
+      "Describe your video...": "صف الفيديو الخاص بك...",
+      "Describe speaker text or audio requirements...": "صف نص المتحدث أو متطلبات الصوت...",
+      "Prompt Composer": "منشئ الوصف",
+      "Generate": "توليد",
+      "Generate Video (": "توليد الفيديو (",
+      "Generate Lipsync (": "توليد مزامنة الشفاه (",
+      "Settings": "الإعدادات",
+      "Close Settings": "إغلاق الإعدادات",
+      "Customize generation parameters.": "تخصيص معايير التوليد.",
+      "Workspace Gallery": "معرض مساحة العمل",
+      "Sort:": "الترتيب:",
+      "Newest first": "الأحدث أولاً",
+      "Oldest first": "الأقدم أولاً",
+      "Filter:": "التصفية:",
+      "All models": "جميع النماذج",
+      "Delete": "حذف",
+      "Download": "تحميل",
+      "Extend": "تمديد",
+      "Upscale": "تكبير الدقة",
+      "Remix": "إعادة مزج",
+      "All": "الكل",
+      "LATEST": "الأحدث",
+      "Create your first video": "أنشئ أول فيديو لك",
+      "Write a prompt and hit Generate to start creating": "اكتب وصفاً واضغط على توليد لبدء الإنشاء",
+      "Select an asset to view details": "حدد عنصراً لعرض التفاصيل",
+      
+      // Tool names/descriptions for UI mapping
+      "Kling 3.0": "Kling 3.0",
+      "Kling Motion": "حركة Kling",
+      "Seedance 2": "Seedance 2",
+      "Veo 3.1 Fast": "Veo 3.1 السريع",
+      "Hailuo I2V": "Hailuo I2V",
+      "Sora 2": "Sora 2",
+      "Luma Dream": "Luma Dream",
+      "ByteDance Fast": "ByteDance السريع",
+      "Grok Video": "فيديو Grok",
+      
+      // Sizes mapping
+      "Landscape 16:9": "أفقي 16:9",
+      "Portrait  9:16": "عمودي 9:16",
+      "Landscape 4:3": "أفقي 4:3",
+      "Portrait 3:4": "عمودي 3:4",
+      "Adaptive": "متكيف",
+      "Horizontal": "أفقي",
+      "Vertical": "عمودي",
+      "Auto-detect from content": "كشف تلقائي من المحتوى",
+      
+      // Lipsync details
+      "Avatar Image": "صورة الرمز (Avatar)",
+      "Upload speaker photo": "ارفع صورة المتحدث",
+      "Voice / Audio": "الصوت / الملف الصوتي",
+      "Record or upload speech": "سجل أو ارفع حديثاً صوتاً",
+      "Upload audio": "ارفع ملفاً صوتياً",
+      "Voice ID": "معرف الصوت",
+      "Select voice...": "اختر صوتاً...",
+      "Record speech...": "تسجيل الحديث...",
+      "Speak now...": "تحدث الآن...",
+      "Stop recording": "إيقاف التسجيل",
+      "Upload audio clip": "رفع مقطع صوتي",
+      "Audio source file": "ملف مصدر الصوت",
+      "Microphone": "الميكروفون",
+      "Text-to-Speech": "تحويل النص إلى كلام",
+      "Write what the speaker will say": "اكتب ما سيقوله المتحدث",
+      "Choose voice": "اختر الصوت",
+      
+      // Extra details
+      "Scene Control Mode": "وضع التحكم بالمشهد",
+      "Element List": "قائمة العناصر",
+      "Element ID ": "معرف العنصر ",
+      "Estimated cost:": "التكلفة التقديرية:",
+      "Both slots have the same image!": "كلا الحقلين يحتويان على نفس الصورة!",
+      "First/last frame inputs will be ignored.": "سيتم تجاهل إدخالات إطارات البداية والنهاية.",
+      "Use @image1, @image2, @image3 inside prompt": "استخدم @image1، @image2، @image3 داخل الوصف",
+      "Element": "عنصر",
+      "Element name": "اسم العنصر",
+      "Element description": "وصف العنصر",
+      "Upload at least 2 images": "ارفع صورتين على الأقل",
+      "is in prompt": "موجود في الوصف",
+      "Add to prompt:": "أضف إلى الوصف:",
+      "Insert @": "إدراج @"
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+  return { t, lang };
+}
+
 function StyleLibraryGatewayCard() {
+  const { t } = useVideoTranslation();
   return (
     <a
       href="/image-presets"
@@ -76,15 +292,15 @@ function StyleLibraryGatewayCard() {
         <div className="flex items-center gap-2">
           <span className="rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
             style={{ background: "rgba(251,191,36,0.15)", color: "#fde68a", border: "1px solid rgba(251,191,36,0.35)" }}>
-            New
+            {t("New")}
           </span>
           <span className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(252,211,77,0.72)" }}>
-            18 styles
+            {t("18 styles")}
           </span>
         </div>
-        <h3 className="mt-1.5 text-sm font-black text-white">Style Library</h3>
+        <h3 className="mt-1.5 text-sm font-black text-white">{t("Style Library")}</h3>
         <p className="mt-0.5 text-[11px] leading-5" style={{ color: "#94a3b8" }}>
-          Tap a curated style. The prompt, model, and aspect ratio apply instantly.
+          {t("Tap a curated style. The prompt, model, and aspect ratio apply instantly.")}
         </p>
       </div>
     </a>
@@ -638,6 +854,7 @@ function normalizeCharacterTag(name: string): string {
 // -- Main Component -------------------------------------------------------------
 
 function VideoPageInner() {
+  const { t, lang } = useVideoTranslation();
   const searchParams = useSearchParams();
   const [activeTool,    setActiveTool]    = useState<VideoToolId>("create-video");
   const [selectedModel, setSelectedModel] = useState<WaveSpeedVideoModel>(DEFAULT_MODEL);
@@ -2138,15 +2355,15 @@ function VideoPageInner() {
       >
         <div className="px-3 pt-5 pb-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
-            Video Engines
+            {t("Video Engines")}
           </span>
         </div>
-        {TOOLS.map(t => {
-          const active = activeTool === t.id;
+        {TOOLS.map(tool => {
+          const active = activeTool === tool.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setActiveTool(t.id)}
+              key={tool.id}
+              onClick={() => setActiveTool(tool.id)}
               className="group relative flex items-start gap-2.5 w-full px-3 py-2.5 text-left transition-all"
               style={{
                 borderLeft: active ? "2px solid #06b6d4" : "2px solid transparent",
@@ -2154,11 +2371,11 @@ function VideoPageInner() {
                 color:       active ? "#e2e8f0" : "#64748b",
               }}
             >
-              <t.icon size={14} style={{ color: active ? "#06b6d4" : "#475569", flexShrink: 0, marginTop: 2 }} />
+              <tool.icon size={14} style={{ color: active ? "#06b6d4" : "#475569", flexShrink: 0, marginTop: 2 }} />
               <span className="flex min-w-0 flex-col">
-                <span className="text-[13px] font-medium leading-tight">{t.label}</span>
+                <span className="text-[13px] font-medium leading-tight">{t(tool.label)}</span>
                 <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#475569" }}>
-                  {t.description}
+                  {t(tool.description)}
                 </span>
               </span>
               {active && (
@@ -2192,9 +2409,9 @@ function VideoPageInner() {
                 <Film size={40} style={{ color: "rgba(6,182,212,0.4)" }} />
               </motion.div>
               <div className="text-center">
-                <p className="text-lg font-medium text-white">Generate your first video</p>
+                <p className="text-lg font-medium text-white">{t("Create your first video")}</p>
                 <p className="mt-1 text-sm" style={{ color: "#475569" }}>
-                  Write a prompt below and hit Generate
+                  {t("Write a prompt and hit Generate to start creating")}
                 </p>
               </div>
             </div>
@@ -2240,7 +2457,7 @@ function VideoPageInner() {
         {referenceImages.length > 0 && (
           <div className="mx-4 mb-2 flex flex-wrap gap-2 items-center bg-slate-950/20 p-2.5 rounded-xl border border-white/[0.03]">
             <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
-              <Sparkles size={11} className="text-cyan-400" /> Click to insert reference:
+              <Sparkles size={11} className="text-cyan-400" /> {t("Click to insert reference:")}
             </span>
             {(() => {
               let imageCount = 0;
@@ -2263,7 +2480,7 @@ function VideoPageInner() {
                       border: "1px solid rgba(6, 182, 212, 0.25)",
                       color: "#22d3ee",
                     }}
-                    title={`Click to insert ${tag} into prompt`}
+                    title={lang === "ar" ? `انقر لإدراج ${tag} في الوصف` : `Click to insert ${tag} into prompt`}
                   >
                     {previewSrc && (
                       <img
@@ -2305,11 +2522,11 @@ function VideoPageInner() {
               border: `1px solid ${selectedCharacter ? "rgba(217,70,239,0.25)" : "rgba(255,255,255,0.08)"}`,
               color: selectedCharacter ? "#f5d0fe" : "#94a3b8",
             }}
-            title="Character reference"
+            title={t("Character Reference")}
           >
             <Users size={14} />
             <span className="max-w-[120px] truncate text-[12px] font-semibold">
-              {selectedCharacter ? selectedCharacter.name : "No character"}
+              {selectedCharacter ? selectedCharacter.name : t("No character")}
             </span>
           </button>
           <textarea
@@ -2324,10 +2541,10 @@ function VideoPageInner() {
             }}
             placeholder={
               activeTool === "lipsync"
-                ? "Lipsync prompt (optional) e.g., talk naturally, smile..."
+                ? t("Lipsync prompt (optional) e.g., talk naturally, smile...")
                 : isKling30Video
-                ? "Describe the video… use @image1 for references"
-                : "Describe the video you want to create…"
+                ? t("Describe the video… use @image1 for references")
+                : t("Describe the video you want to create…")
             }
             className="flex-1 bg-transparent outline-none text-[13px] resize-none py-3 leading-relaxed"
             style={{ color: "#e2e8f0" }}
@@ -2351,12 +2568,12 @@ function VideoPageInner() {
             {isSubmitting ? (
               <>
                 <Loader2 size={12} className="animate-spin" />
-                <span>Sending…</span>
+                <span>{t("Sending…")}</span>
               </>
             ) : (
               <>
                 <Film size={12} />
-                <span>{activeTool === "lipsync" ? "Generate Lipsync" : "Generate"}</span>
+                <span>{activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}</span>
                 {pendingTasks.size > 0 && (
                   <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
                     {pendingTasks.size}

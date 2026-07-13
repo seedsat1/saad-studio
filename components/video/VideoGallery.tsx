@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { VideoIcon } from "lucide-react";
 import { GeneratedVideo } from "./VideoResultCard";
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
+import { useLanguage } from "@/lib/use-language";
 
 const FAMILY_FILTERS = ["All", "Kling", "Hailuo", "Sora", "Runway", "Grok", "Seedance", "ByteDance"];
 
@@ -41,6 +42,21 @@ export default function VideoGallery({
   setSortOrder,
   onDelete,
 }: VideoGalleryProps) {
+  const { lang } = useLanguage();
+  const dict: Record<string, Record<string, string>> = {
+    en: {},
+    ar: {
+      "All": "الكل",
+      "Newest first": "الأحدث أولاً",
+      "Oldest first": "الأقدم أولاً",
+      "Create your first video": "أنشئ أول فيديو لك",
+      "Write a prompt and hit Generate to start creating": "اكتب وصفاً واضغط على توليد لبدء الإنشاء",
+    }
+  };
+  const t = (key: string): string => {
+    return dict[lang]?.[key] ?? key;
+  };
+
   // Family filter
   const filtered =
     activeFilter === "All"
@@ -76,7 +92,7 @@ export default function VideoGallery({
               transition: "all 0.15s",
             }}
           >
-            {f}
+            {t(f)}
           </button>
         ))}
         <span style={{ flex: 1 }} />
@@ -89,7 +105,7 @@ export default function VideoGallery({
             background: "rgba(255,255,255,0.04)", color: "#64748b",
           }}
         >
-          {sortOrder === "newest" ? "Newest first" : "Oldest first"}
+          {sortOrder === "newest" ? t("Newest first") : t("Oldest first")}
         </button>
       </div>
 
@@ -105,9 +121,9 @@ export default function VideoGallery({
             <VideoIcon className="h-10 w-10 text-cyan-500/40" />
           </motion.div>
           <div className="text-center">
-            <p className="text-lg font-medium text-white">Create your first video</p>
+            <p className="text-lg font-medium text-white">{t("Create your first video")}</p>
             <p className="mt-1 text-sm text-slate-500">
-              Write a prompt and hit Generate to start creating
+              {t("Write a prompt and hit Generate to start creating")}
             </p>
           </div>
         </div>
