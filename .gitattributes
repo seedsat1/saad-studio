@@ -1,0 +1,12 @@
+# Exclude Electron desktop app and Rust bridge from language statistics
+saad-agent/** linguist-vendored
+
+# Exclude other sub-tools or legacy folders
+stude/** linguist-vendored
+seedsat1/** linguist-vendored
+tmp-kie-**/ linguist-vendored
+*.html linguist-documentation
+seedance-tutorial.html linguist-documentation
+cinema-studio-vso-mockup.html linguist-documentation
+graphics-dashboard.html linguist-documentation
+video-editor.html linguist-documentation
