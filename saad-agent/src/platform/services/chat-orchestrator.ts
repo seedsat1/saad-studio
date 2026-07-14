@@ -148,11 +148,10 @@ export class ChatOrchestratorService {
     const effectiveApprovalMode = ApprovalPolicyService.normalizeMode(input.approvalMode);
     const originalUserRequestText = ChatOrchestratorService.extractUserRequest(prompt);
     let userRequestText = originalUserRequestText;
-    const activeWorkspace = await ChatOrchestratorService.resolveWorkspaceFromPrompt(
+    let activeWorkspace = await ChatOrchestratorService.resolveWorkspaceFromPrompt(
       originalUserRequestText,
       input.workspacePath || CONFIG.PROJECT_ROOT
     );
-    await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
     const normalizedAttachments = ChatOrchestratorService.normalizeRuntimeAttachments(input.attachments);
     input.attachments = normalizedAttachments;
     const conversationState = ConversationStateEngine.getState(sessionId);
@@ -218,6 +217,18 @@ export class ChatOrchestratorService {
     }
     
     const readableAttachmentContext = [rawReadableAttachmentContext, urlAttachmentContext].filter(Boolean).join("\n\n");
+    const attachmentOnlyRecoveredRequest = ChatOrchestratorService.resolveAttachmentOnlyUserRequestText(
+      userRequestText,
+      readableAttachmentContext
+    );
+    if (attachmentOnlyRecoveredRequest) {
+      userRequestText = attachmentOnlyRecoveredRequest;
+      activeWorkspace = await ChatOrchestratorService.resolveWorkspaceFromPrompt(
+        userRequestText,
+        input.workspacePath || CONFIG.PROJECT_ROOT
+      );
+    }
+    await TrustedWorkspaceRuntime.ensureDefaultWorkspace(activeWorkspace).catch(() => undefined);
     const reviewRequestText = readableAttachmentContext
       ? [userRequestText, readableAttachmentContext].join("\n\n")
       : userRequestText;
@@ -943,6 +954,7 @@ export class ChatOrchestratorService {
         "Do not read or expose secrets, credentials, tokens, cookies, private keys, or .env files.",
         "Use the project rules and context below before acting.",
         dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+        ChatOrchestratorService.buildDesignReferenceEvidenceGate(userRequestText, preAnswerReview.finalContext),
         ChatOrchestratorService.buildDailyMaintenanceWorkspaceExecutionContract(dailyEngineerWorkflow, activeWorkspace),
         ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
         ChatOrchestratorService.buildDailyMaintenanceRuntimeOutputContract(dailyEngineerWorkflow),
@@ -1017,6 +1029,26 @@ export class ChatOrchestratorService {
       }
 
       const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "ماكو output رجع من Codex runtime.";
+      if (
+        codexResult.success
+        && !dailyEngineerWorkflow
+        && ChatOrchestratorService.buildDesignReferenceEvidenceGate(userRequestText, preAnswerReview.finalContext)
+        && !/DEZ files inspected\s*:/i.test(output)
+      ) {
+        return {
+          intent,
+          usedModel: false,
+          response: [
+            "توقف تحقق مراجع التصميم: الـ runtime أكمل، لكنه لم يثبت أنه قرأ ملفات DEZ.",
+            "",
+            "المطلوب في تقرير أي مهمة تصميم تستخدم DEZ هو سطر واضح:",
+            "`DEZ files inspected: <actual reference paths>`",
+            "",
+            "النتيجة الخام التي رجعت من runtime:",
+            output
+          ].join("\n")
+        };
+      }
       if (dailyEngineerWorkflow && codexResult.success) {
         return {
           intent,
@@ -1109,6 +1141,7 @@ export class ChatOrchestratorService {
         "Use the project rules and context below before acting.",
         "For project modifications, inspect the codebase first, edit only the required files, and run available verification.",
         dailyEngineerWorkflow ? dailyEngineerWorkflow.runtimeInstructions : "",
+        ChatOrchestratorService.buildDesignReferenceEvidenceGate(userRequestText, preAnswerReview.finalContext),
         ChatOrchestratorService.buildDailyMaintenanceWorkspaceExecutionContract(dailyEngineerWorkflow, activeWorkspace),
         ChatOrchestratorService.buildDailyMaintenanceApprovalScope(dailyEngineerWorkflow, Boolean(input.approved)),
         ChatOrchestratorService.buildDailyMaintenanceRuntimeOutputContract(dailyEngineerWorkflow),
@@ -1186,6 +1219,26 @@ export class ChatOrchestratorService {
       }
 
       const output = codexResult.stdout.trim() || codexResult.stderr.trim() || "No output returned from Codex runtime.";
+      if (
+        codexResult.success
+        && !dailyEngineerWorkflow
+        && ChatOrchestratorService.buildDesignReferenceEvidenceGate(userRequestText, preAnswerReview.finalContext)
+        && !/DEZ files inspected\s*:/i.test(output)
+      ) {
+        return {
+          intent,
+          usedModel: false,
+          response: [
+            "توقف تحقق مراجع التصميم: الـ runtime أكمل، لكنه لم يثبت أنه قرأ ملفات DEZ.",
+            "",
+            "المطلوب في تقرير أي مهمة تصميم تستخدم DEZ هو سطر واضح:",
+            "`DEZ files inspected: <actual reference paths>`",
+            "",
+            "النتيجة الخام التي رجعت من runtime:",
+            output
+          ].join("\n")
+        };
+      }
       if (dailyEngineerWorkflow && codexResult.success) {
         return {
           intent,
@@ -3663,6 +3716,38 @@ export class ChatOrchestratorService {
     ].join("\n");
   }
 
+  private static buildDesignReferenceEvidenceGate(prompt: string, preAnswerContext: string): string {
+    const normalized = ChatOrchestratorService.normalizeArabic(prompt || "");
+    const lower = `${prompt}\n${preAnswerContext}`.toLowerCase();
+    const isDesignTask = /design|ui|ux|page|landing|dashboard|saas|ai studio|studio|navbar|cards?|components?|responsive|shadcn|dez|design_reference_manifest|design reference manifest/i.test(lower)
+      || /تصميم|صمم|نفذ|صفحة|واجهة|داشبورد|كروت|متجاوب|مراجع التصميم|ديزاين/.test(normalized);
+    if (!isDesignTask) return "";
+
+    const manifestMatch = preAnswerContext.match(/Manifest file:\s*(.+?DESIGN_REFERENCE_MANIFEST\.json)/i)
+      || preAnswerContext.match(/([A-Z]:[^\r\n]+DESIGN_REFERENCE_MANIFEST\.json)/i)
+      || preAnswerContext.match(/([A-Z]:\/[^\r\n]+DESIGN_REFERENCE_MANIFEST\.json)/i);
+    const dezRootMatch = preAnswerContext.match(/Absolute DEZ root:\s*(.+?DEZ)\s*(?:\r?\n|$)/i)
+      || preAnswerContext.match(/([A-Z]:[^\r\n]+release-production-v4[^\r\n]+DEZ)/i)
+      || preAnswerContext.match(/([A-Z]:\/[^\r\n]+release-production-v4[^\r\n]+DEZ)/i);
+
+    const manifestPath = (manifestMatch?.[1] || "saad-agent/DESIGN_REFERENCE_MANIFEST.json").trim();
+    const dezRoot = (dezRootMatch?.[1] || "saad-agent/release-production-v4/win-unpacked/DEZ").trim();
+
+    return [
+      "SAAD DESIGN REFERENCE EVIDENCE GATE:",
+      "This is a UI/design/page task. Do not rely on vague claims such as 'based on DEZ references'.",
+      `Authoritative manifest path: ${manifestPath}`,
+      `DEZ reference root: ${dezRoot}`,
+      "Before editing or creating the page, use available read/grep/find/ls tools to inspect:",
+      "1. The target workspace files.",
+      "2. DESIGN_REFERENCE_MANIFEST.json or the manifest summary.",
+      "3. At least one relevant DEZ landing/dashboard/component reference file when the task is SaaS, AI Studio, dashboard, or page design.",
+      "If the runtime cannot read the manifest or DEZ reference files, stop and report a verified blocker instead of claiming the references were used.",
+      "The final report must include a compact line named `DEZ files inspected:` with the actual reference paths read, or `DEZ files inspected: blocked - <reason>`.",
+      "Do not modify DEZ. Write only inside the trusted target workspace."
+    ].join("\n");
+  }
+
   private static formatDailyMaintenanceRuntimeSuccessResponse(codexResult: {
     stdout?: string;
     stderr?: string;
@@ -4380,6 +4465,51 @@ export class ChatOrchestratorService {
     const normalized = this.normalizeArabic(text);
     return /^(?:attached long pasted content as file\.?|long pasted content was attached as a file\.?|attached pasted content as file\.?|attached long pasted content as a file\.?)$/i.test(lower)
       || /^(?:\u062a\u0645\s+)?(?:\u0627\u0631\u0641\u0627\u0642|\u0625\u0631\u0641\u0627\u0642|\u0631\u0641\u0642|\u0645\u0631\u0641\u0642).{0,80}(?:\u0645\u0644\u0641|\u0627\u0644\u0645\u062d\u062a\u0648\u0649|\u0627\u0644\u0646\u0635)/.test(normalized);
+  }
+
+  private static resolveAttachmentOnlyUserRequestText(
+    prompt: string,
+    readableAttachmentContext: string
+  ): string {
+    if (!this.isAttachmentOnlyPlaceholder(prompt)) return "";
+    const recovered = this.extractReadableAttachmentBody(readableAttachmentContext);
+    if (!recovered) return "";
+    const normalized = this.normalizeArabic(recovered);
+    const haystack = `${normalized}\n${recovered.toLowerCase()}`;
+    const hasHumanInstructionCue = /(?:\u0627\u062e\u062a\u0628\u0627\u0631|\u0627\u0631\u064a\u062f|\u0623\u0631\u064a\u062f|\u0627\u0644\u0645\u0637\u0644\u0648\u0628|\u0644\u0627\s+\u062a\u0628\u062f\u0623|\u062d\u0633\u0646|\u062d\u0633\u0651\u0646|\u0639\u062f\u0644|\u0639\u062f\u0651\u0644|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0636\u0641|\u0623\u0636\u0641|\bwant\b|\bi want\b|\bplease\b|\bbuild\b|\bcreate\b|\bimplement\b|\badd\b|\bmodify\b|\bupdate\b)/i.test(haystack);
+    if (!hasHumanInstructionCue) return "";
+    const hasEngineeringAction = /(?:\u0627\u0631\u064a\u062f|\u0627\u0631\u0628\u0637|\u0631\u0628\u0637|\u062f\u0645\u062c|\u0627\u062f\u0645\u062c|\u0627\u0636\u0641|\u0623\u0636\u0641|\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0637\u0628\u0642|\u0639\u062f\u0644|\u062d\u0633\u0646|\u0627\u0641\u062d\u0635|\u0635\u0645\u0645|\u0627\u0628\u0646\u064a|\u0627\u0635\u0646\u0639|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\bwant\b|\bconnect\b|\bwire\b|\bintegrate\b|\bimplement\b|\badd\b|\bupdate\b|\bmodify\b|\bimprove\b|\binspect\b|\bbuild\b|\bcreate\b|\bmake\b)/i.test(haystack);
+    const hasEngineeringTarget = /(?:\u0635\u0641\u062d\u0647|\u0635\u0641\u062d\u0629|\u0648\u0627\u062c\u0647\u0647|\u0648\u0627\u062c\u0647\u0629|\u0642\u0633\u0645|\u0641\u0648\u0631\u0645|\u0643\u0648\u062f|\u0645\u0644\u0641|\u0645\u0634\u0631\u0648\u0639|\u0645\u0648\u062f\u064a\u0644|\u0645\u0648\u062f\u0644|\u0646\u0645\u0648\u0630\u062c|\u062e\u0635\u0627\u0626\u0635|\u0645\u0632\u0648\u062f|\bpage\b|\bui\b|\bhtml\b|\bcss\b|\bscript\b|\bapi\b|\bmodel\b|\bprovider\b|\bform\b|\bpanel\b|\bfields?\b|\bproperties\b|\bendpoint\b)/i.test(haystack);
+    const hasLocalPathOrSpec = /(?:[a-z]:\\|\/api\/v\d+|openapi|swagger|seedream|image-to-image|createtask|taskid|authorization:\s*bearer|application\/json)/i.test(haystack);
+    if (!hasEngineeringAction || (!hasEngineeringTarget && !hasLocalPathOrSpec)) return "";
+    return recovered;
+  }
+
+  private static extractReadableAttachmentBody(readableAttachmentContext: string): string {
+    const text = EngineeringMemory.scrubSecrets(String(readableAttachmentContext || "")).trim();
+    if (!text) return "";
+    const lines = text.split(/\r?\n/);
+    const bodyLines: string[] = [];
+    let inBody = false;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (/^(Attachment|Mime|Size|Status|Extractor|Warning|Reason):/i.test(trimmed)) {
+        continue;
+      }
+      if (/^Content truncated to \d+ characters/i.test(trimmed)) {
+        continue;
+      }
+      if (!inBody && !trimmed) {
+        inBody = true;
+        continue;
+      }
+      if (!inBody && /^(openapi:|servers:|paths:|المطلوب:|اختبار|اريد|أريد|لا تبدأ|حسّن|حسن|Server:|Endpoint:|Full URL:)/i.test(trimmed)) {
+        inBody = true;
+      }
+      if (inBody) bodyLines.push(line);
+    }
+    const body = bodyLines.join("\n").trim();
+    return body || text;
   }
 
   private static hasReadableSpecAttachment(

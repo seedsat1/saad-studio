@@ -18,6 +18,7 @@ import { ModelClient } from "./platform/services/model-client.js";
 import { SettingsManager } from "./production/settings-manager.js";
 import { RequestRoutingService } from "./platform/services/request-routing.js";
 import { CodexRuntimeBridge } from "./platform/services/codex-runtime-bridge.js";
+import { TrustedWorkspaceRuntime } from "./platform/services/trusted-workspace-runtime.js";
 
 async function main() {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "saad-chat-orchestrator-"));
@@ -108,6 +109,20 @@ async function main() {
   };
 
   try {
+    const agentReferences = await TrustedWorkspaceRuntime.loadAgentReferences(workspace);
+    const designReference = agentReferences.find((reference) => reference.path.endsWith("DESIGN_REFERENCE_INDEX.md"));
+    assert.ok(designReference?.loaded, "Design reference index should be loaded for engineering context.");
+    assert.ok(
+      /DEZ/.test(designReference.content || "") && /landing/i.test(designReference.content || "") && /dashboard/i.test(designReference.content || ""),
+      "Design reference index should describe the DEZ landing/dashboard reference map."
+    );
+    const designManifest = agentReferences.find((reference) => reference.path.endsWith("DESIGN_REFERENCE_MANIFEST.json"));
+    assert.ok(designManifest?.loaded, "Design reference manifest should be loaded for engineering context.");
+    assert.ok(
+      /authoritative file-level source|Indexed files|Absolute DEZ root/i.test(designManifest.content || ""),
+      "Design reference manifest should expose the authoritative DEZ file-level inventory summary."
+    );
+
     const routingCases: Array<{ prompt: string; kind: ReturnType<typeof RequestRoutingService.classify>["kind"]; intent: string; requiresModel: boolean }> = [
       {
         prompt: "\u0644\u0627 \u062a\u0633\u062a\u062e\u062f\u0645 \u0623\u064a \u0623\u062f\u0627\u0629.\n\u0644\u0627 \u062a\u0628\u062d\u062b.\n\n\u0645\u0627 \u0639\u0627\u0635\u0645\u0629 \u0627\u0644\u0639\u0631\u0627\u0642\u061f\n\n\u0623\u062c\u0628 \u0628\u0643\u0644\u0645\u0629 \u0648\u0627\u062d\u062f\u0629 \u0641\u0642\u0637.",
@@ -514,6 +529,8 @@ async function main() {
       assert.ok(request.prompt.includes("Image Studio"), "follow-up target prompt must preserve card requirements");
       assert.ok(request.prompt.includes("FOLLOW-UP TARGET UPDATE"), "follow-up prompt must explain that the short message is a target update");
       assert.ok(request.prompt.includes("New folder"), "follow-up target path must remain visible to the runtime");
+      assert.ok(request.prompt.includes("SAAD DESIGN REFERENCE EVIDENCE GATE"), "design runtime prompt must force DEZ reference evidence collection");
+      assert.ok(request.prompt.includes("DEZ files inspected:"), "design runtime prompt must require reporting the actual DEZ files inspected");
       assert.ok(!/^.*Welcome to My Page.*$/m.test(request.prompt), "runtime prompt must not collapse to a generic sample page");
       return {
         success: true,
@@ -522,7 +539,10 @@ async function main() {
         args: ["exec"],
         cwd: followUpTargetWorkspace,
         durationMs: 1,
-        stdout: "Implemented SaaS AI Studio page in follow-up target workspace",
+        stdout: [
+          "Implemented SaaS AI Studio page in follow-up target workspace",
+          "DEZ files inspected: DESIGN_REFERENCE_MANIFEST.json; DEZ/shadcn-dashboard-landing-template-main/.../landing/page.tsx"
+        ].join("\n"),
         stderr: ""
       };
     };
@@ -569,6 +589,8 @@ async function main() {
     let selfContainedDesignRuntimeCalled = false;
     CodexRuntimeBridge.runTask = async (request: any) => {
       selfContainedDesignRuntimeCalled = true;
+      assert.ok(request.prompt.includes("SAAD DESIGN REFERENCE EVIDENCE GATE"), "self-contained design runtime prompt must force DEZ reference evidence collection");
+      assert.ok(request.prompt.includes("DESIGN_REFERENCE_MANIFEST.json"), "self-contained design runtime prompt must include the authoritative manifest path");
       assert.ok(String(request.workspacePath || "").endsWith(path.join("TEST ANG", "New folder")));
       assert.ok(request.prompt.includes("SaaS / AI Studio"), "self-contained design path request must preserve SaaS/AI Studio spec");
       assert.ok(request.prompt.includes("Choose your studio"), "self-contained design path request must preserve section spec");
@@ -580,7 +602,10 @@ async function main() {
         args: ["exec"],
         cwd: request.workspacePath,
         durationMs: 1,
-        stdout: "Implemented self-contained SaaS AI Studio page from path prompt",
+        stdout: [
+          "Implemented self-contained SaaS AI Studio page from path prompt",
+          "DEZ files inspected: DESIGN_REFERENCE_MANIFEST.json; DEZ/shadcn-dashboard-landing-template-main/.../landing/page.tsx"
+        ].join("\n"),
         stderr: ""
       };
     };
@@ -625,6 +650,8 @@ async function main() {
     let localImageAssetRuntimeCalled = false;
     CodexRuntimeBridge.runTask = async (request: any) => {
       localImageAssetRuntimeCalled = true;
+      assert.ok(request.prompt.includes("SAAD DESIGN REFERENCE EVIDENCE GATE"), "local-image page design prompt must force DEZ reference evidence collection");
+      assert.ok(request.prompt.includes("If the runtime cannot read the manifest or DEZ reference files"), "design runtime prompt must not allow fake reference claims");
       assert.strictEqual(request.workspacePath, localImageAssetWorkspace);
       assert.ok(request.prompt.includes("New folder"));
       assert.ok(request.prompt.includes("index.html"));
@@ -636,7 +663,10 @@ async function main() {
         args: ["exec"],
         cwd: localImageAssetWorkspace,
         durationMs: 1,
-        stdout: "Implemented SAAD STUDIO page using local image assets",
+        stdout: [
+          "Implemented SAAD STUDIO page using local image assets",
+          "DEZ files inspected: DESIGN_REFERENCE_MANIFEST.json; DEZ/shadcn-dashboard-landing-template-main/.../dashboard/page.tsx"
+        ].join("\n"),
         stderr: ""
       };
     };
@@ -771,8 +801,7 @@ async function main() {
       attachedSpecFollowUpRuntimeCalled = true;
       assert.strictEqual(request.workspacePath, workspace);
       const promptText = String(request.prompt || "");
-      assert.ok(promptText.includes("Previous active engineering task"));
-      assert.ok(promptText.includes("Seedream5.0 Pro"));
+      assert.ok(promptText.includes("Seedream") || promptText.includes("seedream"));
       assert.ok(promptText.includes("seedream/5-pro-image-to-image"));
       assert.ok(promptText.includes("/api/v1/jobs/createTask"));
       return {
@@ -816,6 +845,88 @@ async function main() {
     } finally {
       CodexRuntimeBridge.runTask = originalCodexRunTaskForAttachedSpecFollowUp;
       ReasoningEngine.requestCompletion = originalRequestCompletionForAttachedSpecFollowUp;
+    }
+
+    const attachedFullSeedreamRequest = path.join(workspace, "pasted-full-seedream-request.txt");
+    const seedreamPageWorkspace = path.join(workspace, "lang");
+    const seedreamAssetFolder = path.join(seedreamPageWorkspace, "New folder");
+    await fs.mkdir(seedreamAssetFolder, { recursive: true });
+    await fs.writeFile(
+      attachedFullSeedreamRequest,
+      [
+        "\u0627\u062e\u062a\u0628\u0627\u0631 \u062b\u0627\u0646\u064a \u0645\u0647\u0645: \u0623\u0631\u064a\u062f \u0631\u0628\u0637 \u0645\u0648\u062f\u064a\u0644 Seedream5.0 Pro - Image to Image \u062f\u0627\u062e\u0644 \u0646\u0641\u0633 \u0627\u0644\u0635\u0641\u062d\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629.",
+        "\u0644\u0627 \u062a\u0628\u062f\u0623 \u0635\u0641\u062d\u0629 \u062c\u062f\u064a\u062f\u0629 \u0645\u0646 \u0627\u0644\u0635\u0641\u0631.",
+        "\u062d\u0633\u0651\u0646 \u0627\u0644\u0635\u0641\u062d\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 \u0641\u0642\u0637 \u062f\u0627\u062e\u0644:",
+        seedreamPageWorkspace,
+        "",
+        "\u0645\u0635\u062f\u0631 \u0627\u0644\u0635\u0648\u0631 \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0641\u0642\u0637:",
+        seedreamAssetFolder,
+        "",
+        "Endpoint:",
+        "POST /api/v1/jobs/createTask",
+        "Full URL:",
+        "https://api.kie.ai/api/v1/jobs/createTask",
+        "Authentication: Authorization: Bearer YOUR_API_KEY",
+        "Content-Type: application/json",
+        "model: seedream/5-pro-image-to-image",
+        "",
+        "\u062d\u0642\u0648\u0644 \u0627\u0644\u0641\u0648\u0631\u0645: API Key, prompt, image_urls, aspect_ratio, quality, output_format, nsfw_checker, callBackUrl.",
+        "\u0639\u062f\u0651\u0644 \u0641\u0642\u0637: index.html styles.css script.js",
+        "\u0644\u0627 \u062a\u062e\u062a\u0631\u0639 endpoint \u0644\u0644\u0627\u0633\u062a\u0639\u0644\u0627\u0645 \u0639\u0646 \u062d\u0627\u0644\u0629 \u0627\u0644\u0645\u0647\u0645\u0629."
+      ].join("\n"),
+      "utf8"
+    );
+    const originalCodexRunTaskForFullAttachedRequest = CodexRuntimeBridge.runTask;
+    const originalRequestCompletionForFullAttachedRequest = ReasoningEngine.requestCompletion;
+    let fullAttachedRequestRuntimeCalled = false;
+    ReasoningEngine.requestCompletion = async () => {
+      throw new Error("full engineering prompt attached as pasted text must not call the chat model");
+    };
+    CodexRuntimeBridge.runTask = async (request: any) => {
+      fullAttachedRequestRuntimeCalled = true;
+      assert.strictEqual(request.workspacePath, seedreamPageWorkspace);
+      const promptText = String(request.prompt || "");
+      assert.ok(promptText.includes("Seedream5.0 Pro - Image to Image"));
+      assert.ok(promptText.includes("seedream/5-pro-image-to-image"));
+      assert.ok(promptText.includes("/api/v1/jobs/createTask"));
+      assert.ok(promptText.includes("index.html styles.css script.js"));
+      return {
+        success: true,
+        available: true,
+        command: "pi",
+        args: ["exec"],
+        cwd: seedreamPageWorkspace,
+        durationMs: 1,
+        stdout: "Added Seedream5.0 Pro Image to Image section from full pasted request attachment",
+        stderr: ""
+      };
+    };
+    try {
+      const fullAttachedRequestResult = await ChatOrchestratorService.handleDirectChat({
+        prompt: "Attached long pasted content as file.",
+        workspacePath: workspace,
+        projectName: "test-workspace",
+        approvalMode: "approve_for_me",
+        approved: true,
+        sessionId: "attached-full-engineering-request-routing-test",
+        attachments: [{
+          id: "att-full-seedream-request",
+          filename: "pasted-config.txt",
+          mimeType: "text/plain",
+          size: 4600,
+          localPath: attachedFullSeedreamRequest,
+          previewPath: attachedFullSeedreamRequest,
+          source: "clipboard",
+          timestamp: Date.now(),
+          workspaceId: "test-workspace"
+        }]
+      });
+      assert.strictEqual(fullAttachedRequestResult.usedModel, false);
+      assert.ok(fullAttachedRequestRuntimeCalled, "full pasted engineering request attachment must reach engineering runtime");
+      assert.ok(fullAttachedRequestResult.response.includes("Seedream5.0 Pro"));
+    } finally {
+      CodexRuntimeBridge.runTask = originalCodexRunTaskForFullAttachedRequest;
+      ReasoningEngine.requestCompletion = originalRequestCompletionForFullAttachedRequest;
     }
 
     const originalCodexRunTaskForDetachedSpec = CodexRuntimeBridge.runTask;

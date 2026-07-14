@@ -77,6 +77,31 @@ const safeCommandMap: Record<string, { command: string; args: string[]; writes?:
   "git push": { command: "git", args: ["push"], writes: true }
 };
 
+const designReferenceIndexFallback = [
+  "# Saad Agent Design Reference Index",
+  "",
+  "Use DEZ as a read-only UI/design reference map, not as a target workspace or source-copy folder.",
+  "Reference root: saad-agent/release-production-v4/win-unpacked/DEZ.",
+  "Primary references:",
+  "- Landing/SaaS/AI Studio: shadcn-dashboard-landing-template-main/.../vite-version/src/app/landing and nextjs-version/src/app/landing.",
+  "- Dashboard/product tools: .../vite-version/src/app/dashboard, dashboard-2, and nextjs-version/src/app/(dashboard).",
+  "- Chat UI: .../vite-version/src/app/chat.",
+  "- Settings/providers/models/security panels: .../vite-version/src/app/settings and shadcn-admin-kit-main.",
+  "- Auth: .../vite-version/src/app/auth and nextjs-version/src/app/(auth).",
+  "- Pricing: .../vite-version/src/app/pricing and nextjs-version dashboard pricing.",
+  "- Components: .../src/components, .../src/components/ui, and ui-main/ui-main.",
+  "Rules: inspect the real target workspace first; use references only for patterns; do not modify DEZ; do not install libraries without approval; keep Arabic text LTR when the user says no RTL; use local image folders only as assets."
+].join("\n");
+
+const designReferenceManifestFallback = [
+  "# Saad Agent DEZ Design Reference Manifest",
+  "",
+  "The generated DESIGN_REFERENCE_MANIFEST.json file is missing from the package.",
+  "Fallback source root: saad-agent/release-production-v4/win-unpacked/DEZ.",
+  "Before UI/design work, inspect the target workspace first, then inspect matching DEZ files from landing, dashboard, chat, settings, auth, pricing, components, ui-components, theme, and visual-assets categories.",
+  "This fallback is not a complete file-level manifest; regenerate it with `npm run generate:dez-manifest` inside saad-agent."
+].join("\n");
+
 export class TrustedWorkspaceRuntime {
   private static async storePath(): Promise<string> {
     const appData = await getGlobalAppDataDir();
@@ -335,13 +360,82 @@ export class TrustedWorkspaceRuntime {
       path.join(workspaceRoot, "AGENTS.md"),
       path.join(workspaceRoot, "PROJECT_CONTEXT.md"),
       path.join(agentRoot, "SAAD_AGENT_CONTEXT.md"),
+      path.join(agentRoot, "DESIGN_REFERENCE_INDEX.md"),
+      path.join(agentRoot, "DESIGN_REFERENCE_MANIFEST.json"),
       path.join(workspaceRoot, "docs", "saad-studio-premiere-reference-ar.md")
     ];
     const unique = Array.from(new Set(candidates.map((item) => path.resolve(item))));
     return Promise.all(unique.map(async (filePath) => {
-      const content = await fsp.readFile(filePath, "utf8").catch(() => "");
+      let content = await fsp.readFile(filePath, "utf8").catch(() => "");
+      if (!content.trim() && path.basename(filePath) === "DESIGN_REFERENCE_INDEX.md") {
+        content = designReferenceIndexFallback;
+      }
+      if (path.basename(filePath) === "DESIGN_REFERENCE_MANIFEST.json") {
+        content = content.trim()
+          ? this.formatDesignReferenceManifest(filePath, content)
+          : designReferenceManifestFallback;
+      }
       return { path: filePath.replace(/\\/g, "/"), loaded: Boolean(content.trim()), content: content.slice(0, 2000) };
     }));
+  }
+
+  private static formatDesignReferenceManifest(filePath: string, rawContent: string): string {
+    try {
+      const manifest = JSON.parse(rawContent) as {
+        absoluteDezRoot?: string;
+        relativeDezRoot?: string;
+        totalFiles?: number;
+        totalBytes?: number;
+        roots?: Array<{ name: string; totalFiles: number; totalBytes: number }>;
+        categories?: Record<string, { count: number; examples?: string[] }>;
+      };
+      const priorityCategories = [
+        "landing",
+        "dashboard",
+        "chat",
+        "settings",
+        "auth",
+        "pricing",
+        "components",
+        "ui-components",
+        "theme",
+        "visual-assets"
+      ];
+      const lines = [
+        "# Saad Agent DEZ Design Reference Manifest",
+        "",
+        "This generated manifest is the authoritative file-level source for local DEZ design references.",
+        `Manifest file: ${filePath.replace(/\\/g, "/")}`,
+        `Absolute DEZ root: ${manifest.absoluteDezRoot || "(unknown)"}`,
+        `Relative DEZ root: ${manifest.relativeDezRoot || "release-production-v4/win-unpacked/DEZ"}`,
+        `Indexed files: ${manifest.totalFiles ?? 0}`,
+        `Indexed bytes: ${manifest.totalBytes ?? 0}`,
+        "",
+        "Required behavior: inspect the real target workspace first; for UI/design tasks inspect matching DEZ files by category before implementing; do not modify DEZ; do not copy full projects blindly.",
+        "",
+        "Reference roots:"
+      ];
+      for (const root of (manifest.roots || []).slice(0, 12)) {
+        lines.push(`- ${root.name}: ${root.totalFiles} files, ${root.totalBytes} bytes`);
+      }
+      lines.push("", "Priority categories:");
+      for (const category of priorityCategories) {
+        const summary = manifest.categories?.[category];
+        if (!summary) continue;
+        lines.push(`- ${category}: ${summary.count} files`);
+        for (const example of (summary.examples || []).slice(0, 5)) {
+          lines.push(`  - ${example}`);
+        }
+      }
+      return lines.join("\n");
+    } catch {
+      return [
+        "# Saad Agent DEZ Design Reference Manifest",
+        "",
+        `Manifest file: ${filePath.replace(/\\/g, "/")}`,
+        "The manifest exists but could not be parsed. Regenerate it with `npm run generate:dez-manifest` inside saad-agent before relying on DEZ references."
+      ].join("\n");
+    }
   }
 
   private static async findProjectMemoryRoot(startPath: string): Promise<string> {

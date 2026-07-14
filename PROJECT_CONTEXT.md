@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+## Latest task: Cleaned Layout Metadata Icon Query Strings (2026-07-14)
+
+- Status:
+  Removed the version cache-busting query strings (`?v=3`) from the `icons` metadata block inside `app/layout.tsx` to maintain 100% compatibility with the Googlebot favicon search crawler standards.
+- Affected files:
+  - `app/layout.tsx`
+- Verification:
+  - Verified compilation and type-safety using `npx tsc --noEmit` which compiled successfully with zero errors.
+- Decisions:
+  - Kept static file path references clean as advised to align with search engine crawl rules.
+- Remaining:
+  - None.
+
 ## Latest task: Overhauled Favicons and PWA App Icons (2026-07-13)
 
 - Status:
@@ -5621,3 +5634,148 @@
   - Long-paste banners are transient UI notices and must not remain as persistent clutter after the user has attached or submitted content.
 - Remaining:
   - Retest in the restarted app with a newly pasted long YAML/OpenAPI text and verify the badge shows `TXT` or `YML`, not `PDF`, and the notice disappears automatically.
+
+## Latest task: Saad Agent full long-paste engineering request recovery (2026-07-14)
+
+- Status:
+  Fixed the case where a full long user prompt was converted into `pasted-config.txt`, while the visible chat text was only `Attached long pasted content as file.`. Saad Agent now reads the readable attachment body, recognizes a complete human engineering request inside it, promotes that body to the active user request, resolves the explicit target workspace from the recovered text, and routes the task to engineering execution instead of the normal Chat/Reasoning provider.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Required memory files were read before acting.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression for the exact long-paste Seedream page/API request attached as a text file.
+  - `node dist/test-settings.js` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-full-long-paste-routing-20260714T013114.asar`.
+  - Restarted the packaged app and verified running `Saad Agent.exe` processes are from `saad-agent/release-production-v4/win-unpacked`.
+- Findings:
+  - The visible placeholder text from long-paste attachment handling is not the actual user request.
+  - Pure API/OpenAPI specs without human action wording must still not execute blindly; the new recovery requires instruction/action cues plus engineering target or API/path signals.
+  - Provider timeouts at `http://127.0.0.1:32768/api/v1/chat` were caused by wrong routing into Chat, not by the Seedream implementation request itself.
+- Decisions:
+  - Attachment-only placeholder messages are resolved from readable attachment content when the content contains the complete human engineering instruction.
+  - The recovered request is used for workspace path resolution before the approval/runtime path is prepared.
+  - Tests should assert preserved concrete API/model identifiers and runtime routing rather than brittle display-name spelling.
+- Remaining:
+  - User retest: paste the exact long Seedream request again and confirm it asks for approval/runs engineering execution instead of failing at `http://127.0.0.1:32768/api/v1/chat`.
+
+## Latest task: DEZ reference folder inspection (2026-07-14)
+
+- Status:
+  Inspected `saad-agent/release-production-v4/win-unpacked/DEZ` as a read-only report task. The folder contains downloaded/extracted UI reference projects and their zip archives, not active Saad Agent runtime code.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read required memory files before acting.
+  - Listed top-level folders, counted files/extensions, inspected representative `package.json` files, checked for `node_modules`, `.env*` files, licenses, and obvious secret/API-key patterns.
+- Findings:
+  - `DEZ` contains 5 extracted reference folders plus 5 matching `.zip` archives, about 11,205 files and about 157.48 MB total.
+  - No `node_modules` folders were found.
+  - Detected `.env.example` / template files only, not real `.env` secrets.
+  - Licenses inspected are MIT for the main referenced UI packages.
+  - Keeping `DEZ` inside `win-unpacked` can bloat the packaged release and should be treated as reference material, not shipped runtime code.
+- Decisions:
+  - No files inside `DEZ` were modified.
+- Remaining:
+  - If this folder is only for design/reference, move it outside `release-production-v4/win-unpacked` or exclude it from distribution packaging.
+
+## Latest task: Saad Agent DEZ design reference index (2026-07-14)
+
+- Status:
+  Added a safe design-reference index for the downloaded shadcn/UI reference packs under `saad-agent/release-production-v4/win-unpacked/DEZ` and wired it into Saad Agent's project-reference loading path.
+- Affected files:
+  - `saad-agent/DESIGN_REFERENCE_INDEX.md`
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/package.json`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - UI/design engineering prompts can now receive a bounded map of which `DEZ` folders correspond to landing pages, dashboards, chat UI, settings, auth, pricing, components, and theme customization.
+  - `TrustedWorkspaceRuntime.loadAgentReferences(...)` includes `DESIGN_REFERENCE_INDEX.md` and has a built-in fallback summary so packaged builds still have the reference rules if the Markdown file is missing.
+  - `package.json` includes `DESIGN_REFERENCE_INDEX.md` in Electron packaged files.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including the new assertion that `DESIGN_REFERENCE_INDEX.md` loads into engineering context and describes the `DEZ` landing/dashboard map.
+  - `node dist/test-settings.js` passed.
+  - Test output still shows sandbox-only EPERM warnings for audit files under `C:\Users\PC\.saad-agent`; runtime decisions continued in memory and tests passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-dez-manifest-20260714T032700.asar`.
+  - Verified packaged `app.asar` contains `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, `scripts/generate-dez-design-manifest.mjs`, and the updated `dist/platform/services/trusted-workspace-runtime.js`.
+  - Restarted the packaged app from `saad-agent/release-production-v4/win-unpacked`.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-design-reference-index-20260714T031004.asar`.
+  - Verified packaged `app.asar` contains `DESIGN_REFERENCE_INDEX.md` and updated `dist/platform/services/trusted-workspace-runtime.js`.
+- Decisions:
+  - `DEZ` remains read-only reference material. Saad Agent must not modify it, copy from it blindly, or use it as the execution workspace unless the user explicitly targets that path.
+  - Target paths supplied by the user remain the real execution workspace; local image folders remain asset sources only.
+- Remaining:
+  - Retest a page/design prompt in the restarted packaged Saad Agent and confirm it uses the `DEZ` reference map while writing only to the user-selected target workspace.
+
+## Latest task: Saad Agent DEZ authoritative design manifest (2026-07-14)
+
+- Status:
+  Replaced the incomplete design-reference wiring with a generated file-level manifest for every file currently under `saad-agent/release-production-v4/win-unpacked/DEZ`. The prior `DESIGN_REFERENCE_INDEX.md` remains a human navigation guide, but `DESIGN_REFERENCE_MANIFEST.json` is now the authoritative inventory.
+- Affected files:
+  - `saad-agent/scripts/generate-dez-design-manifest.mjs`
+  - `saad-agent/DESIGN_REFERENCE_MANIFEST.json`
+  - `saad-agent/DESIGN_REFERENCE_INDEX.md`
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/package.json`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `npm run generate:dez-manifest` scans `DEZ` and writes a complete manifest with roots, categories, file sizes, text/binary hints, and all relative paths.
+  - Current generated manifest indexes 11,207 files, including landing, dashboard, chat, settings, auth, pricing, component, UI primitive, theme, docs, archive, and visual-asset categories.
+  - `TrustedWorkspaceRuntime.loadAgentReferences(...)` now loads a concise manifest summary into engineering context and labels it as the authoritative file-level source.
+  - Saad Agent must inspect the real target workspace first, then use manifest categories to select relevant `DEZ` references before implementing UI/design work. `DEZ` remains read-only.
+- Verification:
+  - Manifest generation completed successfully from the local filesystem.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including the regression that `DESIGN_REFERENCE_MANIFEST.json` loads as an authoritative DEZ inventory summary.
+  - `node dist/test-settings.js` passed.
+  - Test output still shows sandbox-only EPERM warnings for audit files under `C:\Users\PC\.saad-agent`; runtime decisions continued in memory and tests passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-dez-manifest-20260714T032700.asar`.
+  - Verified packaged `app.asar` contains `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, `scripts/generate-dez-design-manifest.mjs`, and the updated `dist/platform/services/trusted-workspace-runtime.js`.
+  - Directly called the built `TrustedWorkspaceRuntime.loadAgentReferences(...)` and confirmed `DESIGN_REFERENCE_MANIFEST.json` loads with `Indexed files: 11207` and the correct Arabic absolute DEZ path.
+  - Restarted the packaged app from `saad-agent/release-production-v4/win-unpacked`.
+- Decisions:
+  - Do not push all 2.8 MB of manifest text into every prompt. Load a bounded summary plus exact manifest path and category examples, so the runtime can inspect relevant files without prompt bloat.
+  - The manifest, generator script, and design index are included in Electron packaged files.
+- Remaining:
+  - User retest: send a UI/design prompt and confirm Saad Agent uses the DEZ manifest/index as reference while writing only to the target workspace.
+
+## Latest task: Saad Agent DEZ design evidence gate (2026-07-14)
+
+- Status:
+  Added a runtime evidence gate for UI/design/page tasks so Saad Agent cannot merely claim it used `DEZ` references.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - Design/page/dashboard/SaaS/AI Studio prompts now inject `SAAD DESIGN REFERENCE EVIDENCE GATE` into the engineering runtime prompt.
+  - The runtime is explicitly required to inspect the target workspace, `DESIGN_REFERENCE_MANIFEST.json`, and at least one relevant `DEZ` landing/dashboard/component reference before editing.
+  - The runtime final report must include `DEZ files inspected: <actual reference paths>` or `DEZ files inspected: blocked - <reason>`.
+  - If a non-maintenance design runtime succeeds but omits that evidence line, Saad Agent returns a verification-stop response instead of presenting the work as successful.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-settings.js` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including design prompt assertions for the DEZ evidence gate and report line.
+  - Sandbox-only EPERM audit warnings under `C:\Users\PC\.saad-agent` remain non-blocking in tests.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-dez-evidence-gate-20260714T041159.asar`.
+  - Extracted the packaged `app.asar` and verified `dist/platform/services/chat-orchestrator.js` contains `SAAD DESIGN REFERENCE EVIDENCE GATE`, `DEZ files inspected`, and `buildDesignReferenceEvidenceGate`.
+  - Verified packaged `app.asar` contains `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, and `scripts/generate-dez-design-manifest.mjs`.
+  - Restarted the packaged Saad Agent from `release-production-v4/win-unpacked`.
+- Decisions:
+  - The gate applies to design/page engineering runtime output. Daily maintenance flows are excluded so simple maintenance reports are not forced to cite DEZ.
+  - A generic LM Studio answer such as "based on DEZ references" without actual paths is now treated as insufficient evidence.
+- Remaining:
+  - User retest: send the same design prompt. A valid result must now either list `DEZ files inspected: ...` with real reference paths or stop as blocked; a vague "based on DEZ references" report is no longer accepted.

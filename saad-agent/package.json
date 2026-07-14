@@ -6,6 +6,7 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "tsc && node -e \"import('fs').then(fs => fs.copyFileSync('src/desktop/preload.cjs', 'dist/desktop/preload.cjs'))\"",
+    "generate:dez-manifest": "node scripts/generate-dez-design-manifest.mjs",
     "build:ui": "cd ui && npm run build",
     "build:all": "npm run build && npm run build:ui",
     "desktop": "tsc && electron .",
@@ -38,6 +39,9 @@
       "dist/**/*",
       "ui/dist/**",
       "resources/**/*",
+      "scripts/generate-dez-design-manifest.mjs",
+      "DESIGN_REFERENCE_INDEX.md",
+      "DESIGN_REFERENCE_MANIFEST.json",
       "package.json"
     ],
     "win": {

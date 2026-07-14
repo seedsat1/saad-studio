@@ -87,4 +87,13 @@ adobe/New\ folder/*.msi
 .env*
 
 # Electron release folders
-**/release-production-v4/
+**/release/
+**/release-*/
+**/dist/
+**/dist-*/
+*.asar
+**/*.asar
+**/.asar-work*/
+**/.asar-verify*/
+.tmp-asar-*/
+**/.tmp-asar-*/

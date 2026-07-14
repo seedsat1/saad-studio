@@ -50,6 +50,8 @@ Its core responsibility is to help the user work on local software projects thro
 - Daily-maintenance review-only prompts that ask to inspect/read files without editing must run a local read-only inspection before any provider/model call. They must not invoke `PreAnswerReviewService`, training knowledge, Gemini, Cloud, Pi, or Coding runtime. The response must name only files actually read, report 0 files touched, and skip secrets, dependency folders, release folders, and build outputs.
 - Attachment-only pasted specification handling is active: when the UI sends only `Attached long pasted content as file.` with a readable OpenAPI/API/config attachment, Saad Agent must recover the latest prior engineering/model-integration user request from conversation history and route the combined task to the engineering runtime. If no prior engineering task exists, it must return a local clarification and must not call any chat/model provider.
 - Readable API/spec attachments must not be ignored or converted into generic chat. The agent should use the already attached file content, not ask the user to paste the same specification again.
+- Design reference index is active: `saad-agent/DESIGN_REFERENCE_INDEX.md` maps the local `DEZ` UI reference packs to landing, dashboard, chat, settings, auth, pricing, components, and theme-customizer use cases. Saad Agent must use it as read-only design guidance for UI/page work, not as a target workspace, dependency source, or blind copy source.
+- `DEZ` design references are especially useful when the user asks for SaaS / AI Studio pages, shadcn-like dashboards, admin panels, chat interfaces, provider/settings pages, pricing pages, or responsive UI polish. The execution workspace remains the user's explicit target path.
 
 ## Durable Conversation Persistence
 
@@ -1089,3 +1091,29 @@ flowchart TD
 - The badge is a UI label only; it must not be used as the authoritative runtime classification.
 - Long-paste notices in the prompt box are transient. They should clear on submit, clear when the related attachment is removed, and auto-dismiss after a short delay so they do not remain as visual clutter.
 - When repacking the desktop app, close/restart the running `Saad Agent.exe` process if `app.asar` is locked; otherwise the user may still see stale UI behavior.
+
+## Saad Agent full long-paste engineering request behavior (2026-07-14)
+
+- When the visible user message is only an attachment placeholder such as `Attached long pasted content as file.`, the readable text attachment may be the real prompt.
+- If that attachment contains a complete human engineering request, route using the recovered attachment body rather than the placeholder text.
+- Recovery requires instruction/action cues plus a concrete engineering target, local path, or API/spec signal. A pure OpenAPI/YAML/spec file without a human implementation instruction must not execute blindly.
+- The recovered body must participate in workspace resolution before approval/runtime execution. Example: a long pasted Seedream request targeting `C:\Users\PC\Desktop\lang` must execute in that folder, not in the currently selected fallback workspace.
+- These recovered requests must go through approval and `CodexRuntimeBridge`; they must not call the normal Chat/Reasoning provider first.
+
+## Saad Agent DEZ authoritative design manifest behavior (2026-07-14)
+
+- `saad-agent/DESIGN_REFERENCE_MANIFEST.json` is the authoritative file-level inventory for local `DEZ` design references.
+- `saad-agent/DESIGN_REFERENCE_INDEX.md` is only the human navigation guide; it is not enough by itself for design-reference grounding.
+- The manifest is generated with `npm run generate:dez-manifest` and currently indexes 11,207 files from `saad-agent/release-production-v4/win-unpacked/DEZ`.
+- For UI/design/page/dashboard/auth/settings/chat/pricing tasks, Saad Agent must inspect the target workspace first, then use the manifest category examples and exact paths to inspect relevant `DEZ` reference files before implementing.
+- `TrustedWorkspaceRuntime.loadAgentReferences(...)` must load a bounded summary of the manifest, not the full 2.8 MB JSON, to avoid prompt bloat while still exposing the authoritative source path.
+- `DEZ` is read-only reference material. Saad Agent must not modify it, execute unknown scripts from it, or blindly copy full projects into the user target.
+
+## Saad Agent DEZ design evidence gate behavior (2026-07-14)
+
+- UI/design/page/dashboard/SaaS/AI Studio runtime prompts must include `SAAD DESIGN REFERENCE EVIDENCE GATE`.
+- Before editing, the runtime must inspect the target workspace, `DESIGN_REFERENCE_MANIFEST.json`, and at least one relevant `DEZ` reference file such as landing, dashboard, or component code.
+- Runtime reports for these design tasks must include `DEZ files inspected: <actual reference paths>` or `DEZ files inspected: blocked - <reason>`.
+- A successful non-maintenance design runtime output that omits `DEZ files inspected:` is not accepted as a real success; Saad Agent must stop with a verification message and show the raw runtime output.
+- Daily maintenance flows are excluded from this DEZ evidence requirement unless the task is explicitly a design/page implementation task.
+
