@@ -17,6 +17,7 @@ import { SkillsService } from "../platform/services/skills.js";
 import { ProductionService } from "../platform/services/production.js";
 import { SDKService } from "../platform/services/sdk.js";
 import { SettingsManager } from "../production/settings-manager.js";
+import { StartupWarmupService } from "../production/startup-warmup.js";
 import { CONFIG } from "../config.js";
 import { ChatOrchestratorService } from "../platform/services/chat-orchestrator.js";
 import { ExecutionTraceEmitter } from "../platform/services/execution-trace-emitter.js";
@@ -1791,6 +1792,7 @@ async function createWindow() {
 
 app.on("ready", () => {
   process.env["SAAD_AGENT_SETTINGS_ROOT"] = process.env["SAAD_AGENT_SETTINGS_ROOT"] || app.getPath("userData");
+  void StartupWarmupService.start();
   void createWindow();
 });
 

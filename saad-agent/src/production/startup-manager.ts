@@ -1,8 +1,8 @@
-import { SettingsManager } from "./settings-manager.js";
 import { CrashRecoveryManager, type CrashSnapshot } from "./crash-recovery.js";
 import { Logger } from "./logger.js";
 import { SkillRegistry } from "../skills/skill-registry.js";
 import { ConnectorRegistry } from "../platform/services/connectors.js";
+import { StartupWarmupService } from "./startup-warmup.js";
 
 export interface StartupResult {
   status: "initialized" | "recovered" | "failed";
@@ -18,8 +18,14 @@ export class StartupManager {
     try {
       Logger.log("Runtime", "info", "Starting Saad Agent production boot sequence...");
 
-      // 1. Load global settings
-      await SettingsManager.getSettings();
+      // 1. Reuse early warmup if the desktop shell already started it.
+      const warmup = await StartupWarmupService.wait();
+      const failedWarmupEntries = warmup.entries.filter((entry) => entry.status === "rejected");
+      if (failedWarmupEntries.length > 0) {
+        Logger.log("Runtime", "warn", "Startup warmup completed with non-blocking failures.", {
+          failed: failedWarmupEntries.map((entry) => ({ name: entry.name, error: entry.error }))
+        });
+      }
 
       // 2. Load crash snapshot / last session state
       const crashSnapshot: CrashSnapshot | null = await CrashRecoveryManager.loadSnapshot();

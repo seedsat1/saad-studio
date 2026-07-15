@@ -6,6 +6,7 @@ import { SettingsManager } from "./production/settings-manager.js";
 import { ModelClient } from "./platform/services/model-client.js";
 import { ReasoningEngine } from "./platform/services/reasoning-engine.js";
 import { SkillRegistry } from "./skills/skill-registry.js";
+import { StartupWarmupService } from "./production/startup-warmup.js";
 
 function assert(condition: unknown, message: string) {
   if (!condition) throw new Error(message);
@@ -372,7 +373,16 @@ async function runTests() {
     }
     assert(rejectedUnsafe, "Unsafe custom skill manifest was not rejected.");
 
-    console.log("Settings persistence, provider secrets, model role runtime, provider tests, and skill management passed.");
+    StartupWarmupService.resetForTests();
+    const warmup = await StartupWarmupService.start();
+    const warmupNames = new Set(warmup.entries.map((entry) => entry.name));
+    assert(warmupNames.has("settings"), "Startup warmup did not include settings.");
+    assert(warmupNames.has("reference-registry"), "Startup warmup did not include reference registry.");
+    assert(warmupNames.has("skills"), "Startup warmup did not include skills.");
+    assert(warmupNames.has("connectors"), "Startup warmup did not include connectors.");
+    assert(warmup.entries.every((entry) => entry.status !== "pending"), "Startup warmup left pending entries.");
+
+    console.log("Settings persistence, provider secrets, model role runtime, provider tests, skill management, and startup warmup passed.");
   } finally {
     ModelClient.chatCompletion = originalChatCompletion;
     await server.close();

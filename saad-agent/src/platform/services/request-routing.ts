@@ -35,6 +35,19 @@ export class RequestRoutingService {
     const lower = raw.toLowerCase();
     const haystack = `${normalized} ${lower}`;
 
+    if (this.isEngineeringReferenceBindingRequest(raw, normalized)) {
+      return this.route(
+        "engineering_modify",
+        "code_modification",
+        "engineering.modify",
+        ["ContextEngine", "Filesystem", "ValidationPipeline"],
+        "Saad Agent reference/manifest/gate binding request must execute through engineering runtime.",
+        0.99,
+        true,
+        false
+      );
+    }
+
     if (ModelExpertiseExtractionService.isExtractionRequest(raw)) {
       return this.route("training_ingest", "training_ingest", "training.expertise.extract", ["ModelExpertiseExtractionService"], "Expertise extraction must use its provider-aware training pipeline.", 0.99, true, false);
     }
@@ -185,6 +198,26 @@ export class RequestRoutingService {
     const executionVerb = /(?:\u0646\u0641\u0630|\u0646\u0641\u0651\u0630|\u0627\u0639\u062f\s+\u062a\u0646\u0641\u064a\u0630|\u0627\u0635\u0646\u0639|\u0627\u0628\u0646\u064a|\u0633\u0648\u064a|\u0633\u0648\u0651\u064a|\u0627\u0646\u0634\u0626|\u0627\u0646\u0634\u0621|\u0627\u0636\u0641|\u0623\u0636\u0641|\u0636\u064a\u0641|\u0627\u0631\u0628\u0637|\u0631\u0628\u0637|\u0627\u062f\u0645\u062c|\u062f\u0645\u062c|\u0636\u0639|\u062d\u0637|\bimplement\b|\bbuild\b|\bcreate\b|\bmake\b|\bput\b|\bplace\b|\badd\b|\bupdate\b|\bconnect\b|\bwire\b|\bintegrate\b)/i.test(combined);
     const explicitStudioSpec = /\b(?:saas|ai\s+studio|choose\s+your\s+studio|built\s+for\s+real\s+outputs|no\s+rtl|openapi|swagger|seedream|createTask)\b/i.test(lower);
     return hasLocalScope && designOrPage && (executionVerb || explicitStudioSpec);
+  }
+
+  static isEngineeringReferenceBindingRequest(prompt: string, normalizedInput?: string): boolean {
+    const raw = String(prompt || "");
+    const normalized = normalizedInput || this.normalizeArabic(raw);
+    const lower = raw.toLowerCase();
+    const haystack = `${normalized} ${lower}`;
+
+    const saadAgentSignal = /\bsaad\s+agent\b|\bsaad-agent\b|\bchat-orchestrator\b|\brequest-routing\b|\btrustedworkspaceruntime\b|\bcodexruntimebridge\b/i.test(lower)
+      || /سعد\s+اجنت|سعد\s+ايجنت|الاجينت|الوكيل/i.test(normalized);
+    const referenceSignal = /\bdez\b|\bclaude-code\b|\bagent-reach-main\b|\bdesign_reference_manifest\b|\bclaude_code_reference_manifest\b|\bmanifest\b|\bapp\.asar\b|\bproject_context\b|\bsaad_agent_context\b|\bengineering_constitution\b/i.test(lower)
+      || /مرجع|مراجع|مصدر|مصادر|مانفست|بوابة|مسار|ربط/i.test(normalized);
+    const implementationSignal = /\b(?:bind|wire|connect|integrate|implement|add|update|build|test|repack|package|gate|hook|manifest)\b/i.test(lower)
+      || /نفذ|اربط|ربط|اضف|أضف|حدّث|حدث|ابن|اختبر|اعد\s+تغليف|أعد\s+تغليف|بوابه|بوابة/i.test(normalized);
+    const architectureSignal = /\b(?:agent\s+loop|tools?|planning|memory|approvals?|hooks?|context\s+compression|subagents?)\b/i.test(lower)
+      || /ذاكره|ذاكرة|موافقات|ادوات|أدوات|تخطيط|هوكس|وكلاء/i.test(normalized);
+
+    return (saadAgentSignal && referenceSignal && implementationSignal)
+      || (referenceSignal && implementationSignal && architectureSignal)
+      || (/\bdez\b/i.test(lower) && /\bclaude-code\b/i.test(lower) && implementationSignal);
   }
 
   private static isSavedKnowledgeLookupRequest(prompt: string, normalized: string): boolean {

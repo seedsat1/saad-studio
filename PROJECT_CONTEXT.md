@@ -1,5 +1,328 @@
 # Saad Studio Project Context Update
 
+## Latest task: Cinema Flow clipboard image paste (2026-07-15)
+
+- Status:
+  Enabled copy/paste image support in the live website page `/cinema-flow` without changing Saad Agent or the media generation APIs.
+- Affected files:
+  - `app/(dash)/(routes)/cinema-flow/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The Cinema Flow chat prompt textarea now accepts pasted image data from the clipboard.
+  - Pasted images are converted into normal `File` objects with generated `clipboard-image-...` names when needed.
+  - The pasted images go through the existing `handleFileSelection(...)` upload path, then become active reference images exactly like files selected with the `+` button or dropped into the page.
+  - The existing four-reference limit is respected; extra pasted images are not uploaded when no slots remain.
+- Verification:
+  - Read required memory files before acting.
+  - `npm.cmd run build` first failed under sandbox network restrictions while fetching Google Fonts.
+  - Re-ran `npm.cmd run build` with approved network access; Next.js build completed successfully and included `/cinema-flow`.
+  - Build still reports existing non-blocking warnings about outdated Browserslist, ambiguous Tailwind duration classes, and known dynamic server usage logs from unrelated API routes.
+- Errors recorded:
+  - Initial investigation briefly inspected Saad Agent UI because the screenshot showed the agent panel; that change was reverted and no Saad Agent file remains changed by this task.
+- Decisions:
+  - Use Cinema Flow's existing upload/reference pipeline instead of creating a separate clipboard-storage path.
+  - Keep the scope to `app/(dash)/(routes)/cinema-flow/page.tsx` so the requested page behavior changes without broader site risk.
+- Remaining:
+  - User retest: open `https://www.saadstudio.app/cinema-flow`, focus the prompt, paste a copied/screenshot image, and confirm it appears as an active reference thumbnail.
+
+## Latest task: Saad Agent Claude architecture read-only audit routing (2026-07-14)
+
+- Status:
+  Added a deterministic local audit response for read-only Claude Code architecture inspection prompts so they do not fall into Task Ledger/no-runtime text, protected-reference blockers, LM Studio, or the external coding runtime.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - Prompts that explicitly ask for an architecture-only/read-only report using `E:\Agent-Reach-main\claude-code` now run locally with `usedModel: false`.
+  - The response reads `CLAUDE_CODE_REFERENCE_MANIFEST.json`, selects bounded Claude Code reference examples, reads matching Saad Agent source files, and reports real evidence lines:
+    `Claude-code files inspected: ...`
+    `Saad Agent files inspected: ...`
+  - The route does not call LM Studio, Pi/Codex, Gemini, Ollama, or any provider/runtime.
+  - The route does not write to `DEZ` or `claude-code`, and does not copy/run/import/vendor/reverse-engineer Claude Code source.
+  - Saad Agent source root resolution now works whether `CONFIG.PROJECT_ROOT` points at the repository root or directly at `saad-agent`.
+- Verification:
+  - `npm.cmd run typecheck` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-chat-orchestrator.js` passed, including a regression for the Arabic architecture-audit prompt and an assertion that real Saad Agent files are listed.
+  - `node dist\test-settings.js` passed.
+  - Manual smoke output showed `usedModel=false`, real `Claude-code files inspected:` paths, and real `Saad Agent files inspected:` paths.
+- Errors recorded:
+  - The previous path could treat `E:\Agent-Reach-main\claude-code` as a protected target path instead of a read-only architecture reference, producing a blocker or mojibake-like report instead of evidence.
+  - The first local smoke showed Saad Agent files as blocked when `CONFIG.PROJECT_ROOT` already pointed at `saad-agent`; source-root resolution was corrected.
+- Decisions:
+  - Read-only architecture audits are deterministic local evidence tasks, not external-runtime tasks.
+  - Generic design tasks that merely mention `claude-code` as a read-only architecture reference still route normally to design/runtime flow; this local shortcut is only for explicit architecture-audit/report-only prompts.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar`, restart the packaged app, and retest the same Arabic prompt in the UI.
+
+## Latest task: Saad Agent TypeScript typecheck configuration guard (2026-07-14)
+
+- Status:
+  Added a dedicated Saad Agent typecheck configuration instead of replacing the production Electron/Node TypeScript build configuration with a Bun-oriented snippet.
+- Affected files:
+  - `saad-agent/tsconfig.typecheck.json`
+  - `saad-agent/package.json`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `npm run build` still emits JavaScript into `dist` for the packaged Electron app.
+  - `npm run typecheck` now runs `tsc -p tsconfig.typecheck.json` with `noEmit: true` for checking only.
+  - The pasted Bun-style settings were not copied over the main `tsconfig.json` because `noEmit: true`, `types: ["bun-types"]`, `moduleResolution: "bundler"`, and `bun:bundle` path aliases are not compatible with the current Saad Agent Electron/Node build path.
+- Verification:
+  - `npm.cmd run typecheck` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed. Sandbox-only EPERM audit/policy warnings under `C:\Users\PC\.saad-agent` remained non-blocking.
+- Decisions:
+  - Keep production emission and type-only checking as separate commands.
+  - Do not add Bun-only compiler types or source aliases unless Saad Agent actually introduces a Bun runtime module with an original local shim.
+- Remaining:
+  - No app runtime repack is required for this typecheck-only configuration unless the user wants package metadata inside the currently unpacked `app.asar` refreshed.
+
+## Latest task: Saad Agent startup warmup (2026-07-14)
+
+- Status:
+  Implemented an original Saad Agent startup warmup path inspired only by the high-level idea of early parallel boot work. No Claude Code source was copied, run, imported, bundled, or vendored.
+- Affected files:
+  - `saad-agent/src/production/startup-warmup.ts`
+  - `saad-agent/src/production/startup-manager.ts`
+  - `saad-agent/src/desktop/main.ts`
+  - `saad-agent/src/test-settings.ts`
+  - `PROJECT_CONTEXT.md`
+- Behavior:
+  - `StartupWarmupService.start()` begins non-blocking warmup for settings, reference registry, skills, and connectors.
+  - Electron `desktop/main.ts` starts warmup immediately after `SAAD_AGENT_SETTINGS_ROOT` is set and before `createWindow()`.
+  - `StartupManager.initializeApplication()` reuses the warmup result instead of forcing duplicate serial settings/reference initialization.
+  - Warmup failures are non-blocking and reported as startup warnings; the app still opens if optional warmup entries fail.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed, including coverage for startup warmup entries.
+  - `node dist\test-chat-orchestrator.js` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-startup-warmup-20260714T223407.asar`.
+  - Extracted the new `app.asar` and verified it contains `dist/production/startup-warmup.js`, updated `startup-manager.js`, updated `desktop/main.js`, and the updated memory/reference files.
+  - Restarted packaged `Saad Agent.exe`; running processes point to `saad-agent/release-production-v4/win-unpacked`.
+- Errors recorded:
+  - The user-provided snippet was proprietary/leaked Claude Code source. It was not executed or merged; only the general startup-performance pattern was implemented with original Saad Agent code.
+- Decisions:
+  - Startup optimization belongs in an explicit Saad Agent service, not top-level imported side effects copied from an external codebase.
+  - Settings root must be set before warmup starts so packaged desktop state still uses Electron `userData`.
+- Remaining:
+  - User retest: open the packaged app and confirm it starts normally. This change is internal startup warmup, so the visible behavior should be normal app startup without new UI.
+
+## Latest task: Saad Agent centralized reference registry (2026-07-14)
+
+- Status:
+  Added and verified a central `ReferenceRegistryService` so Saad Agent resolves `DEZ` and `claude-code` from authoritative reference roots instead of deriving paths from the active user workspace or relying on scattered literals.
+- Affected files:
+  - `saad-agent/src/platform/services/reference-registry.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `ReferenceRegistryService` is now the central source for the DEZ design reference root, `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, the Claude Code architecture reference root, `CLAUDE_CODE_REFERENCE_MANIFEST.json`, and `CLAUDE_CODE_REFERENCE_INDEX.md`.
+  - The registry supports environment overrides but otherwise prefers packaged Electron resources, module/project roots, and the known local Claude Code reference root.
+  - `ChatOrchestratorService` uses the registry for DEZ preflight/evidence gates, Claude Code evidence gates, and named reference expansion.
+  - `TrustedWorkspaceRuntime` uses the registry to block reference-only paths from execution/trusted-workspace use and to load reference summaries.
+  - No leaked/proprietary Claude Code source was copied, run, imported, bundled, or vendored. The local `E:\Agent-Reach-main\claude-code` path remains read-only architecture evidence only.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed.
+  - Direct registry check returned:
+    - DEZ root: `E:/موقع ثاني/next14 ai saas/next14-ai-saas-main/next14-ai-saas-main/saad-agent/release-production-v4/win-unpacked/DEZ`
+    - Claude Code root: `E:/Agent-Reach-main/claude-code`
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-reference-registry-20260714T222230.asar`.
+  - Extracted the new `app.asar` and verified it contains `dist/platform/services/reference-registry.js`, updated orchestrator/runtime service files, `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, `CLAUDE_CODE_REFERENCE_MANIFEST.json`, `CLAUDE_CODE_REFERENCE_INDEX.md`, and `package.json`.
+  - Restarted packaged `Saad Agent.exe`; running process points to `saad-agent/release-production-v4/win-unpacked`.
+- Errors recorded:
+  - A prior fallback literal in `reference-registry.ts` contained mojibake Arabic path text. It was removed so path resolution depends on package/project roots and explicit environment overrides.
+  - Some older tests still contained mojibake Arabic prompt strings. Relevant assertions were made stable around behavior rather than brittle translated text.
+- Decisions:
+  - DEZ and Claude Code references must be resolved by one registry service and must remain read-only.
+  - Design tasks still require `DEZ files inspected:` evidence; agent architecture tasks still require `Claude-code files inspected:` evidence.
+- Remaining:
+  - User retest: run a design prompt that mentions DEZ and verify the final report includes `DEZ files inspected: <actual reference paths>`, then run an agent-architecture prompt and verify `Claude-code files inspected: <actual reference paths>` appears.
+
+## Latest task: Saad Agent task ledger no-runtime guard (2026-07-14)
+
+- Status:
+  Fixed the case where Task Ledger/status prompts such as "do not execute", "inspect only", or "do not run runtime" still launched the engineering runtime and produced provider/DEZ evidence behavior. Follow-up fix: named `DEZ` references now resolve to the real packaged/project DEZ reference root instead of being derived from the active user workspace.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `ChatOrchestratorService` now handles Task Ledger save/status prompts locally when the user explicitly forbids execution or runtime.
+  - These prompts return `usedModel: false`, do not call `CodexRuntimeBridge`, do not call LM Studio/Ollama/Gemini/Pi, and do not trigger DEZ design evidence gates.
+  - The local response reports the target workspace, read-only reference paths, no-RTL status, and whether writing inside `DEZ` or `claude-code` is allowed.
+  - Named references such as `DEZ` and `claude-code` are expanded into their known read-only reference paths for the ledger without using them as execution workspaces.
+  - `DEZ` expansion prefers Electron `process.resourcesPath\..\DEZ` in the packaged app and dev/project Saad Agent candidates before falling back to the known local Saad Agent DEZ path. It must not use `C:\Users\...\Desktop\lang\saad-agent...` or `E:\TEST ANG\saad-agent...`.
+- Verification:
+  - `node dist\test-chat-orchestrator.js` passed, including a regression where runtime calls throw if a no-runtime Task Ledger request tries to execute.
+  - Added regression coverage that the local ledger response does not derive `DEZ` from the active user workspace when `CONFIG.PROJECT_ROOT` points to a temporary external workspace.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the packaged `app.asar` and verified `dist/platform/services/chat-orchestrator.js` contains `resolveTaskLedgerOnlyResponse`, `SAAD TASK LEDGER`, and the local no-runtime response text.
+  - Restarted packaged `Saad Agent.exe` from `release-production-v4/win-unpacked`; running processes point to the packaged path.
+- Errors recorded:
+  - The packaged app previously treated a Task Ledger status/save prompt as an engineering execution request, causing unnecessary `pi exec`/provider behavior.
+- Decisions:
+  - Asking Saad Agent to remember or report an active engineering task is deterministic local state handling, not a model/runtime task.
+- Remaining:
+  - User retest: send the two-message Task Ledger flow in the UI and confirm there is no approval card, no `Execution Trace`, and no LM Studio/Pi activity for no-runtime status prompts.
+
+## Latest task: Saad Agent reference-binding routing guard (2026-07-14)
+
+- Status:
+  Fixed a routing bug where a Saad Agent engineering request that mentioned `DEZ`, `claude-code`, manifests, gates, and `app.asar` could be intercepted by direct shortcuts such as official-site links or page-blueprint responses instead of reaching the engineering runtime.
+- Affected files:
+  - `saad-agent/src/platform/services/request-routing.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `RequestRoutingService.isEngineeringReferenceBindingRequest(...)` now classifies Saad Agent reference/manifest/gate binding work as `engineering_modify`.
+  - Direct deterministic commands and page-blueprint shortcuts are bypassed for these binding requests.
+  - Reference-only paths still block execution when used as explicit output targets, but binding requests that use `DEZ` and `claude-code` as read-only references can proceed to the Saad Agent source workspace.
+  - Regression coverage verifies that the request reaches `CodexRuntimeBridge`, includes both DEZ and Claude Code evidence gates, and does not return `Google الرسمي` / `فتح Google`.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`.
+  - Extracted the packaged `app.asar` and verified it contains `isEngineeringReferenceBindingRequest`, `SAAD DESIGN REFERENCE PREFLIGHT`, `SAAD CLAUDE CODE REFERENCE EVIDENCE GATE`, `DESIGN_REFERENCE_MANIFEST.json`, and `CLAUDE_CODE_REFERENCE_MANIFEST.json`.
+- Errors recorded:
+  - The previous routing allowed non-engineering shortcuts to answer a complex engineering request.
+  - Some older Arabic test strings are mojibake in the repo; new regression text uses ASCII signal phrases to avoid encoding-dependent false failures.
+- Decisions:
+  - Reference binding is a first-class engineering request. It must never be treated as web/open-site lookup or a generic page blueprint.
+  - Protected reference folders remain read-only and cannot silently become output workspaces.
+- Remaining:
+  - Restart the packaged app and retest the same user prompt in the desktop UI.
+
+## Latest task: Saad Agent DEZ evidence self-repair retry (2026-07-14)
+
+- Status:
+  Added a one-shot self-repair path for design runtimes that return planning text such as "I need to examine..." or otherwise omit the required `DEZ files inspected:` line.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - When a non-maintenance design runtime succeeds but omits DEZ evidence, Saad Agent now runs `SAAD DESIGN REFERENCE SELF-REPAIR` once before returning a verification stop.
+  - The repair prompt includes the failed runtime output, the original runtime prompt, the target workspace, and the preselected concrete DEZ reference paths.
+  - The repair result is accepted only if it includes `DEZ files inspected:` with actual reference paths; otherwise the existing verification stop remains.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed, including a regression where the first runtime output is only "I need to examine..." and the second self-repair run returns `DEZ files inspected:`.
+- Errors recorded:
+  - Some local coding model runs can answer with a plan/intention instead of using tools, even after receiving the DEZ preflight paths.
+- Decisions:
+  - Saad Agent should attempt one deterministic repair for missing design evidence, not endlessly retry or present a plan-only runtime response as success.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar`, restart the packaged app, and retest the same design prompt. This packaging step was not completed in the current run because the desktop command escalation was rejected by the environment usage limit.
+
+## Latest task: Saad Agent concrete DEZ preflight references (2026-07-14)
+
+- Status:
+  Fixed the design-reference evidence gap where the runtime could finish a design task and merely claim it used `DEZ` without proving which files were read.
+- Affected files:
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `ChatOrchestratorService` now runs a DEZ preflight for UI/design/page prompts before launching the engineering runtime.
+  - The preflight reads `DESIGN_REFERENCE_MANIFEST.json`, selects concrete relevant landing/dashboard/component reference files, reads bounded excerpts, and injects `SAAD DESIGN REFERENCE PREFLIGHT` into the runtime prompt.
+  - Runtime prompts now include an exact `DEZ files inspected: <actual paths>` line based on selected local files, not only a generic instruction to cite references.
+  - A design runtime that does not report real DEZ evidence is still rejected by the existing evidence gate.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed, including assertions that design prompts contain concrete DEZ preflight paths before runtime execution.
+  - Verified built `dist/platform/services/chat-orchestrator.js` contains `SAAD DESIGN REFERENCE PREFLIGHT`, `buildDesignReferencePreflightContext`, and `Selected DEZ reference files`.
+- Errors recorded:
+  - Previous behavior relied on the runtime to discover DEZ evidence by itself, which allowed local model output to claim DEZ usage without actual cited paths.
+- Decisions:
+  - Design grounding is now proactive: Saad Agent selects and injects actual DEZ reference files before runtime, while `DEZ` remains read-only and never an output workspace.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar`, restart the packaged app, and retest the same design prompt.
+
+## Latest task: Saad Agent reference-only workspace hard guard (2026-07-14)
+
+- Status:
+  Fixed a critical routing/safety bug where a read-only reference path such as `E:\Agent-Reach-main\claude-code` could be selected as the execution/output workspace after being mentioned in a design prompt.
+- Affected files:
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/release-production-v4/win-unpacked/resources/app.asar`
+- Behavior:
+  - `TrustedWorkspaceRuntime.isReferenceOnlyPath(...)` now marks Claude Code and DEZ reference folders/manifests as read-only reference material.
+  - Reference-only paths cannot be added as trusted workspaces and cannot pass `assertTrustedPath(...)` for execution.
+  - Workspace resolution filters reference-only paths and uses a safe fallback when the active/fallback workspace is a reference folder.
+  - Engineering runtime prompts now include `ABSOLUTE TARGET WORKSPACE` and explicitly state that DEZ/Claude Code paths are evidence only, never output workspaces.
+  - If a prompt tries to write directly into a protected reference path, Saad Agent stops before runtime execution and asks for a real target path.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `npm.cmd run build` in `saad-agent/ui` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed, including regression coverage that reference folders cannot become execution workspaces.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`, extracted it, and verified the guard strings exist inside the packaged `chat-orchestrator.js` and `trusted-workspace-runtime.js`.
+  - Restarted the packaged Saad Agent from `release-production-v4/win-unpacked`.
+- Errors recorded:
+  - A prior test incorrectly allowed an explicit `claude-code` local path to become a target workspace; that expectation was replaced with a blocker test.
+- Decisions:
+  - `E:\Agent-Reach-main\claude-code` and `DEZ` are never execution targets, even when mentioned in prompts. They are read-only reference/evidence sources only.
+  - If the user wants generated pages, the target must be a separate real workspace such as `C:\Users\PC\Desktop\lang`.
+- Remaining:
+  - User retest: send the same design prompt. A valid run must target the requested non-reference folder or stop with a protected-reference-path message.
+
+## Latest task: Saad Agent Claude Code reference evidence gate (2026-07-14)
+
+- Status:
+  Added a generated read-only Claude Code reference manifest and a runtime evidence gate so Saad Agent cannot claim Claude Code-style architecture/reference usage without proving which local reference files were inspected.
+- Affected files:
+  - `saad-agent/scripts/generate-claude-code-reference-manifest.mjs`
+  - `saad-agent/CLAUDE_CODE_REFERENCE_INDEX.md`
+  - `saad-agent/CLAUDE_CODE_REFERENCE_MANIFEST.json`
+  - `saad-agent/src/platform/services/trusted-workspace-runtime.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `saad-agent/package.json`
+- Behavior:
+  - `npm run generate:claude-code-manifest` scans `E:\Agent-Reach-main\claude-code` and writes a bounded manifest under `saad-agent`.
+  - `TrustedWorkspaceRuntime.loadAgentReferences(...)` now loads `CLAUDE_CODE_REFERENCE_INDEX.md` and a summarized `CLAUDE_CODE_REFERENCE_MANIFEST.json`.
+  - Agent architecture/runtime/tooling prompts now inject `SAAD CLAUDE CODE REFERENCE EVIDENCE GATE`.
+  - Runtime reports for these tasks must include `Claude-code files inspected: <actual reference paths>` or `Claude-code files inspected: blocked - <reason>`.
+- Verification:
+  - Generated the manifest successfully with 6,351 indexed files.
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist\test-settings.js` passed.
+  - `node dist\test-chat-orchestrator.js` passed, including coverage that Claude Code is a read-only reference and must not become the execution workspace.
+- Decisions:
+  - Claude Code folders remain comparative reference material only. No code was copied, imported, run, vendored, or bundled from the reference folder.
+  - The real Saad Agent execution workspace remains the Saad Agent source project; `E:\Agent-Reach-main\claude-code` is not a target workspace.
+- Remaining:
+  - Repack `saad-agent/release-production-v4/win-unpacked/resources/app.asar` and restart the packaged app before user retest.
+
 ## Latest task: Cleaned Layout Metadata Icon Query Strings (2026-07-14)
 
 - Status:
@@ -5774,8 +6097,100 @@
   - Extracted the packaged `app.asar` and verified `dist/platform/services/chat-orchestrator.js` contains `SAAD DESIGN REFERENCE EVIDENCE GATE`, `DEZ files inspected`, and `buildDesignReferenceEvidenceGate`.
   - Verified packaged `app.asar` contains `DESIGN_REFERENCE_MANIFEST.json`, `DESIGN_REFERENCE_INDEX.md`, and `scripts/generate-dez-design-manifest.mjs`.
   - Restarted the packaged Saad Agent from `release-production-v4/win-unpacked`.
+  - During user trust verification, detected that the real `app.asar` had become absent while backups remained. Recreated the real `app.asar` from current `dist`, package metadata, UI dist, and DEZ manifest/index, then verified the real extracted archive contains the DEZ evidence gate strings.
 - Decisions:
   - The gate applies to design/page engineering runtime output. Daily maintenance flows are excluded so simple maintenance reports are not forced to cite DEZ.
   - A generic LM Studio answer such as "based on DEZ references" without actual paths is now treated as insufficient evidence.
 - Remaining:
   - User retest: send the same design prompt. A valid result must now either list `DEZ files inspected: ...` with real reference paths or stop as blocked; a vague "based on DEZ references" report is no longer accepted.
+## Latest task: Packaged Saad Agent launch repair (2026-07-14)
+
+- Status:
+  Fixed a packaged-app launch failure in `saad-agent/release-production-v4/win-unpacked`.
+- Cause:
+  The app exited before JavaScript startup with Electron ICU error `Invalid file descriptor to ICU data received` because the unpacked runtime folder was missing Electron support files such as `icudtl.dat`, `locales`, `ffmpeg.dll`, `resources.pak`, and related DLL/PAK files.
+- Affected path:
+  - `saad-agent/release-production-v4/win-unpacked`
+- Repair:
+  - Copied the missing Electron runtime files from local `saad-agent/node_modules/electron/dist` into `release-production-v4/win-unpacked`.
+  - Did not change `resources/app.asar` during this repair.
+- Verification:
+  - Restarted `Saad Agent.exe`.
+  - No new ICU error was appended to `debug.log`.
+  - `Saad Agent` processes stayed alive, including a visible Electron window process with title `ui`.
+- Remaining:
+  - User should visually confirm the app window opens normally on screen.
+
+## Latest task: Saad Agent task ledger and follow-up continuity (2026-07-14)
+
+- Status:
+  Added a real task ledger to preserve the active engineering request across approvals and short follow-up messages.
+- Affected files:
+  - `saad-agent/src/platform/services/conversation-state-engine.ts`
+  - `saad-agent/src/platform/services/chat-orchestrator.ts`
+  - `saad-agent/src/test-chat-orchestrator.ts`
+  - `PROJECT_CONTEXT.md`
+  - `saad-agent/SAAD_AGENT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `ConversationStateEngine` now stores `taskLedger` with `originalRequest`, `effectiveRequest`, `targetWorkspace`, `referencePaths`, `assetPaths`, route/workflow, approval state, and runtime status.
+  - Engineering runtime prompts now include `SAAD TASK LEDGER` so the worker receives the preserved task, target workspace, read-only reference paths, asset paths, and explicit scope rules.
+  - Short target updates such as `ضع نفس الصفحة هنا C:\...` use the active ledger/effective task instead of collapsing into a generic sample page.
+  - Reference paths such as `DEZ` or `E:\Agent-Reach-main\claude-code` remain read-only evidence and are not treated as output workspaces.
+  - Runtime success/failure writes a short status summary back to the task ledger.
+- Verification:
+  - `npm.cmd run build` in `saad-agent` passed.
+  - `node dist/test-chat-orchestrator.js` passed, including a regression that a SaaS/AI Studio request followed by a short target-folder update preserves the original requirements and updates the ledger target workspace.
+  - `node dist/test-settings.js` passed.
+  - Sandbox-only EPERM audit warnings under `C:\Users\PC\.saad-agent` remain non-blocking in tests.
+  - Repacked `saad-agent/release-production-v4/win-unpacked/resources/app.asar`; backup saved as `app.asar.backup-task-ledger-20260714T192130.asar`.
+  - Extracted the packaged `app.asar` into a temporary verification folder and confirmed packaged `dist/platform/services/chat-orchestrator.js` contains `SAAD TASK LEDGER`, target/reference/asset scope rules, and packaged `dist/platform/services/conversation-state-engine.js` contains `updateTaskLedger` and `getActiveTaskLedger`.
+- Decisions:
+  - Do not copy or run leaked/proprietary Claude Code source. Saad Agent may use local Claude Code material only as read-only architectural evidence with explicit report lines.
+  - The task ledger is the central continuity mechanism for engineering tasks before deeper agent-loop cleanup.
+- Remaining:
+  - Restart the packaged app before retesting so Electron loads the new `app.asar`.
+
+## Latest task: Saad Agent packaged app repair after incomplete asar repack (2026-07-14)
+
+- Status:
+  Repaired the packaged `app.asar` after the user reported that Saad Agent was not working.
+- Cause:
+  The final `app.asar` repack after task-ledger work was built from `resources/app-asar-work` while root package/reference files were missing from that work folder.
+- Missing from the broken archive:
+  - `package.json`
+  - `DESIGN_REFERENCE_MANIFEST.json`
+  - `CLAUDE_CODE_REFERENCE_MANIFEST.json`
+  - manifest generator scripts under `scripts/`
+- Repair:
+  - Restored the missing root package/reference files and manifest scripts into `release-production-v4/win-unpacked/resources/app-asar-work`.
+  - Repacked `release-production-v4/win-unpacked/resources/app.asar`.
+  - Restarted the running `Saad Agent.exe` processes so Electron loads the repaired archive.
+- Verification:
+  - Confirmed the repaired `app.asar` contains `package.json`, `DESIGN_REFERENCE_MANIFEST.json`, `CLAUDE_CODE_REFERENCE_MANIFEST.json`, both manifest generator scripts, `dist/platform/services/chat-orchestrator.js`, and `ui/dist/index.html`.
+  - Confirmed new `Saad Agent` processes are running from `release-production-v4/win-unpacked`.
+  - `debug.log` did not receive new ICU errors after restart.
+- Decision:
+  - Future manual `app.asar` repacks must verify root package/reference files before restart, not only `dist` files.
+- Remaining:
+  - User should visually confirm the restarted app window responds, then retest the Task Ledger prompt.
+
+## Latest task: Magnific Premiere plugin workflow comparison (2026-07-15)
+
+- Status:
+  Inspected `C:\Users\PC\Downloads\magnific-premiere-0.2.0.ccx` as a read-only product/workflow reference and compared its account gallery, auth, host bridge, and service integration approach with `adobe/saadstudio-cep`.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Read required memory files before acting.
+  - Inspected Magnific package manifest, host bridge, webview bundle signals, allowed domains, OAuth/MCP endpoints, tool gallery, media tile, upload/finalize, account balance/profile, and feed-related mechanisms without installing or running the plugin.
+  - Inspected Saad Studio CEP files: `CSXS/manifest.xml`, `client/src/lib/api.ts`, `client/src/lib/auth.ts`, `client/src/lib/oauth.ts`, `client/src/lib/store.ts`, `client/src/pages/home.ts`, `client/src/pages/connect.ts`, `client/src/components/recent-strip.ts`, `client/src/pages/feature-page.ts`, `client/src/components/header.ts`, and host bridge files.
+- Findings:
+  - Magnific's strong pattern is a unified host bridge plus a service-tool layer around MCP/OAuth, account profile/balance, upload/finalize, feed/gallery, result insertion, and reference reuse.
+  - Saad Studio already has equivalent foundations: browser session auth, bearer API client, account/credits endpoints, recent generation gallery, import/drag into Premiere, direct upload, polling, and feature-page result refresh.
+  - Main product gap: Saad Studio's account gallery is not a first-class home workspace in the current home redesign; it is mainly embedded inside feature pages through `RecentStrip`.
+- Decisions:
+  - Treat Magnific as a UX/architecture reference only; do not copy its bundled/minified code.
+  - Recommended next implementation direction is to promote Saad Studio's existing `RecentStrip` and store/API paths into a central account library/feed experience, plus consolidate generation/upload/import flows behind a cleaner tool-service contract.
+- Remaining:
+  - If approved, implement a Saad-original home/account library patterned after the observed workflow using existing Saad Studio API and CEP bridge code.

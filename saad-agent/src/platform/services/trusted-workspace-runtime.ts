@@ -6,6 +6,7 @@ import { promisify } from "util";
 import electronPkg from "electron";
 import { getGlobalAppDataDir } from "../workspace-manager.js";
 import { fileURLToPath } from "url";
+import { ReferenceRegistryService } from "./reference-registry.js";
 
 const execFileAsync = promisify(execFile);
 const { clipboard, shell } = electronPkg;
@@ -102,6 +103,24 @@ const designReferenceManifestFallback = [
   "This fallback is not a complete file-level manifest; regenerate it with `npm run generate:dez-manifest` inside saad-agent."
 ].join("\n");
 
+const claudeCodeReferenceIndexFallback = [
+  "# Saad Agent Claude Code Reference Index",
+  "",
+  "Use E:/Agent-Reach-main/claude-code as a read-only comparative architecture reference only.",
+  "Allowed patterns: agent loop, tool registry, task state, permission gates, terminal/file workflows, hooks, skills/plugins, memory/context budgeting.",
+  "Forbidden: copying, importing, running, vendoring, bundling, or reverse-engineering source from that folder.",
+  "For architecture/runtime tasks, inspect this reference summary plus CLAUDE_CODE_REFERENCE_MANIFEST.json and relevant paths before making claims.",
+  "Final runtime reports must include `Claude-code files inspected: <actual reference paths>` or `Claude-code files inspected: blocked - <reason>`."
+].join("\n");
+
+const claudeCodeReferenceManifestFallback = [
+  "# Saad Agent Claude Code Reference Manifest",
+  "",
+  "The generated CLAUDE_CODE_REFERENCE_MANIFEST.json file is missing from the package.",
+  "Fallback source root: E:/Agent-Reach-main/claude-code.",
+  "This fallback is not a complete file-level manifest; regenerate it with `npm run generate:claude-code-manifest` inside saad-agent before relying on Claude Code reference evidence."
+].join("\n");
+
 export class TrustedWorkspaceRuntime {
   private static async storePath(): Promise<string> {
     const appData = await getGlobalAppDataDir();
@@ -119,6 +138,15 @@ export class TrustedWorkspaceRuntime {
     return /(^|\/)(secrets?|credentials?|tokens?|cookies?|private-keys?|keychain|encrypted-secret-store)(\/|$)/i.test(normalized)
       || /\.(pem|p12|pfx|key|crt)$/i.test(normalized)
       || /(api[_-]?key|access[_-]?token|auth[_-]?token|secret|password|credential)/i.test(base);
+  }
+
+  static isReferenceOnlyPath(inputPath: string): boolean {
+    const normalized = inputPath.replace(/\\/g, "/").toLowerCase();
+    return ReferenceRegistryService.isReferenceOnlyPath(inputPath)
+      || normalized.includes("/agent-reach-main/claude-code")
+      || normalized.includes("/release-production-v4/win-unpacked/dez")
+      || /(^|\/)dez(\/|$)/i.test(normalized)
+      || /(^|\/)(claude_code_reference_|design_reference_)/i.test(path.basename(normalized));
   }
 
   static async loadStore(): Promise<TrustedWorkspaceStore> {
@@ -146,6 +174,9 @@ export class TrustedWorkspaceRuntime {
     }
     if (this.isSensitivePath(normalized)) {
       throw new Error("Sensitive paths cannot be trusted workspaces.");
+    }
+    if (this.isReferenceOnlyPath(normalized)) {
+      throw new Error("Reference-only paths cannot be trusted workspaces.");
     }
 
     const store = await this.loadStore();
@@ -198,6 +229,9 @@ export class TrustedWorkspaceRuntime {
     const resolved = this.normalize(targetPath);
     if (this.isSensitivePath(resolved)) {
       throw new Error("Access denied: sensitive files and credential paths are blocked.");
+    }
+    if (this.isReferenceOnlyPath(resolved)) {
+      throw new Error("Access denied: reference-only paths cannot be execution workspaces.");
     }
 
     const store = await this.loadStore();
@@ -356,12 +390,16 @@ export class TrustedWorkspaceRuntime {
     const agentRoot = fs.existsSync(path.join(workspaceRoot, "saad-agent", "SAAD_AGENT_CONTEXT.md"))
       ? path.join(workspaceRoot, "saad-agent")
       : builtAgentRoot;
+    const designReference = ReferenceRegistryService.getDesignReference();
+    const claudeReference = ReferenceRegistryService.getClaudeCodeReference();
     const candidates = [
       path.join(workspaceRoot, "AGENTS.md"),
       path.join(workspaceRoot, "PROJECT_CONTEXT.md"),
       path.join(agentRoot, "SAAD_AGENT_CONTEXT.md"),
-      path.join(agentRoot, "DESIGN_REFERENCE_INDEX.md"),
-      path.join(agentRoot, "DESIGN_REFERENCE_MANIFEST.json"),
+      designReference.indexPath,
+      designReference.manifestPath,
+      claudeReference.indexPath,
+      claudeReference.manifestPath,
       path.join(workspaceRoot, "docs", "saad-studio-premiere-reference-ar.md")
     ];
     const unique = Array.from(new Set(candidates.map((item) => path.resolve(item))));
@@ -370,10 +408,18 @@ export class TrustedWorkspaceRuntime {
       if (!content.trim() && path.basename(filePath) === "DESIGN_REFERENCE_INDEX.md") {
         content = designReferenceIndexFallback;
       }
+      if (!content.trim() && path.basename(filePath) === "CLAUDE_CODE_REFERENCE_INDEX.md") {
+        content = claudeCodeReferenceIndexFallback;
+      }
       if (path.basename(filePath) === "DESIGN_REFERENCE_MANIFEST.json") {
         content = content.trim()
           ? this.formatDesignReferenceManifest(filePath, content)
           : designReferenceManifestFallback;
+      }
+      if (path.basename(filePath) === "CLAUDE_CODE_REFERENCE_MANIFEST.json") {
+        content = content.trim()
+          ? this.formatClaudeCodeReferenceManifest(filePath, content)
+          : claudeCodeReferenceManifestFallback;
       }
       return { path: filePath.replace(/\\/g, "/"), loaded: Boolean(content.trim()), content: content.slice(0, 2000) };
     }));
@@ -434,6 +480,67 @@ export class TrustedWorkspaceRuntime {
         "",
         `Manifest file: ${filePath.replace(/\\/g, "/")}`,
         "The manifest exists but could not be parsed. Regenerate it with `npm run generate:dez-manifest` inside saad-agent before relying on DEZ references."
+      ].join("\n");
+    }
+  }
+
+  private static formatClaudeCodeReferenceManifest(filePath: string, rawContent: string): string {
+    try {
+      const manifest = JSON.parse(rawContent) as {
+        absoluteReferenceRoot?: string;
+        relativeReferenceRoot?: string;
+        totalFiles?: number;
+        totalBytes?: number;
+        roots?: Array<{ name: string; totalFiles: number; totalBytes: number }>;
+        categories?: Record<string, { count: number; examples?: string[] }>;
+      };
+      const priorityCategories = [
+        "package",
+        "entrypoints",
+        "agent-runtime",
+        "tools",
+        "tasks",
+        "memory-context",
+        "permissions",
+        "terminal",
+        "file-ops",
+        "skills-plugins-hooks",
+        "docs"
+      ];
+      const lines = [
+        "# Saad Agent Claude Code Reference Manifest",
+        "",
+        "This generated manifest is the authoritative file-level source for the local Claude Code comparative architecture reference.",
+        `Manifest file: ${filePath.replace(/\\/g, "/")}`,
+        `Absolute reference root: ${manifest.absoluteReferenceRoot || "(unknown)"}`,
+        `Relative reference root: ${manifest.relativeReferenceRoot || "E:/Agent-Reach-main/claude-code"}`,
+        `Indexed files: ${manifest.totalFiles ?? 0}`,
+        `Indexed bytes: ${manifest.totalBytes ?? 0}`,
+        "",
+        "Safety: read-only architecture reference only. Do not copy, run, import, vendor, bundle, or reverse-engineer code from this folder.",
+        "Required behavior: for Saad Agent architecture/runtime tasks, inspect relevant manifest categories and cite actual reference paths in `Claude-code files inspected:`.",
+        "",
+        "Reference roots:"
+      ];
+      for (const root of (manifest.roots || []).slice(0, 12)) {
+        lines.push(`- ${root.name}: ${root.totalFiles} files, ${root.totalBytes} bytes`);
+      }
+      lines.push("", "Priority categories:");
+      for (const category of priorityCategories) {
+        const summary = manifest.categories?.[category];
+        if (!summary) continue;
+        lines.push(`- ${category}: ${summary.count} files`);
+        for (const example of (summary.examples || []).slice(0, 5)) {
+          lines.push(`  - ${example}`);
+        }
+      }
+      return lines.join("\n");
+    } catch {
+      return [
+        "# Saad Agent Claude Code Reference Manifest",
+        "",
+        `Manifest file: ${filePath.replace(/\\/g, "/")}`,
+        "The manifest exists but could not be parsed. Regenerate it with `npm run generate:claude-code-manifest` inside saad-agent before relying on Claude Code references."
       ].join("\n");
     }
   }

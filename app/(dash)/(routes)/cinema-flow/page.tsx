@@ -46,6 +46,50 @@ interface ChatMessage {
   assetUrls?: string[];
 }
 
+const imageExtensionFromMimeType = (mimeType: string) => {
+  const subtype = mimeType.split("/")[1]?.toLowerCase() || "png";
+  if (subtype === "jpeg") return "jpg";
+  if (subtype === "svg+xml") return "svg";
+  return subtype.replace(/[^a-z0-9]/g, "") || "png";
+};
+
+const createClipboardImageFile = (file: File, mimeType: string, index: number) => {
+  const type = file.type || mimeType || "image/png";
+  const existingName = file.name?.trim();
+  const filename = existingName && existingName !== "image.png" && existingName !== "blob"
+    ? existingName
+    : `clipboard-image-${Date.now()}-${index}.${imageExtensionFromMimeType(type)}`;
+
+  return new File([file], filename, {
+    type,
+    lastModified: Date.now(),
+  });
+};
+
+const getClipboardImageFiles = (clipboardData: DataTransfer) => {
+  const signatures = new Set<string>();
+  const imageFiles: File[] = [];
+
+  const addFile = (file: File | null, mimeType: string) => {
+    if (!file) return;
+    const type = file.type || mimeType || "image/png";
+    if (!type.startsWith("image/")) return;
+    const signature = `${file.name || "clipboard"}:${file.size}:${type}`;
+    if (signatures.has(signature)) return;
+    signatures.add(signature);
+    imageFiles.push(createClipboardImageFile(file, type, imageFiles.length));
+  };
+
+  Array.from(clipboardData.files || []).forEach((file) => addFile(file, file.type));
+  Array.from(clipboardData.items || []).forEach((item) => {
+    if (item.kind === "file" && item.type.startsWith("image/")) {
+      addFile(item.getAsFile(), item.type);
+    }
+  });
+
+  return imageFiles;
+};
+
 export default function CinemaFlowPage() {
   const { user } = useUser();
   const { guardGeneration } = useGenerationGate();
@@ -374,6 +418,29 @@ export default function CinemaFlowPage() {
         await handleFileSelection(e.target.files[i]);
       }
     }
+  };
+
+  const handlePromptPaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedImages = getClipboardImageFiles(e.clipboardData);
+    if (pastedImages.length === 0) return;
+
+    e.preventDefault();
+    const remainingSlots = Math.max(0, 4 - activeImageReferences.length);
+    if (remainingSlots === 0) {
+      toast({ description: "Remove a reference image before pasting another one." });
+      return;
+    }
+
+    const filesToUpload = pastedImages.slice(0, remainingSlots);
+    for (const file of filesToUpload) {
+      await handleFileSelection(file);
+    }
+
+    toast({
+      description: filesToUpload.length === 1
+        ? "Pasted image attached as a reference."
+        : `${filesToUpload.length} pasted images attached as references.`,
+    });
   };
 
   const handleDownload = (url: string, filename: string) => {
@@ -1783,6 +1850,7 @@ export default function CinemaFlowPage() {
               rows={2}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onPaste={handlePromptPaste}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

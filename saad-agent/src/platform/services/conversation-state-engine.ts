@@ -11,6 +11,21 @@ export interface ConversationMessage {
   content: string;
 }
 
+export interface TaskLedgerState {
+  id: string;
+  originalRequest: string;
+  effectiveRequest: string;
+  routeKind?: string | undefined;
+  workflow?: string | undefined;
+  targetWorkspace?: string | undefined;
+  referencePaths: string[];
+  assetPaths: string[];
+  approvalState: "none" | "required" | "approved";
+  lastRuntimeStatus?: "pending" | "completed" | "failed" | "blocked" | undefined;
+  lastRuntimeSummary?: string | undefined;
+  updatedAt: number;
+}
+
 export interface ConversationState {
   sessionId: string;
   activeWorkflow: string | null;
@@ -21,6 +36,7 @@ export interface ConversationState {
   lastTimestamp: number;
   pendingClarification?: PendingClarificationState | null;
   history?: ConversationMessage[];
+  taskLedger?: TaskLedgerState | null;
 }
 
 export class ConversationStateEngine {
@@ -49,6 +65,35 @@ export class ConversationStateEngine {
     };
     this.states.set(sessionId, updated);
     return updated;
+  }
+
+  public static updateTaskLedger(sessionId: string, updates: Partial<TaskLedgerState>): TaskLedgerState {
+    const current = this.getState(sessionId);
+    const now = Date.now();
+    const existing = current.taskLedger || null;
+    const next: TaskLedgerState = {
+      id: existing?.id || updates.id || `ledger-${now}`,
+      originalRequest: updates.originalRequest ?? existing?.originalRequest ?? "",
+      effectiveRequest: updates.effectiveRequest ?? existing?.effectiveRequest ?? updates.originalRequest ?? "",
+      routeKind: updates.routeKind ?? existing?.routeKind,
+      workflow: updates.workflow ?? existing?.workflow,
+      targetWorkspace: updates.targetWorkspace ?? existing?.targetWorkspace,
+      referencePaths: updates.referencePaths ?? existing?.referencePaths ?? [],
+      assetPaths: updates.assetPaths ?? existing?.assetPaths ?? [],
+      approvalState: updates.approvalState ?? existing?.approvalState ?? "none",
+      lastRuntimeStatus: updates.lastRuntimeStatus ?? existing?.lastRuntimeStatus,
+      lastRuntimeSummary: updates.lastRuntimeSummary ?? existing?.lastRuntimeSummary,
+      updatedAt: now
+    };
+    current.taskLedger = next;
+    current.activeTask = next.effectiveRequest || current.activeTask;
+    current.lastTimestamp = now;
+    this.states.set(sessionId, current);
+    return next;
+  }
+
+  public static getActiveTaskLedger(sessionId: string): TaskLedgerState | null {
+    return this.getState(sessionId).taskLedger || null;
   }
 
   public static setPendingClarification(sessionId: string, clarification: PendingClarificationState): void {

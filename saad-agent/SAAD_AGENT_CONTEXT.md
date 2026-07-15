@@ -19,6 +19,42 @@ Its core responsibility is to help the user work on local software projects thro
 - Context Engine retrieval.
 - Controlled tool and MCP orchestration.
 
+## Reference Registry
+
+- `ReferenceRegistryService` is the authoritative resolver for read-only reference sources.
+- Design references resolve through the registry to the real `DEZ` root plus `DESIGN_REFERENCE_MANIFEST.json` and `DESIGN_REFERENCE_INDEX.md`.
+- Agent architecture references resolve through the registry to `E:\Agent-Reach-main\claude-code` plus `CLAUDE_CODE_REFERENCE_MANIFEST.json` and `CLAUDE_CODE_REFERENCE_INDEX.md`.
+- `ChatOrchestratorService` must use this registry for DEZ preflight, DEZ evidence gates, Claude Code evidence gates, and named-reference expansion.
+- `TrustedWorkspaceRuntime` must use this registry to mark DEZ and Claude Code paths as reference-only paths that cannot become execution workspaces.
+- Environment overrides are allowed for explicit advanced setup, but normal operation must not derive `DEZ` or `claude-code` from the active user workspace.
+- No leaked/proprietary Claude Code source may be copied, run, imported, bundled, vendored, or reverse-engineered. The reference is architecture evidence only.
+
+## Claude Architecture Read-Only Audit
+
+- Explicit architecture-audit prompts that mention `claude-code`, ask for read-only/report-only behavior, and request evidence such as `Claude-code files inspected:` are handled locally before Task Ledger/no-runtime and protected-reference target blockers.
+- This path returns `usedModel: false`; it must not call LM Studio, Pi/Codex, Ollama, Gemini, Cloud providers, or any coding runtime.
+- The audit reads `CLAUDE_CODE_REFERENCE_MANIFEST.json`, bounded selected Claude Code reference files, and matching Saad Agent source files such as `agent-loop.ts`, `tool-manager.ts`, `approval-policy.ts`, `conversation-state-engine.ts`, `chat-orchestrator.ts`, and `codex-runtime-bridge.ts`.
+- The report must include real paths in:
+  - `Claude-code files inspected: ...`
+  - `Saad Agent files inspected: ...`
+- `E:\Agent-Reach-main\claude-code` remains a read-only architecture reference only. The audit must not copy, run, import, vendor, bundle, reverse-engineer, or write inside that folder.
+- The Saad Agent source root resolver must support both dev shapes: repository root containing `saad-agent`, and `saad-agent` itself as `CONFIG.PROJECT_ROOT`.
+
+## Startup Warmup
+
+- `StartupWarmupService` starts early non-blocking warmup for settings, reference registry, skills, and connectors.
+- The Electron desktop process starts warmup only after `SAAD_AGENT_SETTINGS_ROOT` is set to the app `userData` path, so packaged settings remain in the correct location.
+- `StartupManager.initializeApplication()` waits for/reuses the warmup report instead of duplicating serial initialization.
+- Warmup failures are warnings, not fatal startup blockers, unless a later required service explicitly fails.
+- This is original Saad Agent code. Do not copy or execute external proprietary startup code.
+
+## TypeScript Build Configuration
+
+- The main `saad-agent/tsconfig.json` is an emitting Electron/Node build config and must continue to produce `dist` for packaged desktop runtime.
+- Type-only checks use `saad-agent/tsconfig.typecheck.json` through `npm run typecheck`, with `noEmit: true`.
+- Do not replace the main build config with Bun-oriented settings such as `types: ["bun-types"]`, `moduleResolution: "bundler"`, `allowImportingTsExtensions`, or a `bun:bundle` path alias unless Saad Agent actually adopts a Bun runtime module through original implementation.
+- This guard prevents Claude/Bun reference snippets from breaking `npm run build`, Electron packaging, or `dist/desktop/main.js`.
+
 ## Private Daily Maintenance Engineer Mode
 
 - Saad Agent is the user's private daily maintenance engineer for the user's own website and software work.
@@ -27,6 +63,11 @@ Its core responsibility is to help the user work on local software projects thro
 - For design work, it should behave as a practical product/design engineer: respect the existing UI system, improve workflows and visual polish, verify responsive behavior where possible, and avoid decorative changes that do not serve the user's real product.
 - The local folder `E:\Agent-Reach-main\claude-code` is a high-risk comparative architecture reference only. It may inform high-level Saad Agent behavior such as tool systems, command workflows, permissions, skills, plugins, memory, sub-agents, bridge patterns, and verification loops.
 - Code from `E:\Agent-Reach-main\claude-code` must not be copied, run, vendored, bundled, reverse-engineered into Saad Agent, or used as implementation source. Saad Agent must implement every feature with original code using existing local services and verified requirements.
+- `saad-agent/CLAUDE_CODE_REFERENCE_MANIFEST.json` is the generated authoritative file-level inventory for the local Claude Code comparative reference. `saad-agent/CLAUDE_CODE_REFERENCE_INDEX.md` is the human safety/navigation guide.
+- For Saad Agent architecture/runtime/tooling work, runtime prompts must include the Claude Code evidence gate and final reports must include `Claude-code files inspected: <actual reference paths>` or `Claude-code files inspected: blocked - <reason>`.
+- The Claude Code reference path must never become the execution workspace merely because the user mentions it. Execution must stay inside the real Saad Agent source or the explicit user target workspace.
+- Reference-only workspace hard guard is active: `E:\Agent-Reach-main\claude-code`, `DEZ`, and their generated manifest/index files cannot be added as trusted workspaces and cannot pass trusted-path execution checks. If a user prompt tries to write into one of these protected reference paths, Saad Agent must stop before runtime execution and ask for a real target folder.
+- Runtime prompts now include `ABSOLUTE TARGET WORKSPACE`; DEZ and Claude Code paths in context are evidence/reference paths only and must never be used as output folders.
 - If the product is ever sold, subscribed, customer-deployed, publicly distributed, or delivered to a third party, leaked/proprietary/unofficial reference folders and archives must be removed or excluded from all release scope before packaging.
 - Implementation phase 1 is active: `DailyEngineerService` classifies daily maintenance, private maintenance engineer, design-improvement, large-project, bug-fix, and review-only requests. `RequestRoutingService` routes these into existing engineering review/modification paths, and `ChatOrchestratorService` injects the maintenance contract into Coding/Codex runtime prompts.
 - Implementation phase 2 is active in the renderer: the right panel includes a Daily Maintenance card with review, maintenance, and design prompt shortcuts plus a persistent inspect -> plan -> implement -> verify -> document checklist stored in local browser state.
@@ -1113,7 +1154,36 @@ flowchart TD
 
 - UI/design/page/dashboard/SaaS/AI Studio runtime prompts must include `SAAD DESIGN REFERENCE EVIDENCE GATE`.
 - Before editing, the runtime must inspect the target workspace, `DESIGN_REFERENCE_MANIFEST.json`, and at least one relevant `DEZ` reference file such as landing, dashboard, or component code.
+- Before launching the runtime, `ChatOrchestratorService` now performs a concrete DEZ preflight: it reads `DESIGN_REFERENCE_MANIFEST.json`, selects relevant readable landing/dashboard/component files from `DEZ`, reads bounded excerpts, and injects `SAAD DESIGN REFERENCE PREFLIGHT` with actual file paths.
 - Runtime reports for these design tasks must include `DEZ files inspected: <actual reference paths>` or `DEZ files inspected: blocked - <reason>`.
+- If the first design runtime output is only planning text or omits `DEZ files inspected:`, Saad Agent runs one `SAAD DESIGN REFERENCE SELF-REPAIR` attempt with the failed output, original prompt, target workspace, and concrete DEZ preflight paths. The repaired result is accepted only if it includes the required evidence line.
 - A successful non-maintenance design runtime output that omits `DEZ files inspected:` is not accepted as a real success; Saad Agent must stop with a verification message and show the raw runtime output.
 - Daily maintenance flows are excluded from this DEZ evidence requirement unless the task is explicitly a design/page implementation task.
 
+## Saad Agent packaged launch repair behavior (2026-07-14)
+
+- If `release-production-v4/win-unpacked/Saad Agent.exe` exits before opening and `debug.log` shows `Invalid file descriptor to ICU data received`, check for missing Electron runtime files in `win-unpacked`.
+- The packaged folder must contain Electron support files beside `Saad Agent.exe`, including `icudtl.dat`, `locales`, `ffmpeg.dll`, `resources.pak`, `v8_context_snapshot.bin`, Chromium PAK files, and required DLLs.
+- These files can be restored from the local installed Electron runtime at `saad-agent/node_modules/electron/dist` without modifying `resources/app.asar`.
+- This failure happens before Saad Agent JavaScript starts, so it is not evidence of a prompt, model, DEZ, or Claude-reference bug.
+
+## Saad Agent reference-binding routing behavior (2026-07-14)
+
+- Requests that ask to bind, wire, create manifests, add gates, update context files, build, test, or repack Saad Agent while mentioning `DEZ`, `claude-code`, `DESIGN_REFERENCE_MANIFEST.json`, `CLAUDE_CODE_REFERENCE_MANIFEST.json`, or `app.asar` are engineering modification requests.
+- These requests must bypass deterministic official-site shortcuts and page-blueprint shortcuts. They must not answer with links such as `Google الرسمي` or generic design plans.
+- The correct route is approval, then `CodexRuntimeBridge`, with DEZ and Claude Code evidence gates injected when applicable.
+- Reference folders remain protected: if the user explicitly asks to write inside `DEZ` or `E:\Agent-Reach-main\claude-code`, stop before runtime and ask for a real output workspace.
+- A valid report for this class of work should mention the actual files inspected, including `DEZ files inspected:` for design evidence and `Claude-code files inspected:` for architecture-reference evidence when those gates apply.
+
+## Saad Agent task ledger behavior (2026-07-14)
+
+- Engineering tasks now maintain a `taskLedger` in `ConversationStateEngine`.
+- The ledger records the original request, effective merged request, route/workflow, target workspace, read-only reference paths, asset/media paths, approval state, runtime status, and a short runtime summary.
+- Runtime prompts include `SAAD TASK LEDGER` for engineering tasks so short follow-ups do not erase the user's earlier detailed instructions.
+- A follow-up like `ضع نفس الصفحة هنا C:\...\New folder` must keep the prior detailed design/API/task requirements and only update the target workspace.
+- `DEZ` and `E:\Agent-Reach-main\claude-code` are reference evidence paths. They must be passed to runtime as read-only references, never as output workspaces unless the user explicitly provides a separate writable target.
+- The ledger is not a substitute for DEZ/Claude evidence gates. Design tasks still need `DEZ files inspected:` and architecture-reference tasks still need `Claude-code files inspected:` when applicable.
+- If a user asks to save, inspect, or report the active Task Ledger while explicitly saying not to execute, not to modify, inspect only, or not to run runtime, Saad Agent must answer locally from the ledger with `usedModel: false`.
+- No-runtime Task Ledger prompts must not call `CodexRuntimeBridge`, Pi/Codex, LM Studio, Ollama, Gemini, or any other provider, and must not trigger DEZ evidence self-repair.
+- The local Task Ledger response should report the target workspace, reference paths, no-RTL requirement when present, and confirm that `DEZ` and `claude-code` are read-only and not write targets.
+- Named `DEZ` inside no-runtime Task Ledger prompts must resolve to the actual packaged/project design reference root, not to a path under the currently active user workspace. In the packaged app, prefer `process.resourcesPath\..\DEZ`; in development, prefer the Saad Agent `release-production-v4\win-unpacked\DEZ` folder.

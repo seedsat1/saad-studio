@@ -1,4 +1,52 @@
 ﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## Cinema Flow clipboard image paste behavior (2026-07-15)
+- صفحة الموقع `/cinema-flow` تدعم لصق الصور مباشرة داخل صندوق محادثة الوكيل.
+- الصور الملصوقة من المتصفح أو أدوات لقطة الشاشة في Windows تتحول إلى `File` عادي باسم `clipboard-image-...` عند عدم وجود اسم أصلي.
+- الصور الملصوقة تستخدم نفس مسار الرفع الحالي `handleFileSelection(...)`، ثم تظهر كصور مرجعية نشطة مثل زر `+` والسحب والإفلات.
+- لا يوجد مسار تخزين منفصل للـ clipboard، ويستمر حد الصور المرجعية الأربع كما هو.
+
+## Saad Agent Reference Registry behavior (2026-07-14)
+- `ReferenceRegistryService` هو المصدر المركزي لمسارات المراجع داخل Saad Agent.
+- مرجع التصميم `DEZ` يجب أن يرجع من السجل إلى الجذر الحقيقي داخل حزمة/مشروع Saad Agent، مع `DESIGN_REFERENCE_MANIFEST.json` و`DESIGN_REFERENCE_INDEX.md`.
+- مرجع هندسة الوكيل `claude-code` يجب أن يرجع إلى `E:\Agent-Reach-main\claude-code` مع `CLAUDE_CODE_REFERENCE_MANIFEST.json` و`CLAUDE_CODE_REFERENCE_INDEX.md`.
+- لا يجوز اشتقاق هذه المسارات من workspace المستخدم النشط مثل `C:\Users\PC\Desktop\lang` أو `E:\TEST ANG`.
+- `DEZ` و`claude-code` مراجع قراءة فقط وليست أماكن تنفيذ أو إخراج.
+- مهام التصميم يجب أن تستمر بطلب سطر `DEZ files inspected:`، ومهام هندسة الوكيل يجب أن تستمر بطلب `Claude-code files inspected:`.
+- ممنوع نسخ أو تشغيل أو تضمين كود Claude Code المسرب/الملكي؛ الاستخدام المسموح هو الدليل المعماري عالي المستوى فقط.
+
+## Saad Agent Claude architecture read-only audit behavior (2026-07-14)
+- إذا طلب المستخدم اختبارًا معماريًا فقط أو تقريرًا فقط عن سلوك Saad Agent كوكيل هندسي، وذكر `E:\Agent-Reach-main\claude-code` كمرجع قراءة فقط، فهذا فحص محلي وليس مهمة Runtime.
+- يجب أن يرد Saad Agent بـ `usedModel: false` وألا يستدعي LM Studio أو Pi/Codex أو Gemini أو Ollama أو أي مزود نموذج.
+- يجب قراءة `CLAUDE_CODE_REFERENCE_MANIFEST.json` واختيار ملفات مرجعية محدودة من Claude Code للمعمارية فقط، مع قراءة ملفات Saad Agent المقابلة مثل `agent-loop.ts`, `tool-manager.ts`, `approval-policy.ts`, `conversation-state-engine.ts`, `chat-orchestrator.ts`.
+- يجب أن يحتوي التقرير على:
+  - `Claude-code files inspected: <actual reference paths>`
+  - `Saad Agent files inspected: <actual source paths>`
+- لا يجوز تحويل `E:\Agent-Reach-main\claude-code` إلى workspace هدف في هذا النوع من الفحص، ولا يجوز الكتابة داخله أو نسخ كوده أو تشغيله.
+- إذا كان `CONFIG.PROJECT_ROOT` يشير إلى جذر الريبو أو إلى `saad-agent` نفسه، يجب أن يجد الفحص ملفات Saad Agent الحقيقية ولا يرجع `blocked` بسبب تركيب مسار خاطئ.
+
+## Saad Agent Startup Warmup behavior (2026-07-14)
+- `StartupWarmupService` يبدأ تحميلًا مبكرًا غير حاجب للإعدادات، سجل المراجع، المهارات، والموصلات.
+- يبدأ warmup بعد ضبط `SAAD_AGENT_SETTINGS_ROOT` على مسار `userData` في Electron حتى لا يقرأ إعدادات من مكان خاطئ.
+- `StartupManager.initializeApplication()` يعيد استخدام نتيجة warmup بدل تكرار تهيئة متسلسلة.
+- فشل عنصر warmup يسجل كتحذير ولا يمنع فتح التطبيق وحده.
+- هذا تنفيذ أصلي داخل Saad Agent، وليس نسخًا أو تشغيلًا لكود خارجي/مسرب.
+
+## Saad Agent TypeScript build/typecheck behavior (2026-07-14)
+- إعداد `saad-agent/tsconfig.json` الرئيسي يجب أن يبقى مخصصًا لبناء Electron/Node وإخراج ملفات `dist`.
+- فحص الأنواع بدون إخراج يتم عبر `saad-agent/tsconfig.typecheck.json` والأمر `npm run typecheck`.
+- لا يجوز نسخ إعدادات Bun/Claude المرجعية فوق إعداد البناء الرئيسي، خصوصًا `noEmit: true` أو `types: ["bun-types"]` أو `moduleResolution: "bundler"`، لأنها تكسر مسار الحزمة الحالي.
+- إذا احتاج Saad Agent دعم Bun لاحقًا، يضاف كمسار منفصل ومثبت باختبارات، لا كتغيير عشوائي على build الموجود.
+
+## Saad Agent Claude Code reference evidence gate behavior (2026-07-14)
+- `saad-agent/CLAUDE_CODE_REFERENCE_MANIFEST.json` is the generated file-level inventory for the local `E:\Agent-Reach-main\claude-code` comparative architecture reference.
+- `saad-agent/CLAUDE_CODE_REFERENCE_INDEX.md` records the safety rules: read-only architecture reference only; no copying, running, importing, vendoring, bundling, or reverse-engineering source from the reference folder.
+- Agent architecture/runtime/tooling tasks must inspect the Saad Agent source plus the Claude Code manifest/reference paths before claiming Claude Code-style integration.
+- Runtime reports must include `Claude-code files inspected: <actual reference paths>` or `Claude-code files inspected: blocked - <reason>`.
+- If that evidence line is missing for a matching architecture/runtime task, Saad Agent rejects the runtime output as unverified instead of presenting it as success.
+- The Claude Code reference folder must not become the execution workspace merely because it is mentioned in the prompt.
+- The trusted-workspace runtime now enforces this rule: Claude Code and DEZ reference paths are blocked from trusted workspace registration and from execution path validation.
+- If a prompt uses a protected reference path as an output target, Saad Agent must stop before `CodexRuntimeBridge` and ask for a real target workspace instead of silently writing elsewhere.
+
 ## Saad Agent DEZ design reference behavior (2026-07-14)
 - `saad-agent/DESIGN_REFERENCE_INDEX.md` is the active safe map for local `DEZ` UI/design references.
 - The index points Saad Agent to relevant shadcn dashboard/landing/admin/chat/settings/pricing/auth/component folders while keeping them read-only.
@@ -1591,7 +1639,42 @@
 
 - Design/page/dashboard/SaaS/AI Studio engineering tasks must pass a DEZ evidence gate before their runtime output is accepted as successful.
 - The runtime prompt includes the authoritative manifest path and DEZ root, and instructs the worker to inspect the target workspace plus relevant DEZ references before editing.
+- قبل تشغيل الرن تايم، يختار `ChatOrchestratorService` ملفات DEZ فعلية من `DESIGN_REFERENCE_MANIFEST.json` ويحقنها في البرومبت تحت `SAAD DESIGN REFERENCE PREFLIGHT` حتى لا يعتمد التنفيذ على ادعاء عام مثل "استخدمت DEZ".
 - The final runtime report must include `DEZ files inspected: <actual reference paths>` or `DEZ files inspected: blocked - <reason>`.
+- إذا رجع الرن تايم برد تخطيطي فقط أو بدون سطر `DEZ files inspected:`، ينفذ Saad Agent محاولة إصلاح ذاتية واحدة تحت `SAAD DESIGN REFERENCE SELF-REPAIR` قبل إرجاع خطأ التحقق للمستخدم.
 - If the runtime claims success without that evidence line, Saad Agent returns a verification-stop response instead of trusting the result.
 - This protects against generic local-model responses that say they used design references while no manifest/reference file was actually read.
 
+## إصلاح تشغيل حزمة Saad Agent على Windows (2026-07-14)
+
+- إذا لم يفتح `Saad Agent.exe` من `release-production-v4/win-unpacked` وظهر في `debug.log` خطأ Electron:
+  `Invalid file descriptor to ICU data received`
+  فالمشكلة تكون قبل تشغيل كود التطبيق.
+- السبب المعروف هو نقص ملفات تشغيل Electron بجانب الملف التنفيذي، مثل:
+  `icudtl.dat`, `locales`, `ffmpeg.dll`, `resources.pak`, `v8_context_snapshot.bin` وملفات DLL/PAK المطلوبة.
+- الإصلاح الآمن هو استعادة ملفات Electron الناقصة من:
+  `saad-agent/node_modules/electron/dist`
+  إلى:
+  `saad-agent/release-production-v4/win-unpacked`
+  مع عدم تعديل `resources/app.asar`.
+
+## توجيه طلبات ربط مراجع DEZ و Claude Code (2026-07-14)
+
+- إذا طلب المستخدم داخل Saad Agent ربط مصادر التصميم أو هندسة الوكيل، أو إنشاء manifests، أو إضافة gates، أو تحديث `PROJECT_CONTEXT` و`SAAD_AGENT_CONTEXT`، أو بناء/اختبار/إعادة تغليف `app.asar`، فهذا طلب هندسي وليس طلب فتح موقع أو مخطط صفحة.
+- وجود كلمات مثل `DEZ`, `claude-code`, `DESIGN_REFERENCE_MANIFEST.json`, `CLAUDE_CODE_REFERENCE_MANIFEST.json`, `gate`, `manifest`, و`app.asar` يجب أن يوجه الطلب إلى مسار التنفيذ الهندسي بعد الموافقة.
+- ممنوع أن ترد الاختصارات المباشرة برد مثل `Google الرسمي` أو `فتح Google` على هذا النوع من الطلبات.
+- ممنوع أيضًا أن يختصره مسار page blueprint إلى مخطط نظري؛ المطلوب تنفيذ وفحص وإثبات.
+- إذا استُخدم `DEZ` أو `E:\Agent-Reach-main\claude-code` كمرجع فقط، يمر الطلب. إذا طُلب الكتابة داخلهما كهدف، يتوقف Saad Agent لأنهما مسارات مرجعية محمية للقراءة فقط.
+
+## دفتر المهمة النشطة داخل Saad Agent (2026-07-14)
+
+- تمت إضافة مفهوم `taskLedger` داخل `ConversationStateEngine` لحفظ المهمة الهندسية النشطة بشكل منظم.
+- الدفتر يحفظ: الطلب الأصلي، الطلب الفعلي بعد دمج المتابعات، مسار الهدف، مسارات المراجع للقراءة فقط، مسارات الصور/الأصول، حالة الموافقة، وحالة الرن تايم.
+- عند تنفيذ مهمة هندسية، يحقن Saad Agent فقرة `SAAD TASK LEDGER` داخل برومبت الرن تايم حتى لا ينسى الطلب السابق أو يبدله بصفحة عامة.
+- إذا قال المستخدم بعد طلب طويل: `ضع نفس الصفحة هنا C:\...\New folder`، فهذا تحديث لمسار الهدف فقط وليس طلبًا جديدًا.
+- مسارات `DEZ` و`E:\Agent-Reach-main\claude-code` تبقى مراجع قراءة فقط، ولا يجوز استخدامها كمكان إخراج.
+- هذا لا يلغي بوابات الإثبات: تصميمات DEZ تحتاج `DEZ files inspected:` ومراجع هندسة الوكيل تحتاج `Claude-code files inspected:` عند انطباقها.
+- إذا قال المستخدم في طلب دفتر المهمة: `لا تنفذ` أو `لا تشغل runtime` أو `افحص فقط` أو `do not execute` أو `inspect only`، فهذا استعلام/حفظ حالة محلي وليس تنفيذًا هندسيًا.
+- في هذه الحالة يجب أن يجيب Saad Agent محليًا من `taskLedger` بدون تشغيل `CodexRuntimeBridge` أو Pi/Codex أو LM Studio أو أي مزود نموذج.
+- التقرير المحلي يجب أن يذكر مسار الهدف، مسارات المراجع، هل RTL مطلوب، وأن الكتابة داخل `DEZ` و`claude-code` غير مسموحة لأنها مراجع قراءة فقط.
+- عند ذكر `DEZ` بالاسم في هذا النوع من الطلبات، يجب استخدام مسار مرجع التصميم الحقيقي داخل حزمة Saad Agent أو مشروع Saad Agent، وليس إنشاء مسار وهمي تحت الـ workspace النشط مثل `E:\TEST ANG\saad-agent\...`.

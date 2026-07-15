@@ -6,7 +6,9 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "tsc && node -e \"import('fs').then(fs => fs.copyFileSync('src/desktop/preload.cjs', 'dist/desktop/preload.cjs'))\"",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
     "generate:dez-manifest": "node scripts/generate-dez-design-manifest.mjs",
+    "generate:claude-code-manifest": "node scripts/generate-claude-code-reference-manifest.mjs",
     "build:ui": "cd ui && npm run build",
     "build:all": "npm run build && npm run build:ui",
     "desktop": "tsc && electron .",
@@ -40,8 +42,11 @@
       "ui/dist/**",
       "resources/**/*",
       "scripts/generate-dez-design-manifest.mjs",
+      "scripts/generate-claude-code-reference-manifest.mjs",
       "DESIGN_REFERENCE_INDEX.md",
       "DESIGN_REFERENCE_MANIFEST.json",
+      "CLAUDE_CODE_REFERENCE_INDEX.md",
+      "CLAUDE_CODE_REFERENCE_MANIFEST.json",
       "package.json"
     ],
     "win": {
