@@ -1,5 +1,34 @@
 # Saad Studio Project Context Update
 
+## Latest task: Cinema Flow pasted-image upload fallback (2026-07-15)
+
+- Status:
+  Fixed the follow-up failure where pasted images reached Cinema Flow but could still show a generic browser alert `Failed to upload file.`
+- Affected files:
+  - `app/(dash)/(routes)/cinema-flow/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - Cinema Flow now uploads pasted/selected reference media through a shared `uploadMediaFile(...)` helper.
+  - The helper first tries the existing server-side multipart `/api/media/upload` path.
+  - If that path fails, it falls back to the existing signed upload flow used by other tool pages.
+  - Upload MIME type is inferred from the file extension when clipboard files do not provide a reliable `File.type`.
+  - Upload failures now surface the server error/status in the alert instead of only `Failed to upload file.`
+- Verification:
+  - Read required memory files before acting.
+  - Inspected `/api/media/upload`, Cinema Flow upload handling, related storage helpers, and existing upload fallback patterns in other pages.
+  - `npm.cmd run build` passed and included `/cinema-flow`.
+  - Build still reports existing non-blocking warnings about outdated Browserslist, ambiguous Tailwind duration classes, and known dynamic server usage logs from unrelated API routes.
+- Errors recorded:
+  - The live retest showed clipboard paste capture working, but the upload path failed with a generic alert that hid the actual cause.
+  - Follow-up browser console evidence showed `/api/media/upload` returning `413 Content Too Large`, confirming the multipart upload path can be rejected before a reference image is attached.
+- Decisions:
+  - Reuse the repository's existing signed upload fallback pattern instead of creating a separate clipboard-only storage architecture.
+  - Keep the change limited to `app/(dash)/(routes)/cinema-flow/page.tsx`.
+- Remaining:
+  - Push/deploy this change, then retest `https://www.saadstudio.app/cinema-flow` by pasting a screenshot into the prompt.
+  - If the upload still fails, the new alert should expose the exact server/storage reason for the next fix.
+
 ## Latest task: Cinema Flow clipboard image paste (2026-07-15)
 
 - Status:

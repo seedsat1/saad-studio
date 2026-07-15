@@ -90,6 +90,100 @@ const getClipboardImageFiles = (clipboardData: DataTransfer) => {
   return imageFiles;
 };
 
+const inferUploadMimeType = (file: File) => {
+  if (file.type) return file.type;
+
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const mimeByExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    gif: "image/gif",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    mp3: "audio/mpeg",
+    wav: "audio/wav",
+  };
+
+  return ext ? (mimeByExt[ext] || "application/octet-stream") : "application/octet-stream";
+};
+
+const readUploadError = async (response: Response) => {
+  const fallback = `Upload request failed with status ${response.status}`;
+  try {
+    const data = await response.json();
+    return typeof data?.error === "string" ? data.error : fallback;
+  } catch {
+    try {
+      const text = await response.text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+};
+
+const uploadMediaFile = async (file: File) => {
+  const fileType = inferUploadMimeType(file);
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const uploadRes = await fetch("/api/media/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (uploadRes.ok) {
+      const uploadData = await uploadRes.json();
+      if (uploadData?.publicUrl) {
+        return String(uploadData.publicUrl);
+      }
+      throw new Error("Upload response did not contain publicUrl");
+    }
+
+    throw new Error(await readUploadError(uploadRes));
+  } catch (directErr) {
+    console.warn("Server upload failed, trying signed upload fallback...", directErr);
+  }
+
+  const signRes = await fetch("/api/media/upload", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name || `clipboard-image-${Date.now()}.png`,
+      fileType,
+    }),
+  });
+
+  if (!signRes.ok) {
+    throw new Error(await readUploadError(signRes));
+  }
+
+  const signData = await signRes.json();
+  const signedUrl = signData?.signedUrl;
+  const publicUrl = signData?.publicUrl;
+
+  if (!signedUrl || !publicUrl) {
+    throw new Error("Failed to receive signed upload URL from server.");
+  }
+
+  const cloudUploadRes = await fetch(signedUrl, {
+    method: "PUT",
+    headers: { "Content-Type": fileType },
+    body: file,
+  });
+
+  if (!cloudUploadRes.ok) {
+    throw new Error(await readUploadError(cloudUploadRes));
+  }
+
+  return String(publicUrl);
+};
+
 export default function CinemaFlowPage() {
   const { user } = useUser();
   const { guardGeneration } = useGenerationGate();
@@ -308,25 +402,7 @@ export default function CinemaFlowPage() {
     try {
       setUploadingFile(true);
 
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Upload to generic local R2 storage endpoint
-      const uploadRes = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error("Failed to upload file to storage");
-      }
-
-      const uploadData = await uploadRes.json();
-      const publicUrl = uploadData.publicUrl;
-
-      if (!publicUrl) {
-        throw new Error("Upload response did not contain publicUrl");
-      }
+      const publicUrl = await uploadMediaFile(file);
 
       // Save to database gallery using our POST endpoint
       const saveRes = await fetch("/api/assets", {
@@ -358,7 +434,8 @@ export default function CinemaFlowPage() {
       }
     } catch (err) {
       console.error("Upload failed:", err);
-      alert("Failed to upload file.");
+      const message = err instanceof Error ? err.message : "Failed to upload file.";
+      alert(`Failed to upload file: ${message}`);
     } finally {
       setUploadingFile(false);
     }
