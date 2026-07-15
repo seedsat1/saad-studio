@@ -1,4 +1,10 @@
 ﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## API video Gemini taskId prefix compatibility (2026-07-15)
+- مسار `GET /api/video?taskId=...` يجب أن يقبل معرفات Gemini المباشرة `gvo:...` وكذلك الشكل المغلف القادم من الواجهة `gen-gvo:...`.
+- قبل اختيار مسار polling، يتم إزالة بادئة `gen-` فقط إذا كان بعدها بادئة مزود معروفة مثل `gvo:`, `ark:`, `ws:`, `veo:`, `veo1080:`, أو `veo4k:`.
+- هذا يمنع مهام Gemini Omni/Veo من السقوط في مسار KIE العام وإرجاع `502 Bad Gateway`.
+- `previousTaskId` الخاص بتحرير/استكمال Gemini يجب أن يستخدم نفس التطبيع حتى يقبل `gen-gvo:...`.
+
 ## Cinema Flow pasted-image upload fallback behavior (2026-07-15)
 - صفحة `/cinema-flow` ترفع صور اللصق والملفات المختارة عبر مساعد واحد `uploadMediaFile(...)`.
 - يبدأ الرفع بمسار `/api/media/upload` بصيغة `multipart/form-data` حتى يبقى الرفع من السيرفر إلى التخزين هو المسار الأساسي.

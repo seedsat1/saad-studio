@@ -1,5 +1,32 @@
 # Saad Studio Project Context Update
 
+## Latest task: API video Gemini taskId prefix compatibility (2026-07-15)
+
+- Status:
+  Fixed a live polling failure where `GET /api/video?taskId=gen-gvo:...` returned `502 Bad Gateway`.
+- Affected files:
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `/api/video` now normalizes UI-wrapped task IDs such as `gen-gvo:...` back to the provider task ID `gvo:...` before routing polling.
+  - The normalization only unwraps known provider prefixes (`gvo:`, `ark:`, `ws:`, `veo:`, `veo1080:`, `veo4k:`) so unrelated task IDs are not changed.
+  - Gemini Omni/Veo polling no longer falls through to the generic KIE polling branch when the browser sends `gen-gvo:...`.
+  - `previousTaskId` for Gemini edit/continuation also accepts the wrapped `gen-gvo:...` form.
+- Verification:
+  - Read required memory files before acting.
+  - Inspected the attached browser console trace showing `GET /api/video?taskId=gen-gvo%3A... 502`.
+  - Inspected `app/api/video/route.ts` and `lib/gemini-veo.ts`.
+  - `npm.cmd run build` passed.
+  - Build still reports existing non-blocking warnings about outdated Browserslist, ambiguous Tailwind duration classes, and known dynamic server usage logs from unrelated API routes.
+- Errors recorded:
+  - The browser could send a UI-wrapped `gen-gvo:` task ID, while the server only recognized direct `gvo:` IDs and therefore called the wrong provider polling path.
+- Decisions:
+  - Normalize provider task IDs at the `/api/video` boundary instead of changing every frontend caller.
+  - Keep the compatibility narrow to known provider prefixes to avoid corrupting unrelated task IDs.
+- Remaining:
+  - Push/deploy and retest the same Gemini Omni video task polling from the live site.
+
 ## Latest task: Cinema Flow pasted-image upload fallback (2026-07-15)
 
 - Status:

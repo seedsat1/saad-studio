@@ -273,7 +273,18 @@ function encodeGeminiTask(handle: VeoOperationHandle): string {
   return `gvo:${Buffer.from(JSON.stringify(handle), "utf8").toString("base64url")}`;
 }
 
+function normalizePollingTaskId(taskId: string): string {
+  if (!taskId.startsWith("gen-")) return taskId;
+
+  const unwrapped = taskId.slice(4);
+  const knownProviderPrefixes = ["gvo:", "ark:", "ws:", "veo:", "veo1080:", "veo4k:"];
+  return knownProviderPrefixes.some((prefix) => unwrapped.startsWith(prefix))
+    ? unwrapped
+    : taskId;
+}
+
 function decodeGeminiTask(taskId: string): VeoOperationHandle | null {
+  taskId = normalizePollingTaskId(taskId);
   if (!taskId.startsWith("gvo:")) return null;
   try {
     const decoded = JSON.parse(Buffer.from(taskId.slice(4), "base64url").toString("utf8")) as Partial<VeoOperationHandle>;
@@ -2009,7 +2020,7 @@ export async function POST(req: Request) {
 
       const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
       let previousInteractionId: string | undefined;
-      if (previousTaskId && previousTaskId.startsWith("gvo:")) {
+      if (previousTaskId && normalizePollingTaskId(previousTaskId).startsWith("gvo:")) {
         const decoded = decodeGeminiTask(previousTaskId);
         if (decoded?.name) {
           previousInteractionId = decoded.name;
@@ -2480,17 +2491,18 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const taskId = searchParams.get("taskId");
+    const requestedTaskId = searchParams.get("taskId");
 
-    if (!taskId || typeof taskId !== "string") {
+    if (!requestedTaskId || typeof requestedTaskId !== "string") {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
+    const taskId = normalizePollingTaskId(requestedTaskId);
 
     // Direct Google Gemini polling. This route never touches KIE or WaveSpeed.
     if (taskId.startsWith("gvo:")) {
       const handle = decodeGeminiTask(taskId);
       if (!handle) {
-        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Invalid Gemini task id" });
+        return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "Invalid Gemini task id" });
       }
 
       const linkedGeneration = await prismadb.generation.findFirst({
@@ -2581,7 +2593,7 @@ export async function GET(req: Request) {
         await setGenerationMediaUrl(linkedGeneration.id, publicUrl);
       }
 
-      return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
+      return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [normalizeMediaUrl(publicUrl) || publicUrl], error: null });
     }
 
     // ── WaveSpeed polling ────────────────────────────────────────────────────
