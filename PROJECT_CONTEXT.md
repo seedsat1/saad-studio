@@ -6275,3 +6275,34 @@
   - Keep Google Interactions as the stateful source of truth via `previous_interaction_id`; use the loaded video URL for user preview and manual continuity, not as a replacement for the saved interaction state.
 - Remaining:
   - Deploy the pushed changes and retest the production link with a real completed `previousTaskId`.
+
+## Latest task: Gemini Omni video-edit reference carryover (2026-07-16)
+
+- Status:
+  Fixed the follow-up issue where `Stateful Video Edit` carried the generated video ID but not the source model/reference images used to create it.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/video-edit/page.tsx`
+  - `app/api/assets/route.ts`
+  - `components/MediaGrid.tsx`
+  - `lib/gemini-veo.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - Video generation now stores a small local handoff context keyed by task ID with model route, duration, aspect ratio, quality, start/end images, and up to three reference images.
+  - `MediaGrid` and `/video` preserve `providerRequestId` on generated and persisted result cards so Asset Inspector can send the real Gemini task ID.
+  - `/api/assets?contextId=...` returns a single authenticated generation's request context from `GenerationRequestSnapshot` without bloating the normal asset list.
+  - `/video-edit` loads carryover context from localStorage first, then from `/api/assets?contextId=...`, displays the carried reference images, and sends them as `reference_image_urls` with the edit request.
+  - `lib/gemini-veo.ts` now includes image/start/reference inputs in Gemini Omni Flash Interactions requests even when `previous_interaction_id` is present, so stateful edits can reinforce the same reference images.
+- Verification:
+  - `npm.cmd run build` passed.
+  - `git diff --check` passed; remaining warnings are the existing Git ignore permission warning and CRLF notices.
+  - Build still logs existing non-blocking Tailwind duration warnings and dynamic-server-usage messages from unrelated admin/editor routes.
+- Errors discovered:
+  - The `Stateful Video Edit` action lived in `components/AssetInspector.tsx` and only routed `previousTaskId`, so `/video-edit` had no access to original reference images after navigation.
+  - The normal `/api/assets` list intentionally did not expose request payload context, so old assets needed a targeted authenticated context read.
+- Decisions:
+  - Use a targeted context endpoint plus local handoff cache rather than adding large data URLs to every gallery asset response.
+  - Keep the edit model constrained to Gemini Omni Flash; carryover model route is used only when it is the supported Gemini Omni route.
+- Remaining:
+  - Deploy and retest with a generated Gemini Omni Flash video that used 1-3 reference images, then click `Stateful Video Edit` and confirm the references appear in `/video-edit`.

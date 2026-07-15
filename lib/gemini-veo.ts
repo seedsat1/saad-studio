@@ -125,61 +125,56 @@ export async function startVeoGeneration(
     const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${key}`;
     
     const inputList: any[] = [];
-    
-    if (params.previousInteractionId) {
+
+    // 0. Add starting video if present (via Google Files API)
+    if (params.video && !params.previousInteractionId) {
+      const videoUri = await uploadVideoToGoogleFiles(
+        Buffer.from(params.video.videoBytes, "base64"),
+        params.video.mimeType
+      );
       inputList.push({
-        type: "text",
-        text: params.prompt,
-      });
-    } else {
-      // 0. Add starting video if present (via Google Files API)
-      if (params.video) {
-        const videoUri = await uploadVideoToGoogleFiles(
-          Buffer.from(params.video.videoBytes, "base64"),
-          params.video.mimeType
-        );
-        inputList.push({
-          type: "video",
-          uri: videoUri,
-          mime_type: params.video.mimeType,
-        });
-      }
-
-      // 1. Add starting frame (image) if present
-      if (params.image) {
-        inputList.push({
-          type: "image",
-          data: params.image.imageBytes,
-          mime_type: params.image.mimeType,
-        });
-      }
-
-      // 2. Add reference images if present
-      if (params.referenceImages && params.referenceImages.length > 0) {
-        for (const refImg of params.referenceImages) {
-          inputList.push({
-            type: "image",
-            data: refImg.imageBytes,
-            mime_type: refImg.mimeType,
-          });
-        }
-      }
-
-      // 3. Formulate the prompt text with correct image reference tags
-      let promptText = params.prompt;
-      if (params.image) {
-        promptText = `<FIRST_FRAME> ${promptText}`;
-      }
-      if (params.referenceImages && params.referenceImages.length > 0) {
-        const refs = params.referenceImages.map((_, idx) => `<IMAGE_REF_${idx}>`).join(" and ");
-        promptText = `${refs} ${promptText}`;
-      }
-      
-      inputList.push({
-        type: "text",
-        text: promptText,
+        type: "video",
+        uri: videoUri,
+        mime_type: params.video.mimeType,
       });
     }
+
+    // 1. Add starting frame (image) if present. For stateful edits the previous
+    // interaction carries the video state, but image references may still be
+    // resent to reinforce identity/style continuity.
+    if (params.image) {
+      inputList.push({
+        type: "image",
+        data: params.image.imageBytes,
+        mime_type: params.image.mimeType,
+      });
+    }
+
+    // 2. Add reference images if present
+    if (params.referenceImages && params.referenceImages.length > 0) {
+      for (const refImg of params.referenceImages) {
+        inputList.push({
+          type: "image",
+          data: refImg.imageBytes,
+          mime_type: refImg.mimeType,
+        });
+      }
+    }
+
+    // 3. Formulate the prompt text with correct image reference tags
+    let promptText = params.prompt;
+    if (params.image) {
+      promptText = `<FIRST_FRAME> ${promptText}`;
+    }
+    if (params.referenceImages && params.referenceImages.length > 0) {
+      const refs = params.referenceImages.map((_, idx) => `<IMAGE_REF_${idx}>`).join(" and ");
+      promptText = `${refs} ${promptText}`;
+    }
+
+    inputList.push({
+      type: "text",
+      text: promptText,
+    });
 
     // 4. Determine task type
     let task = params.previousInteractionId ? "edit_video" : "text_to_video";

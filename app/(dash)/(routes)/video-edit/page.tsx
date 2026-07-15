@@ -11,6 +11,19 @@ import {
 } from "lucide-react";
 import { useAssetStore } from "@/hooks/use-asset-store";
 
+type EditCarryoverContext = {
+  modelRoute?: string;
+  providerModel?: string;
+  duration?: number;
+  aspectRatio?: string;
+  quality?: string;
+  startImageUrl?: string;
+  endImageUrl?: string;
+  referenceImageUrls?: string[];
+};
+
+const VIDEO_EDIT_CONTEXT_PREFIX = "saad_video_edit_context:";
+
 function normalizeGenerationError(raw: string | null | undefined): string {
   if (!raw) return "Ffailed to edit video. Please try again.";
   const lower = raw.toLowerCase();
@@ -42,6 +55,7 @@ function VideoEditPageContent() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [previousTaskId, setPreviousTaskId] = useState<string | null>(null);
+  const [carryoverContext, setCarryoverContext] = useState<EditCarryoverContext | null>(null);
   const [duration, setDuration] = useState(10);
   const [aspectRatio, setAspectRatio] = useState("16:9");
 
@@ -65,6 +79,18 @@ function VideoEditPageContent() {
       ? `${previousTaskId.slice(0, 18)}...${previousTaskId.slice(-10)}`
       : previousTaskId;
   }, [previousTaskId]);
+  const carryoverReferenceUrls = useMemo(() => {
+    const urls = [
+      carryoverContext?.startImageUrl,
+      carryoverContext?.endImageUrl,
+      ...(carryoverContext?.referenceImageUrls ?? []),
+    ].filter((url): url is string => typeof url === "string" && url.trim().length > 0);
+    return Array.from(new Set(urls)).slice(0, 3);
+  }, [carryoverContext]);
+  const activeModelRoute = carryoverContext?.modelRoute === "google/gemini-omni-flash"
+    ? carryoverContext.modelRoute
+    : modelRoute;
+  const activeModelName = carryoverContext?.providerModel || modelName;
 
   // Load params on load
   useEffect(() => {
@@ -76,9 +102,58 @@ function VideoEditPageContent() {
       setVideoFile(null);
       setPreviousVideoStatus("loading");
       setPreviousVideoError(null);
+      setCarryoverContext(null);
 
       if (previousPollRef.current) clearTimeout(previousPollRef.current);
       let attempts = 0;
+
+      const loadCarryoverContext = async () => {
+        try {
+          const raw = localStorage.getItem(`${VIDEO_EDIT_CONTEXT_PREFIX}${requestedPrevTaskId}`);
+          if (raw) {
+            const parsed = JSON.parse(raw) as EditCarryoverContext;
+            if (!cancelled && parsed && typeof parsed === "object") {
+              setCarryoverContext(parsed);
+              if (parsed.aspectRatio === "16:9" || parsed.aspectRatio === "9:16") {
+                setAspectRatio(parsed.aspectRatio);
+              }
+              if (typeof parsed.duration === "number" && parsed.duration >= 3 && parsed.duration <= 10) {
+                setDuration(parsed.duration);
+              }
+            }
+          }
+        } catch {}
+
+        try {
+          const res = await fetch(`/api/assets?contextId=${encodeURIComponent(requestedPrevTaskId)}`, {
+            cache: "no-store",
+          });
+          const data = await res.json().catch(() => null);
+          if (!cancelled && res.ok && data) {
+            const nextContext: EditCarryoverContext = {
+              modelRoute: typeof data.modelRoute === "string" ? data.modelRoute : undefined,
+              providerModel: typeof data.providerModel === "string" ? data.providerModel : undefined,
+              duration: typeof data.duration === "number" ? data.duration : Number(data.duration) || undefined,
+              aspectRatio: typeof data.aspectRatio === "string" ? data.aspectRatio : undefined,
+              quality: typeof data.quality === "string" ? data.quality : undefined,
+              startImageUrl: typeof data.startImageUrl === "string" ? data.startImageUrl : undefined,
+              endImageUrl: typeof data.endImageUrl === "string" ? data.endImageUrl : undefined,
+              referenceImageUrls: Array.isArray(data.referenceImageUrls)
+                ? data.referenceImageUrls.filter((url: unknown): url is string => typeof url === "string" && url.trim().length > 0).slice(0, 3)
+                : [],
+            };
+            setCarryoverContext(nextContext);
+            if (nextContext.aspectRatio === "16:9" || nextContext.aspectRatio === "9:16") {
+              setAspectRatio(nextContext.aspectRatio);
+            }
+            if (typeof nextContext.duration === "number" && nextContext.duration >= 3 && nextContext.duration <= 10) {
+              setDuration(nextContext.duration);
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to load previous video context:", err);
+        }
+      };
 
       const loadPreviousVideo = async () => {
         attempts += 1;
@@ -119,6 +194,7 @@ function VideoEditPageContent() {
       };
 
       loadPreviousVideo();
+      loadCarryoverContext();
     }
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) {
@@ -174,6 +250,7 @@ function VideoEditPageContent() {
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
     setPreviousTaskId(null); // Uploading a new video overrides previous stateful context
+    setCarryoverContext(null);
     setPreviousVideoStatus("idle");
     setPreviousVideoError(null);
   };
@@ -247,11 +324,15 @@ function VideoEditPageContent() {
         payload.video = base64Data;
       }
 
+      if (carryoverReferenceUrls.length > 0) {
+        payload.reference_image_urls = carryoverReferenceUrls;
+      }
+
       // 3. POST request
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelRoute, payload }),
+        body: JSON.stringify({ modelRoute: activeModelRoute, payload }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -295,7 +376,7 @@ function VideoEditPageContent() {
             type: "video",
             url: data.outputs[0],
             prompt: prompt.trim(),
-            model: modelName,
+            model: activeModelName,
             duration: `${duration}s`,
             providerRequestId: taskId,
           });
@@ -430,6 +511,7 @@ function VideoEditPageContent() {
                   onClick={() => {
                     setPreviousTaskId(null);
                     setVideoPreview(null);
+                    setCarryoverContext(null);
                   }}
                   className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1"
                 >
@@ -440,6 +522,29 @@ function VideoEditPageContent() {
               <p className="text-[10px] text-zinc-400 leading-relaxed">
                 The model remembers the context of previous shot ID <code title={previousTaskId} className="font-mono text-cyan-300 bg-white/5 px-1 py-0.5 rounded break-all">{previousTaskLabel}</code>. Edits will build on it.
               </p>
+              {carryoverReferenceUrls.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-[10px] font-semibold text-cyan-300">
+                    <ImageIcon size={12} />
+                    <span>{carryoverReferenceUrls.length} reference image{carryoverReferenceUrls.length > 1 ? "s" : ""} carried into this edit</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {carryoverReferenceUrls.map((url, index) => (
+                      <div
+                        key={`${url}-${index}`}
+                        className="relative h-14 w-14 overflow-hidden rounded-lg border border-cyan-500/25 bg-black"
+                        title={`@image${index + 1}`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" />
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/65 px-1 py-0.5 text-center text-[9px] font-mono text-cyan-200">
+                          @image{index + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {previousVideoStatus === "ready" && (
                 <p className="text-[10px] text-emerald-300 flex items-center gap-1.5">
                   <CheckCircle2 size={11} />

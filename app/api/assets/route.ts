@@ -48,11 +48,102 @@ function resolveAssetUrl(mediaUrl: string | null, outputUrl: string | null): str
   return "";
 }
 
+function normalizeProviderTaskId(raw: string): string {
+  if (!raw.startsWith("gen-")) return raw;
+  const unwrapped = raw.slice(4);
+  const knownProviderPrefixes = ["gvo:", "ark:", "ws:", "veo:", "veo1080:", "veo4k:"];
+  return knownProviderPrefixes.some((prefix) => unwrapped.startsWith(prefix))
+    ? unwrapped
+    : raw;
+}
+
+function collectStringArray(payload: any, keys: string[], max = 3): string[] {
+  const out: string[] = [];
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (!Array.isArray(value)) continue;
+    for (const item of value) {
+      if (typeof item === "string" && item.trim()) out.push(item);
+      if (out.length >= max) return out;
+    }
+  }
+  return out;
+}
+
+function firstString(payload: any, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const requestedContextId = req.nextUrl.searchParams.get("contextId");
+    if (requestedContextId) {
+      const normalizedContextId = normalizeProviderTaskId(requestedContextId);
+      const context = await prismadb.generation.findFirst({
+        where: {
+          userId,
+          OR: [
+            { id: requestedContextId },
+            { id: normalizedContextId },
+            { providerRequestId: requestedContextId },
+            { providerRequestId: normalizedContextId },
+            { mediaUrl: { startsWith: `task:${requestedContextId}` } },
+            { mediaUrl: { startsWith: `task:${normalizedContextId}` } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          modelUsed: true,
+          providerRequestId: true,
+          mediaUrl: true,
+          outputUrl: true,
+          generationRequestSnapshot: {
+            select: {
+              model: true,
+              duration: true,
+              resolution: true,
+              aspectRatio: true,
+              quality: true,
+              requestPayload: true,
+            },
+          },
+        },
+      });
+
+      if (!context) {
+        return NextResponse.json({ error: "Asset context not found" }, { status: 404 });
+      }
+
+      const payload = context.generationRequestSnapshot?.requestPayload as any;
+      const referenceImageUrls = collectStringArray(
+        payload,
+        ["reference_image_urls", "referenceImageUrls", "image_urls", "imageUrls"],
+        3,
+      );
+
+      return NextResponse.json({
+        id: context.id,
+        providerRequestId: context.providerRequestId ?? undefined,
+        modelRoute: context.modelUsed,
+        providerModel: context.generationRequestSnapshot?.model ?? undefined,
+        duration: context.generationRequestSnapshot?.duration ?? payload?.duration ?? undefined,
+        aspectRatio: context.generationRequestSnapshot?.aspectRatio ?? payload?.aspect_ratio ?? payload?.aspectRatio ?? undefined,
+        resolution: context.generationRequestSnapshot?.resolution ?? undefined,
+        quality: context.generationRequestSnapshot?.quality ?? payload?.quality ?? payload?.mode ?? undefined,
+        startImageUrl: firstString(payload, ["first_frame_url", "firstFrameUrl", "image", "image_url", "imageUrl"]) ?? undefined,
+        endImageUrl: firstString(payload, ["last_frame_url", "lastFrameUrl", "end_image", "endImage", "last_image", "lastImage"]) ?? undefined,
+        referenceImageUrls,
+      });
     }
 
     const requestedType = (req.nextUrl.searchParams.get("type") || "all").toLowerCase();

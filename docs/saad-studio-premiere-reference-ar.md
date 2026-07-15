@@ -1700,3 +1700,12 @@
 - إذا كان سجل التوليد مكتملًا وفيه `mediaUrl` أو `outputUrl` عام، يرجع `/api/video` الفيديو مباشرة حتى يظهر في واجهة التعديل بدون انتظار مزود خارجي.
 - عند إرسال تعديل متسلسل جديد إلى `google/gemini-omni-flash`، يستخرج الخادم `previous_interaction_id` من مهمة Gemini المخزنة ويرسله إلى Google Interactions API، مع بقاء الفيديو المعروض في الواجهة كمعاينة للمستخدم.
 - الواجهة تعرض حالات تحميل/معالجة للفيديو السابق وتستمر في polling حتى يظهر الفيديو، ثم تستخدمه كـ start clip بصريًا مع إبقاء السياق المتسلسل فعالًا.
+
+## Gemini Omni video edit reference carryover behavior (2026-07-16)
+
+- زر `Stateful Video Edit` لا يكفي أن يمرر `previousTaskId` فقط؛ يجب أن ترافقه مراجع الصور وسياق الموديل عندما تكون متاحة.
+- صفحة `/video` تحفظ سياق انتقال محلي keyed by task ID يحتوي: `modelRoute`, `duration`, `aspectRatio`, `quality`, `startImageUrl`, `endImageUrl`, و`referenceImageUrls`.
+- مسار `/api/assets?contextId=...` يرجع سياق طلب واحد من `GenerationRequestSnapshot` للمستخدم المالك فقط، حتى يمكن استعادة مراجع الفيديوهات القديمة بدون تضخيم قائمة الأصول العامة.
+- صفحة `/video-edit` تقرأ السياق من `localStorage` ثم من `/api/assets?contextId=...`، تعرض الصور المرجعية المحملة، وترسلها في `reference_image_urls` مع طلب التعديل المتسلسل.
+- `lib/gemini-veo.ts` يرسل الصور المرجعية إلى Google Interactions API حتى عند وجود `previous_interaction_id`، لأن التعديل المتسلسل قد يحتاج إعادة تثبيت نفس هوية/ستايل المراجع فوق ذاكرة التفاعل.
+- إذا كان `modelRoute` المحمول ليس `google/gemini-omni-flash`، تبقى صفحة التعديل على Gemini Omni Flash لأنها صفحة التعديل المتسلسل المدعومة لهذا المنتج.

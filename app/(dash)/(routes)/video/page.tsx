@@ -778,6 +778,19 @@ type CharacterSupport = {
   note: string;
 };
 
+const VIDEO_EDIT_CONTEXT_PREFIX = "saad_video_edit_context:";
+
+function persistVideoEditContext(taskId: string, context: Record<string, unknown>) {
+  if (typeof window === "undefined" || !taskId) return;
+  try {
+    const value = JSON.stringify({ ...context, savedAt: Date.now() });
+    localStorage.setItem(`${VIDEO_EDIT_CONTEXT_PREFIX}${taskId}`, value);
+    if (taskId.startsWith("gvo:")) {
+      localStorage.setItem(`${VIDEO_EDIT_CONTEXT_PREFIX}gen-${taskId}`, value);
+    }
+  } catch {}
+}
+
 const NO_CHARACTER_SUPPORT: CharacterSupport = {
   mode: "none",
   label: "Not supported",
@@ -1185,6 +1198,7 @@ function VideoPageInner() {
             ratio: "16:9",
             duration: "auto",
             prompt: asset.prompt || "",
+            providerRequestId: asset.providerRequestId,
             gradient: model ? (FAMILY_GRADIENTS[model.family] ?? "from-slate-900 via-slate-800 to-slate-900") : "from-slate-900 via-slate-800 to-slate-900",
             createdAt: asset.createdAt ? new Date(asset.createdAt) : new Date(),
           }];
@@ -1552,6 +1566,7 @@ function VideoPageInner() {
             model: ctx.model.name, modelColor: ctx.model.family_color,
             ratio: ctx.ratio, duration: ctx.duration != null ? `${ctx.duration}s` : "auto",
             prompt: ctx.promptText,
+            providerRequestId: taskId,
             gradient: FAMILY_GRADIENTS[ctx.model.family] ?? "from-slate-900 via-slate-800 to-slate-900",
             createdAt: new Date(),
           };
@@ -1563,7 +1578,7 @@ function VideoPageInner() {
             return [newItem, ...prev];
           });
           if (!alreadyKnownUrl) {
-            addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined });
+            addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined, providerRequestId: taskId });
           }
           removePending();
           setGenerationError(null);
@@ -2228,6 +2243,28 @@ function VideoPageInner() {
         : (aspectRatio ?? (size ? sizeToRatio(size) : "16:9"));
       // Veo 3.1 accepts 4/6/8 — honor the user's choice (fallback to 8).
       const capturedDuration = isVeo31Model ? (isVeo31FixedEightSecond ? 8 : (duration ?? 8)) : duration;
+      persistVideoEditContext(data.taskId, {
+        modelRoute: requestModelRoute,
+        modelName: selectedModel.name,
+        duration: capturedDuration,
+        aspectRatio: _capturedRatio,
+        quality: resolution,
+        referenceImageUrls: Array.isArray(payload.reference_image_urls)
+          ? payload.reference_image_urls.filter((value): value is string => typeof value === "string").slice(0, 3)
+          : [],
+        startImageUrl: typeof payload.image === "string"
+          ? payload.image
+          : typeof payload.first_frame_url === "string"
+            ? payload.first_frame_url
+            : undefined,
+        endImageUrl: typeof payload.end_image === "string"
+          ? payload.end_image
+          : typeof payload.last_frame_url === "string"
+            ? payload.last_frame_url
+            : typeof payload.last_image === "string"
+              ? payload.last_image
+              : undefined,
+      });
       setPendingTasks(prev => new Map(prev).set(data.taskId!, { model: selectedModel, promptText: basePrompt, ratio: _capturedRatio, duration: capturedDuration }));
       // Persist task so it survives a page refresh
       try {
@@ -2419,7 +2456,7 @@ function VideoPageInner() {
             <MediaGrid
               items={results}
               skeletonModels={Array.from(pendingTasks.values()).map(t => ({ name: t.model.name, ratio: t.ratio }))}
-              onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined })}
+              onInspect={(item) => setInspectorAsset({ id: item.id, type: item.type, url: item.src, prompt: item.prompt ?? "", model: item.model, date: item.createdAt ? item.createdAt.toISOString() : undefined, providerRequestId: item.providerRequestId })}
               onDelete={async (id) => {
                 setResults(prev => prev.filter(r => r.id !== id));
                 try {

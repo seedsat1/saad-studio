@@ -23,6 +23,7 @@ export interface MediaItem {
   ratio: string;           // "16:9" | "9:16" | "1:1" | "4:3" | "21:9" | "3:4" …
   duration?: string;       // "4.2s"
   prompt?: string;
+  providerRequestId?: string;
   gradient?: string;       // Tailwind gradient classes for placeholder bg
   createdAt?: Date;
 }
