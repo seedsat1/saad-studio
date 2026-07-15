@@ -6250,3 +6250,28 @@
   - Recommended next implementation direction is to promote Saad Studio's existing `RecentStrip` and store/API paths into a central account library/feed experience, plus consolidate generation/upload/import flows behind a cleaner tool-service contract.
 - Remaining:
   - If approved, implement a Saad-original home/account library patterned after the observed workflow using existing Saad Studio API and CEP bridge code.
+
+## Latest task: Gemini Omni stateful video edit resume (2026-07-16)
+
+- Status:
+  Fixed `/video-edit?previousTaskId=...` so a previous Gemini Omni / Google Interactions video can be resolved and shown as the start clip for sequential editing.
+- Affected files:
+  - `app/(dash)/(routes)/video-edit/page.tsx`
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - `/api/video` now resolves video polling identifiers from direct provider task IDs, wrapped `gen-gvo:...` IDs, stored `task:gvo:...` markers, `providerRequestId`, and internal `Generation.id`.
+  - Completed generation rows return their stored media URL before falling through to provider polling.
+  - Gemini Omni follow-up requests can derive `previous_interaction_id` from a stored generation row instead of requiring the client to pass the raw Google interaction handle.
+  - `/video-edit` now polls the previous task on load, shows loading/processing states, displays the previous video preview when available, and keeps the stateful context active for the next edit.
+  - The in-page `Continue Sequential Edit` action now sets the generated video as the next start clip immediately.
+- Verification:
+  - `npm.cmd run build` passed.
+  - Build warnings remain from existing Tailwind ambiguous duration utilities and existing dynamic-server-usage logs in unrelated admin/editor routes.
+- Errors discovered:
+  - The previous implementation fetched `previousTaskId` only once and only understood completed provider task IDs, so internal generation IDs or still-processing Google interaction tasks left the start-video panel empty.
+- Decisions:
+  - Keep Google Interactions as the stateful source of truth via `previous_interaction_id`; use the loaded video URL for user preview and manual continuity, not as a replacement for the saved interaction state.
+- Remaining:
+  - Deploy the pushed changes and retest the production link with a real completed `previousTaskId`.

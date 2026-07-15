@@ -51,36 +51,92 @@ function VideoEditPageContent() {
   const [successTaskId, setSuccessTaskId] = useState<string | null>(null);
   const [activeTaskStatus, setActiveTaskStatus] = useState<string | null>(null);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [previousVideoStatus, setPreviousVideoStatus] = useState<"idle" | "loading" | "processing" | "ready" | "failed">("idle");
+  const [previousVideoError, setPreviousVideoError] = useState<string | null>(null);
 
   // References
   const videoInputRef = useRef<HTMLInputElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const previousPollRef = useRef<NodeJS.Timeout | null>(null);
+
+  const previousTaskLabel = useMemo(() => {
+    if (!previousTaskId) return "";
+    return previousTaskId.length > 36
+      ? `${previousTaskId.slice(0, 18)}...${previousTaskId.slice(-10)}`
+      : previousTaskId;
+  }, [previousTaskId]);
 
   // Load params on load
   useEffect(() => {
     const requestedPrevTaskId = searchParams.get("previousTaskId");
+    let cancelled = false;
+
     if (requestedPrevTaskId) {
       setPreviousTaskId(requestedPrevTaskId);
-      fetch(`/api/video?taskId=${encodeURIComponent(requestedPrevTaskId)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.status === "completed" && data.outputs?.[0]) {
-            setVideoPreview(data.outputs[0]);
+      setVideoFile(null);
+      setPreviousVideoStatus("loading");
+      setPreviousVideoError(null);
+
+      if (previousPollRef.current) clearTimeout(previousPollRef.current);
+      let attempts = 0;
+
+      const loadPreviousVideo = async () => {
+        attempts += 1;
+        try {
+          const res = await fetch(`/api/video?taskId=${encodeURIComponent(requestedPrevTaskId)}`, {
+            cache: "no-store",
+          });
+          const data = await res.json().catch(() => ({}));
+
+          if (cancelled) return;
+
+          if (!res.ok || data.status === "failed") {
+            throw new Error(data.error ?? "Failed to load the previous video.");
           }
-        })
-        .catch(err => console.error("Failed to fetch previous video preview:", err));
+
+          if (data.status === "completed" && data.outputs?.[0]) {
+            setVideoPreview((current) => {
+              if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+              return data.outputs[0];
+            });
+            setPreviousVideoStatus("ready");
+            return;
+          }
+
+          setPreviousVideoStatus("processing");
+          if (attempts < 60) {
+            previousPollRef.current = setTimeout(loadPreviousVideo, 4000);
+          } else {
+            setPreviousVideoStatus("failed");
+            setPreviousVideoError("Previous video is still unavailable. You can continue with the saved state or upload a video manually.");
+          }
+        } catch (err: any) {
+          if (cancelled) return;
+          setPreviousVideoStatus("failed");
+          setPreviousVideoError(normalizeGenerationError(err.message));
+          console.error("Failed to fetch previous video preview:", err);
+        }
+      };
+
+      loadPreviousVideo();
     }
     const requestedPrompt = searchParams.get("prompt");
     if (requestedPrompt) {
       setPrompt(requestedPrompt);
     }
+
+    return () => {
+      cancelled = true;
+      if (previousPollRef.current) clearTimeout(previousPollRef.current);
+    };
   }, [searchParams]);
 
   // Clean up previews
   useEffect(() => {
     return () => {
-      if (videoPreview) URL.revokeObjectURL(videoPreview);
+      if (videoPreview?.startsWith("blob:")) URL.revokeObjectURL(videoPreview);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (previousPollRef.current) clearTimeout(previousPollRef.current);
     };
   }, [videoPreview]);
 
@@ -113,10 +169,13 @@ function VideoEditPageContent() {
       console.warn("Unable to inspect video duration metadata:", err);
     }
 
-    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    if (previousPollRef.current) clearTimeout(previousPollRef.current);
+    if (videoPreview?.startsWith("blob:")) URL.revokeObjectURL(videoPreview);
     setVideoFile(file);
     setVideoPreview(URL.createObjectURL(file));
     setPreviousTaskId(null); // Uploading a new video overrides previous stateful context
+    setPreviousVideoStatus("idle");
+    setPreviousVideoError(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -308,13 +367,28 @@ function VideoEditPageContent() {
                 <button
                   onClick={() => {
                     setVideoFile(null);
-                    setVideoPreview(null);
+                    setVideoPreview((current) => {
+                      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
+                      return null;
+                    });
                     setPreviousTaskId(null);
+                    setPreviousVideoStatus("idle");
+                    setPreviousVideoError(null);
                   }}
                   className="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-black/90 text-zinc-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
                 >
                   <X size={14} />
                 </button>
+              </div>
+            ) : previousTaskId && (previousVideoStatus === "loading" || previousVideoStatus === "processing") ? (
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 p-8 flex flex-col items-center justify-center gap-3 aspect-video">
+                <Loader2 size={20} className="animate-spin text-cyan-400" />
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-zinc-300">
+                    {previousVideoStatus === "processing" ? "Preparing previous video..." : "Loading previous video..."}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-1">The saved Google interaction is being resolved for preview.</p>
+                </div>
               </div>
             ) : (
               <div
@@ -364,8 +438,19 @@ function VideoEditPageContent() {
                 </button>
               </div>
               <p className="text-[10px] text-zinc-400 leading-relaxed">
-                The model remembers the context of previous shot ID <code className="font-mono text-cyan-300 bg-white/5 px-1 py-0.5 rounded">{previousTaskId}</code>. Edits will build on it.
+                The model remembers the context of previous shot ID <code title={previousTaskId} className="font-mono text-cyan-300 bg-white/5 px-1 py-0.5 rounded break-all">{previousTaskLabel}</code>. Edits will build on it.
               </p>
+              {previousVideoStatus === "ready" && (
+                <p className="text-[10px] text-emerald-300 flex items-center gap-1.5">
+                  <CheckCircle2 size={11} />
+                  Previous video loaded as the start clip.
+                </p>
+              )}
+              {previousVideoStatus === "failed" && previousVideoError && (
+                <p className="text-[10px] text-amber-300 leading-relaxed">
+                  {previousVideoError}
+                </p>
+              )}
             </div>
           )}
 
@@ -509,6 +594,10 @@ function VideoEditPageContent() {
                       onClick={() => {
                         if (successTaskId) {
                           setPreviousTaskId(successTaskId);
+                          setVideoFile(null);
+                          setVideoPreview(generatedVideoUrl);
+                          setPreviousVideoStatus("ready");
+                          setPreviousVideoError(null);
                           setPrompt("");
                         }
                       }}

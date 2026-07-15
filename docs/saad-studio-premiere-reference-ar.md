@@ -1691,3 +1691,12 @@
 - في هذه الحالة يجب أن يجيب Saad Agent محليًا من `taskLedger` بدون تشغيل `CodexRuntimeBridge` أو Pi/Codex أو LM Studio أو أي مزود نموذج.
 - التقرير المحلي يجب أن يذكر مسار الهدف، مسارات المراجع، هل RTL مطلوب، وأن الكتابة داخل `DEZ` و`claude-code` غير مسموحة لأنها مراجع قراءة فقط.
 - عند ذكر `DEZ` بالاسم في هذا النوع من الطلبات، يجب استخدام مسار مرجع التصميم الحقيقي داخل حزمة Saad Agent أو مشروع Saad Agent، وليس إنشاء مسار وهمي تحت الـ workspace النشط مثل `E:\TEST ANG\saad-agent\...`.
+
+## Gemini Omni stateful video edit resume behavior (2026-07-16)
+
+- صفحة `/video-edit` تقبل `previousTaskId` لاستكمال تعديل فيديو Gemini Omni Flash عبر Google Interactions API.
+- يمكن أن يكون `previousTaskId` بصيغة `gen-gvo:...` أو `gvo:...` أو معرف سجل داخلي من جدول `Generation`.
+- مسار `/api/video` مسؤول عن تحويل المعرف إلى المهمة الحقيقية عبر `mediaUrl = task:<id>` أو `providerRequestId` أو `Generation.id` قبل استدعاء مزود الفيديو.
+- إذا كان سجل التوليد مكتملًا وفيه `mediaUrl` أو `outputUrl` عام، يرجع `/api/video` الفيديو مباشرة حتى يظهر في واجهة التعديل بدون انتظار مزود خارجي.
+- عند إرسال تعديل متسلسل جديد إلى `google/gemini-omni-flash`، يستخرج الخادم `previous_interaction_id` من مهمة Gemini المخزنة ويرسله إلى Google Interactions API، مع بقاء الفيديو المعروض في الواجهة كمعاينة للمستخدم.
+- الواجهة تعرض حالات تحميل/معالجة للفيديو السابق وتستمر في polling حتى يظهر الفيديو، ثم تستخدمه كـ start clip بصريًا مع إبقاء السياق المتسلسل فعالًا.

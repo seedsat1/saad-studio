@@ -283,6 +283,90 @@ function normalizePollingTaskId(taskId: string): string {
     : taskId;
 }
 
+type VideoTaskGeneration = {
+  id: string;
+  cost: number;
+  mediaUrl: string | null;
+  outputUrl?: string | null;
+  providerRequestId?: string | null;
+  createdAt: Date;
+};
+
+function extractStoredVideoTaskId(mediaUrl: string | null | undefined): string | null {
+  if (!mediaUrl?.startsWith("task:")) return null;
+  return normalizePollingTaskId(mediaUrl.slice("task:".length));
+}
+
+function resolveCompletedGenerationUrl(generation: VideoTaskGeneration | null | undefined): string | null {
+  const candidate = generation?.outputUrl || generation?.mediaUrl || null;
+  if (!candidate || candidate.startsWith("task:") || candidate.startsWith("failed:")) return null;
+  return normalizeMediaUrl(candidate) || candidate;
+}
+
+function resolveFailedGenerationError(generation: VideoTaskGeneration | null | undefined): string | null {
+  const mediaUrl = generation?.mediaUrl || "";
+  if (!mediaUrl.startsWith("failed:")) return null;
+  const parts = mediaUrl.split(":");
+  return parts.slice(2).join(":") || "Generation failed";
+}
+
+async function findVideoTaskGeneration(
+  userId: string,
+  requestedTaskId: string,
+  normalizedTaskId = normalizePollingTaskId(requestedTaskId),
+): Promise<VideoTaskGeneration | null> {
+  const ids = Array.from(new Set([requestedTaskId, normalizedTaskId].filter(Boolean)));
+  const or: any[] = [];
+
+  for (const id of ids) {
+    or.push({ id });
+    or.push({ providerRequestId: id });
+    or.push({ mediaUrl: { startsWith: `task:${id}` } });
+  }
+
+  if (or.length === 0) return null;
+
+  return prismadb.generation.findFirst({
+    where: { userId, OR: or },
+    select: {
+      id: true,
+      cost: true,
+      mediaUrl: true,
+      outputUrl: true,
+      providerRequestId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  }).catch(() => null);
+}
+
+async function resolveGeminiInteractionHandleFromTask(
+  userId: string,
+  previousTaskId: string | undefined,
+): Promise<VeoOperationHandle | null> {
+  if (!previousTaskId) return null;
+
+  let taskId = normalizePollingTaskId(previousTaskId);
+  const linkedGeneration = await findVideoTaskGeneration(userId, previousTaskId, taskId);
+  const storedTaskId =
+    extractStoredVideoTaskId(linkedGeneration?.mediaUrl) ||
+    linkedGeneration?.providerRequestId ||
+    null;
+
+  if (storedTaskId) {
+    taskId = normalizePollingTaskId(storedTaskId);
+  }
+
+  const decoded = decodeGeminiTask(taskId);
+  if (decoded) return decoded;
+
+  if (previousTaskId.startsWith("interactions/") || previousTaskId.startsWith("v1_")) {
+    return { name: previousTaskId, model: "gemini-omni-flash-preview" };
+  }
+
+  return null;
+}
+
 function decodeGeminiTask(taskId: string): VeoOperationHandle | null {
   taskId = normalizePollingTaskId(taskId);
   if (!taskId.startsWith("gvo:")) return null;
@@ -2020,11 +2104,9 @@ export async function POST(req: Request) {
 
       const previousTaskId = typeof payload.previousTaskId === "string" ? payload.previousTaskId : undefined;
       let previousInteractionId: string | undefined;
-      if (previousTaskId && normalizePollingTaskId(previousTaskId).startsWith("gvo:")) {
-        const decoded = decodeGeminiTask(previousTaskId);
-        if (decoded?.name) {
-          previousInteractionId = decoded.name;
-        }
+      const previousHandle = await resolveGeminiInteractionHandleFromTask(userId, previousTaskId);
+      if (previousHandle?.name) {
+        previousInteractionId = previousHandle.name;
       }
 
       let opHandle: VeoOperationHandle;
@@ -2496,7 +2578,25 @@ export async function GET(req: Request) {
     if (!requestedTaskId || typeof requestedTaskId !== "string") {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
-    const taskId = normalizePollingTaskId(requestedTaskId);
+    let taskId = normalizePollingTaskId(requestedTaskId);
+    const initialLinkedGeneration = await findVideoTaskGeneration(userId, requestedTaskId, taskId);
+    const failedGenerationError = resolveFailedGenerationError(initialLinkedGeneration);
+    if (failedGenerationError) {
+      return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: failedGenerationError });
+    }
+
+    const completedGenerationUrl = resolveCompletedGenerationUrl(initialLinkedGeneration);
+    if (completedGenerationUrl) {
+      return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [completedGenerationUrl], error: null });
+    }
+
+    const storedTaskId =
+      extractStoredVideoTaskId(initialLinkedGeneration?.mediaUrl) ||
+      initialLinkedGeneration?.providerRequestId ||
+      null;
+    if (storedTaskId) {
+      taskId = normalizePollingTaskId(storedTaskId);
+    }
 
     // Direct Google Gemini polling. This route never touches KIE or WaveSpeed.
     if (taskId.startsWith("gvo:")) {
@@ -2505,14 +2605,15 @@ export async function GET(req: Request) {
         return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "Invalid Gemini task id" });
       }
 
-      const linkedGeneration = await prismadb.generation.findFirst({
+      const linkedGeneration = initialLinkedGeneration ?? await prismadb.generation.findFirst({
         where: { userId, mediaUrl: { startsWith: `task:${taskId}` } },
-        select: { id: true, cost: true, mediaUrl: true, createdAt: true },
+        select: { id: true, cost: true, mediaUrl: true, outputUrl: true, providerRequestId: true, createdAt: true },
         orderBy: { createdAt: "desc" },
       }).catch(() => null);
 
-      if (linkedGeneration?.mediaUrl && !linkedGeneration.mediaUrl.startsWith("task:")) {
-        return NextResponse.json({ taskId, status: "completed", outputs: [normalizeMediaUrl(linkedGeneration.mediaUrl) || linkedGeneration.mediaUrl], error: null });
+      const linkedCompletedUrl = resolveCompletedGenerationUrl(linkedGeneration);
+      if (linkedCompletedUrl) {
+        return NextResponse.json({ taskId: requestedTaskId, status: "completed", outputs: [linkedCompletedUrl], error: null });
       }
 
       let poll;
@@ -2526,10 +2627,10 @@ export async function GET(req: Request) {
           const ageMs = linkedGeneration ? (Date.now() - new Date(linkedGeneration.createdAt).getTime()) : 0;
           if (ageMs < 30000 && (message.includes("404") || /not found/i.test(message))) {
             return NextResponse.json({
-              taskId,
-              status: "processing",
-              outputs: [],
-              error: null,
+            taskId: requestedTaskId,
+            status: "processing",
+            outputs: [],
+            error: null,
             });
           }
 
@@ -2555,7 +2656,7 @@ export async function GET(req: Request) {
         });
       }
       if (!poll.done) {
-        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+        return NextResponse.json({ taskId: requestedTaskId, status: "processing", outputs: [], error: null });
       }
 
       if (!poll.videoUri) {
@@ -2566,7 +2667,7 @@ export async function GET(req: Request) {
           }).catch(() => {});
         }
         const debugMsg = poll.rawResponse ? " - RAW: " + JSON.stringify(poll.rawResponse).substring(0, 300) : "";
-        return NextResponse.json({ taskId, status: "failed", outputs: [], error: "No video returned" + debugMsg });
+        return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "No video returned" + debugMsg });
       }
 
       let downloaded;
@@ -2574,7 +2675,7 @@ export async function GET(req: Request) {
         downloaded = await downloadVeoVideo(poll.videoUri);
       } catch (downloadErr) {
         console.error("[api/video GET] Gemini download pending/error", errorMessage(downloadErr));
-        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+        return NextResponse.json({ taskId: requestedTaskId, status: "processing", outputs: [], error: null });
       }
       const { buffer, contentType } = downloaded;
       let publicUrl = poll.videoUri;
@@ -2587,7 +2688,7 @@ export async function GET(req: Request) {
           generationId: linkedGeneration.id,
         });
         if (!storedUrl) {
-          return NextResponse.json({ taskId, status: "failed", outputs: [], error: "Storage upload failed" });
+          return NextResponse.json({ taskId: requestedTaskId, status: "failed", outputs: [], error: "Storage upload failed" });
         }
         publicUrl = storedUrl;
         await setGenerationMediaUrl(linkedGeneration.id, publicUrl);
