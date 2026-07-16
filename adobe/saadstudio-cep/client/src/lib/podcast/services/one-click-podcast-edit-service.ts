@@ -83,7 +83,8 @@ export async function runOneClickPodcastEditService(
     console.log("[Saad One Click Edit] Duplicate Active Sequence | Status: STARTED");
     onProgress({ stage: "setup", message: "Duplicating active sequence...", percent: 5 });
     
-    const draftName = (diagnostics.sequenceName || "Sequence") + " - Saad Auto Switch Draft";
+    const baseSequenceName = cleanOneClickBaseSequenceName(diagnostics.sequenceName || "Sequence");
+    const draftName = baseSequenceName + " - Saad Auto Switch Draft";
     const dupResult = await evalES<any>("duplicateActiveSequence", "Auto Switch Draft", draftName);
     if (!dupResult || !dupResult.ok || !dupResult.newSequenceID) {
       const errMsg = dupResult?.blockers?.join(" | ") || "Could not duplicate sequence.";
@@ -222,7 +223,7 @@ export async function runOneClickPodcastEditService(
     await evalES<boolean>("setActiveSequenceById", duplicateSequenceID);
     
     // Final Rename: [Original Name] - Saad One Click Edit
-    const finalCleanName = (diagnostics.sequenceName || "Sequence") + " - Saad One Click Edit";
+    const finalCleanName = baseSequenceName + " - Saad One Click Edit";
     try {
       await evalES<boolean>("renameSequenceById", duplicateSequenceID, finalCleanName);
       duplicateSequenceName = finalCleanName;
@@ -277,4 +278,12 @@ export async function runOneClickPodcastEditService(
       captionDiagnostics,
     };
   }
+}
+
+function cleanOneClickBaseSequenceName(name: string): string {
+  return name
+    .replace(/\s+-\s+Saad One Click Edit$/i, "")
+    .replace(/\s+-\s+Saad Auto Switch Draft$/i, "")
+    .replace(/\s+-\s+Saad Sync Draft$/i, "")
+    .trim() || "Sequence";
 }

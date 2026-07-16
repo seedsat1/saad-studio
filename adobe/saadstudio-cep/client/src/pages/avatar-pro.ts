@@ -478,13 +478,13 @@ async function ensureVisualUploadedAsImage(state: VisualState): Promise<string> 
   let uploadedUrl = "";
   if (state.kind === "image") {
     uploadedUrl = state.file
-      ? await api.uploadFileToR2(state.file, "image")
-      : await api.uploadLocalPathToR2(state.localPath!, "image");
+      ? await api.uploadFileToStorage(state.file, "image")
+      : await api.uploadLocalPathToStorage(state.localPath!, "image");
   } else {
     const frameFile = state.file
       ? await captureFrameFromVideoFile(state.file, state.frameTimeSec)
       : await captureFrameFromVideoPath(state.localPath!, state.displayName ?? "timeline-video", state.frameTimeSec);
-    uploadedUrl = await api.uploadFileToR2(frameFile, "image");
+    uploadedUrl = await api.uploadFileToStorage(frameFile, "image");
   }
 
   state.uploadedUrl = uploadedUrl;
@@ -504,8 +504,8 @@ async function ensureAudioUploaded(state: AudioState): Promise<string> {
   }
 
   const uploadedUrl = state.file
-    ? await api.uploadFileToR2(state.file, "audio")
-    : await api.uploadLocalPathToR2(state.localPath!, "audio");
+    ? await api.uploadFileToStorage(state.file, "audio")
+    : await api.uploadLocalPathToStorage(state.localPath!, "audio");
 
   state.uploadedUrl = uploadedUrl;
   state.uploadedKey = uploadKey;

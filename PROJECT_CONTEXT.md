@@ -1,5 +1,225 @@
 # Saad Studio Project Context Update
 
+## Latest task: Premiere storage migration from Cloudflare R2 to Backblaze B2 (2026-07-16)
+
+- Status:
+  The Premiere CEP client now treats Backblaze-backed storage as the active upload/display path instead of Cloudflare R2.
+- Behavior:
+  - CEP upload helpers were renamed to `uploadFileToStorage` and `uploadLocalPathToStorage`; tool pages now call those names.
+  - CEP gallery/download fallbacks try Backblaze friendly URL, Backblaze S3 direct URL, then `/api/media`; they no longer try the raw Cloudflare R2 public URL.
+  - Legacy `r2.dev` URLs are still recognized only so the panel can extract the storage key and retry through Backblaze/API delivery.
+  - Server storage configuration now requires `B2_ACCESS_KEY_ID`, `B2_SECRET_ACCESS_KEY`, and `B2_BUCKET`/`B2_BUCKET_NAME`; it no longer falls back to R2 credentials.
+  - The Backblaze provider no longer reads `R2_*` environment variables for bucket, endpoint, region, credentials, or public URL.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-Bsg-u2eT.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-Bsg-u2eT.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the Backblaze-focused client.
+- Remaining:
+  - Production must have the B2 environment variables configured and deployed for signed uploads to keep working.
+
+## Latest task: Premiere Image generation full gallery import (2026-07-16)
+
+- Status:
+  Image generation gallery now loads the account gallery through paginated `/api/panel/generations` calls instead of only the first 12 items.
+- Behavior:
+  - The panel API client supports `limit`, `kind`, and `cursor` for gallery loading.
+  - `store.refreshRecent()` fetches all available generation pages, deduplicates by id, and keeps the existing image/video filters in the UI.
+  - The backend panel generations route supports optional `kind=image|video`, cursor pagination, and up to 100 returned items per page.
+  - The gallery heading now says `Image gallery` / `Video gallery` instead of `Recent images` / `Recent videos`.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-uQMQO6a9.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed for the Next API changes.
+  - `npm.cmd run build` for the full Next app started but timed out after 5 minutes without an emitted error.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-uQMQO6a9.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the updated gallery code.
+- Remaining:
+  - The website/server deployment must include the updated `app/api/panel/generations/route.ts` for true all-page pagination in production; old production API versions can still only return their first-page behavior.
+
+## Latest task: Premiere Podcast language toggle live refresh repair (2026-07-16)
+
+- Status:
+  Fixed the case where clicking EN/AR changed the header button but the Podcast Automation page stayed in English.
+- Cause:
+  - The Podcast page registered a `saad-language-changed` listener, but also removed it on `DOMNodeRemoved`.
+  - Normal Podcast refreshes replace child DOM nodes, so the listener could be removed before the user clicked the language button.
+- Behavior:
+  - The Podcast page now keeps the language-change listener active while the page is mounted.
+  - The Podcast page title, tool tabs, and main visible tool headings/descriptions for Auto Captions, Synchronize, Multi-Cam, and One Click now read from the current language helper.
+  - Switching EN/AR re-renders the Podcast tool content immediately.
+- Verification:
+  - Node source check confirmed no `DOMNodeRemoved` listener remains and no mojibake markers remain in the Podcast page.
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-BVTrki05.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-BVTrki05.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the fixed language behavior.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and click AR/EN on Podcast Automation; visible labels should switch immediately.
+
+## Latest task: Premiere Podcast language-mode text cleanup (2026-07-16)
+
+- Status:
+  Removed mixed Arabic/English labels from the Podcast Automation user controls and tied the affected Auto Captions / One Click labels to the active EN/AR language mode.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - English mode no longer shows mixed labels such as `Standard (متوازن)`, `Generate Auto Captions (توليد الكابشنز)`, or `Fast Mode (الوضع السريع)` in the Podcast page.
+  - The affected captions/one-click controls now read from `getLanguage()` and re-render when the global `saad-language-changed` event fires.
+  - Arabic labels are stored as Unicode escapes in source so they do not become mojibake in the CEP/Vite build.
+- Verification:
+  - `rg` found no remaining mixed Arabic/English strings or mojibake markers in `multi-cam-auto-switch.ts`.
+  - Node UTF-8 check confirmed no source mojibake markers remain in the Podcast page.
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-C_T33ieU.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-C_T33ieU.js`.
+  - Checked for active Saad Studio CEPHtmlEngine processes; none were running after deployment.
+- Errors recorded:
+  - The previous Podcast UI mixed Arabic helper text inside English mode, which made the EN/AR button feel incomplete.
+  - An initial Arabic text insertion displayed as mojibake in source inspection; it was replaced with Unicode escapes.
+- Decision:
+  - Keep the fix scoped to the Podcast page controls currently under review and make the text mode-driven instead of hard-coding bilingual labels.
+- Remaining:
+  - Reopen the Saad Studio panel and toggle EN/AR on the Podcast page to visually confirm the affected controls switch cleanly.
+
+## Latest task: Premiere Podcast header removal (2026-07-16)
+
+- Status:
+  Removed the large subscriber-facing Podcast Automation header that showed `SAAD STUDIO`, `for Premiere Pro`, and the `Premiere Pro 2026` host pill.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The Podcast Automation page now starts directly with the tool tabs.
+  - Removed the unused header render function and related CSS selectors.
+  - Kept the shared green status-dot styling used elsewhere in the tool cards.
+- Verification:
+  - Searched the Podcast page and stylesheet for `renderStudioHeader`, `podcast-studio-header`, `podcast-host-pill`, `podcast-pr-badge`, `Premiere Pro 2026`, and `for Premiere Pro`; no references remain.
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-wrxFOjKR.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-wrxFOjKR.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the updated headerless UI.
+- Errors recorded:
+  - The previous page still showed a redundant brand/host header that the user explicitly did not want in this workflow.
+- Decision:
+  - Remove the header at render/source level instead of only hiding it with CSS, so the layout starts cleanly at the tool tabs.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and confirm the top of Podcast Automation starts directly with the tabs.
+
+## Latest task: Premiere Podcast tool tabs remove Silence and Auto Zoom (2026-07-16)
+
+- Status:
+  Removed the `Silence` and `Auto Zoom` tabs/tools from the subscriber-facing Podcast Automation toolbar.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The toolbar now has four visible tools only: `Multi-Cam`, `Auto Captions`, `Synchronize`, and `One Click`.
+  - Removed the placeholder render functions and CSS for `Silence` and `Auto Zoom`.
+  - The tab grid now uses four columns instead of six.
+- Verification:
+  - Searched the Podcast page and component stylesheet for `Silence`, `Auto Zoom`, `silence`, `auto-zoom`, and related CSS selectors; no UI references remain.
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-A90G5gb7.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-A90G5gb7.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the updated toolbar.
+- Errors recorded:
+  - The previous toolbar still showed `Silence` and `Auto Zoom` even though the user wanted them removed from the visible subscriber workflow.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and confirm the toolbar shows only the four remaining tools.
+
+## Latest task: Premiere One Click subscriber-result cleanup (2026-07-16)
+
+- Status:
+  Cleaned the One Click completion UI so subscriber-facing results no longer show caption timing diagnostics, CUDA/Faster Whisper details, Auto Switch Summary, or Developer Diagnostics after a successful run.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The One Click tab now renders only the One Click tool page by default.
+  - `Auto Switch Summary` and `Developer Diagnostics` are no longer appended after One Click results for subscribers.
+  - `Caption Diagnostics Timing` is hidden behind internal developer state and does not appear in normal Auto Captions or One Click results.
+  - The normal success result remains short: target sequence, total time, completed/skipped/failed steps, camera cuts, and captions count.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-DAeVt2BY.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-DAeVt2BY.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the cleaned bundle.
+- Errors recorded:
+  - Developer diagnostics and caption runtime timings were still visible in subscriber-facing success screens after One Click completed.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and run/inspect One Click completion; only the short success summary should be visible.
+
+## Latest task: Premiere One Click draft-sequence blocker repair (2026-07-16)
+
+- Status:
+  Fixed a regression where `One Click Podcast Edit` failed with `Cannot run One Click Edit on an existing draft sequence` when the active sequence was the synced/working `Q - Saad Auto Switch Draft`.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/one-click-podcast-edit-service.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Cause:
+  - The page-level One Click preflight still blocked any active sequence whose name included `Saad Auto Switch Draft`.
+  - After the Synchronize workflow, the user's valid working sequence can be a duplicate/draft, so this protection incorrectly blocked the normal next step.
+- Behavior:
+  - One Click no longer blocks `Saad Auto Switch Draft` as an input sequence.
+  - It still blocks generic `Saad Studio Draft` temporary sequences.
+  - One Click output names are normalized so running from `Q - Saad Auto Switch Draft` creates clean names like `Q - Saad One Click Edit` instead of repeated `Draft - Draft` names.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-CiKDsL9x.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-CiKDsL9x.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the fixed bundle.
+- Errors recorded:
+  - A safety blocker intended to protect originals was applied too broadly to valid working duplicates, causing One Click to fail after the user had a correct synchronized draft.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and run `One Click Podcast Edit` again on `Q - Saad Auto Switch Draft`.
+
+## Latest task: Premiere Saad Studio tabbed tool pages correction (2026-07-16)
+
+- Status:
+  Corrected the Podcast Automation UI after user review showed the prior reference-style dashboard was still wrong: tabs were only scroll links and all tools rendered in one long stacked page.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The top tool tabs are now real navigation state, not `scrollIntoView` buttons.
+  - Only the selected tool page is rendered at a time: `Multi-Cam`, `Silence`, `Auto Zoom`, `Auto Captions`, `Synchronize`, or `One Click`.
+  - The tabs use a six-column grid so the right-side tools are not clipped behind horizontal scrolling in the Premiere panel.
+  - Long Faster Whisper/runtime diagnostics were removed from the normal Auto Captions and One Click pages; they remain accessible only inside Developer Diagnostics.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-1HZSam4w.js`.
+  - Copied the build to the active per-user CEP extension folder.
+  - Verified installed `client/dist/index.html` points to `./assets/index-1HZSam4w.js`.
+  - Stopped Saad Studio CEPHtmlEngine processes matching `app.saadstudio.cep` so Premiere reloads the new bundle.
+- Errors recorded:
+  - Previous implementation misunderstood the reference design by stacking every tool in one scroll page and making the tabs cosmetic.
+  - Runtime diagnostics were visible in normal user pages, creating a noisy developer dashboard instead of a short tool page.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and visually confirm each tab opens only its own tool page.
+  - Next UI pass should make the Multi-Cam page itself more compact by moving camera labels/wide-camera controls into Advanced Settings.
+
 ## Latest task: API video Gemini taskId prefix compatibility (2026-07-15)
 
 - Status:
@@ -6306,3 +6526,231 @@
   - Keep the edit model constrained to Gemini Omni Flash; carryover model route is used only when it is the supported Gemini Omni route.
 - Remaining:
   - Deploy and retest with a generated Gemini Omni Flash video that used 1-3 reference images, then click `Stateful Video Edit` and confirm the references appear in `/video-edit`.
+
+## Latest task: Adobe CEP reference review before fixes (2026-07-16)
+
+- Status:
+  Reviewed Saad Studio Adobe CEP references and compared current panel/gallery/linking mechanisms against the desired Magnific-style workflow direction. No code changes were made.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Files inspected:
+  - `adobe/saadstudio-cep/package.json`
+  - `adobe/saadstudio-cep/README.md`
+  - `adobe/saadstudio-cep/CSXS/manifest.xml`
+  - `adobe/saadstudio-cep/client/package.json`
+  - `adobe/saadstudio-cep/client/vite.config.ts`
+  - `adobe/saadstudio-cep/client/src/main.ts`
+  - `adobe/saadstudio-cep/client/src/lib/api.ts`
+  - `adobe/saadstudio-cep/client/src/lib/cep.ts`
+  - `adobe/saadstudio-cep/client/src/lib/oauth.ts`
+  - `adobe/saadstudio-cep/client/src/lib/store.ts`
+  - `adobe/saadstudio-cep/client/src/lib/host/*`
+  - `adobe/saadstudio-cep/client/src/components/recent-strip.ts`
+  - `adobe/saadstudio-cep/client/src/pages/*` selected panel/tool pages
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+  - `app/api/panel/*` selected panel backend routes
+  - `lib/panel-auth.ts`
+- Findings:
+  - `client/src/lib/api.ts` polls `/api/panel/jobs/{id}`, but no `app/api/panel/jobs` route exists. Pages using `api.pollJob(job.id)` can fail whenever a panel generator returns a non-final job state.
+  - `client/src/lib/cep.ts` falls back to `child_process.exec(...)` with a URL interpolated into a shell command. This should be replaced with a validated/allowlisted open-external path or a non-shell launch path.
+  - `client/src/lib/api.ts` still contains production-visible diagnostics around response bodies and token previews, especially for Reap/panel token requests. These should be gated or removed before release.
+  - `HostAdapter.placeMedia/addToTimeline` passes placement options, but `jsx/index.jsx` wrapper `placeMediaOnTimeline(path)` ignores those options and only calls `importAndPlaceOnTimeline(path)`.
+  - Several pages still call `evalES(...)` directly while newer caption code uses `HostAdapter`, so import/place/caption behavior is split across two bridge styles.
+  - `recentGenerations()` swallows failures and returns an empty list, which can make a broken gallery look like a valid empty account.
+  - `README.md` is stale: it still marks `/api/panel/generations` as todo even though the route exists; `/api/panel/jobs/{id}` remains missing.
+- Verification:
+  - Read required memory files before acting.
+  - Confirmed `Test-Path app/api/panel/jobs` returns false.
+  - Confirmed existing panel backend routes include generations, generate image/video/avatar/captions, Reap status/start, transitions job, but not generic panel jobs.
+  - No build/test was run because this was a read-only reference review.
+- Decisions:
+  - Keep this task as audit-only and reserve code edits for the next explicit repair step.
+  - First repair should target the broken panel job polling contract and the CEP external-link/token diagnostics risks before UX polish.
+- Remaining:
+  - Implement fixes in priority order: panel job polling contract, CEP `openExternal` hardening, production log cleanup, host placement option plumbing, and account gallery/home consolidation.
+
+## Latest task: Multi-Cam reference v3.1 completeness review (2026-07-16)
+
+- Status:
+  Reviewed the attached Multi-Cam Auto Switch corrected reference architecture v3.1 against the current Saad Studio CEP implementation. No code changes were made.
+- Affected files:
+  - `PROJECT_CONTEXT.md`
+- Files inspected:
+  - `adobe/saadstudio-cep/jsx/index.jsx`
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/types/index.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/adapters/premiere-podcast-adapter.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/audio-source-inspector-service.ts`
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/camera-decision-plan-service.ts`
+- Findings:
+  - The reference is strong as a safety/evidence architecture: it correctly separates Premiere reading/writing in JSX from FFmpeg/audio analysis and decision logic in TypeScript services.
+  - The current implementation already includes the reference's key required links: timeline layout reader, explicit audio mapping, `inspectPodcastAudioSources`, FFmpeg/ffprobe diagnostics, RMS proof, source/timeline time fields, blockers, camera decision proof, and safe duplicate/draft execution.
+  - The reference is incomplete/outdated relative to current code because it ends with `NEXT TASK ONLY` and says no execution, while the product now includes a visual-only apply path on a duplicate draft through `applyPodcastCameraDecisionsOverlapAwareVisualOnly`.
+  - The reference should be updated to document the current execution strategy names and boundaries, including `duplicate-sequence-cuts`, `track-enable-disable`, and the visual-only reconstructed-segment draft path.
+  - The reference should explicitly document current ffprobe audio-stream selection behavior and the blocker for multiple streams without selected stream.
+  - The reference should document the product separation: Reap remains separate from Premiere Multi-Cam speaker-activity decisions, but other podcast features such as captions/one-click orchestration may exist around the Multi-Cam path.
+- Verification:
+  - Read required memory files before acting.
+  - Reviewed current JSX bridge functions and TypeScript podcast services by static inspection.
+  - No build/test was run because this was a read-only reference review.
+- Decision:
+  - Treat v3.1 as mostly correct but not complete enough to be the final source of truth for the current implementation. It needs a v3.2/reference update before being used as the full implementation contract.
+- Remaining:
+  - If approved, update `docs/saad-studio-premiere-reference-ar.md` with a clean v3.2 section that preserves the safety rules and adds the current working implementation contract.
+
+## Latest task: Premiere Podcast Synchronize Media Start fallback (2026-07-16)
+
+- Status:
+  Fixed the Synchronize failure shown in the Premiere panel where Analyze Sync ended with `SYNCHRONIZATION_ANALYSIS_FAILED` / `Sync graph validation failed with 3 errors` and no waveform offsets.
+- Affected files:
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Cause:
+  - The active timeline had media with non-zero Media Start / Video In Point (for example `00:44:13:05`). The sync extractor used `clip.sourceInPointSec` directly as FFmpeg `-ss`, which can seek beyond the physical media duration and return an empty PCM envelope.
+  - Empty envelopes made the pairwise sync graph validation throw, so the UI caught a generic failure and reset visible sync counts/offsets.
+- Behavior:
+  - `extractSyncEnvelope(...)` now retries from file-relative `0s` when extracting from a positive `sourceInPointSec` returns an empty envelope.
+  - Empty envelopes are skipped in full sync graph construction instead of crashing the entire Synchronize panel.
+  - Legacy/reference offset analysis now returns explicit blockers (`REFERENCE_AUDIO_ENVELOPE_EMPTY`, `TARGET_AUDIO_ENVELOPE_EMPTY`) instead of correlating empty envelopes.
+  - `SyncGraph` and `SynchronizationApplyResult` TypeScript types were aligned with the fields already produced/read by the UI.
+- Verification:
+  - Read required memory files before acting.
+  - Inspected the user screenshot and current Synchronize/JSX/audio graph code.
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed.
+  - `git diff --check` for `synchronization-service.ts` passed, with only the existing CRLF warning.
+- Errors recorded:
+  - Synchronize did not handle Premiere source timecode / non-zero Media Start safely before invoking FFmpeg.
+- Remaining:
+  - Retest in Premiere: reload/reopen the CEP panel, run `Analyze Sync` on the same sequence, confirm clip counts are visible and waveform offsets are calculated or explicit per-track envelope blockers appear.
+
+## Latest task: Premiere CEP installed extension deployment (2026-07-16)
+
+- Status:
+  Confirmed the source fix was built but Premiere was still showing the old Synchronize behavior because the installed CEP copy under Program Files contained the June 2026 bundle (`index-BEZEe3K1.js`).
+- Affected paths:
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Deployment:
+  - Copying into `C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\app.saadstudio.cep` was denied by Windows without administrator rights.
+  - Created/updated the user-level CEP extension copy in AppData with the current `CSXS`, `jsx`, icons, runtime manifests/scripts, and `client/dist` bundle.
+  - Verified AppData `client/dist/index.html` now points to `./assets/index-CIIuuypH.js`, the bundle containing the Synchronize Media Start fallback.
+  - Verified running `CEPHtmlEngine.exe` for `app.saadstudio.cep.main` is launched from `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep` under Premiere Pro 26.2.0.
+- Verification:
+  - `npm.cmd run build` had already passed for `adobe/saadstudio-cep/client`.
+  - Installed AppData manifest still points main panel to `./client/dist/index.html` and script to `./jsx/index.jsx`.
+- Errors recorded:
+  - The visible Premiere panel did not change after source/build work because the live installed CEP bundle was not updated/reloaded.
+- Remaining:
+  - Reload/reopen the Saad Studio CEP panel in Premiere, then run `Analyze Sync` again on sequence `G`.
+
+## Latest task: Premiere Podcast Synchronize large-offset apply repair (2026-07-16)
+
+- Status:
+  Fixed the follow-up Synchronize case where analysis reached 3 video / 3 audio and produced waveform offsets, but the panel still reported Blocked and did not apply movement.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Cause:
+  - Saad Podcast Synchronize treated offsets larger than 30 seconds as `SYNC_OFFSET_OUT_OF_RANGE` blockers, while Premiere's built-in Synchronize correctly allows selected clips to move by minutes when aligning podcast/multicam sources.
+  - Correlation confidence below 0.35 was also a hard blocker; the user's live timeline showed usable candidates around 0.131 and 0.235 with long overlap durations, which should be treated as cautionary rather than impossible.
+- Behavior:
+  - Minimum apply confidence is now 0.1.
+  - Confidence between 0.1 and 0.35 becomes `LOW_WAVEFORM_CORRELATION_CONFIDENCE` warning, not a blocker.
+  - Large movement becomes `LARGE_SYNC_OFFSET` warning, not a blocker.
+  - Normalization no longer converts large offsets back into blockers.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-Dtks5rc4.js`.
+  - Copied the new build to AppData CEP extension; verified installed `index.html` points to `./assets/index-Dtks5rc4.js`.
+  - `git diff --check` passed with only the existing CRLF warning.
+  - Stopped Saad Studio CEPHtmlEngine processes so Premiere reloads the updated bundle on next panel open.
+- Errors recorded:
+  - The previous UI state looked like no progress because analysis was no longer empty, but apply was blocked by overly conservative safety thresholds that do not match Premiere's selected-clip Synchronize workflow.
+- Remaining:
+  - Reopen Saad Studio in Premiere and run `Analyze Sync`; offsets should show as ready with warnings, then `Apply Sync` should be available to move clips.
+
+## Latest task: Premiere Podcast Synchronize anchor fallback repair (2026-07-16)
+
+- Status:
+  Fixed the follow-up case where Apply Sync moved clips but left the duplicate sequence visibly misaligned and reported a large residual offset after apply.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Cause:
+  - Weak RMS correlation produced large/negative suggested starts. The old normalization avoided negative starts, but could still send a plan that caused Premiere/JSX movement to clamp clips near zero and leave a large residual gap.
+  - For this selected-clip podcast workflow, Premiere's native Synchronize behavior aligns weak-correlation selected clips by a common timeline start anchor rather than trusting low-confidence lag peaks.
+- Behavior:
+  - Added `TIMELINE_START_ANCHOR_FALLBACK`: when a ready offset has weak waveform confidence, all usable reference/ready tracks are assigned the latest current clip start as a shared anchor.
+  - `Apply Sync` now prepares offsets before JSX: reference offsets can be included when the anchor requires moving the reference, all target starts are shifted away from negative time, and warnings record `SYNC_TIMELINE_SHIFTED_TO_ZERO` when needed.
+  - This avoids per-clip clamping in ExtendScript and better matches Premiere Synchronize's visible selected-clip stacking behavior.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-CWDSxEMf.js`.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-CWDSxEMf.js`.
+  - Verified the built bundle contains `TIMELINE_START_ANCHOR_FALLBACK`.
+  - `git diff --check` passed with only the existing CRLF warning.
+  - Stopped Saad Studio CEPHtmlEngine processes so Premiere reloads the updated bundle on next panel open.
+- Errors recorded:
+  - The previous apply path could report success even though post-apply proof still showed a residual offset around 150s.
+- Remaining:
+  - Reopen Saad Studio in Premiere, run `Analyze Sync` again on the original/desired sequence, confirm warnings include `TIMELINE_START_ANCHOR_FALLBACK`, then `Apply Sync` should stack the selected camera/audio clips to one common start on the duplicate.
+
+## Latest task: Premiere Podcast simplified user interface (2026-07-16)
+
+- Status:
+  Simplified the visible Synchronize panel after the workflow was confirmed working in Premiere. Follow-up visual review showed the page still felt like a dashboard because tool cards, Multi-Cam setup, and camera mapping were visible immediately. A later follow-up showed that hiding everything behind `Advanced dashboard` made the other tools feel missing, so the default page now keeps compact visible launch buttons for `Multi-Cam`, `Captions`, and `One Click` while keeping full settings/diagnostics hidden until needed.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-CVcTV7q1.js`.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-CVcTV7q1.js`.
+  - Checked for active Saad Studio `CEPHtmlEngine.exe` processes; none remained after reload attempt.
+  - Follow-up simplification build passed and produced `index-BocFpt_S.js`.
+  - Copied the follow-up build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-BocFpt_S.js`.
+  - Stopped the Saad Studio CEP panel process so Premiere reloads the new default-hidden dashboard UI.
+  - Tool-launcher correction build passed and produced `index-Cl9YEgrg.js`.
+  - Copied the tool-launcher build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-Cl9YEgrg.js`.
+- Errors recorded:
+  - First build failed because `formatLargestSyncMove` became unused after hiding the old summary grid; removed the unused helper and rebuilt successfully.
+  - First UI simplification was not enough: the visible page still exposed dashboard cards and Multi-Cam settings under Quick Sync, so the user's screenshot correctly showed it was not a very short user interface.
+  - Second simplification hid the other tools too aggressively behind `Advanced dashboard`; the user screenshot correctly made the tools look missing.
+- Remaining:
+  - Reopen the Saad Studio panel in Premiere and visually confirm the first screen shows Quick Sync plus compact `Multi-Cam`, `Captions`, and `One Click` tool launchers.
+
+## Latest task: Premiere Saad Studio tool-dashboard UI direction (2026-07-16)
+
+- Status:
+  Reworked the Podcast Automation page toward the user's provided Saad Studio reference image: brand-style header, Premiere host pill, horizontal tool tabs, and stacked dark tool cards for Multi-Cam, Silence Removal, Auto Zoom, Auto Captions, Synchronize, and One Click.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Behavior:
+  - The old hide/show dashboard pattern was replaced with visible top tabs and visible tool cards.
+  - Multi-Cam, Auto Captions, Synchronize, and One Click remain wired to existing actions.
+  - Silence Removal and Auto Zoom now have reference-style visual cards in the panel; their action buttons are disabled placeholders until their execution wiring is completed safely.
+  - Synchronize was renamed visually from `Quick Sync` back to `Synchronize` with `Analyze Sync` and `Apply Sync` actions to match the reference.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-CawCy7GZ.js`.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-CawCy7GZ.js`.
+  - Stopped the Saad Studio CEP panel process so Premiere reloads the new bundle.
+- Errors recorded:
+  - Earlier UI attempts misunderstood the user's intent as minimizing/hiding controls. The provided reference clarified that the desired UI is a polished compact tool dashboard, not a single-tool simplified page.
+- Remaining:
+  - Reopen the panel in Premiere and visually compare the layout with the provided reference image.
+  - Next implementation task: wire Silence Removal and Auto Zoom cards to their real services or hide/label them according to release readiness.

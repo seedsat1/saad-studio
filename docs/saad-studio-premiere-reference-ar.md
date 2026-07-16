@@ -1,4 +1,35 @@
 ﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## Premiere storage migration to Backblaze B2 (2026-07-16)
+
+- إضافة Premiere يجب أن تعتمد على Backblaze B2 كمسار التخزين والعرض النشط، وليس Cloudflare R2.
+- دوال الرفع في CEP يجب أن تستخدم أسماء عامة مثل `uploadFileToStorage` و`uploadLocalPathToStorage`.
+- لا يجوز للـ CEP تجربة رابط R2 الخام كـ fallback مباشر؛ الترتيب الحالي: Backblaze friendly URL، ثم Backblaze S3 direct URL، ثم `/api/media`.
+- التعرف على `r2.dev` داخل CEP مسموح فقط لتحويل روابط قديمة إلى مفتاح تخزين وإعادة المحاولة عبر Backblaze/API، وليس للاعتماد على R2.
+- إعدادات السيرفر التشغيلية يجب أن تكون `B2_ACCESS_KEY_ID`, و`B2_SECRET_ACCESS_KEY`, و`B2_BUCKET` أو `B2_BUCKET_NAME`.
+
+## Image generation gallery pagination (2026-07-16)
+
+- معرض `Image generation` داخل إضافة Premiere يجب أن يعرض كل صور حساب المشترك، وليس آخر 12 نتيجة فقط.
+- مسار `GET /api/panel/generations` يدعم `limit`, و`kind=image|video`, و`cursor` لإرجاع الصفحات المتتابعة.
+- عميل CEP يستخدم `api.allGenerations()` لجمع الصفحات وتفادي التكرار عبر `id`، ثم يترك `RecentStrip` يفلتر حسب `galleryKind`.
+- إذا لم يكن تعديل API منشورا على السيرفر الإنتاجي، قد يرى المستخدم أول صفحة فقط حتى يتم نشر مسار Next المحدث.
+
+## Podcast Automation headerless subscriber page (2026-07-16)
+
+- واجهة Podcast Automation داخل Premiere لا تعرض هيدر داخلي كبير مثل `SAAD STUDIO`, `for Premiere Pro`, أو شارة `Premiere Pro 2026`.
+- صفحة الأدوات تبدأ مباشرة من شريط التبويبات: `Multi-Cam`, `Auto Captions`, `Synchronize`, و`One Click`.
+- سبب القرار: شريط الإضافة العلوي يعرض هوية Saad Studio بالفعل، وتكرار الهيدر داخل صفحة الأداة يستهلك مساحة ويخالف الواجهة المختصرة المطلوبة للمشترك.
+- إذا احتاجت الواجهة لهوية بصرية لاحقًا، تكون في شريط الإضافة العام أو شاشة رئيسية منفصلة، وليس أعلى صفحة Podcast Automation التشغيلية.
+
+## Podcast Automation language-mode behavior (2026-07-16)
+
+- واجهة Podcast Automation يجب ألا تعرض نصوصًا ثنائية اللغة داخل نفس الزر أو الحقل مثل `English (Arabic)`.
+- عند اختيار EN من زر اللغة، تكون النصوص المرئية إنجليزية فقط.
+- عند اختيار AR من زر اللغة، تكون النصوص المرئية المربوطة بوضع اللغة عربية فقط.
+- النصوص العربية داخل كود CEP يفضل حفظها كـ Unicode escapes عند الحاجة حتى لا تتحول إلى mojibake أثناء بناء Vite أو عرض PowerShell.
+- أي إضافة لاحقة لنصوص واجهة Podcast يجب أن تمر عبر helper يعتمد `getLanguage()` أو نظام i18n، وليس نصًا hard-coded مخلوطًا.
+- لا يجوز تنظيف listener الخاص بـ `saad-language-changed` عبر `DOMNodeRemoved` داخل صفحة Podcast، لأن إعادة رسم محتوى الصفحة نفسها قد تطلق الحدث وتفصل listener قبل ضغط المستخدم على زر اللغة.
+
 ## API video Gemini taskId prefix compatibility (2026-07-15)
 - مسار `GET /api/video?taskId=...` يجب أن يقبل معرفات Gemini المباشرة `gvo:...` وكذلك الشكل المغلف القادم من الواجهة `gen-gvo:...`.
 - قبل اختيار مسار polling، يتم إزالة بادئة `gen-` فقط إذا كان بعدها بادئة مزود معروفة مثل `gvo:`, `ark:`, `ws:`, `veo:`, `veo1080:`, أو `veo4k:`.
@@ -1709,3 +1740,79 @@
 - صفحة `/video-edit` تقرأ السياق من `localStorage` ثم من `/api/assets?contextId=...`، تعرض الصور المرجعية المحملة، وترسلها في `reference_image_urls` مع طلب التعديل المتسلسل.
 - `lib/gemini-veo.ts` يرسل الصور المرجعية إلى Google Interactions API حتى عند وجود `previous_interaction_id`، لأن التعديل المتسلسل قد يحتاج إعادة تثبيت نفس هوية/ستايل المراجع فوق ذاكرة التفاعل.
 - إذا كان `modelRoute` المحمول ليس `google/gemini-omni-flash`، تبقى صفحة التعديل على Gemini Omni Flash لأنها صفحة التعديل المتسلسل المدعومة لهذا المنتج.
+
+## Synchronize Media Start / In Point FFmpeg fallback (2026-07-16)
+
+- عند مزامنة Podcast/Multi-Cam، قد يعرض Premiere `clip.inPoint.seconds` كزمن source timecode عندما يكون للوسيط `Media Start` غير صفري، مثل ملف يبدأ عند `00:44:13:05`.
+- FFmpeg يحتاج زمنًا نسبيًا داخل الملف، وليس timecode مطلقًا. إذا استُخدم هذا الرقم مباشرة مع `-ss` فقد يحاول FFmpeg القراءة بعد نهاية الملف ويرجع envelope فارغًا.
+- مسار Synchronize في `synchronization-service.ts` يحاول أولًا الاستخراج من `sourceInPointSec`، وإذا عاد envelope فارغًا وكان `sourceInPointSec > 0` يعيد المحاولة من بداية الملف كـ fallback آمن.
+- Sync graph لا يرمي خطأ شاملًا عند envelope فارغ؛ يتجاوز المصدر غير القابل للقراءة ويعرض blockers محددة مثل `REFERENCE_AUDIO_ENVELOPE_EMPTY` أو `TARGET_AUDIO_ENVELOPE_EMPTY` عند الحاجة.
+
+## CEP installed copy deployment note (2026-07-16)
+
+- Premiere Pro 26.2.0 may load Saad Studio CEP from the per-user extension path before or instead of the Program Files copy:
+  `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep`.
+- When Program Files is not writable without administrator rights, deploy the current built panel by updating the per-user CEP folder with `CSXS`, `jsx`, icons, runtime manifests/scripts, and `client/dist`.
+- After copying a new Vite bundle, verify `client/dist/index.html` points to the new hashed asset and verify `CEPHtmlEngine.exe` command line uses the intended extension root.
+- The open CEP panel can keep the old bundle in memory; close/reopen the panel or restart Premiere before retesting Synchronize.
+
+## Podcast Synchronize large-offset behavior (2026-07-16)
+
+- Premiere's built-in Synchronize can move selected audio/video clips by minutes. Saad Podcast Synchronize must not treat offsets over 30 seconds as fatal for podcast/multicam alignment.
+- The panel now treats large waveform moves as `LARGE_SYNC_OFFSET` warnings, not blockers.
+- Correlation confidence below `0.1` remains blocked. Confidence from `0.1` to `0.35` is a warning because long-overlap podcast sources may still synchronize correctly even with modest RMS correlation scores.
+- After building, deploy the current `client/dist` to the active CEP folder and reload the panel so the hashed Vite bundle changes are actually loaded.
+
+## Podcast Synchronize weak-correlation anchor fallback (2026-07-16)
+
+- When waveform correlation is weak but usable, Saad Podcast Synchronize should not trust far/low-confidence lag peaks as exact movement commands.
+- The selected-clip podcast workflow now supports `TIMELINE_START_ANCHOR_FALLBACK`: all usable ready/reference tracks align to the latest current clip start, matching the visible behavior users expect from Premiere's native Synchronize for separately placed camera/audio clips.
+- Before applying, offsets are prepared so reference tracks may move when needed, target starts are never negative, and any global zero-shift is recorded as `SYNC_TIMELINE_SHIFTED_TO_ZERO`.
+- This prevents ExtendScript from clamping individual clips to zero and leaving residual misalignment after a reported successful apply.
+
+## واجهة Quick Sync المختصرة (2026-07-16)
+
+- واجهة Synchronize في صفحة Podcast Automation صارت واجهة تشغيل مختصرة للمستخدم اليومي بدل لوحة تشخيص مفتوحة دائمًا.
+- البطاقة تعرض `Quick Sync` مع حالتها الحالية، زري `Analyze` و`Create Synced Draft`، وإحصاءات قصيرة عن التسلسل والكلبات والمسارات الجاهزة.
+- رسائل التحذير التقنية تتحول في العرض الأساسي إلى عبارات بشرية قصيرة مثل `Large move detected` أو `Low confidence match`.
+- جدول waveform offsets ورسائل الاختبار التفصيلية لا تزال موجودة، لكنها مخفية افتراضيًا خلف زر `Show technical details` حتى يبقى مسار التشغيل الأساسي بسيطًا.
+- الداشبورد الكامل ليس جزءًا من الشاشة الافتراضية للمستخدم: إعدادات Multi-Cam التفصيلية، الكابتشن، One Click، الملخص، وتشخيصات المطور تظهر فقط بعد فتح زر `Show full dashboard`.
+- الأدوات الأساسية لا تختفي: الشاشة الافتراضية تعرض اختصارات صغيرة لـ `Multi-Cam`, `Captions`, و`One Click` تفتح الداشبورد وتنتقل للأداة المطلوبة.
+- الهدف أن يرى المستخدم اليومي خطوة المزامنة الأساسية أولًا مع وصول مباشر لباقي الأدوات، بينما تبقى إعدادات التحكم المتقدمة مخفية بدون ازدحام الواجهة.
+
+## اتجاه واجهة Saad Studio Tool Dashboard (2026-07-16)
+
+- المرجع البصري المعتمد من المستخدم هو لوحة أدوات مضغوطة تشبه إضافة Premiere: شعار `SAAD STUDIO`, شارة Premiere، تبويبات أدوات أفقية، وكروت أدوات مكدسة.
+- الصفحة يجب ألا تخفي الأدوات الأساسية خلف زر واحد؛ يجب أن تظهر أدوات `Multi-Cam`, `Silence`, `Auto Zoom`, `Auto Captions`, و`Synchronize` كأقسام واضحة قابلة للوصول مباشرة.
+- الكروت تعرض اسم الأداة، وصفًا قصيرًا، إعدادات قليلة فقط، زر التنفيذ الأساسي، وسطر `Status: Ready`.
+- الإعدادات المتقدمة والتشخيصات تبقى ثانوية خلف أسطر `Advanced Settings` أو أقسام مطوية.
+- في الوضع الحالي، Multi-Cam وAuto Captions وSynchronize وOne Click مرتبطة بأفعال موجودة. بطاقات Silence Removal وAuto Zoom يجب ربطها لاحقًا بخدمات التنفيذ قبل اعتبارها مكتملة إنتاجيًا.
+
+## تصحيح آلية صفحات الأدوات داخل Podcast Automation (2026-07-16)
+
+- تبويبات الأدوات في أعلى الواجهة يجب أن تكون تنقلًا حقيقيًا بين صفحات، وليست روابط تمرير داخل صفحة طويلة.
+- عند اختيار تبويب، تعرض اللوحة صفحة الأداة المختارة فقط: `Multi-Cam`, `Silence`, `Auto Zoom`, `Auto Captions`, `Synchronize`, أو `One Click`.
+- ممنوع عرض كل الأدوات مكدسة في الشاشة نفسها لأن ذلك يعيد الواجهة إلى داشبورد طويل ومربك.
+- التشخيصات الطويلة مثل CUDA/Faster Whisper runtime diagnostics لا تظهر في صفحات المستخدم اليومية. مكانها Developer Diagnostics فقط.
+- شريط التبويبات يجب أن يتسع داخل عرض CEP في Premiere ولا يخفي الأدوات اليمنى خلف تمرير أفقي غير واضح.
+- التمرير داخل صفحة الأداة مقبول فقط عندما تكون إعدادات تلك الأداة نفسها كثيرة، لكن الهدف التالي هو نقل إعدادات Multi-Cam التفصيلية مثل أسماء الكاميرات وwide camera إلى `Advanced Settings`.
+
+## سلوك One Click مع التسلسلات المكررة / Draft (2026-07-16)
+
+- `One Click Podcast Edit` ينسخ التسلسل النشط قبل تطبيق القطع والكابتشن، لذلك يمكن تشغيله على تسلسل عمل مكرر مثل `Q - Saad Auto Switch Draft` عندما يكون هذا هو الناتج الصحيح من المزامنة أو التحضير.
+- لا يجوز منع `Saad Auto Switch Draft` بشكل عام داخل One Click، لأن ذلك يكسر المسار الطبيعي: Synchronize/تحضير -> One Click.
+- يستمر منع تسلسلات Saad Studio المؤقتة العامة مثل `Saad Studio Draft` إذا كانت مخصصة لاختبارات داخلية وليست تسلسل عمل للمستخدم.
+- عند إنشاء ناتج One Click من تسلسل يحمل لاحقة `- Saad Auto Switch Draft` أو `- Saad Sync Draft` أو `- Saad One Click Edit`، يجب تنظيف الاسم الأساسي حتى لا تتكرر لاحقات مثل `Draft - Draft`.
+
+## واجهة نتيجة One Click للمشترك (2026-07-16)
+
+- بعد اكتمال `One Click Podcast Edit`، واجهة المشترك تعرض ملخصًا قصيرًا فقط: اسم التسلسل الناتج، الوقت، الخطوات، عدد قطع الكاميرا، وعدد الكابتشنز.
+- لا تظهر للمشترك تفاصيل `Caption Diagnostics Timing` أو مسار موديل Whisper أو CUDA أو GPU أو أزمنة SRT/JSON/import/verification.
+- لا تظهر `Auto Switch Summary` ولا `Developer Diagnostics` تلقائيًا أسفل نتيجة One Click.
+- تشخيصات runtime والتوقيتات التفصيلية مكانها وضع مطور داخلي فقط، وليست جزءًا من واجهة المشترك اليومية.
+
+## أدوات شريط Podcast Automation المعروضة للمشترك (2026-07-16)
+
+- شريط أدوات Podcast Automation المعروض للمشترك يحتوي فقط على: `Multi-Cam`, `Auto Captions`, `Synchronize`, و`One Click`.
+- لا تظهر أدوات `Silence` و`Auto Zoom` في الشريط أو كصفحات مستقلة داخل هذه الواجهة.
+- إذا عادت هذه الأدوات لاحقًا، يجب أن تكون مربوطة بسلوك إنتاجي مكتمل وليست بطاقات placeholder.

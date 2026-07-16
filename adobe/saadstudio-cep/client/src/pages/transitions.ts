@@ -899,10 +899,10 @@ async function ensurePreparedInput(state: InputState, framePosition: "first" | "
 
   if (state.kind === "image") {
     state.preparedUrl = state.file
-      ? await api.uploadFileToR2(state.file, "image")
+      ? await api.uploadFileToStorage(state.file, "image")
       : state.remoteUrl
         ? state.remoteUrl
-        : await api.uploadLocalPathToR2(state.localPath!, "image");
+        : await api.uploadLocalPathToStorage(state.localPath!, "image");
     state.cacheKey = key;
     return state.preparedUrl;
   }
@@ -916,7 +916,7 @@ async function ensurePreparedInput(state: InputState, framePosition: "first" | "
     `${(state.displayName ?? "clip").replace(/\.[^.]+$/, "")}-${framePosition}.jpg`,
     { type: "image/jpeg" },
   );
-  state.preparedUrl = await api.uploadFileToR2(frameFile, "thumbnail");
+  state.preparedUrl = await api.uploadFileToStorage(frameFile, "thumbnail");
   state.cacheKey = key;
   return state.preparedUrl;
 }

@@ -190,7 +190,7 @@ export function VideoGenPage(): HTMLElement {
       const uploaded = await Promise.all(
         attachments.map(async (file) => ({
           file,
-          url: await api.uploadFileToR2(file, assetTypeForFile(file)),
+          url: await api.uploadFileToStorage(file, assetTypeForFile(file)),
         })),
       );
       const uploadedImages = uploaded.filter((item) => item.file.type.startsWith("image/")).map((item) => item.url);

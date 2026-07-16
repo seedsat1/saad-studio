@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
 
     // ─────────────────────────────────────────────────────────────────────
     // Path 1: multipart/form-data — the client sends the file bytes and we
-    // PUT them to R2 from THIS server. This bypasses the browser's CORS
-    // preflight against the R2 bucket, which has been the root cause of
+    // PUT them to Backblaze B2 from THIS server. This bypasses the browser's CORS
+    // preflight against the storage bucket, which has been the root cause of
     // "Failed to fetch" upload errors in production.
     // Expects a single `file` field. Returns { publicUrl }.
     // ─────────────────────────────────────────────────────────────────────
@@ -121,9 +121,9 @@ export async function POST(req: NextRequest) {
 
     // ─────────────────────────────────────────────────────────────────────
     // Path 2 (legacy): JSON body asks for a signed URL so the client can
-    // PUT directly to R2. Kept for backward compatibility with anything
+    // PUT directly to Backblaze B2. Kept for backward compatibility with anything
     // else in the codebase that still uses signed URLs. New callers
-    // should prefer the multipart path above to avoid R2 CORS issues.
+    // should prefer the multipart path above to avoid browser CORS issues.
     // ─────────────────────────────────────────────────────────────────────
     const { fileName, fileType } = (await req.json()) as {
       fileName?: string;

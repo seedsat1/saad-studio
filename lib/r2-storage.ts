@@ -17,9 +17,9 @@ const COMMON_EXTENSIONS = [".jpg", ".mp4", ".mp3", ".png", ".webp", ".wav", ".gi
 
 export function isStorageConfigured(): boolean {
   return Boolean(
-    (process.env.B2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID) &&
-    (process.env.B2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY) &&
-    (process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || process.env.R2_BUCKET || process.env.R2_BUCKET_NAME)
+    (process.env.B2_ACCESS_KEY_ID) &&
+    (process.env.B2_SECRET_ACCESS_KEY) &&
+    (process.env.B2_BUCKET || process.env.B2_BUCKET_NAME)
   );
 }
 
@@ -177,7 +177,7 @@ export async function uploadUrlToStorage(params: {
       cacheControl: "public, max-age=2592000, immutable",
     });
   } catch (error) {
-    console.error("[r2-storage] uploadUrlToStorage failed:", error);
+    console.error("[storage] uploadUrlToStorage failed:", error);
     return null;
   }
 }
@@ -208,7 +208,7 @@ export async function uploadBufferToStorage(params: {
       cacheControl: "public, max-age=2592000, immutable",
     });
   } catch (error) {
-    console.error("[r2-storage] uploadBufferToStorage failed:", error);
+    console.error("[storage] uploadBufferToStorage failed:", error);
     return null;
   }
 }

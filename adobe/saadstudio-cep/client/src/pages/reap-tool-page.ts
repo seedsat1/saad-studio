@@ -3,7 +3,7 @@
  * Flow:
  *   1. Auto-detect a clip on the Premiere / AE timeline (or let the user
  *      pick one with the file picker).
- *   2. Upload it to R2 to obtain a public sourceUrl.
+ *   2. Upload it to Backblaze-backed storage to obtain a public sourceUrl.
  *   3. POST /api/panel/reap/start with the tool + sourceUrl + options.
  *   4. Poll /api/panel/reap/status until the project terminates.
  *   5. Render the final asset (or transcript JSON) with an Import button

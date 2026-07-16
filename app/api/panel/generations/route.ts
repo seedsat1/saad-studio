@@ -4,6 +4,7 @@ import { ensureUserRow } from "@/lib/credit-ledger";
 import prismadb from "@/lib/prismadb";
 import { hitRateLimit, panelRateLimitResponse } from "@/lib/panel-rate-limit";
 import { normalizeMediaUrl } from "@/lib/r2-storage";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,36 @@ function resolvePublicUrl(mediaUrl: string | null | undefined, outputUrl: string
 function parseLimit(req: NextRequest): number {
   const raw = Number(req.nextUrl.searchParams.get("limit") ?? "12");
   if (!Number.isFinite(raw)) return 12;
-  return Math.max(1, Math.min(50, Math.floor(raw)));
+  return Math.max(1, Math.min(100, Math.floor(raw)));
+}
+
+function parseKind(req: NextRequest): "image" | "video" | null {
+  const raw = String(req.nextUrl.searchParams.get("kind") ?? "").toLowerCase();
+  return raw === "image" || raw === "video" ? raw : null;
+}
+
+function kindWhere(kind: "image" | "video" | null): Prisma.GenerationWhereInput {
+  if (kind === "image") {
+    return {
+      OR: [
+        { type: "image" },
+        { assetType: { contains: "IMAGE" } },
+        { assetType: { contains: "image" } },
+      ],
+    };
+  }
+  if (kind === "video") {
+    return {
+      OR: [
+        { type: "video" },
+        { assetType: { contains: "VIDEO" } },
+        { assetType: { contains: "video" } },
+        { assetType: { contains: "TRANSITION" } },
+        { assetType: { contains: "transition" } },
+      ],
+    };
+  }
+  return {};
 }
 
 /** GET /api/panel/generations — latest account-linked outputs for the Adobe panel. */
@@ -82,13 +112,18 @@ export async function GET(req: NextRequest) {
     }
 
     const limit = parseLimit(req);
+    const kind = parseKind(req);
+    const cursor = req.nextUrl.searchParams.get("cursor") || undefined;
+    const take = Math.min(limit * 4, 400);
     const generations = await prismadb.generation.findMany({
       where: {
         userId: verified.userId,
         isFlagged: false,
+        ...kindWhere(kind),
       },
       orderBy: { createdAt: "desc" },
-      take: limit * 3,
+      take,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       select: {
         id: true,
         prompt: true,
@@ -121,7 +156,10 @@ export async function GET(req: NextRequest) {
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .slice(0, limit);
 
-    return NextResponse.json({ items });
+    const hasMore = generations.length === take;
+    const nextCursor = hasMore ? generations[generations.length - 1]?.id ?? null : null;
+
+    return NextResponse.json({ items, nextCursor, hasMore });
   } catch (err) {
     console.error("[panel/generations]", err);
     return NextResponse.json({ error: "Server error." }, { status: 500 });

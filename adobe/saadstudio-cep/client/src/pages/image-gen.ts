@@ -61,7 +61,7 @@ export function ImageGenPage(): HTMLElement {
       }
 
       const imageUrl = attachments[0]
-        ? await api.uploadFileToR2(attachments[0], "image")
+        ? await api.uploadFileToStorage(attachments[0], "image")
         : undefined;
 
       const selectedModel = options.model === "gpt-image-2"

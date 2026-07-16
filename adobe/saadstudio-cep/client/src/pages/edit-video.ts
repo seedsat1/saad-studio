@@ -69,7 +69,7 @@ async function uploadKeyFrame(clip: { path: string; file?: File; name?: string; 
   const frameFile = clip.file
     ? await captureFrameFromVideoFile(clip.file, clip.inSec)
     : await captureFrameFromVideoPath(clip.path, clip.name ?? "timeline-clip", clip.inSec);
-  return api.uploadFileToR2(frameFile, "image");
+  return api.uploadFileToStorage(frameFile, "image");
 }
 
 async function captureFrameFromVideoFile(file: File, inSec?: number): Promise<File> {

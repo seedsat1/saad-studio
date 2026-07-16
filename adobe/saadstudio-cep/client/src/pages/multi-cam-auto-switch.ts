@@ -1,8 +1,9 @@
-import { el } from "../lib/dom";
+﻿import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
 import { loadExtendScript } from "../lib/cep";
+import { getLanguage, type Language } from "../lib/i18n";
 import { getPodcastDiagnostics } from "../lib/podcast/services/diagnostics-service";
 import {
   generateCameraDecisionPlan,
@@ -26,7 +27,6 @@ import {
   type SynchronizationApplyResult,
   type SynchronizationPlan,
 } from "../lib/podcast/services/synchronization-service";
-// Auto Zoom imports removed
 import {
   discoverCaptionRuntime,
   installCaptionRuntime,
@@ -101,6 +101,95 @@ const STRATEGY_OPTIONS: PodcastExecutionStrategy[] = [
   "unsupported-multicam-angle-switching",
 ];
 
+type PodcastToolKey = "multi-cam" | "captions" | "sync" | "one-click";
+
+const PODCAST_TEXT = {
+  en: {
+    podcastAutomation: "Podcast Automation",
+    multiCam: "Multi-Cam",
+    autoCaptionsTitle: "Auto Captions",
+    synchronize: "Synchronize",
+    oneClick: "One Click",
+    multiCamAutoSwitch: "Multi-Cam Auto Switch",
+    multiCamDescription: "Analyze the active Premiere timeline, preview the camera plan, then create a visual-only draft.",
+    syncDescription: "Align audio and video perfectly.",
+    oneClickPodcastEdit: "One Click Podcast Edit",
+    autoDetect: "Auto Detect",
+    arabic: "Arabic",
+    english: "English",
+    standard: "Standard",
+    fast: "Fast",
+    professional: "Professional",
+    autoCaptionsSubtitle: "Create editable subtitles locally with faster-whisper. Reap is not used.",
+    language: "Language",
+    subtitlesLevel: "Subtitles Level",
+    engine: "Engine",
+    level: "Level",
+    audio: "Audio",
+    captions: "Captions",
+    runtimeStatus: "Runtime Status",
+    automaticA1: "Automatic (A1)",
+    waiting: "Waiting",
+    runtimeInstalled: "Runtime Installed",
+    repairRuntime: "Repair Runtime",
+    installRuntime: "Install Runtime",
+    ready: "Ready",
+    repairRequired: "Repair required",
+    notInstalled: "Not installed",
+    unavailable: "Unavailable",
+    generatingCaptions: "Generating Captions...",
+    generateCaptions: "Generate Captions",
+    oneClickSubtitle: "Run the podcast editing pipeline (Multi-Cam Switch -> Auto Captions) in a single click.",
+    autoCaptions: "Auto Captions",
+    generateAutoCaptions: "Generate Auto Captions",
+    fastMode: "Fast Mode",
+    processingPipeline: "Processing Pipeline...",
+    runOneClickEdit: "Run One Click Edit",
+  },
+  ar: {
+    podcastAutomation: "\u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a",
+    multiCam: "\u062a\u0639\u062f\u062f \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a",
+    autoCaptionsTitle: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
+    synchronize: "\u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629",
+    oneClick: "\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+    multiCamAutoSwitch: "\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a \u0628\u064a\u0646 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a",
+    multiCamDescription: "\u062d\u0644\u0644 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646 \u0627\u0644\u0646\u0634\u0637\u060c \u0631\u0627\u062c\u0639 \u062e\u0637\u0629 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a\u060c \u062b\u0645 \u0623\u0646\u0634\u0626 \u0646\u0633\u062e\u0629 \u0645\u0631\u0626\u064a\u0629.",
+    syncDescription: "\u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0635\u0648\u062a \u0648\u0627\u0644\u0641\u064a\u062f\u064a\u0648 \u0628\u062f\u0642\u0629.",
+    oneClickPodcastEdit: "\u062a\u062d\u0631\u064a\u0631 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+    autoDetect: "\u0627\u0643\u062a\u0634\u0627\u0641 \u062a\u0644\u0642\u0627\u0626\u064a",
+    arabic: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629",
+    english: "\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629",
+    standard: "\u0642\u064a\u0627\u0633\u064a",
+    fast: "\u0633\u0631\u064a\u0639",
+    professional: "\u0627\u062d\u062a\u0631\u0627\u0641\u064a",
+    autoCaptionsSubtitle: "\u0625\u0646\u0634\u0627\u0621 \u062a\u0631\u062c\u0645\u0627\u062a \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062a\u0639\u062f\u064a\u0644 \u0645\u062d\u0644\u064a\u064b\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 faster-whisper. \u0644\u0627 \u064a\u062a\u0645 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 Reap.",
+    language: "\u0627\u0644\u0644\u063a\u0629",
+    subtitlesLevel: "\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0631\u062c\u0645\u0629",
+    engine: "\u0627\u0644\u0645\u062d\u0631\u0643",
+    level: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649",
+    audio: "\u0627\u0644\u0635\u0648\u062a",
+    captions: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a",
+    runtimeStatus: "\u062d\u0627\u0644\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
+    automaticA1: "\u062a\u0644\u0642\u0627\u0626\u064a (A1)",
+    waiting: "\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
+    runtimeInstalled: "\u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u062b\u0628\u062a\u0629",
+    repairRuntime: "\u0625\u0635\u0644\u0627\u062d \u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
+    installRuntime: "\u062a\u062b\u0628\u064a\u062a \u0628\u064a\u0626\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644",
+    ready: "\u062c\u0627\u0647\u0632",
+    repairRequired: "\u064a\u062a\u0637\u0644\u0628 \u0625\u0635\u0644\u0627\u062d\u064b\u0627",
+    notInstalled: "\u063a\u064a\u0631 \u0645\u062b\u0628\u062a",
+    unavailable: "\u063a\u064a\u0631 \u0645\u062a\u0627\u062d",
+    generatingCaptions: "\u062c\u0627\u0631\u064d \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a...",
+    generateCaptions: "\u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a",
+    oneClickSubtitle: "\u062a\u0634\u063a\u064a\u0644 \u0645\u0633\u0627\u0631 \u062a\u062d\u0631\u064a\u0631 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a (\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a -> \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a) \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629.",
+    autoCaptions: "\u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
+    generateAutoCaptions: "\u062a\u0648\u0644\u064a\u062f \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a\u0629",
+    fastMode: "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0633\u0631\u064a\u0639",
+    processingPipeline: "\u062c\u0627\u0631\u064d \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0645\u0633\u0627\u0631...",
+    runOneClickEdit: "\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062a\u062d\u0631\u064a\u0631 \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+  },
+} satisfies Record<Language, Record<string, string>>;
+
 type ApplyCheckpoint =
   | "NOT_STARTED"
   | "APPLY_CLICKED"
@@ -125,7 +214,6 @@ interface ApplyTrace {
   applyCameraDecisionsResult: string;
   error: string | null;
 }
-
 const DEFAULT_CAMERA_ROLES = ["CAM WIDE", "CAM HOST", "CAM GUEST", "CAM GUESTS", "CAM DRONE / CRANE"];
 
 export function MultiCamAutoSwitchPage(): HTMLElement {
@@ -180,6 +268,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       speaker_2: 1,
       speaker_3: 2,
     } as Record<string, number>,
+    activePodcastTool: "multi-cam" as PodcastToolKey,
+    syncDetailsOpen: false,
     developerDiagnosticsOpen: false,
     captionRuntime: null as RuntimeDiscoveryResult | null,
     captionRuntimeLoading: false,
@@ -196,9 +286,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   };
 
   const page = el("div.app-main");
+  const pageHeader = PageHeader(getPodcastText().podcastAutomation);
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Podcast Automation"),
+    pageHeader,
     page,
   );
   let sequencePollInFlight = false;
@@ -208,111 +299,229 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   void refreshDiagnostics();
   void refreshCaptionRuntime();
   startActiveSequenceWatcher();
+  const onLanguageChanged = () => {
+    const title = pageHeader.querySelector(".page-header__title");
+    if (title) title.textContent = getPodcastText().podcastAutomation;
+    render();
+  };
+  window.addEventListener("saad-language-changed", onLanguageChanged);
   return root;
 
   function render() {
     page.replaceChildren(
       el("div.podcast-page", null,
-      el("div.podcast-hero", null,
-          el("div.podcast-hero__icon", null, icon("video", 24)),
-          el("div", null,
-            el("h2", null, "Podcast Automation"),
-            el("p", null, "Automate podcast edits with clean controls and draft-safe timeline output."),
-          ),
-        ),
-        renderProductionToolCards(),
         renderProductionWorkflow(),
-        renderDeveloperDiagnostics(),
       ),
     );
   }
 
   function renderProductionWorkflow(): HTMLElement {
-    return el("div.podcast-workflow", null,
-      renderSynchronizeTool(),
-      renderMultiCamProductionTool(),
-      renderAutoCaptionsTool(),
-      renderOneClickTool(),
-      renderProductionSummary(),
+    return el("div.podcast-studio-shell", null,
+      renderStudioToolTabs(),
+      el("div.podcast-studio-stack", null,
+        renderActivePodcastToolPage(),
+      ),
     );
   }
 
-  function renderProductionToolCards(): HTMLElement {
-    const captionStatus = state.captionRuntime?.status === "ready" ? "Ready" : "Setup";
-    return el("div.podcast-tool-grid", null,
-      renderPodcastToolCard("Synchronize", "Ready", "Check timeline sync before camera switching.", true),
-      renderPodcastToolCard("Multi-Cam Auto Switch", "Ready", "Switch cameras from speaker activity.", true),
-      renderPodcastToolCard("Auto Captions", captionStatus, "Generate captions for podcast clips.", true),
-      renderPodcastToolCard("One Click Podcast Edit", "Ready", "Combine camera switching and captions.", true),
+  function renderActivePodcastToolPage(): HTMLElement {
+    switch (state.activePodcastTool) {
+      case "captions":
+        return renderAutoCaptionsTool();
+      case "sync":
+        return renderSynchronizeTool();
+      case "one-click":
+        return el("div.podcast-tool-page", null,
+          renderOneClickTool(),
+          renderDeveloperOnlyPanels(),
+        );
+      case "multi-cam":
+      default:
+        return renderMultiCamProductionTool();
+    }
+  }
+
+  function renderStudioToolTabs(): HTMLElement {
+    const text = getPodcastText();
+    return el("div.podcast-studio-tabs", null,
+      renderStudioToolTab(text.multiCam, "video", "multi-cam"),
+      renderStudioToolTab(text.autoCaptionsTitle, "captions", "captions"),
+      renderStudioToolTab(text.synchronize, "link", "sync"),
+      renderStudioToolTab(text.oneClick, "spark", "one-click"),
     );
   }
 
-  function renderPodcastToolCard(title: string, status: string, description: string, active: boolean): HTMLElement {
-    const targetId = title === "Multi-Cam Auto Switch"
-      ? "podcast-multicam-tool"
-      : title === "Synchronize"
-        ? "podcast-synchronize-tool"
-      : title === "Auto Captions"
-        ? "podcast-auto-captions-tool"
-      : title === "One Click Podcast Edit"
-        ? "podcast-one-click-tool"
-        : null;
-    return el("button.podcast-tool-card" + (active ? ".is-active" : ""), {
+  function renderStudioToolTab(label: string, iconName: Parameters<typeof icon>[0], tool: PodcastToolKey): HTMLElement {
+    const active = state.activePodcastTool === tool;
+    return el("button.podcast-studio-tab" + (active ? ".is-active" : ""), {
       type: "button",
-      disabled: !targetId,
       onClick: () => {
-        if (!targetId) return;
-        document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        state.activePodcastTool = tool;
+        render();
       },
     },
-      el("div.podcast-tool-card__top", null,
-        el("strong", null, title),
-        el("span", null, status),
-      ),
-      el("p", null, description),
+      icon(iconName, 24),
+      el("span", null, label),
     );
   }
 
   function renderSynchronizeTool(): HTMLElement {
+    const text = getPodcastText();
     const plan = state.synchronizationPlan;
     const busy = isProductionBusy();
-    return el("div.podcast-production-card", { id: "podcast-synchronize-tool" },
-      el("div.podcast-section-head", null,
-        el("div", null,
-          el("h3", null, "Synchronize"),
-          el("p", null, "Inspect timeline audio/video alignment before running Multi-Cam. This step is read-only."),
+    const syncStatus = getSyncUserStatus(plan);
+    const readyTracks = plan ? `${plan.offsetsComputed}/${Math.max(0, plan.waveformOffsets.length - 1)}` : "0/0";
+    const totalClips = plan ? plan.videoClipCount + plan.audioClipCount : 0;
+
+    return el("div.podcast-production-card.podcast-simple-card", { id: "podcast-synchronize-tool" },
+      el("div.podcast-section-head.podcast-simple-head", null,
+        el("div.podcast-tool-title", null,
+          el("div.podcast-tool-icon", null, icon("link", 20)),
+          el("div", null,
+            el("h3", null, text.synchronize),
+            el("p", null, text.syncDescription),
+          ),
         ),
       ),
-      el("div.podcast-action-row", null,
-        el("button.btn-secondary", {
-          disabled: busy,
-          onClick: analyzeSynchronization,
-        }, state.synchronizationLoading ? "Analyzing sync..." : "Analyze Sync"),
-        el("button.btn-primary", {
-          disabled: busy || !plan?.offsetsReady,
-          onClick: applySynchronization,
-        }, state.synchronizationApplyLoading ? "Applying sync..." : "Apply Sync"),
+      el("div.podcast-sync-layout", null,
+        el("div", null,
+          el("label.podcast-field", null,
+            el("span", null, "Reference"),
+            el("div.podcast-readonly-select", null, plan?.referenceAudioTrackIndex !== null && plan?.referenceAudioTrackIndex !== undefined
+              ? `A${plan.referenceAudioTrackIndex + 1} - Main Audio`
+              : "A1 - Main Audio"),
+          ),
+          el("button.btn-secondary", {
+            disabled: busy,
+            onClick: analyzeSynchronization,
+          }, state.synchronizationLoading ? "Analyzing..." : "Analyze Sync"),
+        ),
+        el("div", null,
+          el("label.podcast-field", null,
+            el("span", null, "Target"),
+            el("div.podcast-readonly-select", null, plan?.sequenceName || state.diagnostics.sequenceName || "Active sequence"),
+          ),
+          el("button.btn-primary", {
+            disabled: busy || !plan?.offsetsReady,
+            onClick: applySynchronization,
+          }, state.synchronizationApplyLoading ? "Applying sync..." : "Apply Sync"),
+        ),
+      ),
+      renderStudioStatusLine(!plan ? "Ready" : plan.offsetsReady ? "Ready" : plan.blockers.length ? "Needs review" : "Analyzed"),
+      el(`div.podcast-sync-status.podcast-sync-status--${syncStatus.tone}`, null,
+        el("strong", null, syncStatus.title),
+        el("span", null, syncStatus.description),
       ),
       state.synchronizationLoading || state.synchronizationApplyLoading
         ? renderProcessingLoader(state.synchronizationApplyLoading ? "Applying synchronization" : "Analyzing synchronization")
         : null,
-      el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-        renderSummaryTile("Status", !plan ? "Not analyzed" : plan.offsetsReady ? "Offsets ready" : plan.ok ? "Analyzed" : "Blocked"),
-        renderSummaryTile("Sequence", plan?.sequenceName || state.diagnostics.sequenceName || "No active sequence"),
-        renderSummaryTile("Tracks", plan ? `${plan.videoTrackCount} video / ${plan.audioTrackCount} audio` : "Waiting"),
-        renderSummaryTile("Clips", plan ? `${plan.videoClipCount} video / ${plan.audioClipCount} audio` : "Waiting"),
-        renderSummaryTile("Reference", plan?.referenceAudioTrackIndex !== null && plan?.referenceAudioTrackIndex !== undefined
-          ? `A${plan.referenceAudioTrackIndex + 1}`
-          : "Not selected"),
-        renderSummaryTile("Offsets", plan ? `${plan.offsetsComputed}/${Math.max(0, plan.waveformOffsets.length - 1)} ready` : "Waiting"),
-        renderSummaryTile("Largest move", plan ? formatLargestSyncMove(plan) : "Waiting"),
-        renderSummaryTile("Applied", state.synchronizationApplyResult?.ok
-          ? `${countSynchronizedClips(plan)} clips`
-          : "Not applied"),
+      el("div.podcast-simple-stats", null,
+        renderSimpleStat("Sequence", plan?.sequenceName || state.diagnostics.sequenceName || "No active sequence"),
+        renderSimpleStat("Clips", plan ? `${totalClips} found` : "Analyze first"),
+        renderSimpleStat("Ready tracks", plan ? readyTracks : "Analyze first"),
       ),
-      renderSynchronizationMessages(plan),
-      plan ? renderSynchronizePreviewTable(plan) : null,
+      renderSyncUserGuidance(plan),
+      renderSyncWarningSummary(plan),
+      renderSyncApplySummary(plan),
+      el("button.podcast-details-toggle", {
+        type: "button",
+        onClick: () => {
+          state.syncDetailsOpen = !state.syncDetailsOpen;
+          render();
+        },
+      }, state.syncDetailsOpen ? "Hide technical details" : "Show technical details"),
+      state.syncDetailsOpen
+        ? el("div.podcast-advanced-panel", null,
+          renderSynchronizationMessages(plan),
+          plan ? renderSynchronizePreviewTable(plan) : null,
+        )
+        : null,
     );
+  }
+
+  function renderStudioStatusLine(label: string): HTMLElement {
+    return el("div.podcast-status-ready", null,
+      el("i", null),
+      el("span", null, `Status: ${label}`),
+    );
+  }
+
+  function getSyncUserStatus(plan: SynchronizationPlan | null): { tone: string; title: string; description: string } {
+    if (state.synchronizationApplyLoading) {
+      return { tone: "working", title: "Creating synced draft", description: "Premiere is moving clips on a duplicate sequence." };
+    }
+    if (state.synchronizationLoading) {
+      return { tone: "working", title: "Analyzing timeline", description: "Reading audio and video tracks from Premiere." };
+    }
+    if (state.synchronizationApplyResult?.ok) {
+      return { tone: "done", title: "Synced draft created", description: "Open the duplicate sequence and continue with Multi-Cam." };
+    }
+    if (!plan) {
+      return { tone: "idle", title: "Ready when your timeline is selected", description: "Click Analyze to check sync. Nothing moves during analysis." };
+    }
+    if (plan.blockers.length) {
+      return { tone: "blocked", title: "Needs review", description: "The timeline was read, but sync needs a safer match before creating a draft." };
+    }
+    if (plan.offsetsReady) {
+      return { tone: "ready", title: "Ready to create draft", description: "Offsets are prepared. Create a synced duplicate when you are ready." };
+    }
+    return { tone: "blocked", title: "Analysis incomplete", description: "Timeline data was found, but offsets are not ready yet." };
+  }
+
+  function renderSimpleStat(label: string, value: string): HTMLElement {
+    return el("div.podcast-simple-stat", null,
+      el("span", null, label),
+      el("strong", null, value),
+    );
+  }
+
+  function renderSyncUserGuidance(plan: SynchronizationPlan | null): HTMLElement {
+    if (!plan) {
+      return el("div.podcast-user-note", null, "Start with Analyze. Create Synced Draft becomes available only after the offsets are ready.");
+    }
+    if (plan.blockers.length) {
+      return el("div.podcast-user-note.podcast-user-note--warning", null, "Sync is blocked for this timeline. Open technical details if you want to see the exact checks.");
+    }
+    if (plan.offsetsReady && !state.synchronizationApplyResult?.ok) {
+      return el("div.podcast-user-note.podcast-user-note--success", null, "Offsets are ready. The next step creates a duplicate synced sequence and keeps the original untouched.");
+    }
+    return el("div.podcast-user-note", null, "Analysis finished. Review the timeline selection if the draft button is still disabled.");
+  }
+
+  function renderSyncWarningSummary(plan: SynchronizationPlan | null): HTMLElement | null {
+    if (!plan?.warnings.length) return null;
+    const warnings = plan.warnings.slice(0, 2).map(humanizeSyncWarning);
+    const more = plan.warnings.length > warnings.length ? ` +${plan.warnings.length - warnings.length} more` : "";
+    return el("div.podcast-warning-chips", null,
+      ...warnings.map((warning) => el("span", null, warning)),
+      more ? el("span", null, more) : null,
+    );
+  }
+
+  function renderSyncApplySummary(plan: SynchronizationPlan | null): HTMLElement | null {
+    const res = state.synchronizationApplyResult;
+    if (!res) return null;
+    if (!res.ok) {
+      return el("div.podcast-user-note.podcast-user-note--warning", null, "Create Synced Draft was blocked. Show technical details for the exact reason.");
+    }
+    const sequenceName = res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft";
+    const after = res.largestOffsetAfter != null ? `${res.largestOffsetAfter.toFixed(3)}s` : "checked";
+    return el("div.podcast-sync-result", null,
+      el("strong", null, sequenceName),
+      el("span", null, `${res.clipsMoved} clips moved on the duplicate. Original: ${res.originalSequenceName || plan?.sequenceName || "source sequence"}.`),
+      el("small", null, `Alignment proof after sync: ${after}`),
+    );
+  }
+
+  function humanizeSyncWarning(warning: string): string {
+    const warningLabels: Record<string, string> = {
+      OFFSET_CANDIDATES_REQUIRE_WAVEFORM_PROOF: "Audio proof required",
+      LARGE_SYNC_OFFSET: "Large move detected",
+      LOW_WAVEFORM_CORRELATION_CONFIDENCE: "Low confidence match",
+      TIMELINE_START_ANCHOR_FALLBACK: "Start anchored to timeline",
+      SYNC_TIMELINE_SHIFTED_TO_ZERO: "Shifted safely above 0",
+    };
+    return warningLabels[warning] || warning.replace(/_/g, " ").toLowerCase();
   }
 
   function renderSynchronizePreviewTable(plan: SynchronizationPlan): HTMLElement {
@@ -389,9 +598,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     } else {
       if (plan.knownLagTest) {
         if (plan.knownLagTest.ok) {
-          messages.push(`✔ Known Lag Self-Test: PASSED (all simulated offsets +2s, +5s, -10s successfully recovered)`);
+          messages.push(`âœ” Known Lag Self-Test: PASSED (all simulated offsets +2s, +5s, -10s successfully recovered)`);
         } else {
-          messages.push(`❌ Known Lag Self-Test: FAILED (${plan.knownLagTest.errors.join("; ")})`);
+          messages.push(`âŒ Known Lag Self-Test: FAILED (${plan.knownLagTest.errors.join("; ")})`);
         }
       }
       if (plan.blockers.length) messages.push(`Sync blocked: ${plan.blockers.join(", ")}`);
@@ -404,12 +613,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
       if (state.synchronizationApplyResult?.ok) {
         const res = state.synchronizationApplyResult;
-        messages.push(`✔ Sync applied on duplicate sequence: ${res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft"}.`);
-        messages.push(`  • Original untouched: ${res.originalSequenceName || plan.sequenceName || "source sequence"}`);
-        messages.push(`  • Tracks synchronized: ${countSynchronizedClips(plan)}`);
-        messages.push(`  • Clips moved on duplicate: ${res.clipsMoved}`);
-        messages.push(`  • Largest offset before: ${res.largestOffsetBefore != null ? res.largestOffsetBefore.toFixed(3) + "s" : "N/A"}`);
-        messages.push(`  • Largest offset after: ${res.largestOffsetAfter != null ? res.largestOffsetAfter.toFixed(3) + "s" : "N/A"} (Proof of alignment)`);
+        messages.push(`âœ” Sync applied on duplicate sequence: ${res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft"}.`);
+        messages.push(`  â€¢ Original untouched: ${res.originalSequenceName || plan.sequenceName || "source sequence"}`);
+        messages.push(`  â€¢ Tracks synchronized: ${countSynchronizedClips(plan)}`);
+        messages.push(`  â€¢ Clips moved on duplicate: ${res.clipsMoved}`);
+        messages.push(`  â€¢ Largest offset before: ${res.largestOffsetBefore != null ? res.largestOffsetBefore.toFixed(3) + "s" : "N/A"}`);
+        messages.push(`  â€¢ Largest offset after: ${res.largestOffsetAfter != null ? res.largestOffsetAfter.toFixed(3) + "s" : "N/A"} (Proof of alignment)`);
         
         console.log(`[Saad Sync Apply Proof] Synchronization completed:`);
         console.log(`  largestOffsetBefore: ${res.largestOffsetBefore}s`);
@@ -426,14 +635,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
-  function formatLargestSyncMove(plan: SynchronizationPlan): string {
-    const moves = plan.waveformOffsets
-      .filter((offset) => offset.status === "ready" && typeof offset.suggestedMoveSec === "number")
-      .map((offset) => Math.abs(offset.suggestedMoveSec ?? 0));
-    if (!moves.length) return "0s";
-    return formatSeconds(Math.max(...moves));
-  }
-
   function countSynchronizedClips(plan: SynchronizationPlan | null): number {
     if (!plan) return 0;
     return plan.waveformOffsets.filter((offset) =>
@@ -442,11 +643,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function renderMultiCamProductionTool(): HTMLElement {
+    const text = getPodcastText();
     return el("div.podcast-production-card", { id: "podcast-multicam-tool" },
       el("div.podcast-section-head", null,
         el("div", null,
-          el("h3", null, "Multi-Cam Auto Switch"),
-          el("p", null, "Analyze the active Premiere timeline, preview the camera plan, then create a visual-only draft."),
+          el("h3", null, text.multiCamAutoSwitch),
+          el("p", null, text.multiCamDescription),
         ),
       ),
       renderProductionSetup(),
@@ -577,8 +779,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
-// Auto Zoom render functions removed
-
   function isProductionBusy(): boolean {
     return state.timelineLoading
       || state.previewAutoSwitchLoading
@@ -646,6 +846,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.developerDiagnosticsOpen
         ? el("div.podcast-diagnostics-body", null,
             renderDebugPanel(),
+            renderRuntimeDiagnosticsBox(state.captionRuntime),
             renderExistingRuntimeJsonPanel(),
             ...renderRuntimeProofPanelsIfEnabled(),
           )
@@ -1862,8 +2063,6 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     }
   }
 
-// Auto Zoom action handlers removed
-
   async function previewAutoSwitch() {
     if (isProductionBusy()) return;
     syncCameraMappingsFromDom();
@@ -2874,7 +3073,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       }
     },
       el("strong", { style: { color: cudaWarnStyle ? "#e65100" : "#2e7d32", display: "block", marginBottom: "6px" } }, 
-        cudaWarnStyle ? "⚠ Runtime Diagnostics (Limited CUDA / CPU Mode)" : "✓ Runtime Diagnostics (CUDA Acceleration Ready)"
+        cudaWarnStyle ? "âš  Runtime Diagnostics (Limited CUDA / CPU Mode)" : "âœ“ Runtime Diagnostics (CUDA Acceleration Ready)"
       ),
       el("ul", { style: { margin: "0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
         el("li", null, `GPU Name: ${st.gpuName || "Not Detected"}`),
@@ -2894,24 +3093,44 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
+  function getPodcastText() {
+    return PODCAST_TEXT[getLanguage()];
+  }
+
+  function getCaptionLanguageLabel(language: CaptionLanguage): string {
+    const text = getPodcastText();
+    if (language === "ar") return text.arabic;
+    if (language === "en") return text.english;
+    return text.autoDetect;
+  }
+
+  function getCaptionModelLabel(model: CaptionModel): string {
+    const text = getPodcastText();
+    if (model === "medium") return text.standard;
+    if (model === "large-v3-turbo") return text.fast;
+    if (model === "large-v3") return text.professional;
+    return modelTiers[model] || model;
+  }
+
   function renderAutoCaptionsTool(): HTMLElement {
+    const text = getPodcastText();
     const runtime = state.captionRuntime;
     const progress = state.captionRuntimeProgress;
     const result = state.autoCaptionsResult;
     
     const statusLabel = runtime?.status === "ready"
-      ? "Ready"
+      ? text.ready
       : runtime?.status === "repair-required"
-        ? "Repair required"
+        ? text.repairRequired
         : runtime?.status === "not-installed"
-          ? "Not installed"
-          : "Unavailable";
+          ? text.notInstalled
+          : text.unavailable;
           
     const actionLabel = runtime?.status === "ready"
-      ? "Runtime Installed ✓"
+      ? `${text.runtimeInstalled} ✓`
       : runtime?.status === "repair-required"
-        ? "Repair Runtime"
-        : "Install Runtime";
+        ? text.repairRuntime
+        : text.installRuntime;
         
     const languageSelect = el("select.podcast-input", {
       disabled: isProductionBusy(),
@@ -2920,9 +3139,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         render();
       },
     },
-      el("option", { value: "auto" }, "Auto Detect"),
-      el("option", { value: "ar" }, "العربية"),
-      el("option", { value: "en" }, "English"),
+      el("option", { value: "auto" }, text.autoDetect),
+      el("option", { value: "ar" }, text.arabic),
+      el("option", { value: "en" }, text.english),
     );
     (languageSelect as HTMLSelectElement).value = state.autoCaptionsLanguage;
     
@@ -2933,9 +3152,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         render();
       },
     },
-      el("option", { value: "medium" }, "Standard (متوازن)"),
-      el("option", { value: "large-v3-turbo" }, "Fast (سريع)"),
-      el("option", { value: "large-v3" }, "Professional (احترافي)"),
+      el("option", { value: "medium" }, text.standard),
+      el("option", { value: "large-v3-turbo" }, text.fast),
+      el("option", { value: "large-v3" }, text.professional),
     );
     (modelSelect as HTMLSelectElement).value = state.autoCaptionsModel;
     
@@ -2970,7 +3189,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               width: "100%"
             }
           }, 
-            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: CPU Fallback Speed Alert"),
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "âš  Warning: CPU Fallback Speed Alert"),
             "Running the Professional level (large-v3) model on CPU will be extremely slow. CUDA acceleration is not functional."
           );
         } else if (isWeak) {
@@ -2987,7 +3206,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               width: "100%"
             }
           },
-            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: Low-Spec GPU Alert"),
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "âš  Warning: Low-Spec GPU Alert"),
             "Running the Professional level model on a lower-spec GPU may freeze or crash Premiere Pro due to high VRAM usage. Standard or Fast is recommended."
           );
         }
@@ -3006,7 +3225,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               width: "100%"
             }
           },
-            el("strong", { style: { display: "block", marginBottom: "4px" } }, "⚠ Warning: CPU Fallback Speed Alert"),
+            el("strong", { style: { display: "block", marginBottom: "4px" } }, "âš  Warning: CPU Fallback Speed Alert"),
             "Running the Standard level (medium) model on CPU will be slow. CUDA acceleration is not functional."
           );
         }
@@ -3016,22 +3235,22 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     return el("div.podcast-production-card", { id: "podcast-auto-captions-tool" },
       el("div.podcast-section-head", null,
         el("div", null,
-          el("h3", null, "Auto Captions"),
-          el("p", null, "Create editable Arabic subtitles locally with faster-whisper. Reap is not used."),
+          el("h3", null, text.autoCaptionsTitle),
+          el("p", null, text.autoCaptionsSubtitle),
         ),
       ),
       el("div.podcast-settings-grid", null,
-        el("label.podcast-field", null, el("span", null, "Language"), languageSelect),
-        el("label.podcast-field", null, el("span", null, "Subtitles Level"), modelSelect),
+        el("label.podcast-field", null, el("span", null, text.language), languageSelect),
+        el("label.podcast-field", null, el("span", null, text.subtitlesLevel), modelSelect),
       ),
       preflightWarning,
       el("div.podcast-summary-grid.podcast-summary-grid--compact", null,
-        renderSummaryTile("Language", state.autoCaptionsLanguage === "ar" ? "Arabic" : state.autoCaptionsLanguage === "en" ? "English" : "Auto Detect"),
-        renderSummaryTile("Engine", "faster-whisper"),
-        renderSummaryTile("Level", modelTiers[state.autoCaptionsModel] || state.autoCaptionsModel),
-        renderSummaryTile("Audio", "Automatic (A1)"),
-        renderSummaryTile("Captions", result ? String(result.captionCount) : "Waiting"),
-        renderSummaryTile("Runtime Status", statusLabel),
+        renderSummaryTile(text.language, getCaptionLanguageLabel(state.autoCaptionsLanguage)),
+        renderSummaryTile(text.engine, "faster-whisper"),
+        renderSummaryTile(text.level, getCaptionModelLabel(state.autoCaptionsModel)),
+        renderSummaryTile(text.audio, text.automaticA1),
+        renderSummaryTile(text.captions, result ? String(result.captionCount) : text.waiting),
+        renderSummaryTile(text.runtimeStatus, statusLabel),
       ),
       el("div.podcast-action-row", null,
         el("button.btn-secondary", {
@@ -3041,9 +3260,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         el("button.btn-primary", {
           disabled: busy || !runtimeReady,
           onClick: runAutoCaptions,
-        }, state.autoCaptionsLoading ? "Generating Arabic Captions..." : "Generate Arabic Captions"),
+        }, state.autoCaptionsLoading ? text.generatingCaptions : text.generateCaptions),
       ),
-      renderRuntimeDiagnosticsBox(runtime),
       state.autoCaptionsLoading && progress
         ? el("div", { style: { width: "100%" } },
             progress.percent !== null
@@ -3087,12 +3305,13 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ),
         result.diagnostics?.fallbackOccurred
           ? el("div.podcast-warning-box", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", color: "#d65d00", fontSize: "13px", lineHeight: "1.5" } },
-              el("strong", { style: { color: "#e65100" } }, "⚠ Warning: Running on CPU Fallback!"),
+              el("strong", { style: { color: "#e65100" } }, "âš  Warning: Running on CPU Fallback!"),
               el("div", { style: { marginTop: "4px" } }, `Whisper CUDA execution failed. Fallback to CPU occurred.`),
               el("div", { style: { fontSize: "12px", color: "#666", marginTop: "2px" } }, `Reason: ${result.diagnostics.fallbackReason}`)
             )
           : null,
         result.diagnostics
+          && state.developerDiagnosticsOpen
           ? el("div.podcast-one-click-diagnostics", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", fontSize: "13px", color: "#333" } },
               el("strong", null, "Caption Diagnostics Timing:"),
               el("ul", { style: { margin: "4px 0 0 0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
@@ -3132,7 +3351,16 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     );
   }
 
+  function renderDeveloperOnlyPanels(): HTMLElement | null {
+    if (!state.developerDiagnosticsOpen) return null;
+    return el("div.podcast-tool-page", null,
+      renderProductionSummary(),
+      renderDeveloperDiagnostics(),
+    );
+  }
+
   function renderOneClickTool(): HTMLElement {
+    const text = getPodcastText();
     const busy = isProductionBusy();
     const progress = state.oneClickProgress;
     const result = state.oneClickResult;
@@ -3140,12 +3368,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     return el("div.podcast-production-card", { id: "podcast-one-click-tool" },
       el("div.podcast-section-head", null,
         el("div", null,
-          el("h3", null, "One Click Podcast Edit"),
-          el("p", null, "Run the podcast editing pipeline (Multi-Cam Switch → Auto Captions) in a single click."),
+          el("h3", null, text.oneClickPodcastEdit),
+          el("p", null, text.oneClickSubtitle),
         ),
       ),
       el("div.podcast-settings-grid", { style: { marginBottom: "12px" } },
-        renderField("Auto Captions",
+        renderField(text.autoCaptions,
           el("label.podcast-toggle", null,
             el("input", {
               type: "checkbox",
@@ -3156,10 +3384,10 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
                 render();
               },
             }),
-            el("span", null, "Generate Auto Captions (توليد الكابشنز)"),
+            el("span", null, text.generateAutoCaptions),
           )
         ),
-        renderField("Fast Mode",
+        renderField(text.fastMode,
           el("label.podcast-toggle", null,
             el("input", {
               type: "checkbox",
@@ -3170,16 +3398,15 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
                 render();
               },
             }),
-            el("span", null, "Fast Mode (الوضع السريع)"),
+            el("span", null, text.fastMode),
           )
         )
       ),
-      renderRuntimeDiagnosticsBox(state.captionRuntime),
       el("div.podcast-action-row", null,
         el("button.btn-primary", {
           disabled: busy,
           onClick: runOneClickPodcastEdit,
-        }, state.oneClickLoading ? "Processing Pipeline..." : "Run One Click Edit"),
+        }, state.oneClickLoading ? text.processingPipeline : text.runOneClickEdit),
       ),
       state.oneClickLoading && progress
         ? el("div", { style: { width: "100%" } },
@@ -3207,8 +3434,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
               }
             },
               !result.success
-                ? "One Click Edit Failed ✗"
-                : (result.captionDiagnostics?.fallbackOccurred ? "One Click Edit Complete (with CPU Fallback) ⚠" : "One Click Edit Complete ✓")
+                ? "One Click Edit Failed âœ—"
+                : (result.captionDiagnostics?.fallbackOccurred ? "One Click Edit Complete (with CPU Fallback) âš " : "One Click Edit Complete âœ“")
             ),
             el("ul", { style: { margin: "0", paddingLeft: "20px", fontSize: "14px", lineHeight: "1.6" } },
               el("li", null, `Target Sequence: ${result.sequenceName}`),
@@ -3221,7 +3448,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
             ),
             result.captionDiagnostics?.fallbackOccurred
               ? el("div.podcast-warning-box", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", color: "#d65d00", fontSize: "13px", lineHeight: "1.5" } },
-                  el("strong", { style: { color: "#e65100" } }, "⚠ Warning: Running on CPU Fallback!"),
+                  el("strong", { style: { color: "#e65100" } }, "âš  Warning: Running on CPU Fallback!"),
                   el("div", { style: { marginTop: "4px" } }, `Whisper CUDA execution failed. Fallback to CPU occurred.`),
                   el("div", { style: { fontSize: "12px", color: "#666", marginTop: "2px" } }, `Reason: ${result.captionDiagnostics.fallbackReason}`)
                 )
@@ -3234,42 +3461,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
                   )
                 )
               : null,
-            result.captionDiagnostics
-              ? el("div.podcast-one-click-diagnostics", { style: { marginTop: "12px", padding: "8px", border: "1px solid #ffe0b2", borderRadius: "4px", backgroundColor: "#fff8e1", fontSize: "13px", color: "#333", width: "100%" } },
-                  el("strong", null, "Caption Diagnostics Timing:"),
-                  el("ul", { style: { margin: "4px 0 0 0", paddingLeft: "16px", listStyleType: "square", lineHeight: "1.6" } },
-                    el("li", null, `Selected Tier: ${result.captionDiagnostics.selectedTier || "N/A"}`),
-                    el("li", null, `Selected Model: ${result.captionDiagnostics.selectedModel || "N/A"}`),
-                    el("li", null, `Selected Model Path: ${result.captionDiagnostics.selectedModelPath || "N/A"}`),
-                    el("li", null, `Device: ${result.captionDiagnostics.device || "N/A"}`),
-                    el("li", null, `Compute Type: ${result.captionDiagnostics.computeType || "N/A"}`),
-                    el("li", null, `Audio Duration: ${result.captionDiagnostics.audioDurationSec !== undefined ? result.captionDiagnostics.audioDurationSec.toFixed(2) + "s" : "N/A"}`),
-                    el("li", null, `Audio Extraction Time: ${result.captionDiagnostics.audioExtractionTimeMs}ms`),
-                    el("li", null, `WAV Duration: ${result.captionDiagnostics.wavDurationSec?.toFixed(2)}s`),
-                    el("li", null, `WAV Size: ${(result.captionDiagnostics.wavSizeBytes / 1024).toFixed(2)} KB`),
-                    el("li", null, `Whisper Start: ${result.captionDiagnostics.whisperStartTime}`),
-                    el("li", null, `Whisper End: ${result.captionDiagnostics.whisperEndTime}`),
-                    el("li", null, `Whisper Duration: ${(result.captionDiagnostics.whisperDurationMs / 1000).toFixed(2)}s`),
-                    el("li", null, `Transcription Duration: ${result.captionDiagnostics.transcriptionDurationSec !== undefined ? result.captionDiagnostics.transcriptionDurationSec.toFixed(2) + "s" : "N/A"}`),
-                    el("li", null, `Realtime Factor: ${result.captionDiagnostics.realtimeFactor !== undefined ? result.captionDiagnostics.realtimeFactor.toFixed(3) : "N/A"}`),
-                    el("li", null, `CPU/GPU Fallback: ${result.captionDiagnostics.fallbackOccurred ? "Yes (" + (result.captionDiagnostics.fallbackReason || "unknown") + ")" : "No"}`),
-                    el("li", null, `GPU Name: ${result.captionDiagnostics.gpuName || "Unknown"}`),
-                    el("li", null, `CUDA Available: ${result.captionDiagnostics.cudaAvailable ? "Yes" : "No"}`),
-                    el("li", null, `CUDA Version: ${result.captionDiagnostics.cudaVersion || "N/A"}`),
-                    el("li", null, `CTranslate2 Version: ${result.captionDiagnostics.ctranslate2Version || "N/A"}`),
-                    el("li", null, `Faster Whisper Version: ${result.captionDiagnostics.fasterWhisperVersion || "N/A"}`),
-                    result.captionDiagnostics.exactCudaError ? el("li", { style: { color: "#c62828", wordBreak: "break-all" } }, `Exact CUDA Error: ${result.captionDiagnostics.exactCudaError}`) : null,
-                    el("li", null, `SRT Write Time: ${result.captionDiagnostics.srtWriteTimeMs}ms`),
-                    el("li", null, `JSON Write Time: ${result.captionDiagnostics.jsonWriteTimeMs}ms`),
-                    el("li", null, `Caption Import Start: ${result.captionDiagnostics.captionImportStartTime}`),
-                    el("li", null, `Caption Import End: ${result.captionDiagnostics.captionImportEndTime}`),
-                    el("li", null, `Caption Import Duration: ${result.captionDiagnostics.captionImportDurationMs}ms`),
-                    el("li", null, `Verification Start: ${result.captionDiagnostics.verificationStartTime}`),
-                    el("li", null, `Verification End: ${result.captionDiagnostics.verificationEndTime}`),
-                    el("li", null, `Verification Duration: ${result.captionDiagnostics.verificationDurationMs}ms`)
-                  )
-                )
-              : null
+            null
           )
         : null
     );
@@ -3294,8 +3486,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
       state.timelineLayout = layout;
       
       const activeSeqName = layout.sequenceName || "";
-      if (isAutoSwitchDraftName(activeSeqName) || activeSeqName.includes("Saad Studio Draft")) {
-        throw new Error("Cannot run One Click Edit on an existing draft sequence. Please select your original source sequence.");
+      if (activeSeqName.includes("Saad Studio Draft")) {
+        throw new Error("Cannot run One Click Edit on a Saad Studio temporary draft sequence. Please select the synced or original sequence.");
       }
       
       ensureAudioMappingsForTimeline();

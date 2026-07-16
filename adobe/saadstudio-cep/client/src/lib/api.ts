@@ -80,6 +80,12 @@ export interface GenerationItem {
   createdAt: string;
 }
 
+export interface GenerationsResponse {
+  items: GenerationItem[];
+  nextCursor?: string | null;
+  hasMore?: boolean;
+}
+
 export interface JobStatus {
   id: string;
   status: "queued" | "running" | "succeeded" | "failed";
@@ -587,12 +593,13 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
     return [url];
   }
 
-  // 2. If it is an external URL, return as-is to bypass R2/B2 fallback timeouts
+  // 2. If it is an external URL, return as-is to bypass storage fallback timeouts
   if (url.startsWith("http://") || url.startsWith("https://")) {
     try {
       const parsed = new URL(url);
       const host = parsed.host.toLowerCase();
       const isOurStorage =
+        // Legacy Cloudflare URLs are treated as internal keys, then retried via Backblaze/API.
         host.includes("r2.dev") ||
         host.includes("backblazeb2.com") ||
         host.includes("saadstudio.app") ||
@@ -637,7 +644,7 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   const fallbacks: string[] = [];
 
-  // 1. Backblaze B2 (New Storage - Friendly & S3 Direct)
+  // 1. Backblaze B2 (primary storage - friendly & S3 direct)
   const friendlyB2Url = "https://f003.backblazeb2.com/file/saadstudio-storage";
   fallbacks.push(`${friendlyB2Url}/${mediaPath}`);
 
@@ -647,10 +654,6 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
   // 2. /api/media (Emergency Fallback - Proxy)
   // Safe for all assets (including videos) because /api/media streams directly rather than buffering in memory.
   fallbacks.push(`${apiBase}/api/media/${mediaPath}`);
-
-  // 3. Cloudflare R2 (Old Storage - Direct)
-  const rawR2Url = "https://pub-3e0355a14eda4ec78c6e81b217a9a399.r2.dev";
-  fallbacks.push(`${rawR2Url}/${mediaPath}`);
 
   // Deduplicate while preserving order
   const uniqueFallbacks: string[] = [];
@@ -672,9 +675,32 @@ export const api = {
 
   /** Recent generations for the gallery strip. The exact endpoint may vary
    *  in your backend — adjust the path if your route differs. */
-  recentGenerations: (limit = 12) =>
-    request<{ items: GenerationItem[] }>(`/api/panel/generations?limit=${limit}`)
-      .catch(() => ({ items: [] })),
+  recentGenerations: (limit = 12, opts: { kind?: "image" | "video"; cursor?: string | null } = {}) => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (opts.kind) qs.set("kind", opts.kind);
+    if (opts.cursor) qs.set("cursor", opts.cursor);
+    return request<GenerationsResponse>(`/api/panel/generations?${qs.toString()}`)
+      .catch((): GenerationsResponse => ({ items: [] }));
+  },
+
+  allGenerations: async (kind?: "image" | "video") => {
+    const items: GenerationItem[] = [];
+    const seen = new Set<string>();
+    let cursor: string | null | undefined = null;
+
+    for (let page = 0; page < 50; page += 1) {
+      const result = await api.recentGenerations(100, { kind, cursor });
+      for (const item of result.items) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        items.push(item);
+      }
+      if (!result.hasMore || !result.nextCursor) break;
+      cursor = result.nextCursor;
+    }
+
+    return { items };
+  },
 
   deleteGeneration: (id: string) =>
     request<{ deleted: boolean }>(`/api/panel/generations/${id}`, {
@@ -750,7 +776,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  uploadFileToR2: async (file: File, assetType = "video"): Promise<string> => {
+  uploadFileToStorage: async (file: File, assetType = "video"): Promise<string> => {
     const contentType = file.type || guessContentType(file.name);
     const signed = await api.createUploadUrl({
       fileName: file.name || "upload.bin",
@@ -768,7 +794,7 @@ export const api = {
     return signed.publicUrl;
   },
 
-  uploadLocalPathToR2: async (localPath: string, assetType = "video"): Promise<string> => {
+  uploadLocalPathToStorage: async (localPath: string, assetType = "video"): Promise<string> => {
     if (typeof window.cep === "undefined" || !window.cep_node) {
       throw new ApiError("Local path upload works only inside Adobe.", 400);
     }
@@ -793,7 +819,6 @@ export const api = {
     }
     return signed.publicUrl;
   },
-
   generate: {
     image: async (body: Record<string, unknown>) =>
       normalizeImageJob(
@@ -1036,7 +1061,7 @@ export interface ReapCatalogResponse {
 
 export const reap = {
   /** Ask the backend for a Reap presigned S3 URL so the panel can push
-   *  the source clip there directly — no R2 hop. */
+   *  the source clip there directly — no storage round-trip. */
   getUploadUrl: (filename: string) =>
     request<ReapUploadUrlResponse>("/api/panel/reap/upload-url", {
       method: "POST",

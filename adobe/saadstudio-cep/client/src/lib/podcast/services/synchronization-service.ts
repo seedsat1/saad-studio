@@ -4,6 +4,9 @@ import type {
   PodcastTimelineClipInfo,
 } from "../types/premiere";
 
+const MIN_SYNC_APPLY_CONFIDENCE = 0.1;
+const LOW_SYNC_CONFIDENCE_WARNING = 0.35;
+
 export interface SynchronizationTrackReadiness {
   kind: "video" | "audio";
   trackIndex: number;
@@ -141,6 +144,10 @@ export interface SynchronizationApplyResult {
   ok: boolean;
   sequenceName?: string | null;
   sequenceId?: string | null;
+  originalSequenceName?: string | null;
+  originalSequenceId?: string | null;
+  duplicateSequenceName?: string | null;
+  duplicateSequenceId?: string | null;
   offsetsApplied: number;
   clipsMoved: number;
   movedItems: Array<{
@@ -155,8 +162,8 @@ export interface SynchronizationApplyResult {
   }>;
   blockers: string[];
   warnings: string[];
-  timelineMutation: "move current timeline clips";
-  sequenceMutation: "none";
+  timelineMutation: "move current timeline clips" | "duplicate + move synchronized clips on duplicate only";
+  sequenceMutation: "none" | "duplicate-only";
   syncApplied?: boolean;
   referenceTrack?: number | null;
   tracksAdjusted?: number;
@@ -164,21 +171,50 @@ export interface SynchronizationApplyResult {
   largestOffsetAfter?: number;
 }
 
+function prepareOffsetsForApply(offsets: SynchronizationOffsetResult[]): SynchronizationOffsetResult[] {
+  const movable = offsets.filter((offset) =>
+    (offset.status === "ready" || offset.status === "reference")
+    && typeof offset.suggestedTimelineStartSec === "number"
+    && Number.isFinite(offset.suggestedTimelineStartSec)
+    && typeof offset.currentTimelineStartSec === "number"
+    && Number.isFinite(offset.currentTimelineStartSec)
+  );
+  if (!movable.length) return [];
+
+  const minimumTargetStart = Math.min(...movable.map((offset) => offset.suggestedTimelineStartSec ?? 0));
+  const timelineShiftSec = minimumTargetStart < 0 ? -minimumTargetStart : 0;
+
+  return movable.map((offset) => {
+    const currentStart = offset.currentTimelineStartSec ?? 0;
+    const shiftedTargetStart = roundTime((offset.suggestedTimelineStartSec ?? 0) + timelineShiftSec);
+    return {
+      ...offset,
+      suggestedTimelineStartSec: shiftedTargetStart,
+      suggestedMoveSec: roundTime(shiftedTargetStart - currentStart),
+      warnings: timelineShiftSec > 0
+        ? unique([...offset.warnings, "SYNC_TIMELINE_SHIFTED_TO_ZERO"])
+        : [...offset.warnings],
+    };
+  });
+}
+
 export async function applySynchronizationOffsets(plan: SynchronizationPlan): Promise<SynchronizationApplyResult> {
-  const offsets = plan.waveformOffsets.filter((offset) =>
+  const offsets = prepareOffsetsForApply(plan.waveformOffsets);
+
+  const applyOffsets = offsets.filter((offset) =>
     (offset.status === "ready" || offset.status === "reference")
     && typeof offset.suggestedMoveSec === "number"
     && typeof offset.suggestedTimelineStartSec === "number"
     && Number.isFinite(offset.suggestedTimelineStartSec)
     && offset.suggestedTimelineStartSec >= 0
-    && offset.confidence >= 0.35
+    && offset.confidence >= MIN_SYNC_APPLY_CONFIDENCE
     && Math.abs(offset.suggestedMoveSec) > 0.001
   );
 
-  const moveValues = offsets.map((o) => Math.abs(o.suggestedMoveSec || 0));
+  const moveValues = applyOffsets.map((o) => Math.abs(o.suggestedMoveSec || 0));
   const largestOffsetBefore = moveValues.length > 0 ? Math.max(...moveValues) : 0;
 
-  if (!plan.offsetsReady || offsets.length === 0) {
+  if (!plan.offsetsReady || applyOffsets.length === 0) {
     const isAlreadySynced = plan.offsetsReady && plan.waveformOffsets.length > 0 && largestOffsetBefore <= 0.05;
     return {
       ok: isAlreadySynced,
@@ -199,7 +235,7 @@ export async function applySynchronizationOffsets(plan: SynchronizationPlan): Pr
     };
   }
 
-  const jsxResult = await evalES<SynchronizationApplyResult>("applyPodcastSynchronizationOffsets", offsets);
+  const jsxResult = await evalES<SynchronizationApplyResult>("applyPodcastSynchronizationOffsets", applyOffsets);
 
   let largestOffsetAfter = 999;
   let syncApplied = false;
@@ -272,6 +308,13 @@ export interface SyncGraph {
   matrix: Record<string, Record<string, PairwiseCorrelation>>;
   generatedAt: number;
   runtimeVersion: string;
+  validation?: {
+    passed: boolean;
+    errors: string[];
+    warnings: string[];
+    symmetricChecks: number;
+    symmetricFailures: number;
+  };
 }
 
 export async function buildFullSyncGraph(snapshot: PodcastSynchronizationSnapshot): Promise<SyncGraph> {
@@ -300,6 +343,10 @@ export async function buildFullSyncGraph(snapshot: PodcastSynchronizationSnapsho
   for (const clip of allAudioClips) {
     try {
       const envelope = await extractSyncEnvelope(runtime, ffmpegPath, clip);
+      if (!envelope.length) {
+        console.warn(`[Sync Engine] Skipping clip ${clip.trackIndex}:${clip.clipIndex}; FFmpeg returned an empty envelope.`);
+        continue;
+      }
       audioSources.push({
         clipId: clip.clipId || `${clip.trackIndex}:${clip.clipIndex}`,
         trackIndex: clip.trackIndex,
@@ -371,7 +418,8 @@ export async function buildFullSyncGraph(snapshot: PodcastSynchronizationSnapsho
   let validationErrors: string[] = [];
   let validationWarnings: string[] = [];
 
-  // 1. Verify all sources have valid envelopes
+  // 1. Verify all sources have valid envelopes. Empty envelopes are skipped above,
+  // so validation should report data quality without collapsing the whole panel.
   for (const source of audioSources) {
     if (!source.envelope || source.envelope.length === 0) {
       validationErrors.push(`Source ${source.clipId} has empty envelope`);
@@ -442,7 +490,7 @@ export async function buildFullSyncGraph(snapshot: PodcastSynchronizationSnapsho
     for (const err of validationErrors) {
       console.error(`   - ${err}`);
     }
-    throw new Error(`Sync graph validation failed with ${validationErrors.length} errors`);
+    console.warn(`Sync graph validation reported ${validationErrors.length} errors; continuing with usable sources only.`);
   }
 
   if (validationWarnings.length > 0) {
@@ -544,6 +592,16 @@ async function analyzeWaveformOffsets(
   const referenceTrackIndex: number = referenceTrack;
   const referenceVideo = findPairedVideoClip(referenceClip, videoClips);
   const referenceEnvelope = await extractSyncEnvelope(runtime, ffmpegPath, referenceClip);
+  if (!referenceEnvelope.length) {
+    return {
+      ...plan,
+      blockers: [...plan.blockers, "REFERENCE_AUDIO_ENVELOPE_EMPTY"],
+      messages: [
+        ...plan.messages,
+        "FFmpeg could not extract audio samples from the selected reference clip. Check Media Start/In Point values or choose another reference audio track.",
+      ],
+    };
+  }
   
   const offsets: SynchronizationOffsetResult[] = [];
   offsets.push({
@@ -590,32 +648,38 @@ async function analyzeWaveformOffsets(
 
     if (blockers.length === 0) {
       const targetEnvelope = await extractSyncEnvelope(runtime, ffmpegPath, clip);
-      const match = correlateEnvelopes(referenceEnvelope, targetEnvelope);
-      estimatedLagSec = roundTime(match.lagSec);
-      confidence = roundConfidence(match.confidence);
-      overlapDurationSec = match.overlapDurationSec;
-      candidatePeaks = match.candidatePeaks;
-      
-      const currentStart = clip.timelineStartSec ?? 0;
-      const referenceStart = referenceClip.timelineStartSec ?? 0;
-      suggestedTimelineStartSec = roundTime(referenceStart - estimatedLagSec);
-      suggestedMoveSec = roundTime(suggestedTimelineStartSec - currentStart);
-      
-      if (confidence < 0.35) {
-        blockers.push("LOW_WAVEFORM_CORRELATION_CONFIDENCE");
-        selectionReason = `Blocked: Correlation confidence ${confidence} is below 0.35. (${match.selectionReason})`;
-      }
-      if (Math.abs(suggestedMoveSec) > 30.0) {
-        blockers.push("SYNC_OFFSET_OUT_OF_RANGE");
-        selectionReason = `Blocked: Move offset (${suggestedMoveSec}s) exceeds the 30-second limit. (${match.selectionReason})`;
-      }
-      if (!Number.isFinite(suggestedTimelineStartSec)) {
-        blockers.push("INVALID_SUGGESTED_TIMELINE_START");
-        selectionReason = `Blocked: Invalid suggested timeline start. (${match.selectionReason})`;
-      }
-      
-      if (blockers.length === 0) {
-        selectionReason = match.selectionReason;
+      if (!targetEnvelope.length) {
+        blockers.push("TARGET_AUDIO_ENVELOPE_EMPTY");
+        selectionReason = "Blocked: FFmpeg could not extract audio samples from this target clip.";
+      } else {
+        const match = correlateEnvelopes(referenceEnvelope, targetEnvelope);
+        estimatedLagSec = roundTime(match.lagSec);
+        confidence = roundConfidence(match.confidence);
+        overlapDurationSec = match.overlapDurationSec;
+        candidatePeaks = match.candidatePeaks;
+
+        const currentStart = clip.timelineStartSec ?? 0;
+        const referenceStart = referenceClip.timelineStartSec ?? 0;
+        suggestedTimelineStartSec = roundTime(referenceStart - estimatedLagSec);
+        suggestedMoveSec = roundTime(suggestedTimelineStartSec - currentStart);
+
+        if (confidence < MIN_SYNC_APPLY_CONFIDENCE) {
+          blockers.push("LOW_WAVEFORM_CORRELATION_CONFIDENCE");
+          selectionReason = `Blocked: Correlation confidence ${confidence} is below ${MIN_SYNC_APPLY_CONFIDENCE}. (${match.selectionReason})`;
+        } else if (confidence < LOW_SYNC_CONFIDENCE_WARNING) {
+          warnings.push("LOW_WAVEFORM_CORRELATION_CONFIDENCE");
+        }
+        if (Math.abs(suggestedMoveSec) > 30.0) {
+          warnings.push("LARGE_SYNC_OFFSET");
+        }
+        if (!Number.isFinite(suggestedTimelineStartSec)) {
+          blockers.push("INVALID_SUGGESTED_TIMELINE_START");
+          selectionReason = `Blocked: Invalid suggested timeline start. (${match.selectionReason})`;
+        }
+
+        if (blockers.length === 0) {
+          selectionReason = match.selectionReason;
+        }
       }
     } else {
       selectionReason = `Blocked: ${blockers.join(", ")}`;
@@ -647,6 +711,8 @@ async function analyzeWaveformOffsets(
   }
 
   // ─── Runtime Proof Console Log ────────────────────────────────────
+  applyTimelineStartAnchorFallback(offsets);
+
   console.log(`[Saad Sync Runtime Proof] Sequence: ${plan.sequenceName}`);
   console.log(`  Reference Track: A${referenceTrackIndex + 1}`);
   for (const offset of offsets) {
@@ -801,6 +867,23 @@ async function extractSyncEnvelope(
 ): Promise<number[]> {
   const sourceIn = Math.max(0, clip.sourceInPointSec ?? 0);
   const duration = Math.min(900, Math.max(0.5, (clip.sourceOutPointSec ?? sourceIn + 900) - sourceIn));
+  const primary = await extractSyncEnvelopeAt(runtime, ffmpegPath, clip, sourceIn, duration);
+  if (primary.length > 0 || sourceIn <= 0.001) return primary;
+
+  // Premiere can expose clip.inPoint as source timecode instead of file-relative
+  // seconds when the media has a non-zero Media Start. FFmpeg needs file-relative
+  // time, so retry from zero when the first read seeks past EOF.
+  console.warn(`[Sync Engine] Empty envelope at sourceIn=${sourceIn}s for ${clip.clipName ?? clip.sourcePath}; retrying from file start.`);
+  return extractSyncEnvelopeAt(runtime, ffmpegPath, clip, 0, duration);
+}
+
+async function extractSyncEnvelopeAt(
+  runtime: ReturnType<typeof getSyncNodeRuntime>,
+  ffmpegPath: string,
+  clip: PodcastTimelineClipInfo,
+  sourceIn: number,
+  duration: number,
+): Promise<number[]> {
   const args = [
     "-hide_banner",
     "-nostdin",
@@ -989,52 +1072,11 @@ function correlateEnvelopes(
 
   return {
     lagSec: selected.lagSec,
+    confidence: Math.max(0, selected.score),
     overlapDurationSec: selected.overlapDurationSec,
     candidatePeaks,
     selectionReason
   };
-}
-
-/**
- * Extract raw PCM samples for a specific time window from media file
- */
-async function extractRawPcmWindow(
-  runtime: ReturnType<typeof getSyncNodeRuntime>,
-  ffmpegPath: string,
-  clip: PodcastTimelineClipInfo,
-  offsetSec: number,
-  durationSec: number,
-  sampleRate: number
-): Promise<Int16Array> {
-  const sourceIn = Math.max(0, (clip.sourceInPointSec ?? 0) + Math.max(0, offsetSec));
-  
-  const args = [
-    "-hide_banner",
-    "-nostdin",
-    "-ss", String(sourceIn),
-    "-t", String(durationSec),
-    "-i", clip.sourcePath ?? "",
-    "-vn",
-    "-ac", "1",
-    "-ar", String(sampleRate),
-    "-f", "s16le",
-    "pipe:1",
-  ];
-  
-  try {
-    const buffer = await execFileBuffer(runtime.cp, ffmpegPath, args);
-    const samples = new Int16Array(buffer.buffer, buffer.byteOffset, buffer.length / 2);
-    
-    // Normalize samples to [-1.0, 1.0] range
-    const normalized = new Float32Array(samples.length);
-    for (let i = 0; i < samples.length; i++) {
-      normalized[i] = samples[i] / 32768.0;
-    }
-    
-    return normalized as unknown as Int16Array;
-  } catch {
-    return new Int16Array(0);
-  }
 }
 
 /**
@@ -1061,7 +1103,6 @@ function finePcmCrossCorrelation(
     let count = 0;
     
     const startA = Math.max(0, -lag);
-    const startB = Math.max(0, lag);
     const end = Math.min(pcmA.length, pcmB.length - lag);
     
     for (let i = startA; i < end; i++) {
@@ -1142,6 +1183,37 @@ function normalizeSourcePath(value: string | null | undefined): string {
   return (value ?? "").replace(/\\/g, "/").trim().toLowerCase();
 }
 
+function applyTimelineStartAnchorFallback(offsets: SynchronizationOffsetResult[]): void {
+  const usable = offsets.filter((offset) =>
+    (offset.status === "reference" || offset.status === "ready")
+    && typeof offset.currentTimelineStartSec === "number"
+    && Number.isFinite(offset.currentTimelineStartSec)
+  );
+  if (usable.length < 2) return;
+
+  const needsAnchorFallback = offsets.some((offset) =>
+    offset.status === "ready"
+    && (
+      offset.warnings.includes("LOW_WAVEFORM_CORRELATION_CONFIDENCE")
+      || (typeof offset.confidence === "number" && offset.confidence < LOW_SYNC_CONFIDENCE_WARNING)
+    )
+  );
+  if (!needsAnchorFallback) return;
+
+  const starts = usable.map((offset) => offset.currentTimelineStartSec ?? 0);
+  const anchorStartSec = Math.max(...starts);
+  const startSpreadSec = anchorStartSec - Math.min(...starts);
+  if (!Number.isFinite(anchorStartSec) || startSpreadSec < 0.5) return;
+
+  for (const offset of usable) {
+    const currentStart = offset.currentTimelineStartSec ?? 0;
+    offset.suggestedTimelineStartSec = roundTime(anchorStartSec);
+    offset.suggestedMoveSec = roundTime(anchorStartSec - currentStart);
+    offset.warnings = unique([...offset.warnings, "TIMELINE_START_ANCHOR_FALLBACK"]);
+    offset.selectionReason = "Timeline-start anchor fallback used because waveform correlation was weak; aligning clip starts like Premiere Synchronize.";
+  }
+}
+
 function normalizeSynchronizationStarts(offsets: SynchronizationOffsetResult[]): void {
   const usable = offsets.filter((offset) =>
     (offset.status === "reference" || offset.status === "ready")
@@ -1157,8 +1229,7 @@ function normalizeSynchronizationStarts(offsets: SynchronizationOffsetResult[]):
     offset.suggestedTimelineStartSec = normalizedStart;
     offset.suggestedMoveSec = roundTime(normalizedStart - currentStart);
     if (Math.abs(offset.suggestedMoveSec) > 30.0) {
-      offset.status = "blocked";
-      offset.blockers.push("SYNC_OFFSET_OUT_OF_RANGE");
+      offset.warnings.push("LARGE_SYNC_OFFSET");
     }
   }
 }

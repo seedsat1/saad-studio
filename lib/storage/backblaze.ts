@@ -14,16 +14,12 @@ export class BackblazeProvider implements StorageProvider {
   private publicBaseUrl: string;
 
   constructor() {
-    this.bucketName = process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || process.env.R2_BUCKET || process.env.R2_BUCKET_NAME || "saadstudio-storage";
+    this.bucketName = process.env.B2_BUCKET || process.env.B2_BUCKET_NAME || "saadstudio-storage";
     
     let publicUrl = process.env.B2_PUBLIC_URL ||
                      process.env.B2_PUBLIC_BASE_URL ||
                      process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL ||
                      process.env.NEXT_PUBLIC_B2_PUBLIC_URL ||
-                     process.env.R2_PUBLIC_URL ||
-                     process.env.R2_PUBLIC_BASE_URL ||
-                     process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
-                     process.env.NEXT_PUBLIC_R2_PUBLIC_URL ||
                      "";
 
     if (!publicUrl || publicUrl.includes(".r2.dev") || publicUrl.includes("media.saadstudio.app")) {
@@ -33,11 +29,11 @@ export class BackblazeProvider implements StorageProvider {
     this.publicBaseUrl = publicUrl.replace(/\/+$/, "");
 
     this.client = new S3Client({
-      region: process.env.B2_REGION || process.env.R2_REGION || "eu-central-003",
-      endpoint: process.env.B2_ENDPOINT || process.env.R2_ENDPOINT || "https://s3.eu-central-003.backblazeb2.com",
+      region: process.env.B2_REGION || "eu-central-003",
+      endpoint: process.env.B2_ENDPOINT || "https://s3.eu-central-003.backblazeb2.com",
       credentials: {
-        accessKeyId: process.env.B2_ACCESS_KEY_ID || process.env.R2_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.B2_SECRET_ACCESS_KEY || process.env.R2_SECRET_ACCESS_KEY || "",
+        accessKeyId: process.env.B2_ACCESS_KEY_ID || "",
+        secretAccessKey: process.env.B2_SECRET_ACCESS_KEY || "",
       },
       requestChecksumCalculation: "WHEN_REQUIRED",
       responseChecksumValidation: "WHEN_REQUIRED",

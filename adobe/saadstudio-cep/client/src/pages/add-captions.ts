@@ -1148,9 +1148,9 @@ export function AddCaptionsPage(): HTMLElement {
     if (clip.path.startsWith("blob:")) {
       const blob = await fetch(clip.path).then((r) => r.blob());
       const file = new File([blob], filename, { type: blob.type || "video/mp4" });
-      return api.uploadFileToR2(file, "video");
+      return api.uploadFileToStorage(file, "video");
     }
-    return api.uploadLocalPathToR2(clip.path, "video");
+    return api.uploadLocalPathToStorage(clip.path, "video");
   }
 
   async function handleCompleted(final: ReapStatusResponse, usingStyle: boolean): Promise<void> {

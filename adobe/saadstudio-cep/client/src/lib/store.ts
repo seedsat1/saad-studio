@@ -64,7 +64,7 @@ export const store = {
     state.recentLoading = true;
     emit();
     try {
-      const { items } = await api.recentGenerations();
+      const { items } = await api.allGenerations();
       state.recent = items;
     } catch {
       state.recent = [];

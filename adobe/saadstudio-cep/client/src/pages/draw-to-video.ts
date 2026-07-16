@@ -357,8 +357,8 @@ async function ensureUploaded(state: ExpandState): Promise<string> {
 
   const assetType = state.kind === "video" ? "video" : "image";
   const uploadedUrl = state.file
-    ? await api.uploadFileToR2(state.file, assetType)
-    : await api.uploadLocalPathToR2(state.localPath!, assetType);
+    ? await api.uploadFileToStorage(state.file, assetType)
+    : await api.uploadLocalPathToStorage(state.localPath!, assetType);
 
   state.uploadedUrl = uploadedUrl;
   state.uploadedKey = uploadKey;
