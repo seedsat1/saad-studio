@@ -18,9 +18,10 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
-const DEFAULT_TRANSITION_MODEL: TransitionModelId = "wan/2-7-image-to-video";
+const DEFAULT_TRANSITION_MODEL: TransitionModelId = "kling-2.6/image-to-video";
 const TRANSITION_MODELS = new Set<TransitionModelId>([
-  "wan/2-7-image-to-video",
+  "kling-2.6/image-to-video",
+  "hailuo/2-3-image-to-video-standard",
   "bytedance/seedance-2-mini",
 ]);
 
@@ -78,6 +79,8 @@ async function validateTransitionInput(raw: string): Promise<void> {
 function resolveTransitionModel(value: unknown): TransitionModelId {
   if (typeof value !== "string") return DEFAULT_TRANSITION_MODEL;
   if (value === "kling-3.0/video") return DEFAULT_TRANSITION_MODEL;
+  if (value === "wan/2-7-image-to-video") return DEFAULT_TRANSITION_MODEL;
+  if (value === "hailuo-2.3-standard") return "hailuo/2-3-image-to-video-standard";
   if (value === "bytedance/seedance-v2/text-to-video-mini") return "bytedance/seedance-2-mini";
   return TRANSITION_MODELS.has(value as TransitionModelId)
     ? (value as TransitionModelId)
@@ -85,8 +88,11 @@ function resolveTransitionModel(value: unknown): TransitionModelId {
 }
 
 function clampAiDuration(modelId: TransitionModelId, duration: number): number {
-  if (modelId === "wan/2-7-image-to-video") {
-    return Math.max(2, Math.min(15, Math.floor(duration)));
+  if (modelId === "kling-2.6/image-to-video") {
+    return [5, 10].includes(Math.round(duration)) ? Math.round(duration) : 5;
+  }
+  if (modelId === "hailuo/2-3-image-to-video-standard") {
+    return Math.round(duration) === 10 ? 10 : 6;
   }
   if (modelId === "bytedance/seedance-2-mini") {
     return Math.max(4, Math.min(15, Math.floor(duration)));
@@ -104,16 +110,21 @@ function buildKieTransitionPayload(params: {
   inputA: string;
   inputB: string;
 }): Record<string, unknown> {
-  if (params.modelId === "wan/2-7-image-to-video") {
+  if (params.modelId === "kling-2.6/image-to-video") {
     return {
-      prompt: params.prompt,
-      negative_prompt: params.negativePrompt,
-      first_frame_url: params.inputA,
-      last_frame_url: params.inputB,
-      resolution: params.resolution === "1080p" ? "1080p" : "720p",
-      duration: clampAiDuration(params.modelId, params.duration),
-      prompt_extend: true,
-      watermark: false,
+      prompt: params.prompt.slice(0, 1000),
+      image_urls: [params.inputA],
+      sound: false,
+      duration: String(clampAiDuration(params.modelId, params.duration)),
+    };
+  }
+
+  if (params.modelId === "hailuo/2-3-image-to-video-standard") {
+    return {
+      prompt: params.prompt.slice(0, 5000),
+      image_url: params.inputA,
+      duration: String(clampAiDuration(params.modelId, params.duration)),
+      resolution: params.resolution === "1080p" || params.resolution === "1080P" ? "1080P" : "768P",
     };
   }
 

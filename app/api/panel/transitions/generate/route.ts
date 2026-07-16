@@ -22,7 +22,11 @@ import {
 export const dynamic = "force-dynamic";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
-const TRANSITION_MODEL = "wan/2-7-image-to-video";
+const DEFAULT_TRANSITION_MODEL = "kling-2.6/image-to-video";
+const TRANSITION_MODELS = new Set([
+  "kling-2.6/image-to-video",
+  "hailuo/2-3-image-to-video-standard",
+]);
 
 function requirePanelUser(req: NextRequest): string | null {
   const token = extractPanelToken(req);
@@ -34,6 +38,30 @@ function kieHeaders(apiKey: string) {
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${apiKey}`,
+  };
+}
+
+function resolveTransitionModel(value: unknown): string {
+  return typeof value === "string" && TRANSITION_MODELS.has(value)
+    ? value
+    : DEFAULT_TRANSITION_MODEL;
+}
+
+function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, duration: number, resolution: string) {
+  if (modelId === "hailuo/2-3-image-to-video-standard") {
+    return {
+      prompt: prompt.slice(0, 5000),
+      image_url: inputAUrl,
+      duration: String(Math.round(duration) === 10 ? 10 : 6),
+      resolution: resolution === "1080p" || resolution === "1080P" ? "1080P" : "768P",
+    };
+  }
+
+  return {
+    prompt: prompt.slice(0, 1000),
+    image_urls: [inputAUrl],
+    sound: false,
+    duration: String(Math.round(duration) === 10 ? 10 : 5),
   };
 }
 
@@ -94,6 +122,7 @@ export async function POST(req: NextRequest) {
     const inputAUrl = typeof body.inputAUrl === "string" ? body.inputAUrl : "";
     const inputBUrl = typeof body.inputBUrl === "string" ? body.inputBUrl : "";
     const duration = typeof body.duration === "number" ? Math.max(3, Math.min(10, body.duration)) : 5;
+    const modelId = resolveTransitionModel(body.modelId);
 
     const controls = {
       intensity: typeof body.intensity === "number" ? body.intensity : 50,
@@ -148,7 +177,7 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: `Transition: ${preset.name}`,
       assetType: "TRANSITION",
-      modelUsed: TRANSITION_MODEL,
+      modelUsed: modelId,
       duration: duration,
       resolution: controls.resolution,
     });
@@ -163,16 +192,13 @@ export async function POST(req: NextRequest) {
       resolveInputUrl(inputBUrl, userId),
     ]);
 
-    const kiePayload: Record<string, unknown> = {
-      prompt: hidden.prompt,
-      negative_prompt: hidden.negativePrompt,
-      first_frame_url: resolvedInputA,
-      last_frame_url: resolvedInputB,
-      resolution: controls.resolution === "1080p" ? "1080p" : "720p",
+    const kiePayload: Record<string, unknown> = buildTransitionInput(
+      modelId,
+      hidden.prompt,
+      resolvedInputA,
       duration,
-      prompt_extend: true,
-      watermark: false,
-    };
+      controls.resolution,
+    );
 
     const job = await prismadb.transitionJob.create({
       data: {
@@ -190,7 +216,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: kieHeaders(apiKey),
       body: JSON.stringify({
-        model: TRANSITION_MODEL,
+        model: modelId,
         input: kiePayload,
       }),
     });

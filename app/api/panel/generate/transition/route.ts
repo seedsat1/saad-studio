@@ -18,7 +18,11 @@ export const maxDuration = 180;
 
 const KIE_CREATE_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const TRANSITION_MODEL = "wan/2-7-image-to-video";
+const DEFAULT_TRANSITION_MODEL = "kling-2.6/image-to-video";
+const TRANSITION_MODELS = new Set([
+  "kling-2.6/image-to-video",
+  "hailuo/2-3-image-to-video-standard",
+]);
 
 type KieApiJson = {
   code?: number;
@@ -31,6 +35,30 @@ type KieApiJson = {
     failCode?: string;
   };
 };
+
+function resolveTransitionModel(value: unknown): string {
+  return typeof value === "string" && TRANSITION_MODELS.has(value)
+    ? value
+    : DEFAULT_TRANSITION_MODEL;
+}
+
+function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, duration: number, resolution: string) {
+  if (modelId === "hailuo/2-3-image-to-video-standard") {
+    return {
+      prompt: prompt.slice(0, 5000),
+      image_url: inputAUrl,
+      duration: String(Math.round(duration) === 10 ? 10 : 6),
+      resolution: resolution === "1080p" || resolution === "1080P" ? "1080P" : "768P",
+    };
+  }
+
+  return {
+    prompt: prompt.slice(0, 1000),
+    image_urls: [inputAUrl],
+    sound: false,
+    duration: String(Math.round(duration) === 10 ? 10 : 5),
+  };
+}
 
 function extractVideoUrls(value: unknown): string[] {
   if (!value) return [];
@@ -67,10 +95,9 @@ function extractVideoUrls(value: unknown): string[] {
 
 async function createKieTask(
   apiKey: string,
+  modelId: string,
   prompt: string,
-  negativePrompt: string,
   inputAUrl: string,
-  inputBUrl: string,
   duration: number,
   resolution: string,
 ): Promise<string> {
@@ -81,17 +108,8 @@ async function createKieTask(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: TRANSITION_MODEL,
-      input: {
-        prompt,
-        negative_prompt: negativePrompt,
-        first_frame_url: inputAUrl,
-        last_frame_url: inputBUrl,
-        resolution: resolution === "1080p" ? "1080p" : "720p",
-        duration,
-        prompt_extend: true,
-        watermark: false,
-      },
+      model: modelId,
+      input: buildTransitionInput(modelId, prompt, inputAUrl, duration, resolution),
     }),
   });
 
@@ -183,6 +201,7 @@ export async function POST(req: NextRequest) {
       resolution?: string;
       fps?: number;
       enhance?: boolean;
+      modelId?: string;
     };
 
     const presetId = body.presetId?.trim() ?? "";
@@ -191,6 +210,7 @@ export async function POST(req: NextRequest) {
     const aspectRatio = body.aspectRatio?.trim() ?? "16:9";
     const duration = typeof body.duration === "number" ? Math.max(3, Math.min(15, Math.floor(body.duration))) : 5;
     const resolution = body.resolution?.trim() ?? "1080p";
+    const modelId = resolveTransitionModel(body.modelId);
 
     if (!presetId) {
       return NextResponse.json({ error: "presetId is required." }, { status: 400 });
@@ -222,7 +242,7 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: `Transition: ${preset.name}`,
       assetType: "VIDEO",
-      modelUsed: TRANSITION_MODEL,
+      modelUsed: modelId,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
@@ -234,10 +254,9 @@ export async function POST(req: NextRequest) {
 
     const taskId = await createKieTask(
       apiKey,
+      modelId,
       hidden.prompt,
-      hidden.negativePrompt,
       inputAUrl,
-      inputBUrl,
       duration,
       resolution,
     );
@@ -261,7 +280,7 @@ export async function POST(req: NextRequest) {
             kind: "video",
             url: videoUrl,
             prompt: preset.name,
-            model: TRANSITION_MODEL,
+            model: modelId,
             aspect: aspectRatio,
             durationSec: duration,
             createdAt: new Date().toISOString(),

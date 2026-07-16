@@ -19,6 +19,7 @@ import { enforceVideoDurationLimit } from "../lib/media-validation";
 type InputKind = "image" | "video";
 type TransitionInputSlot = "start" | "end";
 type FramePosition = "first" | "last";
+type TransitionGenerationModel = "kling-2.6/image-to-video" | "hailuo/2-3-image-to-video-standard";
 
 type InputState = {
   file: File | null;
@@ -43,9 +44,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
-const DURATIONS = ["3", "5"];
+const DURATIONS = ["5", "6", "10"];
 const RESOLUTIONS = ["720p"];
 const FPS_OPTIONS = ["24"];
+const TRANSITION_GENERATION_MODELS: TransitionGenerationModel[] = [
+  "kling-2.6/image-to-video",
+  "hailuo/2-3-image-to-video-standard",
+];
 const STORAGE_KEY = "saadstudio.transitions.projectId";
 const AUTOSAVE_DELAY_MS = 1600;
 const FIXED_TRANSITION_RESOLUTION = "720p";
@@ -70,6 +75,7 @@ export function TransitionsPage(): HTMLElement {
   const durationSelect = selectField(DURATIONS, "5");
   const resolutionSelect = selectField(RESOLUTIONS, FIXED_TRANSITION_RESOLUTION);
   const fpsSelect = selectField(FPS_OPTIONS, "24");
+  const modelSelect = selectField(TRANSITION_GENERATION_MODELS, "kling-2.6/image-to-video");
 
   const intensityInput = sliderField("50");
   const smoothnessInput = sliderField("60");
@@ -123,6 +129,7 @@ export function TransitionsPage(): HTMLElement {
             },
           },
             settingsCard("Format",
+              labelRow("Model", modelSelect),
               labelRow("Duration", durationSelect),
               el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } },
                 "Aspect ratio works automatically from the selected media. Resolution stays 720p automatically.",
@@ -160,6 +167,11 @@ export function TransitionsPage(): HTMLElement {
   updateGenerateState();
   durationSelect.addEventListener("change", () => {
     syncAutomaticSettings();
+    updateCreditHint();
+    queueProjectAutosave();
+  });
+  modelSelect.addEventListener("change", () => {
+    syncModelSettings();
     updateCreditHint();
     queueProjectAutosave();
   });
@@ -430,6 +442,7 @@ export function TransitionsPage(): HTMLElement {
       const submission = await api.generateTransitionProject({
         projectId,
         presetId: preset.id,
+        modelId: modelSelect.value,
         inputAUrl,
         inputBUrl,
         aspectRatio: getAutomaticAspectRatio(),
@@ -460,7 +473,7 @@ export function TransitionsPage(): HTMLElement {
       creditHint.textContent = "Select a preset to see estimated credits.";
       return;
     }
-    creditHint.textContent = `Estimated credits: ${estimateCredits(preset)} for ${preset.name}.`;
+    creditHint.textContent = `Estimated credits: ${estimateCredits(preset)} for ${preset.name} using ${modelSelect.value}.`;
   }
 
   function updateGenerateState() {
@@ -595,6 +608,16 @@ export function TransitionsPage(): HTMLElement {
     subjectToggle.checked = true;
     enhanceToggle.checked = true;
     aspectSelect.value = getAutomaticAspectRatio();
+  }
+
+  function syncModelSettings() {
+    if (modelSelect.value === "hailuo/2-3-image-to-video-standard" && durationSelect.value === "5") {
+      durationSelect.value = "6";
+    }
+    if (modelSelect.value === "kling-2.6/image-to-video" && durationSelect.value === "6") {
+      durationSelect.value = "5";
+    }
+    updateGenerateState();
   }
 
   function getAutomaticAspectRatio(): string {

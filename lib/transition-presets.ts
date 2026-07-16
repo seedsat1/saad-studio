@@ -9,6 +9,8 @@
 
 export type SupportedInputType = "image-image" | "video-video" | "image-video" | "video-image";
 export type TransitionModelId =
+  | "kling-2.6/image-to-video"
+  | "hailuo/2-3-image-to-video-standard"
   | "wan/2-7-image-to-video"
   | "kling-3.0/video"
   | "bytedance/seedance-2-mini"
