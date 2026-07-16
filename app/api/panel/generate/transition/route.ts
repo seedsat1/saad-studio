@@ -21,6 +21,7 @@ const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
 const DEFAULT_TRANSITION_MODEL = "kling-2.6/image-to-video";
 const TRANSITION_MODELS = new Set([
   "kling-2.6/image-to-video",
+  "kling-3.0/video",
   "hailuo/2-3-image-to-video-standard",
 ]);
 
@@ -42,13 +43,26 @@ function resolveTransitionModel(value: unknown): string {
     : DEFAULT_TRANSITION_MODEL;
 }
 
-function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, duration: number, resolution: string) {
+function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, inputBUrl: string, duration: number, resolution: string, aspectRatio: string) {
   if (modelId === "hailuo/2-3-image-to-video-standard") {
     return {
       prompt: prompt.slice(0, 5000),
       image_url: inputAUrl,
       duration: String(Math.round(duration) === 10 ? 10 : 6),
       resolution: resolution === "1080p" || resolution === "1080P" ? "1080P" : "768P",
+    };
+  }
+
+  if (modelId === "kling-3.0/video") {
+    return {
+      prompt,
+      duration: String(Math.round(duration) === 10 ? 10 : 5),
+      aspect_ratio: aspectRatio,
+      mode: resolution === "720p" ? "std" : "pro",
+      sound: false,
+      multi_shots: false,
+      multi_prompt: [],
+      image_urls: [inputAUrl, inputBUrl],
     };
   }
 
@@ -98,8 +112,10 @@ async function createKieTask(
   modelId: string,
   prompt: string,
   inputAUrl: string,
+  inputBUrl: string,
   duration: number,
   resolution: string,
+  aspectRatio: string,
 ): Promise<string> {
   const res = await fetch(KIE_CREATE_URL, {
     method: "POST",
@@ -109,7 +125,7 @@ async function createKieTask(
     },
     body: JSON.stringify({
       model: modelId,
-      input: buildTransitionInput(modelId, prompt, inputAUrl, duration, resolution),
+      input: buildTransitionInput(modelId, prompt, inputAUrl, inputBUrl, duration, resolution, aspectRatio),
     }),
   });
 
@@ -257,8 +273,10 @@ export async function POST(req: NextRequest) {
       modelId,
       hidden.prompt,
       inputAUrl,
+      inputBUrl,
       duration,
       resolution,
+      aspectRatio,
     );
     if (generationId) {
       await setGenerationTaskMarker(generationId, taskId).catch(() => {});

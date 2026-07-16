@@ -19,7 +19,10 @@ import { enforceVideoDurationLimit } from "../lib/media-validation";
 type InputKind = "image" | "video";
 type TransitionInputSlot = "start" | "end";
 type FramePosition = "first" | "last";
-type TransitionGenerationModel = "kling-2.6/image-to-video" | "hailuo/2-3-image-to-video-standard";
+type TransitionGenerationModel =
+  | "kling-2.6/image-to-video"
+  | "kling-3.0/video"
+  | "hailuo/2-3-image-to-video-standard";
 
 type InputState = {
   file: File | null;
@@ -49,6 +52,7 @@ const RESOLUTIONS = ["720p"];
 const FPS_OPTIONS = ["24"];
 const TRANSITION_GENERATION_MODELS: TransitionGenerationModel[] = [
   "kling-2.6/image-to-video",
+  "kling-3.0/video",
   "hailuo/2-3-image-to-video-standard",
 ];
 const STORAGE_KEY = "saadstudio.transitions.projectId";

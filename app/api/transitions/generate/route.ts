@@ -21,6 +21,7 @@ const KIE_BASE = "https://api.kie.ai/api/v1";
 const DEFAULT_TRANSITION_MODEL: TransitionModelId = "kling-2.6/image-to-video";
 const TRANSITION_MODELS = new Set<TransitionModelId>([
   "kling-2.6/image-to-video",
+  "kling-3.0/video",
   "hailuo/2-3-image-to-video-standard",
   "bytedance/seedance-2-mini",
 ]);
@@ -78,7 +79,6 @@ async function validateTransitionInput(raw: string): Promise<void> {
 
 function resolveTransitionModel(value: unknown): TransitionModelId {
   if (typeof value !== "string") return DEFAULT_TRANSITION_MODEL;
-  if (value === "kling-3.0/video") return DEFAULT_TRANSITION_MODEL;
   if (value === "wan/2-7-image-to-video") return DEFAULT_TRANSITION_MODEL;
   if (value === "hailuo-2.3-standard") return "hailuo/2-3-image-to-video-standard";
   if (value === "bytedance/seedance-v2/text-to-video-mini") return "bytedance/seedance-2-mini";

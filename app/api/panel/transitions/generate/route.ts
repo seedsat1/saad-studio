@@ -25,6 +25,7 @@ const KIE_BASE = "https://api.kie.ai/api/v1";
 const DEFAULT_TRANSITION_MODEL = "kling-2.6/image-to-video";
 const TRANSITION_MODELS = new Set([
   "kling-2.6/image-to-video",
+  "kling-3.0/video",
   "hailuo/2-3-image-to-video-standard",
 ]);
 
@@ -47,13 +48,26 @@ function resolveTransitionModel(value: unknown): string {
     : DEFAULT_TRANSITION_MODEL;
 }
 
-function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, duration: number, resolution: string) {
+function buildTransitionInput(modelId: string, prompt: string, inputAUrl: string, inputBUrl: string, duration: number, resolution: string, aspectRatio: string) {
   if (modelId === "hailuo/2-3-image-to-video-standard") {
     return {
       prompt: prompt.slice(0, 5000),
       image_url: inputAUrl,
       duration: String(Math.round(duration) === 10 ? 10 : 6),
       resolution: resolution === "1080p" || resolution === "1080P" ? "1080P" : "768P",
+    };
+  }
+
+  if (modelId === "kling-3.0/video") {
+    return {
+      prompt,
+      duration: String(Math.round(duration) === 10 ? 10 : 5),
+      aspect_ratio: aspectRatio,
+      mode: resolution === "720p" ? "std" : "pro",
+      sound: false,
+      multi_shots: false,
+      multi_prompt: [],
+      image_urls: [inputAUrl, inputBUrl],
     };
   }
 
@@ -122,6 +136,7 @@ export async function POST(req: NextRequest) {
     const inputAUrl = typeof body.inputAUrl === "string" ? body.inputAUrl : "";
     const inputBUrl = typeof body.inputBUrl === "string" ? body.inputBUrl : "";
     const duration = typeof body.duration === "number" ? Math.max(3, Math.min(10, body.duration)) : 5;
+    const aspectRatio = typeof body.aspectRatio === "string" ? body.aspectRatio : "16:9";
     const modelId = resolveTransitionModel(body.modelId);
 
     const controls = {
@@ -196,8 +211,10 @@ export async function POST(req: NextRequest) {
       modelId,
       hidden.prompt,
       resolvedInputA,
+      resolvedInputB,
       duration,
       controls.resolution,
+      aspectRatio,
     );
 
     const job = await prismadb.transitionJob.create({
