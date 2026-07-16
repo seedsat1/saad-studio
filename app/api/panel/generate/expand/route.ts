@@ -18,16 +18,23 @@ export const maxDuration = 180;
 const WAVESPEED_BASE_URL = "https://api.wavespeed.ai/api/v3";
 const IMAGE_MODEL_ROUTE = "wavespeed-ai/image-zoom-out";
 const VIDEO_MODEL_ROUTE = "wavespeed-ai/video-outpainter";
+const LUMA_REFRAME_MODEL_ROUTE = "luma/ray-3.2/video-reframing";
+const LTX_VIDEO_EXTEND_MODEL_ROUTE = "wavespeed-ai/ltx-2.3/video-extend";
+const VIDEO_EXPAND_MODEL_ROUTES = new Set([LTX_VIDEO_EXTEND_MODEL_ROUTE]);
 
 type WaveSpeedPredictionResponse = {
   data?: {
     id?: string;
+    taskId?: string;
+    task_id?: string;
     status?: string;
     outputs?: unknown;
     error?: string;
     errorMessage?: string;
   };
   id?: string;
+  taskId?: string;
+  task_id?: string;
 };
 
 function extractUrls(value: unknown): string[] {
@@ -74,7 +81,7 @@ async function createWaveSpeedTask(
     throw new Error(`WaveSpeed submit failed: ${json?.data?.error || json?.data?.errorMessage || res.statusText}`);
   }
 
-  const taskId = json?.data?.id || json?.id;
+  const taskId = json?.data?.id || json?.data?.taskId || json?.data?.task_id || json?.id || json?.taskId || json?.task_id;
   if (!taskId) {
     throw new Error("WaveSpeed did not return a task ID.");
   }
@@ -90,26 +97,19 @@ async function pollWaveSpeedTask(
   for (let i = 0; i < maxAttempts; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
 
-    const res = await fetch(`${WAVESPEED_BASE_URL}/predictions/${taskId}`, {
+    const res = await fetch(`${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!res.ok) {
-      throw new Error(`WaveSpeed polling failed: ${res.status}`);
+      throw new Error(`WaveSpeed result polling failed: ${res.status}`);
     }
 
     const json = await res.json().catch(() => ({})) as WaveSpeedPredictionResponse;
     const data = json?.data ?? {};
-    const status = String(data.status || "").toLowerCase();
+    const status = String(data.status || (json as Record<string, unknown>).status || "").toLowerCase();
 
     if (["completed", "success", "done"].includes(status)) {
-      const resultRes = await fetch(`${WAVESPEED_BASE_URL}/predictions/${taskId}/result`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      });
-      if (!resultRes.ok) {
-        throw new Error(`WaveSpeed result polling failed: ${resultRes.status}`);
-      }
-      const resultJson = await resultRes.json().catch(() => ({}));
-      const urls = extractUrls(resultJson);
+      const urls = extractUrls(json);
       if (!urls.length) {
         throw new Error("WaveSpeed task succeeded but no output URL was returned.");
       }
@@ -138,6 +138,38 @@ function aspectToDimensions(aspectRatio: string): { width: number; height: numbe
     "9:21": { width: 658, height: 1536 },
   };
   return map[clean] ?? map["1:1"];
+}
+
+function getPanelPublicOrigin(req: NextRequest): string {
+  const configured =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.APP_URL ||
+    process.env.SITE_URL ||
+    "";
+  if (configured.trim()) return configured.trim().replace(/\/+$/, "");
+
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(/:$/, "") || "https";
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host;
+  return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+function normalizeInputUrl(req: NextRequest, value: string): string {
+  const clean = value.trim();
+  if (/^https?:\/\//i.test(clean)) return clean;
+  if (clean.startsWith("/")) return `${getPanelPublicOrigin(req)}${clean}`;
+  return clean;
+}
+
+function toLumaReframeSize(aspectRatio: string): string {
+  const allowed = new Set(["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"]);
+  return allowed.has(aspectRatio) ? aspectRatio : "16:9";
+}
+
+function clampLtxExtendDuration(value: unknown): number {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) return 6;
+  return Math.max(1, Math.min(20, Math.round(numeric)));
 }
 
 export async function POST(req: NextRequest) {
@@ -183,16 +215,30 @@ export async function POST(req: NextRequest) {
       width?: number;
       height?: number;
       outputFormat?: "png" | "jpeg" | "webp";
+      resolution?: "540p" | "720p" | "1080p";
+      durationSec?: number;
+      modelId?: string;
     };
 
-    const inputUrl = body.inputUrl?.trim() ?? "";
+    const inputUrl = normalizeInputUrl(req, body.inputUrl ?? "");
     const inputKind = body.inputKind === "video" ? "video" : "image";
     const aspectRatio = body.aspectRatio?.trim() || (inputKind === "video" ? "auto" : "16:9");
     const prompt = typeof body.prompt === "string" ? sanitizePrompt(body.prompt, 2000) : "";
     const outputFormat = body.outputFormat === "jpeg" || body.outputFormat === "webp" ? body.outputFormat : "png";
+    const requestedModelId = typeof body.modelId === "string" && body.modelId.trim()
+      ? body.modelId.trim()
+      : (inputKind === "video" ? LTX_VIDEO_EXTEND_MODEL_ROUTE : IMAGE_MODEL_ROUTE);
+    const modelId = inputKind === "video"
+      ? (VIDEO_EXPAND_MODEL_ROUTES.has(requestedModelId) ? requestedModelId : LTX_VIDEO_EXTEND_MODEL_ROUTE)
+      : IMAGE_MODEL_ROUTE;
+    const resolution = body.resolution === "720p" || body.resolution === "1080p" ? body.resolution : "540p";
 
     if (!isSafePublicHttpUrl(inputUrl)) {
       return NextResponse.json({ error: "Please provide a valid public media URL." }, { status: 400 });
+    }
+
+    if (inputKind !== "video") {
+      return NextResponse.json({ error: "Video Extend accepts video sources only." }, { status: 400 });
     }
 
     const apiKey = process.env.WAVESPEED_API_KEY;
@@ -206,20 +252,37 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: prompt || (inputKind === "video" ? "Expand video" : "Expand image"),
       assetType: inputKind === "video" ? "VIDEO" : "IMAGE",
-      modelUsed: inputKind === "video" ? VIDEO_MODEL_ROUTE : IMAGE_MODEL_ROUTE,
+      modelUsed: modelId,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 
     let taskId = "";
     if (inputKind === "video") {
-      const payload: Record<string, unknown> = {
-        video: inputUrl,
-        aspect_ratio: aspectRatio || "auto",
-        seed: -1,
-      };
-      if (prompt) payload.prompt = prompt;
-      taskId = await createWaveSpeedTask(apiKey, VIDEO_MODEL_ROUTE, payload);
+      if (modelId === LUMA_REFRAME_MODEL_ROUTE) {
+        const payload: Record<string, unknown> = {
+          video: inputUrl,
+          prompt: prompt || "Extend the newly exposed canvas naturally while matching the original scene, lighting, perspective, and motion.",
+          size: toLumaReframeSize(aspectRatio),
+          resolution,
+        };
+        taskId = await createWaveSpeedTask(apiKey, LUMA_REFRAME_MODEL_ROUTE, payload);
+      } else if (modelId === LTX_VIDEO_EXTEND_MODEL_ROUTE) {
+        const payload: Record<string, unknown> = {
+          video: inputUrl,
+          duration: clampLtxExtendDuration(body.durationSec),
+        };
+        if (prompt) payload.prompt = prompt;
+        taskId = await createWaveSpeedTask(apiKey, LTX_VIDEO_EXTEND_MODEL_ROUTE, payload);
+      } else {
+        const payload: Record<string, unknown> = {
+          video: inputUrl,
+          aspect_ratio: aspectRatio || "auto",
+          seed: -1,
+        };
+        if (prompt) payload.prompt = prompt;
+        taskId = await createWaveSpeedTask(apiKey, VIDEO_MODEL_ROUTE, payload);
+      }
     } else {
       const fallbackSize = aspectToDimensions(aspectRatio);
       const payload: Record<string, unknown> = {
@@ -251,7 +314,7 @@ export async function POST(req: NextRequest) {
             kind: inputKind,
             url: mediaUrl,
             prompt: prompt || undefined,
-            model: inputKind === "video" ? VIDEO_MODEL_ROUTE : IMAGE_MODEL_ROUTE,
+            model: modelId,
             aspect: aspectRatio,
             createdAt: new Date().toISOString(),
           }
