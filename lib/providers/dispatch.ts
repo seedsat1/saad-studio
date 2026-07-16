@@ -40,6 +40,7 @@ export interface DispatchImageInput {
   numImages?: number;
   negativePrompt?: string;
   imageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface DispatchVideoInput {
@@ -107,6 +108,7 @@ export async function dispatchDirectImage(input: DispatchImageInput): Promise<Di
       numImages: input.numImages,
       negativePrompt: input.negativePrompt,
       imageUrl: input.imageUrl,
+      imageUrls: input.imageUrls,
     });
 
     // 4) Persist each URL to R2 (best-effort — falls back to source URL)

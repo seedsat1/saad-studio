@@ -70,7 +70,7 @@ export interface PanelMe {
 
 export interface GenerationItem {
   id: string;
-  kind: "image" | "video";
+  kind: "image" | "video" | "audio";
   url: string;
   thumbnailUrl?: string;
   prompt?: string;
@@ -93,6 +93,8 @@ export interface JobStatus {
   result?: GenerationItem | null;
   error?: string;
 }
+
+type LooseRecord = Record<string, unknown>;
 
 export interface TransitionPresetItem {
   id: string;
@@ -157,7 +159,7 @@ export interface TransitionOutput {
 
 interface SignedUploadResponse {
   signedUrl: string;
-  publicUrl: string;
+  publicUrl?: string;
   path: string;
   bucket: string;
 }
@@ -473,7 +475,7 @@ function normalizeVideoJob(
   if (raw && typeof raw === "object") {
     const existing = raw as Partial<JobStatus>;
     if (existing.status && typeof existing.status === "string") {
-      return existing as JobStatus;
+      return normalizeJobStatus(existing as JobStatus, "video", requestBody);
     }
   }
 
@@ -495,7 +497,7 @@ function normalizeVideoJob(
       result: {
         id: baseId,
         kind: "video",
-        url: directUrl,
+        url: normalizeAssetUrl(directUrl),
         prompt: typeof requestBody.prompt === "string" ? requestBody.prompt : undefined,
         model: typeof requestBody.model === "string" ? requestBody.model : undefined,
         aspect: typeof requestBody.aspect === "string" ? requestBody.aspect : undefined,
@@ -529,14 +531,13 @@ function normalizeImageJob(
   if (raw && typeof raw === "object") {
     const existing = raw as Partial<JobStatus>;
     if (existing.status && typeof existing.status === "string") {
-      return existing as JobStatus;
+      return normalizeJobStatus(existing as JobStatus, "image", requestBody);
     }
   }
 
-  const data = (raw && typeof raw === "object") ? raw as Record<string, unknown> : {};
+  const data = (raw && typeof raw === "object") ? raw as LooseRecord : {};
   const directUrl =
-    (typeof data.imageUrl === "string" && data.imageUrl) ||
-    (Array.isArray(data.imageUrls) && typeof data.imageUrls[0] === "string" ? data.imageUrls[0] : "") ||
+    firstString(data.imageUrl, data.url, data.resultUrl, data.assetUrl, firstArrayString(data.imageUrls)) ||
     "";
   const baseId =
     (typeof data.generationId === "string" && data.generationId) ||
@@ -551,7 +552,7 @@ function normalizeImageJob(
       result: {
         id: baseId,
         kind: "image",
-        url: directUrl,
+        url: normalizeAssetUrl(directUrl),
         prompt: typeof requestBody.prompt === "string" ? requestBody.prompt : undefined,
         model: typeof requestBody.model === "string" ? requestBody.model : undefined,
         aspect: typeof requestBody.aspect === "string" ? requestBody.aspect : undefined,
@@ -666,6 +667,172 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
   return uniqueFallbacks;
 }
 
+function inferGenerationKind(item: GenerationItem): GenerationItem["kind"] {
+  const text = [
+    item.url,
+    item.thumbnailUrl,
+    item.model,
+    item.prompt,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  if (
+    /(?:^|\/)(audio|music)\//.test(text) ||
+    /\.(mp3|wav|m4a|aac|ogg|flac)(?:[?#]|$)/.test(text) ||
+    /\b(tts|music|audio|voice|speech|dubbing|transcription|audiogram)\b/.test(text)
+  ) {
+    return "audio";
+  }
+
+  if (
+    /(?:^|\/)(videos|video)\//.test(text) ||
+    /\.(mp4|mov|webm|mkv|avi)(?:[?#]|$)/.test(text) ||
+    /\b(video|transition|reframe|avatar|lip-sync|lipsync)\b/.test(text)
+  ) {
+    return "video";
+  }
+
+  if (
+    /(?:^|\/)(images|image|thumbnails)\//.test(text) ||
+    /\.(png|jpe?g|webp|gif|avif)(?:[?#]|$)/.test(text)
+  ) {
+    return "image";
+  }
+
+  return item.kind;
+}
+
+function normalizeGenerationItem(item: GenerationItem): GenerationItem {
+  const kind = inferGenerationKind(item);
+  return {
+    ...item,
+    kind,
+    thumbnailUrl: kind === "image" ? (item.thumbnailUrl || item.url) : undefined,
+  };
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function firstArrayString(value: unknown): string {
+  return Array.isArray(value) ? firstString(...value) : "";
+}
+
+function normalizeAssetUrl(url: string): string {
+  const clean = url.trim();
+  if (!clean || clean.startsWith("data:") || clean.startsWith("blob:") || clean.startsWith("gradient:")) {
+    return clean;
+  }
+  if (/^https?:\/\//i.test(clean)) return clean;
+  const base = getApiBase().replace(/\/+$/, "");
+  return clean.startsWith("/") ? `${base}${clean}` : `${base}/${clean}`;
+}
+
+function signedUploadPublicUrl(signed: SignedUploadResponse): string {
+  const direct = typeof signed.publicUrl === "string" ? signed.publicUrl.trim() : "";
+  if (direct) return normalizeAssetUrl(direct);
+  const path = typeof signed.path === "string" ? signed.path.trim() : "";
+  if (path) return `${getApiBase().replace(/\/+$/, "")}/api/media/${path.replace(/^\/+/, "")}`;
+  throw new ApiError("Upload completed but the server did not return a public media URL.", 500);
+}
+
+function normalizeJobStatus(
+  job: JobStatus,
+  fallbackKind?: GenerationItem["kind"],
+  requestBody: Record<string, unknown> = {},
+): JobStatus {
+  if (!job.result) return job;
+
+  const looseJob = job as unknown as LooseRecord;
+  const looseResult = job.result as unknown as LooseRecord;
+  const nestedImageUrl = firstString(looseResult.imageUrl, firstArrayString(looseResult.imageUrls));
+  const nestedVideoUrl = firstString(looseResult.videoUrl, firstArrayString(looseResult.videoUrls));
+  const bestUrl = firstString(
+    looseResult.url,
+    looseResult.thumbnailUrl,
+    looseResult.resultUrl,
+    looseResult.assetUrl,
+    nestedImageUrl,
+    nestedVideoUrl,
+    looseJob.resultUrl,
+    looseJob.imageUrl,
+    firstArrayString(looseJob.imageUrls),
+    looseJob.videoUrl,
+    firstArrayString(looseJob.videoUrls),
+  );
+  const rawUrl = bestUrl || job.result.url || "";
+  const kind = inferGenerationKind({
+    ...job.result,
+    kind: fallbackKind ?? job.result.kind,
+    url: rawUrl,
+  });
+
+  return {
+    ...job,
+    result: normalizeGenerationItem({
+      ...job.result,
+      kind,
+      url: normalizeAssetUrl(rawUrl),
+      thumbnailUrl: normalizeAssetUrl(firstString(looseResult.thumbnailUrl, nestedImageUrl, rawUrl, job.result.thumbnailUrl)),
+      prompt: job.result.prompt ?? (typeof requestBody.prompt === "string" ? requestBody.prompt : undefined),
+      model: job.result.model ?? (typeof requestBody.model === "string" ? requestBody.model : undefined),
+      aspect: job.result.aspect ?? (typeof requestBody.aspect === "string" ? requestBody.aspect : undefined),
+    }),
+  };
+}
+
+function normalizeAudioJob(
+  raw: unknown,
+  requestBody: Record<string, unknown>,
+): JobStatus {
+  if (raw && typeof raw === "object") {
+    const existing = raw as Partial<JobStatus>;
+    if (existing.status && typeof existing.status === "string") {
+      return normalizeJobStatus(existing as JobStatus, "audio", requestBody);
+    }
+  }
+
+  const data = (raw && typeof raw === "object") ? raw as LooseRecord : {};
+  const directUrl = firstString(
+    data.audioUrl,
+    data.url,
+    data.mediaUrl,
+    data.resultUrl,
+    firstArrayString(data.audioUrls),
+  );
+  const baseId =
+    (typeof data.generationId === "string" && data.generationId) ||
+    (typeof data.taskId === "string" && data.taskId) ||
+    `audio-${Date.now()}`;
+
+  if (directUrl) {
+    return {
+      id: baseId,
+      status: "succeeded",
+      progress: 100,
+      result: {
+        id: baseId,
+        kind: "audio",
+        url: normalizeAssetUrl(directUrl),
+        prompt: typeof requestBody.prompt === "string" ? requestBody.prompt : undefined,
+        model: typeof requestBody.model === "string" ? requestBody.model : undefined,
+        durationSec: typeof requestBody.duration === "number" ? requestBody.duration : undefined,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  return {
+    id: baseId,
+    status: "failed",
+    error: typeof data.error === "string" ? data.error : "Music generation failed",
+    result: null,
+  };
+}
+
 export const api = {
   /** Current user + credits + subscription. */
   me: () => request<PanelMe>("/api/panel/me"),
@@ -675,15 +842,19 @@ export const api = {
 
   /** Recent generations for the gallery strip. The exact endpoint may vary
    *  in your backend — adjust the path if your route differs. */
-  recentGenerations: (limit = 12, opts: { kind?: "image" | "video"; cursor?: string | null } = {}) => {
+  recentGenerations: (limit = 12, opts: { kind?: "image" | "video" | "audio"; cursor?: string | null } = {}) => {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (opts.kind) qs.set("kind", opts.kind);
     if (opts.cursor) qs.set("cursor", opts.cursor);
     return request<GenerationsResponse>(`/api/panel/generations?${qs.toString()}`)
+      .then((result) => ({
+        ...result,
+        items: result.items.map(normalizeGenerationItem),
+      }))
       .catch((): GenerationsResponse => ({ items: [] }));
   },
 
-  allGenerations: async (kind?: "image" | "video") => {
+  allGenerations: async (kind?: "image" | "video" | "audio") => {
     const items: GenerationItem[] = [];
     const seen = new Set<string>();
     let cursor: string | null | undefined = null;
@@ -691,9 +862,11 @@ export const api = {
     for (let page = 0; page < 50; page += 1) {
       const result = await api.recentGenerations(100, { kind, cursor });
       for (const item of result.items) {
-        if (seen.has(item.id)) continue;
-        seen.add(item.id);
-        items.push(item);
+        const normalized = normalizeGenerationItem(item);
+        if (kind && normalized.kind !== kind) continue;
+        if (seen.has(normalized.id)) continue;
+        seen.add(normalized.id);
+        items.push(normalized);
       }
       if (!result.hasMore || !result.nextCursor) break;
       cursor = result.nextCursor;
@@ -791,7 +964,7 @@ export const api = {
     if (!put.ok) {
       throw new ApiError(`Direct upload failed (${put.status})`, put.status);
     }
-    return signed.publicUrl;
+    return signedUploadPublicUrl(signed);
   },
 
   uploadLocalPathToStorage: async (localPath: string, assetType = "video"): Promise<string> => {
@@ -817,7 +990,7 @@ export const api = {
     if (!put.ok) {
       throw new ApiError(`Direct upload failed (${put.status})`, put.status);
     }
-    return signed.publicUrl;
+    return signedUploadPublicUrl(signed);
   },
   generate: {
     image: async (body: Record<string, unknown>) =>
@@ -836,6 +1009,14 @@ export const api = {
         }),
         body,
       ),
+    music: async (body: Record<string, unknown>) =>
+      normalizeAudioJob(
+        await request<unknown>("/api/panel/generate/music", {
+          method: "POST",
+          body: JSON.stringify(body),
+        }),
+        body,
+      ),
     avatarPro: (body: { imageUrl: string; audioUrl: string; prompt?: string }) =>
       request<JobStatus>("/api/panel/generate/avatar-pro", {
         method: "POST",
@@ -849,6 +1030,9 @@ export const api = {
       width?: number;
       height?: number;
       outputFormat?: "png" | "jpeg" | "webp";
+      resolution?: "540p" | "720p" | "1080p";
+      durationSec?: number;
+      modelId?: string;
     }) =>
       request<JobStatus>("/api/panel/generate/expand", {
         method: "POST",
@@ -888,7 +1072,7 @@ export const api = {
     const timeout = opts.timeoutMs ?? 5 * 60 * 1000;
     const start = Date.now();
     while (Date.now() - start < timeout) {
-      const job = await request<JobStatus>(`/api/panel/jobs/${jobId}`);
+      const job = normalizeJobStatus(await request<JobStatus>(`/api/panel/jobs/${jobId}`));
       if (job.status === "succeeded" || job.status === "failed") return job;
       await new Promise((r) => setTimeout(r, interval));
     }

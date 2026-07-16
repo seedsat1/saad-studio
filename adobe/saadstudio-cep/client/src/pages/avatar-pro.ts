@@ -1,6 +1,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import { api, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
@@ -347,7 +348,7 @@ export function AvatarProPage(): HTMLElement {
     try {
       busy = true;
       updateGenerateState();
-      resultHost.replaceChildren(busyCard("Preparing timeline assets and generating LiP sync…"));
+      resultHost.replaceChildren(busyCard("Preparing timeline assets and generating LiP sync..."));
 
       const [imageUrl, audioUrl] = await Promise.all([
         ensureVisualUploadedAsImage(visualState),
@@ -574,7 +575,15 @@ async function captureFrameBlob(src: string, inSec?: number | null): Promise<Blo
   });
 }
 
+function generationBusyCard(message: string): HTMLElement {
+  return el("div.state-card", null,
+    ProcessingLoader("Generating LiP sync"),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, message),
+  );
+}
+
 function busyCard(message: string): HTMLElement {
+  return generationBusyCard(message);
   return el("div.state-card", null,
     el("div.state-card__icon", null, icon("spark", 22)),
     el("div.state-card__title", null, "Working…"),

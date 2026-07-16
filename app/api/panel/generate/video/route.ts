@@ -82,6 +82,8 @@ function resolveWaveSpeedModelRoute(modelId: string, opts?: { resolution?: strin
     "grok-imagine/image-to-video": "x-ai/grok-imagine-video/edit-video",
     "x-ai/grok-imagine-video/text-to-video": "x-ai/grok-imagine-video/text-to-video",
     "x-ai/grok-imagine-video/edit-video": "x-ai/grok-imagine-video/edit-video",
+    "x-ai/grok-imagine-video/text-to-video-1-5": "x-ai/grok-imagine-video/text-to-video-1-5",
+    "x-ai/grok-imagine-video/edit-video-1-5": "x-ai/grok-imagine-video/edit-video-1-5",
   };
   return mapping[clean] || clean;
 }
@@ -310,7 +312,11 @@ export async function POST(req: NextRequest) {
       (Array.isArray(referenceImageUrls) && referenceImageUrls.length > 0)
     );
     const provider = getProviderFor(modelId);
-    const shouldGoDirect = isDirectProviderModel(modelId) && provider !== "openai" && !(provider === "byteplus" && hasImageOrAvatar);
+    const shouldGoDirect = isDirectProviderModel(modelId)
+      && provider !== "openai"
+      && modelId !== "google/gemini-omni-flash"
+      && modelId !== "google/gemini-omni-video"
+      && !(provider === "byteplus" && hasImageOrAvatar);
 
     if (shouldGoDirect) {
       const result = await dispatchDirectVideo({
@@ -368,9 +374,9 @@ export async function POST(req: NextRequest) {
 
     const isGoogle = modelId.includes("google") || modelId.includes("veo") || modelId.includes("gemini");
     const isSeedance2 = (modelId.includes("seedance") || modelId.includes("bytedance")) && (modelId.includes("v2") || modelId.includes("-2"));
-    const isKling3 = modelId.includes("kling-3.0") || kieModelId.includes("kling-3.0");
+    const isKlingModel = modelId.includes("kling") || kieModelId.includes("kling");
 
-    if (isGoogle || isSeedance2 || isKling3) {
+    if (isGoogle || isSeedance2 || isKlingModel) {
       const kieApiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
       if (!kieApiKey) throw new Error("KIE API key not configured on server.");
 
@@ -418,15 +424,19 @@ export async function POST(req: NextRequest) {
 
       // Model-specific settings
       if (isKling) {
-        const klingMode = typeof mode === "string" && mode.trim()
-          ? mode.trim()
-          : (resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro"));
-        input.mode = klingMode;
-        // The plugin page uses Kling 3 as normal text-to-video or reference-to-video.
-        // Explicitly disable multi-shot so KIE does not expect a multi_shots payload.
-        input.multi_shots = false;
-        input.multi_prompt = [];
-        input.sound = false;
+        if (modelId.includes("kling-3.0") || kieModelId.includes("kling-3.0")) {
+          const klingMode = typeof mode === "string" && mode.trim()
+            ? mode.trim()
+            : (resolution === "4K" ? "4K" : (resolution === "720p" ? "std" : "pro"));
+          input.mode = klingMode;
+          // The plugin page uses Kling 3 as normal text-to-video or reference-to-video.
+          // Explicitly disable multi-shot so KIE does not expect a multi_shots payload.
+          input.multi_shots = false;
+          input.multi_prompt = [];
+          input.sound = false;
+        } else if (resolution) {
+          input.resolution = resolution;
+        }
       }
 
       // Seedance: generate_audio defaults to TRUE (extra cost) — always disable unless explicitly set
@@ -452,7 +462,8 @@ export async function POST(req: NextRequest) {
       const wavespeedModel = resolveWaveSpeedModelRoute(modelId, { resolution, mode });
       const isKling = wavespeedModel.includes("kling");
 
-      const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video";
+      const isGrokEdit = wavespeedModel === "x-ai/grok-imagine-video/edit-video"
+        || wavespeedModel === "x-ai/grok-imagine-video/edit-video-1-5";
       const payload: Record<string, unknown> = {
         prompt: sanitizePrompt(prompt, 5000),
         duration: isKling || isGrokEdit ? String(duration) : duration,
@@ -462,11 +473,13 @@ export async function POST(req: NextRequest) {
         payload.mode = mode.trim();
       }
       if (isGrokEdit) {
-        const allowedAspect = ["2:3", "3:2", "1:1", "16:9", "9:16"];
+        const allowedAspect = wavespeedModel.endsWith("-1-5")
+          ? ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"]
+          : ["2:3", "3:2", "1:1", "16:9", "9:16"];
         const allowedResolution = ["480p", "720p"];
         const allowedMode = ["fun", "normal", "spicy"];
         if (!allowedAspect.includes(aspectRatio)) {
-          payload.aspect_ratio = "16:9";
+          payload.aspect_ratio = wavespeedModel.endsWith("-1-5") ? "16:9" : "2:3";
         }
         const normalizedResolution = String(resolution || "").toLowerCase();
         payload.resolution = allowedResolution.includes(normalizedResolution) ? normalizedResolution : "720p";

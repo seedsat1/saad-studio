@@ -80,11 +80,12 @@ export function getHostImportSuccessMessage(): string {
   return host === "AEFT" ? "Imported to project and active comp" : "Imported to project bin";
 }
 
-export function getHostDragTargetLabel(kind: "image" | "video" = "video"): string {
+export function getHostDragTargetLabel(kind: "image" | "video" | "audio" = "video"): string {
   const host = getHostApp();
   if (host === "AEFT") {
     return kind === "video" ? "After Effects project/comp" : "After Effects project/comp";
   }
+  if (kind === "audio") return "Premiere project/timeline";
   return kind === "video" ? "Premiere timeline" : "Premiere project/timeline";
 }
 

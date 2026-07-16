@@ -12,7 +12,7 @@ import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImport
 import { toast } from "../lib/toast";
 
 export interface RecentStripOptions {
-  fixedFilter?: "image" | "video";
+  fixedFilter?: "image" | "video" | "audio";
   showToolbar?: boolean;
   showNewTile?: boolean;
 }
@@ -27,7 +27,9 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   const fixedFilter = options.fixedFilter;
   const showToolbar = options.showToolbar ?? !fixedFilter;
   const showNewTile = options.showNewTile ?? !fixedFilter;
-  let filter: "image" | "video" = fixedFilter ?? "image";
+  let filter: "image" | "video" | "audio" = fixedFilter ?? "image";
+  let fixedItems: GenerationItem[] | null = null;
+  let fixedLoading = false;
   const dragReady = new Map<string, string>();
   const dragPending = new Map<string, Promise<string>>();
 
@@ -44,9 +46,10 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
 
   const render = () => {
     const state = store.get();
-    const allItems = state.recent;
+    const allItems = fixedFilter ? (fixedItems ?? []) : state.recent;
     const imageItems = allItems.filter((item) => item.kind === "image");
     const videoItems = allItems.filter((item) => item.kind === "video");
+    const audioItems = allItems.filter((item) => item.kind === "audio");
 
     if (fixedFilter) {
       filter = fixedFilter;
@@ -61,17 +64,18 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
     imageTab.classList.toggle("library-toggle--active", filter === "image");
     videoTab.classList.toggle("library-toggle--active", filter === "video");
 
-    const items = filter === "image" ? imageItems : videoItems;
-    count.textContent = state.recentLoading && !allItems.length
+    const items = filter === "image" ? imageItems : filter === "video" ? videoItems : audioItems;
+    const loading = fixedFilter ? fixedLoading : state.recentLoading;
+    count.textContent = loading && !allItems.length
       ? "Loading..."
       : `${items.length} item${items.length === 1 ? "" : "s"}`;
 
     grid.replaceChildren();
-    if (showNewTile) {
+    if (showNewTile && (filter === "image" || filter === "video")) {
       grid.appendChild(newTile(filter));
     }
 
-    if (state.recentLoading && !allItems.length) {
+    if (loading && !allItems.length) {
       grid.appendChild(loadingHint());
       return;
     }
@@ -106,8 +110,27 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   render();
   const unsubscribe = store.subscribe(() => render());
   attachCleanup(root, unsubscribe);
-  store.refreshRecent();
+  if (fixedFilter) {
+    refreshFixedItems();
+  } else {
+    store.refreshRecent();
+  }
   return root;
+
+  async function refreshFixedItems() {
+    if (!fixedFilter) return;
+    fixedLoading = true;
+    render();
+    try {
+      const { items } = await api.allGenerations(fixedFilter);
+      fixedItems = items.filter((item) => item.kind === fixedFilter);
+    } catch {
+      fixedItems = [];
+    } finally {
+      fixedLoading = false;
+      render();
+    }
+  }
 
   function warmDragAsset(item: GenerationItem): Promise<string> {
     const cached = dragReady.get(item.id);
@@ -131,13 +154,14 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   }
 
   async function deleteItem(item: GenerationItem) {
-    const label = item.kind === "image" ? "image" : "video";
+    const label = item.kind === "image" ? "image" : item.kind === "video" ? "video" : "audio";
     const ok = window.confirm(`Delete this ${label} from your library?`);
     if (!ok) return;
     try {
       await api.deleteGeneration(item.id);
-      toast(`${label === "image" ? "Image" : "Video"} deleted`, "success");
-      await store.refreshRecent();
+      toast(`${label === "image" ? "Image" : label === "video" ? "Video" : "Audio"} deleted`, "success");
+      if (fixedFilter) await refreshFixedItems();
+      else await store.refreshRecent();
     } catch (err) {
       toast(`Delete failed: ${(err as Error).message}`, "error");
     }
@@ -174,10 +198,10 @@ function loadingHint(): HTMLElement {
   );
 }
 
-function emptyHint(filter: "image" | "video"): HTMLElement {
+function emptyHint(filter: "image" | "video" | "audio"): HTMLElement {
   return el("div.library-empty",
     null,
-    filter === "video" ? "No recent videos yet." : "No recent images yet.",
+    filter === "video" ? "No recent videos yet." : filter === "audio" ? "No recent audio yet." : "No recent images yet.",
   );
 }
 
@@ -202,7 +226,12 @@ function buildItemTile(params: {
           video.currentTime = 0;
         },
       })
-    : el("img", { src: g.thumbnailUrl || g.url, alt: g.prompt ?? "" });
+    : g.kind === "audio"
+      ? el("div.library-card__audio", null,
+          icon("waveform", 28),
+          el("audio", { src: g.url, controls: "true", preload: "metadata" }),
+        )
+      : el("img", { src: g.thumbnailUrl || g.url, alt: g.prompt ?? "" });
 
   return el("div.library-card",
     {
@@ -266,13 +295,13 @@ function buildItemTile(params: {
     el("div.library-card__body",
       null,
       el("div.library-card__title", null, g.prompt ?? "Untitled generation"),
-      el("div.library-card__meta", null, g.model ?? (g.kind === "video" ? "Video" : "Image")),
+      el("div.library-card__meta", null, g.model ?? (g.kind === "video" ? "Video" : g.kind === "audio" ? "Audio" : "Image")),
     ),
   );
 }
 
 function fileNameFor(g: GenerationItem): string {
-  const ext = g.kind === "video" ? "mp4" : "png";
+  const ext = g.kind === "video" ? "mp4" : g.kind === "audio" ? "mp3" : "png";
   return `${g.id}.${ext}`;
 }
 
@@ -285,7 +314,7 @@ function toFileUri(localPath: string): string {
 }
 
 function mimeFor(item: GenerationItem): string {
-  return item.kind === "video" ? "video/mp4" : "image/png";
+  return item.kind === "video" ? "video/mp4" : item.kind === "audio" ? "audio/mpeg" : "image/png";
 }
 
 function attachCleanup(root: HTMLElement, cleanup: () => void) {

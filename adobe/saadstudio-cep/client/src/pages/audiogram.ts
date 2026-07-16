@@ -3,6 +3,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, reap, type ReapRawLanguageOption, type ReapStatusResponse } from "../lib/api";
@@ -353,8 +354,8 @@ export function AudiogramPage(): HTMLElement {
       el("span", null, label),
       el("button.form-select", {
         disabled: state.busy,
-        onClick: async () => {
-          const picked = await openModelPicker({ title: label, options });
+        onClick: async (event: MouseEvent) => {
+          const picked = await openModelPicker({ title: label, options, anchor: event.currentTarget as HTMLElement });
           if (picked) onPick(picked);
         },
       }, selected),
@@ -573,8 +574,7 @@ function mapLanguages(items: ReapRawLanguageOption[] | undefined): LanguageOptio
 function progressCard(title: string, subtitle: string, progress?: number): HTMLElement {
   const pct = typeof progress === "number" ? Math.max(0, Math.min(100, Math.round(progress))) : null;
   return el("div.state-card.captions-progress-card", null,
-    el("div.state-card__icon.captions-progress-card__icon", null, icon("spark", 18)),
-    el("div.state-card__title", null, title),
+    ProcessingLoader(title),
     el("div.state-card__subtitle", null, subtitle),
     el("div.captions-progress" + (pct == null ? ".captions-progress--indeterminate" : ""), null,
       el("div.captions-progress__bar", { style: pct == null ? undefined : { width: `${pct}%` } }),

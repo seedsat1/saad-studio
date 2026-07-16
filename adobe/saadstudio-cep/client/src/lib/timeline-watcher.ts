@@ -43,6 +43,8 @@ export type AudioSelectionListener = (clip: TimelineAudio | null) => void;
 export interface Watcher {
   /** Stop polling and release the interval. */
   stop: () => void;
+  /** Forget the last observed selection so the next poll can emit it again. */
+  reset: () => void;
   /** Tie this watcher's lifetime to a DOM element — it auto-stops
    *  once `element.isConnected === false` (i.e. the router swapped
    *  to a different page). Avoids per-page cleanup boilerplate. */
@@ -109,6 +111,9 @@ function createWatcher<T extends { path: string; inSec?: number; outSec?: number
 
   return {
     stop,
+    reset() {
+      lastKey = "__init__";
+    },
     attachTo(element: HTMLElement) {
       // Use a tiny rAF poll to detect DOM removal. Cheaper than a
       // MutationObserver on the whole document and survives the

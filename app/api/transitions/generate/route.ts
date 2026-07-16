@@ -18,9 +18,9 @@ import { uploadBufferToStorage } from "@/lib/supabase-storage";
 import { checkStoryboardReferenceImageSafety, UnsafeReferenceImageError } from "@/lib/storyboard-reference-safety";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
-const DEFAULT_TRANSITION_MODEL: TransitionModelId = "kling-3.0/video";
+const DEFAULT_TRANSITION_MODEL: TransitionModelId = "wan/2-7-image-to-video";
 const TRANSITION_MODELS = new Set<TransitionModelId>([
-  "kling-3.0/video",
+  "wan/2-7-image-to-video",
   "bytedance/seedance-2-mini",
 ]);
 
@@ -77,6 +77,7 @@ async function validateTransitionInput(raw: string): Promise<void> {
 
 function resolveTransitionModel(value: unknown): TransitionModelId {
   if (typeof value !== "string") return DEFAULT_TRANSITION_MODEL;
+  if (value === "kling-3.0/video") return DEFAULT_TRANSITION_MODEL;
   if (value === "bytedance/seedance-v2/text-to-video-mini") return "bytedance/seedance-2-mini";
   return TRANSITION_MODELS.has(value as TransitionModelId)
     ? (value as TransitionModelId)
@@ -84,6 +85,9 @@ function resolveTransitionModel(value: unknown): TransitionModelId {
 }
 
 function clampAiDuration(modelId: TransitionModelId, duration: number): number {
+  if (modelId === "wan/2-7-image-to-video") {
+    return Math.max(2, Math.min(15, Math.floor(duration)));
+  }
   if (modelId === "bytedance/seedance-2-mini") {
     return Math.max(4, Math.min(15, Math.floor(duration)));
   }
@@ -93,12 +97,26 @@ function clampAiDuration(modelId: TransitionModelId, duration: number): number {
 function buildKieTransitionPayload(params: {
   modelId: TransitionModelId;
   prompt: string;
+  negativePrompt: string;
   duration: number;
   aspectRatio: string;
   resolution: string;
   inputA: string;
   inputB: string;
 }): Record<string, unknown> {
+  if (params.modelId === "wan/2-7-image-to-video") {
+    return {
+      prompt: params.prompt,
+      negative_prompt: params.negativePrompt,
+      first_frame_url: params.inputA,
+      last_frame_url: params.inputB,
+      resolution: params.resolution === "1080p" ? "1080p" : "720p",
+      duration: clampAiDuration(params.modelId, params.duration),
+      prompt_extend: true,
+      watermark: false,
+    };
+  }
+
   if (params.modelId === "bytedance/seedance-2-mini") {
     return {
       prompt: params.prompt,
@@ -231,6 +249,7 @@ export async function POST(req: NextRequest) {
     const kiePayload = buildKieTransitionPayload({
       modelId: selectedModelId,
       prompt,
+      negativePrompt,
       duration,
       aspectRatio,
       resolution: controls.resolution,

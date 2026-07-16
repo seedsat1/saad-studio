@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { extractPanelToken, verifyPanelToken } from "@/lib/panel-auth";
 import { getClientSafePresets } from "@/lib/transition-presets";
+import { normalizeMediaUrl } from "@/lib/r2-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +44,7 @@ export async function GET(req: NextRequest) {
 
   const merged = presets.map((preset) => ({
     ...preset,
-    // Plugin uses only admin-provided previews; no local fallback here.
-    previewVideoUrl: mediaMap[preset.id] || "",
+    previewVideoUrl: normalizeMediaUrl(mediaMap[preset.id] || preset.previewVideoUrl || "") || "",
   }));
 
   return NextResponse.json(

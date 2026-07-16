@@ -1,5 +1,6 @@
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
+import { ProcessingLoader } from "../components/processing-loader";
 import { el } from "../lib/dom";
 import {
   api,
@@ -16,6 +17,8 @@ import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watch
 import { enforceVideoDurationLimit } from "../lib/media-validation";
 
 type InputKind = "image" | "video";
+type TransitionInputSlot = "start" | "end";
+type FramePosition = "first" | "last";
 
 type InputState = {
   file: File | null;
@@ -148,8 +151,8 @@ export function TransitionsPage(): HTMLElement {
     ),
   );
 
-  renderInputCard(inputAHost, "Start", "first", inputA);
-  renderInputCard(inputBHost, "End", "last", inputB);
+  renderInputCard(inputAHost, "Start", "start", inputA);
+  renderInputCard(inputBHost, "End", "end", inputB);
   renderCategories();
   renderPresets();
   syncAutomaticSettings();
@@ -171,7 +174,7 @@ export function TransitionsPage(): HTMLElement {
 
   return root;
 
-  function renderInputCard(host: HTMLElement, title: string, framePosition: "first" | "last", state: InputState) {
+  function renderInputCard(host: HTMLElement, title: string, slot: TransitionInputSlot, state: InputState) {
     const previewHost = el("div");
     const helper = el("div.mono.muted", { style: { fontSize: "11px", wordBreak: "break-all" } }, "No source selected");
     const picker = document.createElement("input");
@@ -180,16 +183,16 @@ export function TransitionsPage(): HTMLElement {
     picker.style.display = "none";
     picker.addEventListener("change", () => {
       const file = picker.files?.[0] ?? null;
-      void handlePickedFile(file, state, previewHost, helper, framePosition);
+      void handlePickedFile(file, state, previewHost, helper, slot);
       picker.value = "";
     });
 
     host.replaceChildren(
       settingsCard(title,
         el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%", marginBottom: "10px" } },
-          framePosition === "first"
-            ? "Click a clip on the timeline to set Start, or choose a local image/video."
-            : "Click another clip on the timeline to set End, or choose a local image/video.",
+          slot === "start"
+            ? "Click the first timeline clip. The transition will use its last frame."
+            : "Click the second timeline clip. The transition will use its first frame.",
         ),
         previewHost,
         helper,
@@ -199,11 +202,12 @@ export function TransitionsPage(): HTMLElement {
             ? el("button.btn-secondary", {
                 onClick: () => {
                   clearInputState(state);
-                  updateInputPreview(previewHost, helper, state, framePosition);
+                  updateInputPreview(previewHost, helper, state, slot);
                   syncAutomaticSettings();
                   updateGenerateState();
                   updateCreditHint();
                   queueProjectAutosave();
+                  watcher.reset();
                 },
               }, "Clear")
             : null,
@@ -211,7 +215,7 @@ export function TransitionsPage(): HTMLElement {
         picker,
       ),
     );
-    updateInputPreview(previewHost, helper, state, framePosition);
+    updateInputPreview(previewHost, helper, state, slot);
   }
 
   function renderCategories() {
@@ -408,11 +412,11 @@ export function TransitionsPage(): HTMLElement {
     try {
       busy = true;
       updateGenerateState();
-      resultHost.replaceChildren(busyCard("Preparing transition project and generation inputs…"));
+      resultHost.replaceChildren(busyCard("Preparing transition project and generation inputs..."));
 
       const [inputAUrl, inputBUrl] = await Promise.all([
-        ensurePreparedInput(inputA, "first"),
-        ensurePreparedInput(inputB, "last"),
+        ensurePreparedInput(inputA, "last"),
+        ensurePreparedInput(inputB, "first"),
       ]);
       const projectId = await ensureProject();
 
@@ -422,7 +426,7 @@ export function TransitionsPage(): HTMLElement {
         inputBUrl,
       });
 
-      resultHost.replaceChildren(busyCard("Submitting transition job…"));
+      resultHost.replaceChildren(busyCard("Submitting transition job..."));
       const submission = await api.generateTransitionProject({
         projectId,
         presetId: preset.id,
@@ -474,7 +478,7 @@ export function TransitionsPage(): HTMLElement {
 
     if (!hasInput(inputA) || inputA.selectionKey === key) {
       setTimelineInputState(inputA, clip);
-      renderInputCard(inputAHost, "Start", "first", inputA);
+      renderInputCard(inputAHost, "Start", "start", inputA);
       syncAutomaticSettings();
       updateGenerateState();
       updateCreditHint();
@@ -485,7 +489,7 @@ export function TransitionsPage(): HTMLElement {
     if (inputB.selectionKey === key) return;
 
     setTimelineInputState(inputB, clip);
-    renderInputCard(inputBHost, "End", "last", inputB);
+    renderInputCard(inputBHost, "End", "end", inputB);
     syncAutomaticSettings();
     updateGenerateState();
     updateCreditHint();
@@ -497,14 +501,14 @@ export function TransitionsPage(): HTMLElement {
     state: InputState,
     previewHost: HTMLElement,
     helper: HTMLElement,
-    framePosition: "first" | "last",
+    slot: TransitionInputSlot,
   ) {
     try {
       if (file && file.type.startsWith("video/")) {
         await enforceVideoDurationLimit(file);
       }
       setInputState(state, file);
-      updateInputPreview(previewHost, helper, state, framePosition);
+      updateInputPreview(previewHost, helper, state, slot);
       syncAutomaticSettings();
       updateGenerateState();
       updateCreditHint();
@@ -572,8 +576,8 @@ export function TransitionsPage(): HTMLElement {
       setRemoteInputState(inputB, project.inputBUrl, project.inputBType);
     }
 
-    renderInputCard(inputAHost, "Start", "first", inputA);
-    renderInputCard(inputBHost, "End", "last", inputB);
+    renderInputCard(inputAHost, "Start", "start", inputA);
+    renderInputCard(inputBHost, "End", "end", inputB);
     renderCategories();
     renderPresets();
     syncAutomaticSettings();
@@ -667,7 +671,7 @@ export function TransitionsPage(): HTMLElement {
   async function monitorTransitionJob(jobId: string, initialStatus?: string) {
     const pollToken = ++activePollToken;
     resultHost.replaceChildren(
-      busyCard(initialStatus === "queued" ? "Transition queued… waiting for provider." : "Generating transition…"),
+      busyCard(initialStatus === "queued" ? "Transition queued... waiting for provider." : "Generating transition..."),
     );
 
     const finalJob = await api.pollTransitionJob(jobId, {
@@ -830,8 +834,9 @@ function hasInput(state: InputState): boolean {
   return Boolean(state.file || state.localPath || state.remoteUrl);
 }
 
-function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: InputState, framePosition: "first" | "last") {
+function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: InputState, slot: TransitionInputSlot) {
   host.replaceChildren();
+  const framePosition = slot === "start" ? "last" : "first";
   if (!hasInput(state) || !state.previewUrl || !state.kind) {
     helper.textContent = "No source selected";
     host.appendChild(
@@ -847,13 +852,13 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
           color: "var(--text-muted)",
           fontSize: "11px",
         },
-      }, framePosition === "first" ? "First source" : "Second source"),
+      }, slot === "start" ? "Start source" : "End source"),
     );
     return;
   }
 
   const sourceName = state.displayName ?? state.file?.name ?? "Source";
-  helper.textContent = `${sourceName} · ${state.kind}${state.kind === "video" ? ` · ${framePosition} frame` : ""}`;
+  helper.textContent = `${sourceName} · ${state.kind}${state.kind === "video" ? ` · uses ${framePosition} frame` : ""}`;
   host.appendChild(
     state.kind === "video"
       ? el("video", {
@@ -862,9 +867,15 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
           loop: "true",
           autoplay: "true",
           playsinline: "true",
-          controls: "true",
+          onVolumeChange: (ev: Event) => {
+            const node = ev.target as HTMLVideoElement;
+            node.muted = true;
+            node.volume = 0;
+          },
           onLoadedMetadata: (ev: Event) => {
             const node = ev.target as HTMLVideoElement;
+            node.muted = true;
+            node.volume = 0;
             state.previewWidth = node.videoWidth || null;
             state.previewHeight = node.videoHeight || null;
           },
@@ -883,7 +894,7 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
   );
 }
 
-async function ensurePreparedInput(state: InputState, framePosition: "first" | "last"): Promise<string> {
+async function ensurePreparedInput(state: InputState, framePosition: FramePosition): Promise<string> {
   if (!hasInput(state) || !state.kind) {
     throw new Error("Missing transition input file.");
   }
@@ -980,7 +991,7 @@ function clipSelectionKey(clip: TimelineClip): string {
   return `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}`;
 }
 
-async function extractVideoFrameBlob(sourceUrl: string, framePosition: "first" | "last"): Promise<Blob> {
+async function extractVideoFrameBlob(sourceUrl: string, framePosition: FramePosition): Promise<Blob> {
   try {
     return await new Promise<Blob>((resolve, reject) => {
       const video = document.createElement("video");
@@ -1034,7 +1045,15 @@ function inferPreviewKind(url: string): "image" | "video" {
   return "video";
 }
 
+function generationBusyCard(message: string): HTMLElement {
+  return el("div.state-card", { style: { marginTop: "14px" } },
+    ProcessingLoader("Generating transition"),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, message),
+  );
+}
+
 function busyCard(message: string): HTMLElement {
+  return generationBusyCard(message);
   return el("div.state-card", { style: { marginTop: "14px" } },
     el("div.state-card__icon", null, icon("spark", 20)),
     el("div.state-card__title", null, "Working…"),

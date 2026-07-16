@@ -3,6 +3,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, reap, type ReapRawLanguageOption, type ReapStatusResponse } from "../lib/api";
@@ -132,17 +133,19 @@ export function AIDubbingPage(): HTMLElement {
       el("div.ai-dubbing-card__subtitle", null, "Dub your videos into any language with AI."),
       renderUploadArea(),
       el("div.ai-dubbing-form", null,
-        renderLanguageField("Language", state.sourceLanguage, cachedSource ?? EMPTY_LANGUAGES, async () => {
+        renderLanguageField("Language", state.sourceLanguage, cachedSource ?? EMPTY_LANGUAGES, async (anchor) => {
           const picked = await openModelPicker({
             title: "Source language",
             options: cachedSource ?? EMPTY_LANGUAGES,
+            anchor,
           });
           if (picked) { state.sourceLanguage = picked; render(); }
         }),
-        renderLanguageField("Translate to", state.targetLanguage, cachedTarget ?? EMPTY_LANGUAGES, async () => {
+        renderLanguageField("Translate to", state.targetLanguage, cachedTarget ?? EMPTY_LANGUAGES, async (anchor) => {
           const picked = await openModelPicker({
             title: "Target language",
             options: cachedTarget ?? EMPTY_LANGUAGES,
+            anchor,
           });
           if (picked) { state.targetLanguage = picked; render(); }
         }),
@@ -196,12 +199,15 @@ export function AIDubbingPage(): HTMLElement {
     label: string,
     value: string,
     options: LanguageOption[],
-    onPick: () => Promise<void>,
+    onPick: (anchor: HTMLElement) => Promise<void>,
   ): HTMLElement {
     const optionLabel = options.find((item) => item.value === value)?.label ?? (state.loadingLanguages ? "Loading..." : "Choose language");
     return el("label.ai-dubbing-field", null,
       el("span", null, label),
-      el("button.form-select", { onClick: onPick, disabled: state.loadingLanguages || state.busy },
+      el("button.form-select", {
+        onClick: (event: MouseEvent) => onPick(event.currentTarget as HTMLElement),
+        disabled: state.loadingLanguages || state.busy,
+      },
         optionLabel),
     );
   }
@@ -412,8 +418,7 @@ function pickDefault(items: LanguageOption[] | null, preferredPrefix: string): s
 function progressCard(title: string, subtitle: string, progress?: number): HTMLElement {
   const pct = typeof progress === "number" ? Math.max(0, Math.min(100, Math.round(progress))) : null;
   return el("div.state-card.ai-dubbing-progress", null,
-    el("div.state-card__icon", null, icon("spark", 18)),
-    el("div.state-card__title", null, title),
+    ProcessingLoader(title),
     el("div.state-card__subtitle", null, subtitle),
     el("div.captions-progress" + (pct == null ? ".captions-progress--indeterminate" : ""), null,
       el("div.captions-progress__bar", { style: pct == null ? undefined : { width: `${pct}%` } }),

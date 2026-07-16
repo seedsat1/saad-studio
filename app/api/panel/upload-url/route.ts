@@ -48,6 +48,26 @@ function getVerifiedUserId(req: NextRequest): string | null {
   return verified?.userId ?? null;
 }
 
+function getPanelPublicOrigin(req: NextRequest): string {
+  const configured =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.APP_URL ||
+    process.env.SITE_URL ||
+    "";
+  if (configured.trim()) return configured.trim().replace(/\/+$/, "");
+
+  const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol.replace(/:$/, "") || "https";
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || req.nextUrl.host;
+  return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+function toAbsolutePanelUrl(req: NextRequest, url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("/")) return `${getPanelPublicOrigin(req)}${url}`;
+  return `${getPanelPublicOrigin(req)}/${url.replace(/^\/+/, "")}`;
+}
+
 export async function POST(req: NextRequest) {
   const userId = getVerifiedUserId(req);
   if (!userId) {
@@ -89,7 +109,12 @@ export async function POST(req: NextRequest) {
       contentType,
     });
 
-    return NextResponse.json({ signedUrl, publicUrl, path, bucket });
+    return NextResponse.json({
+      signedUrl,
+      publicUrl: toAbsolutePanelUrl(req, publicUrl),
+      path,
+      bucket,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload URL generation failed";
     console.error("[panel/upload-url]", message);

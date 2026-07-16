@@ -262,12 +262,12 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
 
   for (const opt of cfg.options) {
     const pill = el("button.dock-button", {
-      onClick: async () => {
+      onClick: async (event: MouseEvent) => {
         const options = resolveOptions(opt);
         if (!options.length) return;
         const next = opt.onPick
           ? await opt.onPick()
-          : await openModelPicker({ title: opt.label, options });
+          : await openModelPicker({ title: opt.label, options, anchor: event.currentTarget as HTMLElement });
         if (next != null) {
           state.options[opt.key] = next;
           refreshOptionPills();

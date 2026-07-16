@@ -5,15 +5,35 @@
  * (lib/apps-data or MODEL_ROUTING) and update both as needed. */
 
 import { FeaturePage } from "./feature-page";
-import { api } from "../lib/api";
+import { api, getApiBase } from "../lib/api";
 
-const MODELS = [
-  { value: "nano-banana-pro", label: "Nano Banana Pro" },
-  { value: "nano-banana-2", label: "Nano Banana 2" },
-  { value: "nano-banana-2-lite", label: "Nano Banana 2 Lite" },
-  { value: "google/nano-banana", label: "Nano Banana" },
-  { value: "gpt-image-2", label: "GPT Image 2" },
+type ImageInputField = "image_url" | "image_input" | "image_urls" | "input_urls";
+
+interface ImageModelSpec {
+  value: string;
+  label: string;
+  maxRefImages: number;
+  imageInputField?: ImageInputField;
+  refModel?: string;
+  textModel?: string;
+}
+
+const MODEL_SPECS: ImageModelSpec[] = [
+  { value: "nano-banana-pro", label: "Nano Banana Pro", maxRefImages: 8, imageInputField: "image_input" },
+  { value: "nano-banana-2", label: "Nano Banana 2", maxRefImages: 14, imageInputField: "image_input" },
+  { value: "nano-banana-2-lite", label: "Nano Banana 2 Lite", maxRefImages: 14, imageInputField: "image_input" },
+  { value: "google/nano-banana", label: "Nano Banana", maxRefImages: 0 },
+  {
+    value: "gpt-image-2",
+    label: "GPT Image 2",
+    maxRefImages: 16,
+    imageInputField: "input_urls",
+    textModel: "gpt-image-2-text-to-image",
+    refModel: "gpt-image-2-image-to-image",
+  },
 ];
+
+const MODELS = MODEL_SPECS.map(({ value, label }) => ({ value, label }));
 const ASPECTS = [
   { value: "1:1", label: "1:1" },
   { value: "16:9", label: "16:9" },
@@ -32,6 +52,16 @@ const GPT_QUALITIES = [
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
 ];
+
+function toAbsoluteReferenceUrl(url: string): string {
+  if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
+  const base = getApiBase().replace(/\/+$/, "");
+  return url.startsWith("/") ? `${base}${url}` : `${base}/${url}`;
+}
+
+function modelSpecFor(value: string): ImageModelSpec {
+  return MODEL_SPECS.find((item) => item.value === value) ?? MODEL_SPECS[0];
+}
 
 export function ImageGenPage(): HTMLElement {
   return FeaturePage({
@@ -53,27 +83,34 @@ export function ImageGenPage(): HTMLElement {
       ],
     },
     submit: async ({ prompt, attachments, options }) => {
+      const spec = modelSpecFor(options.model);
       if (attachments.some((file) => !file.type.startsWith("image/"))) {
-        throw new Error("Image generation accepts only an image reference attachment.");
+        throw new Error("Image generation accepts image reference attachments only.");
       }
-      if (attachments.length > 1) {
-        throw new Error("Image generation accepts only one reference image.");
+      if (attachments.length > spec.maxRefImages) {
+        const noun = spec.maxRefImages === 1 ? "reference image" : "reference images";
+        throw new Error(`${spec.label} accepts up to ${spec.maxRefImages} ${noun}.`);
+      }
+      if (attachments.length && spec.maxRefImages === 0) {
+        throw new Error(`${spec.label} does not accept reference images.`);
       }
 
-      const imageUrl = attachments[0]
-        ? await api.uploadFileToStorage(attachments[0], "image")
-        : undefined;
+      const imageUrls = await Promise.all(
+        attachments.map(async (file) => toAbsoluteReferenceUrl(await api.uploadFileToStorage(file, "image"))),
+      );
+      const imageUrl = imageUrls[0];
 
-      const selectedModel = options.model === "gpt-image-2"
-        ? (imageUrl ? "gpt-image-2-image-to-image" : "gpt-image-2-text-to-image")
-        : options.model;
+      const selectedModel = imageUrls.length && spec.refModel
+        ? spec.refModel
+        : spec.textModel ?? options.model;
 
       return api.generate.image({
         prompt,
         model: selectedModel,
         aspect: options.aspect,
         resolution: options.resolution,
-        ...(imageUrl ? { imageUrl } : {}),
+        ...(spec.imageInputField ? { imageInputField: spec.imageInputField } : {}),
+        ...(imageUrl ? { imageUrl, imageUrls, referenceImageUrls: imageUrls } : {}),
       });
     },
   });

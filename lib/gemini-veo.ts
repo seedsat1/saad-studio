@@ -133,9 +133,8 @@ export async function startVeoGeneration(
         params.video.mimeType
       );
       inputList.push({
-        type: "video",
+        type: "document",
         uri: videoUri,
-        mime_type: params.video.mimeType,
       });
     }
 
@@ -177,10 +176,10 @@ export async function startVeoGeneration(
     });
 
     // 4. Determine task type
-    let task = params.previousInteractionId ? "edit_video" : "text_to_video";
+    let task = params.previousInteractionId ? "edit" : "text_to_video";
     if (!params.previousInteractionId) {
       if (params.video) {
-        task = "edit_video";
+        task = "edit";
       } else if (params.image) {
         task = "image_to_video";
       } else if (params.referenceImages && params.referenceImages.length > 0) {
@@ -576,12 +575,24 @@ export async function uploadVideoToGoogleFiles(videoBuffer: Buffer, mimeType = "
   const ai = getGenAI();
   const fileBlob = new Blob([new Uint8Array(videoBuffer)], { type: mimeType });
 
-  const file = await ai.files.upload({
+  let file: any = await ai.files.upload({
     file: fileBlob,
     config: {
       mimeType,
     },
   });
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const state = String(file?.state?.name ?? file?.state ?? "").toUpperCase();
+    if (!state || state === "ACTIVE") break;
+    if (state === "FAILED") {
+      throw new Error("Google Files API failed to process the uploaded video.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    const name = file?.name;
+    if (!name) break;
+    file = await (ai.files as any).get({ name });
+  }
 
   if (!file.uri) {
     throw new Error("Failed to upload video to Google Files API (no URI returned)");

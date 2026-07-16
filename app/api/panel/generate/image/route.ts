@@ -51,6 +51,50 @@ function extractKieUrls(value: unknown): string[] {
   return [];
 }
 
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const clean = typeof value === "string" ? value.trim() : "";
+    if (!clean || seen.has(clean)) continue;
+    seen.add(clean);
+    out.push(clean);
+  }
+  return out;
+}
+
+function inferImageInputField(kieModelId: string): "image_url" | "image_input" | "image_urls" | "input_urls" | undefined {
+  if ([
+    "google/nano-banana-edit",
+    "seedream/4.5-edit",
+    "seedream/5-lite-image-to-image",
+    "seedream/5-pro-image-to-image",
+    "grok-imagine/image-to-image",
+    "flux-2/pro-image-to-image",
+    "flux-2/flex-image-to-image",
+  ].includes(kieModelId)) return "image_urls";
+
+  if ([
+    "nano-banana-pro",
+    "nano-banana-2",
+    "nano-banana-2-lite",
+    "google/nano-banana",
+  ].includes(kieModelId)) return "image_input";
+
+  if ([
+    "gpt-image/1.5-image-to-image",
+    "gpt-image-2-image-to-image",
+    "wan/2-7-image-pro",
+  ].includes(kieModelId)) return "input_urls";
+
+  if ([
+    "qwen2/image-edit",
+    "qwen/image-to-image",
+  ].includes(kieModelId)) return "image_url";
+
+  return undefined;
+}
+
 async function createKieTask(apiKey: string, model: string, input: Record<string, unknown>): Promise<string> {
   const res = await fetch(KIE_CREATE_URL, {
     method: "POST",
@@ -140,6 +184,9 @@ export async function POST(req: NextRequest) {
       numImages?: number;
       negativePrompt?: string;
       imageUrl?: string;
+      imageUrls?: string[];
+      referenceImageUrls?: string[];
+      imageInputField?: "image_url" | "image_input" | "image_urls" | "input_urls";
       useAnnualUnlimited?: boolean;
     };
 
@@ -151,8 +198,16 @@ export async function POST(req: NextRequest) {
       numImages = 1,
       negativePrompt,
       imageUrl,
+      imageUrls: bodyImageUrls,
+      referenceImageUrls,
+      imageInputField,
       useAnnualUnlimited = true,
     } = body;
+    const refUrls = uniqueStrings([
+      imageUrl,
+      ...(Array.isArray(bodyImageUrls) ? bodyImageUrls : []),
+      ...(Array.isArray(referenceImageUrls) ? referenceImageUrls : []),
+    ]);
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Please enter a prompt." }, { status: 400 });
@@ -163,7 +218,9 @@ export async function POST(req: NextRequest) {
     //    Gemini/Vertex API and OpenAI models (gpt-image, DALL·E) to
     //    OpenAI directly. Everything else falls through to kie.ai.
     if (isDirectProviderModel(modelId)) {
-      if (imageUrl) await checkStoryboardReferenceImageSafety(imageUrl);
+      for (const refUrl of refUrls) {
+        await checkStoryboardReferenceImageSafety(refUrl);
+      }
       const result = await dispatchDirectImage({
         userId,
         modelId,
@@ -172,7 +229,8 @@ export async function POST(req: NextRequest) {
         resolution,
         numImages,
         negativePrompt,
-        imageUrl,
+        imageUrl: refUrls[0],
+        imageUrls: refUrls,
       });
       return NextResponse.json({
         imageUrls: result.imageUrls ?? [],
@@ -232,13 +290,25 @@ export async function POST(req: NextRequest) {
     };
     if (negativePrompt) input.negative_prompt = negativePrompt;
 
-    // If a reference image URL is provided, add the correct field per model
-    if (imageUrl) {
-      await checkStoryboardReferenceImageSafety(imageUrl);
-      if (isNanoBanana) {
-        input.image_input = [imageUrl];
+    for (const refUrl of refUrls) {
+      await checkStoryboardReferenceImageSafety(refUrl);
+    }
+
+    // If reference image URLs are provided, add the correct field per model.
+    if (refUrls.length) {
+      const effectiveImageInputField = imageInputField ?? inferImageInputField(kieModelId);
+      if (effectiveImageInputField === "image_input" || isNanoBanana) {
+        input.image_input = refUrls;
+      } else if (effectiveImageInputField === "image_urls") {
+        input.image_urls = refUrls;
+      } else if (effectiveImageInputField === "input_urls") {
+        input.input_urls = refUrls;
+      } else if (effectiveImageInputField === "image_url") {
+        input.image_url = refUrls[0];
+      } else if (refUrls.length === 1) {
+        input.image_url = refUrls[0];
       } else {
-        input.image_url = imageUrl;
+        input.image_urls = refUrls;
       }
     }
 

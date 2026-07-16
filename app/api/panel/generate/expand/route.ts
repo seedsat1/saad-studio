@@ -4,7 +4,6 @@ import {
   InsufficientCreditsError,
   ensureUserRow,
   rollbackGenerationCharge,
-  setGenerationMediaUrl,
   setGenerationTaskMarker,
   spendCredits,
 } from "@/lib/credit-ledger";
@@ -86,42 +85,6 @@ async function createWaveSpeedTask(
     throw new Error("WaveSpeed did not return a task ID.");
   }
   return String(taskId);
-}
-
-async function pollWaveSpeedTask(
-  apiKey: string,
-  taskId: string,
-  maxAttempts = 80,
-  intervalMs = 3500,
-): Promise<string[]> {
-  for (let i = 0; i < maxAttempts; i += 1) {
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
-
-    const res = await fetch(`${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    if (!res.ok) {
-      throw new Error(`WaveSpeed result polling failed: ${res.status}`);
-    }
-
-    const json = await res.json().catch(() => ({})) as WaveSpeedPredictionResponse;
-    const data = json?.data ?? {};
-    const status = String(data.status || (json as Record<string, unknown>).status || "").toLowerCase();
-
-    if (["completed", "success", "done"].includes(status)) {
-      const urls = extractUrls(json);
-      if (!urls.length) {
-        throw new Error("WaveSpeed task succeeded but no output URL was returned.");
-      }
-      return urls;
-    }
-
-    if (["failed", "fail", "error", "cancelled", "canceled"].includes(status)) {
-      throw new Error(String(data.error || data.errorMessage || "WaveSpeed generation failed."));
-    }
-  }
-
-  throw new Error("Expand generation timed out.");
 }
 
 function aspectToDimensions(aspectRatio: string): { width: number; height: number } {
@@ -298,31 +261,14 @@ export async function POST(req: NextRequest) {
       await setGenerationTaskMarker(generationId, taskId).catch(() => {});
     }
 
-    const urls = await pollWaveSpeedTask(apiKey, taskId);
-    const mediaUrl = urls[0] ?? null;
-    if (generationId && mediaUrl) {
-      await setGenerationMediaUrl(generationId, mediaUrl).catch(() => {});
-    }
-
     return NextResponse.json({
       id: generationId ?? taskId,
-      status: "succeeded",
-      progress: 100,
-      result: mediaUrl
-        ? {
-            id: generationId ?? taskId,
-            kind: inputKind,
-            url: mediaUrl,
-            prompt: prompt || undefined,
-            model: modelId,
-            aspect: aspectRatio,
-            createdAt: new Date().toISOString(),
-          }
-        : null,
+      status: "running",
+      progress: 5,
+      result: null,
       taskId,
       generationId,
-      mediaUrl,
-      urls,
+      mediaUrl: `task:${taskId}`,
     });
   } catch (error) {
     if (error instanceof InsufficientCreditsError) {

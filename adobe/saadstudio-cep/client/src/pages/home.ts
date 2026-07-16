@@ -1,4 +1,4 @@
-import { el } from "../lib/dom";
+﻿import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
 import { navigate } from "../lib/router";
 import { APPS, type AppDef } from "../lib/apps";
@@ -155,8 +155,8 @@ export function HomePage(): HTMLElement {
   // Categories mapping
   const CATEGORIES = [
     { id: "GENERATE", icon: "spark", titleKey: "sectionGenerate" as const, apps: ["image-gen", "video-gen", "expand"] },
-    { id: "EDIT", icon: "magic-wand", titleKey: "sectionEdit" as const, apps: ["edit-video", "remove-bg", "upscale", "transitions"] },
-    { id: "AUDIO", icon: "waveform", titleKey: "sectionAudio" as const, apps: ["ai-dubbing", "audiogram", "transcription", "avatar-pro"] },
+    { id: "EDIT", icon: "magic-wand", titleKey: "sectionEdit" as const, apps: ["remove-bg", "upscale", "transitions"] },
+    { id: "AUDIO", icon: "waveform", titleKey: "sectionAudio" as const, apps: ["edit-video", "ai-dubbing", "audiogram", "transcription", "avatar-pro"] },
     { id: "PRODUCTION", icon: "video", titleKey: "sectionProduction" as const, apps: ["add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch"] },
     { id: "SYNC", icon: "settings", titleKey: "sectionSync" as const, apps: ["synchronize", "noise-removal", "eye-correction"] }
   ];
@@ -165,16 +165,16 @@ export function HomePage(): HTMLElement {
   function matchesFilter(app: AppDef, filter: string): boolean {
     if (filter === "All") return true;
     if (filter === "Video") {
-      return ["video-gen", "transitions", "avatar-pro", "edit-video", "add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch", "synchronize"].includes(app.id);
+      return ["video-gen", "transitions", "avatar-pro", "add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch", "synchronize"].includes(app.id);
     }
     if (filter === "Image") {
       return ["image-gen", "expand", "remove-bg", "upscale"].includes(app.id);
     }
     if (filter === "Audio") {
-      return ["ai-dubbing", "audiogram", "transcription", "noise-removal"].includes(app.id);
+      return ["edit-video", "ai-dubbing", "audiogram", "transcription", "noise-removal"].includes(app.id);
     }
     if (filter === "AI") {
-      return ["image-gen", "video-gen", "edit-video", "ai-dubbing", "edit-clips"].includes(app.id);
+      return ["image-gen", "video-gen", "ai-dubbing", "edit-clips"].includes(app.id);
     }
     if (filter === "Utility") {
       return ["synchronize", "multi-cam-auto-switch", "noise-removal", "eye-correction"].includes(app.id);
@@ -352,7 +352,7 @@ export function HomePage(): HTMLElement {
       el("div.search-bar", null,
         el("span.search-bar__icon", null, icon("spark", 14)),
         searchInput,
-        el("span.search-bar__shortcut", null, "⌘K")
+        el("span.search-bar__shortcut", null, "âŒ˜K")
       ),
       filterTagsContainer,
       el("div.filter-dropdown", null,
@@ -496,7 +496,7 @@ export function HomePage(): HTMLElement {
     );
     root.appendChild(footerEl);
 
-    // Setup global keyboard shortcut listener for ⌘K / Ctrl+K
+    // Setup global keyboard shortcut listener for âŒ˜K / Ctrl+K
     const onKeydown = (ev: KeyboardEvent) => {
       if ((ev.metaKey || ev.ctrlKey) && ev.key === "k") {
         ev.preventDefault();

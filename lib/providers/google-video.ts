@@ -9,6 +9,7 @@ import {
   pollVeoOperation,
   downloadVeoVideo,
   urlToImageInput,
+  urlToVideoInput,
   type VeoTier,
   type VeoAspect,
   type VeoResolution,
@@ -21,6 +22,9 @@ const TIER_MAP: Record<string, VeoTier> = {
   "google/veo3.1-text-to-video":      "pro",
   "google/veo3.1-fast-text-to-video": "fast",
   "google/veo3.1-lite-text-to-video": "lite",
+  "google/gemini-omni-flash":         "omni_flash",
+  "google/gemini-omni-video":          "omni_flash",
+  "gemini-omni-video":                 "omni_flash",
   "veo3":      "pro",
   "veo3_fast": "fast",
   "veo3_lite": "lite",
@@ -50,6 +54,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
   const startImageUrl = input.firstFrameUrl ?? input.imageUrl ?? explicitImages[0];
   const endImageUrl = input.lastFrameUrl ?? explicitImages[1];
   const requestedType = input.generationType;
+  const sourceVideoUrl = input.videoUrl ?? input.videoUrls?.[0] ?? input.referenceVideoUrls?.[0];
 
   const autoType =
     requestedType ||
@@ -74,6 +79,10 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
     autoType === "REFERENCE_2_VIDEO"
       ? await Promise.all(explicitImages.slice(0, 3).map((url) => urlToImageInput(url)))
       : undefined;
+  const video =
+    tier === "omni_flash" && sourceVideoUrl
+      ? await urlToVideoInput(sourceVideoUrl)
+      : undefined;
 
   let handle;
   try {
@@ -86,6 +95,7 @@ export async function googleGenerateVideo(input: VideoGenInput): Promise<Provide
       ...(image ? { image } : {}),
       ...(lastFrame ? { lastFrame } : {}),
       ...(referenceImages?.length ? { referenceImages } : {}),
+      ...(video ? { video } : {}),
     });
   } catch (err) {
     throw new ProviderError("google", "startVeoGeneration", (err as Error).message);

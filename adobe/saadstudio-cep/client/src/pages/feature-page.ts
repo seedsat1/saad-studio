@@ -9,16 +9,17 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockConfig, type PromptDockHandle } from "../components/prompt-dock";
+import { ProcessingLoader } from "../components/processing-loader";
 import { RecentStrip } from "../components/recent-strip";
 import { icon } from "../lib/icons";
 import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImportSuccessMessage } from "../lib/cep";
-import { api, type JobStatus } from "../lib/api";
+import { api, getFallbackUrls, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 
 export interface FeatureConfig {
   title: string;
-  galleryKind?: "image" | "video";
+  galleryKind?: "image" | "video" | "audio";
   /** Dock placeholder, options + the request body the dock should produce. */
   dock: Omit<DockConfig, "onSubmit">;
   /** Build the request body and hit the API. Return the (queued) job. */
@@ -31,7 +32,8 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
   const gallery = cfg.galleryKind
     ? el("div", { style: { padding: "0 16px 16px" } },
         el("div.section__head", null,
-          el("h3.section__title", null, cfg.galleryKind === "image" ? "Image gallery" : "Video gallery"),
+          el("h3.section__title", null,
+            cfg.galleryKind === "image" ? "Image gallery" : cfg.galleryKind === "video" ? "Video gallery" : "Audio gallery"),
           el("span.section__hint", null, "All synced items from your Saad Studio account"),
         ),
         RecentStrip({
@@ -83,7 +85,16 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
   );
 }
 
+function generationBusyCard(): HTMLElement {
+  return el("div.state-card",
+    null,
+    ProcessingLoader("Generating"),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, "Your generation is in the queue. This usually takes 30-90 seconds."),
+  );
+}
+
 function busyCard(): HTMLElement {
+  return generationBusyCard();
   return el("div.state-card",
     null,
     el("div.state-card__icon", null, icon("spark", 22)),
@@ -103,16 +114,29 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
   const r = job.result!;
   let dragPath: string | null = null;
   let dragPending: Promise<string> | null = null;
+  const mediaSources = getFallbackUrls(r.thumbnailUrl || r.url);
+  let mediaSourceIndex = 0;
+  const nextMediaSource = (target: HTMLImageElement | HTMLVideoElement | HTMLAudioElement) => {
+    mediaSourceIndex += 1;
+    const next = mediaSources[mediaSourceIndex];
+    if (next) target.src = next;
+  };
   const preview = r.kind === "video"
-    ? el("video", { src: r.url, controls: "true", playsinline: "true",
+    ? el("video", { src: mediaSources[0] || r.url, controls: "true", playsinline: "true",
+        onError: (event: Event) => nextMediaSource(event.currentTarget as HTMLVideoElement),
         style: { width: "100%", borderRadius: "12px", display: "block" } })
-    : el("img", { src: r.url, alt: r.prompt ?? "",
+    : r.kind === "audio"
+      ? el("audio", { src: mediaSources[0] || r.url, controls: "true",
+          onError: (event: Event) => nextMediaSource(event.currentTarget as HTMLAudioElement),
+          style: { width: "100%", display: "block" } })
+    : el("img", { src: mediaSources[0] || r.url, alt: r.prompt ?? "",
+        onError: (event: Event) => nextMediaSource(event.currentTarget as HTMLImageElement),
         style: { width: "100%", borderRadius: "12px", display: "block" } });
 
   const warmDragAsset = async () => {
     if (dragPath) return dragPath;
     if (dragPending) return dragPending;
-    dragPending = api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`)
+    dragPending = api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : r.kind === "audio" ? "mp3" : "png"}`)
       .then((local) => {
         dragPath = local;
         dragPending = null;
@@ -149,14 +173,14 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
         transfer.setData("com.adobe.cep.dnd.file.0", dragPath);
         transfer.setData("text/plain", dragPath);
         transfer.setData("text/uri-list", fileUri);
-        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : "png"}:${fileUri}`);
+        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : r.kind === "audio" ? "mp3" : "png"}:${fileUri}`);
       },
     }, preview),
     el("div.row.gap-2", null,
       el("button.btn-primary", {
         onClick: async () => {
           try {
-            const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
+            const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : r.kind === "audio" ? "mp3" : "png"}`);
             await evalES("importMediaFromPath", local);
             toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
@@ -182,6 +206,6 @@ function toFileUri(localPath: string): string {
   return `file:///${normalized}`;
 }
 
-function mimeFor(kind: "image" | "video"): string {
-  return kind === "video" ? "video/mp4" : "image/png";
+function mimeFor(kind: "image" | "video" | "audio"): string {
+  return kind === "video" ? "video/mp4" : kind === "audio" ? "audio/mpeg" : "image/png";
 }

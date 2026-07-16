@@ -16,6 +16,7 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockOption, type PromptDockHandle } from "../components/prompt-dock";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import {
   evalES,
@@ -262,7 +263,15 @@ function pathToVideoSrc(p: string): string {
   return `file:///${forward}`;
 }
 
+function generationBusyCard(): HTMLElement {
+  return el("div.state-card", null,
+    ProcessingLoader("Processing"),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, "This usually takes under two minutes."),
+  );
+}
+
 function busyCard(): HTMLElement {
+  return generationBusyCard();
   return el("div.state-card", null,
     el("div.state-card__icon", null, icon("spark", 22)),
     el("div.state-card__title", null, "Working…"),
@@ -323,11 +332,13 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
         transfer.setData("com.adobe.cep.dnd.file.0", dragPath);
         transfer.setData("text/plain", dragPath);
         transfer.setData("text/uri-list", fileUri);
-        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : "png"}:${fileUri}`);
+        transfer.setData("DownloadURL", `${mimeFor(r.kind)}:${r.id}.${r.kind === "video" ? "mp4" : r.kind === "audio" ? "mp3" : "png"}:${fileUri}`);
       },
     },
       r.kind === "video"
         ? el("video", { src: r.url, controls: "true", style: { width: "100%", display: "block" } })
+        : r.kind === "audio"
+          ? el("audio", { src: r.url, controls: "true", style: { width: "100%", display: "block" } })
         : el("img", { src: r.url, style: { width: "100%", display: "block" } }),
     ),
     el("div.row.gap-2", { style: { marginTop: "12px" } },
@@ -335,7 +346,7 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
         {
           onClick: async () => {
             try {
-              const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : "png"}`);
+              const local = await api.downloadAsset(r.url, `${r.id}.${r.kind === "video" ? "mp4" : r.kind === "audio" ? "mp3" : "png"}`);
               await evalES("importMediaFromPath", local);
               toast(getHostImportSuccessMessage(), "success");
             } catch (err) {
@@ -357,6 +368,6 @@ function toFileUri(localPath: string): string {
   return `file:///${normalized}`;
 }
 
-function mimeFor(kind: "image" | "video"): string {
-  return kind === "video" ? "video/mp4" : "image/png";
+function mimeFor(kind: "image" | "video" | "audio"): string {
+  return kind === "video" ? "video/mp4" : kind === "audio" ? "audio/mpeg" : "image/png";
 }

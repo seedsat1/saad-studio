@@ -1,5 +1,5 @@
 const MIN_VIDEO_DURATION_SEC = 3;
-const MAX_VIDEO_DURATION_SEC = 15;
+const MAX_VIDEO_DURATION_SEC = 300;
 
 export async function enforceVideoDurationLimit(
   input: File | string,

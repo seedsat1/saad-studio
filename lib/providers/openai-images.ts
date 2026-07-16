@@ -47,7 +47,7 @@ export async function openaiGenerateImage(input: ImageGenInput): Promise<Provide
 
   // Image-to-image / edit flow — OpenAI exposes a separate `images.edit`
   // endpoint. We use that when an imageUrl is present.
-  if (input.imageUrl && upstream === "gpt-image-1") {
+  if ((input.imageUrl || input.imageUrls?.length) && upstream === "gpt-image-1") {
     return openaiEdit(upstream, input, size, n);
   }
 
@@ -83,14 +83,14 @@ async function openaiEdit(
   size: "1024x1024" | "1792x1024" | "1024x1792",
   n: number,
 ): Promise<ProviderResult> {
-  if (!input.imageUrl) throw new ProviderError("openai", "edit", "imageUrl required");
+  const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])])).slice(0, 16);
+  if (!refUrls.length) throw new ProviderError("openai", "edit", "imageUrl required");
 
-  // Fetch the reference image into a Buffer first; OpenAI's edit endpoint
-  // accepts a File/Blob. Buffer needs to be widened to Uint8Array for the
-  // Blob constructor's BlobPart union.
-  const buf = await fetchBuffer(input.imageUrl);
-  const blob = new Blob([new Uint8Array(buf)], { type: "image/png" });
-  const file = new File([blob], "ref.png", { type: "image/png" });
+  const files = await Promise.all(refUrls.map(async (url, index) => {
+    const buf = await fetchBuffer(url);
+    const blob = new Blob([new Uint8Array(buf)], { type: "image/png" });
+    return new File([blob], `ref-${index + 1}.png`, { type: "image/png" });
+  }));
 
   let res;
   try {
@@ -98,7 +98,7 @@ async function openaiEdit(
     // exposes for `images.edit`; cast to silence the narrower union.
     res = await client().images.edit({
       model: upstream,
-      image: file as unknown as Parameters<OpenAI["images"]["edit"]>[0]["image"],
+      image: (files.length === 1 ? files[0] : files) as unknown as Parameters<OpenAI["images"]["edit"]>[0]["image"],
       prompt: input.prompt,
       size: size as unknown as "1024x1024",
       n,

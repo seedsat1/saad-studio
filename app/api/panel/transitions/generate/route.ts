@@ -22,6 +22,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const KIE_BASE = "https://api.kie.ai/api/v1";
+const TRANSITION_MODEL = "wan/2-7-image-to-video";
 
 function requirePanelUser(req: NextRequest): string | null {
   const token = extractPanelToken(req);
@@ -93,7 +94,6 @@ export async function POST(req: NextRequest) {
     const inputAUrl = typeof body.inputAUrl === "string" ? body.inputAUrl : "";
     const inputBUrl = typeof body.inputBUrl === "string" ? body.inputBUrl : "";
     const duration = typeof body.duration === "number" ? Math.max(3, Math.min(10, body.duration)) : 5;
-    const aspectRatio = typeof body.aspectRatio === "string" ? body.aspectRatio : "16:9";
 
     const controls = {
       intensity: typeof body.intensity === "number" ? body.intensity : 50,
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: `Transition: ${preset.name}`,
       assetType: "TRANSITION",
-      modelUsed: `transition/${presetId}`,
+      modelUsed: TRANSITION_MODEL,
       duration: duration,
       resolution: controls.resolution,
     });
@@ -163,16 +163,15 @@ export async function POST(req: NextRequest) {
       resolveInputUrl(inputBUrl, userId),
     ]);
 
-    const mode = controls.resolution === "720p" ? "std" : "pro";
     const kiePayload: Record<string, unknown> = {
       prompt: hidden.prompt,
-      duration: String(duration),
-      aspect_ratio: aspectRatio,
-      mode,
-      sound: false,
-      multi_shots: false,
-      multi_prompt: [],
-      image_urls: [resolvedInputA, resolvedInputB],
+      negative_prompt: hidden.negativePrompt,
+      first_frame_url: resolvedInputA,
+      last_frame_url: resolvedInputB,
+      resolution: controls.resolution === "1080p" ? "1080p" : "720p",
+      duration,
+      prompt_extend: true,
+      watermark: false,
     };
 
     const job = await prismadb.transitionJob.create({
@@ -191,7 +190,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: kieHeaders(apiKey),
       body: JSON.stringify({
-        model: "kling-3.0/video",
+        model: TRANSITION_MODEL,
         input: kiePayload,
       }),
     });

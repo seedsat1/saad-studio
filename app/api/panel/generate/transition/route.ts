@@ -18,7 +18,7 @@ export const maxDuration = 180;
 
 const KIE_CREATE_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const TRANSITION_MODEL = "kling-3.0/video";
+const TRANSITION_MODEL = "wan/2-7-image-to-video";
 
 type KieApiJson = {
   code?: number;
@@ -68,13 +68,12 @@ function extractVideoUrls(value: unknown): string[] {
 async function createKieTask(
   apiKey: string,
   prompt: string,
+  negativePrompt: string,
   inputAUrl: string,
   inputBUrl: string,
   duration: number,
-  aspectRatio: string,
   resolution: string,
 ): Promise<string> {
-  const mode = resolution === "720p" ? "std" : "pro";
   const res = await fetch(KIE_CREATE_URL, {
     method: "POST",
     headers: {
@@ -85,13 +84,13 @@ async function createKieTask(
       model: TRANSITION_MODEL,
       input: {
         prompt,
-        duration: String(duration),
-        aspect_ratio: aspectRatio,
-        mode,
-        sound: false,
-        multi_shots: false,
-        multi_prompt: [],
-        image_urls: [inputAUrl, inputBUrl],
+        negative_prompt: negativePrompt,
+        first_frame_url: inputAUrl,
+        last_frame_url: inputBUrl,
+        resolution: resolution === "1080p" ? "1080p" : "720p",
+        duration,
+        prompt_extend: true,
+        watermark: false,
       },
     }),
   });
@@ -190,7 +189,7 @@ export async function POST(req: NextRequest) {
     const inputAUrl = body.inputAUrl?.trim() ?? "";
     const inputBUrl = body.inputBUrl?.trim() ?? "";
     const aspectRatio = body.aspectRatio?.trim() ?? "16:9";
-    const duration = typeof body.duration === "number" ? Math.max(3, Math.min(10, Math.floor(body.duration))) : 5;
+    const duration = typeof body.duration === "number" ? Math.max(3, Math.min(15, Math.floor(body.duration))) : 5;
     const resolution = body.resolution?.trim() ?? "1080p";
 
     if (!presetId) {
@@ -223,7 +222,7 @@ export async function POST(req: NextRequest) {
       credits: creditsToCharge,
       prompt: `Transition: ${preset.name}`,
       assetType: "VIDEO",
-      modelUsed: `transition/${presetId}`,
+      modelUsed: TRANSITION_MODEL,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
@@ -236,10 +235,10 @@ export async function POST(req: NextRequest) {
     const taskId = await createKieTask(
       apiKey,
       hidden.prompt,
+      hidden.negativePrompt,
       inputAUrl,
       inputBUrl,
       duration,
-      aspectRatio,
       resolution,
     );
     if (generationId) {
@@ -262,7 +261,7 @@ export async function POST(req: NextRequest) {
             kind: "video",
             url: videoUrl,
             prompt: preset.name,
-            model: `transition/${presetId}`,
+            model: TRANSITION_MODEL,
             aspect: aspectRatio,
             durationSec: duration,
             createdAt: new Date().toISOString(),

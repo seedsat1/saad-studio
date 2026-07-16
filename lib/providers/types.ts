@@ -15,6 +15,8 @@ export interface ImageGenInput {
   negativePrompt?: string;
   /** Reference image URL for image-to-image / edit flows. */
   imageUrl?: string;
+  /** Multiple reference image URLs for models that support multi-image edit/I2I. */
+  imageUrls?: string[];
 }
 
 export interface VideoGenInput {

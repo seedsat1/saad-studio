@@ -56,9 +56,10 @@ async function nanoBananaGenerate(model: string, input: ImageGenInput): Promise<
     text: withImageControlHints(input.prompt, input.aspectRatio, input.resolution),
   }];
 
-  // Image-to-image / edit: attach a reference image inline.
-  if (input.imageUrl) {
-    const ref = await fetchAsInlineImage(input.imageUrl);
+  // Image-to-image / edit: attach supported reference images inline.
+  const refUrls = Array.from(new Set([...(input.imageUrls ?? []), ...(input.imageUrl ? [input.imageUrl] : [])]));
+  for (const refUrl of refUrls) {
+    const ref = await fetchAsInlineImage(refUrl);
     if (ref) parts.unshift(ref);
   }
 

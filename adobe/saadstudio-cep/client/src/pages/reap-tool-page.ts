@@ -17,6 +17,7 @@ import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { PromptDock, type DockOption, type DockToggle } from "../components/prompt-dock";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import { evalES, isInsideAdobe } from "../lib/cep";
 import { api, reap, type ReapTool, type ReapStatusResponse } from "../lib/api";
@@ -510,8 +511,7 @@ function defaultResult(status: ReapStatusResponse): HTMLElement {
 
 function busyCard(text: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__icon", null, icon("spark", 22)),
-    el("div.state-card__title", null, text),
+    ProcessingLoader(text),
     el("div.state-card__subtitle", null, "Reap projects usually finish in 1-5 minutes."),
   );
 }

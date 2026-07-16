@@ -10,21 +10,31 @@ export const dynamic = "force-dynamic";
 
 function isSupportedGeneration(assetType: string | null | undefined, type: string | null | undefined): boolean {
   const normalizedType = String(type ?? "").toLowerCase();
-  if (normalizedType === "image" || normalizedType === "video") return true;
+  if (normalizedType === "image" || normalizedType === "video" || normalizedType === "audio") return true;
 
   const normalizedAssetType = String(assetType ?? "").toLowerCase();
   return normalizedAssetType.includes("image")
     || normalizedAssetType.includes("video")
+    || normalizedAssetType.includes("audio")
+    || normalizedAssetType.includes("music")
+    || normalizedAssetType.includes("tts")
     || normalizedAssetType.includes("transition");
 }
 
-function inferKind(assetType: string | null | undefined, type: string | null | undefined): "image" | "video" {
+function inferKind(assetType: string | null | undefined, type: string | null | undefined): "image" | "video" | "audio" {
   const normalizedType = String(type ?? "").toLowerCase();
-  if (normalizedType === "video" || normalizedType === "image") {
+  if (normalizedType === "video" || normalizedType === "image" || normalizedType === "audio") {
     return normalizedType;
   }
 
   const normalizedAssetType = String(assetType ?? "").toLowerCase();
+  if (
+    normalizedAssetType.includes("audio") ||
+    normalizedAssetType.includes("music") ||
+    normalizedAssetType.includes("tts")
+  ) {
+    return "audio";
+  }
   if (normalizedAssetType.includes("transition")) {
     return "video";
   }
@@ -46,12 +56,12 @@ function parseLimit(req: NextRequest): number {
   return Math.max(1, Math.min(100, Math.floor(raw)));
 }
 
-function parseKind(req: NextRequest): "image" | "video" | null {
+function parseKind(req: NextRequest): "image" | "video" | "audio" | null {
   const raw = String(req.nextUrl.searchParams.get("kind") ?? "").toLowerCase();
-  return raw === "image" || raw === "video" ? raw : null;
+  return raw === "image" || raw === "video" || raw === "audio" ? raw : null;
 }
 
-function kindWhere(kind: "image" | "video" | null): Prisma.GenerationWhereInput {
+function kindWhere(kind: "image" | "video" | "audio" | null): Prisma.GenerationWhereInput {
   if (kind === "image") {
     return {
       OR: [
@@ -69,6 +79,19 @@ function kindWhere(kind: "image" | "video" | null): Prisma.GenerationWhereInput 
         { assetType: { contains: "video" } },
         { assetType: { contains: "TRANSITION" } },
         { assetType: { contains: "transition" } },
+      ],
+    };
+  }
+  if (kind === "audio") {
+    return {
+      OR: [
+        { type: "audio" },
+        { assetType: { contains: "AUDIO" } },
+        { assetType: { contains: "audio" } },
+        { assetType: { contains: "MUSIC" } },
+        { assetType: { contains: "music" } },
+        { assetType: { contains: "TTS" } },
+        { assetType: { contains: "tts" } },
       ],
     };
   }
@@ -147,7 +170,7 @@ export async function GET(req: NextRequest) {
           id: generation.id,
           kind: inferKind(generation.assetType, generation.type),
           url,
-          thumbnailUrl: generation.type === "image" ? url : undefined,
+          thumbnailUrl: inferKind(generation.assetType, generation.type) === "image" ? url : undefined,
           prompt: generation.prompt,
           model: generation.modelUsed,
           createdAt: generation.createdAt.toISOString(),

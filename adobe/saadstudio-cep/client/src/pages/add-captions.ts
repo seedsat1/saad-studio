@@ -26,6 +26,7 @@
 import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
+import { ProcessingLoader } from "../components/processing-loader";
 import { icon } from "../lib/icons";
 import { getHostEnvironmentInfo, isInsideAdobe } from "../lib/cep";
 import {
@@ -730,11 +731,12 @@ export function AddCaptionsPage(): HTMLElement {
       el("button.form-select",
         {
           disabled: extra.disabled ? "true" : null,
-          onClick: async () => {
+          onClick: async (event: MouseEvent) => {
             if (extra.disabled) return;
             const picked = await openModelPicker({
               title: label,
               options,
+              anchor: event.currentTarget as HTMLElement,
             });
             if (picked != null) { onPick(picked); render(); }
           },
@@ -1512,9 +1514,8 @@ function styledSuccessCard(args: {
 
 function busyCard(text: string, subtitle = "Hold tight."): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__icon", null, icon("spark", 18)),
-    el("div.state-card__title", null, text),
-    el("div.state-card__subtitle", null, subtitle),
+    ProcessingLoader(text),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, subtitle),
   );
 }
 

@@ -1,5 +1,168 @@
 # Saad Studio Project Context Update
 
+## Latest task: CEP shared generation loading animation (2026-07-16)
+
+- Status:
+  Reused the Multi-Cam processing loader across generation and processing operations without changing page structure.
+- Behavior:
+  - Added shared `ProcessingLoader` component using the existing `podcast-process-loader` visual style.
+  - FeaturePage generation flows now show the Multi-Cam loader while Image/Video generation is running.
+  - Video Extend, Transitions, LiP sync, video utility pages, Reap shell tools, Auto Captions, AI Dubbing, Audiogram, and Transcription show the same loader during busy/progress states.
+  - Existing result/error layouts and progress bars stay in place.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-DKmMNTTH.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+
+## Non-negotiable architecture rules (2026-07-16)
+
+- Backblaze B2 Cloud Storage is the single source of truth for all media files in the system.
+- Backblaze B2 must be used for uploads, downloads, assets library, dashboard/history media, image generation, video generation, music generation, CEP extension assets, download APIs, `/api/media`, AI generated assets, user uploads, Reap outputs, and generated files.
+- Do not reintroduce Cloudflare R2 as an active storage provider. Legacy R2 URLs may only be handled as read/repair fallbacks when needed.
+- Reap is not a generation provider. It is only for post-production tools:
+  AI Clipping, Auto Reframe, Captions, Translation, Dubbing, Brand Templates, Social Outputs, and Webhooks.
+- Reap must not be used for text-to-video or image-to-video generation.
+- All OpenAI models must use the official OpenAI provider directly.
+- All Google models must use the official Google provider directly.
+- Do not route Google or OpenAI models through a proxy, relay, or third-party generation provider.
+- Core infrastructure:
+  Hosting: Vercel.
+  Database: Neon PostgreSQL.
+  Authentication: Clerk.
+  Media Storage: Backblaze B2 Cloud Storage.
+
+## Expand tool routing rule (2026-07-16)
+
+- Expand must only expose models that support true canvas/frame outpainting.
+- Gemini Omni Flash must not be shown or routed as an Expand model because its documented capabilities cover text-to-video, image-to-video, reference-to-video, and video edit, while video extension/interpolation is explicitly unsupported.
+- CEP `/expand` is currently a Video Extend tool, not a mixed image/video expand tool.
+- Current production-safe CEP Video Extend route:
+  - Video: `wavespeed-ai/ltx-2.3/video-extend` through WaveSpeed, labeled `LTX 2.3 Extend`.
+- Candidate image-only fallback already present in the codebase: `ideogram/v3-reframe` via KIE, but it must be reviewed against the storage/provider policy before exposing in CEP.
+
+## Latest task: Rename CEP Expand tool to Video Extend only (2026-07-16)
+
+- Status:
+  Renamed the visible CEP tool from `Expand` to `Video Extend` because LTX 2.3 Video Extend only performs temporal video extension, not image expansion or frame reframing.
+- Behavior:
+  - Home app card and i18n keys now show `Video Extend`.
+  - The page header and copy now describe extending existing video duration.
+  - The picker accepts video files only.
+  - Timeline image selections are rejected.
+  - The model picker exposes only `LTX 2.3 Extend`.
+  - The panel expand route rejects non-video input and falls back only to `wavespeed-ai/ltx-2.3/video-extend`.
+
+## Latest task: CEP Video Extend upload public URL repair (2026-07-16)
+
+- Status:
+  Fixed the CEP pre-generation failure `Source upload did not return a public media URL` by hardening panel upload URL extraction.
+- Behavior:
+  - CEP upload helpers now normalize `publicUrl` into an absolute API URL.
+  - If `publicUrl` is missing but upload `path` is present, CEP builds an absolute `/api/media/{path}` URL.
+  - Video Extend also converts any relative uploaded media URL into an absolute API URL before validation.
+
+## Latest task: Video Extend WaveSpeed polling endpoint repair (2026-07-16)
+
+- Status:
+  Fixed backend polling after LTX 2.3 Video Extend returned `WaveSpeed polling failed: 404`.
+- Cause:
+  The panel expand route was polling `GET /api/v3/predictions/{taskId}` first. The project registry documents WaveSpeed polling as `GET /api/v3/predictions/{taskId}/result`, and some models return 404 on the non-result endpoint.
+- Behavior:
+  - `pollWaveSpeedTask` now polls `/predictions/{taskId}/result` directly.
+  - Task id extraction now accepts `data.id`, `data.taskId`, `data.task_id`, top-level `id`, `taskId`, and `task_id`.
+  - TypeScript check passed.
+
+## Latest task: CEP Expand LTX 2.3 Video Extend model (2026-07-16)
+
+- Status:
+  Added WaveSpeed LTX 2.3 Video Extend to the CEP Expand video model picker.
+- Source:
+  WaveSpeed model card documents `POST https://api.wavespeed.ai/api/v3/wavespeed-ai/ltx-2.3/video-extend` with required `video`, optional `duration` from 1 to 20 seconds, and optional `prompt`.
+- Behavior:
+  - CEP video Expand models now include `LTX 2.3 Extend`.
+  - CEP shows an `Extend duration` selector for LTX with 1s, 2s, 3s, 4s, 5s, 6s, 8s, 10s, 15s, and 20s.
+  - `/api/panel/generate/expand` allowlists and routes `wavespeed-ai/ltx-2.3/video-extend`.
+  - LTX payload uses `video`, `duration`, and optional `prompt`.
+
+## Latest task: CEP Expand Luma Reframe model (2026-07-16)
+
+- Status:
+  Added WaveSpeed Luma Ray 3.2 Video Reframing to the CEP Expand video model picker.
+- Source:
+  WaveSpeed model card documents `POST https://api.wavespeed.ai/api/v3/luma/ray-3.2/video-reframing` with required `video` and `prompt`, optional `size` and `resolution`, and source video limit of 30 seconds or less.
+- Behavior:
+  - CEP video Expand models now include `Expand Video` and `Luma Reframe`.
+  - CEP sends `resolution` for video Expand requests with `540p`, `720p`, or `1080p`.
+  - `/api/panel/generate/expand` allowlists video models and routes Luma to `luma/ray-3.2/video-reframing`.
+  - Luma payload uses `video`, `prompt`, `size`, and `resolution`; unsupported target ratios fall back to `16:9`.
+
+## Latest task: Premiere client-side gallery kind normalization (2026-07-16)
+
+- Status:
+  Added defensive client-side media kind normalization so audio files cannot appear in the image gallery even if the production API still returns them as `kind=image`.
+- Cause:
+  - Some production `/api/panel/generations` responses can still classify audio/music/TTS generations as image when the server deployment is older or the row lacks a precise `type`.
+- Behavior:
+  - CEP normalizes every generation item by URL, model, and prompt before gallery filtering.
+  - Audio is detected from `/audio/`, `/music/`, `.mp3`, `.wav`, `.m4a`, `.aac`, `.ogg`, `.flac`, and keywords such as `tts`, `music`, `audio`, `voice`, `speech`, `dubbing`, `transcription`, `audiogram`.
+  - Video is detected from `/videos/`, `.mp4`, `.mov`, `.webm`, `.mkv`, `.avi`, and video-related keywords.
+  - Image gallery filtering now excludes normalized audio/video even if the API originally marked the item as image.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-BqaHl-zt.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-BqaHl-zt.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the defensive gallery classifier.
+
+## Latest task: Premiere gallery media-kind separation (2026-07-16)
+
+- Status:
+  Fixed gallery separation so page-specific galleries request and render only their own media kind.
+- Behavior:
+  - `/api/panel/generations` now supports `kind=image|video|audio`.
+  - Generation classification recognizes `image`, `video`, and `audio` from `type` and `assetType` values, including audio/music/tts.
+  - `RecentStrip` with a fixed filter now calls `api.allGenerations(fixedFilter)` instead of loading the global mixed recent list.
+  - Image pages show image items only; video pages show video items only; audio support is ready for audio galleries.
+  - Audio library tiles render an audio player and use `.mp3` / `audio/mpeg` drag metadata.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-D1bAjbF3.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-D1bAjbF3.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the corrected gallery filtering.
+
+## Latest task: Premiere Image generation model-aware references (2026-07-16)
+
+- Status:
+  Image generation references are now model-aware instead of hard-coded to a single reference image.
+- Behavior:
+  - CEP Image generation defines per-model reference limits for exposed models:
+    `nano-banana-pro` = 8, `nano-banana-2` = 14, `nano-banana-2-lite` = 14, `google/nano-banana` = 0, `gpt-image-2` = 16.
+  - CEP uploads every accepted prompt-box reference image and submits `imageUrl`, `imageUrls`, and `referenceImageUrls`.
+  - `gpt-image-2` switches to `gpt-image-2-image-to-image` when references are attached, otherwise `gpt-image-2-text-to-image`.
+  - Panel image generation API now reads `imageUrls` / `referenceImageUrls`, runs safety checks for each reference, and sends the correct provider field: `image_input`, `image_urls`, `input_urls`, or `image_url`.
+  - Google direct image generation can inline multiple references.
+  - OpenAI direct image edit can pass multiple references to the edit endpoint.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-BPKjP561.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-BPKjP561.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the model-aware reference behavior.
+
+## Latest task: Premiere Image prompt reference URL repair (2026-07-16)
+
+- Status:
+  Fixed the Image generation prompt box reference image path so attached references are sent to providers as absolute HTTPS URLs.
+- Cause:
+  - Panel upload returned `/api/media/...` as a relative URL after the Backblaze/API-media migration.
+  - The prompt dock showed the attachment correctly, but Google/OpenAI/KIE provider paths need a full public URL to fetch the reference image.
+- Behavior:
+  - `/api/panel/upload-url` now converts relative media public URLs to absolute URLs using configured app origin or forwarded request origin.
+  - `ImageGenPage` defensively converts any returned relative upload URL through `getApiBase()`.
+  - Image generation submits `imageUrl`, `imageUrls`, and `referenceImageUrls` for compatibility, with `imageUrl` as the active panel route field.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-yabhj5p_.js`.
+  - Root `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed.
+  - Copied the CEP build to the active per-user extension folder and verified installed `index.html` points to `./assets/index-yabhj5p_.js`.
+  - Stopped CEPHtmlEngine processes so Premiere reloads the fixed prompt reference behavior.
+
 ## Latest task: Premiere storage migration from Cloudflare R2 to Backblaze B2 (2026-07-16)
 
 - Status:
@@ -6754,3 +6917,90 @@
 - Remaining:
   - Reopen the panel in Premiere and visually compare the layout with the provided reference image.
   - Next implementation task: wire Silence Removal and Auto Zoom cards to their real services or hide/label them according to release readiness.
+
+## Latest task: CEP dropdown anchored picker fix (2026-07-16)
+
+- Status:
+  Fixed option/model dropdowns opening as centered modals. Prompt dock pills and form select buttons now pass their clicked button as an anchor, and `openModelPicker` positions a compact popover next to that button while staying inside the panel viewport.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/components/model-picker.ts`
+  - `adobe/saadstudio-cep/client/src/components/prompt-dock.ts`
+  - `adobe/saadstudio-cep/client/src/pages/add-captions.ts`
+  - `adobe/saadstudio-cep/client/src/pages/ai-dubbing.ts`
+  - `adobe/saadstudio-cep/client/src/pages/audiogram.ts`
+  - `adobe/saadstudio-cep/client/src/pages/transcription.ts`
+  - `adobe/saadstudio-cep/client/src/styles/components.css`
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-Bk_R1jw7.js`.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-Bk_R1jw7.js`.
+  - Stopped `CEPHtmlEngine` so Premiere reloads the updated bundle on next panel open.
+
+## Latest task: Image generation result preview repair (2026-07-16)
+
+- Status:
+  Fixed the top result preview after image generation showing as a broken image while the same asset appeared correctly in the gallery. Job results from direct generation and `/api/panel/jobs/*` polling now normalize nested/alternate asset URL fields, convert relative URLs to absolute API URLs, and the preview media retries storage fallbacks if the first source fails.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/lib/api.ts`
+  - `adobe/saadstudio-cep/client/src/pages/feature-page.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-Cay1yqq6.js`.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-Cay1yqq6.js`.
+
+## Latest task: CEP Generate Video model parity and timeline references (2026-07-16)
+
+- Status:
+  Expanded CEP Generate Video to expose the site video models requested by the user and route model-specific aspect, duration, quality, image/video/audio references, start/end frames, and timeline selection references. Selecting a visual clip in Premiere now makes it available as an automatic reference when generating video: full video for models that accept reference video, otherwise a captured start frame for image/start-frame models.
+- Added/covered models:
+  - Kling, Kling 3.0, Kling V3 Turbo
+  - Minimax Hailuo 2.3 Fast, Minimax Hailuo 2.3
+  - Google Veo 3.1 Lite, Google Veo 3.1 Fast, Google Veo 3.1
+  - Gemini Omni Flash
+  - Seedance 2.0 Fast, Seedance 2.0 Mini, Seedance 2.0
+  - Grok Imagine Video 1.5, Grok Imagine Video 1.5 I2V
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/video-gen.ts`
+  - `app/api/panel/generate/video/route.ts`
+  - `adobe/saadstudio-cep/client/dist`
+  - `C:\Users\PC\AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep\client\dist`
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-CgMW7jVA.js`.
+  - `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed from the repo root.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-CgMW7jVA.js`.
+  - Stopped `CEPHtmlEngine` so Premiere reloads the updated bundle.
+
+## Latest task: CEP Expand model picker and Gemini Omni Flash video expand (2026-07-16)
+
+- Status:
+  Verified Expand was previously hard-wired to `wavespeed-ai/image-zoom-out` for images and `wavespeed-ai/video-outpainter` for videos. Added a model dropdown in the CEP Expand page. Image sources show the image zoom-out model; video sources show `Video Outpainter` and `Gemini Omni Flash`.
+- Behavior:
+  - `Gemini Omni Flash` is available only when the Expand source is a video.
+  - The panel sends `modelId` to `/api/panel/generate/expand`.
+  - The expand route dispatches `google/gemini-omni-flash` video inputs through the direct Google provider path with `videoUrl` as the source reference.
+  - Google video provider now maps `google/gemini-omni-flash`/`google/gemini-omni-video` to the `omni_flash` tier and passes video input into `startVeoGeneration`.
+- Affected files/paths:
+  - `adobe/saadstudio-cep/client/src/pages/draw-to-video.ts`
+  - `adobe/saadstudio-cep/client/src/lib/api.ts`
+  - `app/api/panel/generate/expand/route.ts`
+  - `lib/providers/google-video.ts`
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-DgYntijR.js`.
+  - `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed from the repo root.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-DgYntijR.js`.
+  - Stopped `CEPHtmlEngine` so Premiere reloads the updated bundle.
+
+## Latest task: CEP Expand label and public URL validation correction (2026-07-16)
+
+- Status:
+  Corrected the user-facing Expand model labels and hardened public URL handling after the panel showed `Image Zoom Out` and the route returned `Request failed (400): Please provide a valid public media URL.`
+- Behavior:
+  - Image Expand model label now shows `Expand Image` instead of the internal `Image Zoom Out` name.
+  - Video Expand model label now shows `Expand Video`, with `Gemini Omni Flash` available for video sources.
+  - CEP now blocks non-http upload results before sending to the API with a clearer error.
+  - `/api/panel/generate/expand` normalizes relative `/api/media/...` URLs into absolute app URLs before running the public URL safety check.
+- Verification:
+  - `npm.cmd run build` in `adobe/saadstudio-cep/client` passed and produced `index-yog2nAY2.js`.
+  - `node_modules\.bin\tsc.cmd --noEmit --incremental false` passed from the repo root.
+  - Copied the build to the AppData CEP extension; verified installed `index.html` points to `./assets/index-yog2nAY2.js`.
+  - Stopped `CEPHtmlEngine` so Premiere reloads the updated bundle.

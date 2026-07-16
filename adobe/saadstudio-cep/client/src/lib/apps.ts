@@ -63,8 +63,8 @@ export const APPS: AppDef[] = [
   },
   {
     id: "expand",
-    name: "Expand",
-    description: "Expand any image or video beyond its frame.",
+    name: "Video Extend",
+    description: "Extend an existing video by generating additional seconds.",
     route: "/expand",
     icon: "draw-pen",
     color: "#60a5fa", // sky blue
@@ -72,11 +72,11 @@ export const APPS: AppDef[] = [
   },
   {
     id: "edit-video",
-    name: "Edit video",
-    description: "Reimagine a selected shot with real prompt, preset and Grok Edit controls.",
+    name: "Music generation",
+    description: "Generate Lyria 3 music from prompts and image references.",
     route: "/edit-video",
-    icon: "magic-wand",
-    color: "#c084fc", // purple
+    icon: "waveform",
+    color: "#34d399", // emerald
   },
   {
     id: "remove-bg",
