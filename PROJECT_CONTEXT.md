@@ -16,6 +16,7 @@
     3. Live auto-refresh that checks subscription status and unlocks the page once the administrator approves the transaction.
 - Verification:
   - Ran both Next.js build (`npm run build`) and CEP client build (`npm run build:cep`) successfully without TypeScript compilation or bundling errors.
+  - Packaged the final verified extension into a signed release `adobe/saadstudio-cep/release/SaadStudio.zxp` successfully.
 
 ### Previous task: Dynamic Per-Second Credit Billing for Reap and ClipCraft Tools (2026-07-17)
 
