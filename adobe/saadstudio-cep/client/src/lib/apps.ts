@@ -185,9 +185,11 @@ const ALL_APPS: AppDef[] = [
   },
 ];
 
-export const APPS: AppDef[] = getHostApp() === "AEFT"
-  ? ALL_APPS.filter(app => !["add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch", "synchronize"].includes(app.id))
-  : ALL_APPS;
+export const APPS: AppDef[] = getHostApp() === "PHXS"
+  ? ALL_APPS.filter(app => ["image-gen", "remove-bg", "upscale"].includes(app.id))
+  : getHostApp() === "AEFT"
+    ? ALL_APPS.filter(app => !["add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch", "synchronize"].includes(app.id))
+    : ALL_APPS;
 
 export function findApp(id: string): AppDef | undefined {
   return APPS.find((a) => a.id === id);

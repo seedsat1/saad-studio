@@ -30,11 +30,11 @@ declare global {
 
 export const isInsideAdobe = (): boolean => typeof window.__adobe_cep__ !== "undefined";
 
-export function getHostApp(): "PPRO" | "AEFT" | "BROWSER" {
+export function getHostApp(): "PPRO" | "AEFT" | "PHXS" | "BROWSER" {
   if (!window.__adobe_cep__) return "BROWSER";
   try {
     const env = JSON.parse(window.__adobe_cep__.getHostEnvironment());
-    return (env.appName || "PPRO") as "PPRO" | "AEFT";
+    return (env.appName || "PPRO") as "PPRO" | "AEFT" | "PHXS";
   } catch {
     return "PPRO";
   }
@@ -44,6 +44,7 @@ export function getHostName(): string {
   const host = getHostApp();
   if (host === "AEFT") return "After Effects";
   if (host === "PPRO") return "Premiere Pro";
+  if (host === "PHXS") return "Photoshop";
   return "browser";
 }
 
@@ -67,21 +68,27 @@ export function getHostEnvironmentInfo(): {
 
 export function getHostSelectionLabel(): string {
   const host = getHostApp();
+  if (host === "PHXS") return "active canvas/layer";
   return host === "AEFT" ? "timeline or active comp" : "timeline";
 }
 
 export function getHostImportButtonLabel(): string {
   const host = getHostApp();
+  if (host === "PHXS") return "Import to active layer";
   return host === "AEFT" ? "Import to project/comp" : "Import to project";
 }
 
 export function getHostImportSuccessMessage(): string {
   const host = getHostApp();
+  if (host === "PHXS") return "Imported as a new layer";
   return host === "AEFT" ? "Imported to project and active comp" : "Imported to project bin";
 }
 
 export function getHostDragTargetLabel(kind: "image" | "video" | "audio" = "video"): string {
   const host = getHostApp();
+  if (host === "PHXS") {
+    return "Photoshop active layer";
+  }
   if (host === "AEFT") {
     return kind === "video" ? "After Effects project/comp" : "After Effects project/comp";
   }
