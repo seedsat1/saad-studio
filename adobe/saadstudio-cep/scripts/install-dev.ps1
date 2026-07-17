@@ -28,7 +28,7 @@ if (Test-Path $linkPath) {
 
 Write-Host "Linking $source"
 Write-Host "     -> $linkPath"
-New-Item -ItemType SymbolicLink -Path $linkPath -Target $source | Out-Null
+New-Item -ItemType Junction -Path $linkPath -Target $source | Out-Null
 
 Write-Host ""
 Write-Host "Done. Restart Premiere Pro or After Effects, then open:"
