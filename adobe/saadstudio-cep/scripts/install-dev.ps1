@@ -15,24 +15,29 @@ foreach ($v in 9, 10, 11, 12) {
 
 $source = (Resolve-Path "$PSScriptRoot\..").Path
 $cepRoot = Join-Path $env:APPDATA "Adobe\CEP\extensions"
-$linkPath = Join-Path $cepRoot "app.saadstudio.cep"
+$linkPaths = @(
+    (Join-Path $cepRoot "app.saadstudio.cep"),
+    (Join-Path $cepRoot "Saad Studio 2.0.0")
+)
 
 if (-not (Test-Path $cepRoot)) {
     New-Item -ItemType Directory -Force -Path $cepRoot | Out-Null
 }
 
-if (Test-Path $linkPath) {
-    Write-Host "Removing existing link at $linkPath"
-    if ((Get-Item $linkPath).Attributes -like "*ReparsePoint*") {
-        [System.IO.Directory]::Delete($linkPath)
-    } else {
-        Remove-Item $linkPath -Recurse -Force
+foreach ($linkPath in $linkPaths) {
+    if (Test-Path $linkPath) {
+        Write-Host "Removing existing link at $linkPath"
+        if ((Get-Item $linkPath).Attributes -like "*ReparsePoint*") {
+            [System.IO.Directory]::Delete($linkPath)
+        } else {
+            Remove-Item $linkPath -Recurse -Force
+        }
     }
-}
 
-Write-Host "Linking $source"
-Write-Host "     -> $linkPath"
-New-Item -ItemType Junction -Path $linkPath -Target $source | Out-Null
+    Write-Host "Linking $source"
+    Write-Host "     -> $linkPath"
+    New-Item -ItemType Junction -Path $linkPath -Target $source | Out-Null
+}
 
 Write-Host ""
 Write-Host "Done. Restart Premiere Pro or After Effects, then open:"
