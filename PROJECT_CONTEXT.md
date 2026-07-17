@@ -1,6 +1,18 @@
 # Saad Studio Project Context Update
 
-### Latest task: Podcast Extension $4 Pricing & 2-PC Device Limit Update (2026-07-18)
+### Latest task: Pricing Page UI Polish & Arabic Translation Fix (2026-07-18)
+
+- Status:
+  Fixed price calculation ($4/mo), added full Arabic translations, updated grid layout to 6 columns, and removed inner enclosed boxes on plan cards.
+- Changes:
+  - Updated `PLAN_MONTHLY_PRICE` and `PLAN_ANNUAL_DISCOUNT` in [app/(landing)/(routes)/pricing/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/pricing/page.tsx) for `podcast` plan so it displays `$4 / mo` instead of falling back to `$0`.
+  - Added Arabic keys for the Podcast Extension plan in `usePricingTranslation()` (`dict.ar`) so titles, taglines, and features automatically switch when changing site language to Arabic.
+  - Updated grid layout to `grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 items-stretch` to present all 6 plans side-by-side cleanly without awkward wrapping.
+  - Removed inner enclosed dark border boxes (`p-3 rounded-2xl border`) around card headers and credit callouts for an open, spacious design.
+- Verification:
+  - Pushed all commits to main repository (`saad-studio`).
+
+### Previous task: Podcast Extension $4 Pricing & 2-PC Device Limit Update (2026-07-18)
 
 - Status:
   Updated pricing page and admin dashboard for Podcast Extension Plan. Set price to $4/month and added explicit 2 PC device limitation notice.
