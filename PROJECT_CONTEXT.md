@@ -1,6 +1,16 @@
 # Saad Studio Project Context Update
 
-### Latest task: Photoshop Host Adaptive Tool Filtering & Packaging (2026-07-17)
+### Latest task: Fix for Premature Gemini Omni Flash Polling Failures (2026-07-17)
+
+- Status:
+  Fixed a race condition/bug where transient rate limit or quota exceeded errors (such as 403 Forbidden or 400 Bad Request) on Google status polling GET requests prematurely failed the video generation task.
+- Changes:
+  - Modified `isMissingProviderTask` regex in [app/api/video/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts#L210-L212) to exclude HTTP status codes `403`, `401`, and `400` (which were incorrectly grouped into the "job not found or expired" list).
+  - This ensures polling does not abort the task when it hits transient rate limits on the status check endpoint, allowing Google to finish the generation in the background and successfully retrieve the resulting video URL.
+- Verification:
+  - Verified code syntax and changes. Checked the diff using git diff to ensure clean implementation.
+
+### Previous task: Photoshop Host Adaptive Tool Filtering & Packaging (2026-07-17)
 
 - Status:
   Added Adobe Photoshop support (`PHXS`) and adaptive tool filtering to the CEP extension.
@@ -10,6 +20,7 @@
   - Updated the global app catalog filtering in `adobe/saadstudio-cep/client/src/lib/apps.ts` so that if `getHostApp() === "PHXS"`, only image-related tools (`"image-gen"`, `"remove-bg"`, `"upscale"`) remain enabled. This completely hides all timeline, video, and audio automation tools.
 - Verification:
   - Built (`npm run build:cep`) and packaged successfully into `SaadStudio.zxp` ready for installer deployment.
+
 
 ### Previous task: After Effects Host Adaptive Tool Filtering & Packaging (2026-07-17)
 
