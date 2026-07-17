@@ -107,21 +107,23 @@ export async function runPodcastAutoCaptions(
     return failed(model, [`CAPTION_RUNTIME_NOT_READY:${runtime.blockers.join("|")}`]);
   }
   const node = getNodeRuntime();
-  const modelPaths: Record<CaptionModel, string> = {
-    "base": runtime.layout.baseModelRoot,
-    "medium": "E:\\Multi-Cam Auto Switch\\whisper\\whisper medium",
-    "large-v3-turbo": "E:\\Multi-Cam Auto Switch\\whisper\\whisper large v3 turbo",
-    "large-v3": "E:\\Multi-Cam Auto Switch\\whisper\\whisper large v3"
+  const getModelPath = (modelKey: CaptionModel): string => {
+    const defaultAppDir = node.path.join(runtime.layout!.modelsRoot, modelKey);
+    const localDrivePaths: Record<CaptionModel, string[]> = {
+      "base": [runtime.layout!.baseModelRoot, defaultAppDir],
+      "medium": ["E:\\Multi-Cam Auto Switch\\whisper\\whisper medium", runtime.layout!.mediumModelRoot, defaultAppDir],
+      "large-v3-turbo": ["E:\\Multi-Cam Auto Switch\\whisper\\whisper large v3 turbo", defaultAppDir],
+      "large-v3": ["E:\\Multi-Cam Auto Switch\\whisper\\whisper large v3", defaultAppDir],
+    };
+    const candidates = localDrivePaths[modelKey] || [defaultAppDir];
+    return candidates.find((p) => node.fs.existsSync(p) && node.fs.existsSync(node.path.join(p, "model.bin"))) || candidates[0];
   };
 
   let finalModel = model;
   let fallbackOccurred = false;
   let fallbackReason = "";
 
-  // We do not auto-downgrade the model anymore. The user is allowed to run Standard (medium)
-  // and Professional (large-v3) models on CPU/weak hardware, and we show warnings in the UI.
-
-  const modelDir = modelPaths[finalModel];
+  const modelDir = getModelPath(finalModel);
   const modelBin = node.path.join(modelDir, "model.bin");
   if (!node.fs.existsSync(modelDir) || !node.fs.existsSync(modelBin)) {
     return failed(finalModel, ["SELECTED_WHISPER_MODEL_NOT_FOUND", `The Whisper model files were not found at ${modelDir}`]);
