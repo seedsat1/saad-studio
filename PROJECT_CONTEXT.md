@@ -1,6 +1,22 @@
 # Saad Studio Project Context Update
 
-### Latest task: CEP Clip Maker, Auto Reframe, AI Dubbing, Audiogram, Add Captions validation improvements, Debug Panel removal, Version Bump, Bilingual Translations, Logo Size Polish & Cropped Asset Integration (2026-07-17)
+### Latest task: Dynamic Per-Second Credit Billing for Reap and ClipCraft Tools (2026-07-17)
+
+- Status:
+  Transitioned all Reap automation tools (AI Clip Maker, Add Captions, AI Dubbing, Auto Reframe, Audiogram, Transcription) from static flat-rate pricing to dynamic duration-based billing per second (with a minimum cost of 1 credit and 50% target profit margin).
+- Behavior:
+  - Added a helper function `calculateDynamicCost(tool, durationSec)` to determine credit costs dynamically:
+    - **AI Dubbing (`dubbing`)**: 4 credits/minute (`4/60` credits/sec).
+    - **Transcription (`transcription`)**: 0.5 credits/minute (`0.5/60` credits/sec).
+    - **Other Tools (`captions`, `reframe`, `audiogram`, `edit-videos`)**: 1 credit/minute (`1/60` credits/sec).
+    - Defaults to a **60-second fallback** (1 minute cost) if duration is missing or 0.
+    - Guarantees a minimum cost of **1 credit**.
+  - Updated `app/api/panel/reap/start/route.ts` to calculate cost dynamically from video/audio duration.
+  - Updated `app/api/clipcraft/start/route.ts` to use the same dynamic calculation, maintaining parity between the Premiere CEP extension and the web clients.
+- Verification:
+  - Successful Next.js production build (`npm run build`) completed with zero TypeScript compile or route routing errors.
+
+### Previous task: CEP Clip Maker, Auto Reframe, AI Dubbing, Audiogram, Add Captions validation improvements, Debug Panel removal, Version Bump, Bilingual Translations, Logo Size Polish & Cropped Asset Integration (2026-07-17)
 
 - Status:
   Added client-side validation and duration/size resolution improvements for AI Clip Maker, Auto Reframe, AI Dubbing, Audiogram, and Add Captions pages, removed the Debug Panel, fully implemented English/Arabic translation support for the Add Captions page, bumped the client header version label to v2.0, integrated the new cropped header logo asset, and polished the header logo styling inside the Premiere CEP extension.

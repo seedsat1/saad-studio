@@ -24,14 +24,16 @@ const KNOWN_TOOLS = new Set<ReapTool>([
   "edit-videos",
 ]);
 
-const TOOL_COST: Record<ReapTool, number> = {
-  "captions":      50,
-  "reframe":       80,
-  "dubbing":      120,
-  "audiogram":     80,
-  "transcription": 30,
-  "edit-videos":  150,
-};
+function calculateDynamicCost(tool: ReapTool, durationSec?: number): number {
+  const sec = typeof durationSec === "number" && durationSec > 0 ? durationSec : 60;
+  let rate = 1 / 60; // Default: 1 credit per minute
+  if (tool === "dubbing") {
+    rate = 4 / 60; // 4 credits per minute
+  } else if (tool === "transcription") {
+    rate = 0.5 / 60; // 0.5 credits per minute
+  }
+  return Math.max(1, Math.ceil(sec * rate));
+}
 
 const TOOL_TO_ASSET_TYPE: Record<ReapTool, "VIDEO" | "TRANSCRIPTION"> = {
   "captions":      "VIDEO",
@@ -95,10 +97,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Account suspended." }, { status: 403 });
   }
 
-  const cost = TOOL_COST[tool];
-  const prompt = sanitizePrompt(body.prompt ?? `ClipCraft ${tool}`, 500);
-  const options = normalizeReapOptions(tool, body.options ?? {});
-
   const inputDuration = typeof body.options?.duration === "number"
     ? body.options.duration
     : typeof body.options?.inputDuration === "number"
@@ -106,6 +104,10 @@ export async function POST(req: NextRequest) {
     : typeof body.options?.videoDuration === "number"
     ? body.options.videoDuration
     : undefined;
+
+  const cost = calculateDynamicCost(tool, inputDuration);
+  const prompt = sanitizePrompt(body.prompt ?? `ClipCraft ${tool}`, 500);
+  const options = normalizeReapOptions(tool, body.options ?? {});
 
   let generationId: string;
   try {
