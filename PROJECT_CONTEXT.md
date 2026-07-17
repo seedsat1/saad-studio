@@ -1,6 +1,18 @@
 # Saad Studio Project Context Update
 
-### Latest task: Photoshop Import Fix & Draw Panel Removal (2026-07-17)
+### Latest task: Podcast Extension $4 Pricing & 2-PC Device Limit Update (2026-07-18)
+
+- Status:
+  Updated pricing page and admin dashboard for Podcast Extension Plan. Set price to $4/month and added explicit 2 PC device limitation notice.
+- Changes:
+  - Updated [app/(landing)/(routes)/pricing/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/pricing/page.tsx) to introduce the dedicated "Podcast Extension Plan" card with `$4/month` pricing and an explicit feature notice limiting usage to 2 PC devices per subscriber account.
+  - Updated [app/admin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx) to add `podcast` plan options to the plan filter, manual transfer approval engine, and email tools.
+  - Updated extension manifest version to `2.0.0` and menu name to `Saad Studio 2.0.0` in [adobe/saadstudio-cep/CSXS/manifest.xml](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/CSXS/manifest.xml).
+  - Built (`npm run build:cep`) and signed/packaged ZXP release (`SaadStudio.zxp`) successfully.
+- Verification:
+  - Pushed all commits to main repository (`saad-studio`).
+
+### Previous task: Photoshop Import Fix & Draw Panel Removal (2026-07-17)
 
 - Status:
   Implemented native image placement for Photoshop and removed the unused "Draw to Edit" secondary panel from the extension manifest.
