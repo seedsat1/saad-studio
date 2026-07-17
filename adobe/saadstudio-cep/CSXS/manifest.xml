@@ -2,12 +2,12 @@
 <ExtensionManifest
   Version="6.0"
   ExtensionBundleId="app.saadstudio.cep"
-  ExtensionBundleVersion="1.0.0"
-  ExtensionBundleName="Saad Studio Beta 1.0.0"
+  ExtensionBundleVersion="2.0.0"
+  ExtensionBundleName="Saad Studio 2.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 >
   <ExtensionList>
-    <Extension Id="app.saadstudio.cep.main" Version="1.0.0" />
+    <Extension Id="app.saadstudio.cep.main" Version="2.0.0" />
   </ExtensionList>
 
   <ExecutionEnvironment>
@@ -42,7 +42,7 @@
         </Lifecycle>
         <UI>
           <Type>Panel</Type>
-          <Menu>Saad Studio Beta 1.0.0</Menu>
+          <Menu>Saad Studio 2.0.0</Menu>
           <Geometry>
             <Size>
               <Width>600</Width>
