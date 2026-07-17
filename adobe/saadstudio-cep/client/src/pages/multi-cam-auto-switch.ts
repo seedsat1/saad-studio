@@ -312,10 +312,14 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   let sequencePollInFlight = false;
   let sequenceWatcherSawPageMounted = false;
 
+  let isInitialLoading = true;
+
   // Load and refresh user to get current subscription status immediately
   store.refreshUser().then(() => {
+    isInitialLoading = false;
     render();
   }).catch(() => {
+    isInitialLoading = false;
     render();
   });
   void refreshDiagnostics();
@@ -484,6 +488,23 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
 
   function render() {
     const user = store.get().user;
+    if (isInitialLoading && !user) {
+      page.replaceChildren(
+        el("div.podcast-loading-container", {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            color: "#94a3b8",
+            fontSize: "14px"
+          }
+        }, "Checking status / جاري التحقق من الاشتراك...")
+      );
+      return;
+    }
+
     const hasAccess = user?.role === "ADMIN" || (
       user?.subscription?.active && (
         user.subscription.planId === "podcast" ||
