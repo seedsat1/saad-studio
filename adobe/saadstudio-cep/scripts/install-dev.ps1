@@ -23,7 +23,11 @@ if (-not (Test-Path $cepRoot)) {
 
 if (Test-Path $linkPath) {
     Write-Host "Removing existing link at $linkPath"
-    Remove-Item $linkPath -Recurse -Force
+    if ((Get-Item $linkPath).Attributes -like "*ReparsePoint*") {
+        [System.IO.Directory]::Delete($linkPath)
+    } else {
+        Remove-Item $linkPath -Recurse -Force
+    }
 }
 
 Write-Host "Linking $source"

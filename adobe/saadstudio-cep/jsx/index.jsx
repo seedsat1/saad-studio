@@ -15,9 +15,10 @@
     if (!host.saadstudio) host.saadstudio = {};
 
     var APP = (typeof BridgeTalk !== "undefined" && BridgeTalk.appName)
-              ? BridgeTalk.appName : "";    // "premierepro" | "aftereffects"
+              ? BridgeTalk.appName : "";    // "premierepro" | "aftereffects" | "photoshop"
     var IS_PPRO = APP.indexOf("premiere") === 0;
     var IS_AEFT = APP.indexOf("aftereffects") === 0;
+    var IS_PHXS = APP.indexOf("photoshop") === 0;
     var PREMIERE_TICKS_PER_SECOND = 254016000000;
 
     // ─── Utilities ─────────────────────────────────────────────────────
@@ -4468,6 +4469,25 @@
         return String(value || "").replace(/\//g, "\\").toLowerCase();
     }
 
+    function photoshopPlaceFile(file) {
+        if (app.documents.length === 0) {
+            app.open(file);
+            return;
+        }
+        try {
+            var idPlc = charIDToTypeID("Plc ");
+            var desc = new ActionDescriptor();
+            var idnull = charIDToTypeID("null");
+            desc.putPath(idnull, file);
+            var idFTcs = charIDToTypeID("FTcs");
+            var idQCmp = charIDToTypeID("QCmp");
+            desc.putEnumerated(idFTcs, idQCmp, idQCmp);
+            executeAction(idPlc, desc, DialogModes.NO);
+        } catch (e) {
+            app.open(file);
+        }
+    }
+
     function importProjectItemOnly(path, toolBinName) {
         if (!path) throw new Error("No path provided");
         var f = new File(path);
@@ -4492,6 +4512,15 @@
                 ok: true,
                 imported: true,
                 itemId: item.id,
+                binPath: f.fsName
+            };
+        }
+
+        if (IS_PHXS) {
+            photoshopPlaceFile(f);
+            return {
+                ok: true,
+                imported: true,
                 binPath: f.fsName
             };
         }
@@ -4559,6 +4588,11 @@
                 if (ai instanceof CompItem) ai.layers.add(item);
                 app.endUndoGroup();
                 return { ok: true, itemId: item.id };
+            }
+
+            if (IS_PHXS) {
+                photoshopPlaceFile(f);
+                return { ok: true };
             }
 
             throw new Error("Unsupported host: " + APP);
@@ -4744,6 +4778,11 @@
                 }
                 app.endUndoGroup();
                 return { ok: true, placed: placed, itemId: item.id };
+            }
+
+            if (IS_PHXS) {
+                photoshopPlaceFile(f);
+                return { ok: true, placed: true };
             }
 
             throw new Error("Unsupported host: " + APP);

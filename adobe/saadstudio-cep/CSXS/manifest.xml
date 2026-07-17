@@ -8,7 +8,6 @@
 >
   <ExtensionList>
     <Extension Id="app.saadstudio.cep.main" Version="1.0.0" />
-    <Extension Id="app.saadstudio.cep.draw" Version="1.0.0" />
   </ExtensionList>
 
   <ExecutionEnvironment>
@@ -63,36 +62,6 @@
             <Icon Type="DarkNormal">./icons/logo.png</Icon>
             <Icon Type="RollOver">./icons/logo.png</Icon>
             <Icon Type="DarkRollOver">./icons/logo.png</Icon>
-          </Icons>
-        </UI>
-      </DispatchInfo>
-    </Extension>
-
-    <Extension Id="app.saadstudio.cep.draw">
-      <DispatchInfo>
-        <Resources>
-          <MainPath>./client/dist/draw.html</MainPath>
-          <ScriptPath>./jsx/index.jsx</ScriptPath>
-          <CEFCommandLine>
-            <Parameter>--enable-nodejs</Parameter>
-            <Parameter>--mixed-context</Parameter>
-          </CEFCommandLine>
-        </Resources>
-        <Lifecycle>
-          <AutoVisible>false</AutoVisible>
-        </Lifecycle>
-        <UI>
-          <Type>Panel</Type>
-          <Menu>Saad Studio Beta 1.0.0 — Draw to Edit</Menu>
-          <Geometry>
-            <Size>
-              <Width>720</Width>
-              <Height>760</Height>
-            </Size>
-          </Geometry>
-          <Icons>
-            <Icon Type="Normal">./icons/logo.png</Icon>
-            <Icon Type="DarkNormal">./icons/logo.png</Icon>
           </Icons>
         </UI>
       </DispatchInfo>
