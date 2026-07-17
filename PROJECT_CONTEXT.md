@@ -1,6 +1,18 @@
 # Saad Studio Project Context Update
 
-### Latest task: Subscription & 7-Day Free Trial for Podcast Automation (2026-07-17)
+### Latest task: After Effects Host Adaptive Tool Filtering & Packaging (2026-07-17)
+
+- Status:
+  Added host environment detection to the CEP extension to adaptively filter out Premiere Pro-specific timeline automation tools when running inside After Effects (AEFT).
+- Behavior:
+  - Updated `adobe/saadstudio-cep/client/src/lib/apps.ts` to dynamically inspect the active host via `getHostApp()`.
+  - Filtered out `"add-captions"`, `"edit-clips"`, `"auto-reframe"`, `"multi-cam-auto-switch"`, and `"synchronize"` from the global `APPS` catalog if `getHostApp() === "AEFT"`.
+  - This automatically hides those Premiere-specific categories and card buttons from the Home page grid and sidebar configurations in After Effects, while keeping all generative AI models (image, video, dubbing, etc.) active.
+- Verification:
+  - Ran both extension build (`npm run build:cep`) and Next.js server build successfully.
+  - Packaged the final adaptive build into the signed `SaadStudio.zxp` bundle.
+
+### Previous task: Subscription & 7-Day Free Trial for Podcast Automation (2026-07-17)
 
 - Status:
   Locked the Podcast Automation (Multi-Cam Auto Switch / Synchronize) tools in the CEP extension behind a dedicated $3/month subscription plan, integrated it with the manual payment (QiCard / Zain Cash) verification system, and added a one-time 7-day free trial claimed directly from the extension.
