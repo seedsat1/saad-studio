@@ -36,11 +36,22 @@ Copy-Item (Join-Path $root "jsx") $extensionDir -Recurse
 Copy-Item (Join-Path $root "icons") $extensionDir -Recurse
 Copy-Item (Join-Path $root "runtime-manifests") $extensionDir -Recurse
 Copy-Item (Join-Path $root "runtime-assets") $extensionDir -Recurse
-$ffmpegExe = Join-Path (Split-Path $root -Parent | Split-Path -Parent) "node_modules\ffmpeg-static\ffmpeg.exe"
-if (Test-Path $ffmpegExe) {
+$ffmpegCandidates = @(
+    (Join-Path $root "..\..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\..\node_modules\ffmpeg-static\ffmpeg.exe"),
+    (Join-Path $root "..\..\..\..\..\node_modules\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
+    (Join-Path $root "..\..\..\..\node_modules\@ffmpeg-installer\win32-x64\ffmpeg.exe"),
+    "E:\موقع ثاني\next14 ai saas\next14-ai-saas-main\next14-ai-saas-main\node_modules\ffmpeg-static\ffmpeg.exe"
+)
+$ffmpegExe = $ffmpegCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($ffmpegExe) {
+    Write-Host "Bundling FFmpeg binary from $ffmpegExe"
     $ffmpegDir = Join-Path $extensionDir "tools\ffmpeg"
     New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
     Copy-Item $ffmpegExe (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+} else {
+    Write-Warning "FFmpeg executable not found in node_modules."
 }
 New-Item -ItemType Directory -Path (Join-Path $extensionDir "client") -Force | Out-Null
 Copy-Item $distDir (Join-Path $extensionDir "client") -Recurse
