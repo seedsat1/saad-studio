@@ -137,6 +137,7 @@ Hosts: $hostNames
 Set-Content -Path (Join-Path $releaseDir "install.md") -Value $installDoc -Encoding UTF8
 Set-Content -Path (Join-Path $releaseDir "troubleshooting.md") -Value $troubleshootingDoc -Encoding UTF8
 Set-Content -Path (Join-Path $releaseDir "notes.txt") -Value $notesDoc -Encoding UTF8
+Copy-Item (Join-Path $root "scripts\install-models.bat") (Join-Path $releaseDir "install-models.bat") -Force
 
 Compress-Archive -Path $extensionDir -DestinationPath $manualZip -Force
 
