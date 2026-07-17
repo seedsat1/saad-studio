@@ -26,7 +26,9 @@ export interface AppDef {
   comingSoon?: boolean;
 }
 
-export const APPS: AppDef[] = [
+import { getHostApp } from "./cep";
+
+const ALL_APPS: AppDef[] = [
   {
     id: "image-gen",
     name: "Image generation",
@@ -182,6 +184,10 @@ export const APPS: AppDef[] = [
     comingSoon: true,
   },
 ];
+
+export const APPS: AppDef[] = getHostApp() === "AEFT"
+  ? ALL_APPS.filter(app => !["add-captions", "edit-clips", "auto-reframe", "multi-cam-auto-switch", "synchronize"].includes(app.id))
+  : ALL_APPS;
 
 export function findApp(id: string): AppDef | undefined {
   return APPS.find((a) => a.id === id);
