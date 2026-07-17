@@ -227,6 +227,7 @@ const TOPUPS = [
 ];
 
 const PLAN_MONTHLY_PRICE: Record<string, number> = {
+  podcast: 4,
   try: 5,
   starter: 15,
   plus: 35,
@@ -235,6 +236,7 @@ const PLAN_MONTHLY_PRICE: Record<string, number> = {
 };
 
 const PLAN_ANNUAL_DISCOUNT: Record<string, number> = {
+  podcast: 0,
   try: 0, // monthly only
   starter: 0, // monthly only
   plus: 10,
@@ -319,6 +321,21 @@ function usePricingTranslation() {
       "Annual": "سنوياً",
       
       // Plans
+      "Podcast Extension": "إضافة البودكاست",
+      "Complete Premiere Pro & After Effects Podcast Suite": "حزمة البودكاست والمونتاج الآلي لبريمير وافترافيكت",
+      "Unlimited Extension Usage": "استخدام غير محدود للإضافة",
+      "Get Extension for $4": "اشترك بـ $4 فقط",
+      "Full access to Multi-Cam Auto Switcher in Premiere Pro": "وصول كامل لأداة المونتاج التلقائي Multi-Cam في بريمير",
+      "Auto Captions & Subtitle Generation (Faster-Whisper)": "توليد الكتابة والترجمة الآلية (Faster-Whisper)",
+      "Multi-track audio synchronization & Speaker Activity RMS": "مزامنة الصوت متعدد المسارات وتحليل المتحدثين",
+      "1-Click Podcast Auto Editing Suite": "حزمة مونتاج البودكاست بنقرة زر واحدة",
+      "Limited to 2 PC devices per subscriber account (ترخيص يعمل على حاسوبين كحد أقصى)": "ترخيص يعمل على حاسوبين كحد أقصى لكل حساب",
+      "7-Day Free Trial available on request": "تجربة مجانية لمدة 7 أيام عند الطلب",
+      "Multi-Cam Auto Switch + Auto Captions + Sync + 1-Click": "مونتاج Multi-Cam تلقائي + ترجمة + مزامنة صوتية",
+      "Multi-Cam Auto Switch": "تبديل الكاميرات التلقائي",
+      "Auto Captions": "التسميات الآلية",
+      "Audio Sync": "مزامنة الصوت",
+      "1-Click Podcast Edit": "مونتاج بنقرة واحدة",
       "Try": "تجريبي",
       "Test the studio with one quick taste": "اختبر الاستوديو بتجربة سريعة واحدة",
       "70 credits / mo": "70 نقطة / شهر",
@@ -474,8 +491,9 @@ export default function PricingPage() {
       .catch(() => null);
   }, []);
 
-  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ podcast: Crown, try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
   const ACCENT_MAP = useMemo<Record<string, { bg: string; border: string; iconColor: string; ctaStyle: string }>>(() => ({
+    podcast: { bg: "bg-amber-500/10",  border: "border-amber-500/40",  iconColor: "text-amber-400",  ctaStyle: "bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg shadow-amber-500/25" },
     try:     { bg: "bg-emerald-500/10", border: "border-emerald-500/30", iconColor: "text-emerald-400", ctaStyle: "border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10" },
     starter: { bg: "bg-violet-500/10", border: "border-violet-500/30", iconColor: "text-violet-400", ctaStyle: "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25" },
     plus:    { bg: "bg-slate-500/10",  border: "border-slate-700",     iconColor: "text-slate-400",  ctaStyle: "border border-slate-700 text-slate-200 hover:bg-slate-800" },
@@ -612,7 +630,7 @@ export default function PricingPage() {
         {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section>
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 items-start"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 items-stretch"
             variants={stagger}
             initial="hidden"
             whileInView="visible"
@@ -628,15 +646,15 @@ export default function PricingPage() {
                 variants={slideUp}
                 className={`relative flex flex-col rounded-3xl border p-6 backdrop-blur-sm transition-all duration-300
                   ${isCurrent
-                    ? "bg-slate-900/85 border-emerald-400 shadow-[0_0_44px_rgba(16,185,129,0.28)] scale-[1.03]"
+                    ? "bg-slate-900/85 border-emerald-400 shadow-[0_0_44px_rgba(16,185,129,0.28)] scale-[1.02]"
                     : plan.highlight
-                    ? "bg-slate-900/80 border-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.25)] scale-[1.03]"
+                    ? "bg-slate-900/80 border-amber-500/60 shadow-[0_0_40px_rgba(245,158,11,0.25)] scale-[1.02]"
                     : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
                   }`}
               >
                 {/* Popular badge */}
                 {plan.highlight && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-500 to-violet-600 text-xs font-bold text-white shadow-lg whitespace-nowrap">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-xs font-bold text-slate-950 shadow-lg whitespace-nowrap">
                     {t("Most Popular")}
                   </div>
                 )}
@@ -646,12 +664,12 @@ export default function PricingPage() {
                   </div>
                 )}
 
-                {/* Header */}
-                <div className={`flex items-center gap-3 mb-4 p-3 rounded-2xl ${plan.accentBg} border ${plan.accentBorder}`}>
-                  <plan.Icon className={`w-5 h-5 ${plan.iconColor}`} />
+                {/* Header - Open layout without inner box */}
+                <div className="flex items-start gap-3 mb-4 pt-1">
+                  <plan.Icon className={`w-6 h-6 mt-0.5 shrink-0 ${plan.iconColor}`} />
                   <div>
-                    <p className="text-sm font-bold text-white">{t(plan.badge)}</p>
-                    <p className="text-xs text-slate-500 leading-tight">{t(plan.tagline)}</p>
+                    <h3 className="text-base font-bold text-white leading-snug">{t(plan.badge)}</h3>
+                    <p className="text-xs text-slate-400 leading-snug mt-0.5">{t(plan.tagline)}</p>
                   </div>
                 </div>
 
@@ -666,10 +684,11 @@ export default function PricingPage() {
                   <span className="text-slate-500 text-sm ml-1">{pricing.suffix}</span>
                 </div>
                 <p className="text-xs text-slate-500 mb-4">{pricing.period}</p>
-                {/* Credits callout */}
-                <div className={`rounded-xl px-3 py-2.5 mb-2 border ${plan.accentBg} ${plan.accentBorder}`}>
-                  <p className="text-sm font-bold text-white">{t(plan.credits)}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{getPlanGenerationAllowance(plan)}</p>
+
+                {/* Credits callout - Open typography without inner box */}
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-slate-100">{t(plan.credits)}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{getPlanGenerationAllowance(plan)}</p>
                 </div>
 
                 {/* CTA */}
