@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: Fix for Premature Gemini Omni Flash Polling Failures (2026-07-17)
+### Latest task: Fix for Flashing Lock Screen on Startup & Packaging (2026-07-17)
+
+- Status:
+  Resolved a UX issue where the subscription lock screen would briefly flash/show on startup before the user's active login state was resolved from the database.
+- Changes:
+  - Added an `isInitialLoading` state flag in [multi-cam-auto-switch.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/multi-cam-auto-switch.ts).
+  - Show a clean "Checking status / جاري التحقق من الاشتراك..." loading screen during initial mount while `store.refreshUser()` is in progress.
+  - This completely prevents the lock screen from flashing for admins or subscribed users on startup.
+- Verification:
+  - Built (`npm run build:cep`) and packaged successfully into `SaadStudio.zxp` ready for deployment.
+
+### Previous task: Fix for Premature Gemini Omni Flash Polling Failures (2026-07-17)
 
 - Status:
   Fixed a race condition/bug where transient rate limit or quota exceeded errors (such as 403 Forbidden or 400 Bad Request) on Google status polling GET requests prematurely failed the video generation task.
