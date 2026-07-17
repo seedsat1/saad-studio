@@ -28,6 +28,14 @@ interface PricingCmsData {
 // â”€â”€â”€ Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PLAN_FEATURES: Record<string, string[]> = {
+  podcast: [
+    "Full access to Multi-Cam Auto Switcher in Premiere Pro",
+    "Auto Captions & Subtitle Generation (Faster-Whisper)",
+    "Multi-track audio synchronization & Speaker Activity RMS",
+    "1-Click Podcast Auto Editing Suite",
+    "Unlimited timeline processing for active subscribers",
+    "7-Day Free Trial available on request",
+  ],
   try: [
     "Try the full studio with a small credit pack",
     "Selected model access",
@@ -64,6 +72,30 @@ const PLAN_FEATURES: Record<string, string[]> = {
 };
 
 const PLANS = [
+  {
+    id: "podcast",
+    badge: "Podcast Extension",
+    tagline: "Complete Premiere Pro & After Effects Podcast Suite",
+    credits: "Unlimited Extension Usage",
+    equiv: "Multi-Cam Auto Switch + Auto Captions + Sync + 1-Click",
+    price: "$29",
+    period: "per month, billed monthly",
+    cta: "Start 7-Day Trial or Subscribe",
+    ctaStyle: "bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg shadow-amber-500/25",
+    highlight: true,
+    Icon: Crown,
+    iconColor: "text-amber-400",
+    accentBg: "bg-amber-500/10",
+    accentBorder: "border-amber-500/40",
+    features: [
+      ...PLAN_FEATURES.podcast,
+    ],
+    unlimited: {
+      active: ["Multi-Cam Auto Switch", "Auto Captions", "Audio Sync", "1-Click Podcast Edit"],
+      coming: [],
+      none: [],
+    },
+  },
   {
     id: "try",
     badge: "Try",

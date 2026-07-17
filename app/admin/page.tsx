@@ -536,7 +536,7 @@ export default function AdminDashboard() {
   });
 
   const [emailMode, setEmailMode] = useState<"single" | "bulk" | "invoice">("bulk");
-  const [emailPlanId, setEmailPlanId] = useState<"all" | "starter" | "plus" | "pro" | "max">("all");
+  const [emailPlanId, setEmailPlanId] = useState<"all" | "podcast" | "try" | "starter" | "plus" | "pro" | "max">("all");
   const [emailTo, setEmailTo] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
@@ -1960,10 +1960,12 @@ export default function AdminDashboard() {
                         <p className="text-xs text-slate-500">Plan filter</p>
                         <select
                           value={emailPlanId}
-                          onChange={(e) => setEmailPlanId(e.target.value as "all" | "starter" | "plus" | "pro" | "max")}
+                          onChange={(e) => setEmailPlanId(e.target.value as "all" | "podcast" | "try" | "starter" | "plus" | "pro" | "max")}
                           className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-200 outline-none"
                         >
                           <option value="all">All plans</option>
+                          <option value="podcast">Podcast Extension Plan</option>
+                          <option value="try">Try Plan</option>
                           <option value="starter">Starter</option>
                           <option value="plus">Plus</option>
                           <option value="pro">Pro</option>
