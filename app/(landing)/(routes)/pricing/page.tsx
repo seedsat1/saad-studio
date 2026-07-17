@@ -78,9 +78,9 @@ const PLANS = [
     tagline: "Complete Premiere Pro & After Effects Podcast Suite",
     credits: "Unlimited Extension Usage",
     equiv: "Multi-Cam Auto Switch + Auto Captions + Sync + 1-Click",
-    price: "$4",
+    price: "$3",
     period: "per month, billed monthly",
-    cta: "Get Extension for $4",
+    cta: "Get Extension for $3",
     ctaStyle: "bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold shadow-lg shadow-amber-500/25",
     highlight: true,
     Icon: Crown,
@@ -227,7 +227,7 @@ const TOPUPS = [
 ];
 
 const PLAN_MONTHLY_PRICE: Record<string, number> = {
-  podcast: 4,
+  podcast: 3,
   try: 5,
   starter: 15,
   plus: 35,
@@ -324,7 +324,7 @@ function usePricingTranslation() {
       "Podcast Extension": "إضافة البودكاست",
       "Complete Premiere Pro & After Effects Podcast Suite": "حزمة البودكاست والمونتاج الآلي لبريمير وافترافيكت",
       "Unlimited Extension Usage": "استخدام غير محدود للإضافة",
-      "Get Extension for $4": "اشترك بـ $4 فقط",
+      "Get Extension for $3": "اشترك بـ $3 فقط",
       "Full access to Multi-Cam Auto Switcher in Premiere Pro": "وصول كامل لأداة المونتاج التلقائي Multi-Cam في بريمير",
       "Auto Captions & Subtitle Generation (Faster-Whisper)": "توليد الكتابة والترجمة الآلية (Faster-Whisper)",
       "Multi-track audio synchronization & Speaker Activity RMS": "مزامنة الصوت متعدد المسارات وتحليل المتحدثين",
@@ -576,7 +576,7 @@ export default function PricingPage() {
         <div className="absolute bottom-0 left-0 h-[350px] w-[350px] rounded-full bg-indigo-900/10 blur-[100px]" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-28">
+      <div className="relative z-10 max-w-[1920px] w-full mx-auto px-4 sm:px-6 lg:px-12 py-16 space-y-20">
 
         {/* â”€â”€ Hero â”€â”€ */}
         <motion.div
