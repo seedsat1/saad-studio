@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: After Effects Host Adaptive Tool Filtering & Packaging (2026-07-17)
+### Latest task: Photoshop Host Adaptive Tool Filtering & Packaging (2026-07-17)
+
+- Status:
+  Added Adobe Photoshop support (`PHXS`) and adaptive tool filtering to the CEP extension.
+- Behavior:
+  - Added `<Host Name="PHXS" Version="[22.0,99.9]" />` under the host environment tag in `adobe/saadstudio-cep/CSXS/manifest.xml`.
+  - Updated `getHostApp()` and labels functions in `adobe/saadstudio-cep/client/src/lib/cep.ts` to fully detect Photoshop (`PHXS`), adjust labels to refer to the active layer or canvas, and return custom drag/import success states.
+  - Updated the global app catalog filtering in `adobe/saadstudio-cep/client/src/lib/apps.ts` so that if `getHostApp() === "PHXS"`, only image-related tools (`"image-gen"`, `"remove-bg"`, `"upscale"`) remain enabled. This completely hides all timeline, video, and audio automation tools.
+- Verification:
+  - Built (`npm run build:cep`) and packaged successfully into `SaadStudio.zxp` ready for installer deployment.
+
+### Previous task: After Effects Host Adaptive Tool Filtering & Packaging (2026-07-17)
 
 - Status:
   Added host environment detection to the CEP extension to adaptively filter out Premiere Pro-specific timeline automation tools when running inside After Effects (AEFT).
