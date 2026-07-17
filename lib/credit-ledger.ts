@@ -203,6 +203,10 @@ export async function allocateSubscriptionCredits(
   const plan = SAAD_PLANS.find((p) => p.id === planId);
   if (!plan) return;
 
+  // The Podcast Automation plan (id: "podcast") has 0 credits.
+  // Approving/renewing it should not reset or modify the user's credits balance.
+  if (planId === "podcast") return;
+
   const now = new Date();
   await prismadb.user.update({
     where: { id: userId },

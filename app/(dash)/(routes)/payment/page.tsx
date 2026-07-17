@@ -33,6 +33,7 @@ const PLANS = [
   { id: "plus",    label: "Plus",    usd: 35, credits: 800,  Icon: Sparkles, color: "text-slate-300", bg: "bg-slate-500/10", border: "border-slate-500/40" },
   { id: "pro",     label: "Pro",     usd: 70, credits: 1800, Icon: Star,   color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40"   },
   { id: "max",     label: "Max",     usd: 99, credits: 2700, Icon: Crown,  color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40"  },
+  { id: "podcast", label: "Podcast Automation", usd: 3, credits: 0, Icon: CreditCard, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/40" },
 ];
 
 const TOPUPS = [
@@ -118,6 +119,8 @@ function usePaymentTranslation() {
       "Plus": "بلاس",
       "Pro": "برو",
       "Max": "ماكس",
+      "Podcast Automation": "أتمتة البودكاست",
+      "Unlimited access": "وصول غير محدود",
       "credits / mo": "نقطة / شهر",
       
       // Actions
@@ -534,13 +537,14 @@ function PaymentPageContent() {
   }, [liveMethods, selectedMethod]);
 
   // Live plans from CMS (USD only — IQD removed)
-  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown }), []);
+  const ICON_MAP = useMemo<Record<string, typeof Rocket>>(() => ({ try: Zap, starter: Rocket, plus: Sparkles, pro: Star, max: Crown, podcast: CreditCard }), []);
   const STYLE_MAP_PLANS = useMemo<Record<string, { color: string; bg: string; border: string }>>(() => ({
     try:     { color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/40" },
     starter: { color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" },
     plus:    { color: "text-slate-300",  bg: "bg-slate-500/10",  border: "border-slate-500/40" },
     pro:     { color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/40" },
     max:     { color: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/40" },
+    podcast: { color: "text-rose-400",   bg: "bg-rose-500/10",   border: "border-rose-500/40" },
   }), []);
   const defaultPlanStyle = useMemo(() => ({ color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/40" }), []);
 
@@ -639,7 +643,7 @@ function PaymentPageContent() {
         usd: Math.round(yearlyBaseUsd * (1 - discount / 100)),
         previousUsd: yearlyBaseUsd,
         suffix: t("/yr"),
-        creditsText: `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
+        creditsText: plan.id === "podcast" ? t("Unlimited access") : `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
         periodText: t("Billed yearly") + ` (${discount}% ${t("off")})`,
       };
     }
@@ -647,7 +651,7 @@ function PaymentPageContent() {
       usd: monthlyUsd,
       previousUsd: null,
       suffix: t("/mo"),
-      creditsText: `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
+      creditsText: plan.id === "podcast" ? t("Unlimited access") : `${plan.credits.toLocaleString()} ${t("credits / mo")}`,
       periodText: t("Billed monthly"),
     };
   };
@@ -706,7 +710,11 @@ function PaymentPageContent() {
         ? Number(selectedPlan?.credits ?? 0)
         : Number((selectedItem as typeof TOPUPS[number])?.credits ?? 0);
 
-    if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(credits) || credits <= 0) {
+    const isPodcastPlan = effectiveOrderType === "plan" && effectivePlanId === "podcast";
+    if (
+      !Number.isFinite(amount) || amount <= 0 ||
+      !Number.isFinite(credits) || (credits <= 0 && !isPodcastPlan)
+    ) {
       setSubmitError("Invalid order amount. Please re-select your plan/top-up.");
       return;
     }

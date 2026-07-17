@@ -1,6 +1,23 @@
 # Saad Studio Project Context Update
 
-### Latest task: Dynamic Per-Second Credit Billing for Reap and ClipCraft Tools (2026-07-17)
+### Latest task: Subscription & 7-Day Free Trial for Podcast Automation (2026-07-17)
+
+- Status:
+  Locked the Podcast Automation (Multi-Cam Auto Switch / Synchronize) tools in the CEP extension behind a dedicated $3/month subscription plan, integrated it with the manual payment (QiCard / Zain Cash) verification system, and added a one-time 7-day free trial claimed directly from the extension.
+- Behavior:
+  - Added `"podcast"` plan ($3/month, 0 credits) to `SAAD_PLANS` registry in `lib/pricing-models.ts` and the static payment page definitions in `app/(dash)/(routes)/payment/page.tsx`.
+  - Added early-exit bypass to `allocateSubscriptionCredits` in `lib/credit-ledger.ts` to ensure that activating the podcast plan does not reset or touch the user's credits balance.
+  - Allowed `credits === 0` in payment checkout forms and backend verification request endpoints when `planId === "podcast"`.
+  - Created a new secure POST endpoint `/api/panel/podcast/trial` in `app/api/panel/podcast/trial/route.ts` to claim a one-time 7-day trial. It checks user subscription history to prevent double-claiming.
+  - Exposed `stripePriceId` in panel profile responses in `app/api/panel/me/route.ts` to allow frontend history tracking.
+  - Designed and rendered a sleek bilingual lock screen inside the CEP extension `multi-cam-auto-switch.ts` containing:
+    1. A button linking to the manual payment page (`/payment?type=plan&id=podcast`) to pay $3/month.
+    2. A button to claim the 7-day trial (automatically hidden once claimed).
+    3. Live auto-refresh that checks subscription status and unlocks the page once the administrator approves the transaction.
+- Verification:
+  - Ran both Next.js build (`npm run build`) and CEP client build (`npm run build:cep`) successfully without TypeScript compilation or bundling errors.
+
+### Previous task: Dynamic Per-Second Credit Billing for Reap and ClipCraft Tools (2026-07-17)
 
 - Status:
   Transitioned all Reap automation tools (AI Clip Maker, Add Captions, AI Dubbing, Auto Reframe, Audiogram, Transcription) from static flat-rate pricing to dynamic duration-based billing per second (with a minimum cost of 1 credit and 50% target profit margin).

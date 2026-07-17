@@ -61,8 +61,10 @@ export interface PanelMe {
   role?: string;
   isBanned?: boolean;
   subscription?: {
+    active?: boolean;
     planId: string | null;
     billingInterval: string | null;
+    stripePriceId?: string | null;
     status?: string;
     currentPeriodEnd?: string;
   } | null;
@@ -205,6 +207,14 @@ export function openCreditsTopup() {
   if (now - lastCreditsTopupOpenAt < 5000) return;
   lastCreditsTopupOpenAt = now;
   openExternal(getCreditsTopupUrl());
+}
+
+export function getPodcastSubscriptionUrl(): string {
+  return `${getApiBase()}/payment?type=plan&id=podcast`;
+}
+
+export function openPodcastSubscription() {
+  openExternal(getPodcastSubscriptionUrl());
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -839,6 +849,9 @@ export const api = {
 
   /** Lightweight credit balance fetch (for header refresh). */
   credits: () => request<{ creditBalance: number }>("/api/panel/credits"),
+
+  /** Claim 7-day free trial for Podcast Automation. */
+  claimPodcastTrial: () => request<{ ok: boolean; renewsAt: string }>("/api/panel/podcast/trial", { method: "POST" }),
 
   /** Recent generations for the gallery strip. The exact endpoint may vary
    *  in your backend — adjust the path if your route differs. */

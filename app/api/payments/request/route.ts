@@ -72,7 +72,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "amount must be a positive number" }, { status: 400 });
     }
 
-    if (credits <= 0) {
+    const isPodcastPlan = orderType === "plan" && body.planId === "podcast";
+    if (credits <= 0 && !isPodcastPlan) {
       return NextResponse.json({ error: "credits must be greater than zero" }, { status: 400 });
     }
 

@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
         active: subscriptionActive,
         planId: subscription?.planId ?? null,
         billingInterval: subscription?.billingInterval ?? null,
+        stripePriceId: subscription?.stripePriceId ?? null,
         renewsAt: subscription?.stripeCurrentPeriodEnd ?? null,
       },
     });

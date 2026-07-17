@@ -1,4 +1,4 @@
-﻿import { el } from "../lib/dom";
+import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { icon } from "../lib/icons";
@@ -76,6 +76,9 @@ import type {
   PodcastExecutionResearchResult,
 } from "../lib/podcast/types/premiere";
 
+import { store } from "../lib/store";
+import { api, openPodcastSubscription } from "../lib/api";
+
 const DEFAULT_DIAGNOSTICS: PodcastDiagnostics = {
   activeSequence: false,
   sequenceId: null,
@@ -145,6 +148,13 @@ const PODCAST_TEXT = {
     fastMode: "Fast Mode",
     processingPipeline: "Processing Pipeline...",
     runOneClickEdit: "Run One Click Edit",
+    podcastLockTitle: "Podcast Automation Required",
+    podcastLockDesc: "Lock in standard timeline cuts, camera angles auto-switching, audio diagnostics, and local caption generation.",
+    podcastSubscribeBtn: "Subscribe for $3 / Month",
+    podcastTrialBtn: "Start 7-Day Free Trial",
+    podcastSubscribedThankYou: "Thank you for subscribing! Refreshing...",
+    trialClaimedSuccess: "7-Day Free Trial activated! Loading...",
+    trialClaimFailed: "Failed to activate free trial. Please try again.",
   },
   ar: {
     podcastAutomation: "\u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a",
@@ -164,7 +174,7 @@ const PODCAST_TEXT = {
     professional: "\u0627\u062d\u062a\u0631\u0627\u0641\u064a",
     autoCaptionsSubtitle: "\u0625\u0646\u0634\u0627\u0621 \u062a\u0631\u062c\u0645\u0627\u062a \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062a\u0639\u062f\u064a\u0644 \u0645\u062d\u0644\u064a\u064b\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 faster-whisper. \u0644\u0627 \u064a\u062a\u0645 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 Reap.",
     language: "\u0627\u0644\u0644\u063a\u0629",
-    subtitlesLevel: "\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0631\u062c\u0645\u0629",
+    subtitlesLevel: "\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u0629",
     engine: "\u0627\u0644\u0645\u062d\u0631\u0643",
     level: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649",
     audio: "\u0627\u0644\u0635\u0648\u062a",
@@ -187,6 +197,13 @@ const PODCAST_TEXT = {
     fastMode: "\u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0633\u0631\u064a\u0639",
     processingPipeline: "\u062c\u0627\u0631\u064d \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0645\u0633\u0627\u0631...",
     runOneClickEdit: "\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062a\u062d\u0631\u064a\u0631 \u0628\u0636\u063a\u0637\u0629 \u0648\u0627\u062d\u062f\u0629",
+    podcastLockTitle: "\u0645\u0637\u0644\u0648\u0628 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0623\u062a\u0645\u062a\u0629 \u0627\u0644\u0628\u0648\u062f\u0643\u0627\u0633\u062a",
+    podcastLockDesc: "\u0627\u0641\u062a\u062d \u0639\u0645\u0644\u064a\u0627\u062a \u0642\u0635 \u0627\u0644\u062a\u0627\u064a\u0645\u0644\u0627\u064a\u0646\u060c \u0648\u0627\u0644\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u062a\u0644\u0642\u0627\u0626\u064a \u0644\u0632\u0648\u0627\u064a\u0627 \u0627\u0644\u0643\u0627\u0645\u064a\u0631\u0627\u062a\u060c \u0648\u062a\u0634\u062e\u064a\u0635\u0627\u062a \u0627\u0644\u0635\u0648\u062a\u060c \u0648\u062a\u0648\u0644\u064a\u062f \u0627\u0644\u062a\u0631\u062c\u0645\u0627\u062a \u0627\u0644\u0645\u062d\u0644\u064a\u0629.",
+    podcastSubscribeBtn: "\u0627\u0634\u062a\u0631\u0643 \u0628\u0640 3$ / \u0634\u0647\u0631\u064a\u0627\u064b",
+    podcastTrialBtn: "\u0627\u0628\u062f\u0623 \u062a\u062c\u0631\u0628\u0629 \u0645\u062c\u0627\u0646\u064a\u0629 \u0644\u0645\u062f\u0629 7 \u0623\u064a\u0627\u0645",
+    podcastSubscribedThankYou: "\u0634\u0643\u0631\u064b\u0627 \u0644\u0627\u0634\u062a\u0631\u0627\u0643\u0643! \u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u062f\u064a\u062b...",
+    trialClaimedSuccess: "\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u062c\u0627\u0646\u064a\u0629 \u0644\u0640 7 \u0623\u064a\u0627\u0645 \u0628\u0646\u062c\u0627\u062d! \u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644...",
+    trialClaimFailed: "\u0641\u0634\u0644 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u062c\u0627\u0646\u064a\u0629. \u064a\u0631\u062c\u064a \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u0627\u064b.",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -295,7 +312,12 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   let sequencePollInFlight = false;
   let sequenceWatcherSawPageMounted = false;
 
-  render();
+  // Load and refresh user to get current subscription status immediately
+  store.refreshUser().then(() => {
+    render();
+  }).catch(() => {
+    render();
+  });
   void refreshDiagnostics();
   void refreshCaptionRuntime();
   startActiveSequenceWatcher();
@@ -307,7 +329,173 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   window.addEventListener("saad-language-changed", onLanguageChanged);
   return root;
 
+  function renderLockScreen(): HTMLElement {
+    const text = getPodcastText();
+    const user = store.get().user;
+    const trialClaimed = user?.subscription?.stripePriceId === "podcast-trial" || user?.subscription?.stripePriceId === "podcast";
+    
+    let trialLoading = false;
+    let trialError: string | null = null;
+    let trialSuccess: string | null = null;
+
+    const lockContainer = el("div.podcast-lock-container", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 20px",
+        textAlign: "center",
+        height: "100%",
+        color: "#fff",
+      }
+    });
+
+    const statusRow = el("div", null);
+
+    const updateStatus = () => {
+      const nodes: (string | Node)[] = [];
+      if (trialLoading) {
+        nodes.push(el("div.loading-text", { style: { color: "#7c3aed", marginTop: "10px" } }, "Activating free trial / جاري التفعيل..."));
+      } else if (trialError) {
+        nodes.push(el("div.error-text", { style: { color: "#ef4444", marginTop: "10px" } }, trialError));
+      } else if (trialSuccess) {
+        nodes.push(el("div.success-text", { style: { color: "#10b981", marginTop: "10px" } }, trialSuccess));
+      }
+      statusRow.replaceChildren(...nodes);
+    };
+
+    const subscribeBtn = el("button.btn-primary", {
+      type: "button",
+      style: {
+        width: "100%",
+        maxWidth: "280px",
+        padding: "12px",
+        fontSize: "15px",
+        fontWeight: "bold",
+        backgroundColor: "#7c3aed",
+        border: "none",
+        borderRadius: "8px",
+        color: "#fff",
+        cursor: "pointer",
+        marginTop: "20px",
+        boxShadow: "0 4px 15px rgba(124, 58, 237, 0.4)",
+        transition: "all 0.2s ease",
+      },
+      onClick: () => {
+        openPodcastSubscription();
+        trialSuccess = text.podcastSubscribedThankYou;
+        updateStatus();
+        const interval = setInterval(async () => {
+          await store.refreshUser();
+          const freshUser = store.get().user;
+          const freshAccess = freshUser?.role === "ADMIN" || (
+            freshUser?.subscription?.active && (
+              freshUser.subscription.planId === "podcast" ||
+              ["try", "starter", "plus", "pro", "max"].includes(freshUser.subscription.planId || "")
+            )
+          );
+          if (freshAccess) {
+            clearInterval(interval);
+            render();
+          }
+        }, 5000);
+      }
+    }, text.podcastSubscribeBtn);
+
+    const trialBtn = trialClaimed ? null : el("button.btn-secondary", {
+      type: "button",
+      style: {
+        width: "100%",
+        maxWidth: "280px",
+        padding: "10px",
+        fontSize: "14px",
+        fontWeight: "bold",
+        backgroundColor: "transparent",
+        border: "2px solid #334155",
+        borderRadius: "8px",
+        color: "#94a3b8",
+        cursor: "pointer",
+        marginTop: "12px",
+        transition: "all 0.2s ease",
+      },
+      onClick: async () => {
+        if (trialLoading) return;
+        trialLoading = true;
+        trialError = null;
+        trialSuccess = null;
+        updateStatus();
+        try {
+          const res = await api.claimPodcastTrial();
+          if (res.ok) {
+            trialSuccess = text.trialClaimedSuccess;
+            updateStatus();
+            await store.refreshUser();
+            setTimeout(() => {
+              render();
+            }, 1500);
+          } else {
+            throw new Error(text.trialClaimFailed);
+          }
+        } catch (err) {
+          trialError = err instanceof Error ? err.message : text.trialClaimFailed;
+          trialLoading = false;
+          updateStatus();
+        }
+      }
+    }, text.podcastTrialBtn);
+
+    const childrenToAppend: (string | Node)[] = [
+      el("div.podcast-lock-icon", {
+        style: {
+          fontSize: "48px",
+          marginBottom: "15px",
+          color: "#f43f5e",
+        }
+      }, "🔒"),
+      el("h2", {
+        style: {
+          fontSize: "20px",
+          fontWeight: "bold",
+          marginBottom: "10px",
+          color: "#fff",
+        }
+      }, text.podcastLockTitle),
+      el("p", {
+        style: {
+          fontSize: "14px",
+          color: "#94a3b8",
+          maxWidth: "340px",
+          lineHeight: "1.5",
+          marginBottom: "20px",
+        }
+      }, text.podcastLockDesc),
+      subscribeBtn,
+    ];
+    if (trialBtn) {
+      childrenToAppend.push(trialBtn);
+    }
+    childrenToAppend.push(statusRow);
+
+    lockContainer.replaceChildren(...childrenToAppend);
+
+    return lockContainer;
+  }
+
   function render() {
+    const user = store.get().user;
+    const hasAccess = user?.role === "ADMIN" || (
+      user?.subscription?.active && (
+        user.subscription.planId === "podcast" ||
+        ["try", "starter", "plus", "pro", "max"].includes(user.subscription.planId || "")
+      )
+    );
+
+    if (!hasAccess) {
+      page.replaceChildren(renderLockScreen());
+      return;
+    }
+
     page.replaceChildren(
       el("div.podcast-page", null,
         renderProductionWorkflow(),

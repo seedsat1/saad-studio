@@ -63,6 +63,7 @@ export const SAAD_PLANS: SaadPlan[] = [
   { id: "plus",    name: "Plus",    monthlyUsd: 35,  credits: 800,  annualDiscount: 10 },
   { id: "pro",     name: "Pro",     monthlyUsd: 70,  credits: 1800, annualDiscount: 12 },
   { id: "max",     name: "Max",     monthlyUsd: 99,  credits: 2700, annualDiscount: 15 },
+  { id: "podcast", name: "Podcast Automation", monthlyUsd: 3, credits: 0, annualDiscount: 0 },
 ];
 
 // ─── Default model registry ───────────────────────────────────────────────────
