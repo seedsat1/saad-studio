@@ -629,22 +629,7 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         renderSimpleStat("Clips", plan ? `${totalClips} found` : "Analyze first"),
         renderSimpleStat("Ready tracks", plan ? readyTracks : "Analyze first"),
       ),
-      renderSyncUserGuidance(plan),
-      renderSyncWarningSummary(plan),
-      renderSyncApplySummary(plan),
-      el("button.podcast-details-toggle", {
-        type: "button",
-        onClick: () => {
-          state.syncDetailsOpen = !state.syncDetailsOpen;
-          render();
-        },
-      }, state.syncDetailsOpen ? "Hide technical details" : "Show technical details"),
-      state.syncDetailsOpen
-        ? el("div.podcast-advanced-panel", null,
-          renderSynchronizationMessages(plan),
-          plan ? renderSynchronizePreviewTable(plan) : null,
-        )
-        : null,
+      renderSyncApplySummary(),
     );
   }
 
@@ -678,177 +663,19 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
   }
 
   function renderSimpleStat(label: string, value: string): HTMLElement {
-    return el("div.podcast-simple-stat", null,
-      el("span", null, label),
-      el("strong", null, value),
+    return el("div", { style: { display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" } },
+      el("span", { style: { color: "#94a3b8", fontSize: "12px" } }, label),
+      el("strong", { style: { color: "#f8fafc", fontSize: "12px", fontWeiht: "600" } }, value),
     );
   }
 
-  function renderSyncUserGuidance(plan: SynchronizationPlan | null): HTMLElement {
-    if (!plan) {
-      return el("div.podcast-user-note", null, "Start with Analyze. Create Synced Draft becomes available only after the offsets are ready.");
-    }
-    if (plan.blockers.length) {
-      return el("div.podcast-user-note.podcast-user-note--warning", null, "Sync is blocked for this timeline. Open technical details if you want to see the exact checks.");
-    }
-    if (plan.offsetsReady && !state.synchronizationApplyResult?.ok) {
-      return el("div.podcast-user-note.podcast-user-note--success", null, "Offsets are ready. The next step creates a duplicate synced sequence and keeps the original untouched.");
-    }
-    return el("div.podcast-user-note", null, "Analysis finished. Review the timeline selection if the draft button is still disabled.");
-  }
-
-  function renderSyncWarningSummary(plan: SynchronizationPlan | null): HTMLElement | null {
-    if (!plan?.warnings.length) return null;
-    const warnings = plan.warnings.slice(0, 2).map(humanizeSyncWarning);
-    const more = plan.warnings.length > warnings.length ? ` +${plan.warnings.length - warnings.length} more` : "";
-    return el("div.podcast-warning-chips", null,
-      ...warnings.map((warning) => el("span", null, warning)),
-      more ? el("span", null, more) : null,
-    );
-  }
-
-  function renderSyncApplySummary(plan: SynchronizationPlan | null): HTMLElement | null {
+  function renderSyncApplySummary(): HTMLElement | null {
     const res = state.synchronizationApplyResult;
-    if (!res) return null;
-    if (!res.ok) {
-      return el("div.podcast-user-note.podcast-user-note--warning", null, "Create Synced Draft was blocked. Show technical details for the exact reason.");
-    }
+    if (!res || !res.ok) return null;
     const sequenceName = res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft";
-    const after = res.largestOffsetAfter != null ? `${res.largestOffsetAfter.toFixed(3)}s` : "checked";
-    return el("div.podcast-sync-result", null,
-      el("strong", null, sequenceName),
-      el("span", null, `${res.clipsMoved} clips moved on the duplicate. Original: ${res.originalSequenceName || plan?.sequenceName || "source sequence"}.`),
-      el("small", null, `Alignment proof after sync: ${after}`),
+    return el("div", { style: { marginTop: "12px", padding: "10px", borderRadius: "8px", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" } },
+      el("strong", { style: { color: "#34d399", fontSize: "13px", display: "block" } }, sequenceName),
     );
-  }
-
-  function humanizeSyncWarning(warning: string): string {
-    const warningLabels: Record<string, string> = {
-      OFFSET_CANDIDATES_REQUIRE_WAVEFORM_PROOF: "Audio proof required",
-      LARGE_SYNC_OFFSET: "Large move detected",
-      LOW_WAVEFORM_CORRELATION_CONFIDENCE: "Low confidence match",
-      TIMELINE_START_ANCHOR_FALLBACK: "Start anchored to timeline",
-      SYNC_TIMELINE_SHIFTED_TO_ZERO: "Shifted safely above 0",
-    };
-    return warningLabels[warning] || warning.replace(/_/g, " ").toLowerCase();
-  }
-
-  function renderSynchronizePreviewTable(plan: SynchronizationPlan): HTMLElement {
-    if (!plan.waveformOffsets || !plan.waveformOffsets.length) {
-      return el("div.podcast-empty-plan", null, "No waveform offsets calculated.");
-    }
-    
-    return el("div.podcast-table-wrap", { style: { marginTop: "15px" } },
-      el("table.podcast-plan-table", null,
-        el("thead", null,
-          el("tr", null,
-            el("th", null, "track"),
-            el("th", null, "suggestedMoveSec"),
-            el("th", null, "confidence"),
-            el("th", null, "overlap duration used"),
-            el("th", null, "referenceTrack"),
-            el("th", null, "candidate peaks"),
-            el("th", null, "reason"),
-          ),
-        ),
-        el("tbody", null, ...plan.waveformOffsets.map((offset) => {
-          const trackLabel = `A${offset.audioTrackIndex + 1}` + (offset.pairedVideoTrackIndex !== null ? ` (V${offset.pairedVideoTrackIndex + 1})` : "");
-          const isRef = offset.audioTrackIndex === plan.referenceAudioTrackIndex;
-          
-          const moveLabel = isRef 
-            ? "0.0s (Reference)" 
-            : typeof offset.suggestedMoveSec === "number"
-              ? `${offset.suggestedMoveSec > 0 ? "+" : ""}${offset.suggestedMoveSec}s`
-              : "N/A";
-              
-          const confLabel = isRef
-            ? "1.0 (100%)"
-            : typeof offset.confidence === "number"
-              ? `${offset.confidence} (${Math.round(offset.confidence * 100)}%)`
-              : "0.0 (0%)";
-              
-          const refLabel = plan.referenceAudioTrackIndex !== null ? `A${plan.referenceAudioTrackIndex + 1}` : "None";
-          
-          const overlapLabel = typeof offset.overlapDurationSec === "number"
-            ? `${offset.overlapDurationSec}s`
-            : "N/A";
-            
-          const candidatesLabel = offset.candidatePeaks && offset.candidatePeaks.length > 0
-            ? `[${offset.candidatePeaks.length}] ` + offset.candidatePeaks.map(p => `${p.lagSec > 0 ? "+" : ""}${p.lagSec}s (${p.score})`).join(", ")
-            : "None [0]";
-            
-          const reasonLabel = offset.selectionReason || "Ready";
-          
-          let rowStyle: any = null;
-          if (isRef) {
-            rowStyle = { opacity: "0.8" };
-          } else if (offset.status === "blocked") {
-            rowStyle = { color: "#ff6b6b", fontWeight: "bold" };
-          }
-          
-          return el("tr", rowStyle ? { style: rowStyle } : null,
-            el("td", null, trackLabel),
-            el("td", null, moveLabel),
-            el("td", null, confLabel),
-            el("td", null, overlapLabel),
-            el("td", null, refLabel),
-            el("td", null, candidatesLabel),
-            el("td", null, reasonLabel),
-          );
-        })),
-      ),
-    );
-  }
-
-  function renderSynchronizationMessages(plan: SynchronizationPlan | null): HTMLElement {
-    const messages: string[] = [];
-    if (!plan) {
-      messages.push("Run Analyze Sync first. No clips will be moved.");
-    } else {
-      if (plan.knownLagTest) {
-        if (plan.knownLagTest.ok) {
-          messages.push(`âœ” Known Lag Self-Test: PASSED (all simulated offsets +2s, +5s, -10s successfully recovered)`);
-        } else {
-          messages.push(`âŒ Known Lag Self-Test: FAILED (${plan.knownLagTest.errors.join("; ")})`);
-        }
-      }
-      if (plan.blockers.length) messages.push(`Sync blocked: ${plan.blockers.join(", ")}`);
-      if (plan.warnings.length) messages.push(`Warnings: ${plan.warnings.join(", ")}`);
-      if (!plan.blockers.length && plan.offsetsReady) {
-        messages.push("Waveform offsets were calculated automatically from the timeline audio. No clips were moved yet.");
-      }
-      if (!plan.blockers.length && !plan.offsetsReady) {
-        messages.push("Timeline was read, but waveform offsets are not ready yet.");
-      }
-      if (state.synchronizationApplyResult?.ok) {
-        const res = state.synchronizationApplyResult;
-        messages.push(`âœ” Sync applied on duplicate sequence: ${res.duplicateSequenceName || res.sequenceName || "Saad Sync Draft"}.`);
-        messages.push(`  â€¢ Original untouched: ${res.originalSequenceName || plan.sequenceName || "source sequence"}`);
-        messages.push(`  â€¢ Tracks synchronized: ${countSynchronizedClips(plan)}`);
-        messages.push(`  â€¢ Clips moved on duplicate: ${res.clipsMoved}`);
-        messages.push(`  â€¢ Largest offset before: ${res.largestOffsetBefore != null ? res.largestOffsetBefore.toFixed(3) + "s" : "N/A"}`);
-        messages.push(`  â€¢ Largest offset after: ${res.largestOffsetAfter != null ? res.largestOffsetAfter.toFixed(3) + "s" : "N/A"} (Proof of alignment)`);
-        
-        console.log(`[Saad Sync Apply Proof] Synchronization completed:`);
-        console.log(`  largestOffsetBefore: ${res.largestOffsetBefore}s`);
-        console.log(`  largestOffsetAfter: ${res.largestOffsetAfter}s`);
-        console.log(`  clipsMoved: ${res.clipsMoved}`);
-        console.log(`  Moved items:`, res.movedItems);
-      }
-      if (state.synchronizationApplyResult && !state.synchronizationApplyResult.ok) {
-        messages.push(`Apply Sync blocked: ${state.synchronizationApplyResult.blockers.join(", ")}`);
-      }
-    }
-    return el("div.podcast-human-messages", null,
-      ...messages.map((message) => el("div.podcast-human-message", null, message)),
-    );
-  }
-
-  function countSynchronizedClips(plan: SynchronizationPlan | null): number {
-    if (!plan) return 0;
-    return plan.waveformOffsets.filter((offset) =>
-      offset.status === "reference" || offset.status === "ready"
-    ).length;
   }
 
   function renderMultiCamProductionTool(): HTMLElement {

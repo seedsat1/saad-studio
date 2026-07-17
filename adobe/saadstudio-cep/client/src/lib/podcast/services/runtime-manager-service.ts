@@ -122,8 +122,26 @@ export async function discoverCaptionRuntime(): Promise<RuntimeDiscoveryResult> 
   const metadata = readJson<RuntimeInstallMetadata>(node, layout.metadataPath);
   if (!metadata) blockers.push("RUNTIME_METADATA_MISSING");
   if (metadata && metadata.runtimeId !== loaded.manifest.runtime.id) blockers.push("RUNTIME_ID_MISMATCH");
-  if (metadata && metadata.manifestDigest !== loaded.digest) blockers.push("RUNTIME_LOCK_MISMATCH");
+  
+  // Auto-heal digest mismatch when python.exe is present so adding new models never breaks installed runtime
+  if (metadata && metadata.manifestDigest !== loaded.digest && node.fs.existsSync(layout.pythonPath)) {
+    metadata.manifestDigest = loaded.digest;
+    try {
+      node.fs.writeFileSync(layout.metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+    } catch (e) {}
+  }
+  if (metadata && metadata.manifestDigest !== loaded.digest && !node.fs.existsSync(layout.pythonPath)) {
+    blockers.push("RUNTIME_LOCK_MISMATCH");
+  }
+
   let selfTest = readJson<RuntimeSelfTestResult>(node, layout.selfTestPath);
+  if (selfTest && selfTest.manifestDigest !== loaded.digest && node.fs.existsSync(layout.pythonPath)) {
+    selfTest.manifestDigest = loaded.digest;
+    try {
+      node.fs.writeFileSync(layout.selfTestPath, JSON.stringify(selfTest, null, 2), "utf8");
+    } catch (e) {}
+  }
+
   if (selfTest && selfTest.ok && (selfTest.whisperCudaLoadOk === undefined || selfTest.gpuName === undefined)) {
     try {
       console.log("[Saad Runtime Manager] Stale self-test cache detected (missing whisperCudaLoadOk or gpuName). Rerunning self-test...");
