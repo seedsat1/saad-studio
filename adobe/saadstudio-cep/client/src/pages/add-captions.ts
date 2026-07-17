@@ -44,6 +44,7 @@ import { openModelPicker } from "../components/model-picker";
 import { getHostAdapter } from "../lib/host/adapter";
 import { reapAdapter } from "../lib/reap/adapter";
 import { getToken } from "../lib/auth";
+import { t } from "../lib/i18n";
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -88,10 +89,10 @@ const FALLBACK_TARGET_LANGUAGES: ReapLanguageOption[] = [
   { code: "en", label: "English" },
 ];
 
-const SCRIPTS = [
-  { value: "native", label: "Native script" },
-  { value: "roman",  label: "Roman (Latinised)" },
-];
+// const SCRIPTS = [
+//   { value: "native", label: "Native script" },
+//   { value: "roman",  label: "Roman (Latinised)" },
+// ];
 
 const RESOLUTIONS = [
   { value: "720",  label: "720p" },
@@ -120,6 +121,7 @@ interface PageState {
     inSec?: number;
     outSec?: number;
     durationSec?: number;
+    size?: number;
   } | null;
   presets: ReapCaptionPreset[];
   sourceLanguages: ReapLanguageOption[];
@@ -216,6 +218,9 @@ interface ActiveCaptionJob {
 
 const ACTIVE_CAPTION_JOB_KEY = "saadstudio.addCaptions.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
+const MAX_REAP_CAPTIONS_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+const MIN_REAP_CAPTIONS_DURATION_SEC = 3;
+const MAX_REAP_CAPTIONS_DURATION_SEC = 15 * 60;
 
 export function AddCaptionsPage(): HTMLElement {
   const hostAdapter = getHostAdapter();
@@ -268,6 +273,7 @@ export function AddCaptionsPage(): HTMLElement {
       inSec: clip.inSec,
       outSec: clip.outSec,
       durationSec: clip.durationSec,
+      size: getLocalFileSize(clip.path),
     };
     render();
   });
@@ -346,25 +352,24 @@ export function AddCaptionsPage(): HTMLElement {
       renderSourceSection(),
       renderStylesSection(),
       renderFormGrid(),
-      renderToggle("Add Emoji", "enableEmojis",
+      renderToggle(t("addCaptionsAddEmoji"), "enableEmojis",
         el("span.toggle-row__accent", { style: { background: "rgba(255,107,107,0.18)" } }, "😎")),
-      renderToggle("Add Word Highlight", "enableHighlights",
+      renderToggle(t("addCaptionsAddHighlight"), "enableHighlights",
         el("span.toggle-row__accent",
-          { style: { background: "rgba(250,204,21,0.2)", color: "#facc15" } }, "Highlight")),
+          { style: { background: "rgba(250,204,21,0.2)", color: "#facc15" } }, t("addCaptionsHighlightLabel"))),
       renderCta(),
-      renderDebugPanel(),
+      // renderDebugPanel(),
     );
   }
 
   function renderHero(): HTMLElement {
     return el("div.captions-hero", null,
       el("h2.captions-hero__title", null,
-        "Add ",
-        el("span.captions-hero__accent", null, "Captions"),
-        " to your reels, shorts & stories",
+        t("addCaptionsTitle"),
+        " ",
+        el("span.captions-hero__accent", null, t("addCaptionsSubtitle"))
       ),
-      el("div.captions-hero__subtitle", null,
-        "Output mode stays CC only. We import the SRT into Premiere automatically when possible."),
+      el("div.captions-hero__subtitle", null, t("addCaptionsOutputHint")),
     );
   }
 
@@ -373,10 +378,10 @@ export function AddCaptionsPage(): HTMLElement {
       ? el("div.captions-section",
           null,
           el("div.captions-section__head", null,
-            el("h3", null, "Selected clip"),
+            el("h3", null, t("addCaptionsSelectedClip")),
             el("button.dock-button",
               { onClick: resetSourceSelection },
-              "Change"),
+              t("addCaptionsChange")),
           ),
           el("div.captions-source", null,
             renderSourcePreview(state.clip),
@@ -398,7 +403,7 @@ export function AddCaptionsPage(): HTMLElement {
         el("input", {
           type: "text",
           value: state.sourceInput,
-          placeholder: "Drop a video or audio link",
+          placeholder: t("addCaptionsDropLink"),
           spellcheck: "false",
           onInput: (e: Event) => {
             state.sourceInput = (e.target as HTMLInputElement).value;
@@ -414,7 +419,7 @@ export function AddCaptionsPage(): HTMLElement {
       ),
       el("div.captions-source-divider", null,
         el("span.captions-source-divider__line"),
-        el("span.captions-source-divider__label", null, "Or"),
+        el("span.captions-source-divider__label", null, t("addCaptionsOr")),
         el("span.captions-source-divider__line"),
       ),
       renderUploadSurface(),
@@ -446,7 +451,7 @@ export function AddCaptionsPage(): HTMLElement {
               render();
             },
           },
-          "All presets",
+          t("addCaptionsAllPresets"),
         ),
         el("button.captions-tab" + (selectedTab === "caption" ? ".captions-tab--active" : ""),
           {
@@ -455,7 +460,7 @@ export function AddCaptionsPage(): HTMLElement {
               render();
             },
           },
-          "Caption styles",
+          t("addCaptionsCaptionStyles"),
         ),
         el("button.captions-tab" + (selectedTab === "brand" ? ".captions-tab--active" : ""),
           {
@@ -464,34 +469,34 @@ export function AddCaptionsPage(): HTMLElement {
               render();
             },
           },
-          "Brand templates",
+          t("addCaptionsBrandTemplates"),
         ),
       ),
       state.presetsLoading
-        ? el("div.captions-empty-panel", null, "Loading styles from Reap…")
+        ? el("div.captions-empty-panel", null, t("addCaptionsLoading"))
         : null,
       !state.presetsLoading && state.presetsError
         ? el("div.captions-empty-panel", null, `Styles diagnostic: ${state.presetsError}`)
         : null,
       !state.presetsLoading && !state.presetsError && selectedTab === "caption" && systemPresets.length === 1
         ? el("div.captions-empty-panel", null,
-            "No real caption styles were returned by Reap. Only SRT-only mode is currently available.")
+            t("addCaptionsNoStyles"))
         : null,
       selectedTab === "brand" && !brandPresets.length
         ? el("div.captions-empty-panel", null,
-            "No brand templates are available on this account yet.")
+            t("addCaptionsNoBrandTemplates"))
         : el("div.styles-row", null, ...visiblePresets.map(renderStyleCard)),
       total > visiblePresets.length
         ? el("button.styles-more",
             {
               onClick: () => openMorePresets(
                 tabPresets,
-                selectedTab === "all" ? "All presets"
-                  : selectedTab === "caption" ? "Caption styles"
-                    : "Brand templates",
+                selectedTab === "all" ? t("addCaptionsAllPresets")
+                  : selectedTab === "caption" ? t("addCaptionsCaptionStyles")
+                    : t("addCaptionsBrandTemplates"),
               ),
             },
-            selectedTab === "brand" ? "More templates" : "More styles")
+            selectedTab === "brand" ? t("addCaptionsMoreTemplates") : t("addCaptionsMoreStyles"))
         : null,
       el("div.captions-section__hint", null,
         `${Math.max(0, allPresets.length - 1)} Reap presets available`
@@ -521,15 +526,15 @@ export function AddCaptionsPage(): HTMLElement {
         },
       },
       el("div.captions-upload-surface__icon", null, icon("import", 22)),
-      el("div.captions-upload-surface__title", null, "Drag and drop file to upload or"),
-      el("button.btn-primary.captions-upload-surface__browse", { onClick: pickUpload }, "Browse files"),
+      el("div.captions-upload-surface__title", null, t("addCaptionsDragDrop")),
+      el("button.btn-primary.captions-upload-surface__browse", { onClick: pickUpload }, t("addCaptionsBrowse")),
       el("div.captions-upload-surface__meta", null,
         isInsideAdobe()
-          ? "Max. file 15 mins and 2 GB"
-          : "Upload a local video file to continue."),
+          ? t("addCaptionsMaxFile")
+          : t("addCaptionsUploadLocal")),
       !state.clip && isInsideAdobe()
         ? el("div.captions-upload-surface__hint", null,
-            "Tip: selecting a video or audio clip on the Premiere timeline will auto-fill this tool.")
+            t("addCaptionsTimelineHint"))
         : null,
     );
   }
@@ -584,6 +589,7 @@ export function AddCaptionsPage(): HTMLElement {
       name: file.name,
       origin: "file",
       mediaKind: file.type.startsWith("audio/") || looksLikeAudioPath(file.name) ? "audio" : "video",
+      size: file.size,
     };
   }
 
@@ -686,31 +692,36 @@ export function AddCaptionsPage(): HTMLElement {
 
   function renderFormGrid(): HTMLElement {
     const sourceLanguageOptions = [
-      { value: AUTO_DETECT_LANGUAGE, label: "Auto-detect" },
+      { value: AUTO_DETECT_LANGUAGE, label: t("addCaptionsAutoDetect") },
       ...state.sourceLanguages.map((lang) => ({
-      value: lang.code,
-      label: lang.label,
+        value: lang.code,
+        label: lang.label,
       })),
     ];
     const translationOptions = [
-      { value: NO_TRANSLATION, label: "Don't translate" },
+      { value: NO_TRANSLATION, label: t("addCaptionsDontTranslate") },
       ...state.translationLanguages.map((lang) => ({ value: lang.code, label: lang.label })),
     ];
+    const scriptsOptions = [
+      { value: "native", label: t("addCaptionsNativeScript") },
+      { value: "roman", label: t("addCaptionsRomanScript") },
+    ];
+    const resolutionsOptions = RESOLUTIONS;
     return el("div.captions-section", null,
       el("div.captions-section__head", null,
-        el("h3", null, "Settings"),
+        el("h3", null, t("addCaptionsSettings")),
       ),
       el("div.form-grid", null,
-        renderSelectField("Language", state.language, sourceLanguageOptions, (v) => state.language = v, {
+        renderSelectField(t("addCaptionsLanguageField"), state.language, sourceLanguageOptions, (v) => state.language = v, {
           disabled: false,
-          placeholder: state.languagesLoading ? "Loading…" : "Auto-detect",
+          placeholder: state.languagesLoading ? t("addCaptionsLoading") : t("addCaptionsAutoDetect"),
         }),
-        renderSelectField("Translate to", state.translate, translationOptions, (v) => state.translate = v, {
+        renderSelectField(t("addCaptionsTranslateField"), state.translate, translationOptions, (v) => state.translate = v, {
           disabled: state.languagesLoading || translationOptions.length === 1,
-          placeholder: state.languagesLoading ? "Loading…" : "Unavailable",
+          placeholder: state.languagesLoading ? t("addCaptionsLoading") : t("addCaptionsUnavailable"),
         }),
-        renderSelectField("Script", state.script, SCRIPTS, (v) => state.script = v),
-        renderSelectField("Resolution", state.resolution, RESOLUTIONS, (v) => state.resolution = v),
+        renderSelectField(t("addCaptionsScriptField"), state.script, scriptsOptions, (v) => state.script = v),
+        renderSelectField(t("addCaptionsResolutionField"), state.resolution, resolutionsOptions, (v) => state.resolution = v),
       ),
       state.languagesError
         ? el("div.captions-empty-panel", null, `Languages diagnostic: ${state.languagesError}`)
@@ -768,23 +779,23 @@ export function AddCaptionsPage(): HTMLElement {
           disabled: state.busy,
         },
         icon("send", 14),
-        state.busy ? "Generating…" : "Generate Captions",
+        state.busy ? t("addCaptionsGenerating") : t("addCaptionsGenerate"),
       ),
     );
   }
 
-  function renderDebugPanel(): HTMLElement {
-    return el("div.captions-debug", null,
-      el("div.captions-section__head", null,
-        el("h3", null, "Debug Panel"),
-        el("span.captions-section__hint", null, "Runtime log for Premiere testing"),
-      ),
-      el("pre.captions-debug__pre.mono", null,
-        state.debugLines.length
-          ? state.debugLines.join("\n")
-          : "[ADD_CAPTIONS] Waiting for runtime debug output..."),
-    );
-  }
+  // function renderDebugPanel(): HTMLElement {
+  //   return el("div.captions-debug", null,
+  //     el("div.captions-section__head", null,
+  //       el("h3", null, "Debug Panel"),
+  //       el("span.captions-section__hint", null, "Runtime log for Premiere testing"),
+  //     ),
+  //     el("pre.captions-debug__pre.mono", null,
+  //       state.debugLines.length
+  //         ? state.debugLines.join("\n")
+  //         : "[ADD_CAPTIONS] Waiting for runtime debug output..."),
+  //   );
+  // }
 
   // ─── Upload + generation ────────────────────────────────────────────
 
@@ -843,13 +854,16 @@ export function AddCaptionsPage(): HTMLElement {
     state.busy = true;
     render();
 
-    resultArea.replaceChildren(busyCard("Uploading clip to Reap…"));
-
     try {
       const runtime = await captureRuntimeDebug("BEFORE_RUN");
-      // 1) Upload the source directly to Reap
       const clip = state.clip;
       if (!clip) throw new Error("Select a clip before generating captions.");
+
+      const usingStyle = state.selectedPreset !== NO_STYLE.id;
+      resultArea.replaceChildren(busyCard("Validating clip…"));
+      await validateCaptionSource(clip, usingStyle);
+
+      resultArea.replaceChildren(busyCard("Uploading clip to Reap…"));
       const filename = clip.name || `clip-${Date.now()}.mp4`;
       pushDebugLines([
         "Generate Captions: STARTED",
@@ -871,11 +885,10 @@ export function AddCaptionsPage(): HTMLElement {
       // 2) No style imports editable SRT captions. Styled presets use
       // Reap's rendered captions output because visual effects such as
       // Wiggle/Typewriter cannot be represented by a plain SRT track.
-      const usingStyle = state.selectedPreset !== NO_STYLE.id;
       const tool: ReapTool = usingStyle ? "captions" : "transcription";
       const options: Record<string, unknown> = {
         language: state.language === AUTO_DETECT_LANGUAGE ? undefined : state.language,
-        translationLanguage: state.translate === NO_TRANSLATION ? null : state.translate,
+        translationLanguage: state.translate === NO_TRANSLATION ? undefined : state.translate,
         transcriptionScript: state.script,
       };
       if (usingStyle) {
@@ -1634,6 +1647,10 @@ function looksLikeAudioPath(path: string): boolean {
   return /\.(mp3|wav|m4a|aac|ogg|oga|flac|aif|aiff|wma)(\?|$|#)/i.test(path);
 }
 
+function looksLikeCaptionVideoPath(path: string): boolean {
+  return /\.(mp4|mov|webm)(\?|$|#)/i.test(path);
+}
+
 function findSrtInUnknown(value: unknown, depth = 0): string | null {
   if (depth > 5 || value == null) return null;
   if (typeof value === "string") return looksLikeSrt(value) ? value : null;
@@ -1704,6 +1721,36 @@ function formatElapsed(ms: number): string {
 
 function cleanSeconds(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+}
+
+async function validateCaptionSource(clip: NonNullable<PageState["clip"]>, usingStyle: boolean): Promise<void> {
+  const isAudio = clip.mediaKind === "audio" || looksLikeAudioPath(clip.path) || looksLikeAudioPath(clip.name);
+  if (usingStyle && isAudio) {
+    throw new Error("Caption styles and Brand templates require a video clip. Choose No style (SRT) for audio-only transcription.");
+  }
+  if (!isAudio && !/^https?:\/\//i.test(clip.path) && !clip.path.startsWith("blob:") && !looksLikeCaptionVideoPath(clip.name) && !looksLikeCaptionVideoPath(clip.path)) {
+    throw new Error("Add Captions accepts MP4, MOV, or WEBM video files.");
+  }
+  if (typeof clip.size === "number" && clip.size > MAX_REAP_CAPTIONS_SIZE_BYTES) {
+    throw new Error("Add Captions accepts files up to 2 GB.");
+  }
+
+  let duration = cleanSeconds(clip.durationSec);
+  if (duration === 0) {
+    try {
+      const probed = await probeVideoDuration(pathToSrc(clip.path));
+      if (probed != null && probed > 0) {
+        duration = probed;
+        clip.durationSec = probed;
+      }
+    } catch (err) {
+      console.warn("Failed to probe video duration in Add Captions:", err);
+    }
+  }
+
+  if (duration > 0 && (duration < MIN_REAP_CAPTIONS_DURATION_SEC || duration > MAX_REAP_CAPTIONS_DURATION_SEC)) {
+    throw new Error("Add Captions accepts media from 3 seconds to 15 minutes.");
+  }
 }
 
 async function trimLocalClipWithFfmpeg(
@@ -1834,7 +1881,8 @@ function sanitizeFileStem(value: string): string {
 function ensureReapSupportedFilename(filename: string, forceMp4 = false): string {
   const base = sanitizeFileStem(filename.replace(/\.[^.]+$/, "") || "clip");
   if (forceMp4) return `${base}.mp4`;
-  return /\.(mp4|mov)$/i.test(filename) ? filename : `${base}.mp4`;
+  if (/\.(mp4|mov|webm)$/i.test(filename)) return filename;
+  throw new Error("Add Captions accepts MP4, MOV, or WEBM video files.");
 }
 
 function pathToSrc(p: string): string {
@@ -1946,4 +1994,41 @@ async function copyLocalToDesktop(srcPath: string, fileName: string): Promise<vo
   } catch (err) {
     toast(`Save failed: ${(err as Error).message}`, "error");
   }
+}
+
+function getLocalFileSize(path: string): number | undefined {
+  try {
+    if (window.cep_node) {
+      const fs = window.cep_node.require("fs") as any;
+      if (fs && fs.existsSync(path)) {
+        return fs.statSync(path).size;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read file size via Node fs:", err);
+  }
+  return undefined;
+}
+
+function probeVideoDuration(src: string): Promise<number | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      video.removeAttribute("src");
+      video.load();
+      resolve(value);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      done(duration);
+    };
+    video.onerror = () => done(null);
+    window.setTimeout(() => done(null), 4000);
+    video.src = src;
+  });
 }

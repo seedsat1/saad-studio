@@ -9,7 +9,7 @@
  *   5. Render the final asset (or transcript JSON) with an Import button
  *      so the user can drop the result back onto the timeline.
  *
- * Each tool page (Add Captions, AI Dubbing, â€¦) is a tiny wrapper around
+ * Each tool page (Add Captions, AI Dubbing, Ã¢â‚¬Â¦) is a tiny wrapper around
  * this shell that supplies its own options dock and (optionally) a
  * custom result renderer. */
 
@@ -24,13 +24,14 @@ import { api, reap, type ReapTool, type ReapStatusResponse } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { watchTimelineSelection } from "../lib/timeline-watcher";
+import { t } from "../lib/i18n";
 
 export interface ReapToolConfig {
   title: string;
   tool: ReapTool;
   /** Optional text shown in the empty state. */
   hint?: string;
-  /** Tool-specific selector pills (language, aspect, preset, â€¦). */
+  /** Tool-specific selector pills (language, aspect, preset, …). */
   options: DockOption[];
   /** Inline checkboxes rendered after the pills (e.g. "Editable captions"). */
   toggles?: DockToggle[];
@@ -42,6 +43,8 @@ export interface ReapToolConfig {
   allowEmptySubmit?: boolean;
   /** Turn the dock-selected options into the body sent to /reap/start. */
   buildOptions: (vals: Record<string, string>) => Record<string, unknown>;
+  /** Custom validation run before the job starts. */
+  validate?: (clip: SourceClip, vals: Record<string, string>) => void;
   /** Custom result renderer; defaults to a <video controls> + Import button.
    *  Receives the dock state so renderers can branch on user-picked options
    *  (e.g. "editable captions" in Edit Clips). */
@@ -51,12 +54,16 @@ export interface ReapToolConfig {
   ) => HTMLElement;
 }
 
-interface SourceClip {
+export interface SourceClip {
   path: string;
   name?: string;
   origin: "timeline" | "upload";
-  /** Whatever the upload step produced â€” populated lazily. */
+  /** Whatever the upload step produced — populated lazily. */
   publicUrl?: string;
+  inSec?: number;
+  outSec?: number;
+  durationSec?: number;
+  size?: number;
 }
 
 interface ActiveReapToolJob {
@@ -98,8 +105,22 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
     const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : null;
     if (key === currentClipKey) return;
     currentClipKey = key;
-    if (clip) showOptions({ path: clip.path, name: clip.name, origin: "timeline" });
-    else showEmpty();
+    if (clip) {
+      const inSec = clip.inSec ?? 0;
+      const outSec = clip.outSec ?? 0;
+      const durationSec = clip.durationSec || (outSec > inSec ? outSec - inSec : undefined);
+      showOptions({
+        path: clip.path,
+        name: clip.name,
+        origin: "timeline",
+        inSec,
+        outSec,
+        durationSec,
+        size: getLocalFileSize(clip.path),
+      });
+    } else {
+      showEmpty();
+    }
   });
   watcher.attachTo(root);
 
@@ -115,7 +136,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
   return root;
 
-  // â”€â”€â”€ States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ States Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
   function showEmpty() {
     const inside = isInsideAdobe();
@@ -124,16 +145,16 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
         null,
         el("div.state-card__icon", null, icon("video", 22)),
         el("div.state-card__title", null,
-          inside ? "Pick a clip on your timeline" : "Upload a video",
+          inside ? t("reapPickTimeline") : t("videoUtilityUploadVideo"),
         ),
         el("div.state-card__subtitle", null,
           inside
-            ? (cfg.hint ?? "Select any clip in the Premiere timeline and it'll appear here automatically.")
-            : "Timeline auto-detect only works inside Premiere / After Effects. Upload a file to continue.",
+            ? (cfg.hint ?? t("reapTimelineHint"))
+            : t("reapUploadHint"),
         ),
         el("div.state-card__actions", null,
           el("button.btn-secondary", { onClick: uploadFile },
-            icon("plus", 14), "Upload video"),
+            icon("plus", 14), t("videoUtilityUploadVideo")),
         ),
       ),
     );
@@ -153,6 +174,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
         path: (file as File & { path?: string }).path ?? localUrl,
         name: file.name,
         origin: "upload",
+        size: file.size,
       });
     });
     input.click();
@@ -199,14 +221,14 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
           el("div.col.gap-1.grow",
             { style: { textAlign: "left", alignItems: "flex-start", minWidth: "0" } },
             el("div.truncate", { style: { fontSize: "13px", fontWeight: "600", width: "100%" } },
-              clip.name ?? "Source clip"),
+              clip.name ?? t("reapSourceClip")),
             el("div.mono.muted.truncate",
               { style: { fontSize: "10px", width: "100%" }, title: clip.path },
               shortenPath(clip.path)),
           ),
           el("button.dock-button",
             { onClick: () => { mode = "auto"; currentClipKey = null; showEmpty(); } },
-            "Change"),
+            t("videoUtilityChange")),
         ),
       ),
     );
@@ -217,7 +239,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
     const dock = PromptDock({
       placeholder: cfg.showPrompt
-        ? "Optional: extra instructions for the toolâ€¦"
+        ? t("reapExtraInstructions")
         : undefined,
       options: cfg.options,
       toggles: cfg.toggles,
@@ -235,12 +257,27 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
   ) {
     busy = true;
     try {
+      if (clip.durationSec == null) {
+        try {
+          const probed = await probeVideoDuration(pathToVideoSrc(clip.path));
+          if (probed != null && probed > 0) {
+            clip.durationSec = probed;
+          }
+        } catch (err) {
+          console.warn("Failed to probe video duration:", err);
+        }
+      }
+
+      if (cfg.validate) {
+        cfg.validate(clip, options);
+      }
+
       const filename = clip.name ?? `clip-${Date.now()}.mp4`;
 
-      results.replaceChildren(busyCard("Uploading to Reap..."));
+      results.replaceChildren(busyCard(t("reapUploading")));
       const uploadId = await uploadSourceDirect(clip, filename);
 
-      results.replaceChildren(busyCard("Starting Reap job..."));
+      results.replaceChildren(busyCard(t("reapStarting")));
       const started = await reap.start({
         tool: cfg.tool,
         uploadId,
@@ -286,8 +323,10 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
     busy = true;
     results.replaceChildren(progressCard({
-      title: `Resuming ${cfg.title}...`,
-      status: `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      title: cfg.title,
+      status: t("reapElapsedChecks")
+        .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+        .replace("{checks}", String(job.checks)),
       progress: job.lastProgress,
     }));
     try {
@@ -323,8 +362,10 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
       const pct = typeof status.progress === "number" ? ` ${Math.round(status.progress)}%` : "";
       results.replaceChildren(progressCard({
-        title: status.status === "queued" ? "Queued..." : `Processing${pct}...`,
-        status: `Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+        title: status.status === "queued" ? t("reapQueued") : t("reapProcessing").replace("{pct}", pct),
+        status: t("reapElapsedChecks")
+          .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+          .replace("{checks}", String(job.checks)),
         progress: status.progress,
       }));
 
@@ -351,7 +392,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
   }
 
   async function uploadSourceDirect(clip: SourceClip, filename: string): Promise<string> {
-    // Source is already a public http(s) URL â€” fetch then PUT to Reap.
+    // Source is already a public http(s) URL Ã¢â‚¬â€ fetch then PUT to Reap.
     if (/^https?:\/\//i.test(clip.path)) {
       const blob = await fetch(clip.path).then((r) => r.blob());
       return reap.uploadDirect({ kind: "blob", blob, name: filename });
@@ -363,7 +404,7 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
       return reap.uploadDirect({ kind: "blob", blob, name: filename });
     }
 
-    // Local FS path from the timeline or the file picker â€” let the Node
+    // Local FS path from the timeline or the file picker Ã¢â‚¬â€ let the Node
     // bridge read the bytes and PUT them directly.
     return reap.uploadDirect({ kind: "path", path: clip.path, name: filename });
   }
@@ -374,12 +415,12 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
   ): Promise<void> {
     const url = status.url ?? status.urls?.[0] ?? "";
     if (!url) {
-      results.replaceChildren(errorCard("Reap finished but returned no asset URL."));
+      results.replaceChildren(errorCard(t("reapNoOutput")));
       return;
     }
 
     try {
-      results.replaceChildren(busyCard("Adding to timelineâ€¦"));
+      results.replaceChildren(busyCard(t("reapAddingTimeline")));
       const local = await api.downloadAsset(url, `reap-${Date.now()}.mp4`);
       const placed = await evalES<{ ok: boolean; placed: boolean; reason?: string }>(
         "importAndPlaceOnTimeline", local,
@@ -387,13 +428,13 @@ export function ReapToolPage(cfg: ReapToolConfig): HTMLElement {
 
       results.replaceChildren(successCard(url, placed, local));
       toast(
-        placed?.placed ? "Added to timeline" : "Imported to project bin",
+        placed?.placed ? t("reapAddedTimeline") : t("reapImportedProject"),
         "success",
       );
     } catch (err) {
       // Fall back to the manual result card if auto-place fails.
       results.replaceChildren(defaultResult(status));
-      toast(`Auto-import failed: ${(err as Error).message}`, "error");
+      toast(t("reapAutoImportFailed").replace("{message}", (err as Error).message), "error");
     }
   }
 }
@@ -413,11 +454,11 @@ function successCard(
         el("div.col.gap-1.grow",
           null,
           el("div", { style: { fontSize: "13px", fontWeight: "600" } },
-            placed?.placed ? "Added to your timeline" : "Imported to project bin"),
+            placed?.placed ? t("reapAddedTimelineTitle") : t("reapImportedProjectTitle")),
           el("div.dim", { style: { fontSize: "11px" } },
             placed?.placed
-              ? "Open Premiere to see the clip on the active sequence, or drag the preview again."
-              : (placed?.reason ?? "Drag the preview from here onto the timeline.")),
+              ? t("reapAddedTimelineHint")
+              : (placed?.reason ?? t("reapImportedProjectHint"))),
         ),
       ),
     ),
@@ -454,7 +495,7 @@ function draggableVideoFrame(url: string, fileName: string, initialLocalPath?: s
       userSelect: "none",
     },
     draggable: "true",
-    title: "Drag onto the timeline",
+    title: t("reapDragTitle"),
     onMouseenter: () => { void warmDragAsset(); },
     onPointerdown: () => { void warmDragAsset(); },
     onDragstart: (ev: Event) => {
@@ -464,7 +505,7 @@ function draggableVideoFrame(url: string, fileName: string, initialLocalPath?: s
       if (!dragPath) {
         e.preventDefault();
         void warmDragAsset();
-        toast("Preparing asset for drag. Drag again in a second.", "info");
+        toast(t("commonPreparingDrag"), "info");
         return;
       }
       const fileUri = toFileUri(dragPath);
@@ -483,7 +524,7 @@ function draggableVideoFrame(url: string, fileName: string, initialLocalPath?: s
   );
 }
 
-// â”€â”€â”€ Result + state cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Result + state cards Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 function defaultResult(status: ReapStatusResponse): HTMLElement {
   const url = status.url ?? status.urls?.[0] ?? "";
@@ -497,13 +538,13 @@ function defaultResult(status: ReapStatusResponse): HTMLElement {
             try {
               const local = await api.downloadAsset(url, `reap-${Date.now()}.mp4`);
               await evalES("importMediaFromPath", local);
-              toast("Imported to project bin", "success");
+              toast(t("reapImportedProject"), "success");
             } catch (err) {
-              toast(`Import failed: ${(err as Error).message}`, "error");
+              toast(t("commonImportFailed").replace("{message}", (err as Error).message), "error");
             }
           },
         },
-        icon("import", 14), "Import to project",
+        icon("import", 14), t("commonImportToProject"),
       ),
     ),
   );
@@ -512,7 +553,7 @@ function defaultResult(status: ReapStatusResponse): HTMLElement {
 function busyCard(text: string): HTMLElement {
   return el("div.state-card", null,
     ProcessingLoader(text),
-    el("div.state-card__subtitle", null, "Reap projects usually finish in 1-5 minutes."),
+    el("div.state-card__subtitle", null, t("reapProjectDurationHint")),
   );
 }
 
@@ -532,7 +573,7 @@ function progressCard(args: { title: string; status: string; progress?: number }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Failed"),
+    el("div.state-card__title", null, t("commonFailed")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -583,7 +624,7 @@ function toFileUri(localPath: string): string {
 
 function shortenPath(p: string, max = 48): string {
   if (p.length <= max) return p;
-  return `${p.slice(0, 12)}â€¦${p.slice(-(max - 15))}`;
+  return `${p.slice(0, 12)}...${p.slice(-(max - 15))}`;
 }
 
 function pathToVideoSrc(p: string): string {
@@ -628,3 +669,42 @@ export function jsonResultCard(status: ReapStatusResponse, title: string): HTMLE
     ),
   );
 }
+
+function getLocalFileSize(path: string): number | undefined {
+  try {
+    if (window.cep_node) {
+      const fs = window.cep_node.require("fs") as any;
+      if (fs && fs.existsSync(path)) {
+        const stats = fs.statSync(path);
+        return stats.size;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read file size via Node fs:", err);
+  }
+  return undefined;
+}
+
+function probeVideoDuration(src: string): Promise<number | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      video.removeAttribute("src");
+      video.load();
+      resolve(value);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      done(duration);
+    };
+    video.onerror = () => done(null);
+    window.setTimeout(() => done(null), 4000);
+    video.src = src;
+  });
+}
+

@@ -11,6 +11,7 @@ import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { watchTimelineSelection } from "../lib/timeline-watcher";
 import { openModelPicker } from "../components/model-picker";
+import { t } from "../lib/i18n";
 
 interface LanguageOption {
   value: string;
@@ -21,6 +22,8 @@ interface SourceClip {
   path: string;
   name: string;
   origin: "timeline" | "upload";
+  size?: number;
+  durationSec?: number;
 }
 
 interface ActiveDubbingJob {
@@ -41,6 +44,9 @@ interface ActiveDubbingJob {
 const EMPTY_LANGUAGES: LanguageOption[] = [];
 const ACTIVE_DUBBING_JOB_KEY = "saadstudio.aiDubbing.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
+const MAX_REAP_DUBBING_SIZE_BYTES = 5 * 1024 * 1024 * 1024;
+const MIN_REAP_DUBBING_DURATION_SEC = 3;
+const MAX_REAP_DUBBING_DURATION_SEC = 15 * 60;
 
 let cachedSource: LanguageOption[] | null = null;
 let cachedTarget: LanguageOption[] | null = null;
@@ -65,16 +71,20 @@ export function AIDubbingPage(): HTMLElement {
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("AI Dubbing"),
+    PageHeader(t("aiDubbingTitle")),
     body,
   );
 
   const watcher = watchTimelineSelection((clip) => {
     if (state.busy || !clip?.path || state.clip?.origin === "upload") return;
+    const inSec = clip.inSec ?? 0;
+    const outSec = clip.outSec ?? 0;
     state.clip = {
       path: clip.path,
       name: clip.name ?? guessName(clip.path),
       origin: "timeline",
+      durationSec: clip.durationSec || (outSec > inSec ? outSec - inSec : undefined),
+      size: getLocalFileSize(clip.path),
     };
     render();
   });
@@ -123,27 +133,27 @@ export function AIDubbingPage(): HTMLElement {
               onLoadedMetadata: (event: Event) => applyVideoAspect(event.currentTarget as HTMLVideoElement),
             })
           : el("div.ai-dubbing-hero__placeholder", null,
-              el("span", null, "English"),
-              el("strong", null, "Hi! Let's get started"),
-              el("span", null, "Arabic"),
+              el("span", null, t("aiDubbingHeroSource")),
+              el("strong", null, t("aiDubbingHeroText")),
+              el("span", null, t("aiDubbingHeroTarget")),
             ),
         el("button.modal__close.ai-dubbing-card__close", { onClick: () => history.back() }, icon("close", 14)),
       ),
-      el("div.ai-dubbing-card__title", null, "AI Dubbing"),
-      el("div.ai-dubbing-card__subtitle", null, "Dub your videos into any language with AI."),
+      el("div.ai-dubbing-card__title", null, t("aiDubbingTitle")),
+      el("div.ai-dubbing-card__subtitle", null, t("aiDubbingSubtitle")),
       renderUploadArea(),
       el("div.ai-dubbing-form", null,
-        renderLanguageField("Language", state.sourceLanguage, cachedSource ?? EMPTY_LANGUAGES, async (anchor) => {
+        renderLanguageField(t("aiDubbingSourceLanguage"), state.sourceLanguage, cachedSource ?? EMPTY_LANGUAGES, async (anchor) => {
           const picked = await openModelPicker({
-            title: "Source language",
+            title: t("aiDubbingSourcePicker"),
             options: cachedSource ?? EMPTY_LANGUAGES,
             anchor,
           });
           if (picked) { state.sourceLanguage = picked; render(); }
         }),
-        renderLanguageField("Translate to", state.targetLanguage, cachedTarget ?? EMPTY_LANGUAGES, async (anchor) => {
+        renderLanguageField(t("aiDubbingTargetLanguage"), state.targetLanguage, cachedTarget ?? EMPTY_LANGUAGES, async (anchor) => {
           const picked = await openModelPicker({
-            title: "Target language",
+            title: t("aiDubbingTargetPicker"),
             options: cachedTarget ?? EMPTY_LANGUAGES,
             anchor,
           });
@@ -158,7 +168,7 @@ export function AIDubbingPage(): HTMLElement {
           disabled: !canRun,
           onClick: runDubbing,
         },
-        state.busy ? "Translating..." : "Translate",
+        state.busy ? t("aiDubbingTranslating") : t("aiDubbingTranslate"),
         icon("spark", 14),
       ),
     );
@@ -183,14 +193,14 @@ export function AIDubbingPage(): HTMLElement {
         },
         onClick: pickUpload,
       },
-      el("div.ai-dubbing-upload__label", null, "Upload your video"),
+      el("div.ai-dubbing-upload__label", null, t("aiDubbingUploadTitle")),
       el("div.ai-dubbing-upload__box", null,
         el("div.ai-dubbing-upload__icon", null, icon("import", 18)),
         el("div", null,
           state.clip
             ? state.clip.name
-            : (isInsideAdobe() ? "Select a timeline clip, click to upload, or drag and drop" : "Click to upload or drag and drop")),
-        el("small", null, "Max. File Size: 2 GB"),
+            : (isInsideAdobe() ? t("aiDubbingPickHintAdobe") : t("aiDubbingPickHintBrowser"))),
+        el("small", null, t("aiDubbingMaxFile")),
       ),
     );
   }
@@ -201,7 +211,7 @@ export function AIDubbingPage(): HTMLElement {
     options: LanguageOption[],
     onPick: (anchor: HTMLElement) => Promise<void>,
   ): HTMLElement {
-    const optionLabel = options.find((item) => item.value === value)?.label ?? (state.loadingLanguages ? "Loading..." : "Choose language");
+    const optionLabel = options.find((item) => item.value === value)?.label ?? (state.loadingLanguages ? t("aiDubbingLoadingLanguages") : t("aiDubbingChooseLanguage"));
     return el("label.ai-dubbing-field", null,
       el("span", null, label),
       el("button.form-select", {
@@ -215,7 +225,7 @@ export function AIDubbingPage(): HTMLElement {
   function pickUpload() {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "video/mp4,video/quicktime,video/*";
+    input.accept = "video/mp4,video/quicktime,.mp4,.mov";
     input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (file) setUploadFile(file);
@@ -228,28 +238,30 @@ export function AIDubbingPage(): HTMLElement {
       path: (file as File & { path?: string }).path ?? URL.createObjectURL(file),
       name: file.name,
       origin: "upload",
+      size: file.size,
     };
     render();
   }
 
   async function runDubbing() {
     if (!state.clip) {
-      toast("Select a timeline clip or upload a video first.", "error");
+      toast(t("aiDubbingSelectVideoFirst"), "error");
       return;
     }
     if (!state.sourceLanguage || !state.targetLanguage) {
-      toast("Choose source and target languages first.", "error");
+      toast(t("aiDubbingChooseLanguagesFirst"), "error");
       return;
     }
 
     state.busy = true;
     render();
-    resultArea.replaceChildren(progressCard("Uploading to Reap...", "Preparing the video for AI dubbing."));
+    resultArea.replaceChildren(progressCard(t("aiDubbingUploading"), t("aiDubbingUploadingSubtitle")));
 
     try {
+      await validateDubbingSource(state.clip);
       const filename = ensureReapVideoFilename(state.clip.name);
       const uploadId = await uploadDirect(state.clip, filename);
-      resultArea.replaceChildren(progressCard("Starting dubbing...", "Creating a Reap dubbing project."));
+      resultArea.replaceChildren(progressCard(t("aiDubbingStarting"), t("aiDubbingStartingSubtitle")));
 
       const started = await reap.start({
         tool: "dubbing",
@@ -293,8 +305,10 @@ export function AIDubbingPage(): HTMLElement {
     state.busy = true;
     render();
     resultArea.replaceChildren(progressCard(
-      "Resuming dubbing...",
-      `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      t("aiDubbingResuming"),
+      t("reapElapsedChecks")
+        .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+        .replace("{checks}", String(job.checks)),
       job.lastProgress,
     ));
     try {
@@ -334,8 +348,10 @@ export function AIDubbingPage(): HTMLElement {
 
       const elapsed = formatElapsed(Date.now() - job.startedAt);
       resultArea.replaceChildren(progressCard(
-        status.status === "queued" ? "Queued..." : "Dubbing...",
-        `Elapsed ${elapsed} - Checks ${job.checks}`,
+        status.status === "queued" ? t("reapQueued") : t("aiDubbingDubbing"),
+        t("reapElapsedChecks")
+          .replace("{elapsed}", elapsed)
+          .replace("{checks}", String(job.checks)),
         status.progress,
       ));
 
@@ -365,14 +381,14 @@ export function AIDubbingPage(): HTMLElement {
   async function importDubbedResult(final: ReapStatusResponse) {
     const url = pickVideoUrl(final);
     if (!url) {
-      resultArea.replaceChildren(errorCard("Reap finished but returned no dubbed video URL."));
+      resultArea.replaceChildren(errorCard(t("aiDubbingNoOutput")));
       return;
     }
-    resultArea.replaceChildren(progressCard("Adding dubbed video...", "Downloading the result and placing it on the timeline."));
+    resultArea.replaceChildren(progressCard(t("aiDubbingAdding"), t("aiDubbingAddingSubtitle")));
     const local = await api.downloadAsset(url, `saadstudio-dubbed-${Date.now()}.mp4`);
     const placed = await evalES<{ ok: boolean; placed?: boolean; reason?: string }>("importAndPlaceOnTimeline", local);
     resultArea.replaceChildren(successCard(url, placed));
-    toast(placed?.placed ? "Dubbed video added to timeline" : "Dubbed video imported", "success");
+    toast(placed?.placed ? t("aiDubbingAddedToast") : t("aiDubbingImportedToast"), "success");
   }
 }
 
@@ -429,15 +445,15 @@ function progressCard(title: string, subtitle: string, progress?: number): HTMLE
 function successCard(url: string, placed: { ok: boolean; placed?: boolean; reason?: string } | null): HTMLElement {
   return el("div.state-card.ai-dubbing-success", null,
     el("video", { src: url, controls: "true", style: { width: "100%", borderRadius: "8px" } }),
-    el("div.state-card__title", null, placed?.placed ? "Dubbed video added" : "Dubbed video ready"),
+    el("div.state-card__title", null, placed?.placed ? t("aiDubbingAddedTitle") : t("aiDubbingReadyTitle")),
     el("div.state-card__subtitle", null,
-      placed?.placed ? "The dubbed result was placed on the timeline." : (placed?.reason ?? "The result was downloaded.")),
+      placed?.placed ? t("aiDubbingAddedSubtitle") : (placed?.reason ?? t("aiDubbingReadySubtitle"))),
   );
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "AI Dubbing failed"),
+    el("div.state-card__title", null, t("aiDubbingFailedTitle")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -484,7 +500,47 @@ function delay(ms: number): Promise<void> {
 function ensureReapVideoFilename(filename: string): string {
   const clean = filename || `clip-${Date.now()}.mp4`;
   if (/\.(mp4|mov)$/i.test(clean)) return clean;
-  return `${clean.replace(/\.[^.]+$/, "")}.mp4`;
+  throw new Error(t("aiDubbingUnsupportedFormat"));
+}
+
+async function validateDubbingSource(clip: SourceClip): Promise<void> {
+  if (!/\.(mp4|mov)$/i.test(clip.name)) {
+    throw new Error(t("aiDubbingUnsupportedFormat"));
+  }
+  if (typeof clip.size === "number" && clip.size > MAX_REAP_DUBBING_SIZE_BYTES) {
+    throw new Error(t("aiDubbingFileTooLarge"));
+  }
+
+  let duration = clip.durationSec;
+  if (duration == null) {
+    duration = await probeVideoDuration(pathToVideoSrc(clip.path)) ?? undefined;
+  }
+  if (duration != null && (duration < MIN_REAP_DUBBING_DURATION_SEC || duration > MAX_REAP_DUBBING_DURATION_SEC)) {
+    throw new Error(t("aiDubbingDurationOutOfRange"));
+  }
+}
+
+function probeVideoDuration(src: string): Promise<number | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      video.removeAttribute("src");
+      video.load();
+      resolve(value);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      done(duration);
+    };
+    video.onerror = () => done(null);
+    window.setTimeout(() => done(null), 4000);
+    video.src = src;
+  });
 }
 
 function formatElapsed(ms: number): string {
@@ -518,4 +574,18 @@ function applyVideoAspect(video: HTMLVideoElement) {
   frame.style.maxWidth = height > width ? "290px" : "560px";
   frame.classList.toggle("ai-dubbing-hero--portrait", height > width);
   frame.classList.toggle("ai-dubbing-hero--wide", width >= height);
+}
+
+function getLocalFileSize(path: string): number | undefined {
+  try {
+    if (window.cep_node) {
+      const fs = window.cep_node.require("fs") as any;
+      if (fs && fs.existsSync(path)) {
+        return fs.statSync(path).size;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read file size via Node fs:", err);
+  }
+  return undefined;
 }

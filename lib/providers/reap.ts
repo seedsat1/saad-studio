@@ -375,6 +375,16 @@ export async function startReapJobWithUploadId(params: {
   return { projectId };
 }
 
+export async function startReapJobWithSourceUrl(params: {
+  tool: ReapTool;
+  sourceUrl: string;
+  options?: Record<string, unknown>;
+}): Promise<{ projectId: string }> {
+  ensureKey();
+  const projectId = await createToolFromSourceUrl(params.tool, params.sourceUrl, params.options ?? {});
+  return { projectId };
+}
+
 // â”€â”€â”€ Internals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ensureKey() {
@@ -442,6 +452,21 @@ async function createTool(
   return createToolAt(path, uploadId, options);
 }
 
+async function createToolFromSourceUrl(
+  tool: ReapTool,
+  sourceUrl: string,
+  options: Record<string, unknown>,
+): Promise<string> {
+  const path =
+    tool === "captions" ? "/create-captions" :
+    tool === "reframe" ? "/create-reframe" :
+    tool === "dubbing" ? "/create-dubbing" :
+    tool === "transcription" ? "/create-transcription" :
+    "/create-clips";
+
+  return createToolAtSourceUrl(path, sourceUrl, options);
+}
+
 async function createToolAt(
   path: string,
   uploadId: string,
@@ -450,6 +475,23 @@ async function createToolAt(
   const res = await reapFetch(path, {
     method: "POST",
     body: JSON.stringify({ uploadId, ...options }),
+  });
+  const data = await readJson(res, path.slice(1));
+  const projectId = firstString(data, ["projectId", "id", "project"]);
+  if (!projectId) {
+    throw new ProviderError("kie", path.slice(1), "Response missing projectId");
+  }
+  return projectId;
+}
+
+async function createToolAtSourceUrl(
+  path: string,
+  sourceUrl: string,
+  options: Record<string, unknown>,
+): Promise<string> {
+  const res = await reapFetch(path, {
+    method: "POST",
+    body: JSON.stringify({ sourceUrl, ...options }),
   });
   const data = await readJson(res, path.slice(1));
   const projectId = firstString(data, ["projectId", "id", "project"]);

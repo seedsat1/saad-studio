@@ -1017,7 +1017,12 @@ export const api = {
         }),
         body,
       ),
-    avatarPro: (body: { imageUrl: string; audioUrl: string; prompt?: string }) =>
+    avatarPro: (body: {
+      modelId?: "kling/ai-avatar-pro" | "kling/ai-avatar-standard";
+      imageUrl: string;
+      audioUrl: string;
+      prompt?: string;
+    }) =>
       request<JobStatus>("/api/panel/generate/avatar-pro", {
         method: "POST",
         body: JSON.stringify(body),

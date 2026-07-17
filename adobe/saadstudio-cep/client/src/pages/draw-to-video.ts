@@ -1,4 +1,4 @@
-import { el } from "../lib/dom";
+﻿import { el } from "../lib/dom";
 import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { ProcessingLoader } from "../components/processing-loader";
@@ -9,6 +9,7 @@ import { evalES, getHostImportButtonLabel, getHostImportSuccessMessage } from ".
 import { store } from "../lib/store";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 import { enforceVideoDurationLimit } from "../lib/media-validation";
+import { t } from "../lib/i18n";
 
 type ExpandState = {
   file: File | null;
@@ -46,7 +47,7 @@ export function DrawToVideoPage(): HTMLElement {
 
   const promptInput = el("textarea", {
     rows: "4",
-    placeholder: "Optional: describe the environment you want outside the original frame…",
+    placeholder: t("videoExtendPromptPlaceholder"),
     style: textareaStyle(),
   }) as HTMLTextAreaElement;
 
@@ -55,12 +56,12 @@ export function DrawToVideoPage(): HTMLElement {
   const resolutionSelect = createSelect(VIDEO_RESOLUTIONS.map((value) => ({ value, label: value })), "540p");
   const durationSelect = createSelect(VIDEO_EXTEND_DURATIONS.map((value) => ({ value, label: `${value}s` })), "6");
   const modelSelect = createSelect(VIDEO_EXPAND_MODELS, VIDEO_EXPAND_MODELS[0].value);
-  const modelField = buildField("Model", modelSelect);
+  const modelField = buildField(t("optionModel"), modelSelect);
   modelField.style.display = "none";
   modelSelect.addEventListener("change", updateGenerateState);
 
   const imagePreview = el("img", {
-    alt: "Video extend source preview",
+    alt: t("videoExtendSourceTitle"),
     style: previewStyle("none"),
   }) as HTMLImageElement;
 
@@ -74,9 +75,9 @@ export function DrawToVideoPage(): HTMLElement {
 
   const sourceMeta = el("div.mono.muted", {
     style: { fontSize: "11px", wordBreak: "break-all" },
-  }, "No image or video selected");
+  }, t("videoExtendNoSource"));
 
-  const generateBtnLabel = el("span", null, "Extend video");
+  const generateBtnLabel = el("span", null, t("videoExtendButton"));
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void submit(); },
   }, icon("send", 14), generateBtnLabel) as HTMLButtonElement;
@@ -84,16 +85,16 @@ export function DrawToVideoPage(): HTMLElement {
     style: { display: "none", justifyContent: "flex-end", marginTop: "10px" },
   },
     el("span.busy-spinner", { "aria-hidden": "true" }),
-    el("span", null, "Generating extended video… please wait"),
+    el("span", null, t("videoExtendGeneratingWait")),
   );
 
   const resultHost = el("div.col.gap-3", { style: { padding: "0 16px 16px" } });
 
   const sourceCard = createUploadCard({
-    title: "Source media",
-    subtitle: "Pick a video from the timeline, or upload one manually.",
+    title: t("videoExtendSourceTitle"),
+    subtitle: t("videoExtendSourceSubtitle"),
     accept: "video/*",
-    buttonLabel: "Choose video",
+    buttonLabel: t("videoExtendChooseVideo"),
     preview: el("div.col.gap-3", null, imagePreview, videoPreview),
     meta: sourceMeta,
     onPick: async (file) => {
@@ -103,34 +104,34 @@ export function DrawToVideoPage(): HTMLElement {
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Video Extend"),
+    PageHeader(t("videoExtendTitle")),
     el("div.app-main",
       null,
       el("div.state-card", { style: { margin: "0 16px 16px" } },
         el("div.state-card__icon", null, icon("draw-pen", 22)),
-        el("div.state-card__title", null, "Extend existing video"),
+        el("div.state-card__title", null, t("videoExtendHeroTitle")),
         el("div.state-card__subtitle", null,
-          "Generate additional seconds that continue the original video motion, style and atmosphere.",
+          t("videoExtendHeroSubtitle"),
         ),
       ),
       el("div.col.gap-3", { style: { padding: "0 16px 16px" } },
         sourceCard,
         el("div.state-card", { style: { padding: "14px" } },
-          el("div.state-card__title", { style: leftTitleStyle() }, "Format"),
+          el("div.state-card__title", { style: leftTitleStyle() }, t("videoExtendFormat")),
           el("div.grid-2", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" } },
             modelField,
-            buildField("Aspect ratio", aspectSelect),
+            buildField(t("videoExtendAspectRatio"), aspectSelect),
           ),
           el("div.grid-2", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginTop: "12px" } },
-            buildField("Output format", outputSelect),
-            buildField("Video resolution", resolutionSelect),
-            buildField("Extend duration", durationSelect),
+            buildField(t("videoExtendOutputFormat"), outputSelect),
+            buildField(t("videoExtendVideoResolution"), resolutionSelect),
+            buildField(t("videoExtendDuration"), durationSelect),
           ),
         ),
         el("div.state-card", { style: { padding: "14px" } },
-          el("div.state-card__title", { style: leftTitleStyle() }, "Prompt"),
+          el("div.state-card__title", { style: leftTitleStyle() }, t("videoExtendPromptTitle")),
           el("div.state-card__subtitle", { style: leftSubStyle() },
-            "Optional. Describe how the scene, camera motion, or action should continue.",
+            t("videoExtendPromptSubtitle"),
           ),
           promptInput,
           busyHint,
@@ -193,7 +194,7 @@ export function DrawToVideoPage(): HTMLElement {
     videoPreview.removeAttribute("src");
 
     if (!state.previewUrl || !state.kind) {
-      sourceMeta.textContent = "No image or video selected";
+      sourceMeta.textContent = t("videoExtendNoSource");
       return;
     }
 
@@ -205,14 +206,15 @@ export function DrawToVideoPage(): HTMLElement {
       videoPreview.style.display = "block";
     }
 
-    const sourceLabel = state.source === "timeline" ? "timeline" : "upload";
-    sourceMeta.textContent = `${state.displayName ?? "Source media"} • ${state.kind} • ${sourceLabel}`;
+    const sourceLabel = state.source === "timeline" ? t("lipSyncTimeline") : t("lipSyncUpload");
+    const kindLabel = state.kind === "video" ? t("filterVideo") : t("filterImage");
+    sourceMeta.textContent = `${state.displayName ?? t("videoExtendSourceTitle")} - ${kindLabel} - ${sourceLabel}`;
   }
 
   async function handlePickedFile(file: File | null) {
     try {
       if (file && detectKind(file.type, file.name) !== "video") {
-        throw new Error("Video Extend accepts video files only.");
+        throw new Error(t("videoExtendVideoOnly"));
       }
       if (file) {
         await enforceVideoDurationLimit(file);
@@ -228,7 +230,7 @@ export function DrawToVideoPage(): HTMLElement {
   async function handleTimelineClip(clip: TimelineClip) {
     try {
       if (clip.type !== "video") {
-        toast("Video Extend accepts timeline videos only.", "error");
+        toast(t("videoExtendTimelineVideoOnly"), "error");
         return;
       }
       await enforceVideoDurationLimit(clip.path);
@@ -245,7 +247,7 @@ export function DrawToVideoPage(): HTMLElement {
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
     generateBtn.classList.toggle("btn-primary--busy", busy);
-    generateBtnLabel.textContent = busy ? "Generating…" : "Extend video";
+    generateBtnLabel.textContent = busy ? t("videoExtendGenerating") : t("videoExtendButton");
     busyHint.style.display = busy ? "inline-flex" : "none";
     aspectSelect.value = state.kind === "video" && aspectSelect.value === "auto" ? "auto" : aspectSelect.value;
     const isLtxExtend = state.kind === "video" && modelSelect.value === "wavespeed-ai/ltx-2.3/video-extend";
@@ -276,7 +278,7 @@ export function DrawToVideoPage(): HTMLElement {
   async function submit() {
     if (busy) return;
     if (!hasSource(state) || !state.kind) {
-      toast("Select an image or a video first.", "error");
+      toast(t("videoExtendSelectFirst"), "error");
       return;
     }
 
@@ -284,13 +286,13 @@ export function DrawToVideoPage(): HTMLElement {
       busy = true;
       updateGenerateState();
       if (state.kind !== "video") {
-        throw new Error("Video Extend accepts video sources only.");
+        throw new Error(t("videoExtendVideoOnly"));
       }
-      resultHost.replaceChildren(busyCard("Uploading video and generating extended result..."));
+      resultHost.replaceChildren(busyCard(t("videoExtendUploadingGenerating")));
 
       const inputUrl = toAbsoluteMediaUrl(await ensureUploaded(state));
       if (!/^https?:\/\//i.test(inputUrl)) {
-        throw new Error("Source upload did not return a public media URL. Please reselect the source and try again.");
+        throw new Error(t("videoExtendPublicUrlMissing"));
       }
       const body: {
         inputUrl: string;
@@ -314,7 +316,7 @@ export function DrawToVideoPage(): HTMLElement {
         ? job
         : await api.pollJob(job.id);
       if (final.status === "failed" || !final.result) {
-        throw new Error(final.error ?? "Video extend generation failed");
+        throw new Error(final.error ?? t("videoExtendFailed"));
       }
 
       resultHost.replaceChildren(resultCard(final));
@@ -399,7 +401,7 @@ function hasSource(state: ExpandState): boolean {
 
 async function ensureUploaded(state: ExpandState): Promise<string> {
   if (!hasSource(state) || !state.kind) {
-    throw new Error("Missing source media.");
+    throw new Error(t("videoExtendMissingSource"));
   }
   const uploadKey = state.file
     ? `file:${state.file.name}:${state.file.size}:${state.file.lastModified}:${state.kind}`
@@ -496,23 +498,18 @@ function leftSubStyle(): Partial<CSSStyleDeclaration> {
 
 function generationBusyCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    ProcessingLoader("Extending video"),
+    ProcessingLoader(t("videoExtendProcessingTitle")),
     el("div.state-card__subtitle", { style: { marginTop: "8px" } }, message),
   );
 }
 
 function busyCard(message: string): HTMLElement {
   return generationBusyCard(message);
-  return el("div.state-card", null,
-    el("div.state-card__icon", null, icon("spark", 22)),
-    el("div.state-card__title", null, "Working…"),
-    el("div.state-card__subtitle", null, message),
-  );
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Generation failed"),
+    el("div.state-card__title", null, t("commonGenerationFailed")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -550,13 +547,14 @@ function resultCard(job: JobStatus): HTMLElement {
             await evalES("importMediaFromPath", local);
             toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
-            toast(`Import failed: ${(err as Error).message}`, "error");
+            toast(t("commonImportFailed").replace("{message}", (err as Error).message), "error");
           }
         },
       }, icon("import", 14), getHostImportButtonLabel()),
       el("button.btn-secondary", {
-        onClick: () => navigator.clipboard.writeText(result.url).then(() => toast("Link copied")),
-      }, "Copy link"),
+        onClick: () => navigator.clipboard.writeText(result.url).then(() => toast(t("commonLinkCopied"))),
+      }, t("commonCopyLink")),
     ),
   );
 }
+

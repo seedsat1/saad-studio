@@ -1,4 +1,4 @@
-import { Header } from "../components/header";
+﻿import { Header } from "../components/header";
 import { PageHeader } from "../components/page-header";
 import { ProcessingLoader } from "../components/processing-loader";
 import { el } from "../lib/dom";
@@ -15,6 +15,7 @@ import { evalES, getHostImportButtonLabel, getHostImportSuccessMessage } from ".
 import { toast } from "../lib/toast";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 import { enforceVideoDurationLimit } from "../lib/media-validation";
+import { t } from "../lib/i18n";
 
 type InputKind = "image" | "video";
 type TransitionInputSlot = "start" | "end";
@@ -38,12 +39,12 @@ type InputState = {
   preparedUrl: string | null;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  transformation: "Transformation",
-  fx_material: "FX / Material",
-  camera_motion: "Camera / Motion",
-  object_reveal: "Object / Reveal",
-  stylized_special: "Stylized / Special",
+const CATEGORY_LABEL_KEYS = {
+  transformation: "transitionsCategoryTransformation",
+  fx_material: "transitionsCategoryFxMaterial",
+  camera_motion: "transitionsCategoryCameraMotion",
+  object_reveal: "transitionsCategoryObjectReveal",
+  stylized_special: "transitionsCategoryStylizedSpecial",
 };
 
 const ASPECTS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
@@ -99,24 +100,24 @@ export function TransitionsPage(): HTMLElement {
     },
   });
   const resultHost = el("div");
-  const creditHint = el("div.mono.muted", { style: { fontSize: "11px" } }, "Select a preset to see estimated credits.");
+  const creditHint = el("div.mono.muted", { style: { fontSize: "11px" } }, t("transitionsCreditsEmpty"));
   const busyHint = el("div.busy-inline", {
     style: { display: "none", marginTop: "8px" },
   },
     el("span.busy-spinner", { "aria-hidden": "true" }),
-    el("span", null, "Generating transition… please wait"),
+    el("span", null, t("transitionsGeneratingWait")),
   );
 
-  const generateBtnLabel = el("span", null, "Generate transition");
+  const generateBtnLabel = el("span", null, t("transitionsGenerate"));
   const generateBtn = el("button.btn-primary", {
     onClick: () => { void generate(); },
   }, icon("spark", 14), generateBtnLabel) as HTMLButtonElement;
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Transitions"),
+    PageHeader(t("transitionsTitle")),
     el("div.app-main", null,
-      section("Inputs",
+      section(t("transitionsInputs"),
         el("div.col.gap-3", null,
           el("div", {
             style: {
@@ -132,22 +133,22 @@ export function TransitionsPage(): HTMLElement {
               gap: "12px",
             },
           },
-            settingsCard("Format",
-              labelRow("Model", modelSelect),
-              labelRow("Duration", durationSelect),
+            settingsCard(t("transitionsFormat"),
+              labelRow(t("transitionsModel"), modelSelect),
+              labelRow(t("transitionsDuration"), durationSelect),
               el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } },
-                "Aspect ratio works automatically from the selected media. Resolution stays 720p automatically.",
+                t("transitionsFormatHint"),
               ),
             ),
           ),
         ),
       ),
-      section("Generate",
+      section(t("transitionsGenerateSection"),
         el("div.state-card", { style: { padding: "14px" } },
           el("div.row", { style: { justifyContent: "space-between", alignItems: "center", gap: "12px" } },
             el("div.col.gap-1", null,
-              el("div.state-card__title", { style: { textAlign: "left", width: "100%" } }, "Transition output"),
-              el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } }, "Select a preset below, then set Start and End from the timeline or from uploaded files."),
+              el("div.state-card__title", { style: { textAlign: "left", width: "100%" } }, t("transitionsOutput")),
+              el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%" } }, t("transitionsOutputHint")),
               creditHint,
               busyHint,
             ),
@@ -156,14 +157,14 @@ export function TransitionsPage(): HTMLElement {
           resultHost,
         ),
       ),
-      section("Presets",
+      section(t("transitionsPresets"),
         el("div.col.gap-3", null, categoryHost, presetsHost),
       ),
     ),
   );
 
-  renderInputCard(inputAHost, "Start", "start", inputA);
-  renderInputCard(inputBHost, "End", "end", inputB);
+  renderInputCard(inputAHost, t("transitionsStart"), "start", inputA);
+  renderInputCard(inputBHost, t("transitionsEnd"), "end", inputB);
   renderCategories();
   renderPresets();
   syncAutomaticSettings();
@@ -192,7 +193,7 @@ export function TransitionsPage(): HTMLElement {
 
   function renderInputCard(host: HTMLElement, title: string, slot: TransitionInputSlot, state: InputState) {
     const previewHost = el("div");
-    const helper = el("div.mono.muted", { style: { fontSize: "11px", wordBreak: "break-all" } }, "No source selected");
+    const helper = el("div.mono.muted", { style: { fontSize: "11px", wordBreak: "break-all" } }, t("transitionsNoSource"));
     const picker = document.createElement("input");
     picker.type = "file";
     picker.accept = "image/*,video/*";
@@ -207,13 +208,13 @@ export function TransitionsPage(): HTMLElement {
       settingsCard(title,
         el("div.state-card__subtitle", { style: { textAlign: "left", width: "100%", marginBottom: "10px" } },
           slot === "start"
-            ? "Click the first timeline clip. The transition will use its last frame."
-            : "Click the second timeline clip. The transition will use its first frame.",
+            ? t("transitionsStartHint")
+            : t("transitionsEndHint"),
         ),
         previewHost,
         helper,
         el("div.row.gap-2", null,
-          el("button.btn-secondary", { onClick: () => picker.click() }, icon("plus", 14), "Choose file"),
+          el("button.btn-secondary", { onClick: () => picker.click() }, icon("plus", 14), t("transitionsChooseFile")),
           hasInput(state)
             ? el("button.btn-secondary", {
                 onClick: () => {
@@ -225,7 +226,7 @@ export function TransitionsPage(): HTMLElement {
                   queueProjectAutosave();
                   watcher.reset();
                 },
-              }, "Clear")
+              }, t("transitionsClear"))
             : null,
         ),
         picker,
@@ -237,10 +238,11 @@ export function TransitionsPage(): HTMLElement {
   function renderCategories() {
     const categories = Array.from(new Set(presets.map((preset) => preset.category)));
     categoryHost.replaceChildren(
-      categoryChip("all", `All (${presets.length})`),
-      ...categories.map((category) =>
-        categoryChip(category, CATEGORY_LABELS[category] ?? category),
-      ),
+      categoryChip("all", `${t("transitionsAll")} (${presets.length})`),
+      ...categories.map((category) => {
+        const key = (CATEGORY_LABEL_KEYS as Record<string, string>)[category];
+        return categoryChip(category, key ? t(key as any) : category);
+      }),
     );
   }
 
@@ -275,7 +277,7 @@ export function TransitionsPage(): HTMLElement {
 
     if (!visible.length) {
       presetsHost.replaceChildren(
-        el("div.library-empty", { style: { gridColumn: "1 / -1" } }, "No transition presets found."),
+        el("div.library-empty", { style: { gridColumn: "1 / -1" } }, t("transitionsNoPresets")),
       );
     }
   }
@@ -304,7 +306,7 @@ export function TransitionsPage(): HTMLElement {
         fontSize: "10px",
         fontWeight: "700",
       },
-    }, `${estimateCredits(preset)} cr`);
+    }, `${estimateCredits(preset)} ${t("transitionsCreditsShort")}`);
 
     const setPreview = (node: HTMLElement) => {
       mediaHost.replaceChildren(node, creditBadge);
@@ -324,7 +326,7 @@ export function TransitionsPage(): HTMLElement {
             fontSize: "11px",
             fontWeight: "600",
           },
-        }, "Preview"),
+        }, t("transitionsPreview")),
       );
     };
 
@@ -405,7 +407,7 @@ export function TransitionsPage(): HTMLElement {
         selectedPresetId = presets[0].id;
       }
     } catch (err) {
-      toast(`Could not load transitions: ${(err as Error).message}`, "error");
+      toast(t("transitionsLoadFailed").replace("{message}", (err as Error).message), "error");
       presets = [];
     }
     renderCategories();
@@ -417,18 +419,18 @@ export function TransitionsPage(): HTMLElement {
   async function generate() {
     const preset = presets.find((item) => item.id === selectedPresetId);
     if (!preset) {
-      toast("Select a transition preset first.", "error");
+      toast(t("transitionsSelectPreset"), "error");
       return;
     }
     if (!hasInput(inputA) || !hasInput(inputB)) {
-      toast("Add both Input A and Input B first.", "error");
+      toast(t("transitionsNeedInputs"), "error");
       return;
     }
 
     try {
       busy = true;
       updateGenerateState();
-      resultHost.replaceChildren(busyCard("Preparing transition project and generation inputs..."));
+      resultHost.replaceChildren(busyCard(t("transitionsPreparing")));
 
       const [inputAUrl, inputBUrl] = await Promise.all([
         ensurePreparedInput(inputA, "last"),
@@ -442,7 +444,7 @@ export function TransitionsPage(): HTMLElement {
         inputBUrl,
       });
 
-      resultHost.replaceChildren(busyCard("Submitting transition job..."));
+      resultHost.replaceChildren(busyCard(t("transitionsSubmitting")));
       const submission = await api.generateTransitionProject({
         projectId,
         presetId: preset.id,
@@ -474,10 +476,13 @@ export function TransitionsPage(): HTMLElement {
   function updateCreditHint() {
     const preset = presets.find((item) => item.id === selectedPresetId);
     if (!preset) {
-      creditHint.textContent = "Select a preset to see estimated credits.";
+      creditHint.textContent = t("transitionsCreditsEmpty");
       return;
     }
-    creditHint.textContent = `Estimated credits: ${estimateCredits(preset)} for ${preset.name} using ${modelSelect.value}.`;
+    creditHint.textContent = t("transitionsCreditsEstimate")
+      .replace("{credits}", String(estimateCredits(preset)))
+      .replace("{preset}", preset.name)
+      .replace("{model}", modelSelect.value);
   }
 
   function updateGenerateState() {
@@ -485,7 +490,7 @@ export function TransitionsPage(): HTMLElement {
     generateBtn.style.opacity = generateBtn.disabled ? "0.6" : "1";
     generateBtn.style.pointerEvents = generateBtn.disabled ? "none" : "auto";
     generateBtn.classList.toggle("btn-primary--busy", busy);
-    generateBtnLabel.textContent = busy ? "Generating…" : "Generate transition";
+    generateBtnLabel.textContent = busy ? t("transitionsGenerating") : t("transitionsGenerate");
     busyHint.style.display = busy ? "inline-flex" : "none";
   }
 
@@ -495,7 +500,7 @@ export function TransitionsPage(): HTMLElement {
 
     if (!hasInput(inputA) || inputA.selectionKey === key) {
       setTimelineInputState(inputA, clip);
-      renderInputCard(inputAHost, "Start", "start", inputA);
+      renderInputCard(inputAHost, t("transitionsStart"), "start", inputA);
       syncAutomaticSettings();
       updateGenerateState();
       updateCreditHint();
@@ -506,7 +511,7 @@ export function TransitionsPage(): HTMLElement {
     if (inputB.selectionKey === key) return;
 
     setTimelineInputState(inputB, clip);
-    renderInputCard(inputBHost, "End", "end", inputB);
+    renderInputCard(inputBHost, t("transitionsEnd"), "end", inputB);
     syncAutomaticSettings();
     updateGenerateState();
     updateCreditHint();
@@ -593,8 +598,8 @@ export function TransitionsPage(): HTMLElement {
       setRemoteInputState(inputB, project.inputBUrl, project.inputBType);
     }
 
-    renderInputCard(inputAHost, "Start", "start", inputA);
-    renderInputCard(inputBHost, "End", "end", inputB);
+    renderInputCard(inputAHost, t("transitionsStart"), "start", inputA);
+    renderInputCard(inputBHost, t("transitionsEnd"), "end", inputB);
     renderCategories();
     renderPresets();
     syncAutomaticSettings();
@@ -698,7 +703,7 @@ export function TransitionsPage(): HTMLElement {
   async function monitorTransitionJob(jobId: string, initialStatus?: string) {
     const pollToken = ++activePollToken;
     resultHost.replaceChildren(
-      busyCard(initialStatus === "queued" ? "Transition queued... waiting for provider." : "Generating transition..."),
+      busyCard(initialStatus === "queued" ? t("transitionsQueued") : t("transitionsGeneratingJob")),
     );
 
     const finalJob = await api.pollTransitionJob(jobId, {
@@ -708,7 +713,7 @@ export function TransitionsPage(): HTMLElement {
     if (pollToken !== activePollToken) return;
 
     if (finalJob.status !== "completed") {
-      throw new Error(finalJob.error ?? "Transition generation failed");
+      throw new Error(finalJob.error ?? t("transitionsGenerationFailed"));
     }
 
     let output = finalJob.output ?? buildOutputFromJob(finalJob);
@@ -717,7 +722,7 @@ export function TransitionsPage(): HTMLElement {
       output = project.outputs?.[0] ?? output;
     }
     if (!output || !output.url) {
-      throw new Error("Transition completed but no output URL was returned.");
+      throw new Error(t("transitionsNoOutput"));
     }
     resultHost.replaceChildren(resultCard(output));
   }
@@ -865,7 +870,7 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
   host.replaceChildren();
   const framePosition = slot === "start" ? "last" : "first";
   if (!hasInput(state) || !state.previewUrl || !state.kind) {
-    helper.textContent = "No source selected";
+    helper.textContent = t("transitionsNoSource");
     host.appendChild(
       el("div", {
         style: {
@@ -879,13 +884,14 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
           color: "var(--text-muted)",
           fontSize: "11px",
         },
-      }, slot === "start" ? "Start source" : "End source"),
+      }, slot === "start" ? t("transitionsStartSource") : t("transitionsEndSource")),
     );
     return;
   }
 
-  const sourceName = state.displayName ?? state.file?.name ?? "Source";
-  helper.textContent = `${sourceName} · ${state.kind}${state.kind === "video" ? ` · uses ${framePosition} frame` : ""}`;
+  const sourceName = state.displayName ?? state.file?.name ?? t("transitionsSourceFallback");
+  const frameLabel = framePosition === "last" ? t("transitionsLastFrame") : t("transitionsFirstFrame");
+  helper.textContent = `${sourceName} • ${state.kind}${state.kind === "video" ? ` • ${t("transitionsUsesFrame").replace("{frame}", frameLabel)}` : ""}`;
   host.appendChild(
     state.kind === "video"
       ? el("video", {
@@ -923,7 +929,7 @@ function updateInputPreview(host: HTMLElement, helper: HTMLElement, state: Input
 
 async function ensurePreparedInput(state: InputState, framePosition: FramePosition): Promise<string> {
   if (!hasInput(state) || !state.kind) {
-    throw new Error("Missing transition input file.");
+    throw new Error(t("transitionsMissingInput"));
   }
   const baseKey = state.file
     ? `${state.file.name}:${state.file.size}:${state.file.lastModified}`
@@ -1034,19 +1040,19 @@ async function extractVideoFrameBlob(sourceUrl: string, framePosition: FramePosi
         canvas.height = video.videoHeight || 720;
         const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error("Canvas is not available."));
+          reject(new Error(t("transitionsCanvasUnavailable")));
           return;
         }
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         canvas.toBlob((blob) => {
           if (!blob) {
-            reject(new Error("Could not capture a frame from the video."));
+            reject(new Error(t("transitionsCaptureFailed")));
             return;
           }
           resolve(blob);
         }, "image/jpeg", 0.92);
       };
-      video.onerror = () => reject(new Error("Video preview could not be loaded."));
+      video.onerror = () => reject(new Error(t("transitionsPreviewLoadFailed")));
     });
   } finally {
     if (sourceUrl.startsWith("blob:")) {
@@ -1074,23 +1080,18 @@ function inferPreviewKind(url: string): "image" | "video" {
 
 function generationBusyCard(message: string): HTMLElement {
   return el("div.state-card", { style: { marginTop: "14px" } },
-    ProcessingLoader("Generating transition"),
+    ProcessingLoader(t("transitionsProcessingTitle")),
     el("div.state-card__subtitle", { style: { marginTop: "8px" } }, message),
   );
 }
 
 function busyCard(message: string): HTMLElement {
   return generationBusyCard(message);
-  return el("div.state-card", { style: { marginTop: "14px" } },
-    el("div.state-card__icon", null, icon("spark", 20)),
-    el("div.state-card__title", null, "Working…"),
-    el("div.state-card__subtitle", null, message),
-  );
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", { style: { marginTop: "14px" } },
-    el("div.state-card__title", null, "Generation failed"),
+    el("div.state-card__title", null, t("transitionsErrorTitle")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -1128,13 +1129,15 @@ function resultCard(output: TransitionOutput): HTMLElement {
             await evalES("importMediaFromPath", local);
             toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
-            toast(`Import failed: ${(err as Error).message}`, "error");
+            toast(t("transitionsImportFailed").replace("{message}", (err as Error).message), "error");
           }
         },
       }, icon("import", 14), getHostImportButtonLabel()),
       el("button.btn-secondary", {
-        onClick: () => navigator.clipboard.writeText(output.url).then(() => toast("Link copied")),
-      }, "Copy link"),
+        onClick: () => navigator.clipboard.writeText(output.url).then(() => toast(t("transitionsLinkCopied"))),
+      }, t("transitionsCopyLink")),
     ),
   );
 }
+
+

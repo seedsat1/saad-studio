@@ -18,6 +18,7 @@ import { icon } from "../lib/icons";
 import { api, reap, type ReapStatusResponse } from "../lib/api";
 import { evalES } from "../lib/cep";
 import { toast } from "../lib/toast";
+import { t } from "../lib/i18n";
 
 const GENRES = [
   { value: "talking",     label: "Talking head / interview" },
@@ -69,6 +70,20 @@ export function EditClipsPage(): HTMLElement {
     tool: "edit-videos",
     showPrompt: true,
     allowEmptySubmit: true,
+    validate: (clip) => {
+      const duration = clip.durationSec;
+      if (duration != null && duration > 0) {
+        if (duration < 60) {
+          throw new Error(t("editClipsMinDurationError"));
+        }
+        if (duration > 3 * 3600) {
+          throw new Error(t("editClipsMaxDurationError"));
+        }
+      }
+      if (clip.size != null && clip.size > 5 * 1024 * 1024 * 1024) {
+        throw new Error(t("editClipsFileTooLargeError"));
+      }
+    },
     hint: "Generate short clips from your long-form source. Describe the angle or hook to steer the cuts.",
     options: [
       { key: "genre",        label: "Genre",       value: "talking",  options: GENRES },

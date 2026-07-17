@@ -6,6 +6,7 @@
 
 import { FeaturePage } from "./feature-page";
 import { api, getApiBase } from "../lib/api";
+import { t } from "../lib/i18n";
 
 type ImageInputField = "image_url" | "image_input" | "image_urls" | "input_urls";
 
@@ -65,17 +66,17 @@ function modelSpecFor(value: string): ImageModelSpec {
 
 export function ImageGenPage(): HTMLElement {
   return FeaturePage({
-    title: "Image generation",
+    title: t("imageGenTitle"),
     galleryKind: "image",
     dock: {
-      placeholder: "Describe the image you want to generate…",
+      placeholder: t("imageGenPlaceholder"),
       showAttach: true,
       options: [
-        { key: "model", label: "Model", value: "nano-banana-pro", options: MODELS },
-        { key: "aspect", label: "Aspect", value: "1:1", options: ASPECTS },
+        { key: "model", label: t("optionModel"), value: "nano-banana-pro", options: MODELS },
+        { key: "aspect", label: t("optionAspect"), value: "1:1", options: ASPECTS },
         {
           key: "resolution",
-          label: "Quality",
+          label: t("optionQuality"),
           value: "2K",
           options: RESOLUTIONS,
           getOptions: (state) => (state.options.model === "gpt-image-2" ? GPT_QUALITIES : RESOLUTIONS),
@@ -85,14 +86,14 @@ export function ImageGenPage(): HTMLElement {
     submit: async ({ prompt, attachments, options }) => {
       const spec = modelSpecFor(options.model);
       if (attachments.some((file) => !file.type.startsWith("image/"))) {
-        throw new Error("Image generation accepts image reference attachments only.");
+        throw new Error(t("imageGenImageRefsOnly"));
       }
       if (attachments.length > spec.maxRefImages) {
-        const noun = spec.maxRefImages === 1 ? "reference image" : "reference images";
-        throw new Error(`${spec.label} accepts up to ${spec.maxRefImages} ${noun}.`);
+        const noun = spec.maxRefImages === 1 ? t("imageGenRefImageSingular") : t("imageGenRefImagePlural");
+        throw new Error(t("imageGenMaxRefs").replace("{model}", spec.label).replace("{count}", String(spec.maxRefImages)).replace("{noun}", noun));
       }
       if (attachments.length && spec.maxRefImages === 0) {
-        throw new Error(`${spec.label} does not accept reference images.`);
+        throw new Error(t("imageGenNoRefs").replace("{model}", spec.label));
       }
 
       const imageUrls = await Promise.all(

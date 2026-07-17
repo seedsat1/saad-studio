@@ -10,7 +10,7 @@ import { getLanguage, setLanguage, t } from "../lib/i18n";
 
 export function Header(): HTMLElement {
   const logo = el("img", {
-    src: "https://www.saadstudio.app/logo-saad-transparent.png",
+    src: "logo-saad.png",
     alt: "Saad Studio",
   });
   const credits = el("div.credits-chip", null,
@@ -96,7 +96,7 @@ export function Header(): HTMLElement {
         null,
         el("span.app-header__title", null, "Saad Studio"),
       ),
-      el("span.app-header__version", null, "v1.0"),
+      el("span.app-header__version", null, "v2.0"),
     ),
     el("div.app-header__right", null, langBtn, credits, avatarBtn),
   );

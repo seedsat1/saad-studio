@@ -27,7 +27,7 @@ import {
 import { hitRateLimit, panelRateLimitResponse, getRequestIp } from "@/lib/panel-rate-limit";
 import prismadb from "@/lib/prismadb";
 import { sanitizePrompt } from "@/lib/security";
-import { normalizeReapOptions, startReapJob, startReapJobWithUploadId, type ReapTool } from "@/lib/providers/reap";
+import { normalizeReapOptions, startReapJob, startReapJobWithSourceUrl, startReapJobWithUploadId, type ReapTool } from "@/lib/providers/reap";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -153,6 +153,12 @@ export async function POST(req: NextRequest) {
       ? await startReapJobWithUploadId({
           tool,
           uploadId: body.uploadId!,
+          options,
+        })
+      : tool === "transcription"
+      ? await startReapJobWithSourceUrl({
+          tool,
+          sourceUrl: body.sourceUrl!,
           options,
         })
       : await startReapJob({

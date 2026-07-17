@@ -216,6 +216,7 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "sync/lipsync-3":                          "lipsync",
   "infinitalk/from-audio":                   "lipsync",
   "kling/ai-avatar-pro":                     "lipsync",
+  "kling/ai-avatar-standard":                "lipsync",
   "minimax/voice-clone":                     "voice_clone",
 
   // ── Audio actions — app/api/generate/audio ───────────────────────────────

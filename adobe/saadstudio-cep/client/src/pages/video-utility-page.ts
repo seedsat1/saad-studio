@@ -1,15 +1,15 @@
-/** Shared page shell for tools that take an existing video as input
+﻿/** Shared page shell for tools that take an existing video as input
  *  (edit, reframe, remove-bg, upscale).
  *
  * Behaviour mirrors the Higgsfield Edit-video flow:
- *   • The page starts watching the Premiere/AE timeline as soon as it
+ *   â€¢ The page starts watching the Premiere/AE timeline as soon as it
  *     mounts. The moment the user clicks a clip in the timeline, the
- *     panel switches from the empty-state card to the options dock —
+ *     panel switches from the empty-state card to the options dock â€”
  *     no "Use timeline video" button to press first.
- *   • If the user trims the same clip or picks a different one, the
+ *   â€¢ If the user trims the same clip or picks a different one, the
  *     watcher detects it (diff on `path + inSec + outSec`) and the
  *     panel refreshes automatically.
- *   • "Upload video" stays available as a fallback when nothing is
+ *   â€¢ "Upload video" stays available as a fallback when nothing is
  *     selected (or when running inside the browser dev preview). */
 
 import { el } from "../lib/dom";
@@ -31,6 +31,7 @@ import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
 import { enforceVideoDurationLimit } from "../lib/media-validation";
+import { t } from "../lib/i18n";
 
 export interface SourceClip {
   path: string;
@@ -77,7 +78,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
 
   // Start watching the timeline. Auto-stops when this page is unmounted.
   const watcher = watchTimelineSelection((clip) => {
-    if (currentMode === "uploaded") return; // user explicitly uploaded — don't override
+    if (currentMode === "uploaded") return; // user explicitly uploaded â€” don't override
     const key = clip ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : null;
     if (key === currentClipKey) return;
     currentClipKey = key;
@@ -90,7 +91,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
 
   return root;
 
-  // ─── States ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ States â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function showEmpty() {
     const insideAdobe = isInsideAdobe();
@@ -99,18 +100,18 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
         null,
         el("div.state-card__icon", null, icon("video", 22)),
         el("div.state-card__title", null,
-          insideAdobe ? "Select a clip on your timeline" : "Upload a video",
+          insideAdobe ? t("videoUtilitySelectTimeline") : t("videoUtilityUploadVideo"),
         ),
         el("div.state-card__subtitle", null,
           insideAdobe
-            ? (cfg.hint ?? `Click any clip on the ${getHostSelectionLabel()} and it'll show up here automatically.`)
-            : "Timeline auto-detect only works inside Premiere Pro / After Effects. Upload a file to keep going.",
+            ? (cfg.hint ?? t("videoUtilityAutoHint").replace("timeline", getHostSelectionLabel()))
+            : t("videoUtilityBrowserHint"),
         ),
         el("div.state-card__actions",
           null,
           el("button.btn-secondary",
             { onClick: uploadFile },
-            icon("plus", 14), "Upload video",
+            icon("plus", 14), t("videoUtilityUploadVideo"),
           ),
         ),
       ),
@@ -178,7 +179,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
           el("div.state-card__icon", { style: { margin: "0", flexShrink: "0" } }, icon("video", 18)),
           el("div.col.gap-1.grow", { style: { textAlign: "left", alignItems: "flex-start", minWidth: "0" } },
             el("div.truncate", { style: { fontSize: "13px", fontWeight: "600", width: "100%" } },
-              clip.name ?? "Source clip",
+              clip.name ?? t("reapSourceClip"),
             ),
             el("div.mono.muted.truncate", { style: { fontSize: "10px", width: "100%" }, title: clip.path },
               shortenPath(clip.path),
@@ -186,7 +187,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
           ),
           el("button.dock-button",
             { onClick: () => { currentMode = "auto"; currentClipKey = null; showEmpty(); } },
-            "Change",
+            t("videoUtilityChange"),
           ),
         ),
       ),
@@ -197,19 +198,19 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
 
     const dock = PromptDock({
       placeholder: cfg.showPrompt
-        ? "Optional: describe what you want to change…"
+        ? t("videoUtilityPromptPlaceholder")
         : undefined,
       allowEmptySubmit: cfg.allowEmptySubmit,
       options: cfg.options,
       onSubmit: async ({ prompt, options }) => {
         try {
-          dock.setBusy(true, "Generating… please wait");
+          dock.setBusy(true, t("commonGenerating"));
           results.replaceChildren(busyCard());
           const job = await cfg.submit({ clip, prompt, options });
           const final = job.status === "succeeded" || job.status === "failed"
             ? job : await api.pollJob(job.id);
           if (final.status === "failed" || !final.result) {
-            throw new Error(final.error ?? "Generation failed");
+            throw new Error(final.error ?? t("commonGenerationFailed"));
           }
           const r = final.result;
           results.replaceChildren(buildResultCard(r));
@@ -228,7 +229,7 @@ export function VideoUtilityPage(cfg: VideoUtilityConfig): HTMLElement {
   }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function toSourceClip(c: TimelineClip): SourceClip {
   return {
@@ -244,7 +245,7 @@ function shortenPath(p: string, max = 48): string {
   if (p.length <= max) return p;
   const head = p.slice(0, 12);
   const tail = p.slice(-(max - 15));
-  return `${head}…${tail}`;
+  return `${head}...${tail}`;
 }
 
 /** Convert a host-reported path into something an HTML <video> tag can load.
@@ -265,22 +266,18 @@ function pathToVideoSrc(p: string): string {
 
 function generationBusyCard(): HTMLElement {
   return el("div.state-card", null,
-    ProcessingLoader("Processing"),
-    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, "This usually takes under two minutes."),
+    ProcessingLoader(t("commonProcessingTitle")),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, t("commonProcessingShort")),
   );
 }
 
 function busyCard(): HTMLElement {
   return generationBusyCard();
-  return el("div.state-card", null,
-    el("div.state-card__icon", null, icon("spark", 22)),
-    el("div.state-card__title", null, "Working…"),
-    el("div.state-card__subtitle", null, "This usually takes under two minutes."));
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Failed"),
+    el("div.state-card__title", null, t("commonFailed")),
     el("div.state-card__subtitle", null, message));
 }
 
@@ -323,7 +320,7 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
         if (!dragPath) {
           e.preventDefault();
           void warmDragAsset();
-          toast("Preparing asset for drag. Drag again in a second.", "info");
+          toast(t("commonPreparingDrag"), "info");
           return;
         }
         const fileUri = toFileUri(dragPath);
@@ -350,7 +347,7 @@ function buildResultCard(r: NonNullable<JobStatus["result"]>): HTMLElement {
               await evalES("importMediaFromPath", local);
               toast(getHostImportSuccessMessage(), "success");
             } catch (err) {
-              toast(`Import failed: ${(err as Error).message}`, "error");
+              toast(t("commonImportFailed").replace("{message}", (err as Error).message), "error");
             }
           },
         },
@@ -371,3 +368,4 @@ function toFileUri(localPath: string): string {
 function mimeFor(kind: "image" | "video" | "audio"): string {
   return kind === "video" ? "video/mp4" : kind === "audio" ? "audio/mpeg" : "image/png";
 }
+

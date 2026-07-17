@@ -1,12 +1,13 @@
-/** Bottom prompt dock used by every feature page.
+﻿/** Bottom prompt dock used by every feature page.
  *
  * Renders a textarea + a row of pill selectors (model, aspect, resolution,
  * mode) + an attach button + a submit. The page passes in the option lists
- * and a submit handler — this component is purely presentation. */
+ * and a submit handler â€” this component is purely presentation. */
 
 import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
 import { openModelPicker } from "./model-picker";
+import { t } from "../lib/i18n";
 
 export interface Option { value: string; label: string; }
 export interface DockOption {
@@ -33,7 +34,7 @@ export interface DockConfig {
   showAttach?: boolean;
   allowEmptySubmit?: boolean;
   /** Hide the textarea entirely for tools that take no free-form prompt
-   *  (Add Captions, Reframe, …). The dock then shows only the option
+   *  (Add Captions, Reframe, â€¦). The dock then shows only the option
    *  pills + submit and `state.prompt` is always "". */
   hidePrompt?: boolean;
   options: DockOption[];
@@ -90,13 +91,13 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
         : el("div.prompt-dock__attachment-icon", { "aria-hidden": "true" }, icon(iconForFile(file), 14));
       const removeBtn = el("button.prompt-dock__attachment-remove", {
         type: "button",
-        "aria-label": `Remove ${file.name}`,
+        "aria-label": t("promptRemoveFile").replace("{name}", file.name),
         onClick: () => {
           setAttachments(state.attachments.filter((_, i) => i !== index));
         },
       }, icon("close", 12));
       const card = el("div.prompt-dock__attachment",
-        { title: `${file.name} • ${formatFileSize(file.size)}` },
+        { title: `${file.name} - ${formatFileSize(file.size)}` },
         thumb,
         removeBtn,
       );
@@ -130,7 +131,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
 
   const textarea = el("textarea.prompt-dock__textarea", {
     rows: "2",
-    placeholder: cfg.placeholder ?? "Describe what you want to make…",
+    placeholder: cfg.placeholder ?? t("promptDefaultPlaceholder"),
     onInput: (e: Event) => {
       const ta = e.target as HTMLTextAreaElement;
       state.prompt = ta.value;
@@ -180,13 +181,13 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
     : null;
 
   const submitBtn = el("button.dock-submit",
-    { "aria-label": "Generate", title: "Generate", onClick: () => submit() },
+    { "aria-label": t("promptGenerate"), title: t("promptGenerate"), onClick: () => submit() },
     icon("send", 14),
   ) as HTMLButtonElement;
   const optionButtons: HTMLButtonElement[] = [];
   const optionEntries: Array<{ opt: DockOption; pill: HTMLButtonElement }> = [];
   const toggleEntries: Array<{ toggle: DockToggle; button: HTMLButtonElement }> = [];
-  const statusText = el("span", null, "Generating…");
+  const statusText = el("span", null, t("promptGenerating"));
   const statusLine = el("div.prompt-dock__status", {
     style: { display: "none" },
   },
@@ -250,7 +251,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   if (cfg.showAttach && fileInput) {
     const attachButton = el("button.dock-button.dock-button--icon",
         {
-          "aria-label": "Attach file",
+          "aria-label": t("promptAttachFile"),
           onClick: () => (fileInput as HTMLInputElement).click(),
         },
         icon("plus", 14),
@@ -300,7 +301,7 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   refreshOptionPills();
   refreshToggles();
 
-  const dropHint = el("div.prompt-dock__drop-hint", { "aria-hidden": "true" }, icon("plus", 14), "Drop files here");
+  const dropHint = el("div.prompt-dock__drop-hint", { "aria-hidden": "true" }, icon("plus", 14), t("promptDropFiles"));
   const root = el("div.prompt-dock", {
     onDragenter: (e: DragEvent) => {
       if (!cfg.showAttach || busy) return;
@@ -332,14 +333,14 @@ export function PromptDock(cfg: DockConfig): PromptDockHandle {
   root.setBusy = (nextBusy: boolean, message?: string) => {
     busy = nextBusy;
     if (message) statusText.textContent = message;
-    else statusText.textContent = "Generating…";
+    else statusText.textContent = t("promptGenerating");
     if (!cfg.hidePrompt) textarea.disabled = busy;
     if (fileInput) (fileInput as HTMLInputElement).disabled = busy;
     for (const button of optionButtons) button.disabled = busy;
     submitBtn.disabled = busy;
     submitBtn.classList.toggle("dock-submit--busy", busy);
-    submitBtn.setAttribute("aria-label", busy ? "Generating" : "Generate");
-    submitBtn.setAttribute("title", busy ? "Generating" : "Generate");
+    submitBtn.setAttribute("aria-label", busy ? t("promptGenerating") : t("promptGenerate"));
+    submitBtn.setAttribute("title", busy ? t("promptGenerating") : t("promptGenerate"));
     statusLine.style.display = busy ? "flex" : "none";
     if (busy) {
       dragDepth = 0;
@@ -369,3 +370,4 @@ function iconForFile(file: File) {
   if (file.type.startsWith("video/")) return "video" as const;
   return "settings" as const;
 }
+

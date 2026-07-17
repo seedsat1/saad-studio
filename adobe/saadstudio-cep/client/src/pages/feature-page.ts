@@ -1,7 +1,7 @@
-/** Generic feature-page shell used by every tool route.
+﻿/** Generic feature-page shell used by every tool route.
  *
  * Renders the header + result area + a configured PromptDock at the bottom.
- * Each concrete tool (image-gen, video-gen, reframe, …) just wires options
+ * Each concrete tool (image-gen, video-gen, reframe, â€¦) just wires options
  * and an onSubmit that calls the matching api method, then drops the
  * returned asset into the result strip. */
 
@@ -16,6 +16,7 @@ import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImport
 import { api, getFallbackUrls, type JobStatus } from "../lib/api";
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
+import { t } from "../lib/i18n";
 
 export interface FeatureConfig {
   title: string;
@@ -33,8 +34,8 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
     ? el("div", { style: { padding: "0 16px 16px" } },
         el("div.section__head", null,
           el("h3.section__title", null,
-            cfg.galleryKind === "image" ? "Image gallery" : cfg.galleryKind === "video" ? "Video gallery" : "Audio gallery"),
-          el("span.section__hint", null, "All synced items from your Saad Studio account"),
+            cfg.galleryKind === "image" ? t("commonImageGallery") : cfg.galleryKind === "video" ? t("commonVideoGallery") : t("commonAudioGallery")),
+          el("span.section__hint", null, t("commonSyncedItems")),
         ),
         RecentStrip({
           fixedFilter: cfg.galleryKind,
@@ -55,7 +56,7 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
     ...cfg.dock,
     onSubmit: async (input) => {
       try {
-        dock.setBusy(true, "Generating… please wait");
+        dock.setBusy(true, t("commonGenerating"));
         setBusy(true);
         const job = await cfg.submit(input);
         let final: JobStatus = job;
@@ -63,7 +64,7 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
           final = await api.pollJob(job.id);
         }
         if (final.status === "failed" || !final.result) {
-          throw new Error(final.error ?? "Generation failed");
+          throw new Error(final.error ?? t("commonGenerationFailed"));
         }
         preview.replaceChildren(resultCard(final, preview));
         store.refreshCreditsOnly();
@@ -88,24 +89,18 @@ export function FeaturePage(cfg: FeatureConfig): HTMLElement {
 function generationBusyCard(): HTMLElement {
   return el("div.state-card",
     null,
-    ProcessingLoader("Generating"),
-    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, "Your generation is in the queue. This usually takes 30-90 seconds."),
+    ProcessingLoader(t("commonGeneratingTitle")),
+    el("div.state-card__subtitle", { style: { marginTop: "8px" } }, t("commonGenerationQueued")),
   );
 }
 
 function busyCard(): HTMLElement {
   return generationBusyCard();
-  return el("div.state-card",
-    null,
-    el("div.state-card__icon", null, icon("spark", 22)),
-    el("div.state-card__title", null, "Working…"),
-    el("div.state-card__subtitle", null, "Your generation is in the queue. This usually takes 30–90 seconds."),
-  );
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Generation failed"),
+    el("div.state-card__title", null, t("commonGenerationFailed")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -164,7 +159,7 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
         if (!dragPath) {
           e.preventDefault();
           void warmDragAsset();
-          toast("Preparing asset for drag. Drag again in a second.", "info");
+          toast(t("commonPreparingDrag"), "info");
           return;
         }
         const fileUri = toFileUri(dragPath);
@@ -184,13 +179,13 @@ function resultCard(job: JobStatus, _host: HTMLElement): HTMLElement {
             await evalES("importMediaFromPath", local);
             toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
-            toast(`Import failed: ${(err as Error).message}`, "error");
+            toast(t("commonImportFailed").replace("{message}", (err as Error).message), "error");
           }
         },
       }, icon("import", 14), getHostImportButtonLabel()),
       el("button.btn-secondary", {
-        onClick: () => navigator.clipboard.writeText(r.url).then(() => toast("Link copied")),
-      }, "Copy link"),
+        onClick: () => navigator.clipboard.writeText(r.url).then(() => toast(t("commonLinkCopied"))),
+      }, t("commonCopyLink")),
     ),
     r.prompt
       ? el("div.dim", { style: { fontSize: "12px", padding: "4px 4px 8px" } }, r.prompt)
@@ -209,3 +204,4 @@ function toFileUri(localPath: string): string {
 function mimeFor(kind: "image" | "video" | "audio"): string {
   return kind === "video" ? "video/mp4" : kind === "audio" ? "audio/mpeg" : "image/png";
 }
+

@@ -11,6 +11,7 @@ import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { openModelPicker } from "../components/model-picker";
 import { getHostAdapter } from "../lib/host/adapter";
+import { t } from "../lib/i18n";
 
 interface LanguageOption {
   value: string;
@@ -21,11 +22,14 @@ interface MediaSource {
   path: string;
   name: string;
   origin: "timeline" | "upload";
+  size?: number;
+  durationSec?: number;
 }
 
 interface AudiogramTemplate {
   id: string;
   label: string;
+  labelKey?: string;
   source: "system" | "brand";
   tone: string;
 }
@@ -52,30 +56,14 @@ const ACTIVE_AUDIOGRAM_JOB_KEY = "saadstudio.audiogram.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
 const NO_TRANSLATION = "none";
 const AUTO_LANGUAGE = "__auto__";
+const MAX_REAP_AUDIOGRAM_SIZE_BYTES = 1024 * 1024 * 1024;
+const MIN_REAP_AUDIOGRAM_DURATION_SEC = 3;
+const MAX_REAP_AUDIOGRAM_DURATION_SEC = 15 * 60;
 
 const SYSTEM_TEMPLATES: AudiogramTemplate[] = [
-  { id: "vinyl_vibes", label: "Vinyl Vibes", source: "system", tone: "Record motion" },
-  { id: "daily_cafe", label: "Daily Cafe", source: "system", tone: "Podcast card" },
-  { id: "after_dark", label: "After Dark", source: "system", tone: "Dark waveform" },
-];
-
-const FALLBACK_LANGUAGES: LanguageOption[] = [
-  { value: AUTO_LANGUAGE, label: "Auto-detect" },
-  { value: "en", label: "English" },
-  { value: "ar", label: "Arabic" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-];
-
-const SCRIPT_OPTIONS: LanguageOption[] = [
-  { value: "native", label: "Native" },
-  { value: "roman", label: "Roman" },
-];
-
-const ORIENTATION_OPTIONS: LanguageOption[] = [
-  { value: "square", label: "Square (1:1)" },
-  { value: "portrait", label: "Portrait (9:16)" },
-  { value: "landscape", label: "Landscape (16:9)" },
+  { id: "vinyl_vibes", label: "Vinyl Vibes", labelKey: "audiogramTemplateVinylVibes", source: "system", tone: "audiogramToneRecordMotion" },
+  { id: "daily_cafe", label: "Daily Cafe", labelKey: "audiogramTemplateDailyCafe", source: "system", tone: "audiogramTonePodcastCard" },
+  { id: "after_dark", label: "After Dark", labelKey: "audiogramTemplateAfterDark", source: "system", tone: "audiogramToneDarkWaveform" },
 ];
 
 const RESOLUTION_OPTIONS: LanguageOption[] = [
@@ -87,6 +75,7 @@ const RESOLUTION_OPTIONS: LanguageOption[] = [
 
 export function AudiogramPage(): HTMLElement {
   const hostAdapter = getHostAdapter();
+  const fallbackLanguages = getFallbackLanguages();
   const state = {
     audio: null as MediaSource | null,
     logo: null as MediaSource | null,
@@ -102,8 +91,8 @@ export function AudiogramPage(): HTMLElement {
     script: "native",
     orientation: "square",
     resolution: "720",
-    languages: FALLBACK_LANGUAGES,
-    translations: [{ value: NO_TRANSLATION, label: "None" }, ...FALLBACK_LANGUAGES.filter((item) => item.value !== AUTO_LANGUAGE)],
+    languages: fallbackLanguages,
+    translations: [{ value: NO_TRANSLATION, label: t("audiogramNone") }, ...fallbackLanguages.filter((item) => item.value !== AUTO_LANGUAGE)],
     loadingCatalog: true,
     busy: false,
   };
@@ -118,7 +107,7 @@ export function AudiogramPage(): HTMLElement {
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Audiogram"),
+    PageHeader(t("audiogramTitle")),
     body,
   );
 
@@ -129,6 +118,8 @@ export function AudiogramPage(): HTMLElement {
       path: clip.path,
       name: clip.name ?? guessName(clip.path),
       origin: "timeline",
+      durationSec: clip.durationSec,
+      size: clip.size,
     };
     render();
   });
@@ -156,8 +147,8 @@ export function AudiogramPage(): HTMLElement {
       if (langs.status === "fulfilled") {
         const sources = mapLanguages(langs.value.sourceLanguages);
         const targets = mapLanguages(langs.value.targetLanguages);
-        state.languages = [FALLBACK_LANGUAGES[0], ...(sources.length ? sources : FALLBACK_LANGUAGES.slice(1))];
-        state.translations = [{ value: NO_TRANSLATION, label: "None" }, ...(targets.length ? targets : FALLBACK_LANGUAGES.slice(1))];
+        state.languages = [fallbackLanguages[0], ...(sources.length ? sources : fallbackLanguages.slice(1))];
+        state.translations = [{ value: NO_TRANSLATION, label: t("audiogramNone") }, ...(targets.length ? targets : fallbackLanguages.slice(1))];
       }
       if (catalog.status === "fulfilled") {
         const brandTemplates = catalog.value.audiogramTemplates.items
@@ -166,7 +157,7 @@ export function AudiogramPage(): HTMLElement {
             id: preset.id,
             label: preset.label || preset.name || preset.id,
             source: "brand" as const,
-            tone: "Brand template",
+            tone: "audiogramToneBrandTemplate",
           }));
         state.brandTemplates = brandTemplates;
         state.catalogDiagnostic = catalog.value.audiogramTemplates.diagnostic ?? null;
@@ -182,14 +173,14 @@ export function AudiogramPage(): HTMLElement {
   function render() {
     page.replaceChildren(
       el("div.captions-hero", null,
-        el("h2.captions-hero__title", null, "Generate animated ", el("span.captions-hero__accent", null, "audiogram"), " in one click"),
-        el("div.captions-hero__subtitle", null, "Templates and Brand templates are separated so Reap settings do not mix between tools."),
+        el("h2.captions-hero__title", null, t("audiogramHeroPrefix"), el("span.captions-hero__accent", null, t("audiogramHeroAccent")), t("audiogramHeroSuffix")),
+        el("div.captions-hero__subtitle", null, t("audiogramHeroSubtitle")),
       ),
       renderAudioSection(),
       renderTemplates(),
-      renderAssetUpload("Logo", state.logo, "image/*", (source) => { state.logo = source; render(); }),
+      renderAssetUpload(t("audiogramLogo"), state.logo, "image/*", (source) => { state.logo = source; render(); }),
       renderTextField(),
-      renderAssetUpload("Background image", state.background, "image/*", (source) => { state.background = source; render(); }),
+      renderAssetUpload(t("audiogramBackgroundImage"), state.background, "image/*", (source) => { state.background = source; render(); }),
       renderSettings(),
       renderCta(),
     );
@@ -198,8 +189,8 @@ export function AudiogramPage(): HTMLElement {
   function renderAudioSection(): HTMLElement {
     return el("div.captions-section", null,
       el("div.captions-section__head", null,
-        el("h3", null, "Upload your audio"),
-        state.audio ? el("button.dock-button", { onClick: () => { state.audio = null; render(); } }, "Change") : null,
+        el("h3", null, t("audiogramUploadAudio")),
+        state.audio ? el("button.dock-button", { onClick: () => { state.audio = null; render(); } }, t("videoUtilityChange")) : null,
       ),
       state.audio
         ? el("div.captions-source", null,
@@ -212,7 +203,7 @@ export function AudiogramPage(): HTMLElement {
             ),
             el("audio.captions-source__preview", { src: pathToMediaSrc(state.audio.path), controls: "true" }),
           )
-        : renderDropBox("Click to upload or drag and drop", "Max. File Size: 1 GB", "audio/*", (source) => {
+        : renderDropBox(t("audiogramClickUpload"), t("audiogramMaxAudioFile"), "audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,.mp3,.m4a,.wav", (source) => {
             state.audio = source;
             render();
           }),
@@ -231,19 +222,19 @@ export function AudiogramPage(): HTMLElement {
             state.selectedTemplate = state.templates[0]?.id ?? "";
             render();
           },
-        }, "Templates"),
+        }, t("audiogramTemplates")),
         el("button.captions-tab" + (showingBrand ? ".captions-tab--active" : ""), {
           onClick: () => {
             state.activeTemplateTab = "brand";
             state.selectedTemplate = state.brandTemplates[0]?.id ?? "";
             render();
           },
-        }, "Brand templates"),
+        }, t("audiogramBrandTemplates")),
       ),
-      state.loadingCatalog ? el("div.captions-section__hint", null, "Loading templates...") : null,
+      state.loadingCatalog ? el("div.captions-section__hint", null, t("audiogramLoadingTemplates")) : null,
       !state.loadingCatalog && visibleTemplates.length === 0
         ? el("div.captions-empty-panel", null,
-            showingBrand ? "No brand templates found" : (state.catalogDiagnostic ?? "No templates found"))
+            showingBrand ? t("audiogramNoBrandTemplates") : (state.catalogDiagnostic ?? t("audiogramNoTemplates")))
         : el("div.audiogram-template-grid", null,
             ...visibleTemplates.slice(0, 12).map((template) => renderTemplateCard(template, template.id === selected?.id)),
           ),
@@ -258,9 +249,9 @@ export function AudiogramPage(): HTMLElement {
       },
       el("div.audiogram-template__preview", null,
         el("div.audiogram-template__waveform"),
-        el("strong", null, template.label),
+        el("strong", null, localizeTemplateLabel(template)),
       ),
-      el("span", null, template.tone),
+      el("span", null, localizeTemplateTone(template.tone)),
     );
   }
 
@@ -273,7 +264,7 @@ export function AudiogramPage(): HTMLElement {
     return el("div.captions-section", null,
       el("div.captions-section__head", null,
         el("h3", null, label),
-        value ? el("button.dock-button", { onClick: () => onPick(null) }, "Remove") : null,
+        value ? el("button.dock-button", { onClick: () => onPick(null) }, t("audiogramRemove")) : null,
       ),
       value
         ? el("div.captions-source", null,
@@ -285,7 +276,7 @@ export function AudiogramPage(): HTMLElement {
               ),
             ),
           )
-        : renderDropBox("Click to upload or drag and drop", "", accept, (source) => onPick(source)),
+        : renderDropBox(t("audiogramClickUpload"), "", accept, (source) => onPick(source)),
     );
   }
 
@@ -322,10 +313,10 @@ export function AudiogramPage(): HTMLElement {
 
   function renderTextField(): HTMLElement {
     return el("div.captions-section", null,
-      el("div.captions-section__head", null, el("h3", null, "Text")),
+      el("div.captions-section__head", null, el("h3", null, t("audiogramText"))),
       el("input.audiogram-text-input", {
         value: state.text,
-        placeholder: "Enter text for overlay",
+        placeholder: t("audiogramTextPlaceholder"),
         onInput: (event: Event) => { state.text = (event.currentTarget as HTMLInputElement).value; },
       }),
     );
@@ -334,11 +325,11 @@ export function AudiogramPage(): HTMLElement {
   function renderSettings(): HTMLElement {
     return el("div.captions-section", null,
       el("div.audiogram-settings-grid", null,
-        renderPicker("Language", state.language, state.languages, (value) => { state.language = value; render(); }),
-        renderPicker("Translate to", state.translate, state.translations, (value) => { state.translate = value; render(); }),
-        renderPicker("Script", state.script, SCRIPT_OPTIONS, (value) => { state.script = value; render(); }),
-        renderPicker("Orientation", state.orientation, ORIENTATION_OPTIONS, (value) => { state.orientation = value; render(); }),
-        renderPicker("Resolution", state.resolution, RESOLUTION_OPTIONS, (value) => { state.resolution = value; render(); }),
+        renderPicker(t("audiogramLanguage"), state.language, state.languages, (value) => { state.language = value; render(); }),
+        renderPicker(t("audiogramTranslateTo"), state.translate, state.translations, (value) => { state.translate = value; render(); }),
+        renderPicker(t("audiogramScript"), state.script, getScriptOptions(), (value) => { state.script = value; render(); }),
+        renderPicker(t("audiogramOrientation"), state.orientation, getOrientationOptions(), (value) => { state.orientation = value; render(); }),
+        renderPicker(t("audiogramResolution"), state.resolution, RESOLUTION_OPTIONS, (value) => { state.resolution = value; render(); }),
       ),
     );
   }
@@ -366,7 +357,7 @@ export function AudiogramPage(): HTMLElement {
     const canRun = Boolean(state.audio && selectedTemplate() && !state.busy);
     return el("div.captions-cta", null,
       el("button.btn-primary", { disabled: !canRun, onClick: runAudiogram },
-        state.busy ? "Generating..." : "Generate audiogram",
+        state.busy ? t("audiogramGenerating") : t("audiogramGenerate"),
         icon("arrow-up-right", 14),
       ),
     );
@@ -374,22 +365,23 @@ export function AudiogramPage(): HTMLElement {
 
   async function runAudiogram() {
     if (!state.audio) {
-      toast("Select or upload an audio file first.", "error");
+      toast(t("audiogramSelectAudioFirst"), "error");
       return;
     }
 
     state.busy = true;
     render();
-    resultArea.replaceChildren(progressCard("Uploading audio...", "Preparing the audio for Reap."));
+    resultArea.replaceChildren(progressCard(t("audiogramUploading"), t("audiogramUploadingSubtitle")));
 
     try {
+      await validateAudiogramAudio(state.audio);
       const filename = ensureAudioFilename(state.audio.name);
       const audioUploadId = await uploadMedia(state.audio, filename);
       const logoUploadId = state.logo ? await uploadMedia(state.logo, state.logo.name) : undefined;
       const backgroundUploadId = state.background ? await uploadMedia(state.background, state.background.name) : undefined;
       const template = selectedTemplate();
 
-      resultArea.replaceChildren(progressCard("Starting audiogram...", "Creating the Reap audiogram project."));
+      resultArea.replaceChildren(progressCard(t("audiogramStarting"), t("audiogramStartingSubtitle")));
       const started = await reap.start({
         tool: "audiogram",
         uploadId: audioUploadId,
@@ -446,8 +438,10 @@ export function AudiogramPage(): HTMLElement {
     state.busy = true;
     render();
     resultArea.replaceChildren(progressCard(
-      "Resuming audiogram...",
-      `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      t("audiogramResuming"),
+      t("reapElapsedChecks")
+        .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+        .replace("{checks}", String(job.checks)),
       job.lastProgress,
     ));
     try {
@@ -487,8 +481,10 @@ export function AudiogramPage(): HTMLElement {
 
       const elapsed = formatElapsed(Date.now() - job.startedAt);
       resultArea.replaceChildren(progressCard(
-        status.status === "queued" ? "Queued..." : "Generating audiogram...",
-        `Elapsed ${elapsed} - Checks ${job.checks}`,
+        status.status === "queued" ? t("reapQueued") : t("audiogramGeneratingJob"),
+        t("reapElapsedChecks")
+          .replace("{elapsed}", elapsed)
+          .replace("{checks}", String(job.checks)),
         status.progress,
       ));
 
@@ -519,15 +515,15 @@ export function AudiogramPage(): HTMLElement {
   async function importAudiogramResult(status: ReapStatusResponse) {
     const url = pickVideoUrl(status);
     if (!url) {
-      resultArea.replaceChildren(errorCard("Reap finished but returned no audiogram video URL."));
+      resultArea.replaceChildren(errorCard(t("audiogramNoOutput")));
       return;
     }
 
-    resultArea.replaceChildren(progressCard("Adding audiogram...", "Downloading the video and placing it on the timeline."));
+    resultArea.replaceChildren(progressCard(t("audiogramAdding"), t("audiogramAddingSubtitle")));
     const local = await api.downloadAsset(url, `saadstudio-audiogram-${Date.now()}.mp4`);
     const placed = await evalES<{ ok: boolean; placed?: boolean; reason?: string }>("importAndPlaceOnTimeline", local);
     resultArea.replaceChildren(successCard(url, placed));
-    toast(placed?.placed ? "Audiogram added to timeline" : "Audiogram imported", "success");
+    toast(placed?.placed ? t("audiogramAddedToast") : t("audiogramImportedToast"), "success");
   }
 
   function selectedTemplate(): AudiogramTemplate | undefined {
@@ -560,15 +556,65 @@ function fileToSource(file: File): MediaSource {
     path: (file as File & { path?: string }).path ?? URL.createObjectURL(file),
     name: file.name,
     origin: "upload",
+    size: file.size,
   };
 }
 
 function mapLanguages(items: ReapRawLanguageOption[] | undefined): LanguageOption[] {
   return Array.isArray(items)
     ? items
-      .map((item) => item.code ? { value: item.code, label: item.displayName || item.name || item.code } : null)
+      .map((item) => item.code ? { value: item.code, label: localizeLanguageLabel(item.code, item.displayName || item.name || item.code) } : null)
       .filter((item): item is LanguageOption => item !== null)
     : [];
+}
+
+function getFallbackLanguages(): LanguageOption[] {
+  return [
+    { value: AUTO_LANGUAGE, label: t("audiogramAutoDetect") },
+    { value: "en", label: t("audiogramLangEnglish") },
+    { value: "ar", label: t("audiogramLangArabic") },
+    { value: "es", label: t("audiogramLangSpanish") },
+    { value: "fr", label: t("audiogramLangFrench") },
+  ];
+}
+
+function localizeLanguageLabel(code: string, fallback: string): string {
+  const lower = code.toLowerCase();
+  if (lower.startsWith("en")) return t("audiogramLangEnglish");
+  if (lower.startsWith("ar")) return t("audiogramLangArabic");
+  if (lower.startsWith("es")) return t("audiogramLangSpanish");
+  if (lower.startsWith("fr")) return t("audiogramLangFrench");
+  return fallback;
+}
+
+function getScriptOptions(): LanguageOption[] {
+  return [
+    { value: "native", label: t("audiogramNative") },
+    { value: "roman", label: t("audiogramRoman") },
+  ];
+}
+
+function getOrientationOptions(): LanguageOption[] {
+  return [
+    { value: "square", label: t("audiogramSquare") },
+    { value: "portrait", label: t("audiogramPortrait") },
+    { value: "landscape", label: t("audiogramLandscape") },
+  ];
+}
+
+function localizeTemplateTone(tone: string): string {
+  if (tone === "audiogramToneRecordMotion") return t("audiogramToneRecordMotion");
+  if (tone === "audiogramTonePodcastCard") return t("audiogramTonePodcastCard");
+  if (tone === "audiogramToneDarkWaveform") return t("audiogramToneDarkWaveform");
+  if (tone === "audiogramToneBrandTemplate") return t("audiogramToneBrandTemplate");
+  return tone;
+}
+
+function localizeTemplateLabel(template: AudiogramTemplate): string {
+  if (template.labelKey === "audiogramTemplateVinylVibes") return t("audiogramTemplateVinylVibes");
+  if (template.labelKey === "audiogramTemplateDailyCafe") return t("audiogramTemplateDailyCafe");
+  if (template.labelKey === "audiogramTemplateAfterDark") return t("audiogramTemplateAfterDark");
+  return template.label;
 }
 
 function progressCard(title: string, subtitle: string, progress?: number): HTMLElement {
@@ -585,15 +631,15 @@ function progressCard(title: string, subtitle: string, progress?: number): HTMLE
 function successCard(url: string, placed: { ok: boolean; placed?: boolean; reason?: string } | null): HTMLElement {
   return el("div.state-card", null,
     el("video", { src: url, controls: "true", style: { width: "100%", borderRadius: "8px" } }),
-    el("div.state-card__title", null, placed?.placed ? "Audiogram added" : "Audiogram ready"),
+    el("div.state-card__title", null, placed?.placed ? t("audiogramAddedTitle") : t("audiogramReadyTitle")),
     el("div.state-card__subtitle", null,
-      placed?.placed ? "The audiogram was placed on the timeline." : (placed?.reason ?? "The result was downloaded.")),
+      placed?.placed ? t("audiogramAddedSubtitle") : (placed?.reason ?? t("audiogramReadySubtitle"))),
   );
 }
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Audiogram failed"),
+    el("div.state-card__title", null, t("audiogramFailedTitle")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -636,7 +682,46 @@ function collectStrings(value: unknown, depth = 0): string[] {
 function ensureAudioFilename(filename: string): string {
   const clean = filename || `audio-${Date.now()}.mp3`;
   if (/\.(mp3|m4a|wav)$/i.test(clean)) return clean;
-  return `${clean.replace(/\.[^.]+$/, "")}.mp3`;
+  throw new Error(t("audiogramUnsupportedAudioFormat"));
+}
+
+async function validateAudiogramAudio(audio: MediaSource): Promise<void> {
+  if (!/\.(mp3|m4a|wav)$/i.test(audio.name)) {
+    throw new Error(t("audiogramUnsupportedAudioFormat"));
+  }
+  if (typeof audio.size === "number" && audio.size > MAX_REAP_AUDIOGRAM_SIZE_BYTES) {
+    throw new Error(t("audiogramAudioFileTooLarge"));
+  }
+  let duration = audio.durationSec;
+  if (duration == null) {
+    duration = await probeAudioDuration(pathToMediaSrc(audio.path)) ?? undefined;
+  }
+  if (duration != null && (duration < MIN_REAP_AUDIOGRAM_DURATION_SEC || duration > MAX_REAP_AUDIOGRAM_DURATION_SEC)) {
+    throw new Error(t("audiogramAudioDurationOutOfRange"));
+  }
+}
+
+function probeAudioDuration(src: string): Promise<number | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const audio = document.createElement("audio");
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      audio.removeAttribute("src");
+      audio.load();
+      resolve(value);
+    };
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : null;
+      done(duration);
+    };
+    audio.onerror = () => done(null);
+    window.setTimeout(() => done(null), 4000);
+    audio.src = src;
+  });
 }
 
 function pathToMediaSrc(path: string): string {
@@ -671,7 +756,7 @@ interface LocalWatcher {
 
 function watchAudioSelection(
   hostAdapter: ReturnType<typeof getHostAdapter>,
-  listener: (clip: { path: string; name?: string } | null) => void,
+  listener: (clip: { path: string; name?: string; durationSec?: number; size?: number } | null) => void,
 ): LocalWatcher {
   let stopped = false;
   let lastKey = "__init__";
@@ -682,7 +767,18 @@ function watchAudioSelection(
       const key = clip?.path ? `${clip.path}|${clip.inSec ?? 0}|${clip.outSec ?? 0}` : "null";
       if (key !== lastKey) {
         lastKey = key;
-        listener(clip?.path ? { path: clip.path, name: clip.name } : null);
+        if (clip?.path) {
+          const inSec = clip.inSec ?? 0;
+          const outSec = clip.outSec ?? 0;
+          listener({
+            path: clip.path,
+            name: clip.name,
+            durationSec: clip.durationSec || (outSec > inSec ? outSec - inSec : undefined),
+            size: getLocalFileSize(clip.path),
+          });
+        } else {
+          listener(null);
+        }
       }
     } catch {
       // Retry on next tick.
@@ -707,4 +803,18 @@ function watchAudioSelection(
       requestAnimationFrame(check);
     },
   };
+}
+
+function getLocalFileSize(path: string): number | undefined {
+  try {
+    if (window.cep_node) {
+      const fs = window.cep_node.require("fs") as any;
+      if (fs && fs.existsSync(path)) {
+        return fs.statSync(path).size;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read file size via Node fs:", err);
+  }
+  return undefined;
 }

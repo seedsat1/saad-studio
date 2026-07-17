@@ -19,7 +19,9 @@ export const maxDuration = 180;
 
 const KIE_CREATE_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const KIE_QUERY_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const AVATAR_MODEL_ID = "kling/ai-avatar-pro";
+const AVATAR_MODEL_IDS = ["kling/ai-avatar-pro", "kling/ai-avatar-standard"] as const;
+type AvatarModelId = (typeof AVATAR_MODEL_IDS)[number];
+const DEFAULT_AVATAR_MODEL_ID: AvatarModelId = "kling/ai-avatar-pro";
 const DEFAULT_AVATAR_PROMPT = "Natural lip sync performance, accurate mouth movement, stable framing, preserve facial identity.";
 const AVATAR_QUOTE_DURATION_SEC = 5;
 const AVATAR_QUOTE_RESOLUTION = "1080p";
@@ -60,7 +62,13 @@ function extractVideoUrls(value: unknown): string[] {
   return [];
 }
 
-async function createKieTask(apiKey: string, imageUrl: string, audioUrl: string, prompt: string): Promise<string> {
+function normalizeAvatarModel(value: unknown): AvatarModelId {
+  return AVATAR_MODEL_IDS.includes(value as AvatarModelId)
+    ? value as AvatarModelId
+    : DEFAULT_AVATAR_MODEL_ID;
+}
+
+async function createKieTask(apiKey: string, modelId: AvatarModelId, imageUrl: string, audioUrl: string, prompt: string): Promise<string> {
   const res = await fetch(KIE_CREATE_URL, {
     method: "POST",
     headers: {
@@ -68,7 +76,7 @@ async function createKieTask(apiKey: string, imageUrl: string, audioUrl: string,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: AVATAR_MODEL_ID,
+      model: modelId,
       input: {
         image_url: imageUrl,
         audio_url: audioUrl,
@@ -123,9 +131,9 @@ async function pollKieTask(apiKey: string, taskId: string, maxAttempts = 80, int
   throw new Error("Avatar generation timed out.");
 }
 
-async function getAvatarCreditsToCharge(): Promise<number> {
+async function getAvatarCreditsToCharge(modelId: AvatarModelId): Promise<number> {
   const quote = await getGenerationCostQuote(
-    AVATAR_MODEL_ID,
+    modelId,
     AVATAR_QUOTE_DURATION_SEC,
     1,
     AVATAR_QUOTE_RESOLUTION,
@@ -134,7 +142,7 @@ async function getAvatarCreditsToCharge(): Promise<number> {
     return Math.max(1, Math.ceil(quote.sourceCredits * (1 + AVATAR_MARGIN_PERCENT / 100)));
   }
 
-  const legacy = getVideoCreditsByModelId(AVATAR_MODEL_ID, {
+  const legacy = getVideoCreditsByModelId(modelId, {
     duration: AVATAR_QUOTE_DURATION_SEC,
     resolution: AVATAR_QUOTE_RESOLUTION,
   }) || 12;
@@ -180,10 +188,12 @@ export async function POST(req: NextRequest) {
       imageUrl?: string;
       audioUrl?: string;
       prompt?: string;
+      modelId?: string;
     };
 
     const imageUrl = body.imageUrl?.trim() ?? "";
     const audioUrl = body.audioUrl?.trim() ?? "";
+    const modelId = normalizeAvatarModel(body.modelId);
     const promptText = typeof body.prompt === "string" ? sanitizePrompt(body.prompt, 5000) : "";
     const effectivePrompt = promptText || DEFAULT_AVATAR_PROMPT;
 
@@ -199,7 +209,7 @@ export async function POST(req: NextRequest) {
       throw new Error("KIE API key not configured on server.");
     }
 
-    const creditsToCharge = await getAvatarCreditsToCharge();
+    const creditsToCharge = await getAvatarCreditsToCharge(modelId);
 
     const spent = await spendCredits({
       userId,
@@ -207,12 +217,12 @@ export async function POST(req: NextRequest) {
       // KIE requires a non-empty prompt even when the plugin UI keeps it optional.
       prompt: effectivePrompt,
       assetType: "VIDEO",
-      modelUsed: AVATAR_MODEL_ID,
+      modelUsed: modelId,
     });
     chargedCredits = creditsToCharge;
     generationId = spent.generationId;
 
-    const taskId = await createKieTask(kieApiKey, imageUrl, audioUrl, effectivePrompt);
+    const taskId = await createKieTask(kieApiKey, modelId, imageUrl, audioUrl, effectivePrompt);
     if (generationId) {
       await setGenerationTaskMarker(generationId, taskId).catch(() => {});
     }
@@ -236,7 +246,7 @@ export async function POST(req: NextRequest) {
             kind: "video",
             url: videoUrl,
             prompt: promptText || undefined,
-            model: AVATAR_MODEL_ID,
+            model: modelId,
             createdAt: new Date().toISOString(),
           }
         : null,

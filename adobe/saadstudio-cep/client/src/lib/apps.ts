@@ -54,7 +54,7 @@ export const APPS: AppDef[] = [
   },
   {
     id: "avatar-pro",
-    name: "LiP sync",
+    name: "Lip Sync",
     description: "Animate an image or video frame with speech audio.",
     route: "/lip-sync",
     icon: "video",

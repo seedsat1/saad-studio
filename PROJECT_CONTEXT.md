@@ -1,5 +1,33 @@
 # Saad Studio Project Context Update
 
+### Latest task: CEP Clip Maker, Auto Reframe, AI Dubbing, Audiogram, Add Captions validation improvements, Debug Panel removal, Version Bump, Bilingual Translations, Logo Size Polish & Cropped Asset Integration (2026-07-17)
+
+- Status:
+  Added client-side validation and duration/size resolution improvements for AI Clip Maker, Auto Reframe, AI Dubbing, Audiogram, and Add Captions pages, removed the Debug Panel, fully implemented English/Arabic translation support for the Add Captions page, bumped the client header version label to v2.0, integrated the new cropped header logo asset, and polished the header logo styling inside the Premiere CEP extension.
+- Behavior:
+  - Added custom `validate?: (clip: SourceClip, options: Record<string, string>) => void` callback hook to `ReapToolConfig` in `reap-tool-page.ts`.
+  - Added video duration probing using HTML5 video metadata loading for uploaded files, and computed sequence clip duration for timeline selections in `reap-tool-page.ts`.
+  - Extended `SourceClip` interface to preserve `inSec`, `outSec`, `durationSec`, and `size`.
+  - Added validation check to `edit-clips.ts` (AI Clip Maker) to enforce:
+    - Minimum duration of 1 minute (60 seconds) to prevent Reap 502/KIE errors (e.g. "Video is too short. Minimum duration is 1 minutes.").
+    - Maximum duration of 3 hours.
+    - Maximum file size of 5 GB.
+  - Added validation check to `auto-reframe.ts` (Auto Reframe) to enforce:
+    - Minimum duration of 3 seconds.
+    - Maximum duration of 15 minutes.
+    - Maximum file size of 5 GB.
+  - Added validation translation keys in English and Arabic to `i18n.ts`.
+  - Updated `ai-dubbing.ts` (AI Dubbing) and `audiogram.ts` (Audiogram) to fetch sequence clip duration and local file size from timeline selections and avoid redundant video/audio element metadata probing, resolving loading and timeout issues.
+  - Updated `add-captions.ts` (Add Captions) to run validation checks before initiating uploads, retrieve local file size via Node `fs` in the timeline watcher, and asynchronously probe video duration for uploaded files if missing.
+  - Removed the `Debug Panel` view and functions entirely from [add-captions.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/add-captions.ts) to clean up the UI for production.
+  - Fully localized the Add Captions page by replacing all hardcoded English strings with bilingual `t()` translator keys in `add-captions.ts` and `i18n.ts`.
+  - Bumped the extension version label in [header.ts](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/components/header.ts) from `v1.0` to `v2.0` and swapped the remote URL logo with the local cropped `logo-saad.png` asset.
+  - Increased the logo box size from `28px` to `32px` in [components.css](file:///e:/موقع%20ثاني/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/styles/components.css) and rendered the cropped logo image at `90%` width and height using `object-fit: contain` for a crisp, prominent look.
+  - Verified Brand Templates API routing integration (custom user presets are loaded under `source === "user"` and correctly sent via the `captionsPreset` request parameter in the Reap Automation API).
+  - Handled TypeScript types by casting `require("fs")` to `any` in `reap-tool-page.ts`, `ai-dubbing.ts`, `audiogram.ts`, and `add-captions.ts`.
+- Verification:
+  - `npm run build` in `adobe/saadstudio-cep/client` compiles successfully in production mode with no TypeScript or Vite bundling errors.
+
 ## Latest task: CEP shared generation loading animation (2026-07-16)
 
 - Status:

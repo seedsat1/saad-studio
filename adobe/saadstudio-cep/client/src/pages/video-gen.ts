@@ -4,6 +4,7 @@ import { FeaturePage } from "./feature-page";
 import { api } from "../lib/api";
 import { toast } from "../lib/toast";
 import { watchTimelineSelection, type TimelineClip } from "../lib/timeline-watcher";
+import { t } from "../lib/i18n";
 
 type VideoModelSpec = {
   value: string;
@@ -209,16 +210,16 @@ function splitAttachments(files: File[]) {
 
 export function VideoGenPage(): HTMLElement {
   const page = FeaturePage({
-    title: "Video generation",
+    title: t("videoGenTitle"),
     galleryKind: "video",
     dock: {
-      placeholder: "Describe the video you want to generate...",
+      placeholder: t("videoGenPlaceholder"),
       showAttach: true,
       options: [
-        { key: "model", label: "Model", value: "google/veo3.1-fast-text-to-video", options: MODELS },
+        { key: "model", label: t("optionModel"), value: "google/veo3.1-fast-text-to-video", options: MODELS },
         {
           key: "aspect",
-          label: "Aspect",
+          label: t("optionAspect"),
           value: "16:9",
           options: ALL_ASPECTS,
           getOptions: (state) => optionsFromStrings(specFor(state.options.model).aspects),
@@ -226,21 +227,21 @@ export function VideoGenPage(): HTMLElement {
         },
         {
           key: "duration",
-          label: "Duration",
+          label: t("optionDuration"),
           value: "8",
           options: ALL_DURATIONS,
           getOptions: (state) => optionsFromNumbers(specFor(state.options.model).durations),
         },
         {
           key: "quality",
-          label: "Quality",
+          label: t("optionQuality"),
           value: "720p",
           options: ALL_QUALITIES,
           getOptions: (state) => optionsFromStrings(specFor(state.options.model).qualities),
         },
         {
           key: "mode",
-          label: "Mode",
+          label: t("optionMode"),
           value: "normal",
           options: ALL_MODES,
           hidden: (state) => !(specFor(state.options.model).modes?.length),

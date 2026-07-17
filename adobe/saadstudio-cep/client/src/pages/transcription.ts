@@ -14,6 +14,7 @@ import { api, reap, type ReapRawLanguageOption, type ReapStatusResponse } from "
 import { toast } from "../lib/toast";
 import { store } from "../lib/store";
 import { openModelPicker } from "../components/model-picker";
+import { t } from "../lib/i18n";
 
 interface Option {
   value: string;
@@ -23,6 +24,7 @@ interface Option {
 interface UploadSource {
   path: string;
   name: string;
+  size?: number;
 }
 
 interface ActiveTranscriptionJob {
@@ -44,28 +46,20 @@ const ACTIVE_JOB_KEY = "saadstudio.transcription.activeJob";
 const REAP_POLL_INTERVAL_MS = 12_000;
 const AUTO_LANGUAGE = "__auto__";
 const NO_TRANSLATION = "none";
-
-const FALLBACK_SOURCE_LANGUAGES: Option[] = [
-  { value: "en", label: "English" },
-  { value: "ar", label: "Arabic" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-];
-
-const SCRIPT_OPTIONS: Option[] = [
-  { value: "native", label: "Native" },
-  { value: "roman", label: "Roman" },
-];
+const MAX_REAP_TRANSCRIPTION_SIZE_BYTES = 5 * 1024 * 1024 * 1024;
+const MIN_REAP_TRANSCRIPTION_DURATION_SEC = 3;
+const MAX_REAP_TRANSCRIPTION_DURATION_SEC = 15 * 60;
 
 export function TranscriptionPage(): HTMLElement {
+  const fallbackSourceLanguages = getFallbackLanguages();
   const state = {
     link: "",
     upload: null as UploadSource | null,
     language: "en",
     translate: NO_TRANSLATION,
     script: "native",
-    sourceLanguages: FALLBACK_SOURCE_LANGUAGES,
-    targetLanguages: [{ value: NO_TRANSLATION, label: "None" }, ...FALLBACK_SOURCE_LANGUAGES],
+    sourceLanguages: fallbackSourceLanguages,
+    targetLanguages: [{ value: NO_TRANSLATION, label: t("audiogramNone") }, ...fallbackSourceLanguages],
     loadingLanguages: true,
     busy: false,
   };
@@ -80,7 +74,7 @@ export function TranscriptionPage(): HTMLElement {
 
   const root = el("div.col", { style: { height: "100%" } },
     Header(),
-    PageHeader("Transcription"),
+    PageHeader(t("transcriptionTitle")),
     body,
   );
 
@@ -102,14 +96,14 @@ export function TranscriptionPage(): HTMLElement {
       const res = await reap.translationLanguages();
       const source = mapLanguages(res.sourceLanguages);
       const target = mapLanguages(res.targetLanguages);
-      state.sourceLanguages = source.length ? source : FALLBACK_SOURCE_LANGUAGES;
-      state.targetLanguages = [{ value: NO_TRANSLATION, label: "None" }, ...(target.length ? target : FALLBACK_SOURCE_LANGUAGES)];
+      state.sourceLanguages = source.length ? source : fallbackSourceLanguages;
+      state.targetLanguages = [{ value: NO_TRANSLATION, label: t("audiogramNone") }, ...(target.length ? target : fallbackSourceLanguages)];
       if (!state.sourceLanguages.some((item) => item.value === state.language)) {
         state.language = state.sourceLanguages[0]?.value ?? "en";
       }
     } catch {
-      state.sourceLanguages = FALLBACK_SOURCE_LANGUAGES;
-      state.targetLanguages = [{ value: NO_TRANSLATION, label: "None" }, ...FALLBACK_SOURCE_LANGUAGES];
+      state.sourceLanguages = fallbackSourceLanguages;
+      state.targetLanguages = [{ value: NO_TRANSLATION, label: t("audiogramNone") }, ...fallbackSourceLanguages];
     } finally {
       state.loadingLanguages = false;
       render();
@@ -129,8 +123,8 @@ export function TranscriptionPage(): HTMLElement {
 
   function renderHero(): HTMLElement {
     return el("div.captions-hero", null,
-      el("h2.captions-hero__title", null, "Transcription"),
-      el("div.captions-hero__subtitle", null, "Generate transcript of your video in one click."),
+      el("h2.captions-hero__title", null, t("transcriptionTitle")),
+      el("div.captions-hero__subtitle", null, t("transcriptionSubtitle")),
     );
   }
 
@@ -139,7 +133,7 @@ export function TranscriptionPage(): HTMLElement {
       el("span.captions-link-input__icon", null, icon("link", 15)),
       el("input", {
         value: state.link,
-        placeholder: "Drop a video link",
+        placeholder: t("transcriptionDropLink"),
         disabled: state.busy,
         onInput: (event: Event) => {
           state.link = (event.currentTarget as HTMLInputElement).value;
@@ -153,7 +147,7 @@ export function TranscriptionPage(): HTMLElement {
   function renderDivider(): HTMLElement {
     return el("div.captions-source-divider", null,
       el("span.captions-source-divider__line"),
-      el("span.captions-source-divider__label", null, "Or"),
+      el("span.captions-source-divider__label", null, t("transcriptionOr")),
       el("span.captions-source-divider__line"),
     );
   }
@@ -161,8 +155,8 @@ export function TranscriptionPage(): HTMLElement {
   function renderUpload(): HTMLElement {
     return el("div.captions-section", null,
       el("div.captions-section__head", null,
-        el("h3", null, "Upload your video"),
-        state.upload ? el("button.dock-button", { onClick: () => { state.upload = null; render(); } }, "Change") : null,
+        el("h3", null, t("transcriptionUploadVideo")),
+        state.upload ? el("button.dock-button", { onClick: () => { state.upload = null; render(); } }, t("videoUtilityChange")) : null,
       ),
       state.upload
         ? el("div.captions-source", null,
@@ -198,17 +192,17 @@ export function TranscriptionPage(): HTMLElement {
         },
       },
       el("div.captions-upload-surface__icon", null, icon("import", 20)),
-      el("div.captions-upload-surface__title", null, "Click to upload or drag and drop"),
-      el("div.captions-upload-surface__meta", null, "Max. File Size: 5 GB"),
+      el("div.captions-upload-surface__title", null, t("transcriptionClickUpload")),
+      el("div.captions-upload-surface__meta", null, t("transcriptionMaxFile")),
     );
   }
 
   function renderSettings(): HTMLElement {
     return el("div.captions-section", null,
       el("div.transcription-settings-grid", null,
-        renderPicker("Language", state.language, state.sourceLanguages, (value) => { state.language = value; render(); }),
-        renderPicker("Translate to", state.translate, state.targetLanguages, (value) => { state.translate = value; render(); }),
-        renderPicker("Script", state.script, SCRIPT_OPTIONS, (value) => { state.script = value; render(); }, true),
+        renderPicker(t("transcriptionLanguage"), state.language, state.sourceLanguages, (value) => { state.language = value; render(); }),
+        renderPicker(t("transcriptionTranslateTo"), state.translate, state.targetLanguages, (value) => { state.translate = value; render(); }),
+        renderPicker(t("transcriptionScript"), state.script, getScriptOptions(), (value) => { state.script = value; render(); }, true),
       ),
     );
   }
@@ -237,7 +231,7 @@ export function TranscriptionPage(): HTMLElement {
     const canRun = Boolean((state.upload || /^https?:\/\//i.test(state.link.trim())) && !state.busy);
     return el("div.captions-cta", null,
       el("button.btn-primary", { disabled: !canRun, onClick: runTranscription },
-        state.busy ? "Generating..." : "Generate Transcript",
+        state.busy ? t("transcriptionGenerating") : t("transcriptionGenerate"),
         icon("arrow-up-right", 14),
       ),
     );
@@ -258,6 +252,7 @@ export function TranscriptionPage(): HTMLElement {
     state.upload = {
       path: (file as File & { path?: string }).path ?? URL.createObjectURL(file),
       name: file.name,
+      size: file.size,
     };
     state.link = "";
     render();
@@ -266,13 +261,13 @@ export function TranscriptionPage(): HTMLElement {
   async function runTranscription() {
     const sourceUrl = state.link.trim();
     if (!state.upload && !/^https?:\/\//i.test(sourceUrl)) {
-      toast("Paste a video link or upload a video first.", "error");
+      toast(t("transcriptionNeedSource"), "error");
       return;
     }
 
     state.busy = true;
     render();
-    resultArea.replaceChildren(progressCard("Starting transcription...", "Preparing source for Reap."));
+    resultArea.replaceChildren(progressCard(t("transcriptionStarting"), t("transcriptionStartingSubtitle")));
 
     try {
       const body = {
@@ -315,8 +310,9 @@ export function TranscriptionPage(): HTMLElement {
   }
 
   async function startFromUpload(body: { tool: "transcription"; options: Record<string, unknown> }) {
-    if (!state.upload) throw new Error("No upload selected.");
-    resultArea.replaceChildren(progressCard("Uploading to Reap...", "Uploading source file."));
+    if (!state.upload) throw new Error(t("transcriptionNoUpload"));
+    resultArea.replaceChildren(progressCard(t("transcriptionUploading"), t("transcriptionUploadingSubtitle")));
+    await validateTranscriptionUpload(state.upload);
     const filename = ensureSupportedFilename(state.upload.name);
     const uploadId = await uploadDirect(state.upload, filename);
     return reap.start({ ...body, uploadId, filename });
@@ -329,8 +325,10 @@ export function TranscriptionPage(): HTMLElement {
     state.busy = true;
     render();
     resultArea.replaceChildren(progressCard(
-      "Resuming transcription...",
-      `Saved job found. Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+      t("transcriptionResuming"),
+      t("reapElapsedChecks")
+        .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+        .replace("{checks}", String(job.checks)),
       job.lastProgress,
     ));
     try {
@@ -367,8 +365,10 @@ export function TranscriptionPage(): HTMLElement {
       saveActiveJob(job);
 
       resultArea.replaceChildren(progressCard(
-        status.status === "queued" ? "Queued..." : "Transcribing...",
-        `Elapsed ${formatElapsed(Date.now() - job.startedAt)} - Checks ${job.checks}`,
+        status.status === "queued" ? t("reapQueued") : t("transcriptionTranscribing"),
+        t("reapElapsedChecks")
+          .replace("{elapsed}", formatElapsed(Date.now() - job.startedAt))
+          .replace("{checks}", String(job.checks)),
         status.progress,
       ));
 
@@ -406,8 +406,8 @@ function resultCard(status: ReapStatusResponse): HTMLElement {
   return el("div.col.gap-3", null,
     el("div.state-card", null,
       el("div.state-card__icon", null, icon("transcript", 18)),
-      el("div.state-card__title", null, "Transcript ready"),
-      el("div.state-card__subtitle", null, files.length ? "Download the formats returned by Reap." : "Reap completed but returned no transcription file URLs."),
+      el("div.state-card__title", null, t("transcriptionReady")),
+      el("div.state-card__subtitle", null, files.length ? t("transcriptionDownloadFormats") : t("transcriptionNoFiles")),
     ),
     files.length
       ? el("div.transcription-output-list", null,
@@ -431,23 +431,23 @@ function outputFileRow(file: { key: string; url: string }): HTMLElement {
               try {
                 const text = await fetch(file.url).then((res) => res.text());
                 await navigator.clipboard.writeText(text);
-                toast("Transcript copied", "success");
+                toast(t("transcriptionCopied"), "success");
               } catch (err) {
-                toast(`Copy failed: ${(err as Error).message}`, "error");
+                toast(t("transcriptionCopyFailed").replace("{message}", (err as Error).message), "error");
               }
             },
-          }, "Copy")
+          }, t("transcriptionCopy"))
         : null,
       el("button.btn-primary", {
         onClick: async () => {
           try {
             await api.downloadAsset(file.url, `transcription-${Date.now()}.${label.toLowerCase()}`);
-            toast(`${label} downloaded`, "success");
+            toast(t("transcriptionDownloaded").replace("{label}", label), "success");
           } catch (err) {
-            toast(`Download failed: ${(err as Error).message}`, "error");
+            toast(t("transcriptionDownloadFailed").replace("{message}", (err as Error).message), "error");
           }
         },
-      }, "Download"),
+      }, t("transcriptionDownload")),
     ),
   );
 }
@@ -484,9 +484,34 @@ function labelForOutput(key: string, url: string): string {
 function mapLanguages(items: ReapRawLanguageOption[] | undefined): Option[] {
   return Array.isArray(items)
     ? items
-      .map((item) => item.code ? { value: item.code, label: item.displayName || item.name || item.code } : null)
+      .map((item) => item.code ? { value: item.code, label: localizeLanguageLabel(item.code, item.displayName || item.name || item.code) } : null)
       .filter((item): item is Option => item !== null)
     : [];
+}
+
+function getFallbackLanguages(): Option[] {
+  return [
+    { value: "en", label: t("audiogramLangEnglish") },
+    { value: "ar", label: t("audiogramLangArabic") },
+    { value: "es", label: t("audiogramLangSpanish") },
+    { value: "fr", label: t("audiogramLangFrench") },
+  ];
+}
+
+function getScriptOptions(): Option[] {
+  return [
+    { value: "native", label: t("audiogramNative") },
+    { value: "roman", label: t("audiogramRoman") },
+  ];
+}
+
+function localizeLanguageLabel(code: string, fallback: string): string {
+  const lower = code.toLowerCase();
+  if (lower.startsWith("en")) return t("audiogramLangEnglish");
+  if (lower.startsWith("ar")) return t("audiogramLangArabic");
+  if (lower.startsWith("es")) return t("audiogramLangSpanish");
+  if (lower.startsWith("fr")) return t("audiogramLangFrench");
+  return fallback;
 }
 
 function progressCard(title: string, subtitle: string, progress?: number): HTMLElement {
@@ -502,7 +527,7 @@ function progressCard(title: string, subtitle: string, progress?: number): HTMLE
 
 function errorCard(message: string): HTMLElement {
   return el("div.state-card", null,
-    el("div.state-card__title", null, "Transcription failed"),
+    el("div.state-card__title", null, t("transcriptionFailed")),
     el("div.state-card__subtitle", null, message),
   );
 }
@@ -530,7 +555,53 @@ function isTerminalStatus(status: ReapStatusResponse["status"]): boolean {
 
 function ensureSupportedFilename(filename: string): string {
   if (/\.(mp4|mov)$/i.test(filename)) return filename;
-  return `${filename.replace(/\.[^.]+$/, "")}.mp4`;
+  throw new Error(t("transcriptionUnsupportedFormat"));
+}
+
+async function validateTranscriptionUpload(upload: UploadSource): Promise<void> {
+  if (!/\.(mp4|mov)$/i.test(upload.name)) {
+    throw new Error(t("transcriptionUnsupportedFormat"));
+  }
+  if (typeof upload.size === "number" && upload.size > MAX_REAP_TRANSCRIPTION_SIZE_BYTES) {
+    throw new Error(t("transcriptionFileTooLarge"));
+  }
+  const duration = await probeVideoDuration(pathToMediaSrc(upload.path));
+  if (duration != null && (duration < MIN_REAP_TRANSCRIPTION_DURATION_SEC || duration > MAX_REAP_TRANSCRIPTION_DURATION_SEC)) {
+    throw new Error(t("transcriptionDurationOutOfRange"));
+  }
+}
+
+function probeVideoDuration(src: string): Promise<number | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    let settled = false;
+    const done = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      video.removeAttribute("src");
+      video.load();
+      resolve(value);
+    };
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      done(duration);
+    };
+    video.onerror = () => done(null);
+    window.setTimeout(() => done(null), 4000);
+    video.src = src;
+  });
+}
+
+function pathToMediaSrc(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("blob:") || path.startsWith("data:") || path.startsWith("http")) return path;
+  const forward = path.replace(/\\/g, "/");
+  if (forward.startsWith("file://")) return forward;
+  if (/^[a-zA-Z]:\//.test(forward)) return `file:///${forward}`;
+  if (forward.startsWith("/")) return `file://${forward}`;
+  return `file:///${forward}`;
 }
 
 function guessName(pathOrUrl: string): string {

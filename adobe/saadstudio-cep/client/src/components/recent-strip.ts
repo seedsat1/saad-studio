@@ -10,6 +10,7 @@ import { store } from "../lib/store";
 import { api, type GenerationItem } from "../lib/api";
 import { evalES, getHostDragTargetLabel, getHostImportButtonLabel, getHostImportSuccessMessage } from "../lib/cep";
 import { toast } from "../lib/toast";
+import { t } from "../lib/i18n";
 
 export interface RecentStripOptions {
   fixedFilter?: "image" | "video" | "audio";
@@ -19,10 +20,10 @@ export interface RecentStripOptions {
 
 export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   const root = el("section.library-shell");
-  const imageTab = el("button.library-toggle.library-toggle--active", null, icon("image", 13), "Image");
-  const videoTab = el("button.library-toggle", null, icon("video", 13), "Video");
-  const viewBadge = el("div.library-view-badge", null, "View");
-  const count = el("span.library-count", null, "0 items");
+  const imageTab = el("button.library-toggle.library-toggle--active", null, icon("image", 13), t("filterImage"));
+  const videoTab = el("button.library-toggle", null, icon("video", 13), t("filterVideo"));
+  const viewBadge = el("div.library-view-badge", null, t("libraryView"));
+  const count = el("span.library-count", null, t("libraryItems").replace("{count}", "0").replace("{plural}", "s"));
   const grid = el("div.library-grid");
   const fixedFilter = options.fixedFilter;
   const showToolbar = options.showToolbar ?? !fixedFilter;
@@ -67,8 +68,8 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
     const items = filter === "image" ? imageItems : filter === "video" ? videoItems : audioItems;
     const loading = fixedFilter ? fixedLoading : state.recentLoading;
     count.textContent = loading && !allItems.length
-      ? "Loading..."
-      : `${items.length} item${items.length === 1 ? "" : "s"}`;
+      ? t("libraryLoading")
+      : t("libraryItems").replace("{count}", String(items.length)).replace("{plural}", items.length === 1 ? "" : "s");
 
     grid.replaceChildren();
     if (showNewTile && (filter === "image" || filter === "video")) {
@@ -154,16 +155,16 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
   }
 
   async function deleteItem(item: GenerationItem) {
-    const label = item.kind === "image" ? "image" : item.kind === "video" ? "video" : "audio";
-    const ok = window.confirm(`Delete this ${label} from your library?`);
+    const label = item.kind === "image" ? t("filterImage") : item.kind === "video" ? t("filterVideo") : t("filterAudio");
+    const ok = window.confirm(t("libraryDeleteConfirm").replace("{kind}", label));
     if (!ok) return;
     try {
       await api.deleteGeneration(item.id);
-      toast(`${label === "image" ? "Image" : label === "video" ? "Video" : "Audio"} deleted`, "success");
+      toast(t("libraryDeleted").replace("{kind}", label), "success");
       if (fixedFilter) await refreshFixedItems();
       else await store.refreshRecent();
     } catch (err) {
-      toast(`Delete failed: ${(err as Error).message}`, "error");
+      toast(t("libraryDeleteFailed").replace("{message}", (err as Error).message), "error");
     }
   }
 
@@ -179,14 +180,14 @@ export function RecentStrip(options: RecentStripOptions = {}): HTMLElement {
 
 function newTile(filter: "image" | "video"): HTMLElement {
   const route = filter === "video" ? "/video-gen" : "/image-gen";
-  const label = filter === "video" ? "New video" : "New image";
+  const label = filter === "video" ? t("libraryNewVideo") : t("libraryNewImage");
   return el("button.library-card.library-card--new",
     { onClick: () => navigate(route), "aria-label": label },
     el("div.library-card__new-icon", null, icon("plus", 18)),
     el("div.library-card__body",
       null,
       el("div.library-card__title", null, label),
-      el("div.library-card__meta", null, "Start generating"),
+      el("div.library-card__meta", null, t("libraryStartGenerating")),
     ),
   );
 }
@@ -194,14 +195,14 @@ function newTile(filter: "image" | "video"): HTMLElement {
 function loadingHint(): HTMLElement {
   return el("div.library-empty",
     null,
-    "Loading your account gallery...",
+    t("libraryLoadingGallery"),
   );
 }
 
 function emptyHint(filter: "image" | "video" | "audio"): HTMLElement {
   return el("div.library-empty",
     null,
-    filter === "video" ? "No recent videos yet." : filter === "audio" ? "No recent audio yet." : "No recent images yet.",
+    filter === "video" ? t("libraryEmptyVideos") : filter === "audio" ? t("libraryEmptyAudio") : t("libraryEmptyImages"),
   );
 }
 
@@ -235,7 +236,7 @@ function buildItemTile(params: {
 
   return el("div.library-card",
     {
-      title: `${g.prompt ?? ""}${` • Drag to ${getHostDragTargetLabel(g.kind)}`}`.trim(),
+      title: `${g.prompt ?? ""}${` • ${t("libraryDragTo").replace("{target}", getHostDragTargetLabel(g.kind))}`}`.trim(),
       draggable: "true",
       onMouseenter: () => { void onWarmDrag(g); },
       onPointerdown: () => { void onWarmDrag(g); },
@@ -248,7 +249,7 @@ function buildItemTile(params: {
         if (!cached) {
           e.preventDefault();
           void onWarmDrag(g);
-          toast("Preparing asset for drag. Drag again in a second.", "info");
+          toast(t("commonPreparingDrag"), "info");
           return;
         }
 
@@ -273,7 +274,7 @@ function buildItemTile(params: {
             await evalES("importMediaFromPath", local);
             toast(getHostImportSuccessMessage(), "success");
           } catch (err) {
-            toast(`Import failed: ${(err as Error).message}`, "error");
+            toast(t("commonImportFailed").replace("{message}", (err as Error).message), "error");
           }
         },
         "aria-label": getHostImportButtonLabel(),
@@ -286,16 +287,16 @@ function buildItemTile(params: {
           ev.stopPropagation();
           await onDelete(g);
         },
-        "aria-label": "Delete from library",
+        "aria-label": t("libraryDeleteFromLibrary"),
       },
       icon("trash", 12),
     ),
-      el("div.library-card__drag-hint", null, `Drag to ${getHostDragTargetLabel(g.kind)}`),
+      el("div.library-card__drag-hint", null, t("libraryDragTo").replace("{target}", getHostDragTargetLabel(g.kind))),
     ),
     el("div.library-card__body",
       null,
-      el("div.library-card__title", null, g.prompt ?? "Untitled generation"),
-      el("div.library-card__meta", null, g.model ?? (g.kind === "video" ? "Video" : g.kind === "audio" ? "Audio" : "Image")),
+      el("div.library-card__title", null, g.prompt ?? t("libraryUntitled")),
+      el("div.library-card__meta", null, g.model ?? (g.kind === "video" ? t("filterVideo") : g.kind === "audio" ? t("filterAudio") : t("filterImage"))),
     ),
   );
 }
