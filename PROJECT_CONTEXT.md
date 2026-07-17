@@ -1,6 +1,19 @@
 # Saad Studio Project Context Update
 
-### Latest task: Fix for Flashing Lock Screen on Startup & Packaging (2026-07-17)
+### Latest task: Photoshop Import Fix & Draw Panel Removal (2026-07-17)
+
+- Status:
+  Implemented native image placement for Photoshop and removed the unused "Draw to Edit" secondary panel from the extension manifest.
+- Changes:
+  - Updated ExtendScript bridge in [adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) to add a `photoshopPlaceFile` helper using Action Descriptors (`charIDToTypeID("Plc ")`) which places imported files directly onto the active canvas as smart objects, falling back to `app.open` if no document is active.
+  - Added `IS_PHXS` host flag and checked it inside `importProjectItemOnly`, `importMediaFromPath`, and `importAndPlaceOnTimeline` to process Photoshop file placements cleanly.
+  - Removed `app.saadstudio.cep.draw` ("Draw to Edit" secondary panel) registrations from the manifest [adobe/saadstudio-cep/CSXS/manifest.xml](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/CSXS/manifest.xml) to keep only the main extension panel active.
+  - Refactored `install-dev.ps1` to safely delete existing directory junctions using `[System.IO.Directory]::Delete` to prevent recursive content deletion.
+  - Restored ignored binary tools (`ZXPSignCmd.exe`) and verified packaging.
+- Verification:
+  - Built (`npm run build:cep`) and packaged successfully into signed ZXP bundle `SaadStudio.zxp`.
+
+### Previous task: Fix for Flashing Lock Screen on Startup & Packaging (2026-07-17)
 
 - Status:
   Resolved a UX issue where the subscription lock screen would briefly flash/show on startup before the user's active login state was resolved from the database.
