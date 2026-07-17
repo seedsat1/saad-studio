@@ -474,6 +474,14 @@ export async function getGenerationCost(
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
 
+  // Custom pricing rule: All image generation models cost 2 credits for 1k/2k and 4 credits for 4k
+  const isUtilityImageTool = ["tool_upscale", "tool_rmbg", "tool_faceswap", "tool_instant_character"].includes(model.id);
+  if (model.type === "image" && !isUtilityImageTool) {
+    const q = quality?.trim().toLowerCase() ?? "1k";
+    const baseRate = q === "4k" ? 4.0 : 2.0;
+    return baseRate * numUnits;
+  }
+
   if (constitutionId === "seedance2mini") {
     const q = quality?.trim().toLowerCase() ?? "720p";
     if (q === "480p") {
@@ -564,6 +572,14 @@ export function getGenerationCostSync(
   const constitutionId = resolveConstitutionId(modelRef, models);
   const model = models.find((m) => m.id === constitutionId && m.isActive);
   if (!model) return 0;
+
+  // Custom pricing rule: All image generation models cost 2 credits for 1k/2k and 4 credits for 4k
+  const isUtilityImageTool = ["tool_upscale", "tool_rmbg", "tool_faceswap", "tool_instant_character"].includes(model.id);
+  if (model.type === "image" && !isUtilityImageTool) {
+    const q = quality?.trim().toLowerCase() ?? "1k";
+    const baseRate = q === "4k" ? 4.0 : 2.0;
+    return baseRate * numUnits;
+  }
 
   if (constitutionId === "seedance2mini") {
     const q = quality?.trim().toLowerCase() ?? "720p";
