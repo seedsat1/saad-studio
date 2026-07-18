@@ -11,8 +11,11 @@
   - Updated [components/MediaGrid.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/MediaGrid.tsx):
     - Added `aria-label` accessibility attributes to `<video>` preview elements.
     - Guaranteed non-empty fallback `alt` attributes on `<img>` elements.
+  - Enabled direct 1-click site downloads on `/plugin` page ([app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/plugin/page.tsx)): created automated packaging script [scripts/package-extension.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/package-extension.js) to zip CEP extension files directly into `public/downloads/SaadStudio.zxp` and `public/downloads/SaadStudio-manual.zip`. Now clicking the extension download buttons triggers direct 1-click downloads directly from the website, while keeping the Google Drive link exclusively for the ~6.0 GB offline AI models pack.
+  - Updated ZXP installer button in Step 1 on `/plugin` page ([app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/plugin/page.tsx)) to link directly to Google Drive setup folder.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
+  - Pushed commit `287c31d` to main repository (`saad-studio`).
 
 ### Previous task: Plugin Page Heading Hierarchy Accessibility Audit Fix (2026-07-18)
 
