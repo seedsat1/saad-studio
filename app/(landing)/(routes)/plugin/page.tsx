@@ -57,7 +57,7 @@ export default function PluginPage() {
   const DOWNLOAD_LINKS = {
     zxp: "/downloads/SaadStudio.zxp",
     manualZip: "/downloads/SaadStudio-manual.zip",
-    googleDriveModels: "https://drive.google.com/drive/folders/YOUR_GOOGLE_DRIVE_ID", // Change to official GDrive link
+    googleDriveModels: "https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing",
     aescriptsZxpInstaller: "https://aescripts.com/learn/zxp-installer/",
   };
 
