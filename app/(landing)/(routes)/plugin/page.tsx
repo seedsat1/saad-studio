@@ -258,7 +258,7 @@ export default function PluginPage() {
 
                 <div>
                   <h3 className="text-xl font-bold text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي الأوفلاين")}</h3>
-                  <p className="text-xs text-violet-400 font-semibold mt-0.5">Google Drive • ~6.0 GB • {t("Ultra-Precision AI Engine Pack", "حزمة محركات الذكاء الاصطناعي الفائقة")}</p>
+                  <p className="text-xs text-violet-400 font-semibold mt-0.5">{t("Google Drive • ~6 GB • Ultra-Precision AI Engine Pack", "كوكل درايف • ~6 جيجابايت • حزمة محركات الذكاء الاصطناعي الفائقة")}</p>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
