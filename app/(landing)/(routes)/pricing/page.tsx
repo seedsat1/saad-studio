@@ -33,7 +33,7 @@ const PLAN_FEATURES: Record<string, string[]> = {
     "Auto Captions & Subtitle Generation (Faster-Whisper)",
     "Multi-track audio synchronization & Speaker Activity RMS",
     "1-Click Podcast Auto Editing Suite",
-    "Limited to 2 PC devices per subscriber account (ترخيص يعمل على حاسوبين كحد أقصى)",
+    "Limited to 2 PC devices per subscriber account",
     "7-Day Free Trial available on request",
   ],
   try: [
@@ -329,7 +329,7 @@ function usePricingTranslation() {
       "Auto Captions & Subtitle Generation (Faster-Whisper)": "توليد الكتابة والترجمة الآلية (Faster-Whisper)",
       "Multi-track audio synchronization & Speaker Activity RMS": "مزامنة الصوت متعدد المسارات وتحليل المتحدثين",
       "1-Click Podcast Auto Editing Suite": "حزمة مونتاج البودكاست بنقرة زر واحدة",
-      "Limited to 2 PC devices per subscriber account (ترخيص يعمل على حاسوبين كحد أقصى)": "ترخيص يعمل على حاسوبين كحد أقصى لكل حساب",
+      "Limited to 2 PC devices per subscriber account": "ترخيص يعمل على حاسوبين كحد أقصى لكل حساب",
       "7-Day Free Trial available on request": "تجربة مجانية لمدة 7 أيام عند الطلب",
       "Multi-Cam Auto Switch + Auto Captions + Sync + 1-Click": "مونتاج Multi-Cam تلقائي + ترجمة + مزامنة صوتية",
       "Multi-Cam Auto Switch": "تبديل الكاميرات التلقائي",
@@ -528,7 +528,7 @@ export default function PricingPage() {
         unlimited: { active: [] as string[], coming: [] as string[], none: [] as string[] },
       };
     });
-  }, [ACCENT_MAP, ICON_MAP, cmsPlans]);
+  }, [ACCENT_MAP, ICON_MAP, cmsPlans, t]);
 
   const liveTopups = cms?.topups?.length ? cms.topups : TOPUPS;
   const liveModelCosts = cms?.modelCosts?.length ? cms.modelCosts : [...MODEL_COSTS.video.map((m) => ({ ...m, type: "video" as const, _id: m.name })), ...MODEL_COSTS.image.map((m) => ({ ...m, type: "image" as const, _id: m.name }))];
@@ -565,7 +565,7 @@ export default function PricingPage() {
         cycle: "monthly" as const,
       };
     };
-  }, [billingCycle]);
+  }, [billingCycle, t]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
