@@ -21,6 +21,12 @@ export const NAV_CATEGORIES: NavCategory[] = [
     href: "/explore",
   },
   {
+    id: "plugin",
+    label: "Adobe Plugin",
+    emoji: "🔌",
+    href: "/plugin",
+  },
+  {
     id: "image",
     label: "Image",
     emoji: "🖼️",
