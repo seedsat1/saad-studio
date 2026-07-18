@@ -11,8 +11,8 @@
   - Updated [lib/navigation.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/navigation.ts) to add "Adobe Plugin" link to top navigation bar.
 - Verification:
   - Verified local build (`npm run build`) succeeded with zero errors (`✓ Compiled successfully`).
-  - Fixed Vercel build error by correcting import `@/lib/language-context` -> `@/lib/use-language` and redirecting package downloads to cloud Google Drive folder URL.
-  - Pushed fix commit `bc4387b` to main repository (`saad-studio`).
+  - Fixed language mixing on pricing cards by separating English and Arabic translations and adding `t` to `useMemo` dependency arrays.
+  - Pushed fix commit `1b83c29` to main repository (`saad-studio`).
 
 ### Previous task: Podcast Extension $3 Pricing Alignment & Full Width Pricing Layout (2026-07-18)
 
