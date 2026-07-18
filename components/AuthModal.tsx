@@ -190,10 +190,17 @@ function useAuthTranslation() {
       "Back to login": "العودة لتسجيل الدخول",
       "Password reset! Redirecting…": "تمت إعادة تعيين كلمة المرور! جاري التوجيه...",
       
-      // Clerk Errors fallback
+      // Clerk Errors fallback & common messages
       "Something went wrong": "حدث خطأ ما",
       "Invalid code or password": "رمز أو كلمة مرور غير صالحة",
-      "Invalid code": "رمز غير صالح"
+      "Invalid code": "رمز غير صالح",
+      "Password is incorrect. Try again, or use another method.": "كلمة المرور غير صحيحة. يرجى المحاولة مجدداً.",
+      "Couldn't find your account.": "لم نتمكن من العثور على حسابك. يرجى التأكد من البريد الإلكتروني.",
+      "Identifier is invalid.": "عنوان البريد الإلكتروني غير صحيح.",
+      "Enter a valid email address.": "يرجى إدخال عنوان بريد إلكتروني صحيح.",
+      "That email address is taken. Please try another.": "هذا البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول بدلاً من ذلك.",
+      "Password must be 8 characters or more.": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+      "Password is required.": "كلمة المرور مطلوبة."
     }
   };
   const t = (key: string): string => {
@@ -326,6 +333,15 @@ export default function AuthModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setFormError(t("Enter a valid email address."));
+      return;
+    }
+    if (!password) {
+      setFormError(t("Password is required."));
+      return;
+    }
     setLoading(true);
     try {
       if (isSignup) {
@@ -334,7 +350,7 @@ export default function AuthModal() {
         const firstName = nameParts[0] ?? "";
         const lastName = nameParts.slice(1).join(" ") || undefined;
         const result = await signUp.create({
-          emailAddress: email,
+          emailAddress: cleanEmail,
           password,
           firstName,
           lastName,
@@ -351,7 +367,7 @@ export default function AuthModal() {
       } else {
         if (!signInLoaded || !signIn) return;
         const result = await signIn.create({
-          identifier: email,
+          identifier: cleanEmail,
           password,
         });
         if (result.status === "complete") {
@@ -361,8 +377,8 @@ export default function AuthModal() {
         }
       }
     } catch (err: unknown) {
-      const msg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Something went wrong";
-      setFormError(msg);
+      const rawMsg = (err as { errors?: Array<{ message: string }> })?.errors?.[0]?.message ?? "Something went wrong";
+      setFormError(t(rawMsg));
     } finally {
       setLoading(false);
     }
