@@ -209,15 +209,15 @@ export default function PluginPage() {
 
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {t(
-                    "Official signed ZXP extension containing complete logic for Premiere, After Effects, and Photoshop, with pre-bundled FFmpeg binary.",
-                    "حزمة الإضافة الموقعة رسمياً مع محرك الـ FFmpeg المدمج بالكامل لبرامج بريمير وأفترافيكت وفوتوشوب."
+                    "Official signed ZXP extension containing complete logic for Premiere, After Effects, and Photoshop, with pre-bundled audio processing engine.",
+                    "حزمة الإضافة الموقعة رسمياً مع محرك المعالجة الصوتية المدمج بالكامل لبرامج بريمير وأفترافيكت وفوتوشوب."
                   )}
                 </p>
 
                 <div className="space-y-2 pt-2 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Includes FFmpeg Audio Engine", "يتضمن محرك الصوت FFmpeg")}</span>
+                    <span>{t("Includes Pro Audio Processing Engine", "يتضمن محرك المعالجة الصوتية المتقدم")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -258,13 +258,13 @@ export default function PluginPage() {
 
                 <div>
                   <h3 className="text-xl font-bold text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي الأوفلاين")}</h3>
-                  <p className="text-xs text-violet-400 font-semibold mt-0.5">Google Drive • ~6.0 GB • {t("Offline Whisper Models", "نماذج الترجمة المحلية")}</p>
+                  <p className="text-xs text-violet-400 font-semibold mt-0.5">Google Drive • ~6.0 GB • {t("Ultra-Precision AI Engine Pack", "حزمة محركات الذكاء الاصطناعي الفائقة")}</p>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {t(
-                    "Complete offline Whisper models (Medium, Large-v3, Large-v3-Turbo) for instant 100% offline auto-captions and transcription.",
-                    "نماذج الـ Whisper الكاملة (Medium و Large-v3 و Large-v3-Turbo) للعمل أوفلاين 100% وبدون الحاجة لإنترنت."
+                    "Complete offline high-precision speech-to-text models for instant 100% offline auto-captions and transcription.",
+                    "حزمة محركات معالجة الصوت والنصوص المحلية الكاملة للعمل أوفلاين 100% وبدون الحاجة لإنترنت."
                   )}
                 </p>
 
@@ -275,7 +275,7 @@ export default function PluginPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Whisper Medium + Large v3 + Turbo", "نماذج Medium و Large-v3 و Turbo")}</span>
+                    <span>{t("High-Precision Multi-Engine AI Pack", "حزمة النماذج الصوتية الفائقة متعددة الدقة")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -460,7 +460,7 @@ export default function PluginPage() {
                       </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to activate all offline AI models.",
+                          "Unzip SaadStudio-AI-Models.zip and double-click 'install-models.bat' to activate all offline AI models.",
                           "فك الضغط عن حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لتفعيل النماذج محلياً."
                         )}
                       </p>
@@ -558,7 +558,7 @@ export default function PluginPage() {
                       </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to copy AI models.",
+                          "Unzip SaadStudio-AI-Models.zip and double-click 'install-models.bat' to copy AI models.",
                           "افتح حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لنقل وتفعيل النماذج تلقائياً."
                         )}
                       </p>
@@ -671,10 +671,10 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
                       <Wand2 className="w-5 h-5" />
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Auto Captions (Faster-Whisper)", "الترجمة والتسميات الآلية")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Auto Captions & Subtitles Engine", "الترجمة والتسميات الآلية")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
-                        "Generates styled subtitle tracks directly on Premiere timeline 100% offline using local Whisper AI models.",
+                        "Generates styled subtitle tracks directly on Premiere timeline 100% offline using local AI engines.",
                         "توليد خطوط الكتابة والترجمة الآلية مباشرة على التايم لاين أوفلاين 100% وبدون إنترنت."
                       )}
                     </p>
@@ -853,7 +853,7 @@ export default function PluginPage() {
               {
                 qEn: "Does auto captions require an active internet connection?",
                 qAr: "هل تتطلب أداة الترجمة والبودكاست اتصالاً بالإنترنت؟",
-                aEn: "No! All auto captions, RMS speaker analysis, and audio sync run 100% locally and offline on your PC using embedded FFmpeg and local Whisper AI models.",
+                aEn: "No! All auto captions, active speaker analysis, and audio sync run 100% locally and offline on your PC using embedded audio engines and local AI models.",
                 aAr: "لا! جميع عمليات الترجمة والفرز وتقطيع الصوت تعتمد على محركات محلية أوفلاين 100% بداخل جهازك دون الحاجة لإنترنت."
               },
               {
