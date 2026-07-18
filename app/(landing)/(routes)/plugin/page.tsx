@@ -406,9 +406,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         1
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Download ZXP Installer", "تحميل برنامج تثبيت الـ ZXP")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Download and open the free AEScripts ZXP Installer or Anastasiy's Extension Manager.",
@@ -433,9 +433,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         2
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Drag & Drop SaadStudio.zxp", "سحب وإفلات ملف SaadStudio.zxp")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Drag SaadStudio.zxp file into ZXP Installer. The extension will install automatically in seconds.",
@@ -455,9 +455,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 font-black flex items-center justify-center text-lg">
                         3
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Run 1-Click Models Script", "تشغيل سكريبت التثبيت التلقائي للنماذج")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to activate all offline AI models.",
@@ -476,9 +476,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         4
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Launch Adobe App & Open Panel", "تشغيل برنامج أدوبي وفتح الإضافة")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Launch Premiere Pro, After Effects, or Photoshop. Go to top menu: Window > Extensions > Saad Studio.",
@@ -506,9 +506,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         1
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Extract SaadStudio-manual.zip", "فك ضغط ملف SaadStudio-manual.zip")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Unzip SaadStudio-manual.zip to extract the folder named 'app.saadstudio.cep'.",
@@ -524,9 +524,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         2
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Copy to CEP Extensions Folder", "نسخ المجلد لمسار CEP بالويندوز")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Copy 'app.saadstudio.cep' into your Windows CEP directory below:",
@@ -553,9 +553,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 font-black flex items-center justify-center text-lg">
                         3
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Run 1-Click Models Script", "تشغيل سكريبت التثبيت التلقائي للنماذج")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to copy AI models.",
@@ -571,9 +571,9 @@ export default function PluginPage() {
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         4
                       </div>
-                      <h4 className="text-base font-bold text-white">
+                      <h3 className="text-base font-bold text-white">
                         {t("Restart & Open Extension", "إعادة تشغيل أدوبي وفتح الإضافة")}
-                      </h4>
+                      </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
                           "Restart Adobe host application and open Window > Extensions > Saad Studio.",
@@ -658,7 +658,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
                       <Video className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("Multi-Cam Auto Switcher", "مونتاج الكاميرات المتعددة التلقائي")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("Multi-Cam Auto Switcher", "مونتاج الكاميرات المتعددة التلقائي")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "RMS-based active speaker detection to make automated camera cut decisions across multiple video tracks.",
@@ -671,7 +671,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
                       <Wand2 className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("Auto Captions (Faster-Whisper)", "الترجمة والتسميات الآلية")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("Auto Captions (Faster-Whisper)", "الترجمة والتسميات الآلية")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Generates styled subtitle tracks directly on Premiere timeline 100% offline using local Whisper AI models.",
@@ -684,7 +684,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
                       <Sliders className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("Audio Sync Suite", "مزامنة الصوت متعدد المسارات")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("Audio Sync Suite", "مزامنة الصوت متعدد المسارات")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Waveform correlation algorithm aligns external microphone audio with camera scratch audio automatically.",
@@ -697,7 +697,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
                       <Zap className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("1-Click Podcast Auto Editing", "مونتاج البودكاست بنقرة واحدة")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("1-Click Podcast Auto Editing", "مونتاج البودكاست بنقرة واحدة")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Runs complete multi-cam switching, audio sync, and captions generation in one automated sequence.",
@@ -720,7 +720,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
                       <Layers className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("ExtendScript Composition Engine", "محرك إنشاء التركيبات وتوليد الطبقات")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("ExtendScript Composition Engine", "محرك إنشاء التركيبات وتوليد الطبقات")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Generates dynamic composition layers, animated text, and background visual assets directly inside After Effects.",
@@ -733,7 +733,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
                       <Play className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("AI Video Generation Import", "استيراد فيديوهات الذكاء الاصطناعي")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("AI Video Generation Import", "استيراد فيديوهات الذكاء الاصطناعي")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Directly fetch generated AI video clips from your Saad Studio library and place them on AE timeline.",
@@ -746,7 +746,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
                       <Sparkles className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("Automatic Keyframe Sync", "مزامنة الكي فريم التلقائية")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("Automatic Keyframe Sync", "مزامنة الكي فريم التلقائية")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Aligns animation keyframes with speech cadences and audio beat detection.",
@@ -769,7 +769,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
                       <ImageIcon className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("1-Click Canvas Asset Import", "استيراد الصور إلى لوحة العمل بنقرة واحدة")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("1-Click Canvas Asset Import", "استيراد الصور إلى لوحة العمل بنقرة واحدة")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Imports generated AI images, backgrounds, and assets directly as editable Photoshop layers.",
@@ -782,7 +782,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
                       <Wand2 className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("Prompt-to-Layer Studio Panel", "لوحة الأوامر والتوليد داخل فوتوشوب")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("Prompt-to-Layer Studio Panel", "لوحة الأوامر والتوليد داخل فوتوشوب")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Generate Nano Banana, Flux Pro, and GPT Image models directly inside Photoshop panel.",
@@ -795,7 +795,7 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
                       <ShieldCheck className="w-5 h-5" />
                     </div>
-                    <h4 className="text-base font-bold text-white">{t("High Resolution Texture Sync", "مزامنة الخامات والأصول عالية الدقة")}</h4>
+                    <h3 className="text-base font-bold text-white">{t("High Resolution Texture Sync", "مزامنة الخامات والأصول عالية الدقة")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       {t(
                         "Preserves original color spaces, transparency channels, and 4K resolution metadata.",
@@ -811,32 +811,32 @@ export default function PluginPage() {
 
         {/* 💻 SYSTEM REQUIREMENTS & CHECKLIST */}
         <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 sm:p-10 backdrop-blur-md space-y-6">
-          <h3 className="text-2xl font-bold text-white text-center">
+          <h2 className="text-2xl font-bold text-white text-center">
             {t("System Requirements & Compatibility Checklist", "متطلبات النظام والبيئة التشغيلية")}
-          </h3>
+          </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
               <Monitor className="w-5 h-5 text-amber-400" />
-              <h4 className="text-sm font-bold text-white">{t("Operating System", "نظام التشغيل")}</h4>
+              <h3 className="text-sm font-bold text-white">{t("Operating System", "نظام التشغيل")}</h3>
               <p className="text-xs text-slate-400">Windows 10 / 11 (64-bit)</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
               <Layers className="w-5 h-5 text-violet-400" />
-              <h4 className="text-sm font-bold text-white">{t("Adobe Host Apps", "برامج أدوبي المدعومة")}</h4>
+              <h3 className="text-sm font-bold text-white">{t("Adobe Host Apps", "برامج أدوبي المدعومة")}</h3>
               <p className="text-xs text-slate-400">Premiere, After Effects, Photoshop 2021-2026+</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
               <Cpu className="w-5 h-5 text-blue-400" />
-              <h4 className="text-sm font-bold text-white">{t("Hardware Acceleration", "المعالج والمسرع البصري")}</h4>
+              <h3 className="text-sm font-bold text-white">{t("Hardware Acceleration", "المعالج والمسرع البصري")}</h3>
               <p className="text-xs text-slate-400">CPU (Int8) or NVIDIA GPU (CUDA Float16)</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
-              <h4 className="text-sm font-bold text-white">{t("Device Limit", "حد الأجهزة المسموح به")}</h4>
+              <h3 className="text-sm font-bold text-white">{t("Device Limit", "حد الأجهزة المسموح به")}</h3>
               <p className="text-xs text-slate-400">{t("Up to 2 PC devices per subscriber", "ترخيص يعمل على حاسوبين كحد أقصى")}</p>
             </div>
           </div>
@@ -844,9 +844,9 @@ export default function PluginPage() {
 
         {/* ❓ FREQUENTLY ASKED QUESTIONS (FAQ Accordion) */}
         <section className="space-y-6 pt-4">
-          <h3 className="text-3xl font-extrabold text-white text-center">
+          <h2 className="text-3xl font-extrabold text-white text-center">
             {t("Frequently Asked Questions", "الأسئلة الشائعة حول الإضافة والتثبيت")}
-          </h3>
+          </h2>
 
           <div className="space-y-4 max-w-4xl mx-auto">
             {[
@@ -875,7 +875,7 @@ export default function PluginPage() {
                 onClick={() => setOpenFaq(openFaq === index ? null : index)}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <h4 className="text-base font-bold text-white">{t(faq.qEn, faq.qAr)}</h4>
+                  <h3 className="text-base font-bold text-white">{t(faq.qEn, faq.qAr)}</h3>
                   <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
                 </div>
                 {openFaq === index && (

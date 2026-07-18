@@ -1,6 +1,21 @@
 # Saad Studio Project Context Update
 
-### Latest task: Interactive Full-Width Adobe Plugin Page (/plugin) (2026-07-18)
+### Latest task: Plugin Page Heading Hierarchy Accessibility Audit Fix (2026-07-18)
+
+- Status:
+  Fixed the `Heading elements are not in a sequentially-descending order` Lighthouse accessibility audit in `app/(landing)/(routes)/plugin/page.tsx` without touching visual styles, layout, or breaking existing functionality.
+- Changes:
+  - Updated heading tags in [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/plugin/page.tsx):
+    - Changed step titles in ZXP and Manual guide containers from `<h4>` to `<h3>` under section `<h2>`.
+    - Changed multi-app feature card titles for Premiere Pro, After Effects, and Photoshop from `<h4>` to `<h3>` under section `<h2>`.
+    - Changed System Requirements and FAQ section headings from `<h3>` to `<h2>` to match main document section levels.
+    - Changed System Requirements items and FAQ question titles from `<h4>` to `<h3>`.
+  - Establishes a 100% compliant `H1 -> H2 -> H3` sequential tree for accessibility tools and Lighthouse audits.
+- Verification:
+  - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
+  - Cleaned tag replacements verified across all 917 lines of `page.tsx`.
+
+### Previous task: Interactive Full-Width Adobe Plugin Page (/plugin) (2026-07-18)
 
 - Status:
   Created state-of-the-art interactive Adobe Plugin page at `/plugin` with full page width layout (`max-w-[1800px]`), package download center, interactive step-by-step installation guides, and multi-app support (Premiere Pro, After Effects, Photoshop).
