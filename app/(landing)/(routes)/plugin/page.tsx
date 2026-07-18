@@ -349,7 +349,7 @@ export default function PluginPage() {
         <section className="space-y-8 pt-6">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              {t("Interactive Installation Guide", "دليل التنصيب والتفعيل التفاعلي Step-by-Step")}
+              {t("Interactive Installation Guide", "دليل التنصيب والتفعيل التفاعلي خطوة بخطوة")}
             </h2>
             <p className="text-slate-400 text-base max-w-3xl mx-auto">
               {t(
@@ -592,7 +592,7 @@ export default function PluginPage() {
         <section className="space-y-8 pt-6">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              {t("Multi-App Adobe Integration Suite", "مميزات وحزم الإضافة المتكاملة لبرامج أدوبي 3")}
+              {t("Multi-App Adobe Integration Suite", "مميزات وحزم الإضافة المتكاملة لبرامج أدوبي")}
             </h2>
             <p className="text-slate-400 text-base max-w-3xl mx-auto">
               {t(
