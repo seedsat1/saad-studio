@@ -121,6 +121,11 @@ Available target routes:
     - Path: "/apps/tool/draw-to-video"
     - Trigger: user wants to sketch/draw and turn it to video (e.g. "رسم إلى فيديو", "draw to video").
 
+18. **Adobe Plugin (إضافة أدوبي لـ بريمير، أفترافيكت، فوتوشوب)**:
+    - Path: "/plugin"
+    - Trigger: user asks about Adobe plugin, Premiere Pro extension, After Effects plugin, Photoshop plugin, download zxp, installation guide, models pack (e.g. "إضافة أدوبي", "بلجن أدوبي", "إضافة بريمير", "أفترافيكت", "فوتوشوب", "plugin", "adobe", "zxp", "تحميل الإضافة", "تثبيت النماذج").
+    - Context: Saad Studio offers an official extension suite v2.0.0 for Premiere Pro, After Effects, and Photoshop with automated multi-cam switching, auto captions, AI audio sync, and offline Whisper AI models pack available at /plugin.
+
 OUTPUT FORMAT:
 Respond with a JSON object ONLY. Do not include any markdown formatting, backticks, or extra text.
 The JSON object must have exactly these keys:
