@@ -9,10 +9,10 @@
   - Linked official Google Drive models folder: `https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing` directly into the "Download Models Pack (Google Drive)" button.
   - Added public download packages (`SaadStudio.zxp` and `SaadStudio-manual.zip`) to `public/downloads/` for direct site downloads.
   - Updated [lib/navigation.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/navigation.ts) and [components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx) to add prominent "Adobe Plugin" (`/plugin`) button in top navigation bar and mobile drawer.
+  - Fixed script file name references in Step 3 on `/plugin` page (`install-models.bat` in English vs `تثبيت النماذج تلقائياً.bat` in Arabic) for 100% pure language separation.
 - Verification:
   - Verified local build (`npm run build`) succeeded with zero errors (`✓ Compiled successfully`).
-  - Fixed language mixing on pricing cards by separating English and Arabic translations and adding `t` to `useMemo` dependency arrays.
-  - Pushed commit `5d706ae` to main repository (`saad-studio`).
+  - Pushed commit `c78b003` to main repository (`saad-studio`).
 
 ### Previous task: Podcast Extension $3 Pricing Alignment & Full Width Pricing Layout (2026-07-18)
 
