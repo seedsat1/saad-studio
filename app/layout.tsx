@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   alternates: {
-    canonical: "/",
+    canonical: "./",
   },
   manifest: "/manifest.webmanifest",
   icons: {
@@ -114,10 +114,6 @@ export default function RootLayout({
           />
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-          <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-          <link rel="dns-prefetch" href="//fonts.gstatic.com" />
         </head>
         <body className={`${nexaBold.variable} ${nexaLight.variable} ${cairo.variable} font-body bg-[#060c18] text-[#e2e8f0] antialiased`}>
           <Script id="saad-theme-init" strategy="beforeInteractive">

@@ -263,12 +263,12 @@ function MediaCard({ item, onOpen, onDelete }: {
           </div>
         ) : item.type === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={currentSrc} alt={item.prompt ?? ""} loading="lazy" onError={handleError} style={{
+          <img src={currentSrc} alt={item.prompt || "Generated media content"} loading="lazy" onError={handleError} style={{
             display: "block", width: "100%", height: "100%", objectFit: "cover",
             transform: hov ? "scale(1.04)" : "scale(1)", transition: "transform 0.45s ease",
           }} />
         ) : (
-          <video ref={videoRef} src={currentSrc} poster={item.poster} muted loop playsInline preload="metadata" onError={handleError}
+          <video ref={videoRef} src={currentSrc} poster={item.poster} muted loop playsInline preload="metadata" aria-label={item.prompt || "Generated video preview"} onError={handleError}
             style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
         )}
 

@@ -1,6 +1,20 @@
 # Saad Studio Project Context Update
 
-### Latest task: Plugin Page Heading Hierarchy Accessibility Audit Fix (2026-07-18)
+### Latest task: Site-Wide Canonical SEO & MediaGrid Accessibility Lighthouse Audit Fix (2026-07-18)
+
+- Status:
+  Fixed `rel=canonical` SEO warning, removed unused Google Font preconnect links, and enhanced MediaGrid image/video accessibility attributes without breaking any layout, physics, or functionality.
+- Changes:
+  - Updated [app/layout.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/layout.tsx):
+    - Fixed `alternates.canonical` from static `"/"` to `"./"`, allowing Next.js to dynamically generate valid route-matching canonical links (`https://saadstudio.app/video`, `https://saadstudio.app/plugin`, etc.) across all pages.
+    - Removed unused Google Fonts `<link rel="preconnect">` and `<link rel="dns-prefetch">` tags since fonts are self-hosted via `next/font`.
+  - Updated [components/MediaGrid.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/MediaGrid.tsx):
+    - Added `aria-label` accessibility attributes to `<video>` preview elements.
+    - Guaranteed non-empty fallback `alt` attributes on `<img>` elements.
+- Verification:
+  - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
+
+### Previous task: Plugin Page Heading Hierarchy Accessibility Audit Fix (2026-07-18)
 
 - Status:
   Fixed the `Heading elements are not in a sequentially-descending order` Lighthouse accessibility audit in `app/(landing)/(routes)/plugin/page.tsx` without touching visual styles, layout, or breaking existing functionality.
