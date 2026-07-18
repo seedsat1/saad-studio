@@ -1273,7 +1273,7 @@ function useExploreTranslation() {
       "Video": "Video"
     },
     ar: {
-      "YOURS TO CREATE": "أنشئه كما تريد",
+      "YOURS TO CREATE": "أنشئ كما تريد",
       "ASK ME AND I'LL GIVE YOU WHAT YOU WANT": "اطلب وسأصنع لك ما تريد",
       "Type a prompt...": "اكتب فكرة أو توجيه...",
       "Image": "صورة",
