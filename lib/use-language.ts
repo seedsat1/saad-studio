@@ -44,5 +44,5 @@ export function useLanguage() {
     window.dispatchEvent(new Event("saad-language-changed"));
   };
 
-  return { lang, changeLanguage };
+  return { lang, language: lang, changeLanguage };
 }

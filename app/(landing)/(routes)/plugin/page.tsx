@@ -44,8 +44,8 @@ const fadeUp = {
 };
 
 export default function PluginPage() {
-  const { language } = useLanguage();
-  const isAr = language === "ar";
+  const { lang } = useLanguage();
+  const isAr = lang === "ar";
 
   const [activeTab, setActiveTab] = useState<"zxp" | "manual">("zxp");
   const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
