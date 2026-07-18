@@ -27,7 +27,7 @@ import {
   ChevronDown,
   ArrowRight,
 } from "lucide-react";
-import { useLanguage } from "@/lib/language-context";
+import { useLanguage } from "@/lib/use-language";
 
 // Animation Variants
 const staggerContainer = {
@@ -53,11 +53,13 @@ export default function PluginPage() {
   const [copiedReg, setCopiedReg] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
+  const GDRIVE_URL = "https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing";
+
   // Download Links Setup
   const DOWNLOAD_LINKS = {
-    zxp: "/downloads/SaadStudio.zxp",
-    manualZip: "/downloads/SaadStudio-manual.zip",
-    googleDriveModels: "https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing",
+    zxp: GDRIVE_URL,
+    manualZip: GDRIVE_URL,
+    googleDriveModels: GDRIVE_URL,
     aescriptsZxpInstaller: "https://aescripts.com/learn/zxp-installer/",
   };
 
