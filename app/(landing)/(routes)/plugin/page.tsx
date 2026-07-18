@@ -60,7 +60,7 @@ export default function PluginPage() {
     zxp: "/downloads/SaadStudio.zxp",
     manualZip: "/downloads/SaadStudio-manual.zip",
     googleDriveModels: GDRIVE_URL,
-    aescriptsZxpInstaller: "https://aescripts.com/learn/zxp-installer/",
+    aescriptsZxpInstaller: GDRIVE_URL,
   };
 
   const cepPath = "%APPDATA%\\Adobe\\CEP\\extensions\\";
@@ -422,8 +422,8 @@ export default function PluginPage() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:underline pt-4"
                     >
-                      <span>{t("Get AEScripts ZXP Installer", "تحميل ZXP Installer")}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{t("Download AEScripts ZXP Installer (Google Drive)", "تحميل برنامج ZXP Installer (من كوكل درايف)")}</span>
                     </a>
                   </div>
 
