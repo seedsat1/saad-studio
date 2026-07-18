@@ -233,7 +233,8 @@ export default function PluginPage() {
               <div className="pt-8 space-y-3">
                 <a
                   href={DOWNLOAD_LINKS.zxp}
-                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold shadow-lg shadow-amber-500/25 transition-all"
                 >
                   <Download className="w-5 h-5" />
@@ -334,7 +335,8 @@ export default function PluginPage() {
               <div className="pt-8 space-y-3">
                 <a
                   href={DOWNLOAD_LINKS.manualZip}
-                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold transition-all"
                 >
                   <Download className="w-5 h-5" />
