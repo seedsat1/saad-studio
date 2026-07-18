@@ -460,13 +460,13 @@ export default function PluginPage() {
                       </h4>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Unzip Whisper-AI-Models.zip and double-click 'تثبيت النماذج تلقائياً.bat' to activate all offline AI models.",
+                          "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to activate all offline AI models.",
                           "فك الضغط عن حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لتفعيل النماذج محلياً."
                         )}
                       </p>
                     </div>
                     <div className="bg-violet-950/60 border border-violet-500/30 rounded-xl p-2.5 text-[11px] font-mono text-violet-300">
-                      تثبيت النماذج تلقائياً.bat
+                      {t("install-models.bat", "تثبيت النماذج تلقائياً.bat")}
                     </div>
                   </div>
 
@@ -558,7 +558,7 @@ export default function PluginPage() {
                       </h4>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Unzip Whisper-AI-Models.zip and double-click 'تثبيت النماذج تلقائياً.bat' to copy AI models.",
+                          "Unzip Whisper-AI-Models.zip and double-click 'install-models.bat' to copy AI models.",
                           "افتح حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لنقل وتفعيل النماذج تلقائياً."
                         )}
                       </p>
