@@ -108,7 +108,7 @@ export default function PluginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.15]"
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.2] max-w-5xl mx-auto"
           >
             {t("Supercharge Your Adobe Workflow with ", "ارتقِ بمونتاجك وإنتاجك على أدوبي مع ")}
             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
@@ -120,7 +120,7 @@ export default function PluginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg sm:text-xl text-slate-300 max-w-4xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg text-slate-300/90 max-w-3xl mx-auto leading-relaxed"
           >
             {t(
               "One powerful plugin suite designed natively for Premiere Pro, After Effects, and Photoshop. Automate multi-cam switching, auto captions, AI audio sync, and visual asset import in 1-click.",
