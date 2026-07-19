@@ -1,6 +1,36 @@
 # Saad Studio Project Context Update
 
-### Latest task: Refactor Annual Credit Advance 2-Month Restriction Helper (2026-07-20)
+### Latest task: Add Discord Official Social Media Link (2026-07-20)
+
+- Status:
+  Added the official Discord community link (`https://discord.gg/saadstudio`) to the site footer and admin CMS default configuration with custom Discord SVG Clyde branding.
+- Affected Files:
+  - [components/Footer.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/Footer.tsx)
+  - [app/admin/cms/discover/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/discover/page.tsx)
+- Changes:
+  - Added official `DiscordIcon` SVG component to `components/Footer.tsx`.
+  - Added `{ icon: DiscordIcon, href: "https://discord.gg/saadstudio", label: "Discord" }` to default `SOCIALS` list in `Footer.tsx`.
+  - Mapped `Discord` and `Community` key names in `Footer.tsx` `iconMap` to render the official Discord SVG icon when dynamic CMS social links are used.
+  - Added `{ _id: uid(), platform: "Discord", href: "https://discord.gg/saadstudio" }` to default CMS seeds in `app/admin/cms/discover/page.tsx`.
+- Verification:
+  - Verified code syntax and test suite execution without errors.
+
+### Previous task: Add X (Twitter) Official Social Media Link (2026-07-20)
+
+- Status:
+  Added the official X (Twitter) account link (`https://x.com/saadstudioapp`) to the site footer and admin CMS default configuration with custom X SVG branding.
+- Affected Files:
+  - [components/Footer.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/Footer.tsx)
+  - [app/admin/cms/discover/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/discover/page.tsx)
+- Changes:
+  - Added custom official `XIcon` SVG component to `components/Footer.tsx`.
+  - Added `{ icon: XIcon, href: "https://x.com/saadstudioapp", label: "X" }` to default `SOCIALS` list in `Footer.tsx`.
+  - Mapped `X` and `Twitter` key names in `Footer.tsx` `iconMap` to render the official X SVG icon when dynamic CMS social links are used.
+  - Added `{ _id: uid(), platform: "X", href: "https://x.com/saadstudioapp" }` to default CMS seeds in `app/admin/cms/discover/page.tsx`.
+- Verification:
+  - Verified code syntax and test suite execution without errors.
+
+### Previous task: Refactor Annual Credit Advance 2-Month Restriction Helper (2026-07-20)
 
 - Status:
   Centralized the 2-month (60 days) credit advance restriction check for annual subscribers into a shared helper function `isWithinLastTwoMonthsOfSubscription` to eliminate code duplication while ensuring zero breaking changes.
