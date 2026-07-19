@@ -197,7 +197,7 @@ const SEED_FOOTER: FooterData = {
     { _id: uid(), platform: "Instagram", href: "https://www.instagram.com/saadstudio.ai" },
     { _id: uid(), platform: "Facebook", href: "https://www.facebook.com/Saadstudio" },
     { _id: uid(), platform: "X", href: "https://x.com/saadstudioapp" },
-    { _id: uid(), platform: "Discord", href: "https://discord.gg/saadstudio" },
+    { _id: uid(), platform: "Discord", href: "https://discord.gg/9HXRqNFtS" },
   ],
   newsletterHeading: "Stay in the loop ✨",
   newsletterSubtitle: "New models & drops. No spam.",

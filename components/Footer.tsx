@@ -54,7 +54,7 @@ const SOCIALS: Array<{ icon: any; href: string; label: string }> = [
   { icon: Instagram, href: "https://www.instagram.com/saadstudio.ai", label: "Instagram" },
   { icon: Facebook, href: "https://www.facebook.com/Saadstudio", label: "Facebook" },
   { icon: XIcon, href: "https://x.com/saadstudioapp", label: "X" },
-  { icon: DiscordIcon, href: "https://discord.gg/saadstudio", label: "Discord" },
+  { icon: DiscordIcon, href: "https://discord.gg/9HXRqNFtS", label: "Discord" },
 ];
 
 const ALLOWED_FOOTER_LINKS = new Set([

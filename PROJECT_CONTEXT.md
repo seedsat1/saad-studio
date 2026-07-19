@@ -3,15 +3,15 @@
 ### Latest task: Add Discord Official Social Media Link (2026-07-20)
 
 - Status:
-  Added the official Discord community link (`https://discord.gg/saadstudio`) to the site footer and admin CMS default configuration with custom Discord SVG Clyde branding.
+  Added the official Discord community invite link (`https://discord.gg/9HXRqNFtS`) to the site footer and admin CMS default configuration with custom Discord SVG Clyde branding.
 - Affected Files:
   - [components/Footer.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/Footer.tsx)
   - [app/admin/cms/discover/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/cms/discover/page.tsx)
 - Changes:
   - Added official `DiscordIcon` SVG component to `components/Footer.tsx`.
-  - Added `{ icon: DiscordIcon, href: "https://discord.gg/saadstudio", label: "Discord" }` to default `SOCIALS` list in `Footer.tsx`.
+  - Added `{ icon: DiscordIcon, href: "https://discord.gg/9HXRqNFtS", label: "Discord" }` to default `SOCIALS` list in `Footer.tsx`.
   - Mapped `Discord` and `Community` key names in `Footer.tsx` `iconMap` to render the official Discord SVG icon when dynamic CMS social links are used.
-  - Added `{ _id: uid(), platform: "Discord", href: "https://discord.gg/saadstudio" }` to default CMS seeds in `app/admin/cms/discover/page.tsx`.
+  - Added `{ _id: uid(), platform: "Discord", href: "https://discord.gg/9HXRqNFtS" }` to default CMS seeds in `app/admin/cms/discover/page.tsx`.
 - Verification:
   - Verified code syntax and test suite execution without errors.
 
