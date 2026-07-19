@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
 
 const MAX_IMAGE_CHARS = 12_000_000;
 
-function isSupportedDataUrl(value: string) {
-  return /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value);
+function isSupportedImageInput(value: string) {
+  return /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value) || /^https?:\/\//i.test(value);
 }
 
 export async function POST(req: NextRequest) {
@@ -22,12 +22,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const image = typeof body?.image === "string" ? body.image : "";
 
-    if (!image || !isSupportedDataUrl(image)) {
-      return NextResponse.json({ error: "A supported image is required." }, { status: 400 });
+    if (!image || !isSupportedImageInput(image)) {
+      return NextResponse.json(
+        { error: "يرجى رفع صورة صالحة (PNG, JPG, WEBP, GIF)." },
+        { status: 400 },
+      );
     }
 
     if (image.length > MAX_IMAGE_CHARS) {
-      return NextResponse.json({ error: "Image is too large." }, { status: 413 });
+      return NextResponse.json(
+        { error: "حجم الصورة كبير جداً. يرجى استخدام صورة بأبعاد أقل." },
+        { status: 413 },
+      );
     }
 
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "sk-placeholder") {

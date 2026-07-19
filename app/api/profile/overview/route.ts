@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { SAAD_PLANS } from "@/lib/pricing-models";
+import { isWithinLastTwoMonthsOfSubscription } from "@/lib/credit-ledger";
 
 type UsageBuckets = {
   images: number;
@@ -168,11 +169,7 @@ export async function GET() {
     const planCredits = SAAD_PLANS.find((p) => p.id === inferredPlanId)?.credits ?? 0;
     const monthlyCredits = Math.max(0, Math.floor(planCredits || userRow?.monthlyCredits || 0));
 
-    const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
-    const isWithinLastTwoMonths = Boolean(
-      subscription?.stripeCurrentPeriodEnd &&
-        Date.now() >= subscription.stripeCurrentPeriodEnd.getTime() - sixtyDaysMs
-    );
+    const isWithinLastTwoMonths = isWithinLastTwoMonthsOfSubscription(subscription?.stripeCurrentPeriodEnd);
 
     return NextResponse.json({
       credits: Math.max(0, Math.floor(userRow?.creditBalance ?? 0)),

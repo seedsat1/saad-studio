@@ -226,6 +226,16 @@ function sameCycleEnd(a: Date | null | undefined, b: Date | null | undefined): b
   return Boolean(a && b && a.getTime() === b.getTime());
 }
 
+export const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
+
+export function isWithinLastTwoMonthsOfSubscription(
+  stripeCurrentPeriodEnd: Date | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!stripeCurrentPeriodEnd) return false;
+  return now.getTime() >= stripeCurrentPeriodEnd.getTime() - SIXTY_DAYS_MS;
+}
+
 export async function requestAnnualCreditAdvance(userId: string, requestedAmount?: number) {
   await ensureUserRow(userId);
   await handleCreditExpiry(userId);
@@ -264,15 +274,11 @@ export async function requestAnnualCreditAdvance(userId: string, requestedAmount
   }
 
   // Restrict credit advance in the last two months (60 days) of the subscription
-  if (subscription?.stripeCurrentPeriodEnd) {
-    const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
-    const limitTime = subscription.stripeCurrentPeriodEnd.getTime() - sixtyDaysMs;
-    if (now.getTime() >= limitTime) {
-      throw new CreditAdvanceError(
-        "last_two_months_restriction",
-        "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)"
-      );
-    }
+  if (isWithinLastTwoMonthsOfSubscription(subscription?.stripeCurrentPeriodEnd, now)) {
+    throw new CreditAdvanceError(
+      "last_two_months_restriction",
+      "لا يمكن طلب السلفة خلال آخر شهرين من الاشتراك السنوي. (Credit advance is not available during the last two months of the annual subscription.)"
+    );
   }
 
   if (!user?.creditsExpireAt || user.creditsExpireAt.getTime() <= now.getTime()) {

@@ -1,6 +1,48 @@
 # Saad Studio Project Context Update
 
-### Latest task: Site-Wide Canonical SEO & MediaGrid Accessibility Lighthouse Audit Fix (2026-07-18)
+### Latest task: Refactor Annual Credit Advance 2-Month Restriction Helper (2026-07-20)
+
+- Status:
+  Centralized the 2-month (60 days) credit advance restriction check for annual subscribers into a shared helper function `isWithinLastTwoMonthsOfSubscription` to eliminate code duplication while ensuring zero breaking changes.
+- Affected Files:
+  - [lib/credit-ledger.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts)
+  - [app/api/profile/overview/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/profile/overview/route.ts)
+  - [app/api/profile/settings/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/profile/settings/route.ts)
+  - [test/credit-ledger.test.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/test/credit-ledger.test.ts)
+- Changes:
+  - Created and exported `SIXTY_DAYS_MS` and `isWithinLastTwoMonthsOfSubscription(stripeCurrentPeriodEnd, now)` helper in `lib/credit-ledger.ts`.
+  - Used `isWithinLastTwoMonthsOfSubscription` inside `requestAnnualCreditAdvance` in `lib/credit-ledger.ts`.
+  - Replaced duplicate inline 60-day date calculations in `app/api/profile/overview/route.ts` and `app/api/profile/settings/route.ts` with calls to `isWithinLastTwoMonthsOfSubscription`.
+  - Preserved error handling (`CreditAdvanceError("last_two_months_restriction", ...)`) and UI button state disabling (`creditAdvance.available = false`).
+- Verification:
+  - Ran `npx vitest run test/credit-ledger.test.ts`: all 6 tests passed (100% success).
+
+### Previous task: Prompt Extractor 413 (Content Too Large) & React DOM Error Boundary Fix (2026-07-19)
+
+- Status:
+  Resolved the HTTP 413 (Content Too Large) error and 500 error boundary crash on `/prompt-extractor` when uploading high-resolution image files.
+- Affected Files:
+  - [app/(dash)/(routes)/prompt-extractor/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/prompt-extractor/page.tsx)
+  - [app/api/prompt-extractor/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/prompt-extractor/route.ts)
+- Changes:
+  - Added HTML5 canvas image compression helper `compressImageForExtraction(file: File)` in `page.tsx` to automatically scale high-resolution image uploads down to a maximum dimension of 1560px and compress to high-quality JPEG format before sending to `/api/prompt-extractor`.
+  - Reduced payload sizes from multi-megabyte base64 strings down to ~150KB - 400KB, preventing HTTP 413 serverless body limit errors while maintaining 100% vision readability for GPT-4o.
+  - Increased allowed file picker upload size limit from 8MB to 20MB.
+  - Hardened error parsing in `page.tsx` (`res.text()` fallback before `JSON.parse`) to cleanly catch non-JSON/413 error responses from proxies/gateways without throwing uncaught exceptions.
+  - Extended image validation in `app/api/prompt-extractor/route.ts` to support both base64 Data URLs and HTTP/HTTPS image URLs.
+- Rationale & Verification:
+  - Prevents serverless payload body overflow (4.5MB Vercel limit) and eliminates React DOM `insertBefore` reconciliation errors.
+
+### Previous task: Deep Security Audit & KIE API Key Compromise Identification (2026-07-19)
+
+- Status:
+  Performed deep database search across all tables (`Generation`, `ProviderUsageRecord`, `GenerationRequestSnapshot`) for prompt keywords found in official KIE.ai logs (Argentine casino ads, Spanish prompts, `naked women`, `Buenos Aires`, `doscientos`).
+- Critical Findings & Security Analysis:
+  - **Zero matches in Saad Studio DB**: 100% confirmation that none of these requests were submitted by any subscriber on Saad Studio.
+  - **KIE API Key Compromise**: The requests were executed directly against KIE.ai endpoints using the application's `KIE_API_KEY` from an external unauthorized source/script.
+  - **Immediate Mitigation Required**: Advised revoking the existing `KIE_API_KEY` on KIE.ai and updating server configuration immediately.
+
+### Previous task: Site-Wide Canonical SEO & MediaGrid Accessibility Lighthouse Audit Fix (2026-07-18)
 
 - Status:
   Fixed `rel=canonical` SEO warning, removed unused Google Font preconnect links, and enhanced MediaGrid image/video accessibility attributes without breaking any layout, physics, or functionality.

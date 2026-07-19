@@ -19,13 +19,43 @@ import { PROMPT_EXTRACTOR_CREDIT_COST } from "@/lib/prompt-extractor-pricing";
 type ExtractState = "idle" | "ready" | "loading" | "done" | "error";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
-function fileToDataUrl(file: File): Promise<string> {
+async function compressImageForExtraction(file: File, maxDimension = 1560, quality = 0.88): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          return resolve(String(e.target?.result ?? ""));
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(compressedDataUrl);
+      };
+      img.onerror = () => reject(new Error("Could not load image for processing."));
+      img.src = String(e.target?.result ?? "");
+    };
+    reader.onerror = () => reject(new Error("Could not read image file."));
     reader.readAsDataURL(file);
   });
 }
@@ -82,18 +112,18 @@ export default function PromptExtractorPage() {
 
     if (file.size > MAX_IMAGE_BYTES) {
       setState("error");
-      setError("Image must be under 8 MB.");
+      setError("Image must be under 20 MB.");
       return;
     }
 
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const dataUrl = await compressImageForExtraction(file);
       setImageDataUrl(dataUrl);
       setImageName(file.name);
       setState("ready");
     } catch (err) {
       setState("error");
-      setError(err instanceof Error ? err.message : "Could not read image.");
+      setError(err instanceof Error ? err.message : "Could not process image.");
     }
   }, []);
 
@@ -125,8 +155,21 @@ export default function PromptExtractorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageDataUrl }),
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || "Prompt extraction failed.");
+      const responseText = await res.text().catch(() => "");
+      let data: any = null;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        // Not JSON
+      }
+
+      if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error("حجم الصورة كبير جداً. يرجى استخدام صورة بأبعاد أقل.");
+        }
+        throw new Error(data?.error || `فشل استخراج البرومبت (رمز ${res.status}).`);
+      }
+
       setPrompt(String(data?.prompt ?? "").trim());
       setState("done");
     } catch (err) {
