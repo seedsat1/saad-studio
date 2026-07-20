@@ -25,9 +25,13 @@ function copyDir(src, dest) {
 const clientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'client', 'dist');
 const pkgClientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'client', 'dist');
 
+if (fs.existsSync(pkgClientDist)) {
+  fs.rmSync(pkgClientDist, { recursive: true, force: true });
+}
+
 if (fs.existsSync(clientDist)) {
   copyDir(clientDist, pkgClientDist);
-  console.log('Copied client/dist to share-package');
+  console.log('Copied client/dist to share-package (clean copy)');
 }
 
 const masterJsx = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'jsx', 'index.jsx');
@@ -49,6 +53,13 @@ const pkgManifests = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'shar
 if (fs.existsSync(masterManifests)) {
   copyDir(masterManifests, pkgManifests);
   console.log('Copied runtime-manifests to share-package');
+}
+
+const masterAssets = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'runtime-assets');
+const pkgAssets = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'runtime-assets');
+if (fs.existsSync(masterAssets)) {
+  copyDir(masterAssets, pkgAssets);
+  console.log('Copied runtime-assets to share-package');
 }
 
 const masterScripts = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'scripts');
