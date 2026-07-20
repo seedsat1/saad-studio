@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Embedded UAC Administrator manifest (`/win32manifest:scripts/app.manifest`), forced clean directory overwrites across all CEP paths (`Program Files (x86)`, `Program Files`, `%APPDATA%`), and updated installer UI button to `Finish & Exit` (`140b6d5`). Ensures `SaadStudio-Setup.exe` runs with full Administrator privileges to overwrite any cached files and close cleanly when completed.
+  - Capped `max-width: 340px` and updated CSS grid columns for `.apps-grid-new` and `.app-card-new` ([adobe/saadstudio-cep/client/src/styles/components.css](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/styles/components.css)). Prevents tool cards from stretching into wide distorted rectangles when the extension panel is maximized across ultra-wide screens.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `140b6d5` to main repository (`saad-studio`).
+  - Pushed commit `2cbcd4d` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
