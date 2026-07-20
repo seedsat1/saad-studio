@@ -3924,7 +3924,9 @@
                         }
                         logDebug("  finding clip track and index for linked item...");
                         var linkedLocation = findClipTrackAndIndex(getActiveOrFirstSequence(), linkedItem);
-                        logDebug("  linkedLocation: " + (linkedLocation ? JSON.stringify(linkedLocation) : "null"));
+                        logDebug("  linkedLocation: " + (linkedLocation
+                            ? ("kind=" + linkedLocation.kind + ", trackIndex=" + linkedLocation.trackIndex + ", clipIndex=" + linkedLocation.clipIndex)
+                            : "null"));
                         if (linkedLocation) {
                             linkedClipId = linkedLocation.trackIndex + ":" + linkedLocation.clipIndex;
                             linkedClipKind = linkedLocation.kind;
