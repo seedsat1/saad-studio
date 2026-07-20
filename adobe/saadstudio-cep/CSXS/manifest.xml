@@ -14,7 +14,7 @@
     <HostList>
       <Host Name="PPRO" Version="[15.0,99.9]" />
       <Host Name="AEFT" Version="[17.0,99.9]" />
-      <Host Name="PHXS" Version="[22.0,99.9]" />
+      <Host Name="PHXS" Version="[18.0,99.9]" />
     </HostList>
     <LocaleList>
       <Locale Code="All" />
