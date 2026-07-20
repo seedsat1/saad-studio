@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Added direct Next.js route handler ([app/downloads/[filename]/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/downloads/%5Bfilename%5D/route.ts)) and updated middleware public routes and matcher regex for `.exe` and `.zxp` files ([middleware.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/middleware.ts)). Guarantees direct file downloads from `saadstudio.app/downloads/SaadStudio-Setup.exe` without 404 router errors (`575e9e8`).
+  - Implemented automatic legacy extension purging (`PurgeOldSaadStudioExtensions`) in `SaadStudio-Setup.exe` ([scripts/Installer.cs](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/Installer.cs) & [scripts/gen-installer.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/gen-installer.js)). Automatically scans and wipes any old/legacy extension folders (`SaadStudio`, `SaadStudioBeta`, `saadstudio-cep`) across all system and user CEP paths (`Program Files (x86)`, `Program Files`, `%APPDATA%`) before extracting `Saad Studio 2.0.0` (`0cb6064`).
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `575e9e8` to main repository (`saad-studio`).
+  - Pushed commit `0cb6064` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
