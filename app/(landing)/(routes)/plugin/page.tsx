@@ -867,6 +867,12 @@ export default function PluginPage() {
                 qAr: "ماذا أفعل إذا ظهرت الإضافة شاشة بيضاء في التثبيت اليدوي؟",
                 aEn: "Run the PlayerDebugMode registry command to allow local beta extensions in Adobe CSXS environments.",
                 aAr: "قم بتفعيل خيار PlayerDebugMode في السجل للسماح لأدوبي بتحميل الإضافات التطويرية المحلية."
+              },
+              {
+                qEn: "What if ZXP Installer says 'Adobe requires Creative Cloud desktop app'?",
+                qAr: "ماذا أفعل إذا أظهر ZXP Installer رسالة 'Adobe requires Creative Cloud'؟",
+                aEn: "Launch Adobe Creative Cloud app and sign into your account, or simply use Method 2 (Manual Extraction) by copying 'app.saadstudio.cep' to %APPDATA%\\Adobe\\CEP\\extensions\\ without needing Creative Cloud.",
+                aAr: "قم بفتح برنامج Adobe Creative Cloud وتسجيل الدخول بحسابك، أو استخدم الطريقة 2 (التثبيت اليدوي) بنقل مجلد 'app.saadstudio.cep' مباشرة إلى مسار CEP دون الحاجة لبرنامج Creative Cloud."
               }
             ].map((faq, index) => (
               <div
