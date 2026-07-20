@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using System.Collections.Generic;
+using System.Security.Principal;
 
 namespace SaadStudioInstaller
 {
@@ -16,7 +17,38 @@ namespace SaadStudioInstaller
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            if (!IsAdministrator())
+            {
+                try
+                {
+                    ProcessStartInfo proc = new ProcessStartInfo();
+                    proc.UseShellExecute = true;
+                    proc.WorkingDirectory = Environment.CurrentDirectory;
+                    proc.FileName = Application.ExecutablePath;
+                    proc.Verb = "runas";
+                    Process.Start(proc);
+                    return;
+                }
+                catch
+                {
+                    MessageBox.Show("Administrator privileges are required to install Adobe extension files into C:\\Program Files (x86). Please right-click SaadStudio-Setup.exe and select 'Run as Administrator'.", "Administrator Rights Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
             Application.Run(new InstallerForm());
+        }
+
+        private static bool IsAdministrator()
+        {
+            try
+            {
+                WindowsIdentity identity = WindowsIdentity.GetCurrent();
+                WindowsPrincipal principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+            catch { return false; }
         }
     }
 
@@ -224,7 +256,7 @@ namespace SaadStudioInstaller
                 ZipFile.ExtractToDirectory(tempZipPath, tempStagingDir);
 
                 progressBar.Value = 80;
-                lblStatus.Text = "Installing latest Saad Studio 2.0.0 extension files...";
+                lblStatus.Text = "Installing latest Saad Studio 2.0.0 extension files to C:\\Program Files (x86)...";
                 Application.DoEvents();
 
                 // 4. Install to all system and user CEP extension directories
@@ -243,9 +275,10 @@ namespace SaadStudioInstaller
                 try { File.Delete(tempZipPath); } catch { }
                 try { Directory.Delete(tempStagingDir, true); } catch { }
 
-                if (installedTargets.Count == 0)
+                // MANDATORY: C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep MUST exist!
+                if (!Directory.Exists(targetSystem86) && !Directory.Exists(targetSystem64))
                 {
-                    throw new Exception("Failed to copy extension to CEP directories: " + string.Join(" | ", errors.ToArray()));
+                    throw new Exception("System CEP directory deployment failed. Could not write to C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep. Errors: " + string.Join(" | ", errors.ToArray()));
                 }
 
                 progressBar.Value = 100;
