@@ -3058,8 +3058,8 @@
 /* Clean, uniform, fluid responsive grid for AI tools across all panel widths */
 .apps-grid-new {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
-  gap: 8px !important;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 340px)) !important;
+  gap: 10px !important;
   width: 100% !important;
 }
 
@@ -3084,6 +3084,7 @@
   transition: all 0.2s ease;
   text-align: left;
   width: 100%;
+  max-width: 340px;
   overflow: hidden;
 }
 
