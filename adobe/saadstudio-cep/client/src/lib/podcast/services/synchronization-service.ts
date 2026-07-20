@@ -822,12 +822,15 @@ function firstMediaClipByTrack(clips: PodcastTimelineClipInfo[]): Map<number, Po
 }
 
 function isUsableSyncClip(clip: PodcastTimelineClipInfo): boolean {
-  return typeof clip.timelineStartSec === "number"
+  const hasTimelineTiming = typeof clip.timelineStartSec === "number"
     && typeof clip.timelineEndSec === "number"
-    && typeof clip.sourceInPointSec === "number"
+    && clip.timelineEndSec > clip.timelineStartSec;
+
+  const hasSourceTiming = typeof clip.sourceInPointSec === "number"
     && typeof clip.sourceOutPointSec === "number"
-    && clip.timelineEndSec > clip.timelineStartSec
     && clip.sourceOutPointSec > clip.sourceInPointSec;
+
+  return hasTimelineTiming || hasSourceTiming;
 }
 
 function getSyncNodeRuntime() {

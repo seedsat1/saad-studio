@@ -4229,12 +4229,15 @@
     }
 
     function isValidAudioClipTiming(info) {
-        return typeof info.timelineStartSec === "number"
+        var hasTimelineTiming = typeof info.timelineStartSec === "number"
             && typeof info.timelineEndSec === "number"
-            && typeof info.sourceInPointSec === "number"
+            && info.timelineEndSec > info.timelineStartSec;
+
+        var hasSourceTiming = typeof info.sourceInPointSec === "number"
             && typeof info.sourceOutPointSec === "number"
-            && info.timelineEndSec > info.timelineStartSec
             && info.sourceOutPointSec > info.sourceInPointSec;
+
+        return hasTimelineTiming || hasSourceTiming;
     }
 
     function podcastSourceKindFromPath(sourcePath) {
