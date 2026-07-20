@@ -73,7 +73,7 @@ if (fs.existsSync(csc) && fs.existsSync(csSource)) {
     const manifestFlag = fs.existsSync(manifestPath) ? `/win32manifest:"${manifestPath}"` : '';
     const resourceFlag = `/resource:"${payloadZip}",SaadStudioInstaller.payload.zip`;
     const refFlag = `/r:System.IO.Compression.FileSystem.dll`;
-    execSync(`"${csc}" /target:winexe ${refFlag} ${resourceFlag} ${iconFlag} ${manifestFlag} /out:"${exeOut}" "${csSource}"`, { stdio: 'inherit' });
+    execSync(`"${csc}" /target:winexe /platform:x64 ${refFlag} ${resourceFlag} ${iconFlag} ${manifestFlag} /out:"${exeOut}" "${csSource}"`, { stdio: 'inherit' });
     fs.copyFileSync(exeOut, shareExeOut);
     console.log('Compiled standalone SaadStudio-Setup.exe successfully! Size:', fs.statSync(exeOut).size, 'bytes');
   } catch (err) {
