@@ -37,6 +37,9 @@ if (fs.existsSync(masterJsx)) {
   console.log('Copied master jsx/index.jsx to share-package');
 }
 
+// 1.5. Bundle Visual C++ helper DLL runtimes for subscriber PCs
+execSync('node scripts/bundle-runtimes.js', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
+
 // 2. Generate payload.zip (embedded extension contents)
 const sharePkgApp = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep');
 const payloadZip = path.join(__dirname, 'payload.zip');
