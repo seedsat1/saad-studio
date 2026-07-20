@@ -172,7 +172,7 @@ namespace SaadStudioInstaller
             }
 
             btnInstall.Enabled = false;
-            progressBar.Value = 15;
+            progressBar.Value = 10;
             lblStatus.Text = "Configuring Adobe CSXS security permissions in Windows Registry...";
             lblStatus.ForeColor = Color.FromArgb(245, 158, 11);
             Application.DoEvents();
@@ -197,11 +197,18 @@ namespace SaadStudioInstaller
                     catch { }
                 }
 
-                progressBar.Value = 40;
+                progressBar.Value = 30;
+                lblStatus.Text = "Cleaning up old & legacy Saad Studio extension files...";
+                Application.DoEvents();
+
+                // 2. Automatically purge ALL legacy Saad Studio extension folders
+                PurgeOldSaadStudioExtensions();
+
+                progressBar.Value = 50;
                 lblStatus.Text = "Extracting bundled extension payload & helper runtimes...";
                 Application.DoEvents();
 
-                // 2. Extract embedded payload zip
+                // 3. Extract embedded payload zip
                 string tempZipPath = Path.Combine(Path.GetTempPath(), "SaadStudioPayload_" + Guid.NewGuid().ToString("N") + ".zip");
                 var asm = System.Reflection.Assembly.GetExecutingAssembly();
                 using (Stream stream = asm.GetManifestResourceStream("SaadStudioInstaller.payload.zip"))
@@ -215,8 +222,8 @@ namespace SaadStudioInstaller
                     }
                 }
 
-                progressBar.Value = 75;
-                lblStatus.Text = "Installing extension files to System CEP directory...";
+                progressBar.Value = 80;
+                lblStatus.Text = "Installing latest Saad Studio 2.0.0 extension files...";
                 Application.DoEvents();
 
                 string targetSystem86 = @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
@@ -237,15 +244,15 @@ namespace SaadStudioInstaller
 
                 isCompleted = true;
                 btnInstall.Text = "✔   Finish & Exit";
-                btnInstall.BackColor = Color.FromArgb(34, 197, 94); // emerald-500
+                btnInstall.BackColor = Color.FromArgb(34, 197, 94);
                 btnInstall.Enabled = true;
 
                 MessageBox.Show(
-                    @"Saad Studio has been successfully installed and activated!
+                    @"Saad Studio 2.0.0 has been successfully installed and activated!
 
 IMPORTANT:
 Please close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:
-Window -> Extensions -> Saad Studio
+Window -> Extensions -> Saad Studio 2.0.0
 
 Official Website: https://saadstudio.app",
                     "Saad Studio Setup Complete",
@@ -258,6 +265,33 @@ Official Website: https://saadstudio.app",
                 lblStatus.Text = "Installation error: " + ex.Message;
                 lblStatus.ForeColor = Color.Red;
                 btnInstall.Enabled = true;
+            }
+        }
+
+        private static void PurgeOldSaadStudioExtensions()
+        {
+            string[] basePaths = new string[] {
+                @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions",
+                @"C:\Program Files\Common Files\Adobe\CEP\extensions",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\CEP\extensions")
+            };
+
+            foreach (var basePath in basePaths)
+            {
+                if (!Directory.Exists(basePath)) continue;
+                try
+                {
+                    var dirs = Directory.GetDirectories(basePath);
+                    foreach (var dir in dirs)
+                    {
+                        string dirName = Path.GetFileName(dir).ToLowerInvariant();
+                        if (dirName.Contains("saad"))
+                        {
+                            try { Directory.Delete(dir, true); } catch { }
+                        }
+                    }
+                }
+                catch { }
             }
         }
 
@@ -275,4 +309,4 @@ Official Website: https://saadstudio.app",
 `;
 
 fs.writeFileSync(path.join(__dirname, 'Installer.cs'), code, 'utf8');
-console.log('Successfully generated scripts/Installer.cs with Admin UAC & Finish Button!');
+console.log('Successfully generated scripts/Installer.cs with automatic legacy purging!');
