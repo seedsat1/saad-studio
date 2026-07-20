@@ -8,10 +8,11 @@
   - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe`
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
-  - Converted CEP extension grid layout ([adobe/saadstudio-cep/client/src/styles/components.css](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/styles/components.css)) to dynamic fluid `auto-fill` with `minmax(220px, 1fr)` and set `max-width: 1400px` centering on container. This prevents cards from stretching unnaturally when resizing the extension panel ultra-wide across monitors. Re-packaged and uploaded updated `.zxp` and `.zip` archives.
+  - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
+  - Created and pre-bundled 1-click automated setup installer script ([adobe/saadstudio-cep/share-package/تثبيت_سعد_استوديو_تلقائياً.bat](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/share-package/%D8%AA%D8%AB%D8%A8%D9%8A%D8%AA_%D8%B3%D8%B9%D8%AF_%D8%A7%D8%B3%D8%AA%D9%88%D8%AF%D9%8A%D9%88_%D8%AA%D9%84%D9%82%D8%A7%D8%A6%D9%8A%D8%A7%D9%8B.bat)) inside extension zip package. Subscribers can now simply double-click this script to automatically grant Windows Adobe registry security permissions and copy files seamlessly without typing commands.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `f65386d` to main repository (`saad-studio`).
+  - Pushed commits `e68e3ec` and `1364f21` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
