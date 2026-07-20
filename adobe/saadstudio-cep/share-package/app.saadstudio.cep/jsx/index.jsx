@@ -79,6 +79,19 @@
         });
     };
 
+    function getActiveOrFirstSequence() {
+        if (!app.project) return null;
+        var seq = null;
+        try { seq = app.project.activeSequence; } catch (eActive) { seq = null; }
+        if (seq) return seq;
+        try {
+            if (app.project.sequences && app.project.sequences.numSequences > 0) {
+                return app.project.sequences[0];
+            }
+        } catch (eSeq) {}
+        return null;
+    }
+
     host.saadstudio.getSelectedAudio = function () {
         return safe(function () {
             if (IS_PPRO) return pproSelectedAudio();
@@ -241,7 +254,7 @@
                     audioTrackCount: 0
                 };
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 return {
                     active: false,
@@ -272,7 +285,7 @@
             if (!IS_PPRO) {
                 return podcastEmptyTimelineLayout("unsupported", "Podcast timeline layout analysis only works inside Premiere Pro.");
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 return podcastEmptyTimelineLayout("no-sequence", "No active Premiere sequence detected.");
             }
@@ -312,7 +325,7 @@
                 logDebug("not ppro");
                 return podcastEmptySynchronizationSnapshot("unsupported", "Synchronization only works inside Premiere Pro.");
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 logDebug("no active sequence");
                 return podcastEmptySynchronizationSnapshot("no-sequence", "No active Premiere sequence detected.");
