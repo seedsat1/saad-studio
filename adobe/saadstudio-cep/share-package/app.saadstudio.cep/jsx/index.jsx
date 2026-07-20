@@ -101,8 +101,8 @@
     };
 
     function pproSelectedClip() {
-        if (!app.project || !app.project.activeSequence) return null;
-        var seq = app.project.activeSequence;
+        if (!app.project || !getActiveOrFirstSequence()) return null;
+        var seq = getActiveOrFirstSequence();
         var tracks = seq.videoTracks;
         for (var t = 0; t < tracks.numTracks; t++) {
             var clips = tracks[t].clips;
@@ -146,8 +146,8 @@
     }
 
     function pproSelectedAudio() {
-        if (!app.project || !app.project.activeSequence) return null;
-        var seq = app.project.activeSequence;
+        if (!app.project || !getActiveOrFirstSequence()) return null;
+        var seq = getActiveOrFirstSequence();
         var tracks = seq.audioTracks;
         for (var t = 0; t < tracks.numTracks; t++) {
             var clips = tracks[t].clips;
@@ -199,7 +199,7 @@
     host.saadstudio.getActiveSequenceInfo = function () {
         return safe(function () {
             if (IS_PPRO) {
-                var s = app.project && app.project.activeSequence;
+                var s = getActiveOrFirstSequence();
                 if (!s) return null;
                 var set = s.getSettings ? s.getSettings() : null;
                 return {
@@ -402,7 +402,7 @@
                 result.blockers.push("PREMIERE_REQUIRED");
                 return result;
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
                 return result;
@@ -465,7 +465,7 @@
                 result.messages.push("Audio Source Inspector only works inside Premiere Pro.");
                 return result;
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 result.blockers.push("NO_ACTIVE_SEQUENCE");
                 result.messages.push("No active Premiere sequence detected.");
@@ -555,7 +555,7 @@
                     duplicateProof: proof
                 };
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 proof.blockers.push("No active sequence.");
                 return {
@@ -645,7 +645,7 @@
             } catch (eMoveSequence) {}
             proof.finalNewSequenceName = newSeq.name || null;
             proof.renameResult = proof.finalNewSequenceName === desiredName;
-            var activeAfter = app.project && app.project.activeSequence;
+            var activeAfter = getActiveOrFirstSequence();
             proof.activeSequenceAfterCloneName = activeAfter ? (activeAfter.name || null) : null;
             proof.activeSequenceAfterCloneID = activeAfter ? readSequenceID(activeAfter) : null;
 
@@ -872,7 +872,7 @@
                 result.blockers.push("PREMIERE_REQUIRED");
                 return result;
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
                 return result;
@@ -984,7 +984,7 @@
                 result.blockers.push("PREMIERE_REQUIRED");
                 return result;
             }
-            var seq = app.project && app.project.activeSequence;
+            var seq = getActiveOrFirstSequence();
             if (!seq) {
                 writeAutoZoomDiagnostic(result, "no_active_sequence");
                 result.blockers.push("ACTIVE_SEQUENCE_REQUIRED");
@@ -1390,7 +1390,7 @@
             var minimumShotLength = Number(minimumShotLengthSec);
             if (!isFinite(minimumShotLength)) minimumShotLength = 2;
             minimumShotLength = Math.max(0.5, Math.min(10, minimumShotLength));
-            var activeSeq = app.project && app.project.activeSequence;
+            var activeSeq = getActiveOrFirstSequence();
             var activeSeqName = activeSeq && activeSeq.name ? String(activeSeq.name) : "";
             var isAlreadyDraft = isAutoSwitchDraftSequenceName(activeSeqName);
             if (isGeneratedPodcastTestSequenceName(activeSeqName) && !isAlreadyDraft) {
@@ -3380,7 +3380,7 @@
             result.blockers.push("PREMIERE_REQUIRED");
             return result;
         }
-        var seq = app.project && app.project.activeSequence;
+        var seq = getActiveOrFirstSequence();
         if (!seq) {
             result.blockers.push("NO_ACTIVE_SEQUENCE");
             return result;
@@ -3422,7 +3422,7 @@
         result.newSequenceName = newSeq.name || null;
         result.newSequenceID = readSequenceID(newSeq);
         result.renameResult = result.newSequenceName === desiredName;
-        var activeAfterClone = app.project && app.project.activeSequence;
+        var activeAfterClone = getActiveOrFirstSequence();
         result.activeSequenceAfterCloneID = activeAfterClone ? readSequenceID(activeAfterClone) : null;
         result.activeSequenceAfterCloneName = activeAfterClone ? (activeAfterClone.name || null) : null;
         result.workingSequenceID = result.newSequenceID;
@@ -3923,7 +3923,7 @@
                             }
                         }
                         logDebug("  finding clip track and index for linked item...");
-                        var linkedLocation = findClipTrackAndIndex(app.project.activeSequence, linkedItem);
+                        var linkedLocation = findClipTrackAndIndex(getActiveOrFirstSequence(), linkedItem);
                         logDebug("  linkedLocation: " + (linkedLocation ? JSON.stringify(linkedLocation) : "null"));
                         if (linkedLocation) {
                             linkedClipId = linkedLocation.trackIndex + ":" + linkedLocation.clipIndex;
@@ -4318,7 +4318,7 @@
     }
 
     function pproTimelineContext() {
-        var seq = app.project && app.project.activeSequence;
+        var seq = getActiveOrFirstSequence();
         if (!seq) {
             return {
                 host: "premiere",
@@ -4584,7 +4584,7 @@
                     destinationBin || app.project.rootItem, false);
                 // Try to insert at the playhead of the active sequence
                 try {
-                    var seq = app.project.activeSequence;
+                    var seq = getActiveOrFirstSequence();
                     if (seq) {
                         var imported = findProjectItemByPath(destinationBin || app.project.rootItem, f.fsName)
                             || findRootItemByPath(f.fsName);
@@ -4661,7 +4661,7 @@
     };
 
     function pproFrameSnapshot() {
-        var seq = app.project && app.project.activeSequence;
+        var seq = getActiveOrFirstSequence();
         if (!seq) throw new Error("No active sequence");
 
         var out = tempDir() + "frame-" + ts() + ".png";
@@ -4720,7 +4720,7 @@
                 app.project.importFiles([f.fsName], true,
                     destinationBin || app.project.rootItem, false);
 
-                var seq = app.project.activeSequence;
+                var seq = getActiveOrFirstSequence();
                 if (!seq) return { ok: true, placed: false, reason: "no active sequence" };
 
                 var imported = findProjectItemByPath(destinationBin || app.project.rootItem, f.fsName)
@@ -4876,7 +4876,7 @@
                     };
                 }
 
-                var seq = app.project.activeSequence;
+                var seq = getActiveOrFirstSequence();
                 var startAtTime = context.selectedClip.startSec || 0;
                 var createCaptionTrackAvailable = typeof seq.createCaptionTrack === "function";
                 var primaryMethod = "createCaptionTrack";
@@ -5014,7 +5014,7 @@
             if (!srtPath) throw new Error("No SRT path provided.");
             var file = new File(srtPath);
             if (!file.exists) throw new Error("SRT not found: " + srtPath);
-            var sequence = app.project.activeSequence;
+            var sequence = getActiveOrFirstSequence();
             if (!sequence) return { ok: false, placed: false, reason: "NO_ACTIVE_SEQUENCE" };
             var sequenceId = sequence.sequenceID ? String(sequence.sequenceID) : null;
             if (expectedSequenceId && sequenceId !== String(expectedSequenceId)) {
