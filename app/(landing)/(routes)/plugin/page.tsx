@@ -43,12 +43,9 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-import { redirect } from "next/navigation";
-
 export default function PluginPage() {
-  redirect("/");
-  return null;
-  const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
+  const { isAr } = useLanguage();
+  const [activeTab, setActiveTab] = useState<"zxp" | "manual">("zxp");
   const [copiedPath, setCopiedPath] = useState(false);
   const [copiedReg, setCopiedReg] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -57,6 +54,7 @@ export default function PluginPage() {
 
   // Download Links Setup
   const DOWNLOAD_LINKS = {
+    setupExe: "/downloads/SaadStudio-Setup.exe",
     zxp: "/downloads/SaadStudio.zxp",
     manualZip: "/downloads/SaadStudio-manual.zip",
     googleDriveModels: GDRIVE_URL,

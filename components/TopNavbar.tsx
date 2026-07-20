@@ -481,6 +481,7 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
+  { label: "Adobe Plugin", href: "/plugin", icon: Plug, color: "text-amber-400" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
