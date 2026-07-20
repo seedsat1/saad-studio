@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Replaced all raw `app.project.activeSequence` reads in ExtendScript ([adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)) with `getActiveOrFirstSequence()` fallback. Fixes `[pipeline] No active sequence found in Premiere Pro` when focus shifts to CEP panel HTML window (`c38031d`).
+  - Updated clip `mediaAvailable` logic in ExtendScript ([adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)) and synchronization service ([adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts)). Accepts timeline clips with project items or timeline clip names regardless of whether `getMediaPath()` returns empty (`74159a9`).
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `c38031d` to main repository (`saad-studio`).
+  - Pushed commit `74159a9` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
