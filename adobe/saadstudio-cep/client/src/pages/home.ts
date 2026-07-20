@@ -1,4 +1,4 @@
-﻿import { el } from "../lib/dom";
+import { el } from "../lib/dom";
 import { icon } from "../lib/icons";
 import { navigate } from "../lib/router";
 import { APPS, type AppDef } from "../lib/apps";
@@ -447,7 +447,8 @@ export function HomePage(): HTMLElement {
     const totalToolsCount = APPS.length;
     const newFeaturesCount = APPS.filter(a => a.badge === "NEW").length;
     const comingSoonCount = APPS.filter(a => a.comingSoon).length;
-    const balance = store.get().user?.creditBalance ?? 2581;
+    const userState = store.get().user;
+    const balance = userState ? userState.creditBalance : 0;
 
     // Spark icon SVG
     const sparkleSvg = el("span", {
