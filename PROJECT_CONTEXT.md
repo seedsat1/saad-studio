@@ -1,6 +1,19 @@
 # Saad Studio Project Context Update
 
-### Latest task: Re-enable /plugin Landing Page & Restore Navigation Link (2026-07-21)
+### Latest task: Fix Vercel Build Failure by Reducing Package Sizes to ~33MB (2026-07-21)
+
+- Status:
+  Resolved Vercel deployment build failures (`Error 3m 23s`) caused by static assets exceeding Vercel's 100 MB static upload limit. Removed `ffprobe.exe` bundling from `scripts/bundle-runtimes.js`, reducing `SaadStudio-Setup.exe`, `SaadStudio.zxp`, and `SaadStudio-manual.zip` from ~102.2 MB down to ~33.4 MB.
+- Affected Files:
+  - [scripts/bundle-runtimes.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/bundle-runtimes.js)
+  - `public/downloads/SaadStudio-Setup.exe` (~33.4 MB)
+  - `public/downloads/SaadStudio.zxp` (~33.3 MB)
+  - `public/downloads/SaadStudio-manual.zip` (~33.3 MB)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `012a89d` to main repository (`saad-studio`) to trigger Vercel deployment.
+
+### Previous task: Re-enable /plugin Landing Page & Restore Navigation Link (2026-07-21)
 
 - Status:
   Re-enabled `/plugin` landing page in Next.js web application and added `SaadStudio-Setup.exe` installer download link. Restored `Adobe Plugin` link in `components/TopNavbar.tsx`.
