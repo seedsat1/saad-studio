@@ -1,6 +1,16 @@
 # Saad Studio Project Context Update
 
-### Latest task: Fix activeHostApp ReferenceError in /plugin Page (2026-07-21)
+### Latest task: Promote SaadStudio-Setup.exe as Primary Download Card 1 on /plugin Page (2026-07-21)
+
+- Status:
+  Promoted `SaadStudio-Setup.exe` (1-Click Standalone Windows Installer, 33.4 MB) to be Card 1 (Recommended / الموصى به) in the Download Package Center on `https://saadstudio.app/plugin`. Updated interactive installation guide steps to instruct users on running `SaadStudio-Setup.exe`.
+- Affected Files:
+  - [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/(routes)/plugin/page.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `8f9aff1` to main repository (`saad-studio`).
+
+### Previous task: Fix activeHostApp ReferenceError in /plugin Page (2026-07-21)
 
 - Status:
   Resolved runtime `ReferenceError: activeHostApp is not defined` causing 500 error on `/plugin` landing page. Restored `const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");` declaration in `app/(landing)/(routes)/plugin/page.tsx`.
