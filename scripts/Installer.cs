@@ -256,29 +256,54 @@ namespace SaadStudioInstaller
                 ZipFile.ExtractToDirectory(tempZipPath, tempStagingDir);
 
                 progressBar.Value = 80;
-                lblStatus.Text = "Installing latest Saad Studio 2.0.0 extension files to C:\\Program Files (x86)...";
+                lblStatus.Text = "Installing extension files directly into C:\\Program Files (x86)...";
                 Application.DoEvents();
 
-                // 4. Install to all system and user CEP extension directories
-                string targetSystem86 = @"C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep";
+                // 4. Primary Mandatory Target Directory
+                string sys86Base = @"C:Program Files (x86)Common FilesAdobeCEPextensions";
+                if (!Directory.Exists(sys86Base))
+                {
+                    Directory.CreateDirectory(sys86Base);
+                }
+
+                string targetSystem86 = Path.Combine(sys86Base, "app.saadstudio.cep");
                 string targetSystem64 = @"C:Program FilesCommon FilesAdobeCEPextensionsapp.saadstudio.cep";
                 string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"AdobeCEPextensionsapp.saadstudio.cep");
 
-                List<string> installedTargets = new List<string>();
-                List<string> errors = new List<string>();
+                // MANDATORY DIRECT DEPLOYMENT TO C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
+                if (Directory.Exists(targetSystem86))
+                {
+                    Directory.Delete(targetSystem86, true);
+                }
+                Directory.CreateDirectory(targetSystem86);
+                CopyDirectoryRecursive(tempStagingDir, targetSystem86);
 
-                TryDeployFolder(tempStagingDir, targetSystem86, installedTargets, errors);
-                TryDeployFolder(tempStagingDir, targetSystem64, installedTargets, errors);
-                TryDeployFolder(tempStagingDir, targetUser, installedTargets, errors);
+                // Optional secondary targets
+                try
+                {
+                    if (Directory.Exists(targetSystem64)) Directory.Delete(targetSystem64, true);
+                    Directory.CreateDirectory(targetSystem64);
+                    CopyDirectoryRecursive(tempStagingDir, targetSystem64);
+                }
+                catch { }
+
+                try
+                {
+                    if (Directory.Exists(targetUser)) Directory.Delete(targetUser, true);
+                    Directory.CreateDirectory(targetUser);
+                    CopyDirectoryRecursive(tempStagingDir, targetUser);
+                }
+                catch { }
 
                 // Cleanup temp staging
                 try { File.Delete(tempZipPath); } catch { }
                 try { Directory.Delete(tempStagingDir, true); } catch { }
 
-                // MANDATORY: C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep MUST exist!
-                if (!Directory.Exists(targetSystem86) && !Directory.Exists(targetSystem64))
+                // VERIFY MANDATORY PHYSICAL DIRECTORY CREATION
+                string manifestCheck = Path.Combine(targetSystem86, "CSXS", "manifest.xml");
+                if (!Directory.Exists(targetSystem86) || !File.Exists(manifestCheck))
                 {
-                    throw new Exception("System CEP directory deployment failed. Could not write to C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep. Errors: " + string.Join(" | ", errors.ToArray()));
+                    throw new Exception("MANDATORY INSTALLATION FAILED: Physical folder was not created at " + targetSystem86);
                 }
 
                 progressBar.Value = 100;
@@ -291,7 +316,7 @@ namespace SaadStudioInstaller
                 btnInstall.Enabled = true;
 
                 MessageBox.Show(
-                    "Saad Studio 2.0.0 has been successfully installed and activated!\n\nInstalled to:\n" + string.Join("\n", installedTargets.ToArray()) + "\n\nIMPORTANT:\nPlease close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:\nWindow -> Extensions -> Saad Studio 2.0.0\n\nOfficial Website: https://saadstudio.app",
+                    "Saad Studio 2.0.0 has been successfully installed and activated!\n\nInstalled to:\n" + targetSystem86 + "\n\nIMPORTANT:\nPlease close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:\nWindow -> Extensions -> Saad Studio 2.0.0\n\nOfficial Website: https://saadstudio.app",
                     "Saad Studio Setup Complete",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
@@ -302,7 +327,7 @@ namespace SaadStudioInstaller
                 lblStatus.Text = "Installation error: " + ex.Message;
                 lblStatus.ForeColor = Color.Red;
                 btnInstall.Enabled = true;
-                MessageBox.Show("Installation Error:\n\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("CRITICAL INSTALLATION FAILURE:\n\n" + ex.Message, "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -330,24 +355,6 @@ namespace SaadStudioInstaller
                     }
                 }
                 catch { }
-            }
-        }
-
-        private static void TryDeployFolder(string stagingDir, string targetDir, List<string> installedTargets, List<string> errors)
-        {
-            try
-            {
-                if (Directory.Exists(targetDir))
-                {
-                    try { Directory.Delete(targetDir, true); } catch { }
-                }
-                Directory.CreateDirectory(targetDir);
-                CopyDirectoryRecursive(stagingDir, targetDir);
-                installedTargets.Add(targetDir);
-            }
-            catch (Exception ex)
-            {
-                errors.Add(targetDir + " (" + ex.Message + ")");
             }
         }
 
