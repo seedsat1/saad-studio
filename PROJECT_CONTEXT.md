@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
+### Latest task: Bundle Lightweight Static FFmpeg Executable in Extension Packages (2026-07-20)
+
+- Status:
+  Bundled lightweight static `ffmpeg.exe` binary directly into `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe` and updated automated packager (`scripts/package-extension.js`). Both `SaadStudio.zxp` and `SaadStudio-manual.zip` now include pre-bundled FFmpeg out-of-the-box (total compressed package size: ~28.3 MB).
+- Affected Files & Packages:
+  - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe`
+  - `public/downloads/SaadStudio.zxp`
+  - `public/downloads/SaadStudio-manual.zip`
+- Verification:
+  - Pushed commit `3848025` to main repository (`saad-studio`).
+
+### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
 - Status:
   Fixed `.gitignore` rule for `public/downloads/*.zip` to ensure `SaadStudio-manual.zip` is tracked and available directly on the production site.
