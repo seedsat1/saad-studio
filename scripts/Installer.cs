@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
@@ -40,7 +41,7 @@ namespace SaadStudioInstaller
 
         private void InitializeComponent()
         {
-            this.Text = "Saad Studio 2.0.0 — Automated Installer";
+            this.Text = "Saad Studio 2.0.0 — Standalone Setup";
             this.Size = new Size(580, 420);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -147,7 +148,7 @@ namespace SaadStudioInstaller
             panelBody.Controls.Add(btnInstall);
 
             lblFooter = new Label();
-            lblFooter.Text = "© 2026 Saad Studio Inc. • Official Extension Setup • saadstudio.app";
+            lblFooter.Text = "© 2026 Saad Studio Inc. • Official Standalone Installer • saadstudio.app";
             lblFooter.Font = new Font("Segoe UI", 8.5f, FontStyle.Regular);
             lblFooter.ForeColor = Color.FromArgb(100, 116, 139);
             lblFooter.Location = new Point(20, 345);
@@ -179,30 +180,39 @@ namespace SaadStudioInstaller
                     catch { }
                 }
 
-                progressBar.Value = 50;
-                lblStatus.Text = "Installing extension files to Adobe CEP folder...";
+                progressBar.Value = 40;
+                lblStatus.Text = "Extracting bundled extension payload...";
                 Application.DoEvents();
 
-                string appDir = AppDomain.CurrentDomain.BaseDirectory;
-                string sourceFolder = Path.Combine(appDir, "app.saadstudio.cep");
-
-                if (!Directory.Exists(sourceFolder))
+                string tempZipPath = Path.Combine(Path.GetTempPath(), "SaadStudioPayload_" + Guid.NewGuid().ToString("N") + ".zip");
+                var asm = System.Reflection.Assembly.GetExecutingAssembly();
+                using (Stream stream = asm.GetManifestResourceStream("SaadStudioInstaller.payload.zip"))
                 {
-                    string parentSource = Path.Combine(appDir, "..", "app.saadstudio.cep");
-                    if (Directory.Exists(parentSource)) sourceFolder = parentSource;
+                    if (stream != null)
+                    {
+                        using (FileStream fs = File.Create(tempZipPath))
+                        {
+                            stream.CopyTo(fs);
+                        }
+                    }
                 }
+
+                progressBar.Value = 75;
+                lblStatus.Text = "Installing extension files to System CEP directory...";
+                Application.DoEvents();
 
                 string targetSystem = @"C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep";
                 string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"AdobeCEPextensionsapp.saadstudio.cep");
 
-                if (Directory.Exists(sourceFolder))
+                if (File.Exists(tempZipPath))
                 {
-                    CopyDirectory(sourceFolder, targetUser);
-                    try { CopyDirectory(sourceFolder, targetSystem); } catch { }
+                    ExtractZipToTarget(tempZipPath, targetUser);
+                    try { ExtractZipToTarget(tempZipPath, targetSystem); } catch { }
+                    try { File.Delete(tempZipPath); } catch { }
                 }
 
                 progressBar.Value = 100;
-                lblStatus.Text = "Installation completed successfully!";
+                lblStatus.Text = "✅ Installation completed successfully!";
                 lblStatus.ForeColor = Color.FromArgb(34, 197, 94);
 
                 MessageBox.Show(
@@ -225,16 +235,14 @@ Official Website: https://saadstudio.app",
             }
         }
 
-        private static void CopyDirectory(string sourceDir, string destinationDir)
+        private static void ExtractZipToTarget(string zipFile, string destinationDir)
         {
-            Directory.CreateDirectory(destinationDir);
-            foreach (string file in Directory.GetFiles(sourceDir, "*.*", SearchOption.AllDirectories))
+            if (Directory.Exists(destinationDir))
             {
-                string relativePath = file.Substring(sourceDir.Length + 1);
-                string targetPath = Path.Combine(destinationDir, relativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(targetPath));
-                File.Copy(file, targetPath, true);
+                try { Directory.Delete(destinationDir, true); } catch { }
             }
+            Directory.CreateDirectory(destinationDir);
+            ZipFile.ExtractToDirectory(zipFile, destinationDir);
         }
     }
 }
