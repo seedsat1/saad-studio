@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Security.Principal;
+using System.Security.AccessControl;
 
 namespace SaadStudioInstaller
 {
@@ -32,7 +33,7 @@ namespace SaadStudioInstaller
                 }
                 catch
                 {
-                    MessageBox.Show("Administrator privileges are required to install Adobe extension files into C:\\\\Program Files (x86). Please right-click SaadStudio-Setup.exe and select 'Run as Administrator'.", "Administrator Rights Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Administrator privileges are required to install Adobe extension files. Please right-click SaadStudio-Setup.exe and select 'Run as Administrator'.", "Administrator Rights Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
             }
@@ -201,14 +202,14 @@ namespace SaadStudioInstaller
 
             btnInstall.Enabled = false;
             progressBar.Value = 10;
-            lblStatus.Text = "Configuring Adobe CSXS security permissions in Windows Registry...";
+            lblStatus.Text = "Configuring Adobe CSXS security permissions for all users...";
             lblStatus.ForeColor = Color.FromArgb(245, 158, 11);
             Application.DoEvents();
 
             try
             {
-                // 1. Enable Registry Debug Mode in HKCU and HKLM for all CSXS versions
-                string[] csxsKeys = new string[] { "CSXS.9", "CSXS.10", "CSXS.11", "CSXS.12", "CSXS.13", "CSXS.14", "CSXS.15", "CSXS.16" };
+                // 1. Enable Registry Debug Mode in HKCU, HKLM, and ALL User SIDs in HKU
+                string[] csxsKeys = new string[] { "CSXS.8", "CSXS.9", "CSXS.10", "CSXS.11", "CSXS.12", "CSXS.13", "CSXS.14", "CSXS.15", "CSXS.16" };
                 foreach (var k in csxsKeys)
                 {
                     try
@@ -217,6 +218,10 @@ namespace SaadStudioInstaller
                         {
                             if (key != null) key.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
                         }
+                    }
+                    catch { }
+                    try
+                    {
                         using (RegistryKey keyLM = Registry.LocalMachine.CreateSubKey(@"Software\\Adobe\\" + k))
                         {
                             if (keyLM != null) keyLM.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
@@ -224,6 +229,35 @@ namespace SaadStudioInstaller
                     }
                     catch { }
                 }
+
+                // Iterate all logged in user SIDs in HKEY_USERS
+                try
+                {
+                    using (RegistryKey usersKey = Registry.Users)
+                    {
+                        if (usersKey != null)
+                        {
+                            foreach (string sidName in usersKey.GetSubKeyNames())
+                            {
+                                if (sidName.StartsWith("S-1-5-21-") && !sidName.EndsWith("_Classes"))
+                                {
+                                    foreach (var k in csxsKeys)
+                                    {
+                                        try
+                                        {
+                                            using (RegistryKey sidCsxsKey = usersKey.CreateSubKey(sidName + @"\\Software\\Adobe\\" + k))
+                                            {
+                                                if (sidCsxsKey != null) sidCsxsKey.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
+                                            }
+                                        }
+                                        catch { }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
 
                 progressBar.Value = 30;
                 lblStatus.Text = "Cleaning up old & legacy Saad Studio extension files...";
@@ -256,42 +290,55 @@ namespace SaadStudioInstaller
                 ZipFile.ExtractToDirectory(tempZipPath, tempStagingDir);
 
                 progressBar.Value = 80;
-                lblStatus.Text = "Installing extension files directly into C:\\\\Program Files (x86)...";
+                lblStatus.Text = "Installing extension files for all users...";
                 Application.DoEvents();
 
                 // 4. Primary Mandatory Target Directory with PROPER ABSOLUTE BACKSLASHES
                 string sys86Base = @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions";
-                if (!Directory.Exists(sys86Base))
-                {
-                    Directory.CreateDirectory(sys86Base);
-                }
+                if (!Directory.Exists(sys86Base)) Directory.CreateDirectory(sys86Base);
 
                 string targetSystem86 = Path.Combine(sys86Base, "app.saadstudio.cep");
                 string targetSystem64 = @"C:\Program Files\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
-                string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\CEP\extensions\app.saadstudio.cep");
 
-                // MANDATORY DIRECT DEPLOYMENT TO C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
-                if (Directory.Exists(targetSystem86))
-                {
-                    Directory.Delete(targetSystem86, true);
-                }
+                // Deploy to C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
+                if (Directory.Exists(targetSystem86)) Directory.Delete(targetSystem86, true);
                 Directory.CreateDirectory(targetSystem86);
                 CopyDirectoryRecursive(tempStagingDir, targetSystem86);
+                GrantFullPermissionsToEveryone(targetSystem86);
 
-                // Optional secondary targets
+                // Secondary target: Program Files 64
                 try
                 {
                     if (Directory.Exists(targetSystem64)) Directory.Delete(targetSystem64, true);
                     Directory.CreateDirectory(targetSystem64);
                     CopyDirectoryRecursive(tempStagingDir, targetSystem64);
+                    GrantFullPermissionsToEveryone(targetSystem64);
                 }
                 catch { }
 
+                // Secondary target: Copy to ALL user profiles in C:Users*
                 try
                 {
-                    if (Directory.Exists(targetUser)) Directory.Delete(targetUser, true);
-                    Directory.CreateDirectory(targetUser);
-                    CopyDirectoryRecursive(tempStagingDir, targetUser);
+                    string usersDir = @"C:\Users";
+                    if (Directory.Exists(usersDir))
+                    {
+                        foreach (string userFolder in Directory.GetDirectories(usersDir))
+                        {
+                            try
+                            {
+                                string userAppData = Path.Combine(userFolder, @"AppData\Roaming\Adobe\CEP\extensions\app.saadstudio.cep");
+                                string parentDir = Path.GetDirectoryName(userAppData);
+                                if (Directory.Exists(Path.GetDirectoryName(parentDir)))
+                                {
+                                    if (Directory.Exists(userAppData)) Directory.Delete(userAppData, true);
+                                    Directory.CreateDirectory(userAppData);
+                                    CopyDirectoryRecursive(tempStagingDir, userAppData);
+                                    GrantFullPermissionsToEveryone(userAppData);
+                                }
+                            }
+                            catch { }
+                        }
+                    }
                 }
                 catch { }
 
@@ -299,7 +346,7 @@ namespace SaadStudioInstaller
                 try { File.Delete(tempZipPath); } catch { }
                 try { Directory.Delete(tempStagingDir, true); } catch { }
 
-                // VERIFY MANDATORY PHYSICAL DIRECTORY CREATION AT C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
+                // VERIFY PHYSICAL DIRECTORY CREATION
                 string manifestCheck = Path.Combine(targetSystem86, "CSXS", "manifest.xml");
                 if (!Directory.Exists(targetSystem86) || !File.Exists(manifestCheck))
                 {
@@ -316,7 +363,7 @@ namespace SaadStudioInstaller
                 btnInstall.Enabled = true;
 
                 MessageBox.Show(
-                    "Saad Studio 2.0.0 has been successfully installed and activated!\n\nInstalled to:\n" + targetSystem86 + "\n\nIMPORTANT:\nPlease close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:\nWindow -> Extensions -> Saad Studio 2.0.0\n\nOfficial Website: https://saadstudio.app",
+                    "Saad Studio 2.0.0 has been successfully installed and activated for ALL accounts!\n\nInstalled to:\n" + targetSystem86 + "\n\nIMPORTANT:\nPlease close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:\nWindow -> Extensions -> Saad Studio 2.0.0\n\nOfficial Website: https://saadstudio.app",
                     "Saad Studio Setup Complete",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
@@ -356,6 +403,25 @@ namespace SaadStudioInstaller
                 }
                 catch { }
             }
+        }
+
+        private static void GrantFullPermissionsToEveryone(string folderPath)
+        {
+            try
+            {
+                if (!Directory.Exists(folderPath)) return;
+                DirectoryInfo dInfo = new DirectoryInfo(folderPath);
+                DirectorySecurity dSecurity = dInfo.GetAccessControl();
+                
+                SecurityIdentifier everyone = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+                dSecurity.AddAccessRule(new FileSystemAccessRule(everyone, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                
+                SecurityIdentifier users = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+                dSecurity.AddAccessRule(new FileSystemAccessRule(users, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                
+                dInfo.SetAccessControl(dSecurity);
+            }
+            catch { }
         }
 
         private static void CopyDirectoryRecursive(string sourceDir, string targetDir)
