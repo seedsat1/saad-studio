@@ -1,6 +1,16 @@
 # Saad Studio Project Context Update
 
-### Latest task: Simplify /plugin Page to Clean 2 Cards & Detailed Manual Guides (2026-07-21)
+### Latest task: Update SaadStudio-Setup.exe Displayed File Size to 97.5 MB (2026-07-21)
+
+- Status:
+  Updated `app/(landing)/(routes)/plugin/page.tsx` so that `SaadStudio-Setup.exe` displays its exact physical file size on disk (**97.5 MB** / **97.5 ميجابايت**).
+- Affected Files:
+  - [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/(routes)/plugin/page.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `94b83ce` to main repository (`saad-studio`).
+
+### Previous task: Simplify /plugin Page to Clean 2 Cards & Detailed Manual Guides (2026-07-21)
 
 - Status:
   Redesigned `https://saadstudio.app/plugin` into a clean, modern layout focused exclusively on:
