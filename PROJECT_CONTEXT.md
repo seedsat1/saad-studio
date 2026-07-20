@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Patched ExtendScript bridge ([adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)) to add fallback active sequence selection (`sequences[0]`) and recursive resolution for nested sequences and bin media paths (`findMediaPathInBin`). Synchronized build pipeline ([scripts/package-extension.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/package-extension.js)) to copy master `jsx/index.jsx` into standalone installer payload before compilation.
+  - Fixed clip timing validation (`isValidAudioClipTiming` and `isUsableSyncClip`) in ExtendScript and synchronization service ([adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx) & [synchronization-service.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/podcast/services/synchronization-service.ts)). Clips with valid timeline start/end times are now accepted even if `sourceOutPointSec` returns 0 for MP4 videos dragged directly onto timeline. Re-compiled standalone `SaadStudio-Setup.exe`.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `fe57c0a` to main repository (`saad-studio`).
+  - Pushed commit `ae6521c` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
