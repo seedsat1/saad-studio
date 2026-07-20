@@ -580,6 +580,8 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
     const busy = isProductionBusy();
     const syncStatus = getSyncUserStatus(plan);
     const readyTracks = plan ? `${plan.offsetsComputed}/${Math.max(0, plan.waveformOffsets.length - 1)}` : "0/0";
+    const lang = getLanguage();
+    const isAr = lang === "ar";
     const totalClips = plan ? plan.videoClipCount + plan.audioClipCount : 0;
 
     return el("div.podcast-production-card.podcast-simple-card", { id: "podcast-synchronize-tool" },
@@ -625,9 +627,9 @@ export function MultiCamAutoSwitchPage(): HTMLElement {
         ? renderProcessingLoader(state.synchronizationApplyLoading ? "Applying synchronization" : "Analyzing synchronization")
         : null,
       el("div.podcast-simple-stats", null,
-        renderSimpleStat("Sequence", plan?.sequenceName || state.diagnostics.sequenceName || "No active sequence"),
-        renderSimpleStat("Clips", plan ? `${totalClips} found` : "Analyze first"),
-        renderSimpleStat("Ready tracks", plan ? readyTracks : "Analyze first"),
+        renderSimpleStat(isAr ? "التايملاين" : "Sequence", plan?.sequenceName || state.diagnostics.sequenceName || (isAr ? "اضغط تحليل المزامنة" : "Click 'Analyze Sync'")),
+        renderSimpleStat(isAr ? "المقاطع" : "Clips", plan ? `${totalClips} ${isAr ? "مقطع" : "found"}` : (isAr ? "اضغط تحليل المزامنة" : "Analyze first")),
+        renderSimpleStat(isAr ? "المسارات الجاهزة" : "Ready tracks", plan ? readyTracks : (isAr ? "اضغط تحليل المزامنة" : "Analyze first")),
       ),
       renderSyncApplySummary(),
     );
