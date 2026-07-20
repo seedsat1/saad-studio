@@ -7,19 +7,18 @@ if (!fs.existsSync(downloadsDir)) {
   fs.mkdirSync(downloadsDir, { recursive: true });
 }
 
-const batFile = path.join(__dirname, 'zip-pkg.bat');
-const scriptContent = `@echo off
-chcp 65001 >nul
-cd /d "%~dp0.."
-mkdir public\\downloads 2>nul
+const csc = 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe';
+const csSource = path.join(__dirname, 'Installer.cs');
+const exeOut = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'SaadStudio-Setup.exe');
 
-powershell -NoProfile -Command "Set-Location -LiteralPath 'adobe\\saadstudio-cep\\share-package\\app.saadstudio.cep'; Compress-Archive -Path '*' -DestinationPath '..\\..\\..\\..\\public\\downloads\\SaadStudio.zip' -Force"
-powershell -NoProfile -Command "Set-Location -LiteralPath 'adobe\\saadstudio-cep\\share-package'; Compress-Archive -Path 'app.saadstudio.cep' -DestinationPath '..\\..\\..\\public\\downloads\\SaadStudio-manual.zip' -Force"
-
-cd /d "%~dp0..\\public\\downloads"
-if exist SaadStudio.zxp del SaadStudio.zxp
-ren SaadStudio.zip SaadStudio.zxp
-`;
+if (fs.existsSync(csc) && fs.existsSync(csSource)) {
+  try {
+    execSync(`"${csc}" /target:winexe /out:"${exeOut}" "${csSource}"`, { stdio: 'inherit' });
+    console.log('Compiled SaadStudio-Setup.exe successfully!');
+  } catch (err) {
+    console.error('Failed to compile C# installer EXE:', err.message);
+  }
+}
 
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
@@ -43,14 +42,22 @@ if (fs.existsSync(clientDist)) {
   console.log('Copied client/dist to share-package');
 }
 
-fs.writeFileSync(batFile, scriptContent, 'utf8');
+const sharePkgApp = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep');
+const sharePkgRoot = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package');
+const zipOut = path.join(downloadsDir, 'SaadStudio.zip');
+const zxpOut = path.join(downloadsDir, 'SaadStudio.zxp');
+const manualOut = path.join(downloadsDir, 'SaadStudio-manual.zip');
 
-try {
-  execSync(`cmd /c "${batFile}"`, { stdio: 'inherit' });
-  const zxpTarget = path.join(downloadsDir, 'SaadStudio.zxp');
-  const zipTarget = path.join(downloadsDir, 'SaadStudio-manual.zip');
-  console.log('SaadStudio.zxp size:', fs.statSync(zxpTarget).size, 'bytes');
-  console.log('SaadStudio-manual.zip size:', fs.statSync(zipTarget).size, 'bytes');
-} finally {
-  if (fs.existsSync(batFile)) fs.unlinkSync(batFile);
-}
+if (fs.existsSync(zxpOut)) fs.unlinkSync(zxpOut);
+if (fs.existsSync(zipOut)) fs.unlinkSync(zipOut);
+if (fs.existsSync(manualOut)) fs.unlinkSync(manualOut);
+
+console.log('Compressing SaadStudio.zxp...');
+execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${sharePkgApp}\\*' -DestinationPath '${zipOut}' -Force"`, { stdio: 'inherit' });
+fs.renameSync(zipOut, zxpOut);
+
+console.log('Compressing SaadStudio-manual.zip...');
+execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${sharePkgRoot}\\app.saadstudio.cep','${sharePkgRoot}\\SaadStudio-Setup.exe','${sharePkgRoot}\\تثبيت_سعد_استوديو_تلقائياً.bat' -DestinationPath '${manualOut}' -Force"`, { stdio: 'inherit' });
+
+console.log('SaadStudio.zxp size:', fs.statSync(zxpOut).size, 'bytes');
+console.log('SaadStudio-manual.zip size:', fs.statSync(manualOut).size, 'bytes');
