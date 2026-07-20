@@ -422,12 +422,9 @@
 /* ── Apps grid ────────────────────────────────────────────────── */
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
   padding: 4px 2px;
-}
-@media (max-width: 460px) {
-  .apps-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* Launcher-style tile: dark circular icon container on top, centered
@@ -2742,6 +2739,9 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .hero-slider {
@@ -3055,24 +3055,12 @@
   letter-spacing: 0.08em;
 }
 
-/* Clean, uniform grid for AI tools across all categories */
+/* Clean, uniform, fluid responsive grid for AI tools across all panel widths */
 .apps-grid-new {
   display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
   gap: 8px !important;
   width: 100% !important;
-}
-
-@media (max-width: 800px) {
-  .apps-grid-new {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .apps-grid-new {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
 }
 
 @media (max-width: 320px) {
