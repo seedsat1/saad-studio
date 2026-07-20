@@ -32,7 +32,7 @@ namespace SaadStudioInstaller
                 }
                 catch
                 {
-                    MessageBox.Show("Administrator privileges are required to install Adobe extension files into C:\\Program Files (x86). Please right-click SaadStudio-Setup.exe and select 'Run as Administrator'.", "Administrator Rights Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Administrator privileges are required to install Adobe extension files into C:\\\\Program Files (x86). Please right-click SaadStudio-Setup.exe and select 'Run as Administrator'.", "Administrator Rights Required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
             }
@@ -213,11 +213,11 @@ namespace SaadStudioInstaller
                 {
                     try
                     {
-                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SoftwareAdobe" + k))
+                        using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\\Adobe\\" + k))
                         {
                             if (key != null) key.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
                         }
-                        using (RegistryKey keyLM = Registry.LocalMachine.CreateSubKey(@"SoftwareAdobe" + k))
+                        using (RegistryKey keyLM = Registry.LocalMachine.CreateSubKey(@"Software\\Adobe\\" + k))
                         {
                             if (keyLM != null) keyLM.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
                         }
@@ -256,19 +256,19 @@ namespace SaadStudioInstaller
                 ZipFile.ExtractToDirectory(tempZipPath, tempStagingDir);
 
                 progressBar.Value = 80;
-                lblStatus.Text = "Installing extension files directly into C:\\Program Files (x86)...";
+                lblStatus.Text = "Installing extension files directly into C:\\\\Program Files (x86)...";
                 Application.DoEvents();
 
-                // 4. Primary Mandatory Target Directory
-                string sys86Base = @"C:Program Files (x86)Common FilesAdobeCEPextensions";
+                // 4. Primary Mandatory Target Directory with PROPER ABSOLUTE BACKSLASHES
+                string sys86Base = @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions";
                 if (!Directory.Exists(sys86Base))
                 {
                     Directory.CreateDirectory(sys86Base);
                 }
 
                 string targetSystem86 = Path.Combine(sys86Base, "app.saadstudio.cep");
-                string targetSystem64 = @"C:Program FilesCommon FilesAdobeCEPextensionsapp.saadstudio.cep";
-                string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"AdobeCEPextensionsapp.saadstudio.cep");
+                string targetSystem64 = @"C:\Program Files\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
+                string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\CEP\extensions\app.saadstudio.cep");
 
                 // MANDATORY DIRECT DEPLOYMENT TO C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
                 if (Directory.Exists(targetSystem86))
@@ -299,7 +299,7 @@ namespace SaadStudioInstaller
                 try { File.Delete(tempZipPath); } catch { }
                 try { Directory.Delete(tempStagingDir, true); } catch { }
 
-                // VERIFY MANDATORY PHYSICAL DIRECTORY CREATION
+                // VERIFY MANDATORY PHYSICAL DIRECTORY CREATION AT C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep
                 string manifestCheck = Path.Combine(targetSystem86, "CSXS", "manifest.xml");
                 if (!Directory.Exists(targetSystem86) || !File.Exists(manifestCheck))
                 {
@@ -334,9 +334,9 @@ namespace SaadStudioInstaller
         private static void PurgeOldSaadStudioExtensions()
         {
             string[] basePaths = new string[] {
-                @"C:Program Files (x86)Common FilesAdobeCEPextensions",
-                @"C:Program FilesCommon FilesAdobeCEPextensions",
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"AdobeCEPextensions")
+                @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions",
+                @"C:\Program Files\Common Files\Adobe\CEP\extensions",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\CEP\extensions")
             };
 
             foreach (var basePath in basePaths)
