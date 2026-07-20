@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Overhauled installer build architecture ([scripts/gen-installer.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/gen-installer.js)) and automated packaging script ([scripts/package-extension.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/package-extension.js)). Enforces mandatory Administrator installation, automatically purges any legacy/stale User CEP extension folders across all `C:\Users\*\AppData` profiles, deploys a single source of truth under `C:\Program Files (x86)\...` with full ACL permissions (`Everyone`/`Users` = `FullControl`), and bundles a clean 4-file `client/dist` output (`db85cba`).
+  - Fixed `FFMPEG_NOT_READY` error during `One Click Edit` / `Speaker source attribution` by adding `normalizeCepPath` URI decoder and hardcoded system-level CEP fallbacks (`C:\Program Files (x86)\...`) in `audio-source-inspector-service.ts` ([adobe/saadstudio-cep/client/src/lib/podcast/services/audio-source-inspector-service.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/lib/podcast/services/audio-source-inspector-service.ts)). Re-packaged and verified `SaadStudio-Setup.exe` (`44a582c`).
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `db85cba` to main repository (`saad-studio`).
+  - Pushed commit `44a582c` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
