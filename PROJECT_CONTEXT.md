@@ -1,6 +1,21 @@
 # Saad Studio Project Context Update
 
-### Latest task: Promote SaadStudio-Setup.exe as Primary Download Card 1 on /plugin Page (2026-07-21)
+### Latest task: Simplify /plugin Page to Clean 2 Cards & Detailed Manual Guides (2026-07-21)
+
+- Status:
+  Redesigned `https://saadstudio.app/plugin` into a clean, modern layout focused exclusively on:
+  1. **SaadStudio-Setup.exe** (Standalone 1-Click EXE Installer, 33.4 MB).
+  2. **Offline AI Models Pack** (Google Drive Link ~6GB).
+  3. **طريقة التنصيب (Installation Guide)**: 3 clear step-by-step instructions.
+  4. **طريقة الاستخدام (How to Use)**: Complete feature guide for Premiere, After Effects, and Photoshop.
+  5. **المشاكل وحلها (Troubleshooting & Solutions)**: Step-by-step resolution for common CEP errors, PlayerDebugMode, and models setup.
+- Affected Files:
+  - [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/(routes)/plugin/page.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `27cc9e5` to main repository (`saad-studio`).
+
+### Previous task: Promote SaadStudio-Setup.exe as Primary Download Card 1 on /plugin Page (2026-07-21)
 
 - Status:
   Promoted `SaadStudio-Setup.exe` (1-Click Standalone Windows Installer, 33.4 MB) to be Card 1 (Recommended / الموصى به) in the Download Package Center on `https://saadstudio.app/plugin`. Updated interactive installation guide steps to instruct users on running `SaadStudio-Setup.exe`.
