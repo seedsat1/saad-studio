@@ -43,11 +43,11 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-export default function PluginPage() {
-  const { lang } = useLanguage();
-  const isAr = lang === "ar";
+import { redirect } from "next/navigation";
 
-  const [activeTab, setActiveTab] = useState<"zxp" | "manual">("zxp");
+export default function PluginPage() {
+  redirect("/");
+  return null;
   const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
   const [copiedPath, setCopiedPath] = useState(false);
   const [copiedReg, setCopiedReg] = useState(false);

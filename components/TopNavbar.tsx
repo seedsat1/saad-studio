@@ -1139,11 +1139,8 @@ const TopNavbar = () => {
                 </HoverNavItem>
               )}
 
-              {/* Adobe Plugin | Gallery */}
+              {/* Gallery */}
               <div className="flex items-center gap-1">
-                <Link href="/plugin" className={cn("flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-all hover:bg-amber-500/10 whitespace-nowrap", pathname === "/plugin" ? "text-amber-300 bg-amber-500/15 border border-amber-500/30" : "text-amber-400 hover:text-amber-300")}>
-                  <Plug className="h-3.5 w-3.5 text-amber-400" />{getTranslation("Adobe Plugin", lang)}
-                </Link>
                 <Link href="/gallery" className={cn("flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all hover:bg-white/[0.08] whitespace-nowrap", pathname === "/gallery" ? "text-white bg-white/[0.08]" : "text-zinc-400 hover:text-white")}>
                   <GalleryHorizontalEnd className="h-3 w-3 text-fuchsia-400" />{getTranslation("Gallery", lang)}
                 </Link>
@@ -1260,13 +1257,6 @@ const TopNavbar = () => {
                 <Globe className="h-4 w-4 shrink-0 text-sky-400" />Explore
               </Link>
 
-              {/* Adobe Plugin */}
-              <Link
-                href="/plugin"
-                className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-bold transition-colors", pathname === "/plugin" ? "bg-amber-500/20 text-amber-300 border border-amber-500/30" : "text-amber-400 hover:bg-white/5 hover:text-amber-300")}
-              >
-                <Plug className="h-4 w-4 shrink-0 text-amber-400" />{getTranslation("Adobe Plugin", lang)}
-              </Link>
 
               {/* Image accordion – Features + Models */}
               <MobileAccordion
