@@ -177,7 +177,7 @@ export default function PluginPage() {
 
                 <div>
                   <h3 className="text-2xl font-black text-white">{t("SaadStudio-Setup.exe", "برنامج التنصيب SaadStudio-Setup.exe")}</h3>
-                  <p className="text-xs text-amber-400 font-semibold mt-1">Windows 10/11 • 33.4 MB • 1-Click EXE</p>
+                  <p className="text-xs text-amber-400 font-semibold mt-1">Windows 10/11 • 97.5 MB • 1-Click EXE</p>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
@@ -210,7 +210,7 @@ export default function PluginPage() {
                   className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.02]"
                 >
                   <Download className="w-5 h-5" />
-                  <span>{t("Download SaadStudio-Setup.exe (33.4 MB)", "تحميل SaadStudio-Setup.exe (33.4 ميجابايت)")}</span>
+                  <span>{t("Download SaadStudio-Setup.exe (97.5 MB)", "تحميل SaadStudio-Setup.exe (97.5 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>
