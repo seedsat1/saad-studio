@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: Bundle Lightweight Static FFmpeg Executable in Extension Packages (2026-07-20)
+### Latest task: Re-enable /plugin Landing Page & Restore Navigation Link (2026-07-21)
+
+- Status:
+  Re-enabled `/plugin` landing page in Next.js web application and added `SaadStudio-Setup.exe` installer download link. Restored `Adobe Plugin` link in `components/TopNavbar.tsx`.
+- Affected Files:
+  - [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/(routes)/plugin/page.tsx)
+  - [components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `3541d85` to main repository (`saad-studio`).
+
+### Previous task: Bundle Lightweight Static FFmpeg Executable in Extension Packages (2026-07-20)
 
 - Status:
   Bundled lightweight static `ffmpeg.exe` binary directly into `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe` and updated automated packager (`scripts/package-extension.js`). Both `SaadStudio.zxp` and `SaadStudio-manual.zip` now include pre-bundled FFmpeg out-of-the-box (total compressed package size: ~28.3 MB).
