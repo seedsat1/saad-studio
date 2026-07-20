@@ -31,7 +31,9 @@ export function generateCameraDecisionPlanProof(
 ): PodcastCameraDecisionPlanProof {
   const blockers: string[] = [];
   const warnings: string[] = [];
-  if (!input.dominantTrackAtTime.length) blockers.push("DOMINANT_TRACK_WINDOWS_REQUIRED");
+  const hasDominantTrackWindows = input.dominantTrackAtTime.length > 0;
+  const hasSpeakingSegments = (input.trackSpeakingSegments?.length ?? 0) > 0;
+  if (!hasDominantTrackWindows && !hasSpeakingSegments) blockers.push("SPEAKER_ACTIVITY_REQUIRED");
 
   const videoTrackCount = Math.max(1, input.videoTrackCount ?? 4);
   const minimumShotLengthSec = normalizeMinimumShotLength(input.minimumShotLengthSec);

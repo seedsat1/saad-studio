@@ -510,10 +510,11 @@
             for (var i = 0; i < numSeqs; i++) {
                 var seq = app.project.sequences[i];
                 if (readSequenceID(seq) === sequenceId) {
-                    if (seq.projectItem) {
+                    if (seq.projectItem && typeof seq.projectItem.deleteItem === "function") {
                         seq.projectItem.deleteItem();
                         return true;
                     }
+                    return false;
                 }
             }
             return false;

@@ -329,7 +329,7 @@ export interface FullAudioActivityProof {
   rmsPreviewFirst20: RmsPreviewPoint[];
   speakingSegments: SpeakingSegment[];
   droppedShortSegments: DroppedShortSegment[];
-  thresholdUsed: -35;
+  thresholdUsed: number;
   minimumSpeechDurationSec: 0.4;
   selectedAudioStreamIndex: number | null;
   blockers: string[];
@@ -400,7 +400,7 @@ export interface SpeakerSourceAttributionProof {
   dominantTrackAtTime: DominantTrackWindow[];
   analyzedDurationSec: number;
   analysisWindowSec: 0.2;
-  thresholdUsed: -35;
+  thresholdUsed: number;
   minimumSpeechDurationSec: 0.4;
   blockers: string[];
   warnings: string[];

@@ -95,11 +95,22 @@ namespace SaadStudioInstaller
             installButton.Enabled = false;
             try
             {
+                if (!IsAdministrator())
+                {
+                    throw new InvalidOperationException("Please run this installer as administrator so Saad Studio updates the system Adobe CEP extension used by Premiere Pro.");
+                }
+
                 Log("Starting Saad Studio installation...");
                 EnablePlayerDebugMode();
 
                 var targetRoot = GetTargetRoot();
                 var extensionDir = Path.Combine(targetRoot, "app.saadstudio.cep");
+                var userExtensionDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "Adobe",
+                    "CEP",
+                    "extensions",
+                    "app.saadstudio.cep");
                 Log("Target: " + extensionDir);
 
                 var tempRoot = Path.Combine(Path.GetTempPath(), "SaadStudioInstaller-" + Guid.NewGuid().ToString("N"));
@@ -112,6 +123,11 @@ namespace SaadStudioInstaller
                     {
                         Log("Removing old extension folder...");
                         Directory.Delete(extensionDir, true);
+                    }
+                    if (Directory.Exists(userExtensionDir))
+                    {
+                        Log("Removing old per-user extension folder...");
+                        Directory.Delete(userExtensionDir, true);
                     }
 
                     Directory.CreateDirectory(extensionDir);
@@ -141,18 +157,9 @@ namespace SaadStudioInstaller
 
         private static string GetTargetRoot()
         {
-            if (IsAdministrator())
-            {
-                return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                    "Common Files",
-                    "Adobe",
-                    "CEP",
-                    "extensions");
-            }
-
             return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                "Common Files",
                 "Adobe",
                 "CEP",
                 "extensions");

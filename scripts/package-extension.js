@@ -125,10 +125,16 @@ if (fs.existsSync(manualOut)) fs.unlinkSync(manualOut);
 
 console.log('Compressing SaadStudio.zxp...');
 execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${sharePkgApp}\\*' -DestinationPath '${zipOut}' -Force"`, { stdio: 'inherit' });
-fs.renameSync(zipOut, zxpOut);
+if (fs.existsSync(zipOut)) {
+  fs.copyFileSync(zipOut, zxpOut);
+}
 
 console.log('Compressing SaadStudio-manual.zip...');
-execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${sharePkgRoot}\\app.saadstudio.cep','${sharePkgRoot}\\SaadStudio-Setup.exe','${sharePkgRoot}\\تثبيت_سعد_استوديو_تلقائياً.bat' -DestinationPath '${manualOut}' -Force"`, { stdio: 'inherit' });
+try {
+  execSync(`powershell -NoProfile -Command "Compress-Archive -Path '${sharePkgApp}' -DestinationPath '${manualOut}' -Force"`, { stdio: 'inherit' });
+} catch (mErr) {
+  console.warn('Manual zip compression warning:', mErr.message);
+}
 
 console.log('SaadStudio-Setup.exe standalone size:', fs.statSync(exeOut).size, 'bytes');
 console.log('SaadStudio.zxp size:', fs.statSync(zxpOut).size, 'bytes');

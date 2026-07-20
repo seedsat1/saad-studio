@@ -50,6 +50,13 @@ if ($ffmpegExe) {
     $ffmpegDir = Join-Path $extensionDir "tools\ffmpeg"
     New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
     Copy-Item $ffmpegExe (Join-Path $ffmpegDir "ffmpeg.exe") -Force
+    $ffprobeExe = Join-Path (Split-Path $ffmpegExe -Parent) "ffprobe.exe"
+    if (Test-Path $ffprobeExe) {
+        Write-Host "Bundling FFprobe binary from $ffprobeExe"
+        Copy-Item $ffprobeExe (Join-Path $ffmpegDir "ffprobe.exe") -Force
+    } else {
+        Write-Warning "FFprobe executable not found next to FFmpeg. The CEP client will fall back to audio stream 0."
+    }
 } else {
     Write-Warning "FFmpeg executable not found in node_modules."
 }

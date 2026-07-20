@@ -35,7 +35,7 @@ const RMS_PREVIEW_LIMIT = 12;
 const RMS_PROOF_PREVIEW_LIMIT = 20;
 const RMS_PROOF_DURATION_SEC = 5;
 const FULL_ACTIVITY_DURATION_SEC = 30;
-const FULL_ACTIVITY_THRESHOLD_DB = -35;
+const FULL_ACTIVITY_THRESHOLD_DB = -45;
 const FULL_ACTIVITY_MIN_SPEECH_SEC = 0.4;
 const MAX_SUPPORTED_TIMELINE_DURATION_SEC = 4 * 60 * 60;
 const DEFAULT_MINIMUM_CUT_GAP_SEC = 0.7;
@@ -240,11 +240,28 @@ async function inspectAudioStreamsForSingleSource(
     source.sourcePath ?? "",
   ]);
   if (!probeRun.ok) {
+    const fallbackStream: FfprobeAudioStreamInfo = {
+      streamIndex: 0,
+      audioStreamIndex: 0,
+      codecName: null,
+      sampleRate: null,
+      channels: null,
+      channelLayout: null,
+      duration: null,
+      language: null,
+      title: null,
+    };
     return {
-      ...emptyAudioStreamSelectionProof(source.sourcePath),
+      ok: true,
+      analyzedSourcePath: source.sourcePath,
       ffprobePath,
-      blockers: ["FFPROBE_UNAVAILABLE"],
-      warnings: uniqueBlockers(warnings),
+      ffprobeAudioStreams: [fallbackStream],
+      autoSelectedAudioStreamIndex: 0,
+      selectedAudioStreamIndex: 0,
+      blockers: [],
+      warnings: uniqueBlockers([...warnings, "FFPROBE_UNAVAILABLE_USING_AUDIO_STREAM_0"]),
+      timelineMutation: "none",
+      sequenceMutation: "none",
     };
   }
 
@@ -569,7 +586,7 @@ export async function runSpeakerSourceAttributionProof(
 
   // --- CROSSTALK MITIGATION ---
   const crosstalkMarginDb = 6.0;
-  const absoluteFloorDb = -45.0;
+  const absoluteFloorDb = -55.0;
 
   const windowsByBucket = new Map<number, Map<number, TrackActivityWindow>>();
   for (const [trackIndex, windows] of normalizedTrackWindowsMap.entries()) {
