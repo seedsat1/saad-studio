@@ -8,10 +8,10 @@
   - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe`
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
-  - Replaced static fallback credits value `2,581` in CEP client UI ([adobe/saadstudio-cep/client/src/pages/home.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/client/src/pages/home.ts)) with live dynamic user credit balance fetched from backend database. Re-compiled client and re-packaged extension binaries.
+  - Fixed extension packager ([scripts/package-extension.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/package-extension.js)) to automatically copy compiled `client/dist/` build output into `adobe/saadstudio-cep/share-package/app.saadstudio.cep/client/dist/`. This resolves `ERR_FILE_NOT_FOUND` on `client/dist/index.html` when launching the extension inside Premiere Pro. Re-built and re-packaged `.zxp` and `.zip` archives.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `e4a0e54` to main repository (`saad-studio`).
+  - Pushed commit `4c019b4` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
