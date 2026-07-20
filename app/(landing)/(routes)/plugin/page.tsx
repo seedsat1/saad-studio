@@ -185,96 +185,134 @@ export default function PluginPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch"
           >
-            {/* Download Card 1: Official ZXP */}
+            {/* Download Card 1: Official Standalone 1-Click Setup EXE (RECOMMENDED) */}
             <motion.div
               variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-amber-500/40 bg-slate-900/80 p-8 backdrop-blur-md shadow-2xl shadow-amber-500/10 hover:border-amber-400 transition-all duration-300 group"
+              className="relative flex flex-col justify-between rounded-3xl border border-amber-500/50 bg-gradient-to-b from-amber-500/10 via-slate-900/90 to-slate-900/90 p-7 backdrop-blur-md shadow-2xl shadow-amber-500/15 hover:border-amber-400 transition-all duration-300 group"
             >
               <div className="absolute -top-3.5 left-6 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-black text-slate-950 shadow-lg">
-                {t("Recommended", "الموصى به")}
+                {t("★ Recommended (1-Click)", "★ الموصى به (تثبيت تلقائي)")}
               </div>
 
               <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
-                  <Download className="w-6 h-6" />
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6" />
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-white">{t("SaadStudio.zxp Bundle", "حزمة SaadStudio.zxp الرئيسية")}</h3>
-                  <p className="text-xs text-amber-400 font-semibold mt-0.5">v2.0.0 • 28.3 MB • {t("Signed ZXP", "تغليف زيب موقع")}</p>
+                  <h3 className="text-lg font-bold text-white">{t("1-Click Setup Installer", "برنامج التثبيت التلقائي (.exe)")}</h3>
+                  <p className="text-xs text-amber-400 font-semibold mt-0.5">SaadStudio-Setup.exe • 33.4 MB</p>
                 </div>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {t(
-                    "Official signed ZXP extension containing complete logic for Premiere, After Effects, and Photoshop, with pre-bundled audio processing engine.",
-                    "حزمة الإضافة الموقعة رسمياً مع محرك المعالجة الصوتية المدمج بالكامل لبرامج بريمير وأفترافيكت وفوتوشوب."
+                    "Standalone 1-click Windows installer. Automatically configures Adobe CEP environment and installs extension for Premiere, After Effects & Photoshop in seconds.",
+                    "برنامج تثبيت تلقائي لنظام ويندوز. بضغطة زر واحدة يقوم بتنصيب الإضافة وضبط بيئة أدوبي تلقائياً لبرامج بريمير، أفترافيكت، وفوتوشوب."
                   )}
                 </p>
 
-                <div className="space-y-2 pt-2 text-xs text-slate-400">
+                <div className="space-y-2 pt-1 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Includes Pro Audio Processing Engine", "يتضمن محرك المعالجة الصوتية المتقدم")}</span>
+                    <span>{t("1-Click Automatic Installation", "تثبيت تلقائي بنقرة واحدة")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("1-Click Installer Compatible", "متوافق مع برامج التثبيت التلقائي")}</span>
+                    <span>{t("Auto-Configures PlayerDebugMode", "تهيئة التفعيل التلقائي للنظام")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Up to 2 PC Devices per account", "ترخيص يعمل على 2 حاسوب لكل حساب")}</span>
+                    <span>{t("Includes FFmpeg Audio Engine", "يتضمن محرك المعالجة الصوتية")}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-8 space-y-3">
+              <div className="pt-6 space-y-2">
                 <a
-                  href={DOWNLOAD_LINKS.zxp}
-                  download="SaadStudio.zxp"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold shadow-lg shadow-amber-500/25 transition-all"
+                  href={DOWNLOAD_LINKS.setupExe}
+                  download="SaadStudio-Setup.exe"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all"
                 >
                   <Download className="w-5 h-5" />
-                  <span>{t("Download SaadStudio.zxp (28.3 MB)", "تحميل حزمة SaadStudio.zxp (28.3 ميجابايت)")}</span>
+                  <span>{t("Download SaadStudio-Setup.exe (33.4 MB)", "تحميل SaadStudio-Setup.exe (33.4 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>
 
-            {/* Download Card 2: AI Models Pack */}
+            {/* Download Card 2: Official ZXP Package */}
             <motion.div
               variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-violet-500/40 bg-slate-900/80 p-8 backdrop-blur-md shadow-2xl shadow-violet-500/10 hover:border-violet-400 transition-all duration-300 group"
+              className="relative flex flex-col justify-between rounded-3xl border border-cyan-500/30 bg-slate-900/80 p-7 backdrop-blur-md shadow-2xl hover:border-cyan-400 transition-all duration-300 group"
             >
-              <div className="absolute -top-3.5 left-6 px-4 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-xs font-bold text-white shadow-lg">
-                {t("AI Models Drive Pack", "حزمة النماذج الحجم الكامل")}
+              <div className="space-y-4">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <Download className="w-6 h-6" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-white">{t("SaadStudio.zxp Package", "حزمة SaadStudio.zxp للإضافة")}</h3>
+                  <p className="text-xs text-cyan-400 font-semibold mt-0.5">v2.0.0 • 33.3 MB • {t("Signed ZXP", "تغليف زيب موقع")}</p>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {t(
+                    "Official signed ZXP extension package for users with AEScripts ZXP Installer or Anastasiy's Extension Manager.",
+                    "حزمة الإضافة الموقعة رسمياً للذين يفضلون استخدام برنامج AEScripts ZXP Installer أو التثبيت عبر ZXP Manager."
+                  )}
+                </p>
+
+                <div className="space-y-2 pt-1 text-xs text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{t("Standard ZXP Installer Format", "صيغة ZXP المعتمدة لبرامج أدوبي")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{t("Verified Extension Logic", "شاملة ملفات البريمير والأفترافيكت")}</span>
+                  </div>
+                </div>
               </div>
 
+              <div className="pt-6 space-y-2">
+                <a
+                  href={DOWNLOAD_LINKS.zxp}
+                  download="SaadStudio.zxp"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold border border-cyan-500/30 text-xs transition-all"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>{t("Download SaadStudio.zxp (33.3 MB)", "تحميل SaadStudio.zxp (33.3 ميجابايت)")}</span>
+                </a>
+              </div>
+            </motion.div>
+
+            {/* Download Card 3: Offline AI Models Pack */}
+            <motion.div
+              variants={fadeUp}
+              className="relative flex flex-col justify-between rounded-3xl border border-violet-500/40 bg-slate-900/80 p-7 backdrop-blur-md shadow-2xl hover:border-violet-400 transition-all duration-300 group"
+            >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 group-hover:scale-110 transition-transform">
                   <HardDrive className="w-6 h-6" />
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي الأوفلاين")}</h3>
-                  <p className="text-xs text-violet-400 font-semibold mt-0.5">{t("Google Drive • ~6 GB • Ultra-Precision AI Engine Pack", "كوكل درايف • ~6 جيجابايت • حزمة محركات الذكاء الاصطناعي الفائقة")}</p>
+                  <h3 className="text-lg font-bold text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي")}</h3>
+                  <p className="text-xs text-violet-400 font-semibold mt-0.5">Google Drive • ~6 GB • Offline Pack</p>
                 </div>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {t(
-                    "Complete offline high-precision speech-to-text models for instant 100% offline auto-captions and transcription.",
+                    "Complete offline speech-to-text AI models pack for instant 100% offline auto-captions and transcription without internet.",
                     "حزمة محركات معالجة الصوت والنصوص المحلية الكاملة للعمل أوفلاين 100% وبدون الحاجة لإنترنت."
                   )}
                 </p>
 
-                <div className="space-y-2 pt-2 text-xs text-slate-400">
+                <div className="space-y-2 pt-1 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Includes 1-Click Install Script (.bat)", "يتضمن سكريبت التثبيت التلقائي .bat")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("High-Precision Multi-Engine AI Pack", "حزمة النماذج الصوتية الفائقة متعددة الدقة")}</span>
+                    <span>{t("Includes Auto Script install-models.bat", "يتضمن سكريبت التثبيت التلقائي .bat")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -283,23 +321,23 @@ export default function PluginPage() {
                 </div>
               </div>
 
-              <div className="pt-8 space-y-3">
+              <div className="pt-6 space-y-2">
                 <a
                   href={DOWNLOAD_LINKS.googleDriveModels}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold shadow-lg shadow-violet-500/25 transition-all"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-violet-500/25 transition-all"
                 >
-                  <ExternalLink className="w-5 h-5" />
-                  <span>{t("Download Models Pack (Google Drive)", "تحميل النماذج (من كوكل درايف)")}</span>
+                  <ExternalLink className="w-4 h-4" />
+                  <span>{t("Download Models (Google Drive)", "تحميل النماذج (من كوكل درايف)")}</span>
                 </a>
               </div>
             </motion.div>
 
-            {/* Download Card 3: Manual Zip Pack */}
+            {/* Download Card 4: Manual Zip Pack */}
             <motion.div
               variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-slate-700 bg-slate-900/60 p-8 backdrop-blur-md shadow-2xl hover:border-slate-600 transition-all duration-300 group"
+              className="relative flex flex-col justify-between rounded-3xl border border-slate-700 bg-slate-900/60 p-7 backdrop-blur-md shadow-2xl hover:border-slate-600 transition-all duration-300 group"
             >
               <div className="space-y-4">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:scale-110 transition-transform">
@@ -307,37 +345,37 @@ export default function PluginPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-bold text-white">{t("Manual Extraction Package", "حزمة التثبيت اليدوي (.zip)")}</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">v2.0.0 • 28.3 MB • {t("Zip Archive", "ملف مضغوط يدوي")}</p>
+                  <h3 className="text-lg font-bold text-white">{t("Manual Extraction (.zip)", "حزمة التثبيت اليدوي (.zip)")}</h3>
+                  <p className="text-xs text-slate-400 font-semibold mt-0.5">v2.0.0 • 33.3 MB • Zip Archive</p>
                 </div>
 
-                <p className="text-sm text-slate-300 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {t(
-                    "Direct zip archive for users who prefer copying extension folder manually into C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\.",
-                    "ملف مضغوط للتثبيت اليدوي المباشر بنقل المجلد إلى مجلد الـ CEP بالويندوز دون استخدام برامج تثبيت خارجية."
+                    "Direct zip archive for users copying extension folder manually into C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\.",
+                    "ملف مضغوط للتثبيت اليدوي المباشر بنقل المجلد إلى مجلد CEP بالويندوز."
                   )}
                 </p>
 
-                <div className="space-y-2 pt-2 text-xs text-slate-400">
+                <div className="space-y-2 pt-1 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <span>{t("Direct Folder Extraction", "فك ضغط مباشر بدون برامج")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Full Extension Source Included", "يتضمن ملفات الإضافة كاملة")}</span>
+                    <span>{t("Full Source Included", "يتضمن ملفات الإضافة كاملة")}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-8 space-y-3">
+              <div className="pt-6 space-y-2">
                 <a
                   href={DOWNLOAD_LINKS.manualZip}
                   download="SaadStudio-manual.zip"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold transition-all"
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
                 >
-                  <Download className="w-5 h-5" />
-                  <span>{t("Download Manual Zip (28.3 MB)", "تحميل الملف اليدوي (28.3 ميجابايت)")}</span>
+                  <Download className="w-4 h-4" />
+                  <span>{t("Download Manual Zip (33.3 MB)", "تحميل الملف اليدوي (33.3 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>
@@ -400,29 +438,28 @@ export default function PluginPage() {
                   className="grid grid-cols-1 md:grid-cols-4 gap-6"
                 >
                   {/* Step 1 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-slate-800 p-6 space-y-4">
+                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-amber-500/30 p-6 space-y-4">
                     <div className="space-y-3">
                       <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
                         1
                       </div>
                       <h3 className="text-base font-bold text-white">
-                        {t("Download ZXP Installer", "تحميل برنامج تثبيت الـ ZXP")}
+                        {t("Download SaadStudio-Setup.exe", "تحميل SaadStudio-Setup.exe")}
                       </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Download and open the free AEScripts ZXP Installer or Anastasiy's Extension Manager.",
-                          "قم بتحميل وفتح برنامج ZXP Installer المجاني المعتمد لأدوبي."
+                          "Download the standalone 1-click installer EXE for Windows.",
+                          "قم بتحميل برنامج التثبيت التلقائي SaadStudio-Setup.exe المباشر."
                         )}
                       </p>
                     </div>
                     <a
-                      href={DOWNLOAD_LINKS.aescriptsZxpInstaller}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={DOWNLOAD_LINKS.setupExe}
+                      download="SaadStudio-Setup.exe"
                       className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:underline pt-4"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>{t("Download AEScripts ZXP Installer (.exe)", "تحميل برنامج ZXP Installer (.exe مباشر)")}</span>
+                      <span>{t("Download SaadStudio-Setup.exe", "تحميل SaadStudio-Setup.exe (.exe مباشر)")}</span>
                     </a>
                   </div>
 
@@ -433,18 +470,18 @@ export default function PluginPage() {
                         2
                       </div>
                       <h3 className="text-base font-bold text-white">
-                        {t("Drag & Drop SaadStudio.zxp", "سحب وإفلات ملف SaadStudio.zxp")}
+                        {t("Run 1-Click Installer", "تشغيل برنامج التنصيب بنقرة واحدة")}
                       </h3>
                       <p className="text-xs text-slate-400 leading-relaxed">
                         {t(
-                          "Drag SaadStudio.zxp file into ZXP Installer. The extension will install automatically in seconds.",
-                          "قم بسحب وإسقاط ملف SaadStudio.zxp داخل نافذة البرنامج وسيتم التثبيت تلقائياً خلال ثوانٍ."
+                          "Double-click SaadStudio-Setup.exe. It configures Windows CEP registry and copies extension automatically.",
+                          "اضغط مرتين على ملف SaadStudio-Setup.exe وسيقوم بتنصيب وتفعيل الإضافة تلقائياً خلال ثوانٍ."
                         )}
                       </p>
                     </div>
                     <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1 pt-4">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>{t("Auto Verification Passed", "تثبيت موثوق ومفحوص")}</span>
+                      <span>{t("1-Click Auto Configuration", "تثبيت وتفعيل تلقائي بالكامل")}</span>
                     </div>
                   </div>
 
