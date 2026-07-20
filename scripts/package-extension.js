@@ -30,6 +30,13 @@ if (fs.existsSync(clientDist)) {
   console.log('Copied client/dist to share-package');
 }
 
+const masterJsx = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'jsx', 'index.jsx');
+const pkgJsx = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'jsx', 'index.jsx');
+if (fs.existsSync(masterJsx)) {
+  fs.copyFileSync(masterJsx, pkgJsx);
+  console.log('Copied master jsx/index.jsx to share-package');
+}
+
 // 2. Generate payload.zip (embedded extension contents)
 const sharePkgApp = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep');
 const payloadZip = path.join(__dirname, 'payload.zip');
