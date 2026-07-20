@@ -44,6 +44,20 @@ if (fs.existsSync(masterManifest)) {
   console.log('Copied master CSXS/manifest.xml to share-package');
 }
 
+const masterManifests = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'runtime-manifests');
+const pkgManifests = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'runtime-manifests');
+if (fs.existsSync(masterManifests)) {
+  copyDir(masterManifests, pkgManifests);
+  console.log('Copied runtime-manifests to share-package');
+}
+
+const masterScripts = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'scripts');
+const pkgScripts = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'scripts');
+if (fs.existsSync(masterScripts)) {
+  copyDir(masterScripts, pkgScripts);
+  console.log('Copied scripts to share-package');
+}
+
 // 1.5. Bundle Visual C++ helper DLL runtimes for subscriber PCs
 execSync('node scripts/bundle-runtimes.js', { cwd: path.join(__dirname, '..'), stdio: 'inherit' });
 

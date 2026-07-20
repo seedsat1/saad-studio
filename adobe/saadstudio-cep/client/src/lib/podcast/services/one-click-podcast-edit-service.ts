@@ -206,16 +206,22 @@ export async function runOneClickPodcastEditService(
           console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: COMPLETED | Duration: ${step3Duration}ms`);
         } else {
           failedSteps.push("auto-captions");
-          const errMsg = captionResult.blockers.join(" | ") || "Failed to create caption track.";
-          errorMessages["auto-captions"] = errMsg;
-          console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
+          const rawMsg = captionResult.blockers.join(" | ") || "Failed to create caption track.";
+          const friendlyMsg = rawMsg.includes("CAPTION_RUNTIME_NOT_READY") || rawMsg.includes("runtime-manifests")
+            ? "Auto Captions setup pending (Multi-Cam editing completed successfully)."
+            : rawMsg.replace(/[A-Z]:\\[^\s\n]+/gi, "").trim();
+          errorMessages["auto-captions"] = friendlyMsg;
+          console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${rawMsg}`);
         }
       } catch (capErr) {
         const step3Duration = Date.now() - step3Start;
         failedSteps.push("auto-captions");
-        const errMsg = (capErr as Error).message;
-        errorMessages["auto-captions"] = errMsg;
-        console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${errMsg}`);
+        const rawMsg = (capErr as Error).message;
+        const friendlyMsg = rawMsg.includes("CAPTION_RUNTIME_NOT_READY") || rawMsg.includes("runtime-manifests")
+          ? "Auto Captions setup pending (Multi-Cam editing completed successfully)."
+          : rawMsg.replace(/[A-Z]:\\[^\s\n]+/gi, "").trim();
+        errorMessages["auto-captions"] = friendlyMsg;
+        console.log(`[Saad One Click Edit] Step 2: Auto Captions | Status: FAILED | Duration: ${step3Duration}ms | Error: ${rawMsg}`);
       }
     }
     
