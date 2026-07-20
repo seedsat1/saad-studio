@@ -204,7 +204,7 @@ export default function PluginPage() {
 
                 <div>
                   <h3 className="text-xl font-bold text-white">{t("SaadStudio.zxp Bundle", "حزمة SaadStudio.zxp الرئيسية")}</h3>
-                  <p className="text-xs text-amber-400 font-semibold mt-0.5">v2.0.0 • 32.2 MB • {t("Signed ZXP", "تغليف زيب موقع")}</p>
+                  <p className="text-xs text-amber-400 font-semibold mt-0.5">v2.0.0 • 28.3 MB • {t("Signed ZXP", "تغليف زيب موقع")}</p>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
@@ -237,7 +237,7 @@ export default function PluginPage() {
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold shadow-lg shadow-amber-500/25 transition-all"
                 >
                   <Download className="w-5 h-5" />
-                  <span>{t("Download SaadStudio.zxp (32.2 MB)", "تحميل حزمة SaadStudio.zxp (32.2 ميجابايت)")}</span>
+                  <span>{t("Download SaadStudio.zxp (28.3 MB)", "تحميل حزمة SaadStudio.zxp (28.3 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>
@@ -309,7 +309,7 @@ export default function PluginPage() {
 
                 <div>
                   <h3 className="text-xl font-bold text-white">{t("Manual Extraction Package", "حزمة التثبيت اليدوي (.zip)")}</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">v2.0.0 • 32.2 MB • {t("Zip Archive", "ملف مضغوط يدوي")}</p>
+                  <p className="text-xs text-slate-400 font-semibold mt-0.5">v2.0.0 • 28.3 MB • {t("Zip Archive", "ملف مضغوط يدوي")}</p>
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed">
@@ -338,7 +338,7 @@ export default function PluginPage() {
                   className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold transition-all"
                 >
                   <Download className="w-5 h-5" />
-                  <span>{t("Download Manual Zip (32.2 MB)", "تحميل الملف اليدوي (32.2 ميجابايت)")}</span>
+                  <span>{t("Download Manual Zip (28.3 MB)", "تحميل الملف اليدوي (28.3 ميجابايت)")}</span>
                 </a>
               </div>
             </motion.div>
