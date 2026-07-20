@@ -1,6 +1,16 @@
 # Saad Studio Project Context Update
 
-### Latest task: Add Discord Official Social Media Link (2026-07-20)
+### Latest task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
+
+- Status:
+  Fixed `.gitignore` rule for `public/downloads/*.zip` to ensure `SaadStudio-manual.zip` is tracked and available directly on the production site.
+- Changes:
+  - Updated [.gitignore](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/.gitignore) with `!public/downloads/*.zip` exception.
+  - Uploaded `public/downloads/SaadStudio-manual.zip` to production git repo.
+- Verification:
+  - Pushed commit `5416297` to main repository (`saad-studio`).
+
+### Previous task: Add Discord Official Social Media Link (2026-07-20)
 
 - Status:
   Added the official Discord community invite link (`https://discord.gg/9HXRqNFtS`) to the site footer and admin CMS default configuration with custom Discord SVG Clyde branding.
