@@ -21,6 +21,28 @@ if exist SaadStudio.zxp del SaadStudio.zxp
 ren SaadStudio.zip SaadStudio.zxp
 `;
 
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (let entry of entries) {
+    let srcPath = path.join(src, entry.name);
+    let destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+const clientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'client', 'dist');
+const pkgClientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'client', 'dist');
+
+if (fs.existsSync(clientDist)) {
+  copyDir(clientDist, pkgClientDist);
+  console.log('Copied client/dist to share-package');
+}
+
 fs.writeFileSync(batFile, scriptContent, 'utf8');
 
 try {
