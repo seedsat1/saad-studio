@@ -765,20 +765,51 @@ function getNodeRuntime(): NodeRuntime {
   };
 }
 
+function normalizeCepPath(value: string): string {
+  if (!value) return "";
+  let path = decodeURIComponent(value.replace(/^file:\/\//i, ""));
+  if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1);
+  return path.replace(/\//g, "\\");
+}
+
 function collectFfmpegSearchPaths(runtime: NodeRuntime): FfmpegPathCheck[] {
   const checks: FfmpegPathCheck[] = [];
   try {
     const ext = getExtensionPath();
     if (ext) {
-      const bundled = runtime.path.join(ext, "tools", "ffmpeg", "ffmpeg.exe");
+      const bundled1 = runtime.path.join(ext, "tools", "ffmpeg", "ffmpeg.exe");
       checks.push({
         label: "CEP bundled ffmpeg",
-        path: bundled,
-        exists: runtime.fs.existsSync(bundled),
+        path: bundled1,
+        exists: runtime.fs.existsSync(bundled1),
+        source: "cep-bundled",
+      });
+      const bundled2 = runtime.path.join(ext, "ffmpeg.exe");
+      checks.push({
+        label: "CEP root ffmpeg",
+        path: bundled2,
+        exists: runtime.fs.existsSync(bundled2),
         source: "cep-bundled",
       });
     }
   } catch { /* ignore */ }
+
+  const staticSys86 = "C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe";
+  checks.push({
+    label: "System 86 CEP ffmpeg",
+    path: staticSys86,
+    exists: runtime.fs.existsSync(staticSys86),
+    source: "cep-bundled",
+  });
+
+  const staticSys64 = "C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe";
+  checks.push({
+    label: "System 64 CEP ffmpeg",
+    path: staticSys64,
+    exists: runtime.fs.existsSync(staticSys64),
+    source: "cep-bundled",
+  });
+
   try {
     const staticPath = runtime.nodeRequire<string>("ffmpeg-static");
     if (staticPath) {
@@ -815,7 +846,8 @@ function readPathEnvironment(processRef: NodeJS.Process): { raw: string; entries
 
 function getExtensionPath(): string | null {
   try {
-    return window.__adobe_cep__?.getSystemPath("extension") ?? null;
+    const raw = window.__adobe_cep__?.getSystemPath("extension");
+    return raw ? normalizeCepPath(raw) : null;
   } catch {
     return null;
   }
