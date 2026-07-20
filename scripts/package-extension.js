@@ -9,12 +9,14 @@ if (!fs.existsSync(downloadsDir)) {
 
 const csc = 'C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe';
 const csSource = path.join(__dirname, 'Installer.cs');
+const icoPath = path.join(__dirname, 'app.ico');
 const exeOut = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'SaadStudio-Setup.exe');
 
 if (fs.existsSync(csc) && fs.existsSync(csSource)) {
   try {
-    execSync(`"${csc}" /target:winexe /out:"${exeOut}" "${csSource}"`, { stdio: 'inherit' });
-    console.log('Compiled SaadStudio-Setup.exe successfully!');
+    const iconFlag = fs.existsSync(icoPath) ? `/win32icon:"${icoPath}"` : '';
+    execSync(`"${csc}" /target:winexe ${iconFlag} /out:"${exeOut}" "${csSource}"`, { stdio: 'inherit' });
+    console.log('Compiled SaadStudio-Setup.exe with win32icon successfully!');
   } catch (err) {
     console.error('Failed to compile C# installer EXE:', err.message);
   }
