@@ -36,6 +36,7 @@ namespace SaadStudioInstaller
         private Panel panelHeader;
         private Panel panelBody;
         private Label lblFooter;
+        private bool isCompleted = false;
 
         private static string LOGO_B64 = "${b64}";
 
@@ -46,7 +47,7 @@ namespace SaadStudioInstaller
 
         private void InitializeComponent()
         {
-            this.Text = "Saad Studio 2.0.0 — Standalone Setup";
+            this.Text = "Saad Studio 2.0.0 — Official Setup";
             this.Size = new Size(580, 420);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -164,6 +165,12 @@ namespace SaadStudioInstaller
 
         private void BtnInstall_Click(object sender, EventArgs e)
         {
+            if (isCompleted)
+            {
+                this.Close();
+                return;
+            }
+
             btnInstall.Enabled = false;
             progressBar.Value = 15;
             lblStatus.Text = "Configuring Adobe CSXS security permissions in Windows Registry...";
@@ -172,7 +179,8 @@ namespace SaadStudioInstaller
 
             try
             {
-                string[] csxsKeys = new string[] { "CSXS.9", "CSXS.10", "CSXS.11", "CSXS.12", "CSXS.14", "CSXS.15", "CSXS.16" };
+                // 1. Enable Registry Debug Mode in HKCU and HKLM for all CSXS versions
+                string[] csxsKeys = new string[] { "CSXS.9", "CSXS.10", "CSXS.11", "CSXS.12", "CSXS.13", "CSXS.14", "CSXS.15", "CSXS.16" };
                 foreach (var k in csxsKeys)
                 {
                     try
@@ -181,14 +189,19 @@ namespace SaadStudioInstaller
                         {
                             if (key != null) key.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
                         }
+                        using (RegistryKey keyLM = Registry.LocalMachine.CreateSubKey(@"Software\Adobe\" + k))
+                        {
+                            if (keyLM != null) keyLM.SetValue("PlayerDebugMode", "1", RegistryValueKind.String);
+                        }
                     }
                     catch { }
                 }
 
                 progressBar.Value = 40;
-                lblStatus.Text = "Extracting bundled extension payload...";
+                lblStatus.Text = "Extracting bundled extension payload & helper runtimes...";
                 Application.DoEvents();
 
+                // 2. Extract embedded payload zip
                 string tempZipPath = Path.Combine(Path.GetTempPath(), "SaadStudioPayload_" + Guid.NewGuid().ToString("N") + ".zip");
                 var asm = System.Reflection.Assembly.GetExecutingAssembly();
                 using (Stream stream = asm.GetManifestResourceStream("SaadStudioInstaller.payload.zip"))
@@ -206,25 +219,33 @@ namespace SaadStudioInstaller
                 lblStatus.Text = "Installing extension files to System CEP directory...";
                 Application.DoEvents();
 
-                string targetSystem = @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
+                string targetSystem86 = @"C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
+                string targetSystem64 = @"C:\Program Files\Common Files\Adobe\CEP\extensions\app.saadstudio.cep";
                 string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\CEP\extensions\app.saadstudio.cep");
 
                 if (File.Exists(tempZipPath))
                 {
                     ExtractZipToTarget(tempZipPath, targetUser);
-                    try { ExtractZipToTarget(tempZipPath, targetSystem); } catch { }
+                    try { ExtractZipToTarget(tempZipPath, targetSystem86); } catch { }
+                    try { ExtractZipToTarget(tempZipPath, targetSystem64); } catch { }
                     try { File.Delete(tempZipPath); } catch { }
                 }
 
                 progressBar.Value = 100;
-                lblStatus.Text = "✅ Installation completed successfully!";
+                lblStatus.Text = "✅ Installation completed successfully! Please restart Premiere Pro.";
                 lblStatus.ForeColor = Color.FromArgb(34, 197, 94);
+
+                isCompleted = true;
+                btnInstall.Text = "✔   Finish & Exit";
+                btnInstall.BackColor = Color.FromArgb(34, 197, 94); // emerald-500
+                btnInstall.Enabled = true;
 
                 MessageBox.Show(
                     @"Saad Studio has been successfully installed and activated!
 
-To launch the extension:
-Open Premiere Pro, After Effects, or Photoshop -> Window -> Extensions -> Saad Studio
+IMPORTANT:
+Please close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:
+Window -> Extensions -> Saad Studio
 
 Official Website: https://saadstudio.app",
                     "Saad Studio Setup Complete",
@@ -254,4 +275,4 @@ Official Website: https://saadstudio.app",
 `;
 
 fs.writeFileSync(path.join(__dirname, 'Installer.cs'), code, 'utf8');
-console.log('Successfully generated scripts/Installer.cs for embedded payload!');
+console.log('Successfully generated scripts/Installer.cs with Admin UAC & Finish Button!');
