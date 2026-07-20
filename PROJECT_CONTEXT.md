@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Bundled Visual C++ Redistributable runtime DLLs (`msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll`, `concrt140.dll`) directly into extension payload ([scripts/bundle-runtimes.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/bundle-runtimes.js)). Ensures that `ffmpeg.exe` and CEP Node helper processes run natively on fresh subscriber PCs without requiring manual Visual C++ Redistributable installations. Re-compiled standalone `SaadStudio-Setup.exe` (33.5 MB).
+  - Embedded UAC Administrator manifest (`/win32manifest:scripts/app.manifest`), forced clean directory overwrites across all CEP paths (`Program Files (x86)`, `Program Files`, `%APPDATA%`), and updated installer UI button to `Finish & Exit` (`140b6d5`). Ensures `SaadStudio-Setup.exe` runs with full Administrator privileges to overwrite any cached files and close cleanly when completed.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `5e3c2f5` to main repository (`saad-studio`).
+  - Pushed commit `140b6d5` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
