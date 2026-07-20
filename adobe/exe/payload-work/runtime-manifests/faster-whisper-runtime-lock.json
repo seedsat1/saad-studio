@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": "1.0.0",
+  "runtime": {
+    "id": "faster-whisper-runtime-win-x64-1.2.1-py3.12.10",
+    "platform": "win-x64",
+    "pythonVersion": "3.12.10",
+    "pythonArchive": {
+      "url": "https://www.python.org/ftp/python/3.12.10/python-3.12.10-embed-amd64.zip",
+      "fileName": "python-3.12.10-embed-amd64.zip",
+      "size": 11133606,
+      "sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3"
+    },
+    "pipBootstrap": {
+      "url": "https://bootstrap.pypa.io/get-pip.py",
+      "fileName": "get-pip.py",
+      "size": 2226848,
+      "sha256": "a341e1a43e38001c551a1508a73ff23636a11970b61d901d9a1cad2a18f57055"
+    },
+    "packages": {
+      "pip": "25.0.1",
+      "fasterWhisper": "1.2.1",
+      "ctranslate2": "4.8.0"
+    }
+  },
+  "models": {
+    "base": {
+      "repository": "Systran/faster-whisper-base",
+      "revision": "ebe41f70d5b6dfa9166e2c581c45c9c0cfc57b66"
+    },
+    "medium": {
+      "repository": "Systran/faster-whisper-medium",
+      "revision": "08e178d48790749d25932bbc082711ddcfdfbc4f"
+    },
+    "large-v3": {
+      "repository": "Systran/faster-whisper-large-v3",
+      "revision": "edaa14088a8039327cf0c897f1f0a14a7e937d38"
+    },
+    "large-v3-turbo": {
+      "repository": "deepdml/faster-whisper-large-v3-turbo",
+      "revision": "main"
+    }
+  },
+  "selfTest": {
+    "script": "runtime-assets/faster-whisper-runtime-self-test.py",
+    "sha256": "a666d8a24fbb8b8e06f6cb21502b3ef898382715f69e613c355d6341592e5165",
+    "timeoutMs": 120000
+  }
+}

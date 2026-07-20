@@ -21,9 +21,16 @@ function copyDir(src, dest) {
   }
 }
 
-// 1. Copy client build into CEP share package
+// 1. Fresh build of client dist into CEP share package
 const clientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'client', 'dist');
 const pkgClientDist = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'share-package', 'app.saadstudio.cep', 'client', 'dist');
+
+if (fs.existsSync(clientDist)) {
+  fs.rmSync(clientDist, { recursive: true, force: true });
+}
+
+console.log('Building fresh CEP client dist bundle...');
+execSync('npm run build', { cwd: path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'client'), stdio: 'inherit' });
 
 if (fs.existsSync(pkgClientDist)) {
   fs.rmSync(pkgClientDist, { recursive: true, force: true });
@@ -31,7 +38,7 @@ if (fs.existsSync(pkgClientDist)) {
 
 if (fs.existsSync(clientDist)) {
   copyDir(clientDist, pkgClientDist);
-  console.log('Copied client/dist to share-package (clean copy)');
+  console.log('Copied fresh client/dist to share-package (clean copy)');
 }
 
 const masterJsx = path.join(__dirname, '..', 'adobe', 'saadstudio-cep', 'jsx', 'index.jsx');

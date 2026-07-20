@@ -146,13 +146,35 @@ export function evalES<T = unknown>(fnName: string, ...args: unknown[]): Promise
       return;
     }
     const argsJSON = args.map((a) => JSON.stringify(a) ?? "null").join(", ");
-    const script = `try {
+    const script = `function __saadJsonEscape(s) {
+      return String(s).replace(/\\\\/g, "\\\\\\\\").replace(/"/g, "\\\\\\"").replace(/\\r/g, "\\\\r").replace(/\\n/g, "\\\\n").replace(/\\t/g, "\\\\t");
+    }
+    function __saadJsonStringify(value) {
+      if (value === null || value === undefined) return "null";
+      var type = typeof value;
+      if (type === "string") return "\\"" + __saadJsonEscape(value) + "\\"";
+      if (type === "number" || type === "boolean") return String(value);
+      if (value instanceof Array) {
+        var arr = [];
+        for (var i = 0; i < value.length; i++) arr.push(__saadJsonStringify(value[i]));
+        return "[" + arr.join(",") + "]";
+      }
+      var props = [];
+      for (var key in value) {
+        if (!value.hasOwnProperty(key)) continue;
+        var propType = typeof value[key];
+        if (propType === "function") continue;
+        props.push("\\"" + __saadJsonEscape(key) + "\\":" + __saadJsonStringify(value[key]));
+      }
+      return "{" + props.join(",") + "}";
+    }
+    try {
       var host = typeof $ !== 'undefined' ? $ : window;
       if (!host.${NAMESPACE}) throw new Error("saadstudio jsx not loaded");
       var res = host.${NAMESPACE}.${fnName}(${argsJSON});
-      JSON.stringify(res === undefined ? null : res);
+      __saadJsonStringify(res === undefined ? null : res);
     } catch (e) {
-      JSON.stringify({ __error: true, message: String(e.message || e) });
+      __saadJsonStringify({ __error: true, message: String(e.message || e) });
     }`;
     window.__adobe_cep__.evalScript(script, (raw) => {
       try {

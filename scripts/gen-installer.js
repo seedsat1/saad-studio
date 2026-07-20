@@ -321,32 +321,6 @@ namespace SaadStudioInstaller
                 }
                 catch { }
 
-                // Secondary target: Copy to ALL user profiles in C:\Users\*
-                try
-                {
-                    string usersDir = @"C:\\Users";
-                    if (Directory.Exists(usersDir))
-                    {
-                        foreach (string userFolder in Directory.GetDirectories(usersDir))
-                        {
-                            try
-                            {
-                                string userAppData = Path.Combine(userFolder, @"AppData\\Roaming\\Adobe\\CEP\\extensions\\app.saadstudio.cep");
-                                string parentDir = Path.GetDirectoryName(userAppData);
-                                if (Directory.Exists(Path.GetDirectoryName(parentDir)))
-                                {
-                                    if (Directory.Exists(userAppData)) Directory.Delete(userAppData, true);
-                                    Directory.CreateDirectory(userAppData);
-                                    CopyDirectoryRecursive(tempStagingDir, userAppData);
-                                    GrantFullPermissionsToEveryone(userAppData);
-                                }
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                catch { }
-
                 // Cleanup temp staging
                 try { File.Delete(tempZipPath); } catch { }
                 try { Directory.Delete(tempStagingDir, true); } catch { }
@@ -385,11 +359,28 @@ namespace SaadStudioInstaller
 
         private static void PurgeOldSaadStudioExtensions()
         {
-            string[] basePaths = new string[] {
+            List<string> basePaths = new List<string> {
                 @"C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions",
                 @"C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions",
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Adobe\\CEP\\extensions")
             };
+
+            try
+            {
+                string usersDir = @"C:\\Users";
+                if (Directory.Exists(usersDir))
+                {
+                    foreach (string userFolder in Directory.GetDirectories(usersDir))
+                    {
+                        string appDataCep = Path.Combine(userFolder, @"AppData\\Roaming\\Adobe\\CEP\\extensions");
+                        if (Directory.Exists(appDataCep) && !basePaths.Contains(appDataCep))
+                        {
+                            basePaths.Add(appDataCep);
+                        }
+                    }
+                }
+            }
+            catch { }
 
             foreach (var basePath in basePaths)
             {
