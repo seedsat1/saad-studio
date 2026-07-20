@@ -20,17 +20,5 @@ dlls.forEach(dll => {
   }
 });
 
-// Copy ffprobe.exe if available in local system paths
-const ffprobeCandidates = [
-  'C:\\ffmpeg-master-latest-win64-gpl\\ffmpeg-master-latest-win64-gpl\\bin\\ffprobe.exe',
-  'C:\\ffmpeg\\bin\\ffprobe.exe',
-  'C:\\tools\\ffmpeg\\ffprobe.exe'
-];
-
-for (const candidate of ffprobeCandidates) {
-  if (fs.existsSync(candidate)) {
-    fs.copyFileSync(candidate, path.join(targetFfmpeg, 'ffprobe.exe'));
-    console.log(`Bundled ffprobe.exe into tools/ffmpeg/ffprobe.exe from ${candidate}`);
-    break;
-  }
-}
+// Note: ffprobe.exe is intentionally omitted to keep package zip size (~28.3MB) well under Vercel 100MB static limit.
+// The Extension inspectAudioSources fallback gracefully uses Audio Stream 0 if ffprobe is absent.
