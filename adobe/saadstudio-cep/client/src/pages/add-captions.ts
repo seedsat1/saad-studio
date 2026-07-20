@@ -1847,8 +1847,14 @@ function resolveFfmpegPath(
   const candidates: string[] = [];
   try {
     const ext = window.__adobe_cep__?.getSystemPath("extension");
-    if (ext) candidates.push(path.join(ext, "tools", "ffmpeg", "ffmpeg.exe"));
+    if (ext) {
+      candidates.push(path.join(ext, "tools", "ffmpeg", "ffmpeg.exe"));
+      candidates.push(path.join(ext, "ffmpeg.exe"));
+    }
   } catch { /* ignore */ }
+  candidates.push("C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe");
+  candidates.push("C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe");
+
   try {
     const staticPath = nodeRequire<string>("ffmpeg-static");
     if (staticPath) candidates.push(staticPath);

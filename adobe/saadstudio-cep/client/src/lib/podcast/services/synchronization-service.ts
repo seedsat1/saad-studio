@@ -851,16 +851,19 @@ function resolveSyncFfmpegPath(runtime: ReturnType<typeof getSyncNodeRuntime>): 
     const ext = window.__adobe_cep__?.getSystemPath("extension");
     if (ext) {
       candidates.push(runtime.path.join(ext, "tools", "ffmpeg", "ffmpeg.exe"));
+      candidates.push(runtime.path.join(ext, "ffmpeg.exe"));
     }
   } catch {}
-  candidates.push("ffmpeg");
+
+  candidates.push("C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe");
+  candidates.push("C:\\Program Files\\Common Files\\Adobe\\CEP\\extensions\\app.saadstudio.cep\\tools\\ffmpeg\\ffmpeg.exe");
+
   for (const candidate of candidates) {
-    if (candidate === "ffmpeg") return candidate;
     try {
       if (runtime.fs.existsSync(candidate)) return candidate;
     } catch {}
   }
-  return null;
+  return "ffmpeg";
 }
 
 async function extractSyncEnvelope(
