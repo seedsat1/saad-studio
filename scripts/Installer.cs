@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Diagnostics;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.Collections.Generic;
 
 namespace SaadStudioInstaller
 {
@@ -200,37 +201,51 @@ namespace SaadStudioInstaller
                 PurgeOldSaadStudioExtensions();
 
                 progressBar.Value = 50;
-                lblStatus.Text = "Extracting bundled extension payload & helper runtimes...";
+                lblStatus.Text = "Extracting bundled extension payload...";
                 Application.DoEvents();
 
-                // 3. Extract embedded payload zip
+                // 3. Extract embedded payload zip to temp staging directory
                 string tempZipPath = Path.Combine(Path.GetTempPath(), "SaadStudioPayload_" + Guid.NewGuid().ToString("N") + ".zip");
+                string tempStagingDir = Path.Combine(Path.GetTempPath(), "SaadStudioStaging_" + Guid.NewGuid().ToString("N"));
+
                 var asm = System.Reflection.Assembly.GetExecutingAssembly();
                 using (Stream stream = asm.GetManifestResourceStream("SaadStudioInstaller.payload.zip"))
                 {
-                    if (stream != null)
+                    if (stream == null) throw new Exception("Embedded payload resource stream not found inside installer binary.");
+                    using (FileStream fs = File.Create(tempZipPath))
                     {
-                        using (FileStream fs = File.Create(tempZipPath))
-                        {
-                            stream.CopyTo(fs);
-                        }
+                        stream.CopyTo(fs);
                     }
                 }
+
+                if (!File.Exists(tempZipPath)) throw new Exception("Failed to write temporary zip payload to disk.");
+
+                Directory.CreateDirectory(tempStagingDir);
+                ZipFile.ExtractToDirectory(tempZipPath, tempStagingDir);
 
                 progressBar.Value = 80;
                 lblStatus.Text = "Installing latest Saad Studio 2.0.0 extension files...";
                 Application.DoEvents();
 
+                // 4. Install to all system and user CEP extension directories
                 string targetSystem86 = @"C:Program Files (x86)Common FilesAdobeCEPextensionsapp.saadstudio.cep";
                 string targetSystem64 = @"C:Program FilesCommon FilesAdobeCEPextensionsapp.saadstudio.cep";
                 string targetUser = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"AdobeCEPextensionsapp.saadstudio.cep");
 
-                if (File.Exists(tempZipPath))
+                List<string> installedTargets = new List<string>();
+                List<string> errors = new List<string>();
+
+                TryDeployFolder(tempStagingDir, targetSystem86, installedTargets, errors);
+                TryDeployFolder(tempStagingDir, targetSystem64, installedTargets, errors);
+                TryDeployFolder(tempStagingDir, targetUser, installedTargets, errors);
+
+                // Cleanup temp staging
+                try { File.Delete(tempZipPath); } catch { }
+                try { Directory.Delete(tempStagingDir, true); } catch { }
+
+                if (installedTargets.Count == 0)
                 {
-                    ExtractZipToTarget(tempZipPath, targetUser);
-                    try { ExtractZipToTarget(tempZipPath, targetSystem86); } catch { }
-                    try { ExtractZipToTarget(tempZipPath, targetSystem64); } catch { }
-                    try { File.Delete(tempZipPath); } catch { }
+                    throw new Exception("Failed to copy extension to CEP directories: " + string.Join(" | ", errors.ToArray()));
                 }
 
                 progressBar.Value = 100;
@@ -243,13 +258,7 @@ namespace SaadStudioInstaller
                 btnInstall.Enabled = true;
 
                 MessageBox.Show(
-                    @"Saad Studio 2.0.0 has been successfully installed and activated!
-
-IMPORTANT:
-Please close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:
-Window -> Extensions -> Saad Studio 2.0.0
-
-Official Website: https://saadstudio.app",
+                    "Saad Studio 2.0.0 has been successfully installed and activated!\n\nInstalled to:\n" + string.Join("\n", installedTargets.ToArray()) + "\n\nIMPORTANT:\nPlease close and restart Premiere Pro, After Effects, or Photoshop if open, then go to:\nWindow -> Extensions -> Saad Studio 2.0.0\n\nOfficial Website: https://saadstudio.app",
                     "Saad Studio Setup Complete",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information
@@ -260,6 +269,7 @@ Official Website: https://saadstudio.app",
                 lblStatus.Text = "Installation error: " + ex.Message;
                 lblStatus.ForeColor = Color.Red;
                 btnInstall.Enabled = true;
+                MessageBox.Show("Installation Error:\n\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -290,14 +300,37 @@ Official Website: https://saadstudio.app",
             }
         }
 
-        private static void ExtractZipToTarget(string zipFile, string destinationDir)
+        private static void TryDeployFolder(string stagingDir, string targetDir, List<string> installedTargets, List<string> errors)
         {
-            if (Directory.Exists(destinationDir))
+            try
             {
-                try { Directory.Delete(destinationDir, true); } catch { }
+                if (Directory.Exists(targetDir))
+                {
+                    try { Directory.Delete(targetDir, true); } catch { }
+                }
+                Directory.CreateDirectory(targetDir);
+                CopyDirectoryRecursive(stagingDir, targetDir);
+                installedTargets.Add(targetDir);
             }
-            Directory.CreateDirectory(destinationDir);
-            ZipFile.ExtractToDirectory(zipFile, destinationDir);
+            catch (Exception ex)
+            {
+                errors.Add(targetDir + " (" + ex.Message + ")");
+            }
+        }
+
+        private static void CopyDirectoryRecursive(string sourceDir, string targetDir)
+        {
+            Directory.CreateDirectory(targetDir);
+            foreach (string file in Directory.GetFiles(sourceDir))
+            {
+                string dest = Path.Combine(targetDir, Path.GetFileName(file));
+                File.Copy(file, dest, true);
+            }
+            foreach (string subDir in Directory.GetDirectories(sourceDir))
+            {
+                string dest = Path.Combine(targetDir, Path.GetFileName(subDir));
+                CopyDirectoryRecursive(subDir, dest);
+            }
         }
     }
 }
