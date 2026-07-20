@@ -63,7 +63,7 @@ export default function PluginPage() {
     aescriptsZxpInstaller: "https://updates.aescripts.com/win/aescripts%20+%20aeplugins%20desktop%20apps%20%28setup%29.exe",
   };
 
-  const cepPath = "%APPDATA%\\Adobe\\CEP\\extensions\\";
+  const cepPath = "C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\";
   const regCommand = `reg add "HKCU\\Software\\Adobe\\CSXS.12" /v PlayerDebugMode /t REG_SZ /d 1 /f`;
 
   const copyToClipboard = (text: string, type: "path" | "reg") => {
@@ -314,7 +314,7 @@ export default function PluginPage() {
 
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {t(
-                    "Direct zip archive for users who prefer copying extension folder manually into %APPDATA%\\Adobe\\CEP\\extensions\\.",
+                    "Direct zip archive for users who prefer copying extension folder manually into C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\.",
                     "ملف مضغوط للتثبيت اليدوي المباشر بنقل المجلد إلى مجلد الـ CEP بالويندوز دون استخدام برامج تثبيت خارجية."
                   )}
                 </p>
@@ -871,7 +871,7 @@ export default function PluginPage() {
               {
                 qEn: "What if ZXP Installer says 'Adobe requires Creative Cloud desktop app'?",
                 qAr: "ماذا أفعل إذا أظهر ZXP Installer رسالة 'Adobe requires Creative Cloud'؟",
-                aEn: "Launch Adobe Creative Cloud app and sign into your account, or simply use Method 2 (Manual Extraction) by copying 'app.saadstudio.cep' to %APPDATA%\\Adobe\\CEP\\extensions\\ without needing Creative Cloud.",
+                aEn: "Launch Adobe Creative Cloud app and sign into your account, or simply use Method 2 (Manual Extraction) by copying 'app.saadstudio.cep' to C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\ without needing Creative Cloud.",
                 aAr: "قم بفتح برنامج Adobe Creative Cloud وتسجيل الدخول بحسابك، أو استخدم الطريقة 2 (التثبيت اليدوي) بنقل مجلد 'app.saadstudio.cep' مباشرة إلى مسار CEP دون الحاجة لبرنامج Creative Cloud."
               }
             ].map((faq, index) => (
