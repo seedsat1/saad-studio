@@ -45,6 +45,7 @@ const fadeUp = {
 
 export default function PluginPage() {
   const { isAr } = useLanguage();
+  const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
   const [activeTab, setActiveTab] = useState<"zxp" | "manual">("zxp");
   const [copiedPath, setCopiedPath] = useState(false);
   const [copiedReg, setCopiedReg] = useState(false);
