@@ -8,10 +8,10 @@
   - `adobe/saadstudio-cep/share-package/app.saadstudio.cep/tools/ffmpeg/ffmpeg.exe`
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
-  - Updated displayed download size label on `/plugin` page ([app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/plugin/page.tsx)) from `32.2 MB` to exact `28.3 MB`.
+  - Updated manual installation CEP directory path text and copy-to-clipboard action on `/plugin` page ([app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28landing%29/%28routes%29/plugin/page.tsx)) to `C:\Program Files (x86)\Common Files\Adobe\CEP\extensions\`.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `1e83ee3` to main repository (`saad-studio`).
+  - Pushed commit `9929a1a` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
