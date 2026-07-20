@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Bundled `runtime-manifests` and `scripts` directories into CEP share package ([scripts/package-extension.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/package-extension.js)). Sanitized technical file paths from user interface in one-click edit pipeline (`0b8f8b0`).
+  - Updated standalone C# installer builder ([scripts/gen-installer.js](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/gen-installer.js)). Configures `PlayerDebugMode = 1` for ALL user SIDs under `HKEY_USERS` & `HKCU`/`HKLM`. Deploys CEP extension to both system `Program Files (x86)` and all user profiles in `C:\Users\*`. Grants full ACL permissions (`FileSystemRights.FullControl`) to `Everyone` and `Users` (`8c68d56`).
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `0b8f8b0` to main repository (`saad-studio`).
+  - Pushed commit `8c68d56` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
