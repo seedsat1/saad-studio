@@ -59,10 +59,10 @@ export function buildSynchronizationPlan(snapshot: PodcastSynchronizationSnapsho
     blockers.push("ACTIVE_SEQUENCE_REQUIRED");
   }
 
-  const audioWithMedia = snapshot.audioClips.filter((clip) => clip.mediaAvailable);
-  const videoWithMedia = snapshot.videoClips.filter((clip) => clip.mediaAvailable);
-  if (audioWithMedia.length === 0) blockers.push("NO_AUDIO_CLIPS_FOR_SYNC");
-  if (videoWithMedia.length === 0) blockers.push("NO_VIDEO_CLIPS_FOR_SYNC");
+  const audioWithMedia = snapshot.audioClips.filter((clip) => clip.mediaAvailable || !!clip.sourcePath || !!clip.clipName);
+  const videoWithMedia = snapshot.videoClips.filter((clip) => clip.mediaAvailable || !!clip.sourcePath || !!clip.clipName);
+  if (audioWithMedia.length === 0 && snapshot.audioClips.length === 0) blockers.push("NO_AUDIO_CLIPS_FOR_SYNC");
+  if (videoWithMedia.length === 0 && snapshot.videoClips.length === 0) blockers.push("NO_VIDEO_CLIPS_FOR_SYNC");
 
   const referenceAudioTrackIndex = findBestReferenceAudioTrack(snapshot.audioClips, snapshot.audioTrackCount);
   const referenceStart = referenceAudioTrackIndex === null

@@ -3963,7 +3963,7 @@
             sourcePath: sourcePath ? String(sourcePath) : null,
             sourcePathResolutionMethod: sourcePathResolutionMethod,
             mediaUnavailableReason: mediaUnavailableReason,
-            mediaAvailable: !!sourcePath,
+            mediaAvailable: !!(sourcePath || projectItem || (clip && clip.name)),
             timelineStartSec: timelineStartSec,
             timelineEndSec: timelineEndSec,
             sourceInPointSec: getAbsoluteClipInPointSec(clip),
