@@ -9,10 +9,10 @@
   - `public/downloads/SaadStudio.zxp`
   - `public/downloads/SaadStudio-manual.zip`
   - Hidden `/plugin` route from top navigation bar ([components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)) and added automatic redirect (`redirect('/')`) in `/plugin/page.tsx`.
-  - Created and compiled native C# Windows GUI installer executable `SaadStudio-Setup.exe` ([scripts/Installer.cs](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/Installer.cs)). Embedded native Windows `.ico` binary (`/win32icon:scripts/app.ico`), official high-res Saad Studio brand logo image, clickable official website link `https://saadstudio.app`, and exact website color palette (`#0b0f19` dark background with `#38bdf8` cyan and `#7c3aed` violet accents).
+  - Built 32.6 MB self-contained standalone installer executable `SaadStudio-Setup.exe` ([scripts/Installer.cs](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/scripts/Installer.cs)). Embedded the entire 32 MB zip extension payload (`payload.zip`) directly inside the binary as a C# resource stream. Subscribers now download a single 32.6 MB `.exe` file that extracts files, configures Windows Adobe registry permissions, and finishes setup with zero external dependencies.
 - Verification:
   - Verified local build (`npm run build`) completed successfully with zero errors (`✓ Compiled successfully`).
-  - Pushed commit `61fb2ae` to main repository (`saad-studio`).
+  - Pushed commit `658d170` to main repository (`saad-studio`).
 
 ### Previous task: Upload SaadStudio-manual.zip for Direct Downloads (2026-07-20)
 
