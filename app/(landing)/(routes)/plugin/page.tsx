@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,12 +11,7 @@ import {
   Layers,
   Sparkles,
   Zap,
-  Copy,
-  Check,
   ExternalLink,
-  HelpCircle,
-  FolderArchive,
-  Terminal,
   ShieldCheck,
   Monitor,
   Video,
@@ -26,10 +21,12 @@ import {
   Wand2,
   ChevronDown,
   ArrowRight,
+  HelpCircle,
+  Wrench,
+  BookOpen,
 } from "lucide-react";
 import { useLanguage } from "@/lib/use-language";
 
-// Animation Variants
 const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
@@ -46,53 +43,30 @@ const fadeUp = {
 export default function PluginPage() {
   const { isAr } = useLanguage();
   const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
-  const [activeTab, setActiveTab] = useState<"zxp" | "manual">("zxp");
-  const [copiedPath, setCopiedPath] = useState(false);
-  const [copiedReg, setCopiedReg] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const GDRIVE_URL = "https://drive.google.com/drive/folders/1fQAHUoH5EFyczLuQjQKEdcoLupN9n12a?usp=sharing";
 
-  // Download Links Setup
   const DOWNLOAD_LINKS = {
     setupExe: "/downloads/SaadStudio-Setup.exe",
-    zxp: "/downloads/SaadStudio.zxp",
-    manualZip: "/downloads/SaadStudio-manual.zip",
     googleDriveModels: GDRIVE_URL,
-    aescriptsZxpInstaller: "https://updates.aescripts.com/win/aescripts%20+%20aeplugins%20desktop%20apps%20%28setup%29.exe",
   };
 
-  const cepPath = "C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\";
-  const regCommand = `reg add "HKCU\\Software\\Adobe\\CSXS.12" /v PlayerDebugMode /t REG_SZ /d 1 /f`;
-
-  const copyToClipboard = (text: string, type: "path" | "reg") => {
-    navigator.clipboard.writeText(text);
-    if (type === "path") {
-      setCopiedPath(true);
-      setTimeout(() => setCopiedPath(false), 2000);
-    } else {
-      setCopiedReg(true);
-      setTimeout(() => setCopiedReg(false), 2000);
-    }
-  };
-
-  // Translations
   const t = (en: string, ar: string) => (isAr ? ar : en);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden">
-      {/* Dynamic Background Effects */}
+      {/* Background Glows */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-40 left-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-amber-500/10 via-violet-600/10 to-transparent blur-[160px]" />
         <div className="absolute top-1/3 -right-20 h-[500px] w-[500px] rounded-full bg-gradient-to-bl from-blue-600/10 via-emerald-500/10 to-transparent blur-[150px]" />
         <div className="absolute bottom-10 left-10 h-[450px] w-[450px] rounded-full bg-gradient-to-tr from-cyan-500/10 via-purple-600/10 to-transparent blur-[140px]" />
       </div>
 
-      {/* Main Full-Width Container */}
-      <div className="relative z-10 max-w-[1800px] w-full mx-auto px-4 sm:px-6 lg:px-12 py-16 space-y-24">
+      <div className="relative z-10 max-w-[1500px] w-full mx-auto px-4 sm:px-6 lg:px-12 py-16 space-y-20">
 
         {/* 🚀 HERO SECTION */}
-        <section className="text-center space-y-6 pt-6">
+        <section className="text-center space-y-6 pt-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -107,7 +81,7 @@ export default function PluginPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.2] max-w-5xl mx-auto"
+            className="text-3xl sm:text-5xl font-black tracking-tight leading-[1.2] max-w-4xl mx-auto"
           >
             {t("Supercharge Your Adobe Workflow with ", "ارتقِ بمونتاجك وإنتاجك على أدوبي مع ")}
             <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
@@ -122,17 +96,17 @@ export default function PluginPage() {
             className="text-base sm:text-lg text-slate-300/90 max-w-3xl mx-auto leading-relaxed"
           >
             {t(
-              "One powerful plugin suite designed natively for Premiere Pro, After Effects, and Photoshop. Automate multi-cam switching, auto captions, AI audio sync, and visual asset import in 1-click.",
-              "حزمة شاملة مخصصة لبرامج بريمير، أفترافيكت، وفوتوشوب. أتمتة مونتاج الكاميرات المتعددة، الترجمة والفرز الصوتي الآلي، المزامنة وتوليد المؤثرات بنقرة زر واحدة."
+              "Automate multi-cam cut decisions, auto captions, audio sync, and visual asset import directly in Premiere Pro, After Effects, and Photoshop with 1-click.",
+              "أتمتة مونتاج الكاميرات المتعددة، الترجمة والفرز الصوتي الآلي، المزامنة وتوليد المؤثرات بنقرة زر واحدة داخل بريمير، أفترافيكت، وفوتوشوب."
             )}
           </motion.p>
 
-          {/* Supported Adobe Host App Badges */}
+          {/* Adobe Apps Badges */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap items-center justify-center gap-4 pt-4"
+            className="flex flex-wrap items-center justify-center gap-4 pt-2"
           >
             <div className="flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-slate-900/90 border border-violet-500/40 shadow-xl backdrop-blur-md">
               <div className="w-8 h-8 rounded-lg bg-violet-950 border border-violet-500/60 flex items-center justify-center text-violet-300 font-black text-sm">
@@ -166,16 +140,16 @@ export default function PluginPage() {
           </motion.div>
         </section>
 
-        {/* 📦 DOWNLOAD CENTER SECTION (Full Width Grid) */}
+        {/* 📦 DOWNLOAD CENTER SECTION (Clean 2 Cards) */}
         <section className="space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-extrabold text-white">
-              {t("Download Package Center", "مركز تحميل الحزم والأدوات")}
+            <h2 className="text-3xl font-black text-white">
+              {t("Download Package Center", "مركز التحميل المباشر")}
             </h2>
-            <p className="text-slate-400 text-sm max-w-2xl mx-auto">
+            <p className="text-slate-400 text-sm max-w-xl mx-auto">
               {t(
-                "Choose your preferred download method below. All packages are verified and signed.",
-                "اختر حزمة التحميل المناسبة لنظامك. جميع الحزم موقعة ومفحوصة بالكامل."
+                "Download the 1-click standalone installer EXE and offline AI models below.",
+                "قم بتحميل برنامج التثبيت التلقائي وحزمة النماذج المحلية أدناه."
               )}
             </p>
           </div>
@@ -185,55 +159,55 @@ export default function PluginPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto"
           >
-            {/* Download Card 1: Official Standalone 1-Click Setup EXE (RECOMMENDED) */}
+            {/* Card 1: SaadStudio-Setup.exe */}
             <motion.div
               variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-amber-500/50 bg-gradient-to-b from-amber-500/10 via-slate-900/90 to-slate-900/90 p-7 backdrop-blur-md shadow-2xl shadow-amber-500/15 hover:border-amber-400 transition-all duration-300 group"
+              className="relative flex flex-col justify-between rounded-3xl border border-amber-500/50 bg-gradient-to-b from-amber-500/10 via-slate-900/95 to-slate-900/95 p-8 backdrop-blur-md shadow-2xl shadow-amber-500/15 hover:border-amber-400 transition-all duration-300 group"
             >
               <div className="absolute -top-3.5 left-6 px-4 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-xs font-black text-slate-950 shadow-lg">
-                {t("★ Recommended (1-Click)", "★ الموصى به (تثبيت تلقائي)")}
+                {t("★ Recommended (1-Click)", "★ برنامج التثبيت التلقائي")}
               </div>
 
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
-                  <Zap className="w-6 h-6" />
+              <div className="space-y-5">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
+                  <Zap className="w-7 h-7" />
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white">{t("1-Click Setup Installer", "برنامج التثبيت التلقائي (.exe)")}</h3>
-                  <p className="text-xs text-amber-400 font-semibold mt-0.5">SaadStudio-Setup.exe • 33.4 MB</p>
+                  <h3 className="text-2xl font-black text-white">{t("SaadStudio-Setup.exe", "برنامج التنصيب SaadStudio-Setup.exe")}</h3>
+                  <p className="text-xs text-amber-400 font-semibold mt-1">Windows 10/11 • 33.4 MB • 1-Click EXE</p>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-sm text-slate-300 leading-relaxed">
                   {t(
-                    "Standalone 1-click Windows installer. Automatically configures Adobe CEP environment and installs extension for Premiere, After Effects & Photoshop in seconds.",
-                    "برنامج تثبيت تلقائي لنظام ويندوز. بضغطة زر واحدة يقوم بتنصيب الإضافة وضبط بيئة أدوبي تلقائياً لبرامج بريمير، أفترافيكت، وفوتوشوب."
+                    "Standalone 1-click installer. Automatically configures Adobe CEP registry and installs the extension for Premiere Pro, After Effects & Photoshop in seconds.",
+                    "برنامج تثبيت تلقائي لنظام ويندوز. بضغطة زر واحدة يقوم بتنصيب الإضافة وتفعيل النظام تلقائياً لبرامج أدوبي بريمير وأفترافيكت وفوتوشوب."
                   )}
                 </p>
 
-                <div className="space-y-2 pt-1 text-xs text-slate-400">
+                <div className="space-y-2.5 pt-2 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("1-Click Automatic Installation", "تثبيت تلقائي بنقرة واحدة")}</span>
+                    <span>{t("1-Click Automatic Setup", "تنصيب آلي بنقرة واحدة بدون خطوات معقدة")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Auto-Configures PlayerDebugMode", "تهيئة التفعيل التلقائي للنظام")}</span>
+                    <span>{t("Auto-Configures System Debug Mode", "تفعيل تلقائي لبيئة تشغيل الإضافات")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Includes FFmpeg Audio Engine", "يتضمن محرك المعالجة الصوتية")}</span>
+                    <span>{t("Includes Pre-Bundled Audio Engine", "مدمج مع محرك المعالجة الصوتية")}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 space-y-2">
+              <div className="pt-8">
                 <a
                   href={DOWNLOAD_LINKS.setupExe}
                   download="SaadStudio-Setup.exe"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all"
+                  className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-[1.02]"
                 >
                   <Download className="w-5 h-5" />
                   <span>{t("Download SaadStudio-Setup.exe (33.4 MB)", "تحميل SaadStudio-Setup.exe (33.4 ميجابايت)")}</span>
@@ -241,504 +215,242 @@ export default function PluginPage() {
               </div>
             </motion.div>
 
-            {/* Download Card 2: Official ZXP Package */}
+            {/* Card 2: Offline AI Models Pack */}
             <motion.div
               variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-cyan-500/30 bg-slate-900/80 p-7 backdrop-blur-md shadow-2xl hover:border-cyan-400 transition-all duration-300 group"
+              className="relative flex flex-col justify-between rounded-3xl border border-violet-500/40 bg-slate-900/90 p-8 backdrop-blur-md shadow-2xl shadow-violet-500/10 hover:border-violet-400 transition-all duration-300 group"
             >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
-                  <Download className="w-6 h-6" />
+              <div className="absolute -top-3.5 left-6 px-4 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-xs font-bold text-white shadow-lg">
+                {t("AI Models Drive Pack", "حزمة النماذج أوفلاين")}
+              </div>
+
+              <div className="space-y-5">
+                <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 group-hover:scale-110 transition-transform">
+                  <HardDrive className="w-7 h-7" />
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white">{t("SaadStudio.zxp Package", "حزمة SaadStudio.zxp للإضافة")}</h3>
-                  <p className="text-xs text-cyan-400 font-semibold mt-0.5">v2.0.0 • 33.3 MB • {t("Signed ZXP", "تغليف زيب موقع")}</p>
+                  <h3 className="text-2xl font-black text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي الأوفلاين")}</h3>
+                  <p className="text-xs text-violet-400 font-semibold mt-1">Google Drive • ~6 GB • Offline Pack</p>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {t(
-                    "Official signed ZXP extension package for users with AEScripts ZXP Installer or Anastasiy's Extension Manager.",
-                    "حزمة الإضافة الموقعة رسمياً للذين يفضلون استخدام برنامج AEScripts ZXP Installer أو التثبيت عبر ZXP Manager."
-                  )}
-                </p>
-
-                <div className="space-y-2 pt-1 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Standard ZXP Installer Format", "صيغة ZXP المعتمدة لبرامج أدوبي")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Verified Extension Logic", "شاملة ملفات البريمير والأفترافيكت")}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 space-y-2">
-                <a
-                  href={DOWNLOAD_LINKS.zxp}
-                  download="SaadStudio.zxp"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold border border-cyan-500/30 text-xs transition-all"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{t("Download SaadStudio.zxp (33.3 MB)", "تحميل SaadStudio.zxp (33.3 ميجابايت)")}</span>
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Download Card 3: Offline AI Models Pack */}
-            <motion.div
-              variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-violet-500/40 bg-slate-900/80 p-7 backdrop-blur-md shadow-2xl hover:border-violet-400 transition-all duration-300 group"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-violet-500/15 border border-violet-500/30 flex items-center justify-center text-violet-400 group-hover:scale-110 transition-transform">
-                  <HardDrive className="w-6 h-6" />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-white">{t("Offline AI Models Pack", "حزمة نماذج الذكاء الاصطناعي")}</h3>
-                  <p className="text-xs text-violet-400 font-semibold mt-0.5">Google Drive • ~6 GB • Offline Pack</p>
-                </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-sm text-slate-300 leading-relaxed">
                   {t(
                     "Complete offline speech-to-text AI models pack for instant 100% offline auto-captions and transcription without internet.",
                     "حزمة محركات معالجة الصوت والنصوص المحلية الكاملة للعمل أوفلاين 100% وبدون الحاجة لإنترنت."
                   )}
                 </p>
 
-                <div className="space-y-2 pt-1 text-xs text-slate-400">
+                <div className="space-y-2.5 pt-2 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Includes Auto Script install-models.bat", "يتضمن سكريبت التثبيت التلقائي .bat")}</span>
+                    <span>{t("Includes 1-Click Install Script (install-models.bat)", "يتضمن سكريبت التثبيت التلقائي install-models.bat")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("High Speed Google Drive Link", "رابط تحميل سريع من كوكل درايف")}</span>
+                    <span>{t("High-Precision Speech Recognition", "دقة عالية في التعرف الصوتي وتوليد النص")}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{t("High Speed Google Drive Link", "رابط تحميل مباشر وسريع من كوكل درايف")}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 space-y-2">
+              <div className="pt-8">
                 <a
                   href={DOWNLOAD_LINKS.googleDriveModels}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-violet-500/25 transition-all"
+                  className="flex items-center justify-center gap-2.5 w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-black text-base shadow-xl shadow-violet-500/25 transition-all hover:scale-[1.02]"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>{t("Download Models (Google Drive)", "تحميل النماذج (من كوكل درايف)")}</span>
-                </a>
-              </div>
-            </motion.div>
-
-            {/* Download Card 4: Manual Zip Pack */}
-            <motion.div
-              variants={fadeUp}
-              className="relative flex flex-col justify-between rounded-3xl border border-slate-700 bg-slate-900/60 p-7 backdrop-blur-md shadow-2xl hover:border-slate-600 transition-all duration-300 group"
-            >
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 group-hover:scale-110 transition-transform">
-                  <FolderArchive className="w-6 h-6" />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-white">{t("Manual Extraction (.zip)", "حزمة التثبيت اليدوي (.zip)")}</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">v2.0.0 • 33.3 MB • Zip Archive</p>
-                </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {t(
-                    "Direct zip archive for users copying extension folder manually into C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\.",
-                    "ملف مضغوط للتثبيت اليدوي المباشر بنقل المجلد إلى مجلد CEP بالويندوز."
-                  )}
-                </p>
-
-                <div className="space-y-2 pt-1 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Direct Folder Extraction", "فك ضغط مباشر بدون برامج")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{t("Full Source Included", "يتضمن ملفات الإضافة كاملة")}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 space-y-2">
-                <a
-                  href={DOWNLOAD_LINKS.manualZip}
-                  download="SaadStudio-manual.zip"
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold text-xs transition-all"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{t("Download Manual Zip (33.3 MB)", "تحميل الملف اليدوي (33.3 ميجابايت)")}</span>
+                  <ExternalLink className="w-5 h-5" />
+                  <span>{t("Download Models Pack (Google Drive)", "تحميل النماذج (من كوكل درايف)")}</span>
                 </a>
               </div>
             </motion.div>
           </motion.div>
         </section>
 
-        {/* 🛠️ INTERACTIVE INSTALLATION & SETUP GUIDE */}
-        <section className="space-y-8 pt-6">
+        {/* 🛠️ طريقة التنصيب (INSTALLATION GUIDE) */}
+        <section className="space-y-8 pt-4">
           <div className="text-center space-y-3">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              {t("Interactive Installation Guide", "دليل التنصيب والتفعيل التفاعلي خطوة بخطوة")}
+            <h2 className="text-3xl font-black text-white flex items-center justify-center gap-3">
+              <Zap className="w-7 h-7 text-amber-400" />
+              <span>{t("Installation Method", "طريقة التنصيب")}</span>
             </h2>
-            <p className="text-slate-400 text-base max-w-3xl mx-auto">
-              {t(
-                "Follow these simple organized steps to install the extension and activate local AI models in less than 2 minutes.",
-                "اتبع الخطوات المنظمة والشرح التفاعلي أدناه لتنصيب الإضافة وتفعيل النماذج المحلية في أقل من دقيقتين."
-              )}
+            <p className="text-slate-400 text-sm max-w-xl mx-auto">
+              {t("3 simple steps to get Saad Studio up and running on your system.", "3 خطوات بسيطة لتنصيب وتفعيل الإضافة والنماذج على حاسوبك.")}
             </p>
-
-            {/* Method Selector Tabs */}
-            <div className="flex justify-center pt-4">
-              <div className="inline-flex items-center p-1.5 rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md shadow-xl">
-                <button
-                  onClick={() => setActiveTab("zxp")}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    activeTab === "zxp"
-                      ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Zap className="w-4 h-4" />
-                  <span>{t("Method 1: ZXP Installer (Recommended)", "الطريقة 1: التثبيت التلقائي عبر ZXP Installer")}</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("manual")}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    activeTab === "manual"
-                      ? "bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <FolderArchive className="w-4 h-4" />
-                  <span>{t("Method 2: Manual Folder Copy", "الطريقة 2: التثبيت اليدوي المباشر")}</span>
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* Interactive Step Timeline Container */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 sm:p-10 backdrop-blur-xl shadow-2xl space-y-10">
-            <AnimatePresence mode="wait">
-              {activeTab === "zxp" ? (
-                <motion.div
-                  key="zxp-guide"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                >
-                  {/* Step 1 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-amber-500/30 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        1
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Download SaadStudio-Setup.exe", "تحميل SaadStudio-Setup.exe")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Download the standalone 1-click installer EXE for Windows.",
-                          "قم بتحميل برنامج التثبيت التلقائي SaadStudio-Setup.exe المباشر."
-                        )}
-                      </p>
-                    </div>
-                    <a
-                      href={DOWNLOAD_LINKS.setupExe}
-                      download="SaadStudio-Setup.exe"
-                      className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:underline pt-4"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{t("Download SaadStudio-Setup.exe", "تحميل SaadStudio-Setup.exe (.exe مباشر)")}</span>
-                    </a>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* Step 1 */}
+            <div className="relative flex flex-col justify-between rounded-3xl bg-slate-900/80 border border-amber-500/30 p-7 space-y-4 backdrop-blur-md">
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
+                  1
+                </div>
+                <h3 className="text-lg font-bold text-white">
+                  {t("Run SaadStudio-Setup.exe", "تشغيل برنامج SaadStudio-Setup.exe")}
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {t(
+                    "Download SaadStudio-Setup.exe and double-click to run. It automatically copies the extension to CEP folder and activates Windows registry PlayerDebugMode.",
+                    "قم بتحميل وتشغيل ملف SaadStudio-Setup.exe. سيقوم بتنصيب الإضافة بداخل مجلد CEP وتفعيل سجل الويندوز تلقائياً."
+                  )}
+                </p>
+              </div>
+              <div className="pt-2 text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{t("Auto Setup Complete in 5s", "تثبيت وتفعيل تلقائي خلال ثوانٍ")}</span>
+              </div>
+            </div>
 
-                  {/* Step 2 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-slate-800 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        2
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Run 1-Click Installer", "تشغيل برنامج التنصيب بنقرة واحدة")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Double-click SaadStudio-Setup.exe. It configures Windows CEP registry and copies extension automatically.",
-                          "اضغط مرتين على ملف SaadStudio-Setup.exe وسيقوم بتنصيب وتفعيل الإضافة تلقائياً خلال ثوانٍ."
-                        )}
-                      </p>
-                    </div>
-                    <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1 pt-4">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>{t("1-Click Auto Configuration", "تثبيت وتفعيل تلقائي بالكامل")}</span>
-                    </div>
-                  </div>
+            {/* Step 2 */}
+            <div className="relative flex flex-col justify-between rounded-3xl bg-slate-900/80 border border-violet-500/30 p-7 space-y-4 backdrop-blur-md">
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 font-black flex items-center justify-center text-lg">
+                  2
+                </div>
+                <h3 className="text-lg font-bold text-white">
+                  {t("Activate AI Models (.bat)", "تفعيل النماذج المحلية (.bat)")}
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {t(
+                    "Unzip the downloaded AI Models pack from Google Drive, and double-click 'install-models.bat' to copy AI engines to user folder.",
+                    "افتح حزمة النماذج المحملة من كوكل درايف واضغط مرتين على ملف 'install-models.bat' لنقل نماذج الذكاء الاصطناعي."
+                  )}
+                </p>
+              </div>
+              <div className="bg-violet-950/60 border border-violet-500/30 rounded-xl p-2.5 text-[11px] font-mono text-violet-300 text-center">
+                install-models.bat
+              </div>
+            </div>
 
-                  {/* Step 3 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-violet-500/30 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 font-black flex items-center justify-center text-lg">
-                        3
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Run 1-Click Models Script", "تشغيل سكريبت التثبيت التلقائي للنماذج")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Unzip SaadStudio-AI-Models.zip and double-click 'install-models.bat' to activate all offline AI models.",
-                          "فك الضغط عن حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لتفعيل النماذج محلياً."
-                        )}
-                      </p>
-                    </div>
-                    <div className="bg-violet-950/60 border border-violet-500/30 rounded-xl p-2.5 text-[11px] font-mono text-violet-300">
-                      {t("install-models.bat", "تثبيت النماذج تلقائياً.bat")}
-                    </div>
-                  </div>
-
-                  {/* Step 4 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-slate-800 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        4
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Launch Adobe App & Open Panel", "تشغيل برنامج أدوبي وفتح الإضافة")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Launch Premiere Pro, After Effects, or Photoshop. Go to top menu: Window > Extensions > Saad Studio.",
-                          "افتح برنامج بريمير أو أفترافيكت أو فوتوشوب، واذهب للقائمة العلوية: Window > Extensions > Saad Studio."
-                        )}
-                      </p>
-                    </div>
-                    <div className="text-xs font-bold text-slate-200 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
-                      Window ➔ Extensions ➔ Saad Studio
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="manual-guide"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="grid grid-cols-1 md:grid-cols-4 gap-6"
-                >
-                  {/* Step 1 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-slate-800 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        1
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Extract SaadStudio-manual.zip", "فك ضغط ملف SaadStudio-manual.zip")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Unzip SaadStudio-manual.zip to extract the folder named 'app.saadstudio.cep'.",
-                          "قم بفك الضغط عن الملف واستخرج مجلد 'app.saadstudio.cep'."
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step 2 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-amber-500/30 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        2
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Copy to CEP Extensions Folder", "نسخ المجلد لمسار CEP بالويندوز")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Copy 'app.saadstudio.cep' into your Windows CEP directory below:",
-                          "قم بنسخ المجلد ولصقه داخل مسار CEP بملفات النظام كما يلي:"
-                        )}
-                      </p>
-
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono text-amber-300">
-                        <span className="truncate">{cepPath}</span>
-                        <button
-                          onClick={() => copyToClipboard(cepPath, "path")}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                          title="Copy Path"
-                        >
-                          {copiedPath ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Step 3 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-violet-500/30 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 font-black flex items-center justify-center text-lg">
-                        3
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Run 1-Click Models Script", "تشغيل سكريبت التثبيت التلقائي للنماذج")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Unzip SaadStudio-AI-Models.zip and double-click 'install-models.bat' to copy AI models.",
-                          "افتح حزمة النماذج واضغط مرتين على 'تثبيت النماذج تلقائياً.bat' لنقل وتفعيل النماذج تلقائياً."
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step 4 */}
-                  <div className="relative flex flex-col justify-between rounded-2xl bg-slate-950/80 border border-slate-800 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 font-black flex items-center justify-center text-lg">
-                        4
-                      </div>
-                      <h3 className="text-base font-bold text-white">
-                        {t("Restart & Open Extension", "إعادة تشغيل أدوبي وفتح الإضافة")}
-                      </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        {t(
-                          "Restart Adobe host application and open Window > Extensions > Saad Studio.",
-                          "أعد تشغيل برنامج أدوبي وافتح الإضافة من القائمة العلوية Window > Extensions > Saad Studio."
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Step 3 */}
+            <div className="relative flex flex-col justify-between rounded-3xl bg-slate-900/80 border border-slate-700 p-7 space-y-4 backdrop-blur-md">
+              <div className="space-y-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 text-slate-300 font-black flex items-center justify-center text-lg">
+                  3
+                </div>
+                <h3 className="text-lg font-bold text-white">
+                  {t("Open Panel inside Adobe App", "فتح الإضافة داخل برنامج أدوبي")}
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  {t(
+                    "Launch Premiere Pro, After Effects, or Photoshop. Go to top menu: Window > Extensions > Saad Studio.",
+                    "افتح بريمير أو أفترافيكت أو فوتوشوب واذهب للقائمة العلوية: Window > Extensions > Saad Studio."
+                  )}
+                </p>
+              </div>
+              <div className="text-xs font-bold text-slate-200 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 text-center">
+                Window ➔ Extensions ➔ Saad Studio
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* 🎨 ADOBE HOST APPS FEATURE SHOWCASE */}
-        <section className="space-y-8 pt-6">
+        {/* 📖 طريقة الاستخدام (HOW TO USE) */}
+        <section className="space-y-8 pt-4">
           <div className="text-center space-y-3">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              {t("Multi-App Adobe Integration Suite", "مميزات وحزم الإضافة المتكاملة لبرامج أدوبي")}
+            <h2 className="text-3xl font-black text-white flex items-center justify-center gap-3">
+              <BookOpen className="w-7 h-7 text-violet-400" />
+              <span>{t("How to Use", "طريقة الاستخدام")}</span>
             </h2>
-            <p className="text-slate-400 text-base max-w-3xl mx-auto">
-              {t(
-                "Explore the specialized features designed natively for Premiere Pro, After Effects, and Photoshop.",
-                "استكشف أدوات ومميزات الإضافة المخصصة لكل برنامج من برامج أدوبي."
-              )}
+            <p className="text-slate-400 text-sm max-w-xl mx-auto">
+              {t("Main features and 1-click workflows available in Saad Studio panel.", "أبرز الميزات وأدوات المونتاج التلقائي بنقرة واحدة.")}
             </p>
+          </div>
 
-            {/* App Selection Tabs */}
-            <div className="flex justify-center pt-4">
-              <div className="inline-flex items-center p-1.5 rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md">
-                <button
-                  onClick={() => setActiveHostApp("ppro")}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeHostApp === "ppro"
-                      ? "bg-violet-600 text-white shadow-lg shadow-violet-500/25"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Video className="w-4 h-4" />
-                  <span>Adobe Premiere Pro</span>
-                </button>
+          {/* App Selector Tabs for How To Use */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center p-1.5 rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-md">
+              <button
+                onClick={() => setActiveHostApp("ppro")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  activeHostApp === "ppro"
+                    ? "bg-violet-600 text-white shadow-lg shadow-violet-500/25"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Video className="w-4 h-4" />
+                <span>Premiere Pro (مونتاج وتسميات)</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveHostApp("ae")}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeHostApp === "ae"
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <Play className="w-4 h-4" />
-                  <span>Adobe After Effects</span>
-                </button>
+              <button
+                onClick={() => setActiveHostApp("ae")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  activeHostApp === "ae"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <Play className="w-4 h-4" />
+                <span>After Effects (مؤثرات وطبقات)</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveHostApp("ps")}
-                  className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    activeHostApp === "ps"
-                      ? "bg-cyan-600 text-white shadow-lg shadow-cyan-500/25"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  <ImageIcon className="w-4 h-4" />
-                  <span>Adobe Photoshop</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setActiveHostApp("ps")}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  activeHostApp === "ps"
+                    ? "bg-cyan-600 text-white shadow-lg shadow-cyan-500/25"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span>Photoshop (استيراد الأصول)</span>
+              </button>
             </div>
           </div>
 
-          {/* Feature Details Container */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 sm:p-10 backdrop-blur-xl">
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-8 backdrop-blur-xl max-w-5xl mx-auto">
             <AnimatePresence mode="wait">
               {activeHostApp === "ppro" && (
                 <motion.div
-                  key="ppro-features"
+                  key="use-ppro"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
                 >
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-violet-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
-                      <Video className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold">
+                      1
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Multi-Cam Auto Switcher", "مونتاج الكاميرات المتعددة التلقائي")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Multi-Cam Auto Switcher", "مونتاج الكاميرات التلقائي")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "RMS-based active speaker detection to make automated camera cut decisions across multiple video tracks.",
-                        "تحليل الصوت بنظام RMS للكشف عن المتحدثين وتقطيع مسارات الفيديو تلقائياً وبدقة فائقة."
-                      )}
+                      حدّد مسارات كاميرات الضيوف واضغط على **Run One Click Edit** وتقوم الإضافة بتقطيع الكاميرات تلقائياً حسب المتحدث بالصوت.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-violet-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
-                      <Wand2 className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold">
+                      2
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Auto Captions & Subtitles Engine", "الترجمة والتسميات الآلية")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Offline Auto Captions", "الترجمة التلقائية أوفلاين")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Generates styled subtitle tracks directly on Premiere timeline 100% offline using local AI engines.",
-                        "توليد خطوط الكتابة والترجمة الآلية مباشرة على التايم لاين أوفلاين 100% وبدون إنترنت."
-                      )}
+                      تحويل الصوت إلى نص وتوليد خطوط الكابشنز والستايلات السينمائية على تايم لاين بريمير 100% أوفلاين وبدون إنترنت.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-violet-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
-                      <Sliders className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold">
+                      3
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Audio Sync Suite", "مزامنة الصوت متعدد المسارات")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Audio Waveform Sync", "مزامنة المسارات الصوتية")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Waveform correlation algorithm aligns external microphone audio with camera scratch audio automatically.",
-                        "مزامنة وبناء المسارات الصوتية المنفصلة وتطابقها مع فيديو الكاميرات تلقائياً."
-                      )}
+                      مزامنة وتسوية مسارات المايكات الخارجية مع فيديو الكاميرات تلقائياً باستخدام خوارزمية التطابق الصوتي.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-violet-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center">
-                      <Zap className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold">
+                      4
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("1-Click Podcast Auto Editing", "مونتاج البودكاست بنقرة واحدة")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Silence Removal", "حذف الصمت والتوقفات")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Runs complete multi-cam switching, audio sync, and captions generation in one automated sequence.",
-                        "تشغيل المسار الكامل لمونتاج البودكاست (القطع والتسميات والمزامنة) بنقرة زر واحدة."
-                      )}
+                      حذف التوقفات والفترات الصامتة تلقائياً واختصار زمن التسجيلات بدقة فائقة دون إتلاف جودة الفيديو.
                     </p>
                   </div>
                 </motion.div>
@@ -746,48 +458,39 @@ export default function PluginPage() {
 
               {activeHostApp === "ae" && (
                 <motion.div
-                  key="ae-features"
+                  key="use-ae"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-blue-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                      <Layers className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
+                      1
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("ExtendScript Composition Engine", "محرك إنشاء التركيبات وتوليد الطبقات")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Composition Generator", "إنشاء التركيبات آلياً")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Generates dynamic composition layers, animated text, and background visual assets directly inside After Effects.",
-                        "إنشاء الطبقات والمؤثرات البصرية والنصوص المتحركة آلياً بداخل تركيبات أفترافيكت."
-                      )}
+                      إنشاء الطبقات والمؤثرات البصرية للنصوص والخلفيات بنقرة واحدة داخل أفترافيكت.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-blue-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                      <Play className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
+                      2
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("AI Video Generation Import", "استيراد فيديوهات الذكاء الاصطناعي")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("AI Video Timeline Import", "استيراد فيديوهات AI")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Directly fetch generated AI video clips from your Saad Studio library and place them on AE timeline.",
-                        "سحب واستيراد المخرجات البصرية والفيديوهات المولدة من الاستوديو إلى تايم لاين أفترافيكت مباشرة."
-                      )}
+                      سحب واستيراد الفيديوهات المولدة بالذكاء الاصطناعي من مكتبة سعد استوديو إلى التايم لاين مباشرة.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-blue-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
+                      3
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Automatic Keyframe Sync", "مزامنة الكي فريم التلقائية")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("Keyframe Cadence Sync", "مزامنة الكي فريم")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Aligns animation keyframes with speech cadences and audio beat detection.",
-                        "مزامنة نقاط التحريك (Keyframes) تلقائياً مع الإيقاع ومسارات الصوت والترجمة."
-                      )}
+                      مزامنة الحركة والـ Keyframes تلقائياً مع إيقاع الصوت والترجمة.
                     </p>
                   </div>
                 </motion.div>
@@ -795,48 +498,39 @@ export default function PluginPage() {
 
               {activeHostApp === "ps" && (
                 <motion.div
-                  key="ps-features"
+                  key="use-ps"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
-                      <ImageIcon className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center font-bold">
+                      1
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("1-Click Canvas Asset Import", "استيراد الصور إلى لوحة العمل بنقرة واحدة")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("1-Click Canvas Asset Import", "استيراد الصور للوحة العمل")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Imports generated AI images, backgrounds, and assets directly as editable Photoshop layers.",
-                        "استيراد الصور المولدة بالذكاء الاصطناعي كطبقات (Layers) حرة ومستقلة بداخل فوتوشوب."
-                      )}
+                      استيراد الصور المولدة بالذكاء الاصطناعي كطبقات (Layers) مستقلة بداخل فوتوشوب بنقرة زر.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
-                      <Wand2 className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center font-bold">
+                      2
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Prompt-to-Layer Studio Panel", "لوحة الأوامر والتوليد داخل فوتوشوب")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("In-Panel Image Generation", "توليد الصور داخل اللوحة")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Generate Nano Banana, Flux Pro, and GPT Image models directly inside Photoshop panel.",
-                        "توليد الصور باستخدام أحدث نماذج الـ AI مباشرة من اللوحة الجانبية داخل فوتوشوب."
-                      )}
+                      توليد الصور باستخدام أحدث النماذج العالمية من اللوحة الجانبية بداخل فوتوشوب مباشرة.
                     </p>
                   </div>
 
                   <div className="p-6 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-3">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center font-bold">
+                      3
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("High Resolution Texture Sync", "مزامنة الخامات والأصول عالية الدقة")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("High Res Transparency Channels", "دقة عالية وحفظ قنوات الشفافية")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {t(
-                        "Preserves original color spaces, transparency channels, and 4K resolution metadata.",
-                        "الحفاظ على الألوان الأصلية وقنوات الشفافية والدقة العالية للصور المستوردة."
-                      )}
+                      الحفاظ على قنوات الشفافية (Alpha Channels) ودقة الألوان فور الاستيراد.
                     </p>
                   </div>
                 </motion.div>
@@ -845,13 +539,64 @@ export default function PluginPage() {
           </div>
         </section>
 
-        {/* 💻 SYSTEM REQUIREMENTS & CHECKLIST */}
-        <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 sm:p-10 backdrop-blur-md space-y-6">
-          <h2 className="text-2xl font-bold text-white text-center">
-            {t("System Requirements & Compatibility Checklist", "متطلبات النظام والبيئة التشغيلية")}
+        {/* 🔧 المشاكل وحلها (TROUBLESHOOTING & SOLUTIONS) */}
+        <section className="space-y-8 pt-4">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-black text-white flex items-center justify-center gap-3">
+              <Wrench className="w-7 h-7 text-amber-400" />
+              <span>{t("Troubleshooting & Solutions", "المشاكل وحلها")}</span>
+            </h2>
+            <p className="text-slate-400 text-sm max-w-xl mx-auto">
+              {t("Common issues and instant step-by-step solutions.", "حلول فورية لأي مشكلة قد تواجهك أثناء التنصيب أو الاستخدام.")}
+            </p>
+          </div>
+
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {[
+              {
+                title: "المشكلة 1: الإضافة لا تظهر في قائمة Window > Extensions داخل أدوبي",
+                solution: "أعد تشغيل برنامج أدوبي (بريمير / أفترافيكت / فوتوشوب) بالكامل. إذا استمرت المشكلة انقر بالزر الأيمن على ملف SaadStudio-Setup.exe واختر 'تشغيل كمسؤول' (Run as Administrator) لإعادة كتابة مسار الـ CEP بالسجل."
+              },
+              {
+                title: "المشكلة 2: الإضافة تفتح بشاشة بيضاء أو تظهر رسالة 'Unsigned Extension'",
+                solution: "يقوم برنامج SaadStudio-Setup.exe بتفعيل خيار CSXS PlayerDebugMode آلياً لجميع إصدارات أدوبي (CSXS 9 إلى CSXS 16). إذا ظهرت شاشة بيضاء فقط تأكد من عدم وجود برامج حماية تمنع تعديل السجل، وأعد التشغيل."
+              },
+              {
+                title: "المشكلة 3: عدم ظهور الترجمة التلقائية الكابشنز أو عمل المحرك الأوفلاين",
+                solution: "تأكد من تنزيل حزمة النماذج من كوكل درايف وتشغيل ملف install-models.bat لنسخ ملفات الذكاء الاصطناعي الصوتية إلى مجلد المستخدم C:\\Users\\YOUR_NAME\\.saadstudio\\models."
+              },
+              {
+                title: "المشكلة 4: ظهور خطأ FFMPEG_NOT_READY أو تكرار المسار الأول فقط Stream 0",
+                solution: "تم حل هذه المشكلة بالكامل في هذا الإصدار المحدث! محرك الإضافة الآن يتعرف تلقائياً على FFmpeg المدمج ويقوم بالتقطيع والمزامنة بسلاسة."
+              }
+            ].map((faq, index) => (
+              <div
+                key={index}
+                className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 backdrop-blur-md space-y-3 cursor-pointer"
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-base font-bold text-amber-300">{faq.title}</h3>
+                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
+                </div>
+                {openFaq === index && (
+                  <div className="text-sm text-slate-200 leading-relaxed pt-3 border-t border-slate-800/80 bg-slate-950/60 p-4 rounded-xl">
+                    <p className="font-semibold text-emerald-400 mb-1">✓ الحل:</p>
+                    <p className="text-slate-300">{faq.solution}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 💻 متطلبات النظام */}
+        <section className="rounded-3xl border border-slate-800 bg-slate-900/60 p-8 backdrop-blur-md space-y-6 max-w-5xl mx-auto">
+          <h2 className="text-xl font-bold text-white text-center">
+            {t("System Requirements", "متطلبات النظام والبيئة التشغيلية")}
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
               <Monitor className="w-5 h-5 text-amber-400" />
               <h3 className="text-sm font-bold text-white">{t("Operating System", "نظام التشغيل")}</h3>
@@ -878,61 +623,9 @@ export default function PluginPage() {
           </div>
         </section>
 
-        {/* ❓ FREQUENTLY ASKED QUESTIONS (FAQ Accordion) */}
-        <section className="space-y-6 pt-4">
-          <h2 className="text-3xl font-extrabold text-white text-center">
-            {t("Frequently Asked Questions", "الأسئلة الشائعة حول الإضافة والتثبيت")}
-          </h2>
-
-          <div className="space-y-4 max-w-4xl mx-auto">
-            {[
-              {
-                qEn: "Does auto captions require an active internet connection?",
-                qAr: "هل تتطلب أداة الترجمة والبودكاست اتصالاً بالإنترنت؟",
-                aEn: "No! All auto captions, active speaker analysis, and audio sync run 100% locally and offline on your PC using embedded audio engines and local AI models.",
-                aAr: "لا! جميع عمليات الترجمة والفرز وتقطيع الصوت تعتمد على محركات محلية أوفلاين 100% بداخل جهازك دون الحاجة لإنترنت."
-              },
-              {
-                qEn: "How many computers can I activate with my subscription?",
-                qAr: "كم عدد الأجهزة المسموح لي بتثبيت الإضافة عليها؟",
-                aEn: "Each subscription account permits installation and active usage on up to 2 PC devices per subscriber.",
-                aAr: "يُسمح بتفعيل واستخدام الإضافة على حاسوبين (2 PC Devices) كحد أقصى لكل حساب مشترك."
-              },
-              {
-                qEn: "What if Adobe shows 'unsigned extension' or blank panel in manual mode?",
-                qAr: "ماذا أفعل إذا ظهرت الإضافة شاشة بيضاء في التثبيت اليدوي؟",
-                aEn: "Run the PlayerDebugMode registry command to allow local beta extensions in Adobe CSXS environments.",
-                aAr: "قم بتفعيل خيار PlayerDebugMode في السجل للسماح لأدوبي بتحميل الإضافات التطويرية المحلية."
-              },
-              {
-                qEn: "What if ZXP Installer says 'Adobe requires Creative Cloud desktop app'?",
-                qAr: "ماذا أفعل إذا أظهر ZXP Installer رسالة 'Adobe requires Creative Cloud'؟",
-                aEn: "Launch Adobe Creative Cloud app and sign into your account, or simply use Method 2 (Manual Extraction) by copying 'app.saadstudio.cep' to C:\\Program Files (x86)\\Common Files\\Adobe\\CEP\\extensions\\ without needing Creative Cloud.",
-                aAr: "قم بفتح برنامج Adobe Creative Cloud وتسجيل الدخول بحسابك، أو استخدم الطريقة 2 (التثبيت اليدوي) بنقل مجلد 'app.saadstudio.cep' مباشرة إلى مسار CEP دون الحاجة لبرنامج Creative Cloud."
-              }
-            ].map((faq, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 backdrop-blur-md space-y-3 cursor-pointer"
-                onClick={() => setOpenFaq(openFaq === index ? null : index)}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <h3 className="text-base font-bold text-white">{t(faq.qEn, faq.qAr)}</h3>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
-                </div>
-                {openFaq === index && (
-                  <p className="text-sm text-slate-300 leading-relaxed pt-2 border-t border-slate-800/80">
-                    {t(faq.aEn, faq.aAr)}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 🏁 FINAL CTA BOTTOM SECTION */}
-        <section className="text-center rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 p-10 sm:p-14 backdrop-blur-xl space-y-6">
-          <h2 className="text-3xl sm:text-5xl font-black text-white">
+        {/* 🏁 CTA BOTTOM SECTION */}
+        <section className="text-center rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 p-10 sm:p-14 backdrop-blur-xl space-y-6 max-w-5xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-black text-white">
             {t("Ready to Transform Your Adobe Workflow?", "جاهز لرفع سرعة ومستوى إنتاجك على أدوبي؟")}
           </h2>
           <p className="text-slate-300 text-base max-w-2xl mx-auto">
@@ -944,7 +637,7 @@ export default function PluginPage() {
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
               href="/pricing"
-              className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-xl shadow-amber-500/25 transition-all"
+              className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-xl shadow-amber-500/25 transition-all hover:scale-105"
             >
               <span>{t("Get Podcast Extension Plan ($3/mo)", "اشترك في خطة الإضافة ($3/شهرياً)")}</span>
               <ArrowRight className="w-5 h-5 rtl:rotate-180" />
@@ -956,3 +649,4 @@ export default function PluginPage() {
     </div>
   );
 }
+
