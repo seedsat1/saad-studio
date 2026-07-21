@@ -381,6 +381,7 @@ type SupplierBalanceState = {
   provider?: string;
   label?: string;
   amount: number | null;
+  unit?: "credits" | "USD";
   status: "HIGH" | "MEDIUM" | "LOW" | "UNAVAILABLE" | "LOADING";
   syncedAt: string | null;
   billingUrl?: string | null;
@@ -623,6 +624,7 @@ export default function AdminDashboard() {
           provider: typeof data?.provider === "string" ? data.provider : fallback.provider,
           label: typeof data?.label === "string" ? data.label : fallback.label,
           amount: Number.isFinite(Number(data?.amount)) ? Number(data.amount) : null,
+          unit: data?.unit ?? (data?.id === "kie" ? "credits" : "USD"),
           status: data?.status ?? "UNAVAILABLE",
           syncedAt: typeof data?.syncedAt === "string" ? data.syncedAt : new Date().toISOString(),
           billingUrl: typeof data?.billingUrl === "string" ? data.billingUrl : fallback.billingUrl,
@@ -850,12 +852,17 @@ export default function AdminDashboard() {
   const bytePlusBalanceIndicator = getBalanceIndicator(bytePlusBalance.status);
   const waveSpeedBalanceIndicator = getBalanceIndicator(waveSpeedBalance.status);
   const backblazeBalanceIndicator = getBalanceIndicator(backblazeBalance.status);
-  const formattedKieAmount =
-    kieBalance.amount !== null ? `$${kieBalance.amount.toFixed(2)}` : "Unavailable";
+  const formatSupplierAmount = (balance: SupplierBalanceState) => {
+    if (balance.amount === null) return "Open report";
+    if (balance.unit === "credits" || balance.id === "kie") {
+      const usdValue = (balance.amount * 0.005).toFixed(2);
+      return `${balance.amount.toLocaleString()} credits (~$${usdValue})`;
+    }
+    return `$${balance.amount.toFixed(2)}`;
+  };
+  const formattedKieAmount = formatSupplierAmount(kieBalance);
   const formattedGoogleAmount =
     googleBalance.amount !== null ? `$${googleBalance.amount.toFixed(2)}` : "Open report";
-  const formatSupplierAmount = (balance: SupplierBalanceState) =>
-    balance.amount !== null ? `$${balance.amount.toFixed(2)}` : "Open report";
   const supplierBalances = [
     { state: kieBalance, indicator: kieBalanceIndicator, value: formattedKieAmount },
     { state: googleBalance, indicator: googleBalanceIndicator, value: formattedGoogleAmount },

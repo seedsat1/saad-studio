@@ -18,6 +18,7 @@ type ProviderBalance = {
   label: string;
   amount: number | null;
   currency: "USD";
+  unit?: "credits" | "USD";
   kind: ProviderBalanceKind;
   status: ProviderBalanceStatus;
   syncedAt: string;
@@ -67,7 +68,25 @@ function costLevel(amount: number | null, highUntil = 10, mediumUntil = 50): Pro
 }
 
 async function readKieBalance(now: string): Promise<ProviderBalance> {
+  const envOverride = numericEnv("KIE_BALANCE_CREDITS", "KIE_CREDITS");
   const apiKey = process.env.KIE_API_KEY ?? process.env.KIEAI_API_KEY;
+
+  if (!apiKey && envOverride !== null) {
+    return {
+      id: "kie",
+      provider: "KIE.ai",
+      label: "KIE Balance",
+      amount: envOverride,
+      unit: "credits",
+      currency: "USD",
+      kind: "balance",
+      status: balanceLevel(envOverride, 500, 100),
+      syncedAt: now,
+      billingUrl: "https://kie.ai/billing",
+      source: "env",
+      note: "Manual credits amount from server environment.",
+    };
+  }
 
   if (!apiKey) {
     return {
@@ -75,11 +94,12 @@ async function readKieBalance(now: string): Promise<ProviderBalance> {
       provider: "KIE.ai",
       label: "KIE Balance",
       amount: null,
+      unit: "credits",
       currency: "USD",
       kind: "balance",
       status: "UNAVAILABLE",
       syncedAt: now,
-      billingUrl: "https://kie.ai/",
+      billingUrl: "https://kie.ai/billing",
       source: "unavailable",
       note: "KIE_API_KEY is not configured.",
     };
@@ -94,9 +114,24 @@ async function readKieBalance(now: string): Promise<ProviderBalance> {
       cache: "no-store",
     });
     const data = await res.json().catch(() => null);
-    const amount = Number(data?.data);
+    const amount = Number(data?.data?.credit ?? data?.data);
 
     if (!res.ok || !Number.isFinite(amount)) {
+      if (envOverride !== null) {
+        return {
+          id: "kie",
+          provider: "KIE.ai",
+          label: "KIE Balance",
+          amount: envOverride,
+          unit: "credits",
+          currency: "USD",
+          kind: "balance",
+          status: balanceLevel(envOverride, 500, 100),
+          syncedAt: now,
+          billingUrl: "https://kie.ai/billing",
+          source: "env",
+        };
+      }
       throw new Error(data?.msg || data?.message || "Invalid KIE balance response.");
     }
 
@@ -105,24 +140,42 @@ async function readKieBalance(now: string): Promise<ProviderBalance> {
       provider: "KIE.ai",
       label: "KIE Balance",
       amount,
+      unit: "credits",
       currency: "USD",
       kind: "balance",
-      status: balanceLevel(amount),
+      status: balanceLevel(amount, 500, 100),
       syncedAt: now,
-      billingUrl: "https://kie.ai/",
+      billingUrl: "https://kie.ai/billing",
       source: "api",
     };
   } catch (error) {
+    if (envOverride !== null) {
+      return {
+        id: "kie",
+        provider: "KIE.ai",
+        label: "KIE Balance",
+        amount: envOverride,
+        unit: "credits",
+        currency: "USD",
+        kind: "balance",
+        status: balanceLevel(envOverride, 500, 100),
+        syncedAt: now,
+        billingUrl: "https://kie.ai/billing",
+        source: "env",
+      };
+    }
+
     return {
       id: "kie",
       provider: "KIE.ai",
       label: "KIE Balance",
       amount: null,
+      unit: "credits",
       currency: "USD",
       kind: "balance",
       status: "UNAVAILABLE",
       syncedAt: now,
-      billingUrl: "https://kie.ai/",
+      billingUrl: "https://kie.ai/billing",
       source: "unavailable",
       note: error instanceof Error ? error.message : "Could not reach KIE API.",
     };
@@ -130,7 +183,25 @@ async function readKieBalance(now: string): Promise<ProviderBalance> {
 }
 
 async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
+  const envOverride = numericEnv("WAVESPEED_BALANCE_USD", "WAVESPEED_CREDITS_USD");
   const apiKey = process.env.WAVESPEED_API_KEY;
+
+  if (!apiKey && envOverride !== null) {
+    return {
+      id: "wavespeed",
+      provider: "WaveSpeed",
+      label: "WaveSpeed Balance",
+      amount: envOverride,
+      unit: "USD",
+      currency: "USD",
+      kind: "balance",
+      status: balanceLevel(envOverride),
+      syncedAt: now,
+      billingUrl: WAVESPEED_TOP_UP_URL,
+      source: "env",
+      note: "Manual balance amount from server environment.",
+    };
+  }
 
   if (!apiKey) {
     return {
@@ -138,6 +209,7 @@ async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
       provider: "WaveSpeed",
       label: "WaveSpeed Balance",
       amount: null,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: "UNAVAILABLE",
@@ -149,15 +221,44 @@ async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
   }
 
   try {
-    const res = await fetch("https://api.wavespeed.ai/api/v2/user/balance", {
+    let res = await fetch("https://api.wavespeed.ai/api/v3/balance", {
       headers: { Authorization: `Bearer ${apiKey}` },
       cache: "no-store",
     });
+
+    if (!res.ok && res.status === 404) {
+      res = await fetch("https://api.wavespeed.ai/api/v2/balance", {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        cache: "no-store",
+      });
+    }
+
     const data = await res.json().catch(() => null);
-    const raw = data?.data?.balance_usd ?? data?.data?.balance ?? data?.balance_usd ?? data?.balance;
+    const raw =
+      data?.data?.balance_usd ??
+      data?.data?.balance ??
+      data?.balance_usd ??
+      data?.balance ??
+      data?.data;
     const amount = Number(raw);
 
     if (!res.ok || !Number.isFinite(amount)) {
+      if (envOverride !== null) {
+        return {
+          id: "wavespeed",
+          provider: "WaveSpeed",
+          label: "WaveSpeed Balance",
+          amount: envOverride,
+          unit: "USD",
+          currency: "USD",
+          kind: "balance",
+          status: balanceLevel(envOverride),
+          syncedAt: now,
+          billingUrl: WAVESPEED_TOP_UP_URL,
+          source: "env",
+          note: "Fallback balance from server environment.",
+        };
+      }
       throw new Error(data?.message || data?.error || "Invalid WaveSpeed balance response.");
     }
 
@@ -166,6 +267,7 @@ async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
       provider: "WaveSpeed",
       label: "WaveSpeed Balance",
       amount,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: balanceLevel(amount),
@@ -174,11 +276,28 @@ async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
       source: "api",
     };
   } catch (error) {
+    if (envOverride !== null) {
+      return {
+        id: "wavespeed",
+        provider: "WaveSpeed",
+        label: "WaveSpeed Balance",
+        amount: envOverride,
+        unit: "USD",
+        currency: "USD",
+        kind: "balance",
+        status: balanceLevel(envOverride),
+        syncedAt: now,
+        billingUrl: WAVESPEED_TOP_UP_URL,
+        source: "env",
+      };
+    }
+
     return {
       id: "wavespeed",
       provider: "WaveSpeed",
       label: "WaveSpeed Balance",
       amount: null,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: "UNAVAILABLE",
@@ -198,6 +317,7 @@ function readGoogleBilling(now: string): ProviderBalance {
     provider: "Google AI Studio",
     label: "Google Cost",
     amount,
+    unit: "USD",
     currency: "USD",
     kind: "cost",
     status: costLevel(amount),
@@ -221,6 +341,7 @@ function readBytePlusBilling(now: string): ProviderBalance {
       provider: "BytePlus Ark",
       label: "BytePlus Balance",
       amount,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: balanceLevel(amount),
@@ -236,6 +357,7 @@ function readBytePlusBilling(now: string): ProviderBalance {
     provider: "BytePlus Ark",
     label: "BytePlus Cost",
     amount: owed,
+    unit: "USD",
     currency: "USD",
     kind: "cost",
     status: costLevel(owed),
@@ -260,6 +382,7 @@ function readBackblazeBilling(now: string): ProviderBalance {
       provider: "Backblaze B2",
       label: "B2 Remaining",
       amount: remaining,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: balanceLevel(remaining),
@@ -277,6 +400,7 @@ function readBackblazeBilling(now: string): ProviderBalance {
       provider: "Backblaze B2",
       label: "B2 Remaining",
       amount: computedRemaining,
+      unit: "USD",
       currency: "USD",
       kind: "balance",
       status: balanceLevel(computedRemaining),
@@ -292,6 +416,7 @@ function readBackblazeBilling(now: string): ProviderBalance {
     provider: "Backblaze B2",
     label: "B2 Cost",
     amount: usage,
+    unit: "USD",
     currency: "USD",
     kind: "cost",
     status: costLevel(usage),
