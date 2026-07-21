@@ -855,8 +855,9 @@ export default function AdminDashboard() {
   const formatSupplierAmount = (balance: SupplierBalanceState) => {
     if (balance.amount === null) return "Open report";
     if (balance.unit === "credits" || balance.id === "kie") {
+      const integerCredits = Math.round(balance.amount);
       const usdValue = (balance.amount * 0.005).toFixed(2);
-      return `${balance.amount.toLocaleString()} credits (~$${usdValue})`;
+      return `${integerCredits.toLocaleString()} credits (~$${usdValue})`;
     }
     return `$${balance.amount.toFixed(2)}`;
   };

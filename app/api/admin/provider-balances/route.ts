@@ -29,7 +29,7 @@ type ProviderBalance = {
 
 const GOOGLE_AI_STUDIO_BILLING_URL =
   process.env.GOOGLE_BILLING_REPORT_URL ||
-  "https://aistudio.google.com/billing?billing=01819C-290562-360E8C";
+  "https://aistudio.google.com/billing?billing=01819C-290562-360E8C&project=gen-lang-client-0916453723";
 
 const BYTEPLUS_ARK_USAGE_URL =
   process.env.BYTEPLUS_ARK_USAGE_URL ||
@@ -48,7 +48,7 @@ function numericEnv(...keys: string[]): number | null {
     const raw = process.env[key];
     if (raw === undefined || raw.trim() === "") continue;
     const amount = Number(raw);
-    if (Number.isFinite(amount) && amount >= 0) return amount;
+    if (Number.isFinite(amount) && !isNaN(amount)) return amount;
   }
   return null;
 }
@@ -65,6 +65,37 @@ function costLevel(amount: number | null, highUntil = 10, mediumUntil = 50): Pro
   if (amount <= highUntil) return "HIGH";
   if (amount <= mediumUntil) return "MEDIUM";
   return "LOW";
+}
+
+function readGoogleBilling(now: string): ProviderBalance {
+  const credit = numericEnv(
+    "GOOGLE_AI_STUDIO_CREDIT_USD",
+    "GOOGLE_AI_STUDIO_BALANCE_USD",
+    "GOOGLE_CREDIT_USD",
+    "GOOGLE_BALANCE_USD"
+  );
+  const cost = numericEnv("GOOGLE_BILLING_USAGE_USD", "GOOGLE_AI_STUDIO_COST_USD");
+
+  const amount = credit !== null ? Math.abs(credit) : cost;
+  const isCredit = credit !== null;
+
+  return {
+    id: "google",
+    provider: "Google AI Studio",
+    label: isCredit ? "Google Credit" : "Google Cost",
+    amount,
+    unit: "USD",
+    currency: "USD",
+    kind: isCredit ? "balance" : "cost",
+    status: isCredit ? balanceLevel(amount, 10, 5) : (amount === null ? "MEDIUM" : costLevel(amount)),
+    syncedAt: now,
+    billingUrl: GOOGLE_AI_STUDIO_BILLING_URL,
+    source: amount === null ? "unavailable" : "env",
+    note:
+      amount === null
+        ? "Set GOOGLE_AI_STUDIO_CREDIT_USD (e.g. 9.20) in .env or click to view Google AI Studio Billing."
+        : `Server environment ${isCredit ? "credit" : "cost"} amount.`,
+  };
 }
 
 async function readKieBalance(now: string): Promise<ProviderBalance> {
@@ -307,28 +338,6 @@ async function readWaveSpeedBalance(now: string): Promise<ProviderBalance> {
       note: error instanceof Error ? error.message : "Could not reach WaveSpeed API.",
     };
   }
-}
-
-function readGoogleBilling(now: string): ProviderBalance {
-  const amount = numericEnv("GOOGLE_BILLING_USAGE_USD", "GOOGLE_AI_STUDIO_COST_USD");
-
-  return {
-    id: "google",
-    provider: "Google AI Studio",
-    label: "Google Cost",
-    amount,
-    unit: "USD",
-    currency: "USD",
-    kind: "cost",
-    status: costLevel(amount),
-    syncedAt: now,
-    billingUrl: GOOGLE_AI_STUDIO_BILLING_URL,
-    source: amount === null ? "unavailable" : "env",
-    note:
-      amount === null
-        ? "Set GOOGLE_BILLING_USAGE_USD or GOOGLE_AI_STUDIO_COST_USD to show a real Google billing amount."
-        : "Manual billing amount from server environment.",
-  };
 }
 
 function readBytePlusBilling(now: string): ProviderBalance {
