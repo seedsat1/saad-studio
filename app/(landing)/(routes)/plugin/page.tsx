@@ -41,7 +41,8 @@ const fadeUp = {
 };
 
 export default function PluginPage() {
-  const { isAr } = useLanguage();
+  const { lang } = useLanguage();
+  const isAr = lang === "ar";
   const [activeHostApp, setActiveHostApp] = useState<"ppro" | "ae" | "ps">("ppro");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
