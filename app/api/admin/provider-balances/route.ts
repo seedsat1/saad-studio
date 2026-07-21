@@ -13,7 +13,7 @@ type ProviderBalanceStatus = "HIGH" | "MEDIUM" | "LOW" | "UNAVAILABLE";
 type ProviderBalanceKind = "balance" | "cost" | "manual";
 
 type ProviderBalance = {
-  id: "kie" | "google" | "byteplus" | "wavespeed" | "backblaze";
+  id: "kie" | "google" | "byteplus" | "wavespeed" | "backblaze" | "reap";
   provider: string;
   label: string;
   amount: number | null;
@@ -439,6 +439,28 @@ function readBackblazeBilling(now: string): ProviderBalance {
   };
 }
 
+function readReapBalance(now: string): ProviderBalance {
+  const credits = numericEnv("REAP_BALANCE_CREDITS", "REAP_CREDITS", "REAP_REMAINING_CREDITS");
+
+  return {
+    id: "reap",
+    provider: "Reap.video",
+    label: "Reap Balance",
+    amount: credits,
+    unit: "credits",
+    currency: "USD",
+    kind: "balance",
+    status: balanceLevel(credits, 1000, 100),
+    syncedAt: now,
+    billingUrl: "https://app.reap.video/projects",
+    source: credits === null ? "unavailable" : "env",
+    note:
+      credits === null
+        ? "Set REAP_BALANCE_CREDITS or REAP_CREDITS in .env to display Reap.video remaining credits."
+        : "Manual credits amount from server environment.",
+  };
+}
+
 export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -452,14 +474,17 @@ export async function GET() {
   const google = readGoogleBilling(now);
   const byteplus = readBytePlusBilling(now);
   const backblaze = readBackblazeBilling(now);
+  const reap = readReapBalance(now);
 
   return NextResponse.json({
-    providers: [kie, google, byteplus, wavespeed, backblaze],
+    providers: [kie, google, byteplus, wavespeed, backblaze, reap],
     kie: kie.amount,
     wavespeed: wavespeed.amount,
     google: google.amount,
     byteplus: byteplus.amount,
     backblaze: backblaze.amount,
+    reap: reap.amount,
     syncedAt: now,
   });
 }
+

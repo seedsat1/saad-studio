@@ -538,6 +538,19 @@ export default function AdminDashboard() {
     kind: "cost",
     billingUrl: "https://secure.backblaze.com/b2_caps_alerts.htm",
   });
+  const [reapBalance, setReapBalance] = useState<SupplierBalanceState>({
+    id: "reap",
+    provider: "Reap.video",
+    label: "Reap Balance",
+    amount: null,
+    unit: "credits",
+    status: "LOADING",
+    syncedAt: null,
+    source: "loading",
+    kind: "balance",
+    billingUrl: "https://app.reap.video/projects",
+  });
+
 
   const [emailMode, setEmailMode] = useState<"single" | "bulk" | "invoice">("bulk");
   const [emailPlanId, setEmailPlanId] = useState<"all" | "podcast" | "try" | "starter" | "plus" | "pro" | "max">("all");
@@ -659,6 +672,7 @@ export default function AdminDashboard() {
         applyProvider(setBytePlusBalance, bytePlusBalance)(byId("byteplus"));
         applyProvider(setWaveSpeedBalance, waveSpeedBalance)(byId("wavespeed"));
         applyProvider(setBackblazeBalance, backblazeBalance)(byId("backblaze"));
+        applyProvider(setReapBalance, reapBalance)(byId("reap"));
       } catch {
         if (!active) return;
         markUnavailable(setKieBalance, kieBalance);
@@ -666,7 +680,9 @@ export default function AdminDashboard() {
         markUnavailable(setBytePlusBalance, bytePlusBalance);
         markUnavailable(setWaveSpeedBalance, waveSpeedBalance);
         markUnavailable(setBackblazeBalance, backblazeBalance);
+        markUnavailable(setReapBalance, reapBalance);
       }
+
     };
 
     loadProviderBalances();
@@ -852,10 +868,14 @@ export default function AdminDashboard() {
   const bytePlusBalanceIndicator = getBalanceIndicator(bytePlusBalance.status);
   const waveSpeedBalanceIndicator = getBalanceIndicator(waveSpeedBalance.status);
   const backblazeBalanceIndicator = getBalanceIndicator(backblazeBalance.status);
+  const reapBalanceIndicator = getBalanceIndicator(reapBalance.status);
   const formatSupplierAmount = (balance: SupplierBalanceState) => {
     if (balance.amount === null) return "Open report";
-    if (balance.unit === "credits" || balance.id === "kie") {
+    if (balance.unit === "credits" || balance.id === "kie" || balance.id === "reap") {
       const integerCredits = Math.round(balance.amount);
+      if (balance.id === "reap") {
+        return `${integerCredits.toLocaleString()} credits`;
+      }
       const usdValue = (balance.amount * 0.005).toFixed(2);
       return `${integerCredits.toLocaleString()} credits (~$${usdValue})`;
     }
@@ -870,11 +890,13 @@ export default function AdminDashboard() {
     { state: bytePlusBalance, indicator: bytePlusBalanceIndicator, value: formatSupplierAmount(bytePlusBalance) },
     { state: waveSpeedBalance, indicator: waveSpeedBalanceIndicator, value: formatSupplierAmount(waveSpeedBalance) },
     { state: backblazeBalance, indicator: backblazeBalanceIndicator, value: formatSupplierAmount(backblazeBalance) },
+    { state: reapBalance, indicator: reapBalanceIndicator, value: formatSupplierAmount(reapBalance) },
   ];
-  const latestSync = [kieBalance.syncedAt, googleBalance.syncedAt, bytePlusBalance.syncedAt, waveSpeedBalance.syncedAt, backblazeBalance.syncedAt]
+  const latestSync = [kieBalance.syncedAt, googleBalance.syncedAt, bytePlusBalance.syncedAt, waveSpeedBalance.syncedAt, backblazeBalance.syncedAt, reapBalance.syncedAt]
     .filter(Boolean)
     .sort()
     .at(-1);
+
   const lastSyncText = latestSync
     ? new Date(latestSync).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     : "Never";
