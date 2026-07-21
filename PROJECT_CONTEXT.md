@@ -1,18 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: Fix KIE Credits Display & Google Billing Support (2026-07-21)
+### Latest task: Add Reap.video Balance Monitor & Fix KIE Credits Display (2026-07-21)
 
 - Status:
-  Refined provider balance display and Google AI Studio billing integration:
-  1. **KIE Credits Formatting**: Integer-rounded credit count (`685 credits (~$3.43)`) to eliminate decimal point formatting on credit balance counts.
-  2. **Google AI Studio Billing & Link**: Updated Google billing report URL to `https://aistudio.google.com/billing?billing=01819C-290562-360E8C&project=gen-lang-client-0916453723` matching the exact billing project. Added support for `GOOGLE_AI_STUDIO_CREDIT_USD` (e.g. `9.20`) to display `Google Credit: $9.20`. Clicking the card opens the Google billing page directly in 1 click.
-  3. **WaveSpeed API Endpoint**: Corrected WaveSpeed endpoint to official v3 balance URL `https://api.wavespeed.ai/api/v3/balance`.
+  Completed supplier monitor additions and formatting fixes:
+  1. **Reap.video Balance Monitor**: Added `Reap.video` card to the Admin API Supplier Balance Monitor (`app/api/admin/provider-balances/route.ts` & `app/admin/page.tsx`). Supports environment variable `REAP_BALANCE_CREDITS` or `REAP_CREDITS` (e.g., `7181 credits`). Direct 1-click link to `https://app.reap.video/projects`.
+  2. **KIE.ai Credits Fix**: Fixed KIE credit formatting to output `685 credits (~$3.43)` based on KIE.ai billing API data.
 - Affected Files:
   - [app/api/admin/provider-balances/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-balances/route.ts)
   - [app/admin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx)
 - Verification:
   - Executed `npm run build` cleanly (`✓ Compiled successfully`, 218/218 static pages prerendered).
-  - Pushed commit `a33f9ab` to main repository (`saad-studio`).
+  - Pushed commit `96a9729` to main repository (`saad-studio`).
 
 ### Previous task: Site Creation Date Reminder in Admin Dashboard Navbar (2026-07-21)
 
