@@ -1,19 +1,23 @@
 # Saad Studio Project Context Update
 
-### Latest task: Hook Studio Conversational AI Agent Studio Redesign (2026-07-21)
+### Latest task: Hook Studio Structural Layout & Language Purity Update (2026-07-21)
 
 - Status:
-  Completely transformed **Hook Studio** (`/hook-studio`) into an interactive, high-end **AI Agent Studio Interface (Hook AI Agent v2.5)**.
-  Key Improvements:
-  1. **Conversational Agent Workspace**: Eliminated all cluttered, manual form boxes. Replaced with a clean, floating multi-modal Agent prompt bar with inspiration chips and reference attachment support.
-  2. **Live Agent Reasoning Stream**: Real-time 3-step visual execution stream showing Kimi K3 / GPT-4o analysis, GPT Image 2 storyboard generation, and WaveSpeed model selection.
-  3. **Multi-Hook Variation Cards**: Automatically generates 3 distinct high-retention Hook options (Shock Hook, Curiosity Hook, Visual Mystery Hook) with 1-click video generation.
-  4. **Aesthetics & Layout**: Spacious dark glassmorphic layout, glowing agent status indicator, and dynamic Arab-styled UI.
+  Re-structured **Hook Studio** (`/hook-studio`) to strictly meet all structural and language guidelines:
+  1. **Fixed Viewport Layout**: Enforced `h-[calc(100vh-4rem)] overflow-hidden`. The page layout itself is fixed and does NOT scroll with the mouse wheel.
+  2. **Gallery-Only Scroll**: Enforced `flex-1 overflow-y-auto min-h-0` on the Gallery section so that ONLY the media gallery container scrolls smoothly.
+  3. **Clean Single Prompt Console**: Compact top floating command box with integrated model selectors, attachment dropdown, and prompt textarea.
+  4. **Strict Language Separation & Zero Brand Names**:
+     - No mixed Arabic + English in any title or label.
+     - Zero external website or provider brand names in visible strings.
+     - Full dynamic support for `useLanguage()` (`ar` / `en`).
 - Affected Files:
   - [app/(dash)/(routes)/hook-studio/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/hook-studio/page.tsx)
+  - [lib/hook-studio-config.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/hook-studio-config.ts)
 - Verification:
   - Executed `npm run build` cleanly (`✓ Compiled successfully`, `/hook-studio` route prerendered).
-  - Pushed commit `9806f44` to main repository (`saad-studio`).
+  - Pushed commit `5fa02b5` to main repository (`saad-studio`).
+
 
 
 
