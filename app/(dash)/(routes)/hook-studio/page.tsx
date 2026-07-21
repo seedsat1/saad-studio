@@ -126,9 +126,39 @@ export default function HookStudioPage() {
           { id: 4, url: "/figma-scene-4.png" },
         ],
         videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+        modelRecommendation: isAr
+          ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان والتحكم بالمنتجات."
+          : "We recommend using Seedance 2.0 for cinematic multi-reference processing and stunning color and product consistency.",
       },
     },
   ]);
+
+  const getRecommendedModelDescription = (genre: string, text: string) => {
+    const lowercaseText = text.toLowerCase();
+    
+    if (genre === "action" || lowercaseText.includes("أكشن") || lowercaseText.includes("حركة") || lowercaseText.includes("action")) {
+      return isAr 
+        ? "نوصي باستخدام Kling 3.0 للحصول على أفضل معالجة للمشاهد السريعة وتوليد حركة كاميرا أكشن واقعية." 
+        : "We recommend using Kling 3.0 for the best handling of high-speed action sequences and realistic camera movements.";
+    }
+    
+    if (genre === "scifi" || lowercaseText.includes("خيال علمي") || lowercaseText.includes("مستقبل") || lowercaseText.includes("scifi") || lowercaseText.includes("hologram")) {
+      return isAr 
+        ? "نوصي باستخدام Seedream 5.0 لإنتاج مؤثرات بصرية مذهلة وإضاءات نيون فائقة الدقة." 
+        : "We recommend using Seedream 5.0 to produce breathtaking visual effects and high-fidelity neon lights.";
+    }
+    
+    if (genre === "cinematic" || lowercaseText.includes("سينمائي") || lowercaseText.includes("epic")) {
+      return isAr
+        ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان."
+        : "We recommend using Seedance 2.0 for cinematic multi-reference processing and stunning color consistency.";
+    }
+    
+    return isAr
+      ? "نوصي باستخدام Seedance 2.0 كخيار متوازن وممتاز للمشاهد الحوارية والقصصية العامة."
+      : "We recommend using Seedance 2.0 as a balanced and excellent choice for narrative and general scenes.";
+  };
+
 
   // Production Gallery Data
   const [gallery, setGallery] = useState<
@@ -289,6 +319,7 @@ export default function HookStudioPage() {
               { id: 4, url: "/figma-scene-4.png" },
             ],
             videoUrl: data.mediaUrl || "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+            modelRecommendation: getRecommendedModelDescription(selectedGenre, userMessage.text),
           },
         };
         setMessages((prev) => [...prev, agentMessage]);
@@ -442,6 +473,17 @@ export default function HookStudioPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Model Recommendation glowing advice block */}
+                    {msg.generatedHook.modelRecommendation && (
+                      <div className="bg-indigo-950/40 border border-indigo-900/30 rounded-2xl p-3.5 text-xs text-indigo-300 flex items-start gap-2.5 shadow-sm">
+                        <Sparkles className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
+                        <div className="text-right">
+                          <span className="font-bold block mb-0.5">{isAr ? "💡 الموديل الموصى به:" : "💡 Recommended Model:"}</span>
+                          <span className="leading-relaxed block text-indigo-200">{msg.generatedHook.modelRecommendation}</span>
+                        </div>
+                      </div>
+                    )}
 
                     <p className="text-[10px] text-slate-400">
                       {t.scenesDesc}
