@@ -1,6 +1,16 @@
 # Saad Studio Project Context Update
 
-### Latest task: Match /plugin Page Features Exactly to Extension UI Tabs (2026-07-21)
+### Latest task: Fix Reactive Arabic/English Language Switcher on /plugin Page (2026-07-21)
+
+- Status:
+  Fixed language toggle reactivity in `app/(landing)/(routes)/plugin/page.tsx`. Changed `const { isAr } = useLanguage();` to `const { lang } = useLanguage(); const isAr = lang === "ar";`. The page now seamlessly translates all texts, titles, steps, and buttons into Arabic or English instantly when clicking the header language toggle button (`العربية` / `English`).
+- Affected Files:
+  - [app/(landing)/(routes)/plugin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(landing)/(routes)/plugin/page.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `2c8f255` to main repository (`saad-studio`).
+
+### Previous task: Match /plugin Page Features Exactly to Extension UI Tabs (2026-07-21)
 
 - Status:
   Removed `Silence Removal` completely from `app/(landing)/(routes)/plugin/page.tsx` and replaced Item 4 with **`One Click`** (المونتاج بنقرة واحدة) to match the exact 4 tabs of the CEP extension (`Multi-Cam`, `Auto Captions`, `Synchronize`, `One Click`).
