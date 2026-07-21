@@ -19,8 +19,10 @@ import {
   Paintbrush,
   PanelBottom,
   Sparkles,
+  Calendar,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, SITE_CREATION_DATE } from "@/lib/utils";
+
 
 const CMS_PAGES = [
   { id: "studio-img", label: "Prompt Page", icon: ScrollText },
@@ -45,11 +47,17 @@ export function CmsSidebar() {
   return (
     <div className="w-64 border-r border-slate-800 bg-[#050911] flex flex-col h-screen sticky top-0 overflow-y-auto">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
             <Paintbrush className="w-4 h-4 text-violet-400" />
           </div>
           <span className="text-sm font-bold text-white tracking-tight uppercase">CMS Builder</span>
+        </div>
+
+        <div className="mb-6 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 flex items-center gap-2 text-xs text-amber-300 shadow-sm" title="تاريخ إنشاء الموقع">
+          <Calendar className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+          <span className="text-[11px] text-slate-300">أنشئ في:</span>
+          <span className="font-bold text-white font-mono text-xs tracking-wide">{SITE_CREATION_DATE}</span>
         </div>
 
         <nav className="space-y-1">

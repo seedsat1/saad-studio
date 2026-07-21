@@ -47,7 +47,10 @@ import {
   Compass,
   Mail,
   FileText,
+  Calendar,
 } from "lucide-react";
+import { SITE_CREATION_DATE } from "@/lib/utils";
+
 
 // ─── MOCK DATA ──────────────────────────────────────────────────────────────
 
@@ -1137,6 +1140,31 @@ export default function AdminDashboard() {
 
       {/* ════════════════════════ MAIN ═══════════════════════════════════════ */}
       <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* ── ADMIN NAVBAR ────────────────────────────────────────────────── */}
+        <header className="flex-shrink-0 h-14 px-6 border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md flex items-center justify-between gap-4 z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
+              <LayoutDashboard className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-white tracking-wide">لوحة التحكم الأدمن</h1>
+              <p className="text-[10px] text-slate-400">Saad Studio Super Admin Dashboard</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Site Creation Date Reminder */}
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold shadow-sm transition-all hover:bg-amber-500/15"
+              title="تاريخ إنشاء الموقع"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="text-slate-300 hidden sm:inline">تاريخ إنشاء الموقع:</span>
+              <span className="font-bold text-white font-mono text-sm tracking-wide">{SITE_CREATION_DATE}</span>
+            </div>
+          </div>
+        </header>
+
         {/* ── ALERT BAR: Supplier Balances ────────────────────────────────── */}
         <div
           className="flex-shrink-0 border-b border-amber-500/25 px-6 py-2.5 flex items-center justify-between gap-4 bg-gradient-to-r from-amber-950/70 via-orange-950/50 to-amber-950/70"

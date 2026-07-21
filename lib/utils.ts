@@ -101,3 +101,5 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
 
   return uniqueFallbacks;
 }
+
+export const SITE_CREATION_DATE = "3/22/2026";

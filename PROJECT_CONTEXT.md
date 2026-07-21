@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-### Latest task: Fix Reactive Arabic/English Language Switcher on /plugin Page (2026-07-21)
+### Latest task: Site Creation Date Reminder in Admin Dashboard Navbar (2026-07-21)
+
+- Status:
+  Added site creation date reminder (`3/22/2026` / `تاريخ إنشاء الموقع: 3/22/2026`) in the Admin Dashboard Navbar (`app/admin/page.tsx`) and CMS Builder sidebar (`components/admin/cms-sidebar.tsx`). Exported shared `SITE_CREATION_DATE = "3/22/2026"` constant in `lib/utils.ts` to prevent code duplication and ensure zero breaking changes.
+- Affected Files:
+  - [lib/utils.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts)
+  - [app/admin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx)
+  - [components/admin/cms-sidebar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/admin/cms-sidebar.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`, 218/218 static pages prerendered).
+
+### Previous task: Fix Reactive Arabic/English Language Switcher on /plugin Page (2026-07-21)
 
 - Status:
   Fixed language toggle reactivity in `app/(landing)/(routes)/plugin/page.tsx`. Changed `const { isAr } = useLanguage();` to `const { lang } = useLanguage(); const isAr = lang === "ar";`. The page now seamlessly translates all texts, titles, steps, and buttons into Arabic or English instantly when clicking the header language toggle button (`العربية` / `English`).
