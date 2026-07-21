@@ -294,7 +294,22 @@ export default function HookStudioPage() {
           </label>
           <select
             value={selectedVideoModel}
-            onChange={(e) => setSelectedVideoModel(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedVideoModel(val);
+              const targetModel = HOOK_VIDEO_MODELS.find((m) => m.id === val);
+              if (targetModel) {
+                if (targetModel.durations.length > 0) {
+                  setSelectedDuration(`${targetModel.durations[0]}s`);
+                }
+                if (targetModel.aspectRatios.length > 0) {
+                  setSelectedRatio(targetModel.aspectRatios[0]);
+                }
+                if (targetModel.qualityModes.length > 0) {
+                  setSelectedQuality(targetModel.qualityModes[0]);
+                }
+              }
+            }}
             className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
           >
             {HOOK_VIDEO_MODELS.map((m) => (
@@ -340,9 +355,11 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedDuration(e.target.value)}
                 className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                <option value="5s">5s</option>
-                <option value="10s">10s</option>
-                <option value="15s">15s</option>
+                {activeVideoModelObj.durations.map((d) => (
+                  <option key={d} value={`${d}s`}>
+                    {d}s
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -356,9 +373,11 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedRatio(e.target.value)}
                 className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="1:1">1:1</option>
+                {activeVideoModelObj.aspectRatios.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -372,9 +391,11 @@ export default function HookStudioPage() {
                 onChange={(e) => setSelectedQuality(e.target.value)}
                 className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-                <option value="4k">4K</option>
+                {activeVideoModelObj.qualityModes.map((q) => (
+                  <option key={q} value={q}>
+                    {q}
+                  </option>
+                ))}
               </select>
             </div>
 
