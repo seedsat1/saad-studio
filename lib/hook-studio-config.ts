@@ -68,12 +68,13 @@ export const LLM_BRAIN_MODELS: LLMBrainModel[] = [
   },
   {
     id: "kimi-k3-pro",
-    name: "Kimi K3 Pro",
+    name: "Kimi K3 (WaveSpeed)",
     provider: "Moonshot",
-    description: "متخصص في الهوكات السريعة والقصيرة للفيديوهات العمودية",
-    badge: "FAST",
+    description: "نموذج Kimi K3 المباشر على WaveSpeed بسياق ضخم (1M Token) للتفكير العميق وتصنيع الهوكات من السكربتات الطويلة",
+    badge: "PRO",
     iconName: "Zap",
   },
+
 ];
 
 
@@ -297,7 +298,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     apiRoute: "openai/gpt-image-2",
     provider: "openai",
     badge: "NEW",
-    description: "توليد صورة هوك أولى بدقة متناهية وإرشادات نصية معقدة",
+    description: "توليد مشاهد وStoryboards للهوكات بدقة فائقة لتهيئتها وتحريكها عبر Seedance 2.0",
     maxRefImages: 4,
     maxRefVideos: 0,
     maxRefVideoSeconds: 0,
@@ -309,6 +310,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     supportsScript: true,
     creditCost: 7,
   },
+
   {
     id: "nano-banana-pro",
     name: "Nano Banana Pro",
