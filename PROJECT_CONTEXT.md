@@ -1,6 +1,20 @@
 # Saad Studio Project Context Update
 
-### Latest task: Site Creation Date Reminder in Admin Dashboard Navbar (2026-07-21)
+### Latest task: Fix KIE Credits Display & WaveSpeed API Balance Endpoint (2026-07-21)
+
+- Status:
+  Fixed supplier balance monitor formatting and API routing:
+  1. **KIE.ai Credits Unit**: Changed KIE balance display from raw dollar formatting (`$685.13`) to proper credits unit format (`685 credits (~$3.43)`).
+  2. **WaveSpeed API Endpoint**: Updated WaveSpeed balance check endpoint from outdated 404 URL `https://api.wavespeed.ai/api/v2/user/balance` to official `https://api.wavespeed.ai/api/v3/balance`.
+  3. **Environment Overrides**: Added support for manual server environment fallbacks (`KIE_BALANCE_CREDITS`, `WAVESPEED_BALANCE_USD`).
+- Affected Files:
+  - [app/api/admin/provider-balances/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/admin/provider-balances/route.ts)
+  - [app/admin/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/admin/page.tsx)
+- Verification:
+  - Executed `npm run build` cleanly (`✓ Compiled successfully`).
+  - Pushed commit `03e6b25` to main repository (`saad-studio`).
+
+### Previous task: Site Creation Date Reminder in Admin Dashboard Navbar (2026-07-21)
 
 - Status:
   Added site creation date reminder (`3/22/2026` / `تاريخ إنشاء الموقع: 3/22/2026`) in the Admin Dashboard Navbar (`app/admin/page.tsx`) and CMS Builder sidebar (`components/admin/cms-sidebar.tsx`). Exported shared `SITE_CREATION_DATE = "3/22/2026"` constant in `lib/utils.ts` to prevent code duplication and ensure zero breaking changes.
