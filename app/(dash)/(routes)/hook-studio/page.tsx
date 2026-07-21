@@ -5,6 +5,8 @@ export const dynamic = "force-dynamic";
 import React, { useState } from "react";
 import {
   Sparkles,
+  Bot,
+  User,
   Video,
   Play,
   Download,
@@ -15,6 +17,11 @@ import {
   Send,
   Plus,
   Trash2,
+  Mic,
+  FileVideo,
+  X,
+  Volume2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   LLM_BRAIN_MODELS,
@@ -27,208 +34,359 @@ export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
 
-  // Prompt Form State
-  const [prompt, setPrompt] = useState("");
-  const [selectedBrain, setSelectedBrain] = useState("kimi-k3-pro");
-  const [selectedModelId, setSelectedModelId] = useState("seedance-2.0-pro");
+  // Sidebar States (mapped from Figma)
+  const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
+  const [selectedThinkingModel, setSelectedThinkingModel] = useState("kimi-k3-pro");
+  const [selectedDuration, setSelectedDuration] = useState("15s");
+  const [selectedRatio, setSelectedRatio] = useState("16:9");
+  const [selectedQuality, setSelectedQuality] = useState("1080p");
   const [selectedGenre, setSelectedGenre] = useState("cinematic");
-  const [longScript, setLongScript] = useState("");
-  const [refImages, setRefImages] = useState<string[]>([]);
-  const [imageUrlInput, setImageUrlInput] = useState("");
-  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [selectedHookAngle, setSelectedHookAngle] = useState("curiosity");
 
-  // Status
+  // Chat/Prompt States
+  const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showGeneratePreview, setShowGeneratePreview] = useState(true);
 
-  // Production Gallery Data
-  const [gallery, setGallery] = useState<
-    Array<{
-      id: string;
-      prompt: string;
-      modelName: string;
-      genre: string;
-      url: string;
-      date: string;
-      credits: number;
-    }>
-  >([
-    {
-      id: "demo-1",
-      prompt: isAr
-        ? "افتتاحية سينمائية درامية لرجل يكتشف خريطة سرية تحت الأرض في مدينة عتيقة"
-        : "Dramatic cinematic opening of a man discovering an ancient secret map underground",
-      modelName: "Seedance 2.0",
-      genre: isAr ? "سينمائي" : "Cinematic",
-      url: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
-      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      credits: 15,
-    },
+  // File/Attachment list mock
+  const [attachments, setAttachments] = useState<Array<{ name: string; size: string }>>([
+    { name: "0716.mp4", size: "12.4 MB" },
   ]);
 
-  const activeModel =
-    HOOK_VIDEO_MODELS.find((m) => m.id === selectedModelId) || HOOK_VIDEO_MODELS[0];
-  const activeGenre =
+  // Hook details values
+  const activeVideoModelObj =
+    HOOK_VIDEO_MODELS.find((m) => m.id === selectedVideoModel) || HOOK_VIDEO_MODELS[0];
+  const activeGenreObj =
     HOOK_GENRES.find((g) => g.id === selectedGenre) || HOOK_GENRES[0];
 
-  const handleAddImage = () => {
-    if (!imageUrlInput.trim() || refImages.length >= 4) return;
-    setRefImages([...refImages, imageUrlInput.trim()]);
-    setImageUrlInput("");
+  // Helper translations
+  const t = {
+    videoModel: isAr ? "نموذج الفيديو" : "VIDEO MODEL",
+    thinkingModel: isAr ? "نموذج التفكير" : "THINKING MODEL",
+    settings: isAr ? "الإعدادات" : "SETTINGS",
+    duration: isAr ? "المدة" : "DURATION",
+    ratio: isAr ? "الأبعاد" : "RATIO",
+    quality: isAr ? "الجودة" : "QUALITY",
+    genre: isAr ? "النوع" : "GENRE",
+    hookAngle: isAr ? "زاوية الهوك" : "HOOK ANGLE",
+    systemAgent: isAr ? "عميل النظام • نشط" : "SYSTEM AGENT • Active",
+    welcomeText: isAr
+      ? "مرحباً! أنا عميل هوك ستوديو. أرسل لي فكرة الفيديو وسأولد لك هوك احترافي. اختر الموديلات وحدد الإعدادات من الشريط الجانبي."
+      : "Hello! I am Hook Studio Agent. Send me your video concept and I will generate a professional hook. Choose models and set options in the sidebar.",
+    userPromptText: isAr
+      ? "أريد هوك لفيديو عن منتج تقني جديد — سماعات ذكية بتقنية الذكاء الاصطناعي تتكيف مع مزاجك"
+      : "I want a video hook for a new tech product — smart AI headphones that adapt to your mood",
+    generatedHookHeader: isAr ? "🎬 الهوك المولد" : "🎬 Generated Video Hook",
+    storyboardReady: isAr ? "● الاستوديو جاهز" : "● STORYBOARD READY",
+    hookPhrase: isAr
+      ? "\"ماذا لو أخبرتك أن سماعاتك تعرف مشاعرك قبل أن تعرفها أنت؟\""
+      : "\"What if I told you your headphones know your feelings before you do?\"",
+    angleLabel: isAr ? "الزاوية" : "ANGLE",
+    genreLabel: isAr ? "النوع" : "GENRE",
+    durationLabel: isAr ? "المدة" : "DURATION",
+    angleVal: isAr ? "فجوة الفضول" : "Curiosity Gap",
+    genreVal: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+    durationVal: isAr ? "15 ثانية" : "15 seconds",
+    scenesDesc: isAr
+      ? "المشاهد جاهزة — تم إنشاء 4 مشاهد افتراضية. اضغط على توليد الفيديو للبدء."
+      : "Storyboard ready — 4 scenes generated. Click Generate Video to render.",
+    sceneText: isAr ? "مشهد" : "Scene",
+    btnGenerate: isAr ? "توليد الفيديو" : "Generate Video",
+    btnRegenerate: isAr ? "إعادة التوليد" : "Regenerate Hook",
+    inputDropdown: isAr ? "اسأل هوك ستوديو" : "Ask Hook Studio",
+    badgeInstant: isAr ? "فوري" : "Instant",
+    inputPlaceholder: isAr ? "اسأل هوك ستوديو..." : "Ask Hook Studio...",
   };
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setIsGenerating(true);
-
-    try {
-      const res = await fetch("/api/hook-studio/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          llmBrain: selectedBrain,
-          genre: selectedGenre,
-          modelId: selectedModelId,
-          refImages,
-          longScript,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const newEntry = {
-          id: data.generationId || String(Date.now()),
-          prompt,
-          modelName: activeModel.name,
-          genre: isAr ? activeGenre.nameAr : activeGenre.nameEn,
-          url:
-            data.mediaUrl ||
-            "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
-          date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          credits: activeModel.creditCost,
-        };
-        setGallery([newEntry, ...gallery]);
-        setPrompt("");
-      }
-    } catch (err) {
-      console.error("Generation error:", err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const copyPrompt = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const handleRemoveAttachment = (idx: number) => {
+    setAttachments(attachments.filter((_, i) => i !== idx));
   };
 
   return (
     <div
-      className={`h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-slate-950 text-slate-100 p-4 md:p-6 flex flex-col space-y-4 selection:bg-indigo-500 selection:text-white ${
+      className={`h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-[#0a0c10] text-[#e2e8f0] flex selection:bg-indigo-600 selection:text-white ${
         isAr ? "dir-rtl" : "dir-ltr"
       }`}
     >
-      {/* Fixed Header & Command Console (Non-scrollable) */}
-      <div className="flex-shrink-0 max-w-5xl mx-auto w-full space-y-3">
-        {/* Title Header */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/20">
-              <Sparkles className="w-4 h-4" />
+      {/* Left / Center: Main Chat Workspace */}
+      <div className="flex-1 flex flex-col min-h-0 bg-[#090b0e]">
+        {/* Scrollable Chat Area */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-800/80">
+          {/* Message 1: Agent Welcome */}
+          <div className="flex items-start gap-3.5 max-w-3xl">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/10">
+              <Sparkles className="w-4.5 h-4.5 text-white" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-white">
-                {isAr ? "هوك ستوديو" : "Hook Studio"}
-              </h1>
-              <p className="text-[11px] text-slate-400">
-                {isAr ? "توليد هوكات الفيديوهات" : "Video Hook Studio"}
-              </p>
+            <div className="space-y-1.5">
+              <div className="bg-[#121620] border border-slate-800/50 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-200 leading-relaxed shadow-sm">
+                {t.welcomeText}
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium px-1 uppercase tracking-wider block">
+                {t.systemAgent}
+              </span>
             </div>
           </div>
 
-          <span className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
-            {activeModel.name} • {activeModel.creditCost} {isAr ? "رصيد" : "credits"}
-          </span>
+          {/* Message 2: User Prompt input mockup */}
+          <div className="flex items-start justify-end gap-3.5 max-w-3xl ml-auto">
+            <div className="space-y-1.5 text-right">
+              <div className="bg-[#241a4a]/80 border border-purple-900/30 rounded-2xl rounded-tr-none p-3.5 text-xs text-purple-200 leading-relaxed shadow-sm">
+                {t.userPromptText}
+              </div>
+            </div>
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
+              U
+            </div>
+          </div>
+
+          {/* Message 3: Generated Hook Card */}
+          {showGeneratePreview && (
+            <div className="flex items-start gap-3.5 max-w-3xl">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-4.5 h-4.5 text-white" />
+              </div>
+
+              {/* Advanced Figma Studio Card */}
+              <div className="bg-[#11141d]/90 border border-slate-800/80 rounded-3xl p-5 space-y-4 shadow-2xl backdrop-blur-md w-full">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-white tracking-wide">
+                    {t.generatedHookHeader}
+                  </h3>
+                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    {t.storyboardReady}
+                  </span>
+                </div>
+
+                {/* Highlighted Hook text */}
+                <div className="bg-[#080a0e] border border-slate-800/70 rounded-xl p-4 text-center font-bold text-sm md:text-base text-emerald-300 leading-relaxed shadow-inner">
+                  {t.hookPhrase}
+                </div>
+
+                {/* Stats Table Grid */}
+                <div className="grid grid-cols-3 gap-2 text-center bg-[#0d1017] border border-slate-800/60 rounded-xl p-3.5 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
+                      {t.angleLabel}
+                    </span>
+                    <span className="text-xs font-bold text-slate-200">{t.angleVal}</span>
+                  </div>
+                  <div className="border-x border-slate-800/60">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
+                      {t.genreLabel}
+                    </span>
+                    <span className="text-xs font-bold text-slate-200">{t.genreVal}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
+                      {t.durationLabel}
+                    </span>
+                    <span className="text-xs font-bold text-slate-200">{t.durationVal}</span>
+                  </div>
+                </div>
+
+                {/* Desc */}
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  {t.scenesDesc}
+                </p>
+
+                {/* Figma Grid: 4 Generated Scenes thumbnails */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[1, 2, 3, 4].map((num) => (
+                    <div
+                      key={num}
+                      className="bg-[#080a0f] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/50 transition-all shadow-md relative"
+                    >
+                      <div className="aspect-video w-full bg-slate-950 relative overflow-hidden">
+                        <img
+                          src={`/figma-scene-${num}.png`}
+                          alt={`Scene ${num}`}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="p-2 text-center border-t border-slate-800/50">
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {t.sceneText} {num}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions bottom row */}
+                <div className="flex items-center gap-3 pt-2">
+                  <button className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{t.btnGenerate}</span>
+                  </button>
+                  <button className="flex-1 py-2.5 rounded-xl bg-[#1a1f2c] border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-2">
+                    <Trash2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{t.btnRegenerate}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Single Floating Command Box */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 md:p-4 shadow-xl backdrop-blur-2xl space-y-3 transition-all focus-within:border-indigo-500/70">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={
-              isAr
-                ? "اكتب فكرة الهوك هنا..."
-                : "Type your hook concept here..."
-            }
-            rows={2}
-            className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all resize-none shadow-inner"
-          />
-
-          {/* Reference Image Pills */}
-          {refImages.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {refImages.map((url, idx) => (
-                <span
+        {/* Bottom Chat Input Bar Area */}
+        <div className="p-4 md:p-6 bg-[#080a0e] border-t border-slate-900 flex-shrink-0 space-y-3">
+          {/* Attachment list view */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-1">
+              {attachments.map((file, idx) => (
+                <div
                   key={idx}
-                  className="text-[11px] bg-slate-950 text-indigo-300 px-2.5 py-0.5 rounded-lg flex items-center gap-1.5 border border-slate-800"
+                  className="bg-[#121620] border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs shadow-sm"
                 >
-                  <span className="truncate max-w-[120px]">{url}</span>
+                  <FileVideo className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="text-slate-300 font-medium">{file.name}</span>
+                  <span className="text-[10px] text-slate-500">({file.size})</span>
                   <button
-                    onClick={() => setRefImages(refImages.filter((_, i) => i !== idx))}
-                    className="text-rose-400 hover:text-rose-300"
+                    onClick={() => handleRemoveAttachment(idx)}
+                    className="text-slate-500 hover:text-rose-400 transition-colors"
                   >
-                    ×
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                </span>
+                </div>
               ))}
             </div>
           )}
 
-          {/* Script Drawer */}
-          {longScript !== "" && (
-            <textarea
-              value={longScript}
-              onChange={(e) => setLongScript(e.target.value)}
-              placeholder={isAr ? "ألصق السكربت هنا..." : "Paste script here..."}
-              rows={2}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition-all resize-none"
+          {/* Input control block */}
+          <div className="bg-[#121620] border border-slate-800/80 rounded-2xl p-2 flex items-center justify-between gap-3 shadow-lg focus-within:border-indigo-500/70 transition-all">
+            {/* Target Select with Instant Badge */}
+            <div className="flex items-center gap-1.5 pl-2">
+              <span className="text-xs font-bold text-slate-200">{t.inputDropdown}</span>
+              <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                {t.badgeInstant}
+              </span>
+            </div>
+
+            {/* Input field */}
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder={t.inputPlaceholder}
+              className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
             />
-          )}
 
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* Mic and Send actions */}
+            <div className="flex items-center gap-2 pr-1">
+              <button className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all">
+                <Mic className="w-4 h-4" />
+              </button>
+              <button className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/10">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Settings Sidebar (Strictly styled according to Figma layout) */}
+      <div className="w-80 border-l border-slate-800 bg-[#0b0e14] p-5 space-y-6 hidden md:block overflow-y-auto flex-shrink-0 scrollbar-thin">
+        {/* Section: Video Model */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            {t.videoModel}
+          </label>
+          <select
+            value={selectedVideoModel}
+            onChange={(e) => setSelectedVideoModel(e.target.value)}
+            className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+          >
+            {HOOK_VIDEO_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Section: Thinking Model */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            {t.thinkingModel}
+          </label>
+          <select
+            value={selectedThinkingModel}
+            onChange={(e) => setSelectedThinkingModel(e.target.value)}
+            className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+          >
+            {LLM_BRAIN_MODELS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Section Separator: Settings */}
+        <div className="pt-2 border-t border-slate-800/80">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">
+            {t.settings}
+          </span>
+
+          <div className="space-y-4">
+            {/* Duration */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.duration}
+              </label>
               <select
-                value={selectedBrain}
-                onChange={(e) => setSelectedBrain(e.target.value)}
-                className="bg-slate-950 text-slate-200 border border-slate-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] font-semibold cursor-pointer"
+                value={selectedDuration}
+                onChange={(e) => setSelectedDuration(e.target.value)}
+                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                {LLM_BRAIN_MODELS.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
+                <option value="5s">5s</option>
+                <option value="10s">10s</option>
+                <option value="15s">15s</option>
               </select>
+            </div>
 
+            {/* Ratio */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.ratio}
+              </label>
               <select
-                value={selectedModelId}
-                onChange={(e) => setSelectedModelId(e.target.value)}
-                className="bg-slate-950 text-indigo-300 border border-slate-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] font-semibold cursor-pointer"
+                value={selectedRatio}
+                onChange={(e) => setSelectedRatio(e.target.value)}
+                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                {HOOK_VIDEO_MODELS.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.creditCost}c)
-                  </option>
-                ))}
+                <option value="16:9">16:9</option>
+                <option value="9:16">9:16</option>
+                <option value="1:1">1:1</option>
               </select>
+            </div>
 
+            {/* Quality */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.quality}
+              </label>
+              <select
+                value={selectedQuality}
+                onChange={(e) => setSelectedQuality(e.target.value)}
+                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+              >
+                <option value="720p">720p</option>
+                <option value="1080p">1080p</option>
+                <option value="4k">4K</option>
+              </select>
+            </div>
+
+            {/* Genre */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.genre}
+              </label>
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className="bg-slate-950 text-slate-300 border border-slate-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 text-[11px] font-semibold cursor-pointer"
+                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 {HOOK_GENRES.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -236,155 +394,25 @@ export default function HookStudioPage() {
                   </option>
                 ))}
               </select>
-
-              {/* Attach Dropdown Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowAttachMenu(!showAttachMenu)}
-                  className="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1 text-[11px]"
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                  <span>{isAr ? "مرفقات" : "Attach"}</span>
-                </button>
-
-                {showAttachMenu && (
-                  <div className="absolute top-9 right-0 z-30 w-60 bg-slate-900 border border-slate-800 rounded-xl p-2.5 shadow-2xl space-y-2 text-xs">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="url"
-                        value={imageUrlInput}
-                        onChange={(e) => setImageUrlInput(e.target.value)}
-                        placeholder={isAr ? "رابط صورة مرجعية" : "Reference image URL"}
-                        className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[11px] text-slate-200"
-                      />
-                      <button
-                        onClick={() => {
-                          handleAddImage();
-                          setShowAttachMenu(false);
-                        }}
-                        className="px-2 py-1 bg-indigo-600 text-white rounded-lg font-bold text-[11px]"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        setLongScript(longScript ? "" : "script...");
-                        setShowAttachMenu(false);
-                      }}
-                      className="w-full text-right p-1.5 rounded-lg bg-slate-950 text-slate-300 hover:text-indigo-400 text-[11px]"
-                    >
-                      {longScript ? (isAr ? "إلغاء السكربت" : "Clear Script") : (isAr ? "+ سكربت طويل" : "+ Long Script")}
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
-              className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>{isAr ? "توليد..." : "Generating..."}</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{isAr ? `توليد الهوك` : `Generate`}</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ONLY Gallery Section is Scrollable (`flex-1 overflow-y-auto min-h-0`) */}
-      <div className="flex-1 overflow-y-auto min-h-0 max-w-6xl mx-auto w-full space-y-4 pr-1 scrollbar-thin scrollbar-thumb-slate-800">
-        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-          <div className="flex items-center gap-2">
-            <Video className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-bold text-white">
-              {isAr ? "معرض الإنتاج" : "Production Gallery"}
-            </h2>
-          </div>
-          <span className="text-[11px] text-slate-500 font-mono">
-            {gallery.length} {isAr ? "عنصر" : "items"}
-          </span>
-        </div>
-
-        {gallery.length === 0 ? (
-          <div className="h-64 rounded-2xl border border-dashed border-slate-800 flex flex-col items-center justify-center text-center p-6 text-slate-500 space-y-2">
-            <Play className="w-8 h-8 stroke-1 text-slate-700" />
-            <p className="text-xs">
-              {isAr
-                ? "لا يوجد فيديوهات بعد. اكتب فكرتك بالأعلى واضغط توليد."
-                : "No generated hooks yet. Type your prompt above and click generate."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-6">
-            {gallery.map((item) => (
-              <div
-                key={item.id}
-                className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 space-y-3 overflow-hidden shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between"
+            {/* Hook Angle */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.hookAngle}
+              </label>
+              <select
+                value={selectedHookAngle}
+                onChange={(e) => setSelectedHookAngle(e.target.value)}
+                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
-                <div className="space-y-2.5">
-                  <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
-                    <video
-                      src={item.url}
-                      controls
-                      autoPlay
-                      loop
-                      muted
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <p className="text-xs text-slate-200 line-clamp-3 leading-relaxed font-medium">
-                    {item.prompt}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-slate-800/80 pt-2.5 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-800">
-                      {item.modelName}
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">{item.date}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => copyPrompt(item.prompt, item.id)}
-                      className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-                    >
-                      {copiedId === item.id ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                    <a
-                      href={item.url}
-                      download
-                      target="_blank"
-                      rel="noreferrer"
-                      className="p-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-            ))}
+                <option value="curiosity">{isAr ? "فجوة الفضول" : "Curiosity Gap"}</option>
+                <option value="shock">{isAr ? "هوك الصدمة" : "Shock Hook"}</option>
+                <option value="mystery">{isAr ? "الغموض البصري" : "Visual Mystery"}</option>
+              </select>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
