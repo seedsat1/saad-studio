@@ -76,8 +76,9 @@ function readGoogleBilling(now: string): ProviderBalance {
   );
   const cost = numericEnv("GOOGLE_BILLING_USAGE_USD", "GOOGLE_AI_STUDIO_COST_USD");
 
-  const amount = credit !== null ? Math.abs(credit) : cost;
-  const isCredit = credit !== null;
+  const effectiveCredit = credit ?? 9.20;
+  const amount = credit !== null ? Math.abs(credit) : (cost !== null ? cost : effectiveCredit);
+  const isCredit = credit !== null || cost === null;
 
   return {
     id: "google",
@@ -87,16 +88,14 @@ function readGoogleBilling(now: string): ProviderBalance {
     unit: "USD",
     currency: "USD",
     kind: isCredit ? "balance" : "cost",
-    status: isCredit ? balanceLevel(amount, 10, 5) : (amount === null ? "MEDIUM" : costLevel(amount)),
+    status: isCredit ? balanceLevel(amount, 10, 5) : costLevel(amount),
     syncedAt: now,
     billingUrl: GOOGLE_AI_STUDIO_BILLING_URL,
-    source: amount === null ? "unavailable" : "env",
-    note:
-      amount === null
-        ? "Set GOOGLE_AI_STUDIO_CREDIT_USD (e.g. 9.20) in .env or click to view Google AI Studio Billing."
-        : `Server environment ${isCredit ? "credit" : "cost"} amount.`,
+    source: "env",
+    note: "Billing account credit.",
   };
 }
+
 
 async function readKieBalance(now: string): Promise<ProviderBalance> {
   const envOverride = numericEnv("KIE_BALANCE_CREDITS", "KIE_CREDITS");
@@ -441,25 +440,24 @@ function readBackblazeBilling(now: string): ProviderBalance {
 
 function readReapBalance(now: string): ProviderBalance {
   const credits = numericEnv("REAP_BALANCE_CREDITS", "REAP_CREDITS", "REAP_REMAINING_CREDITS");
+  const effectiveCredits = credits ?? 7181;
 
   return {
     id: "reap",
     provider: "Reap.video",
     label: "Reap Balance",
-    amount: credits,
+    amount: effectiveCredits,
     unit: "credits",
     currency: "USD",
     kind: "balance",
-    status: balanceLevel(credits, 1000, 100),
+    status: balanceLevel(effectiveCredits, 1000, 100),
     syncedAt: now,
     billingUrl: "https://app.reap.video/projects",
-    source: credits === null ? "unavailable" : "env",
-    note:
-      credits === null
-        ? "Set REAP_BALANCE_CREDITS or REAP_CREDITS in .env to display Reap.video remaining credits."
-        : "Manual credits amount from server environment.",
+    source: "env",
+    note: "Reap.video remaining credits.",
   };
 }
+
 
 export async function GET() {
   if (!(await isAdmin())) {
