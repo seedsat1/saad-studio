@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState } from "react";
+import React, { useState, useRef, DragEvent } from "react";
 import {
   Sparkles,
   Bot,
@@ -22,6 +22,9 @@ import {
   X,
   Volume2,
   Image as ImageIcon,
+  FileAudio,
+  FileText,
+  UploadCloud,
 } from "lucide-react";
 import {
   LLM_BRAIN_MODELS,
@@ -30,11 +33,35 @@ import {
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
 
+interface AttachedFile {
+  id: string;
+  name: string;
+  type: "image" | "video" | "audio" | "file";
+  url: string;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "agent" | "user";
+  text: string;
+  timestamp: string;
+  isSystem?: boolean;
+  attachments?: AttachedFile[];
+  generatedHook?: {
+    phrase: string;
+    angle: string;
+    genre: string;
+    duration: string;
+    scenes: Array<{ id: number; url: string }>;
+    videoUrl: string;
+  };
+}
+
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
 
-  // Sidebar States (mapped from Figma)
+  // Sidebar Configuration States
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
   const [selectedThinkingModel, setSelectedThinkingModel] = useState("kimi-k3-pro");
   const [selectedDuration, setSelectedDuration] = useState("15s");
@@ -43,17 +70,91 @@ export default function HookStudioPage() {
   const [selectedGenre, setSelectedGenre] = useState("cinematic");
   const [selectedHookAngle, setSelectedHookAngle] = useState("curiosity");
 
-  // Chat/Prompt States
+  // Prompt Form State
   const [inputText, setInputText] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showGeneratePreview, setShowGeneratePreview] = useState(true);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // File/Attachment list mock
-  const [attachments, setAttachments] = useState<Array<{ name: string; size: string }>>([
-    { name: "0716.mp4", size: "12.4 MB" },
+  // Status
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Chat Feed Messages
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      sender: "agent",
+      isSystem: true,
+      text: isAr
+        ? "مرحباً! أنا عميل هوك ستوديو. أرسل لي فكرة الفيديو وسأولد لك هوك احترافي. اختر الموديلات وحدد الإعدادات من الشريط الجانبي."
+        : "Hello! I am Hook Studio Agent. Send me your video concept and I will generate a professional hook. Choose models and set options in the sidebar.",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    },
+    {
+      id: "user-demo",
+      sender: "user",
+      text: isAr
+        ? "أريد هوك لفيديو عن منتج تقني جديد — سماعات ذكية بتقنية الذكاء الاصطناعي تتكيف مع مزاجك"
+        : "I want a video hook for a new tech product — smart AI headphones that adapt to your mood",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      attachments: [
+        {
+          id: "demo-vid",
+          name: "0716.mp4",
+          type: "video",
+          url: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+        },
+      ],
+    },
+    {
+      id: "agent-response-demo",
+      sender: "agent",
+      text: "",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      generatedHook: {
+        phrase: isAr
+          ? "\"ماذا لو أخبرتك أن سماعاتك تعرف مشاعرك قبل أن تعرفها أنت؟\""
+          : "\"What if I told you your headphones know your feelings before you do?\"",
+        angle: isAr ? "فجوة الفضول" : "Curiosity Gap",
+        genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+        duration: "15s",
+        scenes: [
+          { id: 1, url: "/figma-scene-1.png" },
+          { id: 2, url: "/figma-scene-2.png" },
+          { id: 3, url: "/figma-scene-3.png" },
+          { id: 4, url: "/figma-scene-4.png" },
+        ],
+        videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+      },
+    },
   ]);
 
-  // Hook details values
+  // Production Gallery Data
+  const [gallery, setGallery] = useState<
+    Array<{
+      id: string;
+      prompt: string;
+      modelName: string;
+      genre: string;
+      url: string;
+      date: string;
+      credits: number;
+    }>
+  >([
+    {
+      id: "demo-1",
+      prompt: isAr
+        ? "افتتاحية سينمائية درامية لرجل يكتشف خريطة سرية تحت الأرض في مدينة عتيقة"
+        : "Dramatic cinematic opening of a man discovering an ancient secret map underground",
+      modelName: "Seedance 2.0",
+      genre: isAr ? "سينمائي" : "Cinematic",
+      url: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      credits: 15,
+    },
+  ]);
+
   const activeVideoModelObj =
     HOOK_VIDEO_MODELS.find((m) => m.id === selectedVideoModel) || HOOK_VIDEO_MODELS[0];
   const activeGenreObj =
@@ -70,23 +171,11 @@ export default function HookStudioPage() {
     genre: isAr ? "النوع" : "GENRE",
     hookAngle: isAr ? "زاوية الهوك" : "HOOK ANGLE",
     systemAgent: isAr ? "عميل النظام • نشط" : "SYSTEM AGENT • Active",
-    welcomeText: isAr
-      ? "مرحباً! أنا عميل هوك ستوديو. أرسل لي فكرة الفيديو وسأولد لك هوك احترافي. اختر الموديلات وحدد الإعدادات من الشريط الجانبي."
-      : "Hello! I am Hook Studio Agent. Send me your video concept and I will generate a professional hook. Choose models and set options in the sidebar.",
-    userPromptText: isAr
-      ? "أريد هوك لفيديو عن منتج تقني جديد — سماعات ذكية بتقنية الذكاء الاصطناعي تتكيف مع مزاجك"
-      : "I want a video hook for a new tech product — smart AI headphones that adapt to your mood",
     generatedHookHeader: isAr ? "🎬 الهوك المولد" : "🎬 Generated Video Hook",
     storyboardReady: isAr ? "● الاستوديو جاهز" : "● STORYBOARD READY",
-    hookPhrase: isAr
-      ? "\"ماذا لو أخبرتك أن سماعاتك تعرف مشاعرك قبل أن تعرفها أنت؟\""
-      : "\"What if I told you your headphones know your feelings before you do?\"",
     angleLabel: isAr ? "الزاوية" : "ANGLE",
     genreLabel: isAr ? "النوع" : "GENRE",
     durationLabel: isAr ? "المدة" : "DURATION",
-    angleVal: isAr ? "فجوة الفضول" : "Curiosity Gap",
-    genreVal: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
-    durationVal: isAr ? "15 ثانية" : "15 seconds",
     scenesDesc: isAr
       ? "المشاهد جاهزة — تم إنشاء 4 مشاهد افتراضية. اضغط على توليد الفيديو للبدء."
       : "Storyboard ready — 4 scenes generated. Click Generate Video to render.",
@@ -96,154 +185,353 @@ export default function HookStudioPage() {
     inputDropdown: isAr ? "اسأل هوك ستوديو" : "Ask Hook Studio",
     badgeInstant: isAr ? "فوري" : "Instant",
     inputPlaceholder: isAr ? "اسأل هوك ستوديو..." : "Ask Hook Studio...",
+    dragPromptText: isAr ? "اسحب وأفلت الملفات هنا (صور، فيديوهات، صوتيات)" : "Drag & drop files here (images, videos, audio)",
+    productionGallery: isAr ? "معرض الإنتاج" : "Production Gallery",
   };
 
-  const handleRemoveAttachment = (idx: number) => {
-    setAttachments(attachments.filter((_, i) => i !== idx));
+  // Drag & Drop Handlers
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files) {
+      processFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      processFiles(e.target.files);
+    }
+  };
+
+  const processFiles = (files: FileList) => {
+    const newFiles: AttachedFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      let type: AttachedFile["type"] = "file";
+      if (file.type.startsWith("image/")) type = "image";
+      else if (file.type.startsWith("video/")) type = "video";
+      else if (file.type.startsWith("audio/")) type = "audio";
+
+      newFiles.push({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        type,
+        url: URL.createObjectURL(file),
+      });
+    }
+    setAttachedFiles((prev) => [...prev, ...newFiles]);
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // Generation Handler
+  const handleSendMessage = async () => {
+    if (!inputText.trim() && attachedFiles.length === 0) return;
+
+    const userMessage: ChatMessage = {
+      id: Math.random().toString(36).substr(2, 9),
+      sender: "user",
+      text: inputText,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      attachments: [...attachedFiles],
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText("");
+    setAttachedFiles([]);
+    setIsGenerating(true);
+
+    try {
+      const res = await fetch("/api/hook-studio/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: userMessage.text,
+          llmBrain: selectedThinkingModel,
+          genre: selectedGenre,
+          modelId: selectedVideoModel,
+          duration: selectedDuration,
+          ratio: selectedRatio,
+          quality: selectedQuality,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const agentMessage: ChatMessage = {
+          id: data.generationId || Math.random().toString(36).substr(2, 9),
+          sender: "agent",
+          text: "",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          generatedHook: {
+            phrase: isAr
+              ? `"${data.hookText || "ماذا لو أخبرتك أن المحتوى الفيروسي يصنع بالذكاء الاصطناعي؟"}"`
+              : `"${data.hookText || "What if I told you viral hooks are generated by AI?"}"`,
+            angle: isAr ? "فجوة الفضول" : "Curiosity Gap",
+            genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+            duration: selectedDuration,
+            scenes: [
+              { id: 1, url: "/figma-scene-1.png" },
+              { id: 2, url: "/figma-scene-2.png" },
+              { id: 3, url: "/figma-scene-3.png" },
+              { id: 4, url: "/figma-scene-4.png" },
+            ],
+            videoUrl: data.mediaUrl || "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
+          },
+        };
+        setMessages((prev) => [...prev, agentMessage]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handlePublishToGallery = (hook: NonNullable<ChatMessage["generatedHook"]>) => {
+    const newEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      prompt: hook.phrase,
+      modelName: activeVideoModelObj.name,
+      genre: isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn,
+      url: hook.videoUrl,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      credits: activeVideoModelObj.creditCost,
+    };
+    setGallery([newEntry, ...gallery]);
+  };
+
+  const copyPrompt = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
     <div
-      className={`h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-[#0a0c10] text-[#e2e8f0] flex selection:bg-indigo-600 selection:text-white ${
+      className={`h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-[#07090e] text-[#e2e8f0] flex selection:bg-indigo-600 selection:text-white ${
         isAr ? "dir-rtl" : "dir-ltr"
       }`}
     >
-      {/* Left / Center: Main Chat Workspace */}
-      <div className="flex-1 flex flex-col min-h-0 bg-[#090b0e]">
-        {/* Scrollable Chat Area */}
+      {/* Left/Center: Main Chat Area */}
+      <div className="flex-1 flex flex-col min-h-0 bg-[#06080b]">
+        {/* Chat Feed Messages */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-800/80">
-          {/* Message 1: Agent Welcome */}
-          <div className="flex items-start gap-3.5 max-w-3xl">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/10">
-              <Sparkles className="w-4.5 h-4.5 text-white" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="bg-[#121620] border border-slate-800/50 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-200 leading-relaxed shadow-sm">
-                {t.welcomeText}
-              </div>
-              <span className="text-[10px] text-slate-500 font-medium px-1 uppercase tracking-wider block">
-                {t.systemAgent}
-              </span>
-            </div>
-          </div>
-
-          {/* Message 2: User Prompt input mockup */}
-          <div className="flex items-start justify-end gap-3.5 max-w-3xl ml-auto">
-            <div className="space-y-1.5 text-right">
-              <div className="bg-[#241a4a]/80 border border-purple-900/30 rounded-2xl rounded-tr-none p-3.5 text-xs text-purple-200 leading-relaxed shadow-sm">
-                {t.userPromptText}
-              </div>
-            </div>
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-300">
-              U
-            </div>
-          </div>
-
-          {/* Message 3: Generated Hook Card */}
-          {showGeneratePreview && (
-            <div className="flex items-start gap-3.5 max-w-3xl">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
-                <Sparkles className="w-4.5 h-4.5 text-white" />
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex items-start gap-3.5 max-w-4xl ${
+                msg.sender === "user" ? "ml-auto flex-row-reverse text-right" : ""
+              }`}
+            >
+              {/* Avatar */}
+              <div
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-lg ${
+                  msg.sender === "user"
+                    ? "bg-slate-800 text-slate-300 text-xs font-bold"
+                    : "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white"
+                }`}
+              >
+                {msg.sender === "user" ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
               </div>
 
-              {/* Advanced Figma Studio Card */}
-              <div className="bg-[#11141d]/90 border border-slate-800/80 rounded-3xl p-5 space-y-4 shadow-2xl backdrop-blur-md w-full">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-white tracking-wide">
-                    {t.generatedHookHeader}
-                  </h3>
-                  <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    {t.storyboardReady}
-                  </span>
-                </div>
-
-                {/* Highlighted Hook text */}
-                <div className="bg-[#080a0e] border border-slate-800/70 rounded-xl p-4 text-center font-bold text-sm md:text-base text-emerald-300 leading-relaxed shadow-inner">
-                  {t.hookPhrase}
-                </div>
-
-                {/* Stats Table Grid */}
-                <div className="grid grid-cols-3 gap-2 text-center bg-[#0d1017] border border-slate-800/60 rounded-xl p-3.5 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                      {t.angleLabel}
-                    </span>
-                    <span className="text-xs font-bold text-slate-200">{t.angleVal}</span>
+              {/* Message Content */}
+              <div className="space-y-2 max-w-2xl w-full">
+                {/* Standard Text Bubble */}
+                {msg.text && (
+                  <div
+                    className={`rounded-2xl p-3.5 text-xs leading-relaxed shadow-sm border ${
+                      msg.sender === "user"
+                        ? "bg-[#181232]/85 border-purple-900/20 text-purple-100 rounded-tr-none"
+                        : "bg-[#111520] border-slate-800/50 text-slate-200 rounded-tl-none"
+                    }`}
+                  >
+                    {msg.text}
                   </div>
-                  <div className="border-x border-slate-800/60">
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                      {t.genreLabel}
-                    </span>
-                    <span className="text-xs font-bold text-slate-200">{t.genreVal}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block mb-1">
-                      {t.durationLabel}
-                    </span>
-                    <span className="text-xs font-bold text-slate-200">{t.durationVal}</span>
-                  </div>
-                </div>
+                )}
 
-                {/* Desc */}
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  {t.scenesDesc}
-                </p>
-
-                {/* Figma Grid: 4 Generated Scenes thumbnails */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[1, 2, 3, 4].map((num) => (
-                    <div
-                      key={num}
-                      className="bg-[#080a0f] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/50 transition-all shadow-md relative"
-                    >
-                      <div className="aspect-video w-full bg-slate-950 relative overflow-hidden">
-                        <img
-                          src={`/figma-scene-${num}.png`}
-                          alt={`Scene ${num}`}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
+                {/* Inline Message Attachments (Images, Videos, Audios uploaded by user) */}
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-3 pt-1 justify-end">
+                    {msg.attachments.map((file) => (
+                      <div
+                        key={file.id}
+                        className="bg-[#0f121d] border border-slate-800 rounded-2xl p-2 max-w-sm overflow-hidden shadow-lg space-y-2"
+                      >
+                        {file.type === "image" && (
+                          <img
+                            src={file.url}
+                            alt={file.name}
+                            className="rounded-xl max-h-48 object-cover"
+                          />
+                        )}
+                        {file.type === "video" && (
+                          <video
+                            src={file.url}
+                            controls
+                            className="rounded-xl max-h-48 object-cover"
+                          />
+                        )}
+                        {file.type === "audio" && (
+                          <audio src={file.url} controls className="w-full max-w-xs" />
+                        )}
+                        {file.type === "file" && (
+                          <div className="flex items-center gap-2 p-2 bg-[#090b0e] rounded-xl text-xs">
+                            <FileVideo className="w-4 h-4 text-indigo-400" />
+                            <span className="text-slate-300 font-medium">{file.name}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-2 text-center border-t border-slate-800/50">
-                        <span className="text-[10px] font-bold text-slate-400">
-                          {t.sceneText} {num}
+                    ))}
+                  </div>
+                )}
+
+                {/* Agent Response Storyboard Card */}
+                {msg.generatedHook && (
+                  <div className="bg-[#0f131c]/95 border border-slate-800/80 rounded-3xl p-5 space-y-4 shadow-2xl backdrop-blur-md w-full">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold text-white tracking-wide">
+                        {t.generatedHookHeader}
+                      </h3>
+                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {t.storyboardReady}
+                      </span>
+                    </div>
+
+                    {/* Phrase */}
+                    <div className="bg-[#07090d] border border-slate-800/60 rounded-xl p-4 text-center font-bold text-sm md:text-base text-emerald-300 leading-relaxed shadow-inner">
+                      {msg.generatedHook.phrase}
+                    </div>
+
+                    {/* Details Row */}
+                    <div className="grid grid-cols-3 gap-2 text-center bg-[#0a0d13] border border-slate-800/50 rounded-xl p-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
+                          {t.angleLabel}
+                        </span>
+                        <span className="text-xs font-bold text-slate-200">
+                          {msg.generatedHook.angle}
+                        </span>
+                      </div>
+                      <div className="border-x border-slate-800/50">
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
+                          {t.genreLabel}
+                        </span>
+                        <span className="text-xs font-bold text-slate-200">
+                          {msg.generatedHook.genre}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
+                          {t.durationLabel}
+                        </span>
+                        <span className="text-xs font-bold text-slate-200">
+                          {msg.generatedHook.duration}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* Actions bottom row */}
-                <div className="flex items-center gap-3 pt-2">
-                  <button className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{t.btnGenerate}</span>
-                  </button>
-                  <button className="flex-1 py-2.5 rounded-xl bg-[#1a1f2c] border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-2">
-                    <Trash2 className="w-3.5 h-3.5 text-slate-500" />
-                    <span>{t.btnRegenerate}</span>
-                  </button>
-                </div>
+                    <p className="text-[10px] text-slate-400">
+                      {t.scenesDesc}
+                    </p>
+
+                    {/* Storyboard grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {msg.generatedHook.scenes.map((scene) => (
+                        <div
+                          key={scene.id}
+                          className="bg-[#06080c] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/40 transition-all shadow-md relative"
+                        >
+                          <div className="aspect-video w-full bg-slate-950 relative overflow-hidden">
+                            <img
+                              src={scene.url}
+                              alt={`${t.sceneText} ${scene.id}`}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="p-2 text-center border-t border-slate-800/50">
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {t.sceneText} {scene.id}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        onClick={() => handlePublishToGallery(msg.generatedHook!)}
+                        className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{t.btnGenerate}</span>
+                      </button>
+                      <button className="flex-1 py-2 rounded-xl bg-[#151924] border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-2">
+                        <Trash2 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{t.btnRegenerate}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* System Subtitle */}
+                {msg.isSystem && (
+                  <span className="text-[10px] text-slate-500 font-medium px-1 uppercase tracking-wider block">
+                    {t.systemAgent}
+                  </span>
+                )}
               </div>
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Bottom Chat Input Bar Area */}
-        <div className="p-4 md:p-6 bg-[#080a0e] border-t border-slate-900 flex-shrink-0 space-y-3">
-          {/* Attachment list view */}
-          {attachments.length > 0 && (
+        {/* Drag & Drop Prompt Console Container */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`p-4 md:p-6 bg-[#07090d] border-t border-slate-900 flex-shrink-0 space-y-3 relative transition-all duration-200 ${
+            isDragOver ? "bg-[#0f1322] border-indigo-500/50 scale-[0.99] border-t-2" : ""
+          }`}
+        >
+          {/* Drag Overlay Helper Text */}
+          {isDragOver && (
+            <div className="absolute inset-0 bg-[#0b0e17]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-indigo-400 gap-2 pointer-events-none">
+              <UploadCloud className="w-8 h-8 animate-bounce" />
+              <span className="text-xs font-bold">{t.dragPromptText}</span>
+            </div>
+          )}
+
+          {/* Attached Files pills above input */}
+          {attachedFiles.length > 0 && (
             <div className="flex flex-wrap gap-2 px-1">
-              {attachments.map((file, idx) => (
+              {attachedFiles.map((file) => (
                 <div
-                  key={idx}
-                  className="bg-[#121620] border border-slate-800 rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs shadow-sm"
+                  key={file.id}
+                  className="bg-[#121620] border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-2 text-xs shadow-sm"
                 >
-                  <FileVideo className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-slate-300 font-medium">{file.name}</span>
-                  <span className="text-[10px] text-slate-500">({file.size})</span>
+                  {file.type === "image" && <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />}
+                  {file.type === "video" && <FileVideo className="w-3.5 h-3.5 text-indigo-400" />}
+                  {file.type === "audio" && <FileAudio className="w-3.5 h-3.5 text-indigo-400" />}
+                  {file.type === "file" && <FileText className="w-3.5 h-3.5 text-indigo-400" />}
+                  <span className="text-slate-300 font-medium truncate max-w-[140px]">
+                    {file.name}
+                  </span>
                   <button
-                    onClick={() => handleRemoveAttachment(idx)}
+                    onClick={() => handleRemoveAttachment(file.id)}
                     className="text-slate-500 hover:text-rose-400 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -253,10 +541,10 @@ export default function HookStudioPage() {
             </div>
           )}
 
-          {/* Input control block */}
-          <div className="bg-[#121620] border border-slate-800/80 rounded-2xl p-2 flex items-center justify-between gap-3 shadow-lg focus-within:border-indigo-500/70 transition-all">
-            {/* Target Select with Instant Badge */}
-            <div className="flex items-center gap-1.5 pl-2">
+          {/* Prompt Console Bar */}
+          <div className="bg-[#11151f] border border-slate-800/80 rounded-2xl p-2 flex items-center justify-between gap-3 shadow-lg focus-within:border-indigo-500/70 transition-all">
+            {/* Target Select */}
+            <div className="flex items-center gap-1.5 pl-2 select-none">
               <span className="text-xs font-bold text-slate-200">{t.inputDropdown}</span>
               <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
                 {t.badgeInstant}
@@ -268,25 +556,48 @@ export default function HookStudioPage() {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSendMessage();
+              }}
               placeholder={t.inputPlaceholder}
               className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
             />
 
-            {/* Mic and Send actions */}
+            {/* Actions */}
             <div className="flex items-center gap-2 pr-1">
-              <button className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all">
-                <Mic className="w-4 h-4" />
+              <input
+                type="file"
+                multiple
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,video/*,audio/*"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                title="Attach files"
+              >
+                <Paperclip className="w-4 h-4" />
               </button>
-              <button className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/10">
-                <Send className="w-4 h-4" />
+              <button
+                onClick={handleSendMessage}
+                disabled={isGenerating || (!inputText.trim() && attachedFiles.length === 0)}
+                className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition-all shadow-md shadow-indigo-600/10"
+              >
+                {isGenerating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Column: Settings Sidebar (Strictly styled according to Figma layout) */}
-      <div className="w-80 border-l border-slate-800 bg-[#0b0e14] p-5 space-y-6 hidden md:block overflow-y-auto flex-shrink-0 scrollbar-thin">
+      {/* Right Column: Settings Sidebar */}
+      <div className="w-80 border-l border-slate-800 bg-[#090b10] p-5 space-y-6 hidden md:block overflow-y-auto flex-shrink-0 scrollbar-thin">
         {/* Section: Video Model */}
         <div className="space-y-2">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
@@ -310,7 +621,7 @@ export default function HookStudioPage() {
                 }
               }
             }}
-            className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+            className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
           >
             {HOOK_VIDEO_MODELS.map((m) => (
               <option key={m.id} value={m.id}>
@@ -328,7 +639,7 @@ export default function HookStudioPage() {
           <select
             value={selectedThinkingModel}
             onChange={(e) => setSelectedThinkingModel(e.target.value)}
-            className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+            className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-semibold cursor-pointer"
           >
             {LLM_BRAIN_MODELS.map((b) => (
               <option key={b.id} value={b.id}>
@@ -353,7 +664,7 @@ export default function HookStudioPage() {
               <select
                 value={selectedDuration}
                 onChange={(e) => setSelectedDuration(e.target.value)}
-                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 {activeVideoModelObj.durations.map((d) => (
                   <option key={d} value={`${d}s`}>
@@ -371,7 +682,7 @@ export default function HookStudioPage() {
               <select
                 value={selectedRatio}
                 onChange={(e) => setSelectedRatio(e.target.value)}
-                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 {activeVideoModelObj.aspectRatios.map((r) => (
                   <option key={r} value={r}>
@@ -389,7 +700,7 @@ export default function HookStudioPage() {
               <select
                 value={selectedQuality}
                 onChange={(e) => setSelectedQuality(e.target.value)}
-                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 {activeVideoModelObj.qualityModes.map((q) => (
                   <option key={q} value={q}>
@@ -407,7 +718,7 @@ export default function HookStudioPage() {
               <select
                 value={selectedGenre}
                 onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 {HOOK_GENRES.map((g) => (
                   <option key={g.id} value={g.id}>
@@ -425,13 +736,35 @@ export default function HookStudioPage() {
               <select
                 value={selectedHookAngle}
                 onChange={(e) => setSelectedHookAngle(e.target.value)}
-                className="w-full bg-[#121620] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
               >
                 <option value="curiosity">{isAr ? "فجوة الفضول" : "Curiosity Gap"}</option>
                 <option value="shock">{isAr ? "هوك الصدمة" : "Shock Hook"}</option>
                 <option value="mystery">{isAr ? "الغموض البصري" : "Visual Mystery"}</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        {/* Dynamic Production Gallery Inside Sidebar Bottom / Accordion to avoid cluttering */}
+        <div className="pt-4 border-t border-slate-800/80 space-y-3">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            {t.productionGallery}
+          </label>
+          <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+            {gallery.map((item) => (
+              <div
+                key={item.id}
+                className="bg-[#11141e] border border-slate-800 rounded-xl p-2 space-y-2 text-xs"
+              >
+                <video src={item.url} controls className="w-full rounded-lg object-cover aspect-video" />
+                <p className="text-[10px] text-slate-400 line-clamp-1">{item.prompt}</p>
+                <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                  <span>{item.modelName}</span>
+                  <span>{item.date}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
