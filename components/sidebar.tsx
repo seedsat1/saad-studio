@@ -6,7 +6,7 @@ import {usePathname} from "next/navigation";
 import { Montserrat } from 'next/font/google'
 
 import { cn } from "@/lib/utils";
-import {LayoutDashboard, MessageSquare, ImageIcon, VideoIcon, Music, Code, Settings, FileText} from "lucide-react";
+import {LayoutDashboard, MessageSquare, ImageIcon, VideoIcon, Music, Code, Settings, FileText, Sparkles} from "lucide-react";
 import {FreeCounter} from "@/components/free-counter";
 
 const montserrat = Montserrat ({ weight: '600', subsets: ['latin'] });
@@ -37,11 +37,18 @@ const routes = [
         href: '/video',
     },
     {
+        label: 'Hook Studio',
+        icon: Sparkles,
+        color: "text-indigo-400",
+        href: '/hook-studio',
+    },
+    {
         label: 'ClipCraft Studio',
         icon: FileText,
         color: "text-cyan-400",
         href: '/clipcraft-studio',
     },
+
     {
         label: 'Music Generation',
         icon: Music,
