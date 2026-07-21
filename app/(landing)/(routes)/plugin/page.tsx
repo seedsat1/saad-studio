@@ -448,9 +448,9 @@ export default function PluginPage() {
                     <div className="w-10 h-10 rounded-xl bg-violet-500/15 text-violet-400 flex items-center justify-center font-bold">
                       4
                     </div>
-                    <h3 className="text-base font-bold text-white">{t("Silence Removal", "حذف الصمت والتوقفات")}</h3>
+                    <h3 className="text-base font-bold text-white">{t("One Click", "المونتاج بنقرة واحدة")}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      حذف التوقفات والفترات الصامتة تلقائياً واختصار زمن التسجيلات بدقة فائقة دون إتلاف جودة الفيديو.
+                      تشغيل مسار التقطيع التلقائي للكاميرات والمزامنة والتسميات للبودكاست بالكامل في تسلسل آلي واحد بنقرة زر.
                     </p>
                   </div>
                 </motion.div>
