@@ -1,22 +1,19 @@
 # Saad Studio Project Context Update
 
-### Latest task: Hook Studio Figma Layout Implementation (2026-07-22)
+### Latest task: Dynamic Model Capability & Exact Durations Mapping (2026-07-22)
 
 - Status:
-  Completely implemented the high-fidelity Figma workspace design for **Hook Studio** (`/hook-studio`):
-  1. **Dual Column Layout**:
-     - **Left / Center (Chat Workspace)**: A scrollable, conversational message log featuring system agent cards, user prompt history, and responsive preview cards.
-     - **Right (Settings Sidebar)**: A fixed control panel with selectable parameters for VIDEO MODEL, THINKING MODEL, DURATION, RATIO, QUALITY, GENRE, and HOOK ANGLE.
-  2. **Modern Glassmorphic Elements**:
-     - Embedded a mockup storyboard with 4 customized cyberpunk scene thumbnail images generated via AI.
-     - Designed action buttons for generating video / regenerating hook matching figma styling.
-     - Enforced clean language support and zero external brand names in UI strings.
+  Completely dynamicized model parameters in **Hook Studio** (`/hook-studio`) to resolve exact model capability specifications:
+  1. **Dynamic Dropdowns**: Binded DURATION, RATIO, and QUALITY dropdown options to automatically load values directly from the selected video model specifications object.
+  2. **Exact Durations Mapping**: Updated `durations` configuration array for `Seedance 2.0` (3s to 15s) and `Seedance Turbo` (3s to 10s) without placeholders.
+  3. **Auto-fallback Sync**: Added dynamic state fallback synchronization so selecting a new video model automatically resets selected parameters to values compatible with the newly selected model specs.
 - Affected Files:
   - [app/(dash)/(routes)/hook-studio/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/hook-studio/page.tsx)
+  - [lib/hook-studio-config.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/hook-studio-config.ts)
 - Verification:
-  - Generated and copied 4 high-quality cyberpunk thumbnail images into `public/`.
-  - Executed `npm run build` cleanly (Compiled successfully, prerendered route `/hook-studio`).
-  - Pushed commit `07e9831` to main repository.
+  - Executed `npm run build` successfully (`✓ Compiled successfully`).
+  - Pushed commit `c16b28b` to main repository.
+
 
 
 
