@@ -1816,3 +1816,92 @@
 - شريط أدوات Podcast Automation المعروض للمشترك يحتوي فقط على: `Multi-Cam`, `Auto Captions`, `Synchronize`, و`One Click`.
 - لا تظهر أدوات `Silence` و`Auto Zoom` في الشريط أو كصفحات مستقلة داخل هذه الواجهة.
 - إذا عادت هذه الأدوات لاحقًا، يجب أن تكون مربوطة بسلوك إنتاجي مكتمل وليست بطاقات placeholder.
+
+## ربط Seedance 2.0 Mini في الويب (2026-07-22)
+
+- مواصفة WaveSpeed المعتمدة لـ Seedance 2.0 Mini Image-to-Video تستخدم:
+  `prompt`, `image`, `last_image`, `aspect_ratio`, `resolution`, `duration`, `enable_web_search`, و`generate_audio`.
+- مسار Mini في واجهات الويب يكون `bytedance/seedance-2.0-mini/text-to-video`، ويحوّله `/api/video` أو Hook Studio إلى `bytedance/seedance-2.0-mini/image-to-video` عند وجود صورة بداية.
+- حدود Mini المحلية: مدة 4-15 ثانية، نسب 16:9 و9:16 و4:3 و3:4 و1:1 و21:9، ودقات 480p و720p و1080p و4k.
+- قيمة `adaptive` يمكن أن تظهر في UI كاختيار تكيفي، لكنها لا ترسل إلى WaveSpeed كـ `aspect_ratio`; ترك الحقل فارغًا هو آلية التكيف حسب المواصفة.
+- Mini Image-to-Video يقبل صورتين فقط في الربط الحالي: الأولى `image` والثانية `last_image`. لا ترسل حقول رفرنس فيديو أو رفرنس صوت لـ Mini لأن المواصفة المعتمدة لا توثقها. الصوت الموثق هو توليد صوت أصلي عبر `generate_audio`.
+- Hook Studio يجب أن يرفع المرفقات إلى رابط عام عبر `/api/media/upload` قبل إرسال الطلب للموديل؛ ممنوع إرسال روابط `blob:` أو مسارات محلية إلى المزود.
+
+## ربط Seedance 2.0 Image-to-Video Turbo في الويب (2026-07-22)
+
+- مواصفة WaveSpeed المعتمدة لـ Seedance 2.0 Image-to-Video Turbo تستخدم:
+  `prompt`, `image`, `last_image`, `aspect_ratio`, `resolution`, `duration`, `enable_web_search`, و`generate_audio`.
+- مسار Turbo في واجهات الويب يكون `bytedance/seedance-2.0/text-to-video-turbo`، ويحوّله `/api/video` أو Hook Studio إلى `bytedance/seedance-2.0/image-to-video-turbo` عند وجود صورة بداية.
+- حدود Turbo المحلية: مدة 4-15 ثانية، نسب 16:9 و9:16 و4:3 و3:4 و1:1 و21:9، ودقات 720p و1080p فقط.
+- قيمة `adaptive` لا ترسل إلى WaveSpeed كـ `aspect_ratio`; ترك الحقل فارغًا هو آلية التكيف حسب مواصفة Turbo.
+- Turbo Image-to-Video يرسل صورة بداية `image` وصورة نهاية اختيارية `last_image` فقط. لا ترسل قوائم `reference_image_urls` أو رفرنس فيديو/صوت لـ Turbo لأن جدول الطلب المرفق لا يوثق هذه الحقول، رغم وجود وصف تسويقي عام عن multi-image references.
+- الصوت في Turbo مرتبط فقط بحقل `generate_audio`، وافتراضيه true حسب المواصفة.
+
+## ربط Seedance 2.0 Image-to-Video الأساسي في الويب (2026-07-22)
+
+- مواصفة WaveSpeed المعتمدة لـ Seedance 2.0 Image-to-Video تستخدم:
+  `prompt`, `image`, `last_image`, `aspect_ratio`, `resolution`, `duration`, `enable_web_search`, و`generate_audio`.
+- مسار Seedance 2.0 الأساسي في واجهات الويب يكون `bytedance/seedance-2.0/text-to-video`، ويحوّله `/api/video` أو Hook Studio إلى `bytedance/seedance-2.0/image-to-video` عند وجود صورة بداية.
+- حدود Seedance 2.0 الأساسية: مدة 4-15 ثانية، نسب 16:9 و9:16 و4:3 و3:4 و1:1 و21:9، ودقات 480p و720p و1080p و4k.
+- قيمة `adaptive` لا ترسل إلى WaveSpeed كـ `aspect_ratio`; ترك الحقل فارغًا هو آلية التكيف حسب المواصفة.
+- Base Image-to-Video يرسل صورة بداية `image` وصورة نهاية اختيارية `last_image` فقط. لا ترسل قوائم `reference_image_urls` أو رفرنس فيديو/صوت لهذا المسار لأن جدول الطلب المرفق لا يوثقها، رغم وجود وصف عام عن up to 4 reference images.
+- تسعير الجودة حسب المواصفة: 720p يساوي 2x سعر 480p، و1080p يساوي 5x سعر 480p، و4k يساوي 10x سعر 480p.
+
+## ربط Kling V3.0 Std Image-to-Video في الويب (2026-07-22)
+
+- مواصفة WaveSpeed المعتمدة لـ Kling V3.0 Std Image-to-Video تستخدم المسار:
+  `kwaivgi/kling-v3.0-std/image-to-video`.
+- الحقول المسموحة حسب جدول الطلب المرفق: `image`, `prompt`, `negative_prompt`, `end_image`, `duration`, `cfg_scale`, `sound`, `shot_type`, `multi_prompt`, و`element_list`.
+- حقل `image` مطلوب. لا يجوز تحويل الطلب تلقائياً إلى Text-to-Video عند غياب الصورة؛ يجب إرجاع خطأ واضح للمستخدم.
+- مدة الفيديو المسموحة 3-15 ثانية. لا ترسل `resolution` أو `quality` أو `aspect_ratio` لهذا المسار لأن المواصفة لا توثقها.
+- الصور في هذا الربط صورتان فقط: `image` كبداية و`end_image` كنهاية اختيارية. لا ترسل قوائم رفرنس فيديو أو رفرنس صوت؛ الصوت الأصلي مرتبط بحقل `sound` فقط.
+- في `/video` بقي id الداخلي للمدخل الأساسي كما هو لتجنب كسر الروابط القديمة، لكن الاسم والمسار والقدرات صارت تشير إلى Kling 3.0 Std I2V.
+
+## ربط Kling V3 Turbo Std Image-to-Video في الويب (2026-07-22)
+
+- مواصفة WaveSpeed المعتمدة لـ Kling V3 Turbo Std Image-to-Video تستخدم المسار:
+  `kwaivgi/kling-v3-turbo-std/image-to-video`.
+- الحقول المسموحة حسب جدول الطلب المرفق: `image`, `prompt`, `multi_prompt`, و`duration`.
+- حقل `image` مطلوب وهو صورة البداية فقط. لا ترسل `end_image`, `reference_image_urls`, `reference_video_urls`, أو `reference_audio_urls` لهذا المسار.
+- `prompt` و`multi_prompt` متعارضان. عند وجود `multi_prompt` يجب حذف `prompt` من payload المزود.
+- `multi_prompt` يقبل 0-6 عناصر، وكل عنصر يحتوي `prompt` و`duration`. مجموع مدد اللقطات يجب ألا يتجاوز 15 ثانية.
+- `duration` في single-prompt يرسل كسلسلة نصية من 3 إلى 15. في multi-shot تعتمد المدة على مدد العناصر ولا يرسل `duration` مستقل.
+- الجودة ثابتة 720P حسب المواصفة؛ لا ترسل `resolution`, `quality`, أو `aspect_ratio`.
+
+## تصحيح ربط Kling Standard/Pro Image-to-Video في الويب (2026-07-22)
+
+- وثائق WaveSpeed تعرض Standard وPro كمسارات منفصلة، وليست كحقل `quality` يرسل داخل نفس الطلب.
+- اختيار `Standard` أو `Pro` في Hook Studio يغيّر route قبل الإرسال:
+  - `Kling 3.0 Standard`: `kwaivgi/kling-v3.0-std/image-to-video`.
+  - `Kling 3.0 Pro`: `kwaivgi/kling-v3.0-pro/image-to-video`.
+  - `Kling V3 Turbo Standard`: `kwaivgi/kling-v3-turbo-std/image-to-video`.
+  - `Kling V3 Turbo Pro`: `kwaivgi/kling-v3-turbo-pro/image-to-video`.
+- `Kling V3 Turbo Standard` موثق كخرج 720P، و`Kling V3 Turbo Pro` موثق كخرج 1080P.
+- `/api/video` يوجه Kling I2V إلى Pro إذا كانت `quality` أو `resolution` أو `mode` تساوي `pro` أو `1080p`، وإلا يستخدم Standard.
+- رغم وجود اختيار Standard/Pro في الواجهة، لا يرسل السيرفر `quality`, `resolution`, أو `aspect_ratio` إلى WaveSpeed لهذه المسارات، لأن وثائق Kling I2V لا توثق هذه الحقول في payload.
+- `/cinema-flow` يعرض الآن Standard وPro كخيارات موديل منفصلة حتى لا يختلط مسار 720P بمسار 1080P.
+
+## ربط Kling O3 وKling 2.6 في صفحات الفيديو (2026-07-22)
+
+- `Kling O3` في صفحات الويب يجب أن يكون ربط WaveSpeed كاملًا لعائلة:
+  `kwaivgi/kling-video-o3-std`, و`kwaivgi/kling-video-o3-pro`, و`kwaivgi/kling-video-o3-4k`.
+- السيرفر يختار وضع O3 النهائي حسب المرفقات:
+  - بدون صورة أو فيديو: `text-to-video`.
+  - مع صورة أو صورتين: `image-to-video`.
+  - مع فيديو رفرنس أو أكثر من صورتين: `reference-to-video`.
+- O3 يدعم محليًا: مدة 3-15 ثانية، جودات `Standard` و`Pro` و`4K`، نسب `16:9` و`9:16` و`1:1` في reference mode، حتى 7 صور رفرنس، فيديو رفرنس واحد، `sound`, و`shot_type`, و`multi_prompt`, و`element_list`.
+- `Kling 2.6` يجب أن يستخدم عائلة WaveSpeed:
+  `kwaivgi/kling-v2.6-std/text-to-video`, `kwaivgi/kling-v2.6-pro/text-to-video`,
+  `kwaivgi/kling-v2.6-std/image-to-video`, و`kwaivgi/kling-v2.6-pro/image-to-video`.
+- Kling 2.6 يختار `image-to-video` عند وجود صورة بداية، وإلا يبقى `text-to-video`. اختيار `Pro` يغير route إلى `-pro`.
+- حدود Kling 2.6 المحلية: مدة 5 أو 10 ثوان، جودات `Standard` و`Pro`، نسب `16:9` و`9:16` و`1:1` في text-to-video، وصورتان كحد أقصى في image-to-video (`image` ثم `end_image` عند السماح).
+- صفحة `/video` يجب أن تعتمد `max_reference_videos` و`max_reference_audios` من قدرات الموديل نفسه، وليس فقط من أسماء Seedance القديمة، حتى تظهر مرفقات الفيديو للموديلات التي توثقها مثل O3.
+- صفحات `/video`, `/hook-studio`, و`/cinema-flow` هي نطاق الربط الحالي لهذه المجموعة. أدوات قديمة خارج هذه الصفحات قد تبقى على مسارات legacy إلى أن يتم تحديثها بمهمة منفصلة.
+
+## سلوك Add Element والكاركتر في صفحة الفيديو (2026-07-22)
+
+- زر `+ Add Element` المصور في `/video` لا يرسل لجميع الموديلات بشكل أعمى. يظهر ويرسل فقط للموديلات التي تعلن قدرة `has_element_list` وتكون من عائلة Kling.
+- السبب: كثير من مزودات الفيديو لا توثق `element_list`، وإرساله لها يعد تجاوزًا للمواصفة وقد يفشل الطلب.
+- موديلات Kling التي تدعم `element_list` تستخدم واجهة Elements المصورة: اسم، وصف، و2-4 صور لكل عنصر، بحد أقصى 3 عناصر يدوية.
+- الكاركتر المحفوظ يستخدم نفس مسار Kling Elements عندما يكون الموديل يدعم `element_list`: يحقن الاسم في البرومبت كـ `@name` ويرسل صور الكاركتر كعنصر داخل `element_list`.
+- للموديلات التي لا تدعم `element_list`، الكاركتر أو الصور تستخدم مسارات الريفرنس العادية الموثقة للموديل فقط، مثل `image`, `last_image`, `reference_image_urls`, أو فيديو رفرنس عند توفره.

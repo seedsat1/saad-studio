@@ -126,6 +126,21 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "kling/v3-turbo-text-to-video":                 "kling_v3_turbo",
   "kling/v3-turbo-image-to-video":                "kling_v3_turbo",
   "kling/v3-turbo":                               "kling_v3_turbo",
+  "kwaivgi/kling-v3-turbo-std/image-to-video":    "kling_v3_turbo",
+  "kwaivgi/kling-v3-turbo-pro/image-to-video":    "kling_v3_turbo",
+  "kwaivgi/kling-video-o3-std/text-to-video":     "kling30",
+  "kwaivgi/kling-video-o3-std/image-to-video":    "kling30",
+  "kwaivgi/kling-video-o3-std/reference-to-video": "kling30",
+  "kwaivgi/kling-video-o3-pro/text-to-video":     "kling30",
+  "kwaivgi/kling-video-o3-pro/image-to-video":    "kling30",
+  "kwaivgi/kling-video-o3-pro/reference-to-video": "kling30",
+  "kwaivgi/kling-video-o3-4k/text-to-video":      "kling30",
+  "kwaivgi/kling-video-o3-4k/image-to-video":     "kling30",
+  "kwaivgi/kling-video-o3-4k/reference-to-video": "kling30",
+  "kwaivgi/kling-v2.6-std/text-to-video":         "kling25t",
+  "kwaivgi/kling-v2.6-std/image-to-video":        "kling25t",
+  "kwaivgi/kling-v2.6-pro/text-to-video":         "kling25t",
+  "kwaivgi/kling-v2.6-pro/image-to-video":        "kling25t",
   "hailuo/2-3-image-to-video-pro":                "hailuo23",
   "hailuo/2-3-image-to-video-standard":           "hailuo23f",
   "hailuo/02-text-to-video-pro":                  "hailuo23",
@@ -138,8 +153,14 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
   "runwayml/gen4-aleph":                          "kling25t",
   "runwayml/gen4-turbo":                          "kling25t",
   "bytedance/seedance-2":                         "seedance2",
+  "bytedance/seedance-2.0/text-to-video":         "seedance2",
+  "bytedance/seedance-2.0/image-to-video":        "seedance2",
   "bytedance/seedance-2-fast":                    "seedance2f",
   "bytedance/seedance-2-mini":                    "seedance2mini",
+  "bytedance/seedance-2.0/text-to-video-turbo":   "seedance2f",
+  "bytedance/seedance-2.0/image-to-video-turbo":  "seedance2f",
+  "bytedance/seedance-2.0-mini/text-to-video":    "seedance2mini",
+  "bytedance/seedance-2.0-mini/image-to-video":   "seedance2mini",
   "bytedance/seedance-v2/text-to-video-fast":     "seedance2f",
   "bytedance/seedance-v2/text-to-video-mini":     "seedance2mini",
   "bytedance/seedance-v2/text-to-video":          "seedance2",
@@ -156,6 +177,8 @@ const MODEL_ALIAS_MAP: Record<string, string> = {
 
   // ── Cinema — app/api/video (KIE model routes) ────────────────────────────
   "kwaivgi/kling-v3.0-pro/text-to-video":         "kling30",
+  "kwaivgi/kling-v3.0-std/image-to-video":        "kling30",
+  "kwaivgi/kling-v3.0-pro/image-to-video":        "kling30",
   // Kling 3.0 Omni / Omni Edit routes removed — KIE has no Omni endpoint.
   "kwaivgi/kling-v3.0-pro/motion-control":        "kling30_mc",
   "minimax/hailuo-2.3/i2v-standard":              "hailuo23f",
@@ -419,16 +442,22 @@ const IMAGE_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
 };
 
 const VIDEO_MODEL_QUALITY_MULTIPLIER: Record<string, Record<string, number>> = {
-  "bytedance/seedance-2-fast":                  { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-2-mini":                  { "480p": 15 / 35, "720p": 1.0 },
-  "bytedance/seedance-v2/text-to-video-fast":   { "480p": 0.5, "720p": 1.0 },
-  "bytedance/seedance-v2/text-to-video-mini":   { "480p": 15 / 35, "720p": 1.0 },
-  "seedance2f":                                 { "480p": 0.5, "720p": 1.0 },
-  "seedance2mini":                              { "480p": 15 / 35, "720p": 1.0 },
-  "bytedance/seedance-2":                       { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
-  "bytedance/seedance-v2/text-to-video":        { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
-  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
-  "seedance2":                                  { "480p": 0.661765, "720p": 1.0, "1080p": 1.985294, "4k": 4.852941 },
+  "bytedance/seedance-2-fast":                  { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-2.0/text-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-2.0/image-to-video-turbo": { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-2-mini":                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0-mini/text-to-video":  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0-mini/image-to-video": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-v2/text-to-video-fast":   { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "bytedance/seedance-v2/text-to-video-mini":   { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "seedance2f":                                 { "720p": 1.0, "1080p": 0.75 / 0.70 },
+  "seedance2mini":                              { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2":                       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0/text-to-video":       { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-2.0/image-to-video":      { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/seedance-v2/text-to-video":        { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "bytedance/dreamina-v3.0/text-to-video-720p": { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
+  "seedance2":                                  { "480p": 0.5, "720p": 1.0, "1080p": 2.5, "4k": 5.0 },
   "kwaivgi/kling-v3.0-pro/text-to-video":        { "pro": 1.6, "std": 1.0 },
   "kwaivgi/kling-v3.0-pro/motion-control":       { "pro": 1.6, "std": 1.0 },
   "kling-3.0/video":                            { "pro": 1.6, "std": 1.0 },
@@ -651,6 +680,7 @@ export function estimateProviderCostSync(
     modelRef === "bytedance/seedance-v2/text-to-video" ||
     modelRef === "bytedance/seedance-v2/text-to-video-fast" ||
     modelRef === "bytedance/seedance-v2/text-to-video-mini" ||
+    modelRef.includes("bytedance/seedance-2.0") ||
     modelRef.includes("dreamina-seedance") ||
     modelRef.includes("seedance2");
 

@@ -38,6 +38,7 @@ interface AttachedFile {
   name: string;
   type: "image" | "video" | "audio" | "file";
   url: string;
+  file?: File;
 }
 
 interface ChatMessage {
@@ -54,8 +55,40 @@ interface ChatMessage {
     duration: string;
     scenes: Array<{ id: number; url: string }>;
     videoUrl: string;
+    modelRecommendation?: string;
   };
 }
+
+const readUploadError = async (response: Response) => {
+  try {
+    const data = await response.json();
+    if (typeof data?.error === "string") return data.error;
+  } catch {
+    // Ignore and use the generic message below.
+  }
+  return `Upload failed with status ${response.status}`;
+};
+
+const uploadAttachedFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const uploadRes = await fetch("/api/media/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!uploadRes.ok) {
+    throw new Error(await readUploadError(uploadRes));
+  }
+
+  const uploadData = await uploadRes.json();
+  if (typeof uploadData?.publicUrl !== "string" || !uploadData.publicUrl.trim()) {
+    throw new Error("Upload response did not contain publicUrl");
+  }
+
+  return uploadData.publicUrl as string;
+};
 
 export default function HookStudioPage() {
   const { lang } = useLanguage();
@@ -67,6 +100,7 @@ export default function HookStudioPage() {
   const [selectedDuration, setSelectedDuration] = useState("15s");
   const [selectedRatio, setSelectedRatio] = useState("16:9");
   const [selectedQuality, setSelectedQuality] = useState("1080p");
+  const [generateAudio, setGenerateAudio] = useState(true);
   const [selectedGenre, setSelectedGenre] = useState("cinematic");
   const [selectedHookAngle, setSelectedHookAngle] = useState("curiosity");
 
@@ -250,18 +284,38 @@ export default function HookStudioPage() {
 
   const processFiles = (files: FileList) => {
     const newFiles: AttachedFile[] = [];
+    const counts = {
+      image: attachedFiles.filter((item) => item.type === "image").length,
+      video: attachedFiles.filter((item) => item.type === "video").length,
+      audio: attachedFiles.filter((item) => item.type === "audio").length,
+    };
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       let type: AttachedFile["type"] = "file";
       if (file.type.startsWith("image/")) type = "image";
       else if (file.type.startsWith("video/")) type = "video";
       else if (file.type.startsWith("audio/")) type = "audio";
+      else continue;
+
+      const maxAllowed =
+        type === "image"
+          ? activeVideoModelObj.maxRefImages
+          : type === "video"
+            ? activeVideoModelObj.maxRefVideos
+            : type === "audio"
+              ? activeVideoModelObj.maxRefAudios
+              : 0;
+
+      if (maxAllowed <= 0 || counts[type] >= maxAllowed) continue;
+      counts[type] += 1;
 
       newFiles.push({
         id: Math.random().toString(36).substr(2, 9),
         name: file.name,
         type,
         url: URL.createObjectURL(file),
+        file,
       });
     }
     setAttachedFiles((prev) => [...prev, ...newFiles]);
@@ -289,6 +343,18 @@ export default function HookStudioPage() {
     setIsGenerating(true);
 
     try {
+      const uploaded = await Promise.all(
+        (userMessage.attachments || [])
+          .filter((item) => item.file)
+          .map(async (item) => ({
+            type: item.type,
+            url: await uploadAttachedFile(item.file as File),
+          }))
+      );
+      const refImages = uploaded.filter((item) => item.type === "image").map((item) => item.url);
+      const refVideos = uploaded.filter((item) => item.type === "video").map((item) => item.url);
+      const refAudios = uploaded.filter((item) => item.type === "audio").map((item) => item.url);
+
       const res = await fetch("/api/hook-studio/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -297,9 +363,13 @@ export default function HookStudioPage() {
           llmBrain: selectedThinkingModel,
           genre: selectedGenre,
           modelId: selectedVideoModel,
-          duration: selectedDuration,
-          ratio: selectedRatio,
+          duration: Number.parseInt(selectedDuration, 10),
+          aspectRatio: selectedRatio,
           quality: selectedQuality,
+          generateAudio,
+          refImages,
+          refVideos,
+          refAudios,
         }),
       });
 
@@ -820,6 +890,17 @@ export default function HookStudioPage() {
                 ))}
               </select>
             </div>
+
+            {/* Native Audio */}
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#11141e] px-3 py-2.5 text-xs text-slate-200">
+              <span className="font-semibold">{isAr ? "ØªÙˆÙ„ÙŠØ¯ ØµÙˆØª Ø£ØµÙ„ÙŠ" : "Native audio"}</span>
+              <input
+                type="checkbox"
+                checked={generateAudio}
+                onChange={(e) => setGenerateAudio(e.target.checked)}
+                className="h-4 w-4 accent-indigo-500"
+              />
+            </label>
 
             {/* Genre */}
             <div className="space-y-1.5">

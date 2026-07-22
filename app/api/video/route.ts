@@ -436,8 +436,21 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   if (typeof payload.negative_prompt === "string") out.negative_prompt = payload.negative_prompt;
   if (typeof payload.cfg_scale === "number") out.cfg_scale = payload.cfg_scale;
 
-  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
-  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
+  const requestedAspect =
+    typeof payload.aspect_ratio === "string"
+      ? payload.aspect_ratio
+      : typeof payload.aspectRatio === "string"
+        ? payload.aspectRatio
+        : null;
+  if (requestedAspect) out.aspect_ratio = requestedAspect;
+
+  const requestedResolution =
+    typeof payload.resolution === "string"
+      ? payload.resolution
+      : typeof payload.quality === "string"
+        ? payload.quality
+        : null;
+  if (requestedResolution) out.resolution = requestedResolution;
 
   const imgSrc =
     (typeof payload.image === "string" ? payload.image : null) ||
@@ -466,13 +479,272 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   }
 
   if (Array.isArray(payload.reference_image_urls)) out.reference_image_urls = payload.reference_image_urls;
+  if (Array.isArray(payload.image_urls) && !out.reference_image_urls) out.reference_image_urls = payload.image_urls;
   if (Array.isArray(payload.reference_video_urls)) out.reference_video_urls = payload.reference_video_urls;
+  if (typeof payload.video_url === "string") out.reference_video_urls = [payload.video_url];
+  if (Array.isArray(payload.video_urls) && !out.reference_video_urls) out.reference_video_urls = payload.video_urls;
   if (Array.isArray(payload.reference_audio_urls)) out.reference_audio_urls = payload.reference_audio_urls;
+  if (Array.isArray(payload.audio_urls) && !out.reference_audio_urls) out.reference_audio_urls = payload.audio_urls;
+  if (typeof payload.audio_url === "string" && !out.reference_audio_urls) out.reference_audio_urls = [payload.audio_url];
 
   out.enable_web_search = payload.enable_web_search !== undefined ? !!payload.enable_web_search : false;
 
-  const hasAudio = payload.sound === true || payload.generate_audio === true;
+  const isSeedanceBaseImageRoute = route === "bytedance/seedance-2.0/image-to-video";
+  const isSeedanceTurboImageRoute = route === "bytedance/seedance-2.0/image-to-video-turbo";
+  const isSeedanceMiniImageRoute = route === "bytedance/seedance-2.0-mini/image-to-video";
+  const isKling30ImageRoute =
+    route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+    route === "kwaivgi/kling-v3.0-pro/image-to-video";
+  const isKlingV3TurboImageRoute =
+    route === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
+    route === "kwaivgi/kling-v3-turbo-pro/image-to-video";
+  const isKlingO3Route = typeof route === "string" && route.startsWith("kwaivgi/kling-video-o3-");
+  const isKling26Route = typeof route === "string" && route.startsWith("kwaivgi/kling-v2.6-");
+  const hasAudio = isSeedanceBaseImageRoute || route?.includes("seedance-2.0-mini") || isSeedanceTurboImageRoute
+    ? payload.generate_audio !== false
+    : payload.sound === true || payload.generate_audio === true;
   out.generate_audio = hasAudio;
+  const readKlingElementList = () => {
+    const directElements = Array.isArray(payload.element_list)
+      ? payload.element_list.slice(0, 3).filter((item) => item && typeof item === "object")
+      : [];
+    const imageElements = Array.isArray(payload.kling_elements)
+      ? payload.kling_elements
+          .slice(0, Math.max(0, 3 - directElements.length))
+          .filter((item) => item && typeof item === "object")
+      : [];
+    return [...directElements, ...imageElements];
+  };
+
+  if (isKling30ImageRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const imageUrls = Array.isArray(payload.image_urls)
+      ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      imageUrls[0] ||
+      referenceImages[0] ||
+      null;
+    const finalImage =
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      imageUrls[1] ||
+      referenceImages[1] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (startImage) exact.image = startImage;
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    if (finalImage) exact.end_image = finalImage;
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
+    if (typeof out.cfg_scale === "number" && Number.isFinite(out.cfg_scale)) {
+      exact.cfg_scale = Math.min(1, Math.max(0, out.cfg_scale));
+    }
+    exact.sound = payload.sound === true || payload.generate_audio === true;
+    const shotType = typeof payload.shot_type === "string" ? payload.shot_type.trim() : "";
+    if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
+    if (Array.isArray(payload.multi_prompt)) {
+      const multiPrompt = payload.multi_prompt
+        .slice(0, 6)
+        .filter((item) => item && typeof item === "object");
+      if (multiPrompt.length > 0) exact.multi_prompt = multiPrompt;
+    }
+    const elementList = readKlingElementList();
+    if (elementList.length > 0) exact.element_list = elementList;
+    return exact;
+  }
+
+  if (isKlingV3TurboImageRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const imageUrls = Array.isArray(payload.image_urls)
+      ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      imageUrls[0] ||
+      referenceImages[0] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (startImage) exact.image = startImage;
+    const rawMultiPrompt = Array.isArray(payload.multi_prompt) ? (payload.multi_prompt as unknown[]) : null;
+    const hasMultiPromptInput = rawMultiPrompt !== null;
+    const multiPrompt = hasMultiPromptInput
+      ? rawMultiPrompt
+          .slice(0, 6)
+          .map((item: unknown, index: number) => {
+            if (!item || typeof item !== "object") return null;
+            const record = item as Record<string, unknown>;
+            const prompt = typeof record.prompt === "string" ? record.prompt.trim() : "";
+            const rawDuration = typeof record.duration === "number"
+              ? record.duration
+              : typeof record.duration === "string"
+                ? Number.parseInt(record.duration, 10)
+                : NaN;
+            if (!prompt || !Number.isFinite(rawDuration)) {
+              throw new ValidationError(`Kling V3 Turbo multi_prompt item ${index + 1} requires prompt and duration.`);
+            }
+            const duration = Math.floor(rawDuration);
+            if (duration < 1) {
+              throw new ValidationError(`Kling V3 Turbo multi_prompt item ${index + 1} duration must be at least 1 second.`);
+            }
+            return { prompt, duration };
+          })
+          .filter((item: { prompt: string; duration: number } | null): item is { prompt: string; duration: number } => item !== null)
+      : [];
+    if (multiPrompt.length > 0) {
+      const totalDuration = multiPrompt.reduce((sum: number, item: { prompt: string; duration: number }) => sum + item.duration, 0);
+      if (totalDuration > 15) {
+        throw new ValidationError("Kling V3 Turbo multi_prompt total duration must not exceed 15 seconds.");
+      }
+      exact.multi_prompt = multiPrompt;
+    } else if (hasMultiPromptInput) {
+      throw new ValidationError("Kling V3 Turbo multi_prompt must include at least one shot.");
+    } else {
+      if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+      const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+      const normalizedDuration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
+      exact.duration = String(normalizedDuration);
+    }
+    return exact;
+  }
+
+  if (isKlingO3Route) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const imageUrls = Array.isArray(payload.image_urls)
+      ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const referenceVideos = Array.isArray(out.reference_video_urls)
+      ? out.reference_video_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      imageUrls[0] ||
+      referenceImages[0] ||
+      null;
+    const finalImage =
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      imageUrls[1] ||
+      referenceImages[1] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    const normalizedDuration = Number.isFinite(duration) ? Math.min(15, Math.max(3, duration)) : 5;
+    if (route?.includes("-pro/image-to-video")) {
+      exact.duration = normalizedDuration >= 8 ? 10 : 5;
+    } else {
+      exact.duration = normalizedDuration;
+    }
+    exact.sound = payload.sound === true || payload.generate_audio === true;
+    const shotType = typeof payload.shot_type === "string" ? payload.shot_type.trim() : "";
+    if (shotType === "customize" || shotType === "intelligent") exact.shot_type = shotType;
+    if (Array.isArray(payload.multi_prompt)) {
+      const multiPrompt = payload.multi_prompt.slice(0, 6).filter((item) => item && typeof item === "object");
+      if (multiPrompt.length > 0) exact.multi_prompt = multiPrompt;
+    }
+    const elementList = readKlingElementList();
+    if (elementList.length > 0) exact.element_list = elementList;
+    if (route?.includes("/reference-to-video")) {
+      if (typeof out.aspect_ratio === "string" && ["16:9", "9:16", "1:1"].includes(out.aspect_ratio)) exact.aspect_ratio = out.aspect_ratio;
+      if (referenceVideos[0]) {
+        exact.video = referenceVideos[0];
+        exact.keep_original_sound = payload.keep_original_sound !== false;
+      }
+      const images = [...imageUrls, ...referenceImages].filter((value, index, list) => list.indexOf(value) === index);
+      if (images.length > 0) exact.images = images.slice(0, referenceVideos[0] ? 4 : 7);
+    } else if (route?.includes("/image-to-video")) {
+      if (startImage) exact.image = startImage;
+      if (finalImage) exact.end_image = finalImage;
+    }
+    return exact;
+  }
+
+  if (isKling26Route) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const imageUrls = Array.isArray(payload.image_urls)
+      ? payload.image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      imageUrls[0] ||
+      referenceImages[0] ||
+      null;
+    const finalImage =
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      imageUrls[1] ||
+      referenceImages[1] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string" && out.prompt.trim()) exact.prompt = out.prompt.trim();
+    if (typeof out.negative_prompt === "string" && out.negative_prompt.trim()) exact.negative_prompt = out.negative_prompt.trim();
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = duration >= 8 ? 10 : 5;
+    if (typeof out.cfg_scale === "number" && Number.isFinite(out.cfg_scale)) {
+      exact.cfg_scale = Math.min(1, Math.max(0, out.cfg_scale));
+    }
+    if (route?.includes("/image-to-video")) {
+      if (startImage) exact.image = startImage;
+      if (route.includes("-pro/")) {
+        const sound = payload.sound === true || payload.generate_audio === true;
+        exact.sound = sound;
+        if (finalImage && !sound) exact.end_image = finalImage;
+        if (Array.isArray(payload.voice_list)) {
+          const voiceList = payload.voice_list.slice(0, 2).filter((item) => item && typeof item === "object");
+          if (voiceList.length > 0) exact.voice_list = voiceList;
+        }
+      }
+    } else if (typeof out.aspect_ratio === "string" && ["16:9", "9:16", "1:1"].includes(out.aspect_ratio)) {
+      exact.aspect_ratio = out.aspect_ratio;
+    }
+    return exact;
+  }
+
+  if (isSeedanceBaseImageRoute || isSeedanceMiniImageRoute || isSeedanceTurboImageRoute) {
+    const referenceImages = Array.isArray(out.reference_image_urls)
+      ? out.reference_image_urls.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : [];
+    const startImage =
+      (typeof out.image === "string" ? out.image : null) ||
+      (typeof out.image_url === "string" ? out.image_url : null) ||
+      referenceImages[0] ||
+      null;
+    const finalImage =
+      (typeof out.last_image === "string" ? out.last_image : null) ||
+      (typeof out.end_image === "string" ? out.end_image : null) ||
+      referenceImages[1] ||
+      null;
+    const exact: Record<string, unknown> = {};
+    if (typeof out.prompt === "string") exact.prompt = out.prompt;
+    if (startImage) exact.image = startImage;
+    if (finalImage) exact.last_image = finalImage;
+    if (typeof out.aspect_ratio === "string" && out.aspect_ratio !== "adaptive") exact.aspect_ratio = out.aspect_ratio;
+    const resolution = typeof out.resolution === "string" ? out.resolution.toLowerCase() : "720p";
+    const allowedResolutions = isSeedanceTurboImageRoute
+      ? ["720p", "1080p"]
+      : ["480p", "720p", "1080p", "4k"];
+    exact.resolution = allowedResolutions.includes(resolution) ? resolution : "720p";
+    const duration = typeof out.duration === "number" ? out.duration : Number.parseInt(String(out.duration || "5"), 10);
+    exact.duration = Number.isFinite(duration) ? Math.min(15, Math.max(4, duration)) : 5;
+    exact.enable_web_search = !!out.enable_web_search;
+    exact.generate_audio = out.generate_audio !== false;
+    return exact;
+  }
 
   return out;
 }
@@ -1662,7 +1934,8 @@ export async function POST(req: Request) {
       payload.first_frame_url ||
       payload.image_url ||
       payload.image ||
-      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0)
+      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0) ||
+      (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.length > 0)
     );
 
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
@@ -1675,10 +1948,55 @@ export async function POST(req: Request) {
         modelRoute = hasImage ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
       }
     } else if (modelRoute.includes("kling")) {
-      if (modelRoute.includes("v3-turbo") || modelRoute.includes("turbo")) {
-        modelRoute = hasImage ? "kling/v3-turbo-image-to-video" : "kling/v3-turbo-text-to-video";
-      } else if (modelRoute.includes("2.6") || modelRoute.includes("v2-5-turbo")) {
+      const requestedKlingTier = typeof payload?.quality === "string"
+        ? payload.quality.toLowerCase()
+        : typeof payload?.resolution === "string"
+          ? payload.resolution.toLowerCase()
+          : typeof payload?.mode === "string"
+            ? payload.mode.toLowerCase()
+            : "";
+      const wantsKlingPro = requestedKlingTier === "pro" || requestedKlingTier === "1080p";
+      const wantsKling4k = requestedKlingTier === "4k";
+      const klingO3Tier = wantsKling4k ? "4k" : wantsKlingPro ? "pro" : "std";
+      if (modelRoute.includes("kling-video-o3")) {
+        const hasReferenceVideo =
+          (typeof payload.video_url === "string" && payload.video_url.trim().length > 0) ||
+          (Array.isArray(payload.video_urls) && payload.video_urls.some((value) => typeof value === "string" && value.trim().length > 0)) ||
+          (Array.isArray(payload.reference_video_urls) && payload.reference_video_urls.some((value) => typeof value === "string" && value.trim().length > 0));
+        const imageCount =
+          (Array.isArray(payload.image_urls) ? payload.image_urls.length : 0) ||
+          (Array.isArray(payload.reference_image_urls) ? payload.reference_image_urls.length : 0) ||
+          (hasImage ? 1 : 0);
+        const mode = hasReferenceVideo || imageCount > 2
+          ? "reference-to-video"
+          : hasImage
+            ? "image-to-video"
+            : "text-to-video";
+        modelRoute = `kwaivgi/kling-video-o3-${klingO3Tier}/${mode}`;
+      } else if (modelRoute.includes("kling-v2.6")) {
+        const tier = wantsKlingPro ? "pro" : "std";
+        modelRoute = `kwaivgi/kling-v2.6-${tier}/${hasImage ? "image-to-video" : "text-to-video"}`;
+      } else if (modelRoute.includes("kling-v3-turbo-pro")) {
+        modelRoute = "kwaivgi/kling-v3-turbo-pro/image-to-video";
+      } else if (modelRoute.includes("kling-v3-turbo-std")) {
+        modelRoute = "kwaivgi/kling-v3-turbo-std/image-to-video";
+      } else if (modelRoute.includes("v3-turbo") || modelRoute.includes("turbo")) {
+        modelRoute = hasImage
+          ? (wantsKlingPro ? "kwaivgi/kling-v3-turbo-pro/image-to-video" : "kwaivgi/kling-v3-turbo-std/image-to-video")
+          : "kling/v3-turbo-text-to-video";
+      } else if (modelRoute.includes("2.6")) {
+        const tier = wantsKlingPro ? "pro" : "std";
+        modelRoute = `kwaivgi/kling-v2.6-${tier}/${hasImage ? "image-to-video" : "text-to-video"}`;
+      } else if (modelRoute.includes("v2-5-turbo")) {
         modelRoute = hasImage ? "kling/v2-5-turbo-image-to-video-pro" : "kling/v2-5-turbo-text-to-video-pro";
+      } else if (modelRoute.includes("v3.0-pro/image-to-video")) {
+        modelRoute = "kwaivgi/kling-v3.0-pro/image-to-video";
+      } else if (modelRoute.includes("v3.0-std")) {
+        modelRoute = "kwaivgi/kling-v3.0-std/image-to-video";
+      } else if (modelRoute.includes("kling-v3.0-pro")) {
+        modelRoute = hasImage
+          ? (wantsKlingPro ? "kwaivgi/kling-v3.0-pro/image-to-video" : "kwaivgi/kling-v3.0-std/image-to-video")
+          : "kwaivgi/kling-v3.0-pro/text-to-video";
       } else {
         // Kling 3.0 / Kling O3
         modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
@@ -1714,6 +2032,12 @@ export async function POST(req: Request) {
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
+      modelRoute === "kwaivgi/kling-v3.0-std/image-to-video" ||
+      modelRoute === "kwaivgi/kling-v3.0-pro/image-to-video" ||
+      modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
+      modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video" ||
+      modelRoute.startsWith("kwaivgi/kling-video-o3-") ||
+      modelRoute.startsWith("kwaivgi/kling-v2.6-") ||
       modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
       modelRoute.startsWith("kling/v3-turbo") ||
       modelRoute.startsWith("kling/v2-5-turbo") ||
@@ -1798,7 +2122,8 @@ export async function POST(req: Request) {
     const isSeedance2Route =
       modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
       modelRoute === "bytedance/seedance-v2/text-to-video" ||
-      modelRoute === "bytedance/seedance-v2/text-to-video-fast";
+      modelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
+      modelRoute.startsWith("bytedance/seedance-2.0");
     const durationForCost =
       typeof payload.duration === "number"
         ? payload.duration
@@ -2267,9 +2592,21 @@ export async function POST(req: Request) {
         );
       }
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
+      if ((wavespeedRoute === "kwaivgi/kling-v3.0-std/image-to-video" || wavespeedRoute === "kwaivgi/kling-v3.0-pro/image-to-video") && typeof wsInput.image !== "string") {
+        return NextResponse.json({ error: "Kling 3.0 Image-to-Video requires an image reference." }, { status: 400 });
+      }
+      if ((wavespeedRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || wavespeedRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") && typeof wsInput.image !== "string") {
+        return NextResponse.json({ error: "Kling V3 Turbo Image-to-Video requires an image reference." }, { status: 400 });
+      }
+      if (wavespeedRoute?.startsWith("kwaivgi/kling-video-o3-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
+        return NextResponse.json({ error: "Kling O3 Image-to-Video requires an image reference." }, { status: 400 });
+      }
+      if (wavespeedRoute?.startsWith("kwaivgi/kling-v2.6-") && wavespeedRoute.endsWith("/image-to-video") && typeof wsInput.image !== "string") {
+        return NextResponse.json({ error: "Kling 2.6 Image-to-Video requires an image reference." }, { status: 400 });
+      }
       
       // Resolve single images/videos/audios
-      for (const key of ["image", "image_url", "end_image", "first_frame_url", "last_frame_url"] as const) {
+      for (const key of ["image", "image_url", "end_image", "last_image", "first_frame_url", "last_frame_url"] as const) {
         const mediaValue = wsInput[key];
         if (typeof mediaValue === "string" && mediaValue.trim()) {
           const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType: getAssetTypeFromKey(key) });

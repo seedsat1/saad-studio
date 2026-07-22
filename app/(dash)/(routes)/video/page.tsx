@@ -507,21 +507,27 @@ function getReferenceFileLimits(model: WaveSpeedVideoModel) {
   const isKling30 = model.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
   return {
     images: isKling30 ? 3 : Math.max(0, model.capabilities.max_reference_images || 0),
-    videos: isSeedanceV2VideoModel(model) ? Math.max(0, model.capabilities.max_reference_videos || 3) : 0,
-    audios: isSeedanceV2VideoModel(model) ? Math.max(0, model.capabilities.max_reference_audios || 3) : 0,
+    videos: Math.max(0, model.capabilities.max_reference_videos || 0),
+    audios: Math.max(0, model.capabilities.max_reference_audios || 0),
   };
 }
 
 function isAllowedReferenceFile(file: File, model: WaveSpeedVideoModel): boolean {
   if (file.type.startsWith("image/")) return true;
-  return isSeedanceV2VideoModel(model) && (file.type.startsWith("video/") || file.type.startsWith("audio/"));
+  if (file.type.startsWith("video/")) {
+    return !!(model.capabilities.requires_video || model.capabilities.optional_video || model.capabilities.max_reference_videos > 0);
+  }
+  if (file.type.startsWith("audio/")) {
+    return model.capabilities.max_reference_audios > 0;
+  }
+  return false;
 }
 
 function mergeReferenceFiles(current: File[], incoming: File[], model: WaveSpeedVideoModel): File[] {
   const allFiles = [...current, ...incoming].filter((file) => isAllowedReferenceFile(file, model));
   const limits = getReferenceFileLimits(model);
 
-  if (isSeedanceV2VideoModel(model)) {
+  if (limits.videos > 0 || limits.audios > 0) {
     const images = allFiles.filter((file) => file.type.startsWith("image/")).slice(0, limits.images);
     const videos = allFiles.filter((file) => file.type.startsWith("video/")).slice(0, limits.videos);
     const audios = allFiles.filter((file) => file.type.startsWith("audio/")).slice(0, limits.audios);
@@ -535,7 +541,7 @@ function getReferenceFileSummary(files: File[], model: WaveSpeedVideoModel): str
   const limits = getReferenceFileLimits(model);
   const imageCount = files.filter((file) => file.type.startsWith("image/")).length;
 
-  if (isSeedanceV2VideoModel(model)) {
+  if (limits.videos > 0 || limits.audios > 0) {
     const videoCount = files.filter((file) => file.type.startsWith("video/")).length;
     const audioCount = files.filter((file) => file.type.startsWith("audio/")).length;
     return `Images ${imageCount}/${limits.images} | Videos ${videoCount}/${limits.videos} | Audio ${audioCount}/${limits.audios}`;
@@ -546,7 +552,7 @@ function getReferenceFileSummary(files: File[], model: WaveSpeedVideoModel): str
 
 function getReferenceFileMaxLabel(model: WaveSpeedVideoModel): string {
   const limits = getReferenceFileLimits(model);
-  if (isSeedanceV2VideoModel(model)) {
+  if (limits.videos > 0 || limits.audios > 0) {
     return `${limits.images} images + ${limits.videos} videos + ${limits.audios} audio`;
   }
   return `${limits.images}`;
@@ -802,13 +808,13 @@ const NO_CHARACTER_SUPPORT: CharacterSupport = {
 function getVideoCharacterSupport(model: WaveSpeedVideoModel): CharacterSupport {
   const route = model.api_route;
 
-  if (route === "kwaivgi/kling-v3.0-pro/text-to-video") {
+  if (model.family === "kling" && model.capabilities.has_element_list) {
     return {
       mode: "kling_element",
       label: "Kling Element",
       minImages: 2,
       maxImages: 4,
-      note: "Kling 3.0 uses Elements and requires 2-4 reference images. The character is injected into the prompt as @name.",
+      note: "Kling Elements requires 2-4 reference images. The character is injected into the prompt as @name.",
     };
   }
 
@@ -1629,7 +1635,8 @@ function VideoPageInner() {
   const isSelectedSeedance2Route =
     selectedModel.api_route === "bytedance/dreamina-v3.0/text-to-video-720p" ||
     selectedModel.api_route === "bytedance/seedance-v2/text-to-video" ||
-    selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast";
+    selectedModel.api_route === "bytedance/seedance-v2/text-to-video-fast" ||
+    selectedModel.api_route.startsWith("bytedance/seedance-2.0");
 
   const estimatedCredits = (() => {
     if (activeTool === "lipsync") {
@@ -1657,8 +1664,11 @@ function VideoPageInner() {
     // Kling 3.0 detected early — its own validation runs inside the block below
     const isKling30VideoEarly =
       selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+    const isKling30StdImageEarly =
+      selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+      selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
     // Skip the generic prompt guard for Kling 3.0 and Lipsync
-    if (activeTool !== "lipsync" && !isKling30VideoEarly && !caps.requires_video && !hasMain && !(multiOn && hasMulti)) return;
+    if (activeTool !== "lipsync" && !isKling30VideoEarly && !isKling30StdImageEarly && !caps.requires_video && !hasMain && !(multiOn && hasMulti)) return;
     const gate = await guardGeneration({ requiredCredits: estimatedCredits, action: `video:${selectedModel.api_route}` });
     if (!gate.ok) {
       if (gate.reason === "error") setGenerationError(gate.message ?? getSafeErrorMessage(gate.message));
@@ -1843,6 +1853,10 @@ function VideoPageInner() {
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
       const isKling30Video =
         selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+      const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
+      const isKling30StdImage =
+        selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+        selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
 
       const characterReferenceUrls = supportsCharacterReference
         ? (selectedCharacter?.referenceUrls ?? []).filter((url) => typeof url === "string" && /^https?:\/\//i.test(url))
@@ -1886,7 +1900,25 @@ function VideoPageInner() {
         payload.character_id_list = [selectedCharacter.providerCharacterId];
       }
 
-      if (referenceImages.length > 0 || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)) {
+      if (isKling30StdImage) {
+        const uploadedImageRefs = await Promise.all(
+          referenceImages.filter((f) => f.type.startsWith("image/")).slice(0, 2).map((f) => fileToDataURL(f))
+        );
+        if (startFrame) {
+          payload.image = await fileToDataURL(startFrame);
+        } else if (linkedStartFrameUrl) {
+          payload.image = linkedStartFrameUrl;
+        } else if (characterSupport.mode === "image_reference" && selectedCharacter?.referenceUrls?.[0]) {
+          payload.image = selectedCharacter.referenceUrls[0];
+        } else if (uploadedImageRefs[0]) {
+          payload.image = uploadedImageRefs[0];
+        }
+        if (endFrame) {
+          payload.end_image = await fileToDataURL(endFrame);
+        } else if (uploadedImageRefs[1]) {
+          payload.end_image = uploadedImageRefs[1];
+        }
+      } else if (referenceImages.length > 0 || (characterSupport.mode === "image_reference" && characterReferenceUrls.length > 0)) {
         if (isSeedanceV2) {
           // Split unified referenceImages by type → 3 separate KIE fields
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
@@ -2017,7 +2049,7 @@ function VideoPageInner() {
         payload.orientation = orientation;
       }
 
-      if (isKling30Video) {
+      if (isKlingElementModel) {
         // ── Kling 3.0 — fully spec-compliant payload builder ─────────────────
         const resolvedDuration = duration ?? 9;
 
@@ -2194,7 +2226,8 @@ function VideoPageInner() {
       if (
         requestModelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
         requestModelRoute === "bytedance/seedance-v2/text-to-video" ||
-        requestModelRoute === "bytedance/seedance-v2/text-to-video-fast"
+        requestModelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
+        requestModelRoute.startsWith("bytedance/seedance-2.0")
       ) {
         console.log("[video POST] modelRoute sent:", requestModelRoute);
       }
@@ -2297,6 +2330,10 @@ function VideoPageInner() {
 
   const isKling30Video =
     selectedModel.api_route === "kwaivgi/kling-v3.0-pro/text-to-video";
+  const isKlingElementModel = selectedModel.family === "kling" && caps.has_element_list;
+  const isKling30Image =
+    selectedModel.api_route === "kwaivgi/kling-v3.0-std/image-to-video" ||
+    selectedModel.api_route === "kwaivgi/kling-v3.0-pro/image-to-video";
   const multiShotEnabled = caps.has_multi_prompt && (multiPrompts.length > 1 || multiPrompts[0] !== "");
   const showImageInput = caps.requires_image || caps.optional_image;
   // Kling 3.0 spec: end frame is NOT supported in multi-shot mode — uses kling30MultiEnabled (not generic)
@@ -2304,9 +2341,9 @@ function VideoPageInner() {
   const showVideoInput = caps.requires_video;
   const showOmniTabs   = caps.has_omni_tabs;
   // Kling 3.0 uses image_urls for start/end frames — no separate reference images section
-  const showReferenceImages = caps.max_reference_images > 0 && !isKling30Video;
+  const showReferenceImages = caps.max_reference_images > 0 && !isKling30Video && !isKling30Image;
   const showSimpleKlingRefs = false; // Kling 3.0 now uses start/end frame inputs directly
-  const showKling30Elements = isKling30Video && caps.has_element_list;
+  const showKling30Elements = isKlingElementModel;
 
   // Kling 3.0 computed values
   const kling30ShotCount = Math.min(5, Math.max(1, Math.floor((duration ?? 9) / 3)));
@@ -2316,6 +2353,13 @@ function VideoPageInner() {
   const kling30CustomDurationRemaining = kling30DurationTarget - kling30CustomTotalDuration;
   const maxShotsAllowed = (() => {
     if (!caps.has_multi_prompt) return 1;
+    if (
+      selectedModel.api_route === "kwaivgi/kling-v3-turbo-std/image-to-video" ||
+      selectedModel.api_route === "kwaivgi/kling-v3-turbo-pro/image-to-video"
+    ) {
+      if (duration == null) return 6;
+      return Math.max(1, Math.min(6, duration));
+    }
     const hardMax = 5;
     if (duration == null) return hardMax;
     return Math.max(1, Math.min(hardMax, Math.floor(duration / 3)));
@@ -4601,7 +4645,7 @@ function VideoPageInner() {
           )}
 
           {/* -- Element List (Kling) ----------------------------------------- */}
-          {caps.has_element_list && !showOmniTabs && !isKling30Video && (
+          {caps.has_element_list && !showOmniTabs && !isKlingElementModel && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>

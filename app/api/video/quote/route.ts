@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
     const isSeedance2Route =
       modelRoute === "bytedance/dreamina-v3.0/text-to-video-720p" ||
       modelRoute === "bytedance/seedance-v2/text-to-video" ||
-      modelRoute === "bytedance/seedance-v2/text-to-video-fast";
+      modelRoute === "bytedance/seedance-v2/text-to-video-fast" ||
+      modelRoute.startsWith("bytedance/seedance-2.0");
     const credits = Math.ceil(baseCost);
 
     if (!Number.isFinite(credits) || credits <= 0) {

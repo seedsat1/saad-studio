@@ -844,17 +844,20 @@ export default function CinemaFlowPage() {
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
-      rate = 2.5;
-      modelName = "Kling 3.0 Pro";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
+      const isProKling = selectedVideoModel.includes("-pro/");
+      rate = isProKling ? 3.0 : 2.4;
+      modelName = selectedVideoModel.includes("turbo")
+        ? `Kling V3 Turbo ${isProKling ? "Pro" : "Standard"}`
+        : `Kling 3.0 ${isProKling ? "Pro" : "Standard"}`;
+    } else if (selectedVideoModel === "bytedance/seedance-2.0/text-to-video" || selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
       rate = 4.5333;
       modelName = "Seedance 2.0";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
+    } else if (selectedVideoModel.includes("seedance-2.0-mini") || selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
       rate = 2.5333;
       modelName = "Seedance 2.0 Mini";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
+    } else if (selectedVideoModel.includes("seedance-2.0/text-to-video-turbo") || selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
       rate = 6.0;
-      modelName = "Seedance 2.0 Fast";
+      modelName = "Seedance 2.0 Turbo";
     }
 
     const cost = Number((rate * videoDuration).toFixed(2));
@@ -932,17 +935,20 @@ export default function CinemaFlowPage() {
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
-      rate = 2.5;
-      modelName = "Kling 3.0 Pro";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
+      const isProKling = selectedVideoModel.includes("-pro/");
+      rate = isProKling ? 3.0 : 2.4;
+      modelName = selectedVideoModel.includes("turbo")
+        ? `Kling V3 Turbo ${isProKling ? "Pro" : "Standard"}`
+        : `Kling 3.0 ${isProKling ? "Pro" : "Standard"}`;
+    } else if (selectedVideoModel === "bytedance/seedance-2.0/text-to-video" || selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
       rate = 4.5333;
       modelName = "Seedance 2.0";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
+    } else if (selectedVideoModel.includes("seedance-2.0-mini") || selectedVideoModel === "bytedance/seedance-v2/text-to-video-mini") {
       rate = 2.5333;
       modelName = "Seedance 2.0 Mini";
-    } else if (selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
+    } else if (selectedVideoModel.includes("seedance-2.0/text-to-video-turbo") || selectedVideoModel === "bytedance/seedance-v2/text-to-video-fast") {
       rate = 6.0;
-      modelName = "Seedance 2.0 Fast";
+      modelName = "Seedance 2.0 Turbo";
     }
 
     const videoCost = Number((rate * videoDuration).toFixed(2));
@@ -1814,10 +1820,15 @@ export default function CinemaFlowPage() {
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="google/gemini-omni-flash">Gemini Omni Flash</option>
-                  <option value="kwaivgi/kling-v3.0-pro/text-to-video">Kling 3.0 Pro</option>
-                  <option value="bytedance/seedance-v2/text-to-video">Seedance 2.0</option>
-                  <option value="bytedance/seedance-v2/text-to-video-mini">Seedance 2.0 Mini</option>
-                  <option value="bytedance/seedance-v2/text-to-video-fast">Seedance 2.0 Fast</option>
+                  <option value="kwaivgi/kling-v3.0-std/image-to-video">Kling 3.0 Standard</option>
+                  <option value="kwaivgi/kling-v3.0-pro/image-to-video">Kling 3.0 Pro</option>
+                  <option value="kwaivgi/kling-v3-turbo-std/image-to-video">Kling V3 Turbo Standard</option>
+                  <option value="kwaivgi/kling-v3-turbo-pro/image-to-video">Kling V3 Turbo Pro</option>
+                  <option value="kwaivgi/kling-video-o3-std/image-to-video">Kling O3</option>
+                  <option value="kwaivgi/kling-v2.6-std/image-to-video">Kling 2.6</option>
+                  <option value="bytedance/seedance-2.0/text-to-video">Seedance 2.0</option>
+                  <option value="bytedance/seedance-2.0-mini/text-to-video">Seedance 2.0 Mini</option>
+                  <option value="bytedance/seedance-2.0/text-to-video-turbo">Seedance 2.0 Turbo</option>
                 </select>
               </div>
 
@@ -1832,9 +1843,9 @@ export default function CinemaFlowPage() {
                   }}
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
-                  <option value="5">5 seconds</option>
-                  <option value="10">10 seconds</option>
-                  <option value="15">15 seconds</option>
+                  {[4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((seconds) => (
+                    <option key={seconds} value={seconds}>{seconds} seconds</option>
+                  ))}
                 </select>
               </div>
 
