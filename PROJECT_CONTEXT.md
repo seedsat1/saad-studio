@@ -1,6 +1,20 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Standardize Seedance 2.0 WaveSpeed Endpoints & Payloads (2026-07-22)
+#### Latest task: Google Direct Routing & Model Registry Renaming (2026-07-22)
+
+- Status:
+  Implemented direct Google API routing for all models starting with `google/` (bypassing KIE and WaveSpeed) and renamed models for UI clarity:
+  1. Updated `isVeoModelRoute` in `app/api/video/route.ts` to capture any route starting with `google/` (such as `google/nano-banana-edit` and `google/gemini-omni-flash`) and send them directly to Google's official Gemini/Veo APIs.
+  2. Renamed model `google-gemini-omni` in `lib/video-model-registry.ts` from `"Gemini Omni Flash"` to `"Google Gemini Omni"` to match user expectations.
+  3. Set provider to `"google"` for `nano-banana-pro` in `lib/hook-studio-config.ts` and refactored `/api/hook-studio/generate` route to internally forward Google model generation requests to the direct Google provider implementation on `/api/video`.
+  4. Verified next build compilation and pushed commits to the main repository.
+- Affected Files:
+  - [app/api/video/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts)
+  - [lib/video-model-registry.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts)
+  - [lib/hook-studio-config.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/hook-studio-config.ts)
+  - [app/api/hook-studio/generate/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/hook-studio/generate/route.ts)
+
+#### Previous task: Standardize Seedance 2.0 WaveSpeed Endpoints & Payloads (2026-07-22)
 
 - Status:
   Mapped Seedance 2.0 routes and payload mapping structure directly to official WaveSpeed REST specifications:
