@@ -1,5 +1,30 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Clean duplicated Kling model picker entries (2026-07-22)
+
+- Status:
+  Cleaned the `/video` and `/cinema-flow` model lists after the user reported duplicated technical Kling entries in the picker.
+- Cause:
+  - The registry exposed implementation variants as user-facing models: `Kling 3.0 Pro I2V`, `Kling O3 Reference`, `Kling 3.0 Motion Control`, `Kling V3 Turbo Pro`, and `Kling 2.6 I2V`.
+  - These variants should be selected through quality/reference controls and backend route normalization, not as separate visible model rows.
+- Behavior:
+  - `/video` now keeps one visible entry each for `Kling 3.0`, `Kling O3`, `Kling V3 Turbo`, and `Kling 2.6`.
+  - `Kling 3.0` exposes `Standard` and `Pro` in its quality control and still routes to the matching WaveSpeed route.
+  - `Kling V3 Turbo` exposes `Standard` and `Pro` in its quality control and still routes to the matching WaveSpeed route.
+  - `Kling O3` keeps Standard/Pro/4K plus text/image/reference routing inside one model entry.
+  - `/cinema-flow` model select now shows `Kling 3.0` and `Kling V3 Turbo` as single entries instead of Standard/Pro duplicates.
+- Affected files/paths:
+  - `lib/video-model-registry.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/cinema-flow/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Searched the edited picker/registry files and confirmed the unwanted visible names no longer appear.
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+- Remaining:
+  - Push and deploy this cleanup so the production picker no longer shows duplicated Kling internals.
+
 #### Latest task: Expose hook-studio and cinema-flow in production middleware (2026-07-22)
 
 - Status:

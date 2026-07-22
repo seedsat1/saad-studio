@@ -844,11 +844,17 @@ export default function CinemaFlowPage() {
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
-      const isProKling = selectedVideoModel.includes("-pro/");
+      const normalizedQuality = videoQuality.toLowerCase();
+      const isProKling = selectedVideoModel.includes("-pro/") || normalizedQuality === "pro" || normalizedQuality === "1080p";
       rate = isProKling ? 3.0 : 2.4;
-      modelName = selectedVideoModel.includes("turbo")
-        ? `Kling V3 Turbo ${isProKling ? "Pro" : "Standard"}`
-        : `Kling 3.0 ${isProKling ? "Pro" : "Standard"}`;
+      const baseName = selectedVideoModel.includes("turbo")
+        ? "Kling V3 Turbo"
+        : selectedVideoModel.includes("o3")
+          ? "Kling O3"
+          : selectedVideoModel.includes("2.6")
+            ? "Kling 2.6"
+            : "Kling 3.0";
+      modelName = `${baseName} ${normalizedQuality === "4k" ? "4K" : isProKling ? "Pro" : "Standard"}`;
     } else if (selectedVideoModel === "bytedance/seedance-2.0/text-to-video" || selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
       rate = 4.5333;
       modelName = "Seedance 2.0";
@@ -935,11 +941,17 @@ export default function CinemaFlowPage() {
     let modelName = "Gemini Omni Flash";
 
     if (selectedVideoModel.includes("kling")) {
-      const isProKling = selectedVideoModel.includes("-pro/");
+      const normalizedQuality = videoQuality.toLowerCase();
+      const isProKling = selectedVideoModel.includes("-pro/") || normalizedQuality === "pro" || normalizedQuality === "1080p";
       rate = isProKling ? 3.0 : 2.4;
-      modelName = selectedVideoModel.includes("turbo")
-        ? `Kling V3 Turbo ${isProKling ? "Pro" : "Standard"}`
-        : `Kling 3.0 ${isProKling ? "Pro" : "Standard"}`;
+      const baseName = selectedVideoModel.includes("turbo")
+        ? "Kling V3 Turbo"
+        : selectedVideoModel.includes("o3")
+          ? "Kling O3"
+          : selectedVideoModel.includes("2.6")
+            ? "Kling 2.6"
+            : "Kling 3.0";
+      modelName = `${baseName} ${normalizedQuality === "4k" ? "4K" : isProKling ? "Pro" : "Standard"}`;
     } else if (selectedVideoModel === "bytedance/seedance-2.0/text-to-video" || selectedVideoModel === "bytedance/seedance-v2/text-to-video") {
       rate = 4.5333;
       modelName = "Seedance 2.0";
@@ -1820,10 +1832,8 @@ export default function CinemaFlowPage() {
                   className="bg-white/[0.04] border border-white/5 rounded-lg px-2 py-1.5 text-xs text-zinc-200 focus:outline-none"
                 >
                   <option value="google/gemini-omni-flash">Gemini Omni Flash</option>
-                  <option value="kwaivgi/kling-v3.0-std/image-to-video">Kling 3.0 Standard</option>
-                  <option value="kwaivgi/kling-v3.0-pro/image-to-video">Kling 3.0 Pro</option>
-                  <option value="kwaivgi/kling-v3-turbo-std/image-to-video">Kling V3 Turbo Standard</option>
-                  <option value="kwaivgi/kling-v3-turbo-pro/image-to-video">Kling V3 Turbo Pro</option>
+                  <option value="kwaivgi/kling-v3.0-std/image-to-video">Kling 3.0</option>
+                  <option value="kwaivgi/kling-v3-turbo-std/image-to-video">Kling V3 Turbo</option>
                   <option value="kwaivgi/kling-video-o3-std/image-to-video">Kling O3</option>
                   <option value="kwaivgi/kling-v2.6-std/image-to-video">Kling 2.6</option>
                   <option value="bytedance/seedance-2.0/text-to-video">Seedance 2.0</option>
