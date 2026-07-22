@@ -1548,25 +1548,12 @@ function VideoPageInner() {
           }
           completedTaskRefs.current.add(taskId);
 
-          let videoUrl = data.outputs[0];
+          const videoUrl = data.outputs[0];
           const durableBaseUrl = process.env.NEXT_PUBLIC_B2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_B2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "";
           const isDurableUrl =
             !!videoUrl &&
             ((durableBaseUrl && videoUrl.startsWith(durableBaseUrl)) ||
               videoUrl.includes("supabase.co/storage/v1/object/public"));
-          if (videoUrl && !isDurableUrl) {
-            try {
-              const persistRes = await fetch("/api/assets/persist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mediaUrl: videoUrl, assetType: "video" }),
-              });
-              if (persistRes.ok) {
-                const persistJson = await persistRes.json();
-                if (persistJson?.url) videoUrl = persistJson.url;
-              }
-            } catch {}
-          }
           const newItem: MediaItem = {
             id: "gen-" + taskId, type: "video", src: videoUrl,
             model: ctx.model.name, modelColor: ctx.model.family_color,
@@ -1585,6 +1572,26 @@ function VideoPageInner() {
           });
           if (!alreadyKnownUrl) {
             addAsset({ type: "video", url: videoUrl, prompt: ctx.promptText, model: ctx.model.name, duration: ctx.duration != null ? `${ctx.duration}s` : undefined, providerRequestId: taskId });
+          }
+          if (videoUrl && !isDurableUrl) {
+            void fetch("/api/assets/persist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mediaUrl: videoUrl, assetType: "video" }),
+            })
+              .then((persistRes) => persistRes.ok ? persistRes.json() : null)
+              .then((persistJson) => {
+                const durableUrl = typeof persistJson?.url === "string" ? persistJson.url : "";
+                if (!durableUrl) return;
+                setResults((prev) =>
+                  prev.map((item) =>
+                    item.id === newItem.id || item.providerRequestId === taskId
+                      ? { ...item, src: durableUrl }
+                      : item
+                  )
+                );
+              })
+              .catch(() => {});
           }
           removePending();
           setGenerationError(null);

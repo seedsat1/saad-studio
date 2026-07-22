@@ -1,5 +1,24 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Reduce completed-video display latency without changing safety (2026-07-22)
+
+- Status:
+  Reviewed the production delay complaint after the user confirmed the provider/source completed before the result appeared quickly in the site UI. No safety-policy code was changed.
+- Behavior:
+  - `/video` now displays the completed provider video URL immediately when `/api/video` polling returns `completed`, then persists the video to durable storage in the background and updates the displayed result URL if persistence returns a durable URL.
+  - `/cinema-flow` now performs the first `/api/video?taskId=...` status check immediately after generation starts instead of waiting for the first 4-second polling interval.
+  - Provider routing and safety precheck behavior were left unchanged.
+- Affected files/paths:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/cinema-flow/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Remaining:
+  - Commit, push, and verify in production that completed provider videos appear without waiting on `/api/assets/persist`.
+
 #### Latest task: Correct Seedream 5.0 Pro 2K pricing multiplier (2026-07-22)
 
 - Status:

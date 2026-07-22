@@ -1130,6 +1130,7 @@ export default function CinemaFlowPage() {
       }
     };
 
+    void check();
     pollIntervalRef.current = setInterval(check, 4000);
   };
 
@@ -1196,6 +1197,7 @@ export default function CinemaFlowPage() {
       }
     };
 
+    void check();
     pollIntervalRef.current = setInterval(check, 4000);
   };
 
