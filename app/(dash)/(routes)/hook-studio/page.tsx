@@ -442,6 +442,14 @@ export default function HookStudioPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const visibleMessages = messages.filter(
+    (msg) => !["welcome", "user-demo", "agent-response-demo"].includes(msg.id),
+  );
+  const visibleGallery = gallery.filter((item) => item.id !== "demo-1");
+  const hookStudioEmptyTitle = isAr ? "هوك ستوديو" : "Hook Studio";
+  const showEmptyHookStudioTitle =
+    visibleMessages.length === 0 && !inputText.trim() && attachedFiles.length === 0;
+
   return (
     <div
       className={`h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden bg-[#07090e] text-[#e2e8f0] flex selection:bg-indigo-600 selection:text-white ${
@@ -452,7 +460,18 @@ export default function HookStudioPage() {
       <div className="flex-1 flex flex-col min-h-0 bg-[#06080b]">
         {/* Chat Feed Messages */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-800/80">
-          {messages.map((msg) => (
+          {showEmptyHookStudioTitle && (
+            <div className="flex min-h-full items-center justify-center pb-28">
+              <div
+                className="select-none text-center text-[clamp(34px,5vw,72px)] font-black tracking-normal text-slate-800/70"
+                dir={isAr ? "rtl" : "ltr"}
+              >
+                {hookStudioEmptyTitle}
+              </div>
+            </div>
+          )}
+
+          {visibleMessages.map((msg) => (
             <div
               key={msg.id}
               className={`flex items-start gap-3.5 max-w-4xl ${
@@ -944,7 +963,7 @@ export default function HookStudioPage() {
             {t.productionGallery}
           </label>
           <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-            {gallery.map((item) => (
+            {visibleGallery.map((item) => (
               <div
                 key={item.id}
                 className="bg-[#11141e] border border-slate-800 rounded-xl p-2 space-y-2 text-xs"

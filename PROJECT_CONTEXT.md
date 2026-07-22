@@ -7958,3 +7958,21 @@
   - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: Hook Studio empty chat placeholder cleanup (2026-07-22)
+
+- Status:
+  Removed the demo/random Hook Studio chat content from the subscriber-facing empty state.
+- Behavior:
+  - `/hook-studio` now hides the seeded demo welcome/user/generated-hook messages from the chat feed.
+  - The empty chat area shows only a centered title: `Hook Studio` in English or `هوك ستوديو` in Arabic.
+  - The centered title disappears immediately when the user types in the prompt box, attaches a file, or sends the first message.
+  - The seeded demo production-gallery item is hidden from the sidebar, so the gallery starts empty until the user publishes a real generated result.
+  - Generation flow and provider payloads were not changed.
+- Affected files/paths:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
