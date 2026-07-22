@@ -1,6 +1,19 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Auto T2V/I2V Routing Switch & Top Navbar Integration (2026-07-22)
+#### Latest task: Resolve 'File wasn't available on site' Download Issue (2026-07-22)
+
+- Status:
+  Resolved the issue where `SaadStudio-Setup.exe` downloads failed with 'File wasn't available on site'.
+  1. Configured `.gitignore` to whitelist and stop ignoring `public/downloads/*.exe` and `public/downloads/*.rar`.
+  2. Deleted `app/downloads/[filename]/route.ts` because Vercel serverless functions have a 50 MB response payload limit (crashing when reading/returning the 97.5 MB file). Deleting this allows Next.js to serve all static downloads under `public/downloads/` directly.
+  3. Added and pushed `public/downloads/SaadStudio-Setup.exe` (97.5 MB) and `public/downloads/SaadStudio-Setup.rar` (32.8 MB) to GitHub and Vercel.
+- Affected Files:
+  - [app/downloads/[filename]/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/downloads/[filename]/route.ts) [DELETE]
+  - [.gitignore](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/.gitignore)
+- Verification:
+  - Pushed commit `3413b45` to main repository (`saad-studio`).
+
+#### Previous task: Auto T2V/I2V Routing Switch & Top Navbar Integration (2026-07-22)
 
 - Status:
   Implemented two key changes requested by the user:
