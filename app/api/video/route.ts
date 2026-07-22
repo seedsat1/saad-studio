@@ -1743,10 +1743,7 @@ export async function POST(req: Request) {
     }
 
     const isVeoModelRoute =
-      modelRoute === "google/veo3.1-lite-text-to-video" ||
-      modelRoute === "google/veo3.1-fast-text-to-video" ||
-      modelRoute === "google/veo3.1-text-to-video" ||
-      modelRoute === "google/gemini-omni-flash" ||
+      modelRoute.startsWith("google/") ||
       isDirectGoogleVeo31ProRoute;
     if (isVeoModelRoute) {
       const requestedResolution =
@@ -2065,7 +2062,7 @@ export async function POST(req: Request) {
     }
 
     // ── Direct Google Gemini video path (no KIE, no WaveSpeed) ───────────────
-    if (isDirectGoogleVeo31ProRoute) {
+    if (isVeoModelRoute) {
       const prompt = typeof payload.prompt === "string" ? sanitizePrompt(payload.prompt, 5000) : "";
       if (!prompt) {
         return NextResponse.json({ error: "Prompt is required" }, { status: 400 });

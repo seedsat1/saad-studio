@@ -404,10 +404,10 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
   },
   {
     id: "google-gemini-omni-flash",
-    name: "Gemini Omni Flash",
+    name: "Google Gemini Omni",
     family: "veo", family_label: "Google Veo", family_color: "#3b82f6",
     badge: "NEW",
-    description: "Gemini Omni Flash. Durations: 3-10s. Native audio always-on. Up to 3 reference images.",
+    description: "Google Gemini Omni. Durations: 3-10s. Native audio always-on. Up to 3 reference images.",
     api_route: "google/gemini-omni-flash",
     route_confirmed: true,
     capabilities: t2vCaps({

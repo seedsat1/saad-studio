@@ -105,13 +105,49 @@ Do not include any markdown code fence around the JSON, just return raw JSON.`;
       }
     }
 
-    // Call WaveSpeed API v3
+    // Call Google direct provider or WaveSpeed API v3
     const waveKey = process.env.WAVESPEED_API_KEY;
     let taskId = `ws-hook-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     let resultUrl: string | null = null;
     let status = "processing";
 
-    if (waveKey) {
+    const isGoogleModel = selectedModel.provider === "google" || selectedModel.apiRoute.startsWith("google/");
+
+    if (isGoogleModel) {
+      try {
+        const localOrigin = req.headers.get("origin") || "http://localhost:3000";
+        // Forward to our local video route which supports direct Google connection (veo-3.1-generate-preview)
+        const localRes = await fetch(`${localOrigin}/api/video`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: req.headers.get("cookie") || "", // Forward Clerk session cookie for authentication
+            Authorization: req.headers.get("authorization") || "", // Forward Authorization header
+          },
+          body: JSON.stringify({
+            modelRoute: selectedModel.apiRoute,
+            payload: {
+              prompt: `${prompt.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
+              aspect_ratio: aspectRatio,
+              duration,
+              resolution: quality || "720p",
+              reference_image_urls: refImages,
+              reference_video_urls: refVideos,
+              reference_audio_urls: refAudios,
+            },
+          }),
+        });
+
+        const data = await localRes.json().catch(() => null);
+        if (localRes.ok && data) {
+          taskId = data?.taskId || taskId;
+          resultUrl = data?.mediaUrl || data?.url || null;
+          if (resultUrl && !resultUrl.startsWith("task:")) status = "completed";
+        }
+      } catch (err) {
+        console.error("Local Google API redirect error:", err);
+      }
+    } else if (waveKey) {
       try {
         const payload: Record<string, any> = {
           prompt: `${prompt.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,

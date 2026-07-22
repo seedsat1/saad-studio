@@ -312,7 +312,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     id: "nano-banana-pro",
     name: "Nano Banana Pro",
     apiRoute: "google/nano-banana-edit",
-    provider: "wavespeed",
+    provider: "google",
     badge: "TOP",
     description: "Nano Banana Pro image editing and inpainting.",
     maxRefImages: 9,
