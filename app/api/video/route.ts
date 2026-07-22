@@ -1645,16 +1645,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    // Auto-route Kling V3 Turbo based on input type
-    if (modelRoute === "kling/v3-turbo") {
-      const hasImage = !!(
-        payload.first_frame_url ||
-        payload.image_url ||
-        payload.image ||
-        (Array.isArray(payload.image_urls) && payload.image_urls.length > 0)
-      );
-      modelRoute = hasImage ? "kling/v3-turbo-image-to-video" : "kling/v3-turbo-text-to-video";
-      console.log(`[API/video] Auto-routed kling/v3-turbo to ${modelRoute} (hasImage: ${hasImage})`);
+    const hasImage = !!(
+      payload.first_frame_url ||
+      payload.image_url ||
+      payload.image ||
+      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0)
+    );
+
+    // Auto-route between Text-to-Video and Image-to-Video based on image presence
+    if (hasImage) {
+      if (modelRoute === "kling/v3-turbo" || modelRoute === "kling/v3-turbo-text-to-video") {
+        modelRoute = "kling/v3-turbo-image-to-video";
+      } else if (modelRoute === "kling/v2-5-turbo-text-to-video-pro") {
+        modelRoute = "kling/v2-5-turbo-image-to-video-pro";
+      } else if (modelRoute === "openai/sora-2/text-to-video") {
+        modelRoute = "openai/sora-2/image-to-video";
+      } else if (modelRoute === "x-ai/grok-imagine-video/text-to-video") {
+        modelRoute = "x-ai/grok-imagine-video/edit-video";
+      } else if (modelRoute === "hailuo/02-text-to-video-pro" || modelRoute === "hailuo/02-text-to-video-standard") {
+        modelRoute = "hailuo/02-image-to-video-pro";
+      }
+    } else {
+      if (modelRoute === "kling/v3-turbo" || modelRoute === "kling/v3-turbo-image-to-video") {
+        modelRoute = "kling/v3-turbo-text-to-video";
+      } else if (modelRoute === "kling/v2-5-turbo-image-to-video-pro") {
+        modelRoute = "kling/v2-5-turbo-text-to-video-pro";
+      } else if (modelRoute === "openai/sora-2/image-to-video") {
+        modelRoute = "openai/sora-2/text-to-video";
+      } else if (modelRoute === "x-ai/grok-imagine-video/edit-video") {
+        modelRoute = "x-ai/grok-imagine-video/text-to-video";
+      } else if (modelRoute === "hailuo/02-image-to-video-pro") {
+        modelRoute = "hailuo/02-text-to-video-pro";
+      }
     }
 
     const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
@@ -1663,8 +1685,8 @@ export async function POST(req: Request) {
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("bytedance/seedance-v2/") ||
       modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
-      modelRoute === "kling/v3-turbo" ||
-      modelRoute === "kling/v2-5-turbo-text-to-video-pro" ||
+      modelRoute.startsWith("kling/v3-turbo") ||
+      modelRoute.startsWith("kling/v2-5-turbo") ||
       modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
       modelRoute === "gpt-image-2-text-to-image";
 
