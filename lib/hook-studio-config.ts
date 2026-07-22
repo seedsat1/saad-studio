@@ -26,7 +26,7 @@ export interface VideoModelSpec {
   id: string;
   name: string;
   apiRoute: string;
-  provider: "wavespeed" | "kling" | "seedance" | "bytedance" | "openai";
+  provider: "wavespeed" | "kling" | "seedance" | "bytedance" | "openai" | "google";
   badge: "TOP" | "NEW" | "PRO" | "FAST" | "4K";
   description: string;
   maxRefImages: number;
@@ -148,7 +148,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
   {
     id: "seedance-2.0-turbo",
-    name: "Seedance Turbo",
+    name: "Seedance 2.0 Turbo",
     apiRoute: "bytedance/seedance-v2/text-to-video-fast",
     provider: "seedance",
     badge: "FAST",
@@ -166,7 +166,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
   {
     id: "seedance-2.0-mini",
-    name: "Seedance Mini",
+    name: "Seedance 2.0 Mini",
     apiRoute: "bytedance/seedance-v2/text-to-video-mini",
     provider: "seedance",
     badge: "NEW",
@@ -184,7 +184,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
   {
     id: "seedance-2.0-fast",
-    name: "Seedance Fast",
+    name: "Seedance 2.0 Fast",
     apiRoute: "bytedance/seedance-v2/text-to-video-fast",
     provider: "seedance",
     badge: "FAST",
@@ -220,7 +220,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
   {
     id: "kling-3.0-turbo",
-    name: "Kling Turbo",
+    name: "Kling 3.0 Turbo",
     apiRoute: "kling/v3-turbo",
     provider: "kling",
     badge: "FAST",
@@ -274,7 +274,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
   {
     id: "seedream-5.0-pro",
-    name: "Seedream V5.0 Pro Edit",
+    name: "Seedream 5.0 Pro",
     apiRoute: "bytedance/seedream-v5.0-pro/edit",
     provider: "wavespeed",
     badge: "PRO",
@@ -325,6 +325,24 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     qualityModes: ["std", "2k", "4k"],
     supportsScript: true,
     creditCost: 6,
+  },
+  {
+    id: "google-gemini-omni",
+    name: "Google Gemini Omni",
+    apiRoute: "google/gemini-omni-flash",
+    provider: "google",
+    badge: "NEW",
+    description: "Google Gemini Omni Flash — fast, multimodal video generation.",
+    maxRefImages: 3,
+    maxRefVideos: 0,
+    maxRefVideoSeconds: 0,
+    maxRefAudios: 0,
+    maxRefAudioSeconds: 0,
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    aspectRatios: ["16:9", "9:16"],
+    qualityModes: ["720p"],
+    supportsScript: true,
+    creditCost: 10,
   },
 ];
 
