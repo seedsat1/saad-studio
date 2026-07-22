@@ -1652,30 +1652,46 @@ export async function POST(req: Request) {
       (Array.isArray(payload.image_urls) && payload.image_urls.length > 0)
     );
 
-    // Auto-route between Text-to-Video and Image-to-Video based on image presence
-    if (hasImage) {
-      if (modelRoute === "kling/v3-turbo" || modelRoute === "kling/v3-turbo-text-to-video") {
-        modelRoute = "kling/v3-turbo-image-to-video";
-      } else if (modelRoute === "kling/v2-5-turbo-text-to-video-pro") {
-        modelRoute = "kling/v2-5-turbo-image-to-video-pro";
-      } else if (modelRoute === "openai/sora-2/text-to-video") {
-        modelRoute = "openai/sora-2/image-to-video";
-      } else if (modelRoute === "x-ai/grok-imagine-video/text-to-video") {
-        modelRoute = "x-ai/grok-imagine-video/edit-video";
-      } else if (modelRoute === "hailuo/02-text-to-video-pro" || modelRoute === "hailuo/02-text-to-video-standard") {
-        modelRoute = "hailuo/02-image-to-video-pro";
+    // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
+    if (modelRoute.includes("seedance")) {
+      if (modelRoute.includes("mini")) {
+        modelRoute = "bytedance/seedance-v2/text-to-video-mini";
+      } else if (modelRoute.includes("fast") || modelRoute.includes("turbo")) {
+        modelRoute = "bytedance/seedance-v2/text-to-video-fast";
+      } else {
+        modelRoute = "bytedance/seedance-v2/text-to-video";
       }
+    } else if (modelRoute.includes("kling")) {
+      if (modelRoute.includes("v3-turbo") || modelRoute.includes("turbo")) {
+        modelRoute = hasImage ? "kling/v3-turbo-image-to-video" : "kling/v3-turbo-text-to-video";
+      } else if (modelRoute.includes("2.6") || modelRoute.includes("v2-5-turbo")) {
+        modelRoute = hasImage ? "kling/v2-5-turbo-image-to-video-pro" : "kling/v2-5-turbo-text-to-video-pro";
+      } else {
+        // Kling 3.0 / Kling O3
+        modelRoute = "kwaivgi/kling-v3.0-pro/text-to-video";
+      }
+    } else if (modelRoute.includes("seedream")) {
+      modelRoute = "bytedance/seedream-v5.0-pro/edit";
+    } else if (modelRoute.includes("gpt-image")) {
+      modelRoute = "gpt-image-2-text-to-image";
     } else {
-      if (modelRoute === "kling/v3-turbo" || modelRoute === "kling/v3-turbo-image-to-video") {
-        modelRoute = "kling/v3-turbo-text-to-video";
-      } else if (modelRoute === "kling/v2-5-turbo-image-to-video-pro") {
-        modelRoute = "kling/v2-5-turbo-text-to-video-pro";
-      } else if (modelRoute === "openai/sora-2/image-to-video") {
-        modelRoute = "openai/sora-2/text-to-video";
-      } else if (modelRoute === "x-ai/grok-imagine-video/edit-video") {
-        modelRoute = "x-ai/grok-imagine-video/text-to-video";
-      } else if (modelRoute === "hailuo/02-image-to-video-pro") {
-        modelRoute = "hailuo/02-text-to-video-pro";
+      // Auto-routing for non-WaveSpeed models
+      if (hasImage) {
+        if (modelRoute === "openai/sora-2/text-to-video") {
+          modelRoute = "openai/sora-2/image-to-video";
+        } else if (modelRoute === "x-ai/grok-imagine-video/text-to-video") {
+          modelRoute = "x-ai/grok-imagine-video/edit-video";
+        } else if (modelRoute === "hailuo/02-text-to-video-pro" || modelRoute === "hailuo/02-text-to-video-standard") {
+          modelRoute = "hailuo/02-image-to-video-pro";
+        }
+      } else {
+        if (modelRoute === "openai/sora-2/image-to-video") {
+          modelRoute = "openai/sora-2/text-to-video";
+        } else if (modelRoute === "x-ai/grok-imagine-video/edit-video") {
+          modelRoute = "x-ai/grok-imagine-video/text-to-video";
+        } else if (modelRoute === "hailuo/02-image-to-video-pro") {
+          modelRoute = "hailuo/02-text-to-video-pro";
+        }
       }
     }
 
@@ -1684,6 +1700,7 @@ export async function POST(req: Request) {
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
       modelRoute.startsWith("bytedance/seedance-v2/") ||
+      modelRoute.includes("seedance") ||
       modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
       modelRoute.startsWith("kling/v3-turbo") ||
       modelRoute.startsWith("kling/v2-5-turbo") ||
