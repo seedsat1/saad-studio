@@ -79,6 +79,11 @@ export default function HookStudioPage() {
   // Status
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [previewMedia, setPreviewMedia] = useState<{
+    type: "image" | "video" | "audio";
+    url: string;
+    title?: string;
+  } | null>(null);
 
   // Chat Feed Messages
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -344,6 +349,23 @@ export default function HookStudioPage() {
     setGallery([newEntry, ...gallery]);
   };
 
+  const handleDownload = async (url: string, filename: string = "media-file") => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      window.open(url, "_blank");
+    }
+  };
+
   const copyPrompt = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -405,21 +427,38 @@ export default function HookStudioPage() {
                           <img
                             src={file.url}
                             alt={file.name}
-                            className="rounded-xl max-h-48 object-cover"
+                            onClick={() => setPreviewMedia({ type: "image", url: file.url, title: file.name })}
+                            className="rounded-xl max-h-48 object-cover cursor-zoom-in hover:opacity-90 transition-opacity"
                           />
                         )}
                         {file.type === "video" && (
-                          <video
-                            src={file.url}
-                            controls
-                            className="rounded-xl max-h-48 object-cover"
-                          />
+                          <div 
+                            onClick={() => setPreviewMedia({ type: "video", url: file.url, title: file.name })}
+                            className="relative rounded-xl max-h-48 overflow-hidden group cursor-zoom-in"
+                          >
+                            <video src={file.url} className="object-cover max-h-48 w-full group-hover:scale-105 transition-transform" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-75 group-hover:opacity-100 transition-opacity">
+                              <Play className="w-7 h-7 text-white fill-white" />
+                            </div>
+                          </div>
                         )}
                         {file.type === "audio" && (
-                          <audio src={file.url} controls className="w-full max-w-xs" />
+                          <div 
+                            onClick={() => setPreviewMedia({ type: "audio", url: file.url, title: file.name })}
+                            className="flex items-center justify-between p-2.5 bg-[#090b0f] border border-slate-800 rounded-xl cursor-zoom-in hover:border-slate-700 transition-all text-xs w-full max-w-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Volume2 className="w-4 h-4 text-indigo-400" />
+                              <span className="text-slate-300 font-medium truncate max-w-[140px]">{file.name}</span>
+                            </div>
+                            <Download className="w-3.5 h-3.5 text-slate-500 hover:text-white" />
+                          </div>
                         )}
                         {file.type === "file" && (
-                          <div className="flex items-center gap-2 p-2 bg-[#090b0e] rounded-xl text-xs">
+                          <div 
+                            onClick={() => setPreviewMedia({ type: "video", url: file.url, title: file.name })}
+                            className="flex items-center gap-2 p-2 bg-[#090b0e] rounded-xl text-xs cursor-pointer hover:bg-slate-900 transition-all"
+                          >
                             <FileVideo className="w-4 h-4 text-indigo-400" />
                             <span className="text-slate-300 font-medium">{file.name}</span>
                           </div>
@@ -496,7 +535,10 @@ export default function HookStudioPage() {
                           key={scene.id}
                           className="bg-[#06080c] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/40 transition-all shadow-md relative"
                         >
-                          <div className="aspect-video w-full bg-slate-950 relative overflow-hidden">
+                          <div 
+                            onClick={() => setPreviewMedia({ type: "image", url: scene.url, title: t.sceneText + " " + scene.id })}
+                            className="aspect-video w-full bg-slate-950 relative overflow-hidden cursor-zoom-in"
+                          >
                             <img
                               src={scene.url}
                               alt={`${t.sceneText} ${scene.id}`}
@@ -799,7 +841,15 @@ export default function HookStudioPage() {
                 key={item.id}
                 className="bg-[#11141e] border border-slate-800 rounded-xl p-2 space-y-2 text-xs"
               >
-                <video src={item.url} controls className="w-full rounded-lg object-cover aspect-video" />
+                <div 
+                  onClick={() => setPreviewMedia({ type: "video", url: item.url, title: item.prompt })}
+                  className="relative rounded-lg overflow-hidden group cursor-zoom-in aspect-video bg-black"
+                >
+                  <video src={item.url} className="object-cover w-full h-full" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
+                    <Play className="w-5 h-5 text-white fill-white" />
+                  </div>
+                </div>
                 <p className="text-[10px] text-slate-400 line-clamp-1">{item.prompt}</p>
                 <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
                   <span>{item.modelName}</span>
@@ -810,6 +860,82 @@ export default function HookStudioPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Fullscreen Lightbox Modal ── */}
+      {previewMedia && (
+        <div 
+          onClick={() => setPreviewMedia(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] transition-all animate-in zoom-in-95 duration-200"
+          >
+            {/* Close Button top-right */}
+            <button
+              type="button"
+              onClick={() => setPreviewMedia(null)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center text-slate-300 border border-slate-800 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Media View */}
+            <div className="flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[300px] p-6">
+              {previewMedia.type === "image" && (
+                <img
+                  src={previewMedia.url}
+                  alt={previewMedia.title || "preview"}
+                  className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                />
+              )}
+              {previewMedia.type === "video" && (
+                <video
+                  src={previewMedia.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                />
+              )}
+              {previewMedia.type === "audio" && (
+                <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4 text-center">
+                  <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                    <Volume2 className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-white truncate max-w-xs">{previewMedia.title || "Audio File"}</h4>
+                    <p className="text-[10px] text-slate-500">MPEG Audio Track</p>
+                  </div>
+                  <audio src={previewMedia.url} controls className="w-full" autoPlay />
+                </div>
+              )}
+            </div>
+
+            {/* Footer / Controls */}
+            <div className="p-4 border-t border-slate-900 bg-[#07090d] flex items-center justify-between w-full text-xs">
+              <span className="text-slate-400 truncate max-w-md font-medium">
+                {previewMedia.title || "Media Preview"}
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDownload(previewMedia.url, previewMedia.title || "media")}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isAr ? "تحميل" : "Download"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewMedia(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
+                >
+                  {isAr ? "إغلاق" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
