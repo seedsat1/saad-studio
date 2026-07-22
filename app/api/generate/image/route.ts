@@ -112,7 +112,6 @@ function inferImageInputField(kieModelId: string): "image_url" | "image_input" |
     "google/nano-banana-edit",
     "seedream/4.5-edit",
     "seedream/5-lite-image-to-image",
-    "seedream/5-pro-image-to-image",
     "grok-imagine/image-to-image",
     "flux-2/pro-image-to-image",
     "flux-2/flex-image-to-image",
@@ -166,6 +165,22 @@ function resolveSeedream5ProVariant(modelId: string, hasReferenceImages: boolean
       : "seedream/5-pro-text-to-image";
   }
   return modelId;
+}
+
+function resolveSeedream5ProWaveSpeedRoute(modelId: string): string | null {
+  const normalized = modelId.toLowerCase();
+  if (normalized === "seedream/5-pro-text-to-image" || normalized === "bytedance/seedream-v5.0-pro") {
+    return "bytedance/seedream-v5.0-pro";
+  }
+  if (normalized === "seedream/5-pro-image-to-image" || normalized === "bytedance/seedream-v5.0-pro/edit") {
+    return "bytedance/seedream-v5.0-pro/edit";
+  }
+  return null;
+}
+
+function normalizeSeedream5ProResolution(value: unknown): "1k" | "2k" {
+  const normalized = String(value ?? "1k").trim().toLowerCase();
+  return normalized.includes("2") ? "2k" : "1k";
 }
 
 function getGoogleImageModel(modelId: string): string | null {
@@ -447,26 +462,19 @@ async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempt
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
 
-    const statusRes = await fetch(
-      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}`,
+    const resultRes = await fetch(
+      `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
       { headers: { Authorization: `Bearer ${apiKey}` } },
     );
-    const statusJson = await statusRes.json().catch(() => null) as Record<string, unknown> | null;
-    if (!statusRes.ok) {
-      if (statusRes.status === 404) continue;
-      throw new Error(`WaveSpeed polling failed (${statusRes.status})`);
+    const resultJson = await resultRes.json().catch(() => null) as Record<string, unknown> | null;
+    if (!resultRes.ok) {
+      if (resultRes.status === 404) continue;
+      throw new Error(`WaveSpeed polling failed (${resultRes.status})`);
     }
 
-    const statusData = (statusJson?.data ?? statusJson) as Record<string, unknown> | null;
-    const status = String(statusData?.status ?? statusData?.taskStatus ?? "").toLowerCase();
+    const resultData = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
+    const status = String(resultData?.status ?? resultData?.taskStatus ?? "").toLowerCase();
     if (["success", "completed", "done"].includes(status)) {
-      const resultRes = await fetch(
-        `${WAVESPEED_BASE_URL}/predictions/${encodeURIComponent(taskId)}/result`,
-        { headers: { Authorization: `Bearer ${apiKey}` } },
-      );
-      const resultJson = await resultRes.json().catch(() => null) as Record<string, unknown> | null;
-      if (!resultRes.ok) throw new Error(`WaveSpeed result fetch failed (${resultRes.status})`);
-      const resultData = (resultJson?.data ?? resultJson) as Record<string, unknown> | null;
       const urls = extractKieOutputUrls(
         resultData?.outputs ??
           resultData?.resultUrls ??
@@ -483,7 +491,7 @@ async function pollWaveSpeedImageTask(taskId: string, apiKey: string, maxAttempt
     }
 
     if (["fail", "failed", "error", "canceled", "cancelled"].includes(status)) {
-      throw new Error(String(statusData?.error ?? statusData?.errorMessage ?? "WaveSpeed image generation failed."));
+      throw new Error(String(resultData?.error ?? resultData?.errorMessage ?? "WaveSpeed image generation failed."));
     }
   }
 
@@ -593,11 +601,12 @@ export async function POST(req: NextRequest) {
     let effectiveModelId = isFluxKontext ? modelId : resolveFlux2Variant(modelId, hasReferenceImages, quality);
     effectiveModelId = resolveSeedream5ProVariant(effectiveModelId, hasReferenceImages);
     const { imageModelMap } = getResolvedKieRoutingMaps();
-    const isWaveSpeedImageModel = false;
+    const waveSpeedImageRoute = resolveSeedream5ProWaveSpeedRoute(effectiveModelId);
+    const isWaveSpeedImageModel = Boolean(waveSpeedImageRoute);
     const openAIImageModel = isFluxKontext ? null : getOpenAIImageModel(effectiveModelId);
 
-    const kieModelId = isFluxKontext ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
-    if (!isFluxKontext && !openAIImageModel && !kieModelId) {
+    const kieModelId = isFluxKontext || isWaveSpeedImageModel ? null : (openAIImageModel ? null : imageModelMap[effectiveModelId]);
+    if (!isFluxKontext && !isWaveSpeedImageModel && !openAIImageModel && !kieModelId) {
       const supported = Object.keys(imageModelMap).join(", ");
       return NextResponse.json(
         { error: `Unsupported modelId: ${effectiveModelId}. Supported: ${supported}` },
@@ -654,6 +663,13 @@ export async function POST(req: NextRequest) {
 
     for (const url of resolvedRefs) {
       await verifyPublicMediaUrl(url, "reference_image");
+    }
+
+    if (waveSpeedImageRoute === "bytedance/seedream-v5.0-pro/edit" && resolvedRefs.length === 0) {
+      return NextResponse.json(
+        { error: "Seedream 5.0 Pro Edit requires at least one reference image." },
+        { status: 400 },
+      );
     }
 
     const spent = unlimited.eligible
@@ -885,29 +901,36 @@ export async function POST(req: NextRequest) {
       }, { status: 200 });
     }
 
-    if (isWaveSpeedImageModel) {
+    if (isWaveSpeedImageModel && waveSpeedImageRoute) {
       const waveSpeedApiKey = process.env.WAVESPEED_API_KEY;
       if (!waveSpeedApiKey) {
         throw new Error("WAVESPEED_API_KEY is not configured on the server.");
       }
 
+      const waveSpeedInput: Record<string, unknown> = {
+        prompt: sanitizePrompt(prompt, 5000),
+        aspect_ratio: aspectRatio === "auto" ? undefined : aspectRatio,
+        resolution: normalizeSeedream5ProResolution(quality ?? resolution ?? imageSize),
+        output_format: "jpeg",
+        enable_base64_output: false,
+        enable_sync_mode: false,
+      };
+      if (waveSpeedImageRoute.endsWith("/edit")) {
+        waveSpeedInput.images = resolvedRefs.slice(0, 10);
+      }
+      Object.keys(waveSpeedInput).forEach((key) => {
+        if (waveSpeedInput[key] === undefined) delete waveSpeedInput[key];
+      });
+
       const submitRes = await fetch(
-        `${WAVESPEED_BASE_URL}/${effectiveModelId}`,
+        `${WAVESPEED_BASE_URL}/${waveSpeedImageRoute}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${waveSpeedApiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            prompt: sanitizePrompt(prompt, 5000),
-            images: resolvedRefs,
-            aspect_ratio: aspectRatio,
-            resolution: typeof quality === "string" ? quality.toLowerCase() : "1k",
-            num_images: Math.max(1, Math.min(4, numImages)),
-            enable_base64_output: false,
-            enable_safety_checker: false,
-          }),
+          body: JSON.stringify(waveSpeedInput),
         },
       );
 
@@ -1060,10 +1083,7 @@ export async function POST(req: NextRequest) {
       // - other ("medium"/"high")  → quality param (GPT Image)
       const gptImage2Resolution = normalizeGptImage2Resolution();
       const RESOLUTION_VALUES = ["1K", "2K", "4K"];
-      if (kieModelId.includes("seedream/5-pro")) {
-        const q = String(quality || "").toLowerCase();
-        input.quality = q === "2k" ? "high" : "basic";
-      } else if (gptImage2Resolution) {
+      if (gptImage2Resolution) {
         input.resolution = gptImage2Resolution;
       } else if (quality && RESOLUTION_VALUES.includes(quality)) {
         input.resolution = quality;

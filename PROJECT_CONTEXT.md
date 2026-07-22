@@ -1,5 +1,38 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Force Seedream 5.0 Pro image routes to WaveSpeed, not KIE (2026-07-22)
+
+- Status:
+  Corrected the Seedream 5.0 Pro routing after the user showed KIE logs containing `seedream/5-pro-image-to-image` and WaveSpeed history containing the intended `bytedance/seedream-v5.0-pro/edit`.
+- Cause:
+  - `app/api/image/generate/route.ts` already routed Seedream 5 Pro to WaveSpeed, but the main image endpoint `app/api/generate/image/route.ts` had `isWaveSpeedImageModel = false`, so the resolved `seedream/5-pro-image-to-image` variant fell through to KIE.
+  - `app/api/panel/generate/image/route.ts` also used the KIE image model map directly for Seedream 5 Pro variants.
+  - KIE mapping still listed Seedream 5 Pro variants, making accidental fallback possible.
+- Behavior:
+  - `/api/generate/image` now routes `seedream/5-pro-text-to-image` to `bytedance/seedream-v5.0-pro` on WaveSpeed and `seedream/5-pro-image-to-image` to `bytedance/seedream-v5.0-pro/edit` on WaveSpeed.
+  - `/api/panel/generate/image` now handles Seedream 5 Pro before the KIE fallback and calls WaveSpeed directly.
+  - Seedream 5 Pro Edit sends `images` with up to 10 reference images, plus `prompt`, `aspect_ratio`, `resolution`, `output_format`, `enable_base64_output`, and `enable_sync_mode`.
+  - Seedream 5 Pro Edit returns a local 400 if no reference image is provided, avoiding a paid upstream failure.
+  - Removed Seedream 5 Pro variants from the KIE route map and KIE input-field inference.
+  - Seedream 5 Pro UI/pricing quality options are limited to WaveSpeed-documented `1K` and `2K`; `1.5K` was removed.
+- Affected files/paths:
+  - `app/api/generate/image/route.ts`
+  - `app/api/image/generate/route.ts`
+  - `app/api/panel/generate/image/route.ts`
+  - `lib/image-models.ts`
+  - `lib/kie-model-routing.ts`
+  - `lib/pricing.ts`
+  - `lib/pricing-models.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Repository search no longer finds a KIE route-map entry or reachable KIE-specific input builder for `seedream/5-pro-image-to-image`.
+  - Official WaveSpeed docs were checked for `bytedance/seedream-v5.0-pro` and `bytedance/seedream-v5.0-pro/edit`; documented fields are `prompt`, `images` for edit, `aspect_ratio`, `resolution`, and `output_format`.
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Remaining:
+  - Commit, push, and verify production after deployment.
+
 #### Latest task: Fix Seedance Mini reference image routing from `/video` (2026-07-22)
 
 - Status:

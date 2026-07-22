@@ -151,8 +151,14 @@ export async function POST(req: Request) {
       if (model.includes("seedream/5-pro-text-to-image") || model === "seedream/5-pro") {
         wsModel = "bytedance/seedream-v5.0-pro";
       } else if (model.includes("seedream/5-pro-image-to-image")) {
+        if (!refImageUrl) {
+          return NextResponse.json(
+            { error: "Seedream 5.0 Pro Edit requires at least one reference image." },
+            { status: 400 },
+          );
+        }
         wsModel = "bytedance/seedream-v5.0-pro/edit";
-        wsInput.image = refImageUrl || "";
+        wsInput.images = [refImageUrl];
       }
 
       const externalRes = await fetchWithTimeout(

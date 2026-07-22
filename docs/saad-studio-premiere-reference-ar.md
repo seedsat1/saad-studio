@@ -1817,6 +1817,19 @@
 - لا تظهر أدوات `Silence` و`Auto Zoom` في الشريط أو كصفحات مستقلة داخل هذه الواجهة.
 - إذا عادت هذه الأدوات لاحقًا، يجب أن تكون مربوطة بسلوك إنتاجي مكتمل وليست بطاقات placeholder.
 
+## ربط Seedream 5.0 Pro في الويب (2026-07-22)
+
+- `Seedream 5.0 Pro` يجب أن يمر عبر WaveSpeed فقط، وليس KIE.
+- Text-to-Image يستخدم route:
+  `bytedance/seedream-v5.0-pro`.
+- Image-to-Image/Edit يستخدم route:
+  `bytedance/seedream-v5.0-pro/edit`.
+- مسار Edit في WaveSpeed يستخدم الحقل `images` لقائمة الصور المرجعية، حتى 10 صور، وليس `image_urls` الخاص بـ KIE.
+- الحقول المسموحة محليًا لهذا الربط: `prompt`, `images` في edit, `aspect_ratio`, `resolution`, `output_format`, `enable_base64_output`, و`enable_sync_mode`.
+- الجودة المعروضة لهذا الموديل تكون `1K` و`2K` فقط لأن WaveSpeed يوثق هذين المستويين لهذا الربط.
+- إذا اختير Edit بدون صورة مرجعية، يجب إرجاع خطأ محلي قبل استدعاء المزود حتى لا يحدث فشل مدفوع في upstream.
+- ممنوع إضافة `seedream/5-pro-text-to-image` أو `seedream/5-pro-image-to-image` إلى خريطة KIE؛ هذه أسماء داخلية للواجهة/التسعير فقط ويتم تحويلها إلى WaveSpeed قبل التنفيذ.
+
 ## ربط Seedance 2.0 Mini في الويب (2026-07-22)
 
 - مواصفة WaveSpeed المعتمدة لـ Seedance 2.0 Mini Image-to-Video تستخدم:
