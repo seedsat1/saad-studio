@@ -90,6 +90,71 @@ const uploadAttachedFile = async (file: File) => {
   return uploadData.publicUrl as string;
 };
 
+const normalizeHookPrompt = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[!?.؟،,؛:]+/g, "")
+    .replace(/\s+/g, " ");
+
+const isCasualHookStudioMessage = (value: string, hasAttachments: boolean) => {
+  const normalized = normalizeHookPrompt(value);
+  if (!normalized) return false;
+
+  const casualMessages = new Set([
+    "اهلا",
+    "أهلا",
+    "اهلاً",
+    "أهلاً",
+    "هلا",
+    "مرحبا",
+    "السلام عليكم",
+    "السلام عليكم ورحمة الله",
+    "شلونك",
+    "كيفك",
+    "hi",
+    "hello",
+    "hey",
+    "good morning",
+    "good evening",
+  ].map(normalizeHookPrompt));
+
+  if (casualMessages.has(normalized)) return true;
+
+  const generationTerms = [
+    "hook",
+    "video",
+    "reel",
+    "ad",
+    "storyboard",
+    "generate",
+    "create",
+    "make",
+    "write",
+    "فيديو",
+    "هوك",
+    "اعلان",
+    "إعلان",
+    "ريل",
+    "ستوريبورد",
+    "مشهد",
+    "برومبت",
+    "فكرة",
+    "اكتب",
+    "اكتبلي",
+    "ولد",
+    "ولّد",
+    "انشئ",
+    "أنشئ",
+    "اصنع",
+    "اعمل",
+    "سوي",
+  ].map(normalizeHookPrompt);
+
+  const asksForGeneration = generationTerms.some((term) => normalized.includes(term));
+  return !asksForGeneration && !hasAttachments && normalized.length <= 24;
+};
+
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -325,6 +390,11 @@ export default function HookStudioPage() {
     setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const getCasualReply = () =>
+    isAr
+      ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
+      : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.";
+
   // Generation Handler
   const handleSendMessage = async () => {
     if (!inputText.trim() && attachedFiles.length === 0) return;
@@ -340,6 +410,18 @@ export default function HookStudioPage() {
     setMessages((prev) => [...prev, userMessage]);
     setInputText("");
     setAttachedFiles([]);
+
+    if (isCasualHookStudioMessage(userMessage.text, Boolean(userMessage.attachments?.length))) {
+      const agentMessage: ChatMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        sender: "agent",
+        text: getCasualReply(),
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, agentMessage]);
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
@@ -374,6 +456,17 @@ export default function HookStudioPage() {
       });
 
       const data = await res.json();
+      if (res.ok && data.mode === "chat" && typeof data.message === "string") {
+        const agentMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          sender: "agent",
+          text: data.message,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, agentMessage]);
+        return;
+      }
+
       if (res.ok && data.success) {
         const agentMessage: ChatMessage = {
           id: data.generationId || Math.random().toString(36).substr(2, 9),

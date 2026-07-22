@@ -7976,3 +7976,21 @@
   - `npx.cmd tsc --noEmit --pretty false` still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: Hook Studio casual greeting guard (2026-07-22)
+
+- Status:
+  Fixed `/hook-studio` treating short greetings like `اهلا` as paid hook/storyboard generation requests.
+- Behavior:
+  - The Hook Studio client now detects short casual greetings and replies with a normal assistant chat message instead of showing a `Generated Video Hook` card.
+  - `/api/hook-studio/generate` has the same pre-credit guard, so casual greetings return `mode: "chat"` before spending credits or dispatching to WaveSpeed/Google.
+  - Real generation requests still work when the prompt contains video/hook/storyboard/generation intent terms, or when the request is not a short casual message.
+  - Provider routing, safety policy, and model payload mapping were not changed.
+- Affected files/paths:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `app/api/hook-studio/generate/route.ts`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.

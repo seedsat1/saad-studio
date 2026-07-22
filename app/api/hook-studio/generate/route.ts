@@ -105,6 +105,74 @@ function normalizeKlingStdDuration(value: unknown) {
   return Number.isFinite(parsed) ? Math.min(15, Math.max(3, parsed)) : 5;
 }
 
+function normalizeHookPrompt(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[!?.؟،,؛:]+/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function isCasualHookStudioPrompt(value: string, hasReferences: boolean) {
+  const normalized = normalizeHookPrompt(value);
+  if (!normalized) return false;
+
+  const casualMessages = new Set(
+    [
+      "اهلا",
+      "أهلا",
+      "اهلاً",
+      "أهلاً",
+      "هلا",
+      "مرحبا",
+      "السلام عليكم",
+      "السلام عليكم ورحمة الله",
+      "شلونك",
+      "كيفك",
+      "hi",
+      "hello",
+      "hey",
+      "good morning",
+      "good evening",
+    ].map(normalizeHookPrompt),
+  );
+
+  if (casualMessages.has(normalized)) return true;
+
+  const generationTerms = [
+    "hook",
+    "video",
+    "reel",
+    "ad",
+    "storyboard",
+    "generate",
+    "create",
+    "make",
+    "write",
+    "فيديو",
+    "هوك",
+    "اعلان",
+    "إعلان",
+    "ريل",
+    "ستوريبورد",
+    "مشهد",
+    "برومبت",
+    "فكرة",
+    "اكتب",
+    "اكتبلي",
+    "ولد",
+    "ولّد",
+    "انشئ",
+    "أنشئ",
+    "اصنع",
+    "اعمل",
+    "سوي",
+  ].map(normalizeHookPrompt);
+
+  const asksForGeneration = generationTerms.some((term) => normalized.includes(term));
+  return !asksForGeneration && !hasReferences && normalized.length <= 24;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = auth();
@@ -130,6 +198,22 @@ export async function POST(req: NextRequest) {
 
     if (!prompt || typeof prompt !== "string" || prompt.trim() === "") {
       return NextResponse.json({ error: "يرجى كتابة فكرة أو وصف الهوك المطلوب" }, { status: 400 });
+    }
+
+    const hasReferences =
+      (Array.isArray(refImages) && refImages.length > 0) ||
+      (Array.isArray(refVideos) && refVideos.length > 0) ||
+      (Array.isArray(refAudios) && refAudios.length > 0);
+
+    if (isCasualHookStudioPrompt(prompt, hasReferences)) {
+      return NextResponse.json({
+        success: true,
+        mode: "chat",
+        message:
+          /[\u0600-\u06ff]/.test(prompt)
+            ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
+            : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.",
+      });
     }
 
     const selectedModel = HOOK_VIDEO_MODELS.find((m) => m.id === modelId) || HOOK_VIDEO_MODELS[0];
