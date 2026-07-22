@@ -20,7 +20,7 @@ type Provider = "wavespeed" | "kie";
 
 function resolveProvider(model: string): Provider {
   const lower = model.toLowerCase();
-  if (lower.includes("seedream/5-pro")) return "kie";
+  if (lower.includes("seedream/5-pro")) return "wavespeed";
   if (WAVESPEED_PREFIXES.some((p) => lower.startsWith(p))) return "wavespeed";
   return "kie";
 }
@@ -137,15 +137,33 @@ export async function POST(req: Request) {
       const apiKey = process.env.WAVESPEED_API_KEY;
       if (!apiKey) throw new Error("WaveSpeed API key is not configured on the server");
 
+      let wsModel = model;
+      const wsInput: Record<string, unknown> = {
+        prompt: sanitizePrompt(prompt, 5000),
+        aspect_ratio: aspectRatio,
+        output_format: "png",
+      };
+
+      // Normalize resolution
+      const resVal = String(quality || resolution || "1k").toLowerCase();
+      wsInput.resolution = resVal.includes("2k") ? "2k" : "1k";
+
+      if (model.includes("seedream/5-pro-text-to-image") || model === "seedream/5-pro") {
+        wsModel = "bytedance/seedream-v5.0-pro";
+      } else if (model.includes("seedream/5-pro-image-to-image")) {
+        wsModel = "bytedance/seedream-v5.0-pro/edit";
+        wsInput.image = refImageUrl || "";
+      }
+
       const externalRes = await fetchWithTimeout(
-        `https://api.wavespeed.ai/api/v3/${model}`,
+        `https://api.wavespeed.ai/api/v3/${wsModel}`,
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ prompt: sanitizePrompt(prompt, 5000), aspect_ratio: aspectRatio, num_images: numImages }),
+          body: JSON.stringify(wsInput),
         },
         35_000,
       );
@@ -155,8 +173,47 @@ export async function POST(req: Request) {
         throw new Error(`WaveSpeed API returned ${externalRes.status}: ${detail}`);
       }
 
-      const data = await externalRes.json();
-      imageUrl = data?.data?.outputs?.[0] ?? data?.outputs?.[0] ?? null;
+      const submitData = await externalRes.json();
+      let wsData = submitData?.data ?? submitData;
+      const predictionId = wsData?.id;
+      if (!predictionId) {
+        throw new Error(`WaveSpeed did not return a prediction ID: ${JSON.stringify(submitData)}`);
+      }
+
+      let wsStatus = String(wsData?.status || "created");
+      let wsOutputs = Array.isArray(wsData?.outputs) ? wsData.outputs : [];
+      const pollUrl = wsData?.urls?.get || `https://api.wavespeed.ai/api/v3/predictions/${predictionId}/result`;
+
+      for (let i = 0; i < 40; i++) {
+        if (wsStatus === "completed" || wsStatus === "failed" || wsStatus === "cancelled") {
+          break;
+        }
+
+        await new Promise((r) => setTimeout(r, 2000));
+
+        const pollRes = await fetchWithTimeout(
+          pollUrl,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+            },
+          },
+          10_000,
+        );
+
+        if (!pollRes.ok) continue;
+
+        const pollJson = await pollRes.json();
+        wsData = pollJson?.data ?? pollJson;
+        wsStatus = String(wsData?.status || "processing");
+        wsOutputs = Array.isArray(wsData?.outputs) ? wsData.outputs : [];
+      }
+
+      if (wsStatus !== "completed") {
+        throw new Error(`WaveSpeed generation task failed or timed out. Status: ${wsStatus}, Error: ${wsData?.error || "Unknown"}`);
+      }
+
+      imageUrl = wsOutputs[0] || null;
     }
 
     if (provider === "kie") {
