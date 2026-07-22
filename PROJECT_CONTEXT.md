@@ -1,5 +1,29 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Hook Studio director prompt reference binding (2026-07-22)
+
+- Status:
+  Implemented the user's requested plan to incorporate the local prompt-reference folder into Hook Studio as a real product behavior plan, while keeping the reference folder read-only.
+- Behavior:
+  - Added a dedicated Hook Studio director prompt module for the thinking-model system prompt.
+  - `/api/hook-studio/generate` now uses the centralized original Saad Studio production-director prompt instead of an inline prompt block.
+  - The prompt makes Hook Studio behave as a production director for ads, cinema, drama, horror, heritage, documentary, music videos, comedy, fantasy, social ads, product launches, and brand films.
+  - The director prompt requires replies to follow the language typed by the user and to return only the structured JSON consumed by the UI.
+  - The local reference folder `E:\saad-agent\release-production-v4\win-unpacked\DEZ\system_prompts_leaks-main\system_prompts_leaks-main` was inspected as reference-only material. Its `LICENSE` declares CC0 1.0 Universal. No source prompt text was copied into the product.
+- Affected files/paths:
+  - `lib/hook-studio-director-prompt.ts`
+  - `app/api/hook-studio/generate/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Decisions:
+  - Kept the external prompt folder as audit/reference evidence only and implemented an original Saad Studio prompt contract.
+  - Centralized the prompt so later `/hook-studio` and `/cinema-flow` behavior can reuse or inspect the same production-director contract.
+- Remaining:
+  - Commit, push, and wait for Vercel deployment before production testing.
+
 #### Latest task: Reduce completed-video display latency without changing safety (2026-07-22)
 
 - Status:

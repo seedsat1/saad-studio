@@ -1,4 +1,13 @@
 ﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## Hook Studio director prompt reference behavior (2026-07-22)
+
+- Hook Studio uses a centralized prompt contract in `lib/hook-studio-director-prompt.ts` instead of keeping the thinking-model system prompt inline inside the generation route.
+- The contract frames Hook Studio as a production director for ads, cinema, drama, horror, heritage, documentary, music videos, comedy, fantasy, social ads, product launches, and brand films.
+- Creative replies must follow the language typed by the user. Page labels still follow the Arabic/English UI toggle.
+- `/api/hook-studio/generate` must keep the thinking-model output as raw JSON with: `hookText`, `directorTreatment`, `angle`, `genreLabel`, `scenePrompts`, and `recommendedModel`.
+- The local reference folder `E:\saad-agent\release-production-v4\win-unpacked\DEZ\system_prompts_leaks-main\system_prompts_leaks-main` is read-only reference material. `LICENSE`, `README.md`, and selected Anthropic/OpenAI/Google/Kimi files were inspected; the declared license is CC0 1.0 Universal.
+- Do not copy a full external prompt into the product. Allowed use is pattern-level planning only: clear role contract, language rules, output constraints, and JSON schema, implemented as original Saad Studio wording.
+
 ## Premiere storage migration to Backblaze B2 (2026-07-16)
 
 - إضافة Premiere يجب أن تعتمد على Backblaze B2 كمسار التخزين والعرض النشط، وليس Cloudflare R2.
