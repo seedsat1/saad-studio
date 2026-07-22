@@ -1,5 +1,25 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Correct Seedream 5.0 Pro 2K pricing multiplier (2026-07-22)
+
+- Status:
+  Corrected the local Seedream 5.0 Pro quality pricing after the user supplied the WaveSpeed model sheet showing `1k` at `$0.045` and `2k` at `$0.090`.
+- Behavior:
+  - The visible/internal Saad model id `seedream/5-pro` is preserved.
+  - Execution still routes to WaveSpeed before provider submission: text generation uses `bytedance/seedream-v5.0-pro`, and reference/edit generation uses `bytedance/seedream-v5.0-pro/edit`.
+  - Seedream 5.0 Pro `2K` now uses a `2.0x` multiplier relative to `1K`, not `3.0x`.
+- Affected files/paths:
+  - `lib/image-models.ts`
+  - `lib/pricing.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Search confirmed no remaining Seedream 5.0 Pro `3.0x` quality multiplier in `lib/image-models.ts` or `lib/pricing.ts`.
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Remaining:
+  - Deploy after push so production pricing reflects the correction.
+
 #### Latest task: Force Seedream 5.0 Pro image routes to WaveSpeed, not KIE (2026-07-22)
 
 - Status:

@@ -60,9 +60,9 @@ const IMAGE_MODEL_QUALITY_CREDIT_MULTIPLIER: Record<string, Record<string, numbe
   "gpt-image-2-image-to-image": { "medium": 1.5, "high": 1.875 },
   "google/imagen4": { "2k": 1.5, "4k": 2.0 },
   "google/imagen4-ultra": { "2k": 1.5, "4k": 2.0 },
-  "seedream/5-pro": { "1k": 1.0, "2k": 3.0 },
-  "seedream/5-pro-text-to-image": { "1k": 1.0, "2k": 3.0 },
-  "seedream/5-pro-image-to-image": { "1k": 1.0, "2k": 3.0 },
+  "seedream/5-pro": { "1k": 1.0, "2k": 2.0 },
+  "seedream/5-pro-text-to-image": { "1k": 1.0, "2k": 2.0 },
+  "seedream/5-pro-image-to-image": { "1k": 1.0, "2k": 2.0 },
 };
 
 export function getImageCreditCost(model: ImageModel, numImages = 1, quality?: string | null): number {
