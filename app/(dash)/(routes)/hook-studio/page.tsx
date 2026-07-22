@@ -319,7 +319,7 @@ export default function HookStudioPage() {
               { id: 4, url: "/figma-scene-4.png" },
             ],
             videoUrl: data.mediaUrl || "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
-            modelRecommendation: getRecommendedModelDescription(selectedGenre, userMessage.text),
+            modelRecommendation: data.recommendedModel || getRecommendedModelDescription(selectedGenre, userMessage.text),
           },
         };
         setMessages((prev) => [...prev, agentMessage]);
