@@ -69,11 +69,11 @@ Your task is to write a high-retention viral video hook in Arabic or English (ma
 
 Rules:
 1. No placeholders, no filler text, and no duplicate phrases.
-2. If the user mentions action/speed/combat, recommend 'Kling 3.0' or 'Kling Turbo' for action sequences. If they mention sci-fi/fantasy/neon/visual realism, recommend 'Seedream 5.0'. If they want cinematic quality or general storytelling with reference media, recommend 'Seedance 2.0'.
+2. If the user mentions action/speed/combat, recommend 'Kling 3.0' or 'Kling Turbo' for action sequences. If they mention sci-fi/fantasy/neon/visual realism, recommend 'Seedream V5.0 Pro Edit'. If they want cinematic quality or general storytelling with reference media, recommend 'Seedance 2.0'.
 3. Always respond ONLY in a valid JSON object matching this schema:
 {
   "hookText": "The actual viral hook phrase (quote-wrapped if needed, e.g., \\"ماذا لو...\\")",
-  "recommendedModel": "Detailed recommendation message explaining why a specific model (Seedance 2.0, Kling 3.0, or Seedream 5.0) is the best choice for this prompt."
+  "recommendedModel": "Detailed recommendation message explaining why a specific model (Seedance 2.0, Kling 3.0, or Seedream V5.0 Pro Edit) is the best choice for this prompt."
 }
 Do not include any markdown code fence around the JSON, just return raw JSON.`;
 

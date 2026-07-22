@@ -1,6 +1,20 @@
 # Saad Studio Project Context Update
 
-### Latest task: Integrated Box Prompt Attachments (2026-07-22)
+### Latest task: Aligned Hook Studio Models Specs & Corrected Seedream V5.0 Pro Edit (2026-07-22)
+
+- Status:
+  Aligned `HOOK_VIDEO_MODELS` inside `lib/hook-studio-config.ts` to correct name, apiRoute, aspectRatios, qualityModes, durations, and reference limits of the 11 original models using real WaveSpeed and KIE specifications, avoiding any imaginary or out-of-scope model additions. Specifically:
+  1. Updated **Seedream 5.0** to its real identifier: **Seedream V5.0 Pro Edit** (`bytedance/seedream-v5.0-pro/edit`) with a duration of 0 (image edit model) and a capacity of up to 10 reference images and [1k, 2k] qualities.
+  2. Updated **Nano Banana** to **Nano Banana Pro** with its correct inpaint/edit route (`google/nano-banana-edit`), 0 duration, and real specs.
+  3. Corrected aspect ratios for Seedance models to `["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"]` and durations/ratios/quality modes for Kling 3.0 and other original models.
+  4. Updated recommended model names in the OpenAI system prompt inside `app/api/hook-studio/generate/route.ts`.
+- Affected Files:
+  - [lib/hook-studio-config.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/hook-studio-config.ts)
+  - [app/api/hook-studio/generate/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/hook-studio/generate/route.ts)
+- Verification:
+  - Built Next.js application cleanly (`✓ Compiled successfully`).
+
+### Previous task: Integrated Box Prompt Attachments (2026-07-22)
 
 - Status:
   Refactored prompt attachments inside **Hook Studio** (`/hook-studio`) to match user specs:
