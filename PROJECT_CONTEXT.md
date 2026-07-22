@@ -1,17 +1,20 @@
 # Saad Studio Project Context Update
 
-### Latest task: Model Recommendation & Dialect Support (2026-07-22)
+### Latest task: Production LLM Generation & Routing Fix (2026-07-22)
 
 - Status:
-  Added intelligent advisory capabilities inside **Hook Studio** (`/hook-studio`):
-  1. **Dynamic Model Recommendation**: The agent analyses the selected genre and text inputs to identify and suggest the optimal video generation model (e.g. recommending `Kling 3.0` for action scenes, `Seedream 5.0` for Sci-Fi visuals, or `Seedance 2.0` for cinematic multi-reference needs).
-  2. **Advice Block Visualization**: Displayed a glowing, high-contrast block inside the agent's generated hook card with a custom lightbulb/sparkle design advising the user of the recommendation.
+  Completely integrated the live OpenAI completion API directly into **Hook Studio**'s generation route (`/api/hook-studio/generate`):
+  1. **Live LLM Hook Parsing**: Configured the route to use the selected LLM brain to rewrite user prompts into high-retention viral hooks.
+  2. **Iraqi & Regional Dialect Support**: Enforced a strict JSON system prompt format requiring authentic dialect expressions and avoiding placeholders or generic filler text.
+  3. **Webpack/SWC Compilation Fix**: Fixed unicode escape syntax issues by refactoring template literals to standard string concatenation.
 - Affected Files:
+  - [app/api/hook-studio/generate/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/hook-studio/generate/route.ts)
   - [app/(dash)/(routes)/hook-studio/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/hook-studio/page.tsx)
 - Verification:
-  - Checked that the logic dynamically renders proper Arabic recommendations when dialect inputs are passed.
-  - Executed `npm run build` cleanly (Prerendered `/hook-studio` successfully).
-  - Pushed commit `3095e53` to main repository.
+  - Fixed syntax and resolved the SWC webpack build error.
+  - Executed `npm run build` successfully (`✓ Compiled successfully`).
+  - Pushed commit `f6d1061` to main repository.
+
 
 
 
