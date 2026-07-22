@@ -58,6 +58,8 @@ CINEMA STUDIO VS.O/
 *.7z
 !public/downloads/*.zip
 !public/downloads/*.zxp
+!public/downloads/*.exe
+!public/downloads/*.rar
 adobe/New\ folder/*.exe
 adobe/New\ folder/*.msi
 
