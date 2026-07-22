@@ -1,6 +1,18 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Integrated WaveSpeed Routing for Hook Studio Models (2026-07-22)
+#### Latest task: Auto T2V/I2V Routing Switch & Top Navbar Integration (2026-07-22)
+
+- Status:
+  Implemented two key changes requested by the user:
+  1. **T2V/I2V Auto-routing**: Refactored the video generation backend in `app/api/video/route.ts` to automatically switch routes between Text-to-Video and Image-to-Video. If the user uploads a reference image (`hasImage` is true), the backend automatically switches `modelRoute` to the corresponding `image-to-video` API route (e.g. `kling/v2-5-turbo-image-to-video-pro` or `kling/v3-turbo-image-to-video`); otherwise it switches back to `text-to-video`. Expanded the WaveSpeed bypass list accordingly.
+  2. **Top Navbar Link**: Integrated **Hook Studio** (استوديو الهوكات) into `components/TopNavbar.tsx`: added translation strings, added it to the main `STUDIO_LINKS` navigation bar, and included it in the `VIDEO_FEATURES` dropdown.
+- Affected Files:
+  - [app/api/video/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts)
+  - [components/TopNavbar.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/components/TopNavbar.tsx)
+- Verification:
+  - Built Next.js application cleanly (`✓ Compiled successfully`).
+
+### Previous task: Integrated WaveSpeed Routing for Hook Studio Models (2026-07-22)
 
 - Status:
   Configured all 10 non-Google models in Hook Studio to be routed and called directly from **WaveSpeed API** (`https://api.wavespeed.ai/api/v3`) instead of KIE API:
