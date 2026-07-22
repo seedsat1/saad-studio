@@ -1941,3 +1941,10 @@
   `/api/v3/predictions/{id}/result`.
 - Endpoint `/api/v3/predictions/{id}` يستخدم كـ fallback فقط. الاعتماد عليه وحده قد يجعل الموقع يعرض `running` رغم اكتمال الطلب في WaveSpeed.
 - معالجة خطأ React hydration رقم 425 تكون بإبقاء نصوص أول render ثابتة قدر الإمكان؛ لذلك لا تعرض أجزاء الحساب المعتمدة على Clerk إلا بعد hydration، وتمنع الترجمة الآلية من تعديل DOM قبل React باستخدام `notranslate`.
+
+## نظافة أسماء موديلات OpenAI في صفحة الصورة (2026-07-22)
+
+- صفحة `/image` تعرض عائلة OpenAI/GPT ضمن مجموعة `OpenAI Images` بدل مجموعة مبهمة باسم `GPT Image`.
+- أسماء النسخ لا تستخدم اختصارات `T2I` و`I2I` في الواجهة الرئيسية. الأسماء المرئية المعتمدة هي:
+  `GPT Image 2`, `GPT Image 2 Edit`, `GPT Image 1.5`, و`GPT Image 1.5 Edit`.
+- هذا تغيير عرض فقط؛ معرفات التنفيذ مثل `gpt-image-2-text-to-image` و`gpt-image/1.5-image-to-image` تبقى كما هي حتى لا ينكسر التسعير أو routing.

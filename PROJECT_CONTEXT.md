@@ -7937,3 +7937,23 @@
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
   - Existing unrelated TypeScript error remains in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221 (`ease` typed as string).
+
+## Latest task: Clean OpenAI image model labels on `/image` (2026-07-22)
+
+- Status:
+  Cleaned the OpenAI/GPT image model picker labels after `/image` showed confusing entries such as `GPT Image 1.5 T2I/I2I`.
+- Behavior:
+  - The image model picker now groups these models under `OpenAI Images`.
+  - Visible labels are now user-facing names: `GPT Image 2`, `GPT Image 2 Edit`, `GPT Image 1.5`, and `GPT Image 1.5 Edit`.
+  - The `/image` create-panel quick “New from Saad Studio” pills show only the text-to-image GPT Image 2 option, not the edit route.
+  - Navbar image model shortcuts now include the same cleaned OpenAI image labels.
+  - Routing/model IDs were not changed.
+- Affected files/paths:
+  - `lib/image-models.ts`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `components/TopNavbar.tsx`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.

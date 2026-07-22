@@ -1917,7 +1917,7 @@ export default function ImageWorkspacePage() {
               {t("New from Saad Studio")}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {IMAGE_MODELS.filter((m) => m.id === "gpt-image-2-text-to-image" || m.id === "gpt-image-2-image-to-image").map((m) => (
+              {IMAGE_MODELS.filter((m) => m.id === "gpt-image-2-text-to-image").map((m) => (
                 <button
                   key={m.id}
                   type="button"
