@@ -1924,17 +1924,37 @@ function VideoPageInner() {
           const refImgs  = referenceImages.filter(f => f.type.startsWith("image/"));
           const refVids  = referenceImages.filter(f => f.type.startsWith("video/"));
           const refAuds  = referenceImages.filter(f => f.type.startsWith("audio/"));
-          const uploadedImageRefs = await Promise.all(refImgs.slice(0, 9).map(f => fileToDataURL(f)));
-          const mergedImageRefs = [...characterReferenceUrls, ...uploadedImageRefs].slice(0, 9);
-          if (mergedImageRefs.length > 0)
+          const seedanceImageLimit = Math.max(1, Math.min(2, caps.max_reference_images || 2));
+          const explicitStartImage = startFrame
+            ? await fileToDataURL(startFrame)
+            : linkedStartFrameUrl
+              ? linkedStartFrameUrl
+              : null;
+          const uploadedImageRefs = await Promise.all(refImgs.slice(0, seedanceImageLimit).map(f => fileToDataURL(f)));
+          const mergedImageRefs = [
+            ...(explicitStartImage ? [explicitStartImage] : []),
+            ...characterReferenceUrls,
+            ...uploadedImageRefs,
+          ].slice(0, seedanceImageLimit);
+          if (mergedImageRefs[0]) {
+            payload.image = mergedImageRefs[0];
+            payload.first_frame_url = mergedImageRefs[0];
             payload.reference_image_urls = mergedImageRefs;
+          }
+          if (mergedImageRefs[1]) {
+            payload.last_image = mergedImageRefs[1];
+            payload.last_frame_url = mergedImageRefs[1];
+          }
           if (refVids.length > 0)
             payload.reference_video_urls = await Promise.all(refVids.slice(0, 3).map(f => fileToDataURL(f)));
           if (refAuds.length > 0)
             payload.reference_audio_urls = await Promise.all(refAuds.slice(0, 3).map(f => fileToDataURL(f)));
           // Also allow end frame alongside Seedance references
-          if (caps.has_end_frame && endFrame)
-            payload.last_frame_url = await fileToDataURL(endFrame);
+          if (caps.has_end_frame && endFrame) {
+            const explicitEndImage = await fileToDataURL(endFrame);
+            payload.last_image = explicitEndImage;
+            payload.last_frame_url = explicitEndImage;
+          }
         } else {
           const uploadedRefs = await Promise.all(referenceImages.map((f) => fileToDataURL(f)));
           payload.reference_image_urls = [...characterReferenceUrls, ...uploadedRefs].slice(0, Math.max(1, caps.max_reference_images || 1));
@@ -2222,7 +2242,32 @@ function VideoPageInner() {
         console.log("[Kling 3.0] ✅ Final payload (before send):", JSON.stringify(debugPayload, null, 2));
       }
 
-      const requestModelRoute = selectedModel.api_route;
+      const payloadHasImageInput = Boolean(
+        (typeof payload.image === "string" && payload.image.trim()) ||
+        (typeof payload.first_frame_url === "string" && payload.first_frame_url.trim()) ||
+        (typeof payload.image_url === "string" && payload.image_url.trim()) ||
+        (typeof payload.last_image === "string" && payload.last_image.trim()) ||
+        (typeof payload.last_frame_url === "string" && payload.last_frame_url.trim()) ||
+        (typeof payload.end_image === "string" && payload.end_image.trim()) ||
+        (Array.isArray(payload.image_urls) && payload.image_urls.some((value) => typeof value === "string" && value.trim())) ||
+        (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.some((value) => typeof value === "string" && value.trim()))
+      );
+      let requestModelRoute = selectedModel.api_route;
+      if (requestModelRoute.includes("seedance")) {
+        if (requestModelRoute.includes("mini")) {
+          requestModelRoute = payloadHasImageInput
+            ? "bytedance/seedance-2.0-mini/image-to-video"
+            : "bytedance/seedance-2.0-mini/text-to-video";
+        } else if (requestModelRoute.includes("fast") || requestModelRoute.includes("turbo")) {
+          requestModelRoute = payloadHasImageInput
+            ? "bytedance/seedance-2.0/image-to-video-turbo"
+            : "bytedance/seedance-2.0/text-to-video-turbo";
+        } else {
+          requestModelRoute = payloadHasImageInput
+            ? "bytedance/seedance-2.0/image-to-video"
+            : "bytedance/seedance-2.0/text-to-video";
+        }
+      }
       if (
         requestModelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
         requestModelRoute === "bytedance/seedance-v2/text-to-video" ||

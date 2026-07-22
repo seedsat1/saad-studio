@@ -1,5 +1,29 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Seedance Mini reference image routing from `/video` (2026-07-22)
+
+- Status:
+  Fixed the case where `/video` accepted a Seedance 2.0 Mini image reference in the UI but still submitted/logged the request as `bytedance/seedance-2.0-mini/text-to-video`, causing the prompt safety precheck to block `@image1`-style requests before the intended Image-to-Video path.
+- Cause:
+  - The `/video` Seedance reference-media builder stored uploaded images mainly in `reference_image_urls`.
+  - The WaveSpeed Seedance 2.0 Mini I2V spec requires the first image as `image` and optional second image as `last_image`.
+  - The frontend route sent to `/api/video` stayed as the selected text route even when image payload data existed, so debugging output showed the wrong route.
+- Behavior:
+  - Seedance 2.0/2.0 Turbo/2.0 Mini image references in `/video` now promote the first image to `payload.image` and `payload.first_frame_url`, and the second/end image to `payload.last_image` and `payload.last_frame_url`.
+  - The frontend now sends the canonical Seedance image route directly when image input exists: Mini uses `bytedance/seedance-2.0-mini/image-to-video`.
+  - `/api/video` now uses one robust image-input detector across `image`, `first_frame_url`, `last_image`, `end_image`, `image_urls`, and reference image aliases before route normalization and Seedance image checks.
+  - Safety precheck strips only pure `@imageN` reference tags when image input exists, while still checking the real prompt text.
+- Affected files/paths:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/api/video/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `git diff --check` passed with only existing Git CRLF/global-ignore permission warnings.
+  - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Remaining:
+  - Commit, push, and wait for production deployment before retesting `https://www.saadstudio.app/video`.
+
 #### Latest task: Clean duplicated Kling model picker entries (2026-07-22)
 
 - Status:

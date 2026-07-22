@@ -59,6 +59,35 @@ function resolveKieVideoModel(modelRoute: string): string | undefined {
   return LOCKED_VIDEO_ROUTE_TO_KIE_MODEL[modelRoute] ?? videoRouteToKieModelMap[modelRoute];
 }
 
+function hasNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasNonEmptyStringList(value: unknown): boolean {
+  return Array.isArray(value) && value.some(hasNonEmptyString);
+}
+
+function payloadHasImageInput(payload: Record<string, unknown>): boolean {
+  return (
+    hasNonEmptyString(payload.first_frame_url) ||
+    hasNonEmptyString(payload.last_frame_url) ||
+    hasNonEmptyString(payload.image_url) ||
+    hasNonEmptyString(payload.imageUrl) ||
+    hasNonEmptyString(payload.image) ||
+    hasNonEmptyString(payload.last_image) ||
+    hasNonEmptyString(payload.end_image) ||
+    hasNonEmptyStringList(payload.image_urls) ||
+    hasNonEmptyStringList(payload.imageUrls) ||
+    hasNonEmptyStringList(payload.reference_image_urls) ||
+    hasNonEmptyStringList(payload.referenceImageUrls)
+  );
+}
+
+function stripPromptReferenceTags(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/@image[1-9]\b/gi, "").trim();
+}
+
 function providerFailureMessage(payload: Record<string, unknown> | null, status: number) {
   if (!payload) return `HTTP ${status}`;
   
@@ -1930,13 +1959,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payload is required" }, { status: 400 });
     }
 
-    const hasImage = !!(
-      payload.first_frame_url ||
-      payload.image_url ||
-      payload.image ||
-      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0) ||
-      (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.length > 0)
-    );
+    const hasImage = payloadHasImageInput(payload);
 
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
     if (modelRoute.includes("seedance")) {
@@ -2147,7 +2170,7 @@ export async function POST(req: Request) {
     }));
 
     const precheck = await precheckGenerationPolicy({
-      prompt: typeof payload.prompt === "string" ? payload.prompt : "",
+      prompt: hasImage ? stripPromptReferenceTags(payload.prompt) : (typeof payload.prompt === "string" ? payload.prompt : ""),
       negativePrompt: typeof (payload as any).negative_prompt === "string" ? String((payload as any).negative_prompt) : null,
     });
     if (!precheck.allowed) {
@@ -2173,19 +2196,7 @@ export async function POST(req: Request) {
     }
 
     // ── Official Seedance 2.0 path (BytePlus ModelArk, no KIE) ───────────────
-    const hasImageOrAvatar = !!(
-      payload.first_frame_url ||
-      payload.last_frame_url ||
-      payload.image_url ||
-      payload.imageUrl ||
-      payload.image ||
-      payload.last_image ||
-      payload.end_image ||
-      (Array.isArray(payload.image_urls) && payload.image_urls.length > 0) ||
-      (Array.isArray(payload.imageUrls) && payload.imageUrls.length > 0) ||
-      (Array.isArray(payload.reference_image_urls) && payload.reference_image_urls.length > 0) ||
-      (Array.isArray(payload.referenceImageUrls) && payload.referenceImageUrls.length > 0)
-    );
+    const hasImageOrAvatar = payloadHasImageInput(payload);
 
     if (isOfficialSeedance2Route(modelRoute) && !hasImageOrAvatar) {
       const arkKey = getArkApiKeyFromEnv();

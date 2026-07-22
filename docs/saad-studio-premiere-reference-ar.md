@@ -1826,6 +1826,9 @@
 - قيمة `adaptive` يمكن أن تظهر في UI كاختيار تكيفي، لكنها لا ترسل إلى WaveSpeed كـ `aspect_ratio`; ترك الحقل فارغًا هو آلية التكيف حسب المواصفة.
 - Mini Image-to-Video يقبل صورتين فقط في الربط الحالي: الأولى `image` والثانية `last_image`. لا ترسل حقول رفرنس فيديو أو رفرنس صوت لـ Mini لأن المواصفة المعتمدة لا توثقها. الصوت الموثق هو توليد صوت أصلي عبر `generate_audio`.
 - Hook Studio يجب أن يرفع المرفقات إلى رابط عام عبر `/api/media/upload` قبل إرسال الطلب للموديل؛ ممنوع إرسال روابط `blob:` أو مسارات محلية إلى المزود.
+- في صفحة `/video`، صورة Seedance Mini المرفوعة من صندوق `Reference media` أو Start frame يجب أن تتحول قبل الإرسال إلى `payload.image` و`payload.first_frame_url`; الصورة الثانية أو End frame تتحول إلى `payload.last_image` و`payload.last_frame_url`.
+- عند وجود أي صورة Seedance Mini، يجب أن ترسل الواجهة route النهائي `bytedance/seedance-2.0-mini/image-to-video` بدل إبقاء route النص `bytedance/seedance-2.0-mini/text-to-video`. السيرفر يعيد التحقق بنفسه عبر كشف موحد للصور قبل فحص الأمان واختيار route النهائي.
+- وسوم البرومبت مثل `@image1` هي إشارات ربط للصور وليست نصًا إبداعيًا؛ عند وجود صورة، فحص الأمان يتجاهل هذه الوسوم فقط ويبقي فحص النص الحقيقي كما هو.
 
 ## ربط Seedance 2.0 Image-to-Video Turbo في الويب (2026-07-22)
 
