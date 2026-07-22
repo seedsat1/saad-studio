@@ -1,6 +1,17 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Resolve 'File wasn't available on site' Download Issue (2026-07-22)
+#### Latest task: Standardize Seedance 2.0 WaveSpeed Endpoints & Payloads (2026-07-22)
+
+- Status:
+  Mapped Seedance 2.0 routes and payload mapping structure directly to official WaveSpeed REST specifications:
+  1. Updated endpoints: `bytedance/seedance-2.0/text-to-video`, `bytedance/seedance-2.0/image-to-video`, `bytedance/seedance-2.0-mini/text-to-video`, `bytedance/seedance-2.0-mini/image-to-video`, `bytedance/seedance-2.0/text-to-video-turbo`, and `bytedance/seedance-2.0/image-to-video-turbo`.
+  2. Aligned payloads: mapped `image`, `image_url`, `last_image`, `end_image`, `generate_audio` (from sound state), and `enable_web_search`.
+  3. Staged, committed, and pushed changes cleanly.
+- Affected Files:
+  - [app/api/video/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts)
+  - [lib/credit-ledger.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/credit-ledger.ts)
+
+#### Previous task: Resolve 'File wasn't available on site' Download Issue (2026-07-22)
 
 - Status:
   Resolved the issue where `SaadStudio-Setup.exe` downloads failed with 'File wasn't available on site'.
