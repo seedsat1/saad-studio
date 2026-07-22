@@ -599,82 +599,109 @@ export default function HookStudioPage() {
             </div>
           )}
 
-          {/* Attached Files pills above input */}
-          {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2 px-1">
-              {attachedFiles.map((file) => (
-                <div
-                  key={file.id}
-                  className="bg-[#121620] border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center gap-2 text-xs shadow-sm"
-                >
-                  {file.type === "image" && <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />}
-                  {file.type === "video" && <FileVideo className="w-3.5 h-3.5 text-indigo-400" />}
-                  {file.type === "audio" && <FileAudio className="w-3.5 h-3.5 text-indigo-400" />}
-                  {file.type === "file" && <FileText className="w-3.5 h-3.5 text-indigo-400" />}
-                  <span className="text-slate-300 font-medium truncate max-w-[140px]">
-                    {file.name}
-                  </span>
-                  <button
-                    onClick={() => handleRemoveAttachment(file.id)}
-                    className="text-slate-500 hover:text-rose-400 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Prompt Console Bar - Styled Box Container */}
+          <div className="bg-[#11151f] border border-slate-800/80 rounded-2xl p-3 flex flex-col gap-3 shadow-lg focus-within:border-indigo-500/70 transition-all w-full animate-in fade-in duration-200">
+            
+            {/* Integrated Attachments Row inside the box (Figma Layout) */}
+            {attachedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-3 pb-2 border-b border-slate-900/40">
+                {attachedFiles.map((file) => {
+                  const isImageOrVideo = file.type === "image" || file.type === "video";
+                  
+                  if (isImageOrVideo) {
+                    return (
+                      <div key={file.id} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-800 bg-[#06080c] flex-shrink-0 group">
+                        {file.type === "image" ? (
+                          <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <video src={file.url} className="w-full h-full object-cover" />
+                        )}
+                        <button
+                          onClick={() => handleRemoveAttachment(file.id)}
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 hover:bg-rose-600 flex items-center justify-center text-white transition-all shadow-sm"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div
+                        key={file.id}
+                        className="bg-[#181d2a] border border-slate-800/60 rounded-full px-3.5 py-1.5 flex items-center gap-2 text-xs shadow-sm flex-shrink-0"
+                      >
+                        {file.type === "audio" ? (
+                          <FileAudio className="w-3.5 h-3.5 text-indigo-400" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 text-indigo-400" />
+                        )}
+                        <span className="text-slate-300 font-medium truncate max-w-[150px]">
+                          {file.name}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveAttachment(file.id)}
+                          className="text-slate-500 hover:text-rose-400 transition-colors ml-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  }
+                })}
+              </div>
+            )}
 
-          {/* Prompt Console Bar */}
-          <div className="bg-[#11151f] border border-slate-800/80 rounded-2xl p-2 flex items-center justify-between gap-3 shadow-lg focus-within:border-indigo-500/70 transition-all">
-            {/* Target Select */}
-            <div className="flex items-center gap-1.5 pl-2 select-none">
-              <span className="text-xs font-bold text-slate-200">{t.inputDropdown}</span>
-              <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                {t.badgeInstant}
-              </span>
-            </div>
+            {/* Input Row */}
+            <div className="flex items-center justify-between gap-3 w-full">
+              {/* Target Select */}
+              <div className="flex items-center gap-1.5 pl-1 select-none">
+                <span className="text-xs font-bold text-slate-200">{t.inputDropdown}</span>
+                <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  {t.badgeInstant}
+                </span>
+              </div>
 
-            {/* Input field */}
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSendMessage();
-              }}
-              placeholder={t.inputPlaceholder}
-              className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
-            />
-
-            {/* Actions */}
-            <div className="flex items-center gap-2 pr-1">
+              {/* Input field */}
               <input
-                type="file"
-                multiple
-                ref={fileInputRef}
-                onChange={handleFileSelect}
-                className="hidden"
-                accept="image/*,video/*,audio/*"
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendMessage();
+                }}
+                placeholder={t.inputPlaceholder}
+                className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
-                title="Attach files"
-              >
-                <Paperclip className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleSendMessage}
-                disabled={isGenerating || (!inputText.trim() && attachedFiles.length === 0)}
-                className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition-all shadow-md shadow-indigo-600/10"
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </button>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pr-1">
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,video/*,audio/*"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                  title="Attach files"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={isGenerating || (!inputText.trim() && attachedFiles.length === 0)}
+                  className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white transition-all shadow-md shadow-indigo-600/10"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
