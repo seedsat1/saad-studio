@@ -8012,3 +8012,44 @@
   - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: Hook Studio advisory campaign prompts (2026-07-22)
+
+- Status:
+  Fixed Hook Studio treating advisory prompts like `أريد أسوي إعلان خاص لموقعي... ماذا تقترح لي؟` as immediate paid hook/video generation.
+- Behavior:
+  - Prompts that ask for advice/suggestions/recommendations with a site URL, campaign/ad wording, or attached media now return a normal chat suggestion first.
+  - These advisory replies follow the language typed by the user and mention the site/reference context without assuming an unrelated business category.
+  - The client stops before uploading references or calling `/api/hook-studio/generate` for advisory prompts.
+  - The server has the same guard before credit spending/provider dispatch, returning `mode: "chat"` if an old client sends the request.
+  - Explicit generation commands such as `ولّد هذا الإعلان` or `generate video` still proceed to the normal Hook Studio generation flow.
+- Affected files/paths:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `app/api/hook-studio/generate/route.ts`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: Hook Studio production-director behavior (2026-07-22)
+
+- Status:
+  Reframed Hook Studio from a narrow hook writer into a broader production director for ads, cinema, drama, horror, heritage, documentary, music videos, comedy, fantasy, social ads, product launches, and brand films.
+- Behavior:
+  - The default genre is now `Advertising`, with `Brand Reveal` as the default hook/director angle.
+  - Added production genres: Advertising, Heritage, Documentary, Music Video, Comedy, and Fantasy alongside the existing cinematic/drama/horror/romance/action/sci-fi presets.
+  - Added director angles: Brand Reveal, Emotional Drama, Heritage Pride, Fear & Tension, and Product Proof.
+  - `/api/hook-studio/generate` now asks the thinking model for `hookText`, `directorTreatment`, `angle`, `genreLabel`, `scenePrompts`, and `recommendedModel`.
+  - The UI displays a director treatment and text-based scene plan instead of unrelated static cyberpunk/demo storyboard images.
+  - Advisory prompts such as `ماذا تقترح لي؟` with a site/reference return a normal chat proposal first and do not spend credits or dispatch to a provider.
+  - The CC0 `system_prompts_leaks-main` reference under `E:\saad-agent\release-production-v4\win-unpacked\DEZ` was checked for license/source orientation only; no prompt content was copied into the product.
+- Affected files/paths:
+  - `lib/hook-studio-config.ts`
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `app/api/hook-studio/generate/route.ts`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.

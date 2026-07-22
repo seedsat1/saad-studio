@@ -78,6 +78,14 @@ export const LLM_BRAIN_MODELS: LLMBrainModel[] = [
 
 export const HOOK_GENRES: HookGenrePreset[] = [
   {
+    id: "advertising",
+    nameAr: "إعلاني",
+    nameEn: "Advertising",
+    icon: "Megaphone",
+    gradient: "from-emerald-500/20 to-cyan-600/20 border-emerald-500/40",
+    systemPromptAddon: "رسالة بيع واضحة، إبراز المنتج أو الموقع، إثبات سريع للقيمة، ودعوة فعل مباشرة.",
+  },
+  {
     id: "cinematic",
     nameAr: "سينمائي",
     nameEn: "Cinematic",
@@ -102,6 +110,38 @@ export const HOOK_GENRES: HookGenrePreset[] = [
     systemPromptAddon: "ظلال داكنة، حركة فجائية، وإضاءة خافتة لتوليد توتر فوري.",
   },
   {
+    id: "heritage",
+    nameAr: "تراثي",
+    nameEn: "Heritage",
+    icon: "Landmark",
+    gradient: "from-yellow-700/20 to-amber-500/20 border-amber-500/40",
+    systemPromptAddon: "هوية محلية أصيلة، تفاصيل تراثية، ألوان دافئة، موسيقى وإيقاع يعكسان المكان والذاكرة.",
+  },
+  {
+    id: "documentary",
+    nameAr: "وثائقي",
+    nameEn: "Documentary",
+    icon: "ScanEye",
+    gradient: "from-slate-500/20 to-sky-500/20 border-sky-500/40",
+    systemPromptAddon: "لغة واقعية، لقطات مراقبة، مقابلات أو سرد معرفي، وإحساس مصداقية عالي.",
+  },
+  {
+    id: "music-video",
+    nameAr: "كليب موسيقي",
+    nameEn: "Music Video",
+    icon: "Music",
+    gradient: "from-fuchsia-500/20 to-blue-600/20 border-fuchsia-500/40",
+    systemPromptAddon: "إيقاع بصري متزامن مع الموسيقى، انتقالات سريعة، أداء وحركة كاميرا نابضة.",
+  },
+  {
+    id: "comedy",
+    nameAr: "كوميدي",
+    nameEn: "Comedy",
+    icon: "Smile",
+    gradient: "from-lime-500/20 to-yellow-500/20 border-lime-500/40",
+    systemPromptAddon: "مفارقة بصرية، توقيت كوميدي واضح، تعبيرات وجه مبالغ بها، ونهاية ذكية.",
+  },
+  {
     id: "romance",
     nameAr: "رومانسي",
     nameEn: "Romance",
@@ -124,6 +164,14 @@ export const HOOK_GENRES: HookGenrePreset[] = [
     icon: "Cpu",
     gradient: "from-cyan-500/20 to-blue-600/20 border-cyan-500/40",
     systemPromptAddon: "إضاءات نيون، مؤثرات هولوجرافية، وتقنيات مستقبلية.",
+  },
+  {
+    id: "fantasy",
+    nameAr: "فانتازيا",
+    nameEn: "Fantasy",
+    icon: "WandSparkles",
+    gradient: "from-violet-500/20 to-pink-500/20 border-violet-500/40",
+    systemPromptAddon: "عوالم خيالية، ضوء سحري، حركة كاميرا حالمة، وتحولات بصرية شاعرية.",
   },
 ];
 

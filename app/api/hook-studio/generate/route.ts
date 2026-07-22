@@ -177,6 +177,84 @@ function isCasualHookStudioPrompt(value: string, hasReferences: boolean) {
   return !asksForGeneration && !hasReferences && normalized.length <= 24;
 }
 
+function getMentionedUrl(value: string) {
+  return value.match(/https?:\/\/[^\s]+|www\.[^\s]+/i)?.[0]?.replace(/[),.،]+$/, "") || "";
+}
+
+function isAdvisoryHookStudioPrompt(value: string, hasReferences: boolean) {
+  const normalized = normalizeHookPrompt(value);
+  if (!normalized) return false;
+
+  const asksForAdvice = [
+    "ماذا تقترح",
+    "شنو تقترح",
+    "ما تقترح",
+    "اقترح",
+    "اقتراح",
+    "رايك",
+    "رأيك",
+    "what do you suggest",
+    "suggest",
+    "recommend",
+    "idea for",
+  ].some((term) => normalized.includes(normalizeHookPrompt(term)));
+
+  const hasCampaignContext =
+    hasReferences ||
+    Boolean(getMentionedUrl(value)) ||
+    ["موقعي", "موقع", "اعلان", "إعلان", "ad", "campaign", "website"].some((term) =>
+      normalized.includes(normalizeHookPrompt(term)),
+    );
+
+  const asksForImmediateGeneration = [
+    "ولد الفيديو",
+    "ولّد الفيديو",
+    "generate video",
+    "render video",
+    "ابدأ التوليد",
+  ].some((term) => normalized.includes(normalizeHookPrompt(term)));
+
+  return asksForAdvice && hasCampaignContext && !asksForImmediateGeneration;
+}
+
+function buildAdvisoryReply(prompt: string, hasReferences: boolean) {
+  const siteUrl = getMentionedUrl(prompt) || "saadstudio.app";
+  if (isArabicText(prompt)) {
+    const referenceLine = hasReferences
+      ? "اعتمد الصورة المرفقة كموديل/مرجع بصري ثابت في الإعلان."
+      : "أضف صورة أو فيديو مرجعي حتى أثبت الهوية البصرية في الإعلان.";
+    return [
+      `اقتراحي لإعلان ${siteUrl}:`,
+      "",
+      "الفكرة الأقوى: إعلان قصير يبيّن أن المستخدم يدخل بفكرة بسيطة، ثم Saad Studio يحولها إلى فيديو/هوك جاهز خلال لحظات.",
+      referenceLine,
+      "",
+      "هوك مناسب:",
+      "“عندك فكرة؟ خلّي Saad Studio يحولها لإعلان جاهز قبل ما تضيع اللحظة.”",
+      "",
+      "السيناريو المقترح: لقطة افتتاحية قريبة للموديل/المرجع، بعدها ظهور واجهة الموقع، ثم نتائج فيديو سريعة، وفي النهاية دعوة واضحة: جرّب Saad Studio الآن.",
+      "",
+      "إذا تريد، اكتب: ولّد هذا الإعلان، وسأحوّله إلى هوك وستوريبورد قابل للتوليد.",
+    ].join("\n");
+  }
+
+  return [
+    `My suggestion for ${siteUrl}:`,
+    "",
+    "Use a short ad where the viewer starts with a simple idea, then Saad Studio turns it into a ready video hook in moments.",
+    hasReferences
+      ? "Use the attached image as the main visual/model reference."
+      : "Add an image or video reference so the ad can keep a clear visual identity.",
+    "",
+    "Hook:",
+    "“Got an idea? Let Saad Studio turn it into a ready ad before the moment is gone.”",
+    "",
+    "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a clear call to action: Try Saad Studio now.",
+    "",
+    "Type: generate this ad, and I will turn it into a hook and storyboard ready for video generation.",
+  ].join("\n");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userId } = auth();
@@ -188,12 +266,13 @@ export async function POST(req: NextRequest) {
     const {
       prompt,
       llmBrain = "gpt-4o",
-      genre = "cinematic",
+      genre = "advertising",
       modelId = "seedance-2.0-pro",
       duration = 5,
       aspectRatio = "9:16",
       quality = "pro",
       generateAudio = true,
+      hookAngle = "brand-reveal",
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -217,6 +296,14 @@ export async function POST(req: NextRequest) {
           isArabicText(prompt)
             ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
             : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.",
+      });
+    }
+
+    if (isAdvisoryHookStudioPrompt(prompt, hasReferences)) {
+      return NextResponse.json({
+        success: true,
+        mode: "chat",
+        message: buildAdvisoryReply(prompt, hasReferences),
       });
     }
 
@@ -287,21 +374,44 @@ export async function POST(req: NextRequest) {
     }
 
 
-    let hookText = "ماذا لو أخبرتك أن المحتوى الفيروسي يصنع بالذكاء الاصطناعي؟";
-    let recommendedModelAdvice = "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية وثبات مذهل للألوان.";
+    let hookText = "عندك فكرة؟ خلّي Saad Studio يحولها لإعلان جاهز قبل ما تضيع اللحظة.";
+    let directorTreatment = "افتتاحية قوية تربط المرجع البصري برسالة الإعلان، ثم إثبات سريع للقيمة، ثم دعوة واضحة للفعل.";
+    let angle = selectedGenre.nameAr || selectedGenre.nameEn;
+    let genreLabel = selectedGenre.nameAr || selectedGenre.nameEn;
+    let scenePrompts: Array<{ title: string; prompt: string }> = [
+      { title: "الافتتاحية", prompt: "لقطة قريبة للمرجع البصري مع إحساس إنتاجي فاخر يعرّف هوية الإعلان." },
+      { title: "المشكلة", prompt: "إظهار لحظة احتياج أو فضول عند الجمهور قبل ظهور الحل." },
+      { title: "الحل", prompt: "ظهور Saad Studio كأداة تحول الفكرة إلى إنتاج بصري جاهز." },
+      { title: "الدعوة", prompt: "نهاية واضحة بشعار الموقع ودعوة تجربة مباشرة." },
+    ];
+    let recommendedModelAdvice = "نوصي باستخدام Seedance 2.0 للإعلانات السينمائية التي تحتاج ثبات المرجع البصري، حركة ناعمة، وصوت أصلي عند الحاجة.";
 
     if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "sk-placeholder") {
       try {
-        const systemPrompt = `You are the creative brain of Hook Studio, a premium AI video generation assistant.
-Your task is to write a high-retention viral video hook in Arabic or English (matching the user's prompt language and requested dialect, e.g., if they request the Iraqi dialect "اللهجة العراقية", you MUST use authentic Iraqi vocabulary like 'شلونك', 'أريد', 'عيني').
+        const systemPrompt = `You are Hook Studio Director, a senior creative director for Saad Studio.
+You are not just a hook writer. You are a full production director for advertising, cinema, drama, horror, heritage, documentary, music videos, comedy, fantasy, social ads, product launches, and brand films.
+Your task is to transform the user's idea, website, product, attached reference media, and selected genre into a production-ready creative direction.
+Match the user's written language. If Arabic, write Arabic. If the user asks for Iraqi dialect, use natural Iraqi wording.
 
 Rules:
-1. No placeholders, no filler text, and no duplicate phrases.
-2. If the user mentions action/speed/combat, recommend 'Kling 3.0' or 'Kling Turbo' for action sequences. If they mention sci-fi/fantasy/neon/visual realism, recommend 'Seedream V5.0 Pro Edit'. If they want cinematic quality or general storytelling with reference media, recommend 'Seedance 2.0'.
-3. Always respond ONLY in a valid JSON object matching this schema:
+1. No placeholders, no filler text, no unrelated cyberpunk/demo scenes, and no duplicate phrases.
+2. Never assume the business category from an image alone. Use the user's actual words and references.
+3. Treat attached images/videos/audio as visual, motion, character, product, voice, or mood references.
+4. Recommend a model based on production need: Kling for action/camera energy, Seedance for cinematic ads and reference consistency, Seedream edit for image/design/visual development, Google/Veo/Gemini when the selected model requires it.
+5. Produce practical direction that a video generator can use: camera language, mood, scene beats, and call to action.
+6. Always respond ONLY in a valid JSON object matching this schema:
 {
-  "hookText": "The actual viral hook phrase (quote-wrapped if needed, e.g., \\"ماذا لو...\\")",
-  "recommendedModel": "Detailed recommendation message explaining why a specific model (Seedance 2.0, Kling 3.0, or Seedream V5.0 Pro Edit) is the best choice for this prompt."
+  "hookText": "The main ad/cinematic hook phrase.",
+  "directorTreatment": "A concise director treatment explaining the creative approach, tone, camera, pacing, and reference usage.",
+  "angle": "The creative angle, e.g. Brand Reveal, Curiosity Gap, Fear, Heritage Pride, Emotional Drama.",
+  "genreLabel": "The production genre label in the user's language.",
+  "scenePrompts": [
+    { "title": "Scene 1 title", "prompt": "Specific visual scene prompt with camera/action/mood." },
+    { "title": "Scene 2 title", "prompt": "Specific visual scene prompt with camera/action/mood." },
+    { "title": "Scene 3 title", "prompt": "Specific visual scene prompt with camera/action/mood." },
+    { "title": "Scene 4 title", "prompt": "Specific visual scene prompt with camera/action/mood." }
+  ],
+  "recommendedModel": "Detailed recommendation message explaining why the selected/recommended model fits this production."
 }
 Do not include any markdown code fence around the JSON, just return raw JSON.`;
 
@@ -310,12 +420,24 @@ Do not include any markdown code fence around the JSON, just return raw JSON.`;
           temperature: 0.7,
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nBrain Selected: " + selectedBrain.name }
+            { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
           ],
           response_format: { type: "json_object" }
         });
         const parsed = JSON.parse(completion.choices[0].message.content || "{}");
         if (parsed.hookText) hookText = parsed.hookText;
+        if (parsed.directorTreatment) directorTreatment = parsed.directorTreatment;
+        if (parsed.angle) angle = parsed.angle;
+        if (parsed.genreLabel) genreLabel = parsed.genreLabel;
+        if (Array.isArray(parsed.scenePrompts) && parsed.scenePrompts.length > 0) {
+          scenePrompts = parsed.scenePrompts
+            .slice(0, 4)
+            .map((scene: any, index: number) => ({
+              title: typeof scene?.title === "string" ? scene.title : `Scene ${index + 1}`,
+              prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
+            }))
+            .filter((scene: { title: string; prompt: string }) => scene.prompt.trim());
+        }
         if (parsed.recommendedModel) recommendedModelAdvice = parsed.recommendedModel;
       } catch (err) {
         console.error("OpenAI Hook Studio generation error, using fallback:", err);
@@ -483,6 +605,10 @@ Do not include any markdown code fence around the JSON, just return raw JSON.`;
       creditsDeducted: cost,
       remainingCredits: newBalance,
       hookText,
+      directorTreatment,
+      angle,
+      genreLabel,
+      scenePrompts,
       recommendedModel: recommendedModelAdvice,
     });
   } catch (error: any) {

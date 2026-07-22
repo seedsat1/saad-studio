@@ -53,7 +53,8 @@ interface ChatMessage {
     angle: string;
     genre: string;
     duration: string;
-    scenes: Array<{ id: number; url: string }>;
+    treatment?: string;
+    scenes: Array<{ id: number; url?: string; title?: string; prompt?: string }>;
     videoUrl: string;
     modelRecommendation?: string;
   };
@@ -157,6 +158,45 @@ const isCasualHookStudioMessage = (value: string, hasAttachments: boolean) => {
   return !asksForGeneration && !hasAttachments && normalized.length <= 24;
 };
 
+const getMentionedUrl = (value: string) =>
+  value.match(/https?:\/\/[^\s]+|www\.[^\s]+/i)?.[0]?.replace(/[),.،]+$/, "") || "";
+
+const isAdvisoryHookStudioMessage = (value: string, hasAttachments: boolean) => {
+  const normalized = normalizeHookPrompt(value);
+  if (!normalized) return false;
+
+  const asksForAdvice = [
+    "ماذا تقترح",
+    "شنو تقترح",
+    "ما تقترح",
+    "اقترح",
+    "اقتراح",
+    "رايك",
+    "رأيك",
+    "what do you suggest",
+    "suggest",
+    "recommend",
+    "idea for",
+  ].some((term) => normalized.includes(normalizeHookPrompt(term)));
+
+  const hasCampaignContext =
+    hasAttachments ||
+    Boolean(getMentionedUrl(value)) ||
+    ["موقعي", "موقع", "اعلان", "إعلان", "ad", "campaign", "website"].some((term) =>
+      normalized.includes(normalizeHookPrompt(term)),
+    );
+
+  const asksForImmediateGeneration = [
+    "ولد الفيديو",
+    "ولّد الفيديو",
+    "generate video",
+    "render video",
+    "ابدأ التوليد",
+  ].some((term) => normalized.includes(normalizeHookPrompt(term)));
+
+  return asksForAdvice && hasCampaignContext && !asksForImmediateGeneration;
+};
+
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
@@ -168,8 +208,8 @@ export default function HookStudioPage() {
   const [selectedRatio, setSelectedRatio] = useState("16:9");
   const [selectedQuality, setSelectedQuality] = useState("1080p");
   const [generateAudio, setGenerateAudio] = useState(true);
-  const [selectedGenre, setSelectedGenre] = useState("cinematic");
-  const [selectedHookAngle, setSelectedHookAngle] = useState("curiosity");
+  const [selectedGenre, setSelectedGenre] = useState("advertising");
+  const [selectedHookAngle, setSelectedHookAngle] = useState("brand-reveal");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -222,15 +262,18 @@ export default function HookStudioPage() {
         phrase: isAr
           ? "\"ماذا لو أخبرتك أن سماعاتك تعرف مشاعرك قبل أن تعرفها أنت؟\""
           : "\"What if I told you your headphones know your feelings before you do?\"",
-        angle: isAr ? "فجوة الفضول" : "Curiosity Gap",
-        genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
-        duration: "15s",
-        scenes: [
-          { id: 1, url: "/figma-scene-1.png" },
-          { id: 2, url: "/figma-scene-2.png" },
-          { id: 3, url: "/figma-scene-3.png" },
-          { id: 4, url: "/figma-scene-4.png" },
-        ],
+            angle: isAr ? "زاوية إخراجية" : "Director Angle",
+            genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+            duration: "15s",
+            treatment: isAr
+              ? "معالجة إخراجية تجريبية لمنتج تقني بنبرة سينمائية سريعة."
+              : "Sample director treatment for a cinematic tech product spot.",
+            scenes: [
+              { id: 1, title: "Scene 1", prompt: "Opening product reveal." },
+              { id: 2, title: "Scene 2", prompt: "User reaction and emotional beat." },
+              { id: 3, title: "Scene 3", prompt: "Feature transformation moment." },
+              { id: 4, title: "Scene 4", prompt: "Final call to action." },
+            ],
         videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
         modelRecommendation: isAr
           ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان والتحكم بالمنتجات."
@@ -313,8 +356,8 @@ export default function HookStudioPage() {
     genreLabel: isAr ? "النوع" : "GENRE",
     durationLabel: isAr ? "المدة" : "DURATION",
     scenesDesc: isAr
-      ? "المشاهد جاهزة — تم إنشاء 4 مشاهد افتراضية. اضغط على توليد الفيديو للبدء."
-      : "Storyboard ready — 4 scenes generated. Click Generate Video to render.",
+      ? "خطة المشاهد جاهزة — راجع المعالجة ثم اضغط توليد الفيديو للبدء."
+      : "Scene plan ready — review the director treatment, then generate the video.",
     sceneText: isAr ? "مشهد" : "Scene",
     btnGenerate: isAr ? "توليد الفيديو" : "Generate Video",
     btnRegenerate: isAr ? "إعادة التوليد" : "Regenerate Hook",
@@ -392,10 +435,69 @@ export default function HookStudioPage() {
     setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const getDirectorFallbackTreatment = (prompt: string) =>
+    isArabicText(prompt)
+      ? "معالجة إخراجية قصيرة تربط المرجع البصري برسالة الإعلان، وتحوّل الفكرة إلى افتتاحية قوية، لحظة إثبات، ثم دعوة واضحة للفعل."
+      : "A concise director treatment that connects the visual reference to the campaign message, then moves from a strong opening to proof and a clear call to action.";
+
+  const getFallbackScenes = (prompt: string) =>
+    isArabicText(prompt)
+      ? [
+          { id: 1, title: "الافتتاحية", prompt: "لقطة قريبة للمرجع/الموديل مع إحساس بصري فاخر يثبت هوية الإعلان." },
+          { id: 2, title: "المشكلة", prompt: "إظهار لحظة احتياج أو فضول عند الجمهور قبل تقديم الحل." },
+          { id: 3, title: "الحل", prompt: "ظهور Saad Studio كأداة تحول الفكرة إلى إنتاج بصري جاهز." },
+          { id: 4, title: "الدعوة", prompt: "نهاية واضحة بشعار الموقع ودعوة تجربة مباشرة." },
+        ]
+      : [
+          { id: 1, title: "Opening", prompt: "Close visual reference shot that establishes a premium campaign identity." },
+          { id: 2, title: "Tension", prompt: "Show the audience need or curiosity before the solution appears." },
+          { id: 3, title: "Solution", prompt: "Reveal Saad Studio turning the idea into polished production." },
+          { id: 4, title: "CTA", prompt: "End with the site brand and a clear try-it-now action." },
+        ];
+
   const getCasualReply = (prompt: string) =>
     isArabicText(prompt)
       ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
       : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.";
+
+  const getAdvisoryReply = (prompt: string, attachmentCount: number) => {
+    const siteUrl = getMentionedUrl(prompt) || "saadstudio.app";
+    if (isArabicText(prompt)) {
+      const referenceLine =
+        attachmentCount > 0
+          ? "اعتمد الصورة المرفقة كموديل/مرجع بصري ثابت في الإعلان."
+          : "أضف صورة أو فيديو مرجعي حتى أثبت الهوية البصرية في الإعلان.";
+      return [
+        `اقتراحي لإعلان ${siteUrl}:`,
+        "",
+        "الفكرة الأقوى: إعلان قصير يبيّن أن المستخدم يدخل بفكرة بسيطة، ثم Saad Studio يحولها إلى فيديو/هوك جاهز خلال لحظات.",
+        referenceLine,
+        "",
+        "هوك مناسب:",
+        "“عندك فكرة؟ خلّي Saad Studio يحولها لإعلان جاهز قبل ما تضيع اللحظة.”",
+        "",
+        "السيناريو المقترح: لقطة افتتاحية قريبة للموديل/المرجع، بعدها ظهور واجهة الموقع، ثم نتائج فيديو سريعة، وفي النهاية دعوة واضحة: جرّب Saad Studio الآن.",
+        "",
+        "إذا تريد، اكتب: ولّد هذا الإعلان، وسأحوّله إلى هوك وستوريبورد قابل للتوليد.",
+      ].join("\n");
+    }
+
+    return [
+      `My suggestion for ${siteUrl}:`,
+      "",
+      "Use a short ad where the viewer starts with a simple idea, then Saad Studio turns it into a ready video hook in moments.",
+      attachmentCount > 0
+        ? "Use the attached image as the main visual/model reference."
+        : "Add an image or video reference so the ad can keep a clear visual identity.",
+      "",
+      "Hook:",
+      "“Got an idea? Let Saad Studio turn it into a ready ad before the moment is gone.”",
+      "",
+      "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a clear call to action: Try Saad Studio now.",
+      "",
+      "Type: generate this ad, and I will turn it into a hook and storyboard ready for video generation.",
+    ].join("\n");
+  };
 
   // Generation Handler
   const handleSendMessage = async () => {
@@ -418,6 +520,17 @@ export default function HookStudioPage() {
         id: Math.random().toString(36).substr(2, 9),
         sender: "agent",
         text: getCasualReply(userMessage.text),
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, agentMessage]);
+      return;
+    }
+
+    if (isAdvisoryHookStudioMessage(userMessage.text, Boolean(userMessage.attachments?.length))) {
+      const agentMessage: ChatMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        sender: "agent",
+        text: getAdvisoryReply(userMessage.text, userMessage.attachments?.length || 0),
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, agentMessage]);
@@ -451,6 +564,7 @@ export default function HookStudioPage() {
           aspectRatio: selectedRatio,
           quality: selectedQuality,
           generateAudio,
+          hookAngle: selectedHookAngle,
           refImages,
           refVideos,
           refAudios,
@@ -479,15 +593,17 @@ export default function HookStudioPage() {
             phrase: isAr
               ? `"${data.hookText || "ماذا لو أخبرتك أن المحتوى الفيروسي يصنع بالذكاء الاصطناعي؟"}"`
               : `"${data.hookText || "What if I told you viral hooks are generated by AI?"}"`,
-            angle: isAr ? "فجوة الفضول" : "Curiosity Gap",
-            genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+            angle: data.angle || (isAr ? "زاوية إخراجية" : "Director Angle"),
+            genre: data.genreLabel || (isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn),
             duration: selectedDuration,
-            scenes: [
-              { id: 1, url: "/figma-scene-1.png" },
-              { id: 2, url: "/figma-scene-2.png" },
-              { id: 3, url: "/figma-scene-3.png" },
-              { id: 4, url: "/figma-scene-4.png" },
-            ],
+            treatment: data.directorTreatment || getDirectorFallbackTreatment(userMessage.text),
+            scenes: Array.isArray(data.scenePrompts) && data.scenePrompts.length > 0
+              ? data.scenePrompts.slice(0, 4).map((scene: any, index: number) => ({
+                  id: index + 1,
+                  title: typeof scene?.title === "string" ? scene.title : `${t.sceneText} ${index + 1}`,
+                  prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
+                }))
+              : getFallbackScenes(userMessage.text),
             videoUrl: data.mediaUrl || "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
             modelRecommendation: data.recommendedModel || getRecommendedModelDescription(selectedGenre, userMessage.text),
           },
@@ -708,6 +824,12 @@ export default function HookStudioPage() {
                       </div>
                     )}
 
+                    {msg.generatedHook.treatment && (
+                      <div className="bg-[#080b10] border border-slate-800/70 rounded-2xl p-3.5 text-xs leading-relaxed text-slate-200 whitespace-pre-line">
+                        {msg.generatedHook.treatment}
+                      </div>
+                    )}
+
                     <p className="text-[10px] text-slate-400">
                       {t.scenesDesc}
                     </p>
@@ -719,19 +841,14 @@ export default function HookStudioPage() {
                           key={scene.id}
                           className="bg-[#06080c] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/40 transition-all shadow-md relative"
                         >
-                          <div 
-                            onClick={() => setPreviewMedia({ type: "image", url: scene.url, title: t.sceneText + " " + scene.id })}
-                            className="aspect-video w-full bg-slate-950 relative overflow-hidden cursor-zoom-in"
-                          >
-                            <img
-                              src={scene.url}
-                              alt={`${t.sceneText} ${scene.id}`}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                            />
+                          <div className="aspect-video w-full bg-slate-950/80 relative overflow-hidden p-3 flex items-center justify-center">
+                            <p className="text-[10px] leading-relaxed text-slate-300 line-clamp-5 text-center">
+                              {scene.prompt}
+                            </p>
                           </div>
                           <div className="p-2 text-center border-t border-slate-800/50">
                             <span className="text-[10px] font-bold text-slate-400">
-                              {t.sceneText} {scene.id}
+                              {scene.title || `${t.sceneText} ${scene.id}`}
                             </span>
                           </div>
                         </div>
@@ -1047,6 +1164,11 @@ export default function HookStudioPage() {
                 <option value="curiosity">{isAr ? "فجوة الفضول" : "Curiosity Gap"}</option>
                 <option value="shock">{isAr ? "هوك الصدمة" : "Shock Hook"}</option>
                 <option value="mystery">{isAr ? "الغموض البصري" : "Visual Mystery"}</option>
+                <option value="brand-reveal">{isAr ? "كشف العلامة" : "Brand Reveal"}</option>
+                <option value="emotional-drama">{isAr ? "دراما عاطفية" : "Emotional Drama"}</option>
+                <option value="heritage-pride">{isAr ? "فخر تراثي" : "Heritage Pride"}</option>
+                <option value="fear-tension">{isAr ? "توتر ورعب" : "Fear & Tension"}</option>
+                <option value="product-proof">{isAr ? "إثبات المنتج" : "Product Proof"}</option>
               </select>
             </div>
           </div>
