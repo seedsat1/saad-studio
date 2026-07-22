@@ -1,17 +1,18 @@
 # Saad Studio Project Context Update
 
-### Latest task: Unified Fullscreen Lightbox & File Downloader (2026-07-22)
+### Latest task: Integrated Box Prompt Attachments (2026-07-22)
 
 - Status:
-  Wired every interactive image, video, and audio element inside **Hook Studio** (`/hook-studio`) to open in a high-fidelity unified media preview modal (Lightbox):
-  1. **Clickable Media Assets**: Storyboard scene thumbnails, user-uploaded files, and gallery items are now wrapped with cursor zoom classes and custom onClick listeners.
-  2. **Consolidated Lightbox Modal**: Integrated a full-screen blurred-backdrop overlay that displays high-res images, play-to-preview videos, and custom waveforms for audio files.
-  3. **Universal File Downloader**: Enabled a client-side blob download trigger that pulls files dynamically and prompts saving locally.
+  Refactored prompt attachments inside **Hook Studio** (`/hook-studio`) to match user specs:
+  1. **Separated Preview Types**:
+     - **Images**: Rendered as interactive square previews with a close 'x' button inside the container (matching Image 2).
+     - **Videos / Audios / Files**: Rendered as rounded indigo pills (matching Image 1).
+  2. **Integrated Box Console Container**: Moved the entire attachments wrapper into the custom prompt input box so that files render inside the main borders of the prompt field rather than outside.
 - Affected Files:
   - [app/(dash)/(routes)/hook-studio/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/hook-studio/page.tsx)
 - Verification:
-  - Checked compile output and verified that build succeeded cleanly.
-  - Pushed commit `f26ac9d` to main repository.
+  - Built production distribution successfully without compiler syntax exceptions.
+  - Pushed commits `53d0d34` and layout adjustments to git.
 
 
 
