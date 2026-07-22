@@ -39,15 +39,26 @@ export async function POST(req: NextRequest) {
 
     // Deduct user credits for generation
     const cost = selectedModel.creditCost;
+    const isImageModel = selectedModel.durations[0] === 0;
+    const assetType = isImageModel ? "IMAGE" : "VIDEO";
+
     let newBalance = 0;
+    let generationId: string | null = null;
     try {
       const charge = await spendCredits({
         userId,
         credits: cost,
-        description: `Hook Studio generation using ${selectedModel.name} (${selectedGenre.nameAr})`,
+        prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] ${prompt}`,
+        assetType: assetType,
         modelUsed: selectedModel.id,
+        duration: isImageModel ? 0 : duration,
+        aspectRatio: aspectRatio,
+        quality: quality,
+        providerName: "WaveSpeed",
+        providerModel: selectedModel.apiRoute,
       });
       newBalance = charge.newBalance;
+      generationId = charge.generationId;
     } catch (err: any) {
       if (err instanceof InsufficientCreditsError) {
         return NextResponse.json(
@@ -134,20 +145,25 @@ Do not include any markdown code fence around the JSON, just return raw JSON.`;
       }
     }
 
-    // Create DB Generation record
-    const generation = await prismadb.generation.create({
-      data: {
-        userId,
-        prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] ${prompt}`,
-        modelUsed: selectedModel.name,
-        mediaUrl: resultUrl,
-        type: selectedModel.durations[0] === 0 ? "IMAGE" : "VIDEO",
-      },
-    });
+    // Update DB Generation record with final results
+    if (generationId) {
+      try {
+        await prismadb.generation.update({
+          where: { id: generationId },
+          data: {
+            mediaUrl: resultUrl || (taskId ? `task:${taskId}` : null),
+            outputUrl: resultUrl && /^https?:\/\//i.test(resultUrl) ? resultUrl : null,
+            status: resultUrl ? "completed" : "processing",
+          },
+        });
+      } catch (dbErr) {
+        console.error("Failed to update generation record:", dbErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      generationId: generation.id,
+      generationId: generationId,
       taskId,
       status,
       mediaUrl: resultUrl,
