@@ -443,23 +443,36 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
     (typeof payload.image === "string" ? payload.image : null) ||
     (typeof payload.first_frame_url === "string" ? payload.first_frame_url : null) ||
     (typeof payload.image_url === "string" ? payload.image_url : null);
-  if (imgSrc) out.image_url = imgSrc;
+  if (imgSrc) {
+    out.image = imgSrc;
+    out.image_url = imgSrc;
+  }
 
-  if (typeof payload.first_frame_url === "string") out.first_frame_url = payload.first_frame_url;
-  if (typeof payload.last_frame_url === "string") out.last_frame_url = payload.last_frame_url;
+  if (typeof payload.first_frame_url === "string") {
+    out.first_frame_url = payload.first_frame_url;
+    if (!out.image) out.image = payload.first_frame_url;
+  }
+  if (typeof payload.last_frame_url === "string") {
+    out.last_frame_url = payload.last_frame_url;
+  }
 
   const endImage =
     (typeof payload.end_image === "string" ? payload.end_image : null) ||
     (typeof payload.last_image === "string" ? payload.last_image : null) ||
     (typeof payload.last_frame_url === "string" ? payload.last_frame_url : null);
-  if (endImage) out.end_image = endImage;
+  if (endImage) {
+    out.end_image = endImage;
+    out.last_image = endImage;
+  }
 
   if (Array.isArray(payload.reference_image_urls)) out.reference_image_urls = payload.reference_image_urls;
   if (Array.isArray(payload.reference_video_urls)) out.reference_video_urls = payload.reference_video_urls;
   if (Array.isArray(payload.reference_audio_urls)) out.reference_audio_urls = payload.reference_audio_urls;
 
-  if (payload.sound !== undefined) out.sound = payload.sound;
-  if (payload.generate_audio !== undefined) out.generate_audio = payload.generate_audio;
+  out.enable_web_search = payload.enable_web_search !== undefined ? !!payload.enable_web_search : false;
+
+  const hasAudio = payload.sound === true || payload.generate_audio === true;
+  out.generate_audio = hasAudio;
 
   return out;
 }
@@ -1655,11 +1668,11 @@ export async function POST(req: Request) {
     // Canonical Route Normalization & Auto-routing between Text-to-Video and Image-to-Video
     if (modelRoute.includes("seedance")) {
       if (modelRoute.includes("mini")) {
-        modelRoute = "bytedance/seedance-v2/text-to-video-mini";
+        modelRoute = hasImage ? "bytedance/seedance-2.0-mini/image-to-video" : "bytedance/seedance-2.0-mini/text-to-video";
       } else if (modelRoute.includes("fast") || modelRoute.includes("turbo")) {
-        modelRoute = "bytedance/seedance-v2/text-to-video-fast";
+        modelRoute = hasImage ? "bytedance/seedance-2.0/image-to-video-turbo" : "bytedance/seedance-2.0/text-to-video-turbo";
       } else {
-        modelRoute = "bytedance/seedance-v2/text-to-video";
+        modelRoute = hasImage ? "bytedance/seedance-2.0/image-to-video" : "bytedance/seedance-2.0/text-to-video";
       }
     } else if (modelRoute.includes("kling")) {
       if (modelRoute.includes("v3-turbo") || modelRoute.includes("turbo")) {
@@ -1699,7 +1712,7 @@ export async function POST(req: Request) {
     
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
-      modelRoute.startsWith("bytedance/seedance-v2/") ||
+      modelRoute.startsWith("bytedance/seedance-2.0") ||
       modelRoute.includes("seedance") ||
       modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
       modelRoute.startsWith("kling/v3-turbo") ||
