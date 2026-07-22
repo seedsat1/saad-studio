@@ -7994,3 +7994,21 @@
   - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: Hook Studio reply language follows typed prompt (2026-07-22)
+
+- Status:
+  Corrected casual Hook Studio replies so they follow the language typed by the user, not the global page language toggle.
+- Behavior:
+  - If the user types an Arabic greeting such as `اهلا`, the assistant reply is Arabic even when the UI is set to English.
+  - If the user types an English greeting such as `hello`, the assistant reply is English even when the UI is set to Arabic.
+  - The server-side casual guard uses the same prompt-language check before returning `mode: "chat"`.
+  - UI labels still follow the selected Arabic/English page language.
+- Affected files/paths:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `app/api/hook-studio/generate/route.ts`
+- Verification:
+  - `git diff --check` passed with line-ending/global ignore warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.

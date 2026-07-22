@@ -113,6 +113,10 @@ function normalizeHookPrompt(value: string) {
     .replace(/\s+/g, " ");
 }
 
+function isArabicText(value: string) {
+  return /[\u0600-\u06ff]/.test(value);
+}
+
 function isCasualHookStudioPrompt(value: string, hasReferences: boolean) {
   const normalized = normalizeHookPrompt(value);
   if (!normalized) return false;
@@ -210,7 +214,7 @@ export async function POST(req: NextRequest) {
         success: true,
         mode: "chat",
         message:
-          /[\u0600-\u06ff]/.test(prompt)
+          isArabicText(prompt)
             ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
             : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.",
       });

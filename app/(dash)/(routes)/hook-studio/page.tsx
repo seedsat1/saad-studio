@@ -97,6 +97,8 @@ const normalizeHookPrompt = (value: string) =>
     .replace(/[!?.؟،,؛:]+/g, "")
     .replace(/\s+/g, " ");
 
+const isArabicText = (value: string) => /[\u0600-\u06ff]/.test(value);
+
 const isCasualHookStudioMessage = (value: string, hasAttachments: boolean) => {
   const normalized = normalizeHookPrompt(value);
   if (!normalized) return false;
@@ -390,8 +392,8 @@ export default function HookStudioPage() {
     setAttachedFiles((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const getCasualReply = () =>
-    isAr
+  const getCasualReply = (prompt: string) =>
+    isArabicText(prompt)
       ? "أهلاً بك. اكتب فكرة الفيديو أو المنتج أو نوع الهوك الذي تريده، وسأجهز لك هوك وستوريبورد مناسب."
       : "Hello. Send me the video idea, product, or hook direction you want, and I will prepare a focused hook and storyboard.";
 
@@ -415,7 +417,7 @@ export default function HookStudioPage() {
       const agentMessage: ChatMessage = {
         id: Math.random().toString(36).substr(2, 9),
         sender: "agent",
-        text: getCasualReply(),
+        text: getCasualReply(userMessage.text),
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, agentMessage]);
