@@ -436,18 +436,31 @@ function mapToWavespeedInput(payload: Record<string, unknown>, route?: string): 
   if (typeof payload.negative_prompt === "string") out.negative_prompt = payload.negative_prompt;
   if (typeof payload.cfg_scale === "number") out.cfg_scale = payload.cfg_scale;
 
+  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
+  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
+
   const imgSrc =
     (typeof payload.image === "string" ? payload.image : null) ||
     (typeof payload.first_frame_url === "string" ? payload.first_frame_url : null) ||
     (typeof payload.image_url === "string" ? payload.image_url : null);
+  if (imgSrc) out.image_url = imgSrc;
+
+  if (typeof payload.first_frame_url === "string") out.first_frame_url = payload.first_frame_url;
+  if (typeof payload.last_frame_url === "string") out.last_frame_url = payload.last_frame_url;
+
   const endImage =
     (typeof payload.end_image === "string" ? payload.end_image : null) ||
     (typeof payload.last_image === "string" ? payload.last_image : null) ||
     (typeof payload.last_frame_url === "string" ? payload.last_frame_url : null);
+  if (endImage) out.end_image = endImage;
 
-  if (typeof payload.aspect_ratio === "string") out.aspect_ratio = payload.aspect_ratio;
-  if (typeof payload.resolution === "string") out.resolution = payload.resolution;
-  if (imgSrc) out.image_url = imgSrc;
+  if (Array.isArray(payload.reference_image_urls)) out.reference_image_urls = payload.reference_image_urls;
+  if (Array.isArray(payload.reference_video_urls)) out.reference_video_urls = payload.reference_video_urls;
+  if (Array.isArray(payload.reference_audio_urls)) out.reference_audio_urls = payload.reference_audio_urls;
+
+  if (payload.sound !== undefined) out.sound = payload.sound;
+  if (payload.generate_audio !== undefined) out.generate_audio = payload.generate_audio;
+
   return out;
 }
 
@@ -1645,8 +1658,21 @@ export async function POST(req: Request) {
     }
 
     const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
-    const kieModel = isDirectGoogleVeo31ProRoute ? undefined : resolveKieVideoModel(modelRoute);
-    const wavespeedRoute = wavespeedFallbackMap[modelRoute];
+    
+    // WaveSpeed Models Checklist Bypass
+    const isWaveSpeedOnlyModel = 
+      modelRoute.startsWith("bytedance/seedance-v2/") ||
+      modelRoute === "kwaivgi/kling-v3.0-pro/text-to-video" ||
+      modelRoute === "kling/v3-turbo" ||
+      modelRoute === "kling/v2-5-turbo-text-to-video-pro" ||
+      modelRoute === "bytedance/seedream-v5.0-pro/edit" ||
+      modelRoute === "gpt-image-2-text-to-image";
+
+    const kieModel = (isDirectGoogleVeo31ProRoute || isWaveSpeedOnlyModel) ? undefined : resolveKieVideoModel(modelRoute);
+    let wavespeedRoute = wavespeedFallbackMap[modelRoute];
+    if (isWaveSpeedOnlyModel && !wavespeedRoute) {
+      wavespeedRoute = modelRoute;
+    }
 
     if (
       modelRoute.includes("kling") ||
@@ -1654,7 +1680,7 @@ export async function POST(req: Request) {
       kieModel?.includes("kling") ||
       kieModel?.includes("seedance")
     ) {
-      console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel }));
+      console.log("[api/video POST] resolved provider model", JSON.stringify({ modelRoute, kieModel, wavespeedRoute }));
     }
 
     if (!isDirectGoogleVeo31ProRoute && !kieModel && !wavespeedRoute) {
@@ -2187,13 +2213,47 @@ export async function POST(req: Request) {
         );
       }
       const wsInput = mapToWavespeedInput(payload, wavespeedRoute);
-      for (const key of ["image", "image_url", "end_image"] as const) {
+      
+      // Resolve single images/videos/audios
+      for (const key of ["image", "image_url", "end_image", "first_frame_url", "last_frame_url"] as const) {
         const mediaValue = wsInput[key];
         if (typeof mediaValue === "string" && mediaValue.trim()) {
           const resolvedUrl = await resolveProviderMediaUrl(mediaValue, { userId, assetType: getAssetTypeFromKey(key) });
           await verifyPublicMediaUrl(resolvedUrl, `wavespeed_${key}`);
           wsInput[key] = resolvedUrl;
         }
+      }
+
+      // Resolve reference lists (images, videos, audios)
+      if (Array.isArray(wsInput.reference_image_urls)) {
+        wsInput.reference_image_urls = await Promise.all(
+          wsInput.reference_image_urls.map(async (u) => {
+            if (typeof u !== "string" || !u.trim()) return "";
+            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "image" });
+            await verifyPublicMediaUrl(resolved, "wavespeed_ref_image");
+            return resolved;
+          })
+        ).then(items => items.filter(Boolean));
+      }
+      if (Array.isArray(wsInput.reference_video_urls)) {
+        wsInput.reference_video_urls = await Promise.all(
+          wsInput.reference_video_urls.map(async (u) => {
+            if (typeof u !== "string" || !u.trim()) return "";
+            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "video" });
+            await verifyPublicMediaUrl(resolved, "wavespeed_ref_video");
+            return resolved;
+          })
+        ).then(items => items.filter(Boolean));
+      }
+      if (Array.isArray(wsInput.reference_audio_urls)) {
+        wsInput.reference_audio_urls = await Promise.all(
+          wsInput.reference_audio_urls.map(async (u) => {
+            if (typeof u !== "string" || !u.trim()) return "";
+            const resolved = await resolveProviderMediaUrl(u, { userId, assetType: "audio" });
+            await verifyPublicMediaUrl(resolved, "wavespeed_ref_audio");
+            return resolved;
+          })
+        ).then(items => items.filter(Boolean));
       }
 
       console.log(`[Provider Payload Audit] ---------------------------------------------`);

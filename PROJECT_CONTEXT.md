@@ -1,6 +1,18 @@
 # Saad Studio Project Context Update
 
-### Latest task: Aligned Hook Studio Models Specs & Added Google Gemini Omni (2026-07-22)
+#### Latest task: Integrated WaveSpeed Routing for Hook Studio Models (2026-07-22)
+
+- Status:
+  Configured all 10 non-Google models in Hook Studio to be routed and called directly from **WaveSpeed API** (`https://api.wavespeed.ai/api/v3`) instead of KIE API:
+  1. **Bypassed KIE routing** in `app/api/video/route.ts` for Seedance 2.0 (all variants), Kling 3.0 (all variants), Kling 2.6, Seedream 5.0 Pro, and GPT Image 2 models.
+  2. **Extended mapToWavespeedInput** to correctly map and resolve all media parameters (e.g. `first_frame_url`, `last_frame_url`, `end_image`, and reference lists like `reference_image_urls`, `reference_video_urls`, `reference_audio_urls`).
+  3. **Added reference file resolver checks** in the WaveSpeed path, ensuring all lists of input references are validated and converted to public URLs before sending the payload.
+- Affected Files:
+  - [app/api/video/route.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/api/video/route.ts)
+- Verification:
+  - Built Next.js application cleanly (`✓ Compiled successfully`).
+
+### Previous task: Aligned Hook Studio Models Specs & Added Google Gemini Omni (2026-07-22)
 
 - Status:
   Aligned `HOOK_VIDEO_MODELS` inside `lib/hook-studio-config.ts` to name, apiRoute, aspectRatios, qualityModes, durations, and reference limits of the 12 models requested by the user, using real WaveSpeed and KIE specifications. Specifically:
