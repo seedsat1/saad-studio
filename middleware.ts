@@ -27,6 +27,8 @@ const isPublicRoute = createRouteMatcher([
   '/prompt(.*)',
   '/edit(.*)',
   '/cinema-studio(.*)',
+  '/cinema-flow(.*)',
+  '/hook-studio(.*)',
   '/cinematic-video(.*)',
   '/cinema-board(.*)',
   '/moodboard(.*)',

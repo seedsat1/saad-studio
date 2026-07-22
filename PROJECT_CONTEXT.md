@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Expose hook-studio and cinema-flow in production middleware (2026-07-22)
+
+- Status:
+  After production deployment `938b573` was visible as Ready in Vercel, unauthenticated checks still returned 404 for `/hook-studio` and `/cinema-flow`.
+- Cause:
+  - `middleware.ts` public route matcher included `/video` but did not include `/hook-studio` or `/cinema-flow`, so production middleware did not treat those pages like the existing public studio pages.
+- Behavior:
+  - Added `/hook-studio(.*)` and `/cinema-flow(.*)` to `isPublicRoute`.
+  - The pages should render publicly after the next deployment, while generation APIs still keep their own auth/credit checks.
+- Affected files/paths:
+  - `middleware.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Production check before this fix: `/video` returned 200, `/hook-studio` and `/cinema-flow` returned 404.
+- Remaining:
+  - Commit and push this middleware fix, wait for Vercel deployment, then re-check production URLs.
+
 #### Latest task: Production check for model binding changes on video/hook-studio/cinema-flow (2026-07-22)
 
 - Status:
