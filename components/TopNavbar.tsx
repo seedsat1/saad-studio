@@ -96,6 +96,7 @@ const getTranslation = (key: string, lang: "en" | "ar") => {
     "Transitions": "الانتقالات",
     "Storyboard": "القصة المصورة",
     "Storyboard Studio": "استوديو القصة المصورة",
+    "Hook Studio": "استوديو الهوكات",
     "Credit Balance": "رصيد النقاط",
     "My Profile": "ملفي الشخصي",
     "Settings": "الإعدادات",
@@ -186,6 +187,7 @@ const IMAGE_MODEL_GROUPS = [
 ];
 
 const VIDEO_FEATURES = [
+  { label: "Hook Studio",         href: "/hook-studio",     icon: Clapperboard, color: "text-pink-400",    description: "Create viral scripts, hooks, and AI short-form videos", badge: "NEW" },
   { label: "Agent Studio",        href: "/agent-studio",    icon: Bot,          color: "text-violet-400",  description: "AI agent orchestrator & custom skills workflow", badge: "NEW" },
   { label: "Cinema Flow",         href: "/cinema-flow",     icon: Bot,          color: "text-orange-400",  description: "AI Creative Agent workspace",          badge: "NEW" },
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
@@ -485,6 +487,7 @@ const STUDIO_LINKS = [
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
   { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
+  { label: "Hook Studio", href: "/hook-studio", icon: Clapperboard, color: "text-pink-400" },
 ];
 
 const ListItem = ({
