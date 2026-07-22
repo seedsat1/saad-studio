@@ -72,6 +72,9 @@ const HIDDEN_IMAGE_PAGE_MODEL_IDS = new Set([
   "seedream/5-lite-image-to-image",
   "seedream/5-pro-text-to-image",
   "seedream/5-pro-image-to-image",
+  "gpt-image-2-image-to-image",
+  "gpt-image/1.5-text-to-image",
+  "gpt-image/1.5-image-to-image",
   "z-image",
 ]);
 const HIDDEN_IMAGE_PAGE_MODEL_LABELS = new Set([
@@ -1267,7 +1270,7 @@ export default function ImageWorkspacePage() {
   const [faceIndex, setFaceIndex] = useState(0);
   const [enhanceFiles, setEnhanceFiles] = useState<File[]>([]);
   const [enhanceModelId, setEnhanceModelId] = useState(
-    ENHANCE_MODELS.find((m) => m.id === "gpt-image-2-image-to-image")?.id ?? ENHANCE_MODELS[0]?.id ?? "gpt-image-2-image-to-image",
+    ENHANCE_MODELS.find((m) => m.id === "google/nano-banana-edit")?.id ?? ENHANCE_MODELS[0]?.id ?? "google/nano-banana-edit",
   );
   const [activeGenerationCount, setActiveGenerationCount] = useState(0);
   const generating = activeGenerationCount > 0;

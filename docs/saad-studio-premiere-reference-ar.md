@@ -1944,7 +1944,6 @@
 
 ## نظافة أسماء موديلات OpenAI في صفحة الصورة (2026-07-22)
 
-- صفحة `/image` تعرض عائلة OpenAI/GPT ضمن مجموعة `OpenAI Images` بدل مجموعة مبهمة باسم `GPT Image`.
-- أسماء النسخ لا تستخدم اختصارات `T2I` و`I2I` في الواجهة الرئيسية. الأسماء المرئية المعتمدة هي:
-  `GPT Image 2`, `GPT Image 2 Edit`, `GPT Image 1.5`, و`GPT Image 1.5 Edit`.
-- هذا تغيير عرض فقط؛ معرفات التنفيذ مثل `gpt-image-2-text-to-image` و`gpt-image/1.5-image-to-image` تبقى كما هي حتى لا ينكسر التسعير أو routing.
+- صفحة `/image` يجب أن تعرض `GPT Image 2` فقط من عائلة GPT/OpenAI في قائمة الموديلات الرئيسية.
+- لا تعرض في `/image` أو اختصارات النافبار: `GPT Image 2 Edit`, `GPT Image 1.5`, أو `GPT Image 1.5 Edit`.
+- هذا تغيير عرض فقط؛ معرفات التنفيذ المخفية مثل `gpt-image-2-image-to-image` و`gpt-image/1.5-image-to-image` تبقى في backend/pricing حتى لا تنكسر السجلات القديمة أو مسارات داخلية أخرى.

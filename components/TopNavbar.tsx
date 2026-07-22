@@ -181,9 +181,6 @@ const IMAGE_MODEL_GROUPS = [
       { id: "z-image",                       label: "Z-Image",          badge: "" },
       { id: "grok-imagine/text-to-image",    label: "Grok Imagine",     badge: "" },
       { id: "gpt-image-2-text-to-image",     label: "GPT Image 2", badge: "NEW" },
-      { id: "gpt-image-2-image-to-image",    label: "GPT Image 2 Edit", badge: "NEW" },
-      { id: "gpt-image/1.5-text-to-image",   label: "GPT Image 1.5", badge: "" },
-      { id: "gpt-image/1.5-image-to-image",  label: "GPT Image 1.5 Edit", badge: "" },
     ],
   },
 ];

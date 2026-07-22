@@ -7941,17 +7941,18 @@
 ## Latest task: Clean OpenAI image model labels on `/image` (2026-07-22)
 
 - Status:
-  Cleaned the OpenAI/GPT image model picker labels after `/image` showed confusing entries such as `GPT Image 1.5 T2I/I2I`.
+  Cleaned and then reduced the OpenAI/GPT image model picker after `/image` showed confusing entries such as `GPT Image 1.5 T2I/I2I`.
 - Behavior:
-  - The image model picker now groups these models under `OpenAI Images`.
-  - Visible labels are now user-facing names: `GPT Image 2`, `GPT Image 2 Edit`, `GPT Image 1.5`, and `GPT Image 1.5 Edit`.
+  - The image model picker now shows only `GPT Image 2` from the GPT/OpenAI image family.
+  - Hidden from `/image`: `GPT Image 2 Edit`, `GPT Image 1.5`, and `GPT Image 1.5 Edit`.
   - The `/image` create-panel quick “New from Saad Studio” pills show only the text-to-image GPT Image 2 option, not the edit route.
-  - Navbar image model shortcuts now include the same cleaned OpenAI image labels.
-  - Routing/model IDs were not changed.
+  - Navbar image model shortcuts now include only `GPT Image 2` from this GPT/OpenAI set.
+  - Routing/model IDs were not deleted from backend registries, so old records/pricing can continue resolving.
+  - Enhance fallback now uses the first visible image-reference model instead of the hidden GPT Image 2 Edit route.
 - Affected files/paths:
-  - `lib/image-models.ts`
   - `app/(dash)/(routes)/image/page.tsx`
   - `components/TopNavbar.tsx`
+  - `lib/image-models.ts`
 - Verification:
   - `git diff --check` passed with line-ending/global ignore warnings only.
   - `npx.cmd tsc --noEmit --pretty false` still reports only the existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
