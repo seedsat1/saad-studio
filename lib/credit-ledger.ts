@@ -1066,8 +1066,18 @@ function normalizeCombinedText(input: GenerationPrecheckInput): string {
 }
 
 export function keywordBlocksPrompt(text: string): boolean {
-  let p = (text || "").toLowerCase();
+  let p = (text || "").toLowerCase().trim();
   if (!p) return false;
+
+  // Bypass if the prompt is just a reference tag (e.g. "@image1")
+  if (/^@image[1-9]$/i.test(p)) {
+    return false;
+  }
+
+  // Strip any base64 data URLs to prevent random false positives from base64 characters matching keywords
+  p = p.replace(/data:image\/[^;]+;base64,[^\s]+/g, "");
+  p = p.replace(/base64,[^\s]+/g, "");
+
   p = p.replace(/\bnude[-\s]?(berry|beige|pink|brown|peach|rose|mauve|lipstick|makeup|shade|color|tone|palette)\b/gi, "$1");
   p = p.replace(/\b(lipstick|makeup|shade|color|tone|palette)[-\s]?nude\b/gi, "$1");
   const patterns: RegExp[] = [
@@ -1104,6 +1114,7 @@ export async function precheckGenerationPolicy(input: GenerationPrecheckInput): 
   if (!text) return { allowed: true };
 
   if (keywordBlocksPrompt(text)) {
+    console.warn("[safety] keyword check failed for text:", JSON.stringify(text));
     return {
       allowed: false,
       message: "Request blocked by safety policy.",

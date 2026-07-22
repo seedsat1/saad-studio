@@ -1806,6 +1806,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No credit configuration for this model" }, { status: 400 });
     }
 
+    console.log("[api/video POST] prechecking safety policy for:", JSON.stringify({
+      prompt: typeof payload.prompt === "string" ? payload.prompt.slice(0, 1000) : "",
+      negativePrompt: typeof (payload as any).negative_prompt === "string" ? String((payload as any).negative_prompt) : null,
+    }));
+
     const precheck = await precheckGenerationPolicy({
       prompt: typeof payload.prompt === "string" ? payload.prompt : "",
       negativePrompt: typeof (payload as any).negative_prompt === "string" ? String((payload as any).negative_prompt) : null,
