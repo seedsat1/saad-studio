@@ -3952,11 +3952,19 @@
 
     function readPodcastTimelineClip(track, clip, kind, trackIndex, clipIndex) {
         logDebug("  readPodcastTimelineClip entering for track " + trackIndex + ", clip " + clipIndex);
-        var projectItem = clip && clip.projectItem;
+        var originalProjectItem = clip && clip.projectItem;
+        var projectItem = originalProjectItem;
         logDebug("  projectItem: " + (projectItem ? "defined" : "null"));
         var sourcePath = readProjectItemMediaPath(projectItem);
         logDebug("  sourcePath: " + sourcePath);
         var sourcePathResolutionMethod = sourcePath ? "projectItem.getMediaPath" : "unresolved";
+
+        var resolved = getResolvedClipInfo(clip);
+        if (resolved) {
+            projectItem = resolved.projectItem;
+            sourcePath = resolved.sourcePath;
+            sourcePathResolutionMethod = "resolved.nested.projectItem.getMediaPath";
+        }
         var timelineStartSec = readTimeSeconds(clip && clip.start);
         var timelineEndSec = readTimeSeconds(clip && clip.end);
         logDebug("  timelineStartSec: " + timelineStartSec + ", timelineEndSec: " + timelineEndSec);
@@ -4054,8 +4062,8 @@
             hasEmbeddedAudio: hasEmbeddedAudio,
             isMulticamClip: isMulticamClip,
             clipId: trackIndex + ":" + clipIndex,
-            projectItemId: projectItem ? String(projectItem.nodeId || projectItem.id || null) : null,
-            mediaType: projectItem ? String(projectItem.type || null) : null,
+            projectItemId: originalProjectItem ? String(originalProjectItem.nodeId || originalProjectItem.id || null) : null,
+            mediaType: originalProjectItem ? String(originalProjectItem.type || null) : null,
             isMuted: track.isMuted || false,
             isEnabled: clip.isEnabled || true
         };
