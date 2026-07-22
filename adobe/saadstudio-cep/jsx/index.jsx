@@ -79,6 +79,74 @@
         });
     };
 
+    function findSequenceFromProjectItem(projectItem) {
+        if (!projectItem || !app.project || !app.project.sequences) return null;
+        var numSeqs = app.project.sequences.numSequences;
+        for (var s = 0; s < numSeqs; s++) {
+            var seq = app.project.sequences[s];
+            if (seq && seq.projectItem === projectItem) {
+                return seq;
+            }
+        }
+        return null;
+    }
+
+    function getResolvedClipInfo(clip) {
+        if (!clip) return null;
+        var projectItem = clip.projectItem;
+        if (!projectItem) return null;
+
+        var mediaPath = null;
+        try {
+            mediaPath = projectItem.getMediaPath ? projectItem.getMediaPath() : null;
+        } catch (eMediaPath) { mediaPath = null; }
+
+        if (mediaPath) {
+            return {
+                clip: clip,
+                projectItem: projectItem,
+                sourcePath: mediaPath
+            };
+        }
+
+        var nestedSeq = findSequenceFromProjectItem(projectItem);
+        if (nestedSeq) {
+            // First, try video tracks
+            if (nestedSeq.videoTracks) {
+                var tracks = nestedSeq.videoTracks;
+                for (var t = 0; t < tracks.numTracks; t++) {
+                    var innerTrack = tracks[t];
+                    var innerClips = innerTrack && innerTrack.clips;
+                    if (innerClips && innerClips.numItems > 0) {
+                        for (var c = 0; c < innerClips.numItems; c++) {
+                            var resolved = getResolvedClipInfo(innerClips[c]);
+                            if (resolved && resolved.sourcePath) {
+                                return resolved;
+                            }
+                        }
+                    }
+                }
+            }
+            // Next, try audio tracks
+            if (nestedSeq.audioTracks) {
+                var tracks = nestedSeq.audioTracks;
+                for (var t = 0; t < tracks.numTracks; t++) {
+                    var innerTrack = tracks[t];
+                    var innerClips = innerTrack && innerTrack.clips;
+                    if (innerClips && innerClips.numItems > 0) {
+                        for (var c = 0; c < innerClips.numItems; c++) {
+                            var resolved = getResolvedClipInfo(innerClips[c]);
+                            if (resolved && resolved.sourcePath) {
+                                return resolved;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     function getActiveOrFirstSequence() {
         if (!app.project) return null;
         var seq = null;
@@ -1892,6 +1960,10 @@
         }
 
         var projectItem = clip.projectItem;
+        var resolved = getResolvedClipInfo(clip);
+        if (resolved) {
+            projectItem = resolved.projectItem;
+        }
         if (!projectItem) {
             publicResult.blockers.push("PROJECT_ITEM_MISSING");
             return { publicResult: publicResult, subclip: null };
@@ -4037,6 +4109,18 @@
             return 0;
         }
 
+        // Recursively look inside Nested Sequences to shift clips inside them
+        for (var c = 0; c < clips.numItems; c++) {
+            var clip = clips[c];
+            var nestedSeq = findSequenceFromProjectItem(clip.projectItem);
+            if (nestedSeq) {
+                var innerTracks = (kind === "video") ? nestedSeq.videoTracks : nestedSeq.audioTracks;
+                if (innerTracks && trackIndex < innerTracks.numTracks) {
+                    return moveTrackClipsByOffset(innerTracks, kind, trackIndex, moveSec, result, nestedSeq, shiftedMap);
+                }
+            }
+        }
+
         var movedCount = 0;
         var numItems = clips.numItems;
 
@@ -4200,6 +4284,10 @@
             reason: null
         };
         var projectItem = clip && clip.projectItem;
+        var resolved = getResolvedClipInfo(clip);
+        if (resolved) {
+            projectItem = resolved.projectItem;
+        }
         if (projectItem) {
             try { info.projectItemName = projectItem.name ? String(projectItem.name) : null; } catch (eName) {}
         }
@@ -4219,10 +4307,12 @@
                 canChangePath = !!projectItem.canChangeMediaPath;
             }
         } catch (eCanChange) { canChangePath = false; }
-        var sourcePath = null;
-        try {
-            sourcePath = projectItem.getMediaPath ? projectItem.getMediaPath() : null;
-        } catch (ePath) { sourcePath = null; }
+        var sourcePath = resolved ? resolved.sourcePath : null;
+        if (!sourcePath) {
+            try {
+                sourcePath = projectItem.getMediaPath ? projectItem.getMediaPath() : null;
+            } catch (ePath) { sourcePath = null; }
+        }
         if (!sourcePath) {
             info.sourceKind = canChangePath ? "unknown" : "nested-sequence";
             info.reason = canChangePath ? "ProjectItem returned no media path." : "ProjectItem has no changeable media path.";
