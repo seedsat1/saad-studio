@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add Nested Sequence (Nest) Support for Synchronize, Multi-Cam, and One-Click Edit (2026-07-22)
+
+- Status:
+  Fully implemented recursive nested sequence support in the ExtendScript/JSX layer for Premiere Pro:
+  1. Added `findSequenceFromProjectItem(projectItem)` to retrieve the Premiere `Sequence` object corresponding to a nested sequence track item.
+  2. Added recursive `getResolvedClipInfo(clip)` to traverse nested sequences recursively to resolve the leaf footage clip, its real media path, and original `projectItem`.
+  3. Refactored `readAudioSourceInfo` to use `getResolvedClipInfo` so that mapped audio tracks inside Nests are correctly inspected without triggering `AUDIO_SOURCE_UNAVAILABLE` blockers.
+  4. Injected nested clip resolution inside `prepareVisualOnlyCameraDecisionSegment` to allow creation of subclips for camera decision cutting.
+  5. Refactored `moveTrackClipsByOffset` to recursively shift clips inside the nested sequence at the corresponding track indexes, ensuring precise internal synchronization inside Nests without altering parent sequence structure.
+- Affected Files:
+  - [adobe/saadstudio-cep/jsx/index.jsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/adobe/saadstudio-cep/jsx/index.jsx)
+- Verification:
+  - Built Next.js application cleanly (`✓ Compiled successfully`).
+  - Pushed commit `dcf201f` to main repository (`saad-studio`).
+
 #### Latest task: Hook Studio director prompt reference binding (2026-07-22)
 
 - Status:
