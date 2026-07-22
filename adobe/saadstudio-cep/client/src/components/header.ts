@@ -96,7 +96,7 @@ export function Header(): HTMLElement {
         null,
         el("span.app-header__title", null, "Saad Studio"),
       ),
-      el("span.app-header__version", null, "v2.0"),
+      el("span.app-header__version", null, "v2.1"),
     ),
     el("div.app-header__right", null, langBtn, credits, avatarBtn),
   );
