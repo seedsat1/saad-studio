@@ -7918,3 +7918,22 @@
   - `npx.cmd tsc --noEmit --pretty false` reports no errors from the Seedance base changes. The only reported errors are existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Production deployment was not performed. The production route availability notes from the Mini task still apply until a deploy updates `saadstudio.app`.
+
+## Latest task: WaveSpeed video polling completion fix and hydration guard (2026-07-22)
+
+- Status:
+  Fixed a production issue where WaveSpeed video jobs could complete on WaveSpeed but stay `running` on `/video`.
+- Behavior:
+  - `/api/video` now polls WaveSpeed through the documented result endpoint `/api/v3/predictions/{id}/result` first, then falls back to `/api/v3/predictions/{id}` only when needed.
+  - Completed WaveSpeed outputs are extracted from `outputs`, `result`, `response`, or nested URL fields and synced back to the generation record.
+  - No safety policy logic or model payload mapping was changed.
+  - Added hydration guards around signed-in navbar account text and added `notranslate`/Google notranslate metadata to reduce React hydration text mismatch errors caused by browser translation/session text changes.
+- Affected files/paths:
+  - `app/api/video/route.ts`
+  - `app/layout.tsx`
+  - `components/TopNavbar.tsx`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` reports no errors from this task. The only reported errors are existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+  - Existing unrelated TypeScript error remains in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221 (`ease` typed as string).

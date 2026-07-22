@@ -3230,35 +3230,52 @@ export async function GET(req: Request) {
       if (!wsKey) {
         return NextResponse.json({ error: "WaveSpeed provider is not configured.", code: "wavespeed_key_missing" }, { status: 503 });
       }
-      const wsStatusRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}`, {
-        headers: { Authorization: `Bearer ${wsKey}` },
+      const headers = { Authorization: `Bearer ${wsKey}` };
+      let wsData: Record<string, unknown> = {};
+      let wsStatus = "processing";
+      let wsOutputs: string[] = [];
+      let wsError: string | null = null;
+
+      const wsResultRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
+        headers,
         cache: "no-store",
       });
-      let wsJson: Record<string, unknown> | null = null;
-      try { wsJson = await wsStatusRes.json(); } catch { /* ignore */ }
-      if (!wsStatusRes.ok || !wsJson) {
-        return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
+      let wsResultJson: Record<string, unknown> | null = null;
+      try { wsResultJson = await wsResultRes.json(); } catch { /* ignore */ }
+      if (wsResultRes.ok && wsResultJson) {
+        wsData = (wsResultJson.data as Record<string, unknown>) ?? wsResultJson;
+        wsStatus = normalizeTaskState(String(wsData.status ?? wsResultJson.status ?? ""));
+        wsOutputs = extractOutputs(wsData.outputs ?? wsData.result ?? wsData.response ?? wsData);
+        wsError = typeof wsData.error === "string" ? wsData.error : null;
       }
-      let wsData = (wsJson.data as Record<string, unknown>) ?? wsJson;
-      const rawStatus = String(wsData.status || "");
-      const wsStatus = normalizeTaskState(rawStatus);
-      let wsOutputs = Array.isArray(wsData.outputs)
-        ? (wsData.outputs as unknown[]).filter((v): v is string => typeof v === "string")
-        : [];
 
-      if (wsStatus === "completed" && wsOutputs.length === 0) {
-        const wsResultRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}/result`, {
-          headers: { Authorization: `Bearer ${wsKey}` },
+      if (!wsResultRes.ok || (wsStatus !== "completed" && wsOutputs.length === 0)) {
+        const wsStatusRes = await fetch(`${WAVESPEED_BASE}/predictions/${predictionId}`, {
+          headers,
           cache: "no-store",
         });
-        let wsResultJson: Record<string, unknown> | null = null;
-        try { wsResultJson = await wsResultRes.json(); } catch { /* ignore */ }
-        if (wsResultRes.ok && wsResultJson) {
-          wsData = (wsResultJson.data as Record<string, unknown>) ?? wsResultJson;
-          wsOutputs = extractOutputs(wsData.outputs ?? wsData.result ?? wsData.response);
+        let wsJson: Record<string, unknown> | null = null;
+        try { wsJson = await wsStatusRes.json(); } catch { /* ignore */ }
+        if (wsStatusRes.ok && wsJson) {
+          const statusData = (wsJson.data as Record<string, unknown>) ?? wsJson;
+          const statusOutputs = extractOutputs(statusData.outputs ?? statusData.result ?? statusData.response ?? statusData);
+          wsData = { ...statusData, ...wsData };
+          wsStatus = normalizeTaskState(String(wsData.status ?? statusData.status ?? ""));
+          wsOutputs = wsOutputs.length ? wsOutputs : statusOutputs;
+          wsError =
+            (typeof wsData.error === "string" ? wsData.error : null) ??
+            (typeof statusData.error === "string" ? statusData.error : null);
+        } else if (!wsResultRes.ok) {
+          return NextResponse.json({ taskId, status: "processing", outputs: [], error: null });
         }
       }
-      const wsError = typeof wsData.error === "string" ? wsData.error : null;
+
+      if (wsStatus === "completed" && wsOutputs.length === 0) {
+        wsStatus = "processing";
+      }
+
+      const wsErrorFromData = typeof wsData.error === "string" ? wsData.error : null;
+      wsError = wsError ?? wsErrorFromData;
 
       // DB sync for completion / refund on failure
       try {

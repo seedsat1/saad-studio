@@ -803,19 +803,22 @@ const HoverNavItem = ({
 };
 
 // ─── AUTH NAV BUTTONS ─────────────────────────────────────────────────────────
-const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => {
+const AuthNavButtons = ({ creditBalance, hydrated }: { creditBalance: number | null; hydrated: boolean }) => {
   const { isSignedIn } = useAuth();
   const { lang } = useLanguage();
   const { onOpen } = useAuthModal();
+  const showAccount = hydrated && isSignedIn;
+  const showGuestButtons = hydrated && !isSignedIn;
+
   return (
     <div className="flex items-center gap-2">
       <LanguageSwitcher />
       <PricingButton />
-      {isSignedIn ? (
+      {showAccount ? (
         <div className="hidden 2xl:block">
           <UserProfileDropdown creditBalance={creditBalance} />
         </div>
-      ) : (
+      ) : showGuestButtons ? (
         <div className="hidden 2xl:flex items-center gap-2">
           <button
             onClick={() => onOpen("login")}
@@ -834,7 +837,7 @@ const AuthNavButtons = ({ creditBalance }: { creditBalance: number | null }) => 
             {getTranslation("Sign Up Free", lang)}
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
@@ -846,6 +849,7 @@ const TopNavbar = () => {
   const { signOut } = useClerk();
   const { onOpen } = useAuthModal();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileSection, setMobileSection] = useState<string | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
@@ -855,6 +859,12 @@ const TopNavbar = () => {
   const mobileEmail = user?.emailAddresses[0]?.emailAddress ?? "";
   const mobileInitials = mobileName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const mobileGradient = PRESET_AVATARS.find((p) => p.id === mobilePreset)?.gradient ?? "from-violet-600 to-indigo-600";
+  const showAccount = hydrated && isSignedIn;
+  const showGuestButtons = hydrated && !isSignedIn;
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -1154,7 +1164,7 @@ const TopNavbar = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <AuthNavButtons creditBalance={creditBalance} />
+            <AuthNavButtons creditBalance={creditBalance} hydrated={hydrated} />
             <button
               className="2xl:hidden flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -1186,7 +1196,7 @@ const TopNavbar = () => {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            {isSignedIn ? (
+            {showAccount ? (
               <div className="mx-4 mt-4 mb-2 rounded-xl bg-white/5 p-3.5 ring-1 ring-white/10">
                 <div className="flex items-center gap-3">
                   {mobilePhoto ? (
@@ -1228,7 +1238,7 @@ const TopNavbar = () => {
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : showGuestButtons ? (
               <div className="mx-4 mt-4 mb-2 p-1 flex flex-col gap-2">
                 <button
                   onClick={() => {
@@ -1249,7 +1259,7 @@ const TopNavbar = () => {
                   Sign Up Free
                 </button>
               </div>
-            )}
+            ) : null}
             {/* Scrollable nav area */}
             <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
 
@@ -1511,7 +1521,7 @@ const TopNavbar = () => {
               <Link href="/pricing" className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:from-violet-500 hover:to-indigo-500 transition-all">
                 <Zap className="h-4 w-4" /> {getTranslation("Upgrade to Pro", lang)}
               </Link>
-              {isSignedIn && (
+              {showAccount && (
                 <>
                   <Link href="/settings" className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-white transition-colors">
                     <Settings className="h-4 w-4" /> {getTranslation("Settings", lang)}

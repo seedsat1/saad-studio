@@ -104,7 +104,7 @@ export default function RootLayout({
       signUpForceRedirectUrl="/dash"
       afterSignOutUrl="/"
     >
-      <html lang="en" dir="ltr" suppressHydrationWarning>
+      <html lang="en" dir="ltr" translate="no" className="notranslate" suppressHydrationWarning>
         <head>
           <Script
             id="saad-structured-data"
@@ -112,6 +112,7 @@ export default function RootLayout({
             strategy="beforeInteractive"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
           />
+          <meta name="google" content="notranslate" />
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         </head>
