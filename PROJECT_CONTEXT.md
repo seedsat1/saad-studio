@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Strict Subscription & Credit Guard for Hook Studio Agent Chat (2026-07-24)
+
+- Status:
+  Enforced a strict backend and frontend subscription/credit guard for Hook Studio Agent chat and storyboard generation:
+  1. **Backend Credit Check (`app/api/hook-studio/generate/route.ts`)**:
+     - Evaluates `ensureUserRow(userId)` at the top of `POST`.
+     - If `dbUser.creditBalance <= 0` or user has no active credits/subscription, blocks chat and storyboard requests immediately with HTTP 402 ("يرجى الاشتراك في إحدى باقات Saad Studio أو شحن رصيد الكريديت لبدء استخدام واستشارة وكيل الهوك ستوديو.").
+  2. **Frontend Chat Feed (`app/(dash)/(routes)/hook-studio/page.tsx`)**:
+     - Catches 402 response and renders a clear prompt requiring subscription to converse with the agent.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed to GitHub `main` branch.
+
 #### Latest task: Interactive Local File Picker & Uploads Grid in Reference Studio Modal (2026-07-24)
 
 - Status:
