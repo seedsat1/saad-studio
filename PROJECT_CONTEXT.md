@@ -11,9 +11,12 @@
      - `app/(dash)/(routes)/image/page.tsx` (`/image`): Added action tiles to parameters sidebar and modal at root. Bound attached files and tags to prompt.
      - `app/(dash)/(routes)/video/page.tsx` (`/video`): Added action tiles to video tools sidebar and modal at root. Bound attached files to reference images array.
      - `app/(dash)/(routes)/cinema-flow/page.tsx` (`/cinema-flow`): Added action tiles above Director Agent prompt input bar and modal at root. Bound attached files to active media references.
-  3. **Verification**:
+  3. **Style Badge Cleanup & Null Defaults**:
+     - Set initial `selectedStyle` state to `null` by default across all pages (`/image`, `/video`, `/cinema-flow`, `/hook-studio`).
+     - Added an explicit clear `(x)` button on style badges so `🎨 #photo` does not automatically persist unless explicitly chosen by the user.
+  4. **Verification**:
      - `npx tsc --noEmit` passed with 0 errors across the entire codebase.
-     - Committed and pushed changes to GitHub `main` branch (`edfa5c7`).
+     - Committed and pushed changes to GitHub `main` branch (`3416762`).
 
 #### Latest task: Unified Reference Studio Dialog & Sidebar Clean-up (2026-07-23)
 

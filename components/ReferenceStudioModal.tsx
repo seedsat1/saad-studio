@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Sparkles,
   User,
@@ -13,6 +13,7 @@ import {
   Check,
   Search,
   Pin,
+  Plus,
   X,
   History as HistoryIcon,
   Image as ImageIcon,
@@ -52,6 +53,14 @@ export interface ReferenceStudioModalProps {
   isAr?: boolean;
 }
 
+export interface UploadedItem {
+  id: string;
+  url: string;
+  name: string;
+  type: "image" | "video";
+  createdAt: number;
+}
+
 export function ReferenceStudioModal({
   isOpen,
   onClose,
@@ -76,7 +85,51 @@ export function ReferenceStudioModal({
 }: ReferenceStudioModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
+  const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("saad_studio_user_uploads");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setUploadedItems(parsed);
+      }
+    } catch {}
+  }, []);
+
+  const saveUploadedItems = (items: UploadedItem[]) => {
+    setUploadedItems(items);
+    try {
+      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
+    } catch {}
+  };
+
+  const handleFilesSelected = (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+
+    const newItems: UploadedItem[] = [];
+    Array.from(files).forEach((file) => {
+      const url = URL.createObjectURL(file);
+      const isVideo = file.type.startsWith("video/");
+      newItems.push({
+        id: `upload-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        url,
+        name: file.name,
+        type: isVideo ? "video" : "image",
+        createdAt: Date.now(),
+      });
+    });
+
+    const updated = [...newItems, ...uploadedItems];
+    saveUploadedItems(updated);
+
+    if (newItems[0] && onAttachFile) {
+      onAttachFile(newItems[0]);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -788,8 +841,94 @@ export function ReferenceStudioModal({
               </div>
             )}
 
-            {/* Fallback / Uploads / History / Stock Tabs */}
-            {["history", "uploads", "stock", "color"].includes(activeTab) && (
+            {/* Uploads Tab */}
+            {activeTab === "uploads" && (
+              <div className="space-y-4">
+                {/* Header matching Magnific UI screenshot */}
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+                  <span>{new Date().toLocaleString("en-US", { month: "short", year: "numeric" }).toUpperCase()}</span>
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    {uploadedItems.length} {isAr ? "ملف مرفوع" : "item(s)"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                  {/* Dashed Square "+ Upload" Card matching screenshot */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-[4/3] rounded-2xl border-2 border-dashed border-slate-700/80 hover:border-sky-500/80 bg-[#121520] hover:bg-[#191d2c] flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-slate-800 group-hover:bg-sky-500/20 text-slate-300 group-hover:text-sky-400 flex items-center justify-center transition-colors">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-300 group-hover:text-white">
+                      {isAr ? "رفع" : "Upload"}
+                    </span>
+                  </div>
+
+                  {/* Uploaded User Media Cards */}
+                  {uploadedItems.map((item) => {
+                    const isSelected = selectedUploadId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedUploadId(item.id);
+                          if (onAttachFile) {
+                            onAttachFile({
+                              id: item.id,
+                              url: item.url,
+                              name: item.name,
+                              type: item.type,
+                            });
+                          }
+                        }}
+                        className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                          isSelected
+                            ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-500/10"
+                            : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                        }`}
+                      >
+                        <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                          {item.type === "video" ? (
+                            <video src={item.url} className="w-full h-full object-cover" muted />
+                          ) : (
+                            <img src={item.url} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          )}
+
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-sky-500 text-white rounded-full p-1 shadow z-10">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const filtered = uploadedItems.filter((i) => i.id !== item.id);
+                              saveUploadedItems(filtered);
+                            }}
+                            className="absolute top-2 left-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                            title={isAr ? "حذف الملف" : "Delete file"}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="p-2">
+                          <div className="text-[11px] font-semibold text-slate-200 truncate">
+                            {item.name}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Fallback for History / Stock / Color Tabs */}
+            {["history", "stock", "color"].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center h-64 text-center p-6 bg-[#0c0f18] rounded-3xl border border-dashed border-slate-800">
                 <div className="w-14 h-14 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-3">
                   <UploadCloud className="w-7 h-7" />
@@ -822,20 +961,24 @@ export function ReferenceStudioModal({
             <input
               type="file"
               ref={fileInputRef}
+              multiple
               accept="image/*,video/*"
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file && onAttachFile) {
-                  const url = URL.createObjectURL(file);
-                  onAttachFile({
-                    id: `uploaded-${Date.now()}`,
-                    url,
-                    name: file.name,
-                    type: file.type.startsWith("video/") ? "video" : "image",
-                  });
-                  onClose();
-                }
+                handleFilesSelected(e.target.files);
+                e.target.value = "";
+              }}
+            />
+
+            <input
+              type="file"
+              ref={cameraInputRef}
+              accept="image/*"
+              capture="user"
+              className="hidden"
+              onChange={(e) => {
+                handleFilesSelected(e.target.files);
+                e.target.value = "";
               }}
             />
 
@@ -867,8 +1010,17 @@ export function ReferenceStudioModal({
 
             <button
               type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Camera className="w-4 h-4 text-slate-400" />
+              <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
-              className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+              className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
             >
               {isAr ? "إغلاق الاستوديو" : "Close Studio"}
             </button>
