@@ -600,6 +600,102 @@ export const HOOK_STYLES: HookStylePreset[] = [
     imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
     category: "illustration",
     systemPromptAddon: "Hand drawn pencil sketch, detailed crosshatching, graphite paper texture, monochrome pencil art."
+  },
+  {
+    id: "waxcrayon",
+    nameAr: "رسم شمع ألوان",
+    nameEn: "#waxcrayon",
+    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Crayon artwork, thick hand-drawn wax textures, childish nostalgic drawing feel, colorful crayon strokes."
+  },
+  {
+    id: "dotted",
+    nameAr: "تنقيط فني هافتون",
+    nameEn: "#dotted",
+    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Dotted pop art shading, vintage halftone pattern dots, stylized retro printing look."
+  },
+  {
+    id: "risograph",
+    nameAr: "طباعة ريزوغراف دافئة",
+    nameEn: "#risograph",
+    imageUrl: "https://images.unsplash.com/photo-1509281373149-e957c6296406?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Risograph print style, grainy duotone textures, overlapping colors, retro graphic print illustration."
+  },
+  {
+    id: "traditional-japan",
+    nameAr: "فن ياباني تقليدي",
+    nameEn: "#traditional-japan",
+    imageUrl: "https://images.unsplash.com/photo-1542044896530-05d85be9b11a?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Traditional Japanese Ukiyo-e woodblock print aesthetic, vintage paper aging, elegant waves and lines."
+  },
+  {
+    id: "cartoonfun",
+    nameAr: "رسوم كرتون مرحة",
+    nameEn: "#cartoonfun",
+    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Fun cute cartoon character drawing, bold black outlines, simple flat color fill, modern web illustration."
+  },
+  {
+    id: "retrocomic",
+    nameAr: "قصص مصورة عتيقة",
+    nameEn: "#retrocomic",
+    imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Vintage 1960s comic book aesthetic, retro speech bubbles background layout, pop-art style ink dots."
+  },
+  {
+    id: "linework",
+    nameAr: "رسم خطوط نظيف",
+    nameEn: "#linework",
+    imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Clean black line art on off-white background, minimalist ink pen drawings, aesthetic contours."
+  },
+  {
+    id: "grainy-flat",
+    nameAr: "مسطح ذو نسيج رملي",
+    nameEn: "#grainy-flat",
+    imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Flat illustration style with grainy paper texture, natural warm ambient lighting, beautiful simple vectors."
+  },
+  {
+    id: "pastelbeauty",
+    nameAr: "جمالية الباستيل الناعمة",
+    nameEn: "#pastelbeauty",
+    imageUrl: "https://images.unsplash.com/photo-1579783928586-282b09efb48e?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Soft pastel aesthetic art, cream and pink hues, beautiful stylized drawings, dream-like calmness."
+  },
+  {
+    id: "coloredpencil",
+    nameAr: "ألوان خشبية رسم",
+    nameEn: "#coloredpencil",
+    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Detailed colored pencil texture drawing, fine crosshatches, vibrant soft coloring, handmade sketchpad."
+  },
+  {
+    id: "pointillism",
+    nameAr: "رسم تنقيطي انطباعي",
+    nameEn: "#pointillism",
+    imageUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Pointillism impressionist art style, composed entirely of tiny distinct paint dots, rich textured coloring."
+  },
+  {
+    id: "classyvaporwave",
+    nameAr: "فيبورويف كلاسيكي",
+    nameEn: "#classyvaporwave",
+    imageUrl: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Vaporwave visual aesthetic, neon pink and purple sunset grid landscapes, 80s computer synth graphics."
   }
 ];
 
