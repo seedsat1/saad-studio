@@ -515,11 +515,11 @@ export default function HookStudioPage() {
 
       const maxAllowed =
         type === "image"
-          ? activeVideoModelObj.maxRefImages
+          ? 10
           : type === "video"
-            ? activeVideoModelObj.maxRefVideos
+            ? 5
             : type === "audio"
-              ? activeVideoModelObj.maxRefAudios
+              ? 5
               : 0;
 
       if (maxAllowed <= 0 || counts[type] >= maxAllowed) continue;
