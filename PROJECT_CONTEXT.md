@@ -1,19 +1,22 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Expanded 36 Visual Art Style Presets, Category Tabs, and Background Removal Transparent PNG Export in Hook Studio (2026-07-23)
+#### Latest task: Elements Reference Library Modal, Custom Product Uploader, 36 Art Style Presets, and Transparent PNG Export in Hook Studio (2026-07-23)
 
 - Status:
   Implemented key UI/UX and feature enhancements in Hook Studio matching professional design editors (like Magnific):
-  1. **Visual Art Style Presets Library Modal**:
+  1. **Elements Reference Library & Custom Product Uploader Modal**:
+     - Defined a comprehensive `HOOK_ELEMENTS` list in `lib/hook-studio-config.ts` matching Magnific UI (e.g., `@orangemoka`, `@silvercream`, `@nebulahandbag`, `@redlipstick`, `@bluetoaster`, `@perfum`, `@serum`, `@redheels`, `@lamp`, `@smartwatch`, `@totebag`, `@leatherjacket`, `@metalmug`).
+     - Added an interactive Element selector button in Hook Studio sidebar showing active element thumbnail, `@tag`, or `+ ربط عنصر / منتج` (+ Select Element).
+     - Implemented a fullscreen popup modal matching Magnific UI layout: left grid showing preset elements with search, right panel enabling drag-and-drop or clicking `Upload media` to upload custom product photos and bind them directly as visual references to generation.
+  2. **Visual Art Style Presets Library Modal**:
      - Defined a comprehensive `HOOK_STYLES` list in `lib/hook-studio-config.ts` featuring 36 popular styles matching the user's screenshots (e.g., photo, natural, claytoon, dreamglass, glam3d, minimalcharacters, vinyltoy, motionstitched, 3dcolorful, softprism3d, kawaii3d, isometricdesign, classic-anime, videogame3d, origami, watercolor, oilpainting, sketch, neomemphis, letterpop, boldposter, minimaltypo, coffeeshopmockup, waxcrayon, dotted, risograph, traditional-japan, cartoonfun, retrocomic, linework, grainy-flat, pastelbeauty, coloredpencil, pointillism, classyvaporwave) categorized into Illustration, 3D, and Design.
      - Replaced the simple sidebar dropdown with an interactive card button showing the currently active style's thumbnail, name, tag, and an "Edit" button.
      - Implemented a fullscreen popup modal showing a visual grid of style cards with category filters (All, Illustration, 3D, Design), live search, hover zoom animations, active checkmark overlays, and responsive design. Selecting a style updates the selection instantly.
-  2. **Character and Style Consistency Support**:
-     - Configured the generation backend to resolve `selectedStyle` and append its `systemPromptAddon` along with instructions to enforce strict character and style consistency based on the uploaded reference images.
-     - Applied these style instructions dynamically to LLM storyboard, scene still, Google Veo redirect, and WaveSpeed generation payload prompts.
-  3. **Background Removal Transparent PNG Export**:
+  3. **Character, Style & Element Consistency Support**:
+     - Configured the generation backend to resolve `selectedStyle` and `selectedElementId` and append system prompt addons along with instructions to enforce strict character, element `@tag`, and style consistency based on the uploaded reference images.
+  4. **Background Removal Transparent PNG Export**:
      - Imported the `Scissors` icon and rendered it in the hover overlay of all generated scene stills.
-     - When clicked, a loader spinner displays and calls `/api/generate/remove-bg` with the image URL, charging 4 credits, running the recraft/remove-background model, and automatically downloading the resulting transparent PNG to the user's computer.
+     - When clicked, calls `/api/generate/remove-bg` with the image URL, debits 4 credits, runs recraft/remove-background model, and downloads the resulting transparent PNG.
 - Affected Files:
   - `lib/hook-studio-config.ts` [MODIFY]
   - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
