@@ -1435,3 +1435,83 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
   }
 ];
 
+export interface HookCharacterPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_CHARACTERS: HookCharacterPreset[] = [
+  {
+    id: "businesswoman",
+    tag: "@businesswoman",
+    nameAr: "سيدة أعمال سعودية",
+    nameEn: "Saudi Businesswoman",
+    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Professional confident Saudi businesswoman wearing elegant modern attire."
+  },
+  {
+    id: "influencer",
+    tag: "@influencer",
+    nameAr: "صانع محتوى ريادي",
+    nameEn: "Tech Influencer",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Charismatic young Middle Eastern tech content creator speaking directly to camera."
+  },
+  {
+    id: "barista",
+    tag: "@barista",
+    nameAr: "بارستا محترف",
+    nameEn: "Master Barista",
+    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Passionate artisan barista pouring specialty drip coffee with intense focus."
+  },
+  {
+    id: "athlete",
+    tag: "@athlete",
+    nameAr: "رياضي لياقة بدنية",
+    nameEn: "Fitness Athlete",
+    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Athletic fit runner preparing for training session in high performance sportswear."
+  }
+];
+
+export interface HookSketchPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_SKETCHES: HookSketchPreset[] = [
+  {
+    id: "handdrawn",
+    tag: "#pencil-sketch",
+    nameAr: "رسم رصاص يدوّي",
+    nameEn: "Hand-Drawn Pencil",
+    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Detailed monochrome graphite pencil sketch drawing on textured paper."
+  },
+  {
+    id: "storyboard-line",
+    tag: "#ink-linework",
+    nameAr: "تخطيط حبر ستوريبورد",
+    nameEn: "Ink Storyboard Lines",
+    imageUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Clean graphic black ink linework vector style storyboard frame."
+  },
+  {
+    id: "architectural-blueprint",
+    tag: "#blueprint",
+    nameAr: "رسم معماري مخطط blueprint",
+    nameEn: "Architectural Blueprint",
+    imageUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Cyan blue background architectural draft blueprint line drawing."
+  }
+];
+
