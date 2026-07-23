@@ -381,7 +381,7 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     provider: "google",
     badge: "NEW",
     description: "Google Gemini Omni Flash — fast, multimodal video generation.",
-    maxRefImages: 3,
+    maxRefImages: 6,
     maxRefVideos: 0,
     maxRefVideoSeconds: 0,
     maxRefAudios: 0,
