@@ -328,6 +328,9 @@ export default function HookStudioPage() {
   const [selectedGenre, setSelectedGenre] = useState("advertising");
   const [selectedHookAngle, setSelectedHookAngle] = useState("brand-reveal");
   const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [styleSearchQuery, setStyleSearchQuery] = useState("");
+  const [styleActiveCategory, setStyleActiveCategory] = useState<"all" | "photo" | "art" | "3d">("all");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -1713,22 +1716,36 @@ export default function HookStudioPage() {
               </select>
             </div>
 
-            {/* Hook Style */}
+            {/* Hook Style Visual Trigger */}
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
                 {t.artStyle}
               </label>
-              <select
-                value={selectedStyle}
-                onChange={(e) => setSelectedStyle(e.target.value)}
-                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
-              >
-                {HOOK_STYLES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {isAr ? s.nameAr : s.nameEn}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle) || HOOK_STYLES[0];
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowStyleModal(true)}
+                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-indigo-500 transition-colors text-left cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
+                      <img src={activeStyle.imageUrl} alt={activeStyle.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-bold text-slate-400 truncate text-left">
+                        {isAr ? activeStyle.nameAr : activeStyle.id.toUpperCase()}
+                      </div>
+                      <div className="text-[11px] text-indigo-400 font-medium text-left">
+                        {activeStyle.nameEn}
+                      </div>
+                    </div>
+                    <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
+                      {isAr ? "تغيير" : "Edit"}
+                    </div>
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -1800,6 +1817,137 @@ export default function HookStudioPage() {
                 <Download className="w-4 h-4" />
                 <span>{isAr ? "تحميل الملف" : "Download File"}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Visual Style Library Modal ── */}
+      {showStyleModal && (
+        <div 
+          onClick={() => setShowStyleModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[80vh] transition-all animate-in zoom-in-95 duration-200"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-400" />
+                  {isAr ? "المكتبة الفنية للأنماط والستايلات" : "Styles Library"}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {isAr ? "اختر النمط البصري المفضل لإنشاء مشاهد الستوريبورد والفيديو الخاصة بك" : "Select a visual style preset to direct your storyboard and video generation"}
+                </p>
+              </div>
+
+              {/* Close button */}
+              <button 
+                onClick={() => setShowStyleModal(false)}
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Sub-Header Toolbar (Categories & Search) */}
+            <div className="px-6 py-4 bg-[#0a0d14] border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Category tabs */}
+              <div className="flex flex-wrap gap-1.5">
+                {(["all", "photo", "art", "3d"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setStyleActiveCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      styleActiveCategory === cat
+                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                        : "bg-[#111520] text-slate-400 hover:text-slate-200 hover:bg-[#161b2a]"
+                    }`}
+                  >
+                    {cat === "all" && (isAr ? "الكل" : "All")}
+                    {cat === "photo" && (isAr ? "تصوير فوتوغرافي" : "Photo")}
+                    {cat === "art" && (isAr ? "رسم وفنون" : "Illustration")}
+                    {cat === "3d" && (isAr ? "ثلاثي الأبعاد" : "3D")}
+                  </button>
+                ))}
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full sm:w-60">
+                <input
+                  type="text"
+                  placeholder={isAr ? "ابحث عن ستايل..." : "Search style..."}
+                  value={styleSearchQuery}
+                  onChange={(e) => setStyleSearchQuery(e.target.value)}
+                  className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+                <span className="absolute right-3 top-2.5 text-slate-500">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            {/* Grid Container */}
+            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {HOOK_STYLES.filter((s) => {
+                  const matchesCategory = styleActiveCategory === "all" || s.category === styleActiveCategory;
+                  const matchesSearch =
+                    s.nameAr.toLowerCase().includes(styleSearchQuery.toLowerCase()) ||
+                    s.nameEn.toLowerCase().includes(styleSearchQuery.toLowerCase()) ||
+                    s.id.toLowerCase().includes(styleSearchQuery.toLowerCase());
+                  return matchesCategory && matchesSearch;
+                }).map((stylePreset) => {
+                  const isSelected = selectedStyle === stylePreset.id;
+                  return (
+                    <div
+                      key={stylePreset.id}
+                      onClick={() => {
+                        setSelectedStyle(stylePreset.id);
+                        setShowStyleModal(false);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
+                        isSelected
+                          ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-500/5"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
+                      }`}
+                    >
+                      {/* Image Preview */}
+                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
+                        <img
+                          src={stylePreset.imageUrl}
+                          alt={stylePreset.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {/* Checked Badge overlay */}
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info Footer */}
+                      <div className="p-3">
+                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-indigo-400 transition-colors">
+                          {isAr ? stylePreset.nameAr : stylePreset.id.toUpperCase()}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center justify-between">
+                          <span className="font-semibold text-indigo-400/80">{stylePreset.nameEn}</span>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">
+                            {stylePreset.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

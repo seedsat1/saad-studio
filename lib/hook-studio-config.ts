@@ -398,45 +398,107 @@ export interface HookStylePreset {
   id: string;
   nameAr: string;
   nameEn: string;
+  imageUrl: string;
+  category: "all" | "photo" | "art" | "3d";
   systemPromptAddon: string;
 }
 
 export const HOOK_STYLES: HookStylePreset[] = [
   {
     id: "photorealistic",
-    nameAr: "واقعي / تصوير طبيعي",
-    nameEn: "Photorealistic",
+    nameAr: "تصوير واقعي",
+    nameEn: "#photo",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    category: "photo",
     systemPromptAddon: "Photorealistic style, captured on 35mm lens, natural textures, highly detailed, realistic lighting."
   },
   {
-    id: "anime",
-    nameAr: "أنمي / رسوم متحركة",
-    nameEn: "Anime / Cel-shaded",
-    systemPromptAddon: "Modern anime style, vibrant color grading, cel-shaded characters, beautifully hand-drawn backgrounds."
+    id: "natural",
+    nameAr: "إضاءة طبيعية",
+    nameEn: "#natural",
+    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    category: "photo",
+    systemPromptAddon: "Natural lighting, lifestyle photography, authentic candid moment, film grain, soft highlights."
   },
   {
-    id: "3d-pixar",
-    nameAr: "ثلاثي الأبعاد / بيكسار",
-    nameEn: "3D Render / Pixar style",
-    systemPromptAddon: "3D animated style, soft volumetric lighting, clay textures, cute character design, Pixar aesthetic."
+    id: "popsurrealism",
+    nameAr: "سريالية بوب",
+    nameEn: "#popsurrealism",
+    imageUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Pop surrealism style, vibrant neon pastel colors, dreamy whimsical landscape, abstract shapes, Salvador Dali meets modern pop art."
+  },
+  {
+    id: "editorial",
+    nameAr: "تصفيف مجلات",
+    nameEn: "#editorial",
+    imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80",
+    category: "photo",
+    systemPromptAddon: "High fashion editorial magazine style, dramatic studio lighting, rich colors, stylized composition."
+  },
+  {
+    id: "anime",
+    nameAr: "أنمي كلاسيكي",
+    nameEn: "#classic-anime",
+    imageUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Classic 90s anime style, hand-drawn character design, retro color palette, cell shading."
+  },
+  {
+    id: "character3d",
+    nameAr: "شخصية ثلاثية الأبعاد",
+    nameEn: "#character3d",
+    imageUrl: "https://images.unsplash.com/photo-1620428268482-cf1851a36764?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "3D stylized character render, octane render, soft ambient occlusion, bright clay textures, cute design."
   },
   {
     id: "cyberpunk",
-    nameAr: "سايبربانك / مستقبلي",
-    nameEn: "Cyberpunk / Futuristic",
+    nameAr: "مستقبل سايبر",
+    nameEn: "#cyberpunk",
+    imageUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=300&q=80",
+    category: "art",
     systemPromptAddon: "Cyberpunk aesthetic, neon lighting, rainy streets at night, holographic displays, futuristic details."
   },
   {
-    id: "fantasy",
-    nameAr: "فانتازيا / خيالي",
-    nameEn: "Fantasy / Ethereal",
-    systemPromptAddon: "Fantasy style, magical glowing lights, mystical environment, ethereal atmosphere, epic movie concept art."
+    id: "pixelart",
+    nameAr: "بكسل آرت ريترو",
+    nameEn: "#pixelart",
+    imageUrl: "https://images.unsplash.com/photo-1566241477600-ac026ad43874?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "16-bit retro pixel art, detailed pixelation, limited vibrant color palette, old school game console style."
   },
   {
-    id: "oil-painting",
-    nameAr: "لوحة زيتية / كلاسيكي",
-    nameEn: "Oil Painting",
-    systemPromptAddon: "Classic oil painting style, visible brush strokes, rich warm color palette, fine art texture."
+    id: "watercolor",
+    nameAr: "ألوان مائية",
+    nameEn: "#watercolor",
+    imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Soft watercolor painting, visible paint bleeding, textured paper background, elegant brush strokes."
+  },
+  {
+    id: "oilpainting",
+    nameAr: "رسم زيتي كلاسيكي",
+    nameEn: "#oilpainting",
+    imageUrl: "https://images.unsplash.com/photo-1579783928621-7a13d66a6211?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Classic fine art oil painting style, visible rich impasto brush strokes, warm classical lighting, canvas texture."
+  },
+  {
+    id: "vector",
+    nameAr: "رسم فيكتور مسطح",
+    nameEn: "#vector",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Flat vector illustration, minimalist shapes, clean lines, solid graphic design, bold colors."
+  },
+  {
+    id: "sketch",
+    nameAr: "رسم خط قلم رصاص",
+    nameEn: "#sketch",
+    imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
+    category: "art",
+    systemPromptAddon: "Hand drawn pencil sketch, detailed crosshatching, graphite paper texture, monochrome pencil art."
   }
 ];
 
