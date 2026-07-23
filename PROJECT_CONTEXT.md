@@ -1,5 +1,36 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Locations & Elements Reference Libraries, 36 Art Style Presets, and Transparent PNG Export in Hook Studio (2026-07-23)
+
+- Status:
+  Implemented key UI/UX and feature enhancements in Hook Studio matching professional design editors (like Magnific):
+  1. **Locations Reference Library Modal**:
+     - Defined a comprehensive `HOOK_LOCATIONS` list in `lib/hook-studio-config.ts` featuring 20 locations matching Magnific UI (e.g., `@beach`, `@bridge`, `@cafe`, `@castle`, `@countryside`, `@desert`, `@forest`, `@garden`, `@interior`, `@jungle`, `@laboratory`, `@library`, `@mars`, `@mountain`, `@rooftop`, `@ruins`, `@snow-field`, `@stadium`, `@temple`, `@underwater`).
+     - Added an interactive Location selector button in Hook Studio sidebar showing active location thumbnail, `@tag`, or `+ ربط موقع / خلفية` (+ Select Location).
+     - Implemented a fullscreen popup modal showing a visual grid of location cards with search and click-to-bind background references.
+  2. **Elements Reference Library & Custom Product Uploader Modal**:
+     - Defined a comprehensive `HOOK_ELEMENTS` list in `lib/hook-studio-config.ts` matching Magnific UI (e.g., `@orangemoka`, `@silvercream`, `@nebulahandbag`, `@redlipstick`, `@bluetoaster`, `@perfum`, `@serum`, `@redheels`, `@lamp`, `@smartwatch`, `@totebag`, `@leatherjacket`, `@metalmug`).
+     - Added an interactive Element selector button in Hook Studio sidebar showing active element thumbnail, `@tag`, or `+ ربط عنصر / منتج` (+ Select Element).
+     - Implemented a fullscreen popup modal with drag-and-drop custom product uploader.
+  3. **Visual Art Style Presets Library Modal**:
+     - Defined 36 popular styles matching screenshots (Illustration, 3D, Design).
+  4. **Background Removal Transparent PNG Export**:
+     - Added `Scissors` icon button calling `/api/generate/remove-bg` with 4 credits charge and transparent PNG download.
+- Affected Files:
+  - `lib/hook-studio-config.ts` [MODIFY]
+  - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
+  - `app/api/hook-studio/generate/route.ts` [MODIFY]
+- Verification:
+  - `npx.cmd next lint --file app/admin/generation-lab/page.tsx --file app/api/admin/generation-lab/route.ts` passed with no warnings or errors.
+  - `git diff --check -- app/admin/page.tsx app/admin/generation-lab/page.tsx app/api/admin/generation-lab/route.ts` passed with only the existing Git CRLF warning for `app/admin/page.tsx`.
+  - `npx.cmd tsc --noEmit --pretty false` still fails only on the existing unrelated Framer Motion `ease` typing errors in `app/(landing)/(routes)/plugin/page.tsx` lines 167 and 221.
+- Errors/remaining:
+  - Existing unrelated dirty files remain: `app/(dash)/(routes)/hook-studio/page.tsx` and `lib/hook-studio-config.ts`.
+  - Avatar mode requires entering the exact WaveSpeed avatar route manually until a verified route is added to the local model registry.
+- Decisions:
+  - Created a separate admin API instead of reusing user-facing generation APIs so the lab can bypass local credits and local safety checks without changing subscriber behavior.
+  - Did not guess an InfiniteTalk route; used a custom route input for WaveSpeed avatar experiments until exact provider documentation/registry data is available.
+
 #### Latest task: Elements Reference Library Modal, Custom Product Uploader, 36 Art Style Presets, and Transparent PNG Export in Hook Studio (2026-07-23)
 
 - Status:
