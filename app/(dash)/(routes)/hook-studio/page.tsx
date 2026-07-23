@@ -1757,1044 +1757,167 @@ export default function HookStudioPage() {
               </select>
             </div>
 
-            {/* Primary Reference Studio Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveStudioTab("uploads");
-                setShowReferenceStudioModal(true);
-              }}
-              className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-600/20 transition-all duration-300 transform active:scale-95 cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span>{isAr ? "استوديو المراجع الموحد (Reference Studio)" : "Open Reference Studio"}</span>
-            </button>
-
-            {/* Hook Style Visual Trigger */}
-            <div className="space-y-1.5">
+            {/* Unified Reference Studio Trigger Button */}
+            <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {t.artStyle}
+                {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
               </label>
-              {(() => {
-                const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle) || HOOK_STYLES[0];
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("style");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-indigo-500 transition-colors text-left cursor-pointer group"
-                  >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
-                      <img src={activeStyle.imageUrl} alt={activeStyle.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-bold text-slate-400 truncate text-left">
-                        {isAr ? activeStyle.nameAr : activeStyle.id.toUpperCase()}
-                      </div>
-                      <div className="text-[11px] text-indigo-400 font-medium text-left">
-                        {activeStyle.nameEn}
-                      </div>
-                    </div>
-                    <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
-                      {isAr ? "تغيير" : "Edit"}
-                    </div>
-                  </button>
-                );
-              })()}
-            </div>
 
-            {/* Hook Element Visual Trigger */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {isAr ? "العنصر والمرجع" : "ELEMENT REFERENCE"}
-              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveStudioTab("uploads");
+                  setShowReferenceStudioModal(true);
+                }}
+                className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-600/20 transition-all duration-300 transform active:scale-95 cursor-pointer group"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform duration-300" />
+                <span>{isAr ? "فتح استوديو المراجع الموحد" : "Open Reference Studio"}</span>
+              </button>
+
+              {/* Active Selected Badges */}
               {(() => {
+                const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle);
                 const activeElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("element");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-indigo-500 transition-colors text-left cursor-pointer group"
-                  >
-                    {activeElement ? (
-                      <>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
-                          <img src={activeElement.imageUrl} alt={activeElement.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
-                            {isAr ? activeElement.nameAr : activeElement.nameEn}
-                          </div>
-                          <div className="text-[11px] text-emerald-400 font-medium text-left">
-                            {activeElement.tag}
-                          </div>
-                        </div>
-                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
-                          {isAr ? "تغيير" : "Edit"}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
-                          <Paperclip className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
-                            {isAr ? "+ ربط عنصر / منتج" : "+ Select Element"}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate text-left">
-                            {isAr ? "تضمين مجسم أو منتج خاص" : "Attach product element"}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
-            </div>
-
-            {/* Hook Location Visual Trigger */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {isAr ? "الموقع والخلفية" : "LOCATION REFERENCE"}
-              </label>
-              {(() => {
                 const activeLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("location");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-sky-500 transition-colors text-left cursor-pointer group"
-                  >
-                    {activeLocation ? (
-                      <>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
-                          <img src={activeLocation.imageUrl} alt={activeLocation.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
-                            {isAr ? activeLocation.nameAr : activeLocation.nameEn}
-                          </div>
-                          <div className="text-[11px] text-sky-400 font-medium text-left">
-                            {activeLocation.tag}
-                          </div>
-                        </div>
-                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
-                          {isAr ? "تغيير" : "Edit"}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 flex-shrink-0">
-                          <Paperclip className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
-                            {isAr ? "+ ربط موقع / خلفية" : "+ Select Location"}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate text-left">
-                            {isAr ? "تثبيت موقع المشهد" : "Set scene environment"}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
-            </div>
-
-            {/* Hook Camera Visual Trigger */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {isAr ? "الكاميرا والحركة" : "CAMERA MOTION"}
-              </label>
-              {(() => {
                 const activeCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
-                return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("camera");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-amber-500 transition-colors text-left cursor-pointer group"
-                  >
-                    {activeCamera ? (
-                      <>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
-                          <img src={activeCamera.imageUrl} alt={activeCamera.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
-                            {isAr ? activeCamera.nameAr : activeCamera.nameEn}
-                          </div>
-                          <div className="text-[11px] text-amber-400 font-medium text-left">
-                            {activeCamera.tag}
-                          </div>
-                        </div>
-                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
-                          {isAr ? "تغيير" : "Edit"}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
-                          <Paperclip className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
-                            {isAr ? "+ نوع زاوية الكاميرا" : "+ Select Camera Motion"}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate text-left">
-                            {isAr ? "تحديد حركة أو عدسة التصوير" : "Set camera angle or motion"}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </button>
-                );
-              })()}
-            </div>
-
-            {/* Hook Effects Visual Trigger */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {isAr ? "التأثيرات والإضاءة" : "EFFECTS & LIGHTING"}
-              </label>
-              {(() => {
                 const activeEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
+                const activeCharacter = HOOK_CHARACTERS.find((c) => c.id === selectedCharacterId);
+
+                const hasAnyActive = activeStyle || activeElement || activeLocation || activeCamera || activeEffect || activeCharacter;
+
+                if (!hasAnyActive) return null;
+
                 return (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveStudioTab("effects");
-                      setShowReferenceStudioModal(true);
-                    }}
-                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-purple-500 transition-colors text-left cursor-pointer group"
-                  >
-                    {activeEffect ? (
-                      <>
-                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
-                          <img src={activeEffect.imageUrl} alt={activeEffect.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
-                            {isAr ? activeEffect.nameAr : activeEffect.nameEn}
-                          </div>
-                          <div className="text-[11px] text-purple-400 font-medium text-left">
-                            {activeEffect.tag}
-                          </div>
-                        </div>
-                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
-                          {isAr ? "تغيير" : "Edit"}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 flex-shrink-0">
-                          <Paperclip className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
-                            {isAr ? "+ نوع التأثير / الإضاءة" : "+ Select Effect"}
-                          </div>
-                          <div className="text-[10px] text-slate-500 truncate text-left">
-                            {isAr ? "إضافة إضاءة أو انطباع حركي" : "Apply lighting or mood"}
-                          </div>
-                        </div>
-                      </>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {activeStyle && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("style");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 cursor-pointer hover:bg-indigo-500/20 transition-colors"
+                      >
+                        🎨 {isAr ? activeStyle.nameAr : activeStyle.nameEn}
+                      </span>
                     )}
-                  </button>
+
+                    {activeElement && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("element");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 transition-colors"
+                      >
+                        📦 {activeElement.tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedElementId(null);
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+
+                    {activeLocation && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("location");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-sky-500/10 text-sky-300 border border-sky-500/20 cursor-pointer hover:bg-sky-500/20 transition-colors"
+                      >
+                        📍 {activeLocation.tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLocationId(null);
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+
+                    {activeCamera && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("camera");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-colors"
+                      >
+                        🎥 {activeCamera.tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCameraId(null);
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+
+                    {activeEffect && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("effects");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-pink-500/10 text-pink-300 border border-pink-500/20 cursor-pointer hover:bg-pink-500/20 transition-colors"
+                      >
+                        ✨ {activeEffect.tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEffectId(null);
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+
+                    {activeCharacter && (
+                      <span
+                        onClick={() => {
+                          setActiveStudioTab("character");
+                          setShowReferenceStudioModal(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                      >
+                        👤 {activeCharacter.tag}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCharacterId(null);
+                          }}
+                          className="hover:text-red-400"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                  </div>
                 );
               })()}
             </div>
           </div>
         </div>
       </div>
-
-      {/* ── Fullscreen Lightbox Modal ── */}
-      {previewMedia && (
-        <div 
-          onClick={() => setPreviewMedia(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Close Button top-right */}
-            <button 
-              onClick={() => setPreviewMedia(null)}
-              className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-black/50 hover:bg-rose-600 text-white transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Header info */}
-            {previewMedia.title && (
-              <div className="p-5 border-b border-slate-800/60 bg-[#0c0f16]/95">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Media Preview</span>
-                <span className="text-sm font-bold text-slate-200 truncate block">{previewMedia.title}</span>
-              </div>
-            )}
-
-            {/* Media Body */}
-            <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-black/40">
-              {previewMedia.type === "image" && (
-                <img 
-                  src={previewMedia.url} 
-                  alt={previewMedia.title || "Image Preview"} 
-                  className="max-h-[60vh] object-contain rounded-2xl shadow-xl"
-                />
-              )}
-              {previewMedia.type === "video" && (
-                <video 
-                  src={previewMedia.url} 
-                  controls 
-                  autoPlay
-                  className="max-h-[60vh] w-full object-contain rounded-2xl shadow-xl"
-                />
-              )}
-              {previewMedia.type === "audio" && (
-                <div className="bg-[#11141e] border border-slate-800 rounded-3xl p-10 flex flex-col items-center gap-5 w-full max-w-md shadow-xl text-center">
-                  <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                    <Volume2 className="w-8 h-8" />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Now Playing</span>
-                    <span className="text-sm font-bold text-slate-200 truncate max-w-xs block">{previewMedia.title}</span>
-                  </div>
-                  <audio src={previewMedia.url} controls className="w-full mt-2" />
-                </div>
-              )}
-            </div>
-
-            {/* Footer action */}
-            <div className="p-4 border-t border-slate-800/60 bg-[#0c0f16]/95 flex justify-end">
-              <button
-                onClick={() => handleDownload(previewMedia.url, previewMedia.title || "downloaded-file")}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-5 rounded-xl flex items-center gap-2 transition-colors text-xs"
-              >
-                <Download className="w-4 h-4" />
-                <span>{isAr ? "تحميل الملف" : "Download File"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Visual Style Library Modal ── */}
-      {showStyleModal && (
-        <div 
-          onClick={() => setShowStyleModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[80vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
-                  {isAr ? "المكتبة الفنية للأنماط والستايلات" : "Styles Library"}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr ? "اختر النمط البصري المفضل لإنشاء مشاهد الستوريبورد والفيديو الخاصة بك" : "Select a visual style preset to direct your storyboard and video generation"}
-                </p>
-              </div>
-
-              {/* Close button */}
-              <button 
-                onClick={() => setShowStyleModal(false)}
-                className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Sub-Header Toolbar (Categories & Search) */}
-            <div className="px-6 py-4 bg-[#0a0d14] border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              {/* Category tabs */}
-              <div className="flex flex-wrap gap-1.5">
-                {(["all", "illustration", "3d", "design"] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setStyleActiveCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      styleActiveCategory === cat
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                        : "bg-[#111520] text-slate-400 hover:text-slate-200 hover:bg-[#161b2a]"
-                    }`}
-                  >
-                    {cat === "all" && (isAr ? "الكل" : "All")}
-                    {cat === "illustration" && (isAr ? "رسومات وتوضيحات" : "Illustration")}
-                    {cat === "3d" && (isAr ? "ثلاثي الأبعاد" : "3D")}
-                    {cat === "design" && (isAr ? "تصاميم وتصوير" : "Design")}
-                  </button>
-                ))}
-              </div>
-
-              {/* Search Box */}
-              <div className="relative w-full sm:w-60">
-                <input
-                  type="text"
-                  placeholder={isAr ? "ابحث عن ستايل..." : "Search style..."}
-                  value={styleSearchQuery}
-                  onChange={(e) => setStyleSearchQuery(e.target.value)}
-                  className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-                <span className="absolute right-3 top-2.5 text-slate-500">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-              </div>
-            </div>
-
-            {/* Grid Container */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {HOOK_STYLES.filter((s) => {
-                  const matchesCategory = styleActiveCategory === "all" || s.category === styleActiveCategory;
-                  const matchesSearch =
-                    s.nameAr.toLowerCase().includes(styleSearchQuery.toLowerCase()) ||
-                    s.nameEn.toLowerCase().includes(styleSearchQuery.toLowerCase()) ||
-                    s.id.toLowerCase().includes(styleSearchQuery.toLowerCase());
-                  return matchesCategory && matchesSearch;
-                }).map((stylePreset) => {
-                  const isSelected = selectedStyle === stylePreset.id;
-                  return (
-                    <div
-                      key={stylePreset.id}
-                      onClick={() => {
-                        setSelectedStyle(stylePreset.id);
-                        setShowStyleModal(false);
-                      }}
-                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
-                        isSelected
-                          ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-500/5"
-                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
-                      }`}
-                    >
-                      {/* Image Preview */}
-                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
-                        <img
-                          src={stylePreset.imageUrl}
-                          alt={stylePreset.nameAr}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {/* Checked Badge overlay */}
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Footer */}
-                      <div className="p-3">
-                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-indigo-400 transition-colors">
-                          {isAr ? stylePreset.nameAr : stylePreset.id.toUpperCase()}
-                        </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5 flex items-center justify-between">
-                          <span className="font-semibold text-indigo-400/80">{stylePreset.nameEn}</span>
-                          <span className="text-[9px] uppercase tracking-wider text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">
-                            {stylePreset.category}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Elements Library & Custom Upload Modal ── */}
-      {showElementModal && (
-        <div 
-          onClick={() => setShowElementModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Paperclip className="w-5 h-5 text-emerald-400" />
-                  {isAr ? "مكتبة العناصر والمنتجات (Elements)" : "Elements Reference Library"}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr ? "اختر عنصراً مرجعياً جاهزاً أو قم برفع منتجك الخاص لربطه مع الموديل" : "Select an object reference or upload your product photo to bind with generation"}
-                </p>
-              </div>
-
-              {/* Search box & Close button */}
-              <div className="flex items-center gap-3">
-                <div className="relative w-full sm:w-60">
-                  <input
-                    type="text"
-                    placeholder={isAr ? "ابحث عن عنصر..." : "Search element..."}
-                    value={elementSearchQuery}
-                    onChange={(e) => setElementSearchQuery(e.target.value)}
-                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                  <span className="absolute right-3 top-2.5 text-slate-500">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </span>
-                </div>
-
-                <button 
-                  onClick={() => setShowElementModal(false)}
-                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Split Content Body: Left = Grid, Right = Drag/Upload Panel */}
-            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-[#080a0f]">
-              {/* Left Grid Area */}
-              <div className="flex-1 overflow-y-auto p-6 border-r border-slate-900">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {HOOK_ELEMENTS.filter((el) => {
-                    const search = elementSearchQuery.toLowerCase();
-                    return (
-                      el.nameAr.toLowerCase().includes(search) ||
-                      el.nameEn.toLowerCase().includes(search) ||
-                      el.tag.toLowerCase().includes(search)
-                    );
-                  }).map((elPreset) => {
-                    const isSelected = selectedElementId === elPreset.id;
-                    return (
-                      <div
-                        key={elPreset.id}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedElementId(null);
-                          } else {
-                            setSelectedElementId(elPreset.id);
-                            setAttachedFiles((prev) => {
-                              const exists = prev.some((f) => f.url === elPreset.imageUrl);
-                              if (exists) return prev;
-                              return [
-                                ...prev,
-                                {
-                                  id: `element-${elPreset.id}-${Date.now()}`,
-                                  url: elPreset.imageUrl,
-                                  name: elPreset.nameAr,
-                                  type: "image",
-                                },
-                              ];
-                            });
-                          }
-                          setShowElementModal(false);
-                        }}
-                        className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
-                          isSelected
-                            ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5"
-                            : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
-                        }`}
-                      >
-                        {/* Image Preview */}
-                        <div className="aspect-square w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60 p-2 flex items-center justify-center">
-                          <img
-                            src={elPreset.imageUrl}
-                            alt={elPreset.nameAr}
-                            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
-                          />
-                          {/* Checked Badge overlay */}
-                          {isSelected && (
-                            <div className="absolute top-3 right-3 bg-emerald-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Info Footer */}
-                        <div className="p-3">
-                          <div className="text-xs font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors">
-                            {isAr ? elPreset.nameAr : elPreset.nameEn}
-                          </div>
-                          <div className="text-[11px] font-semibold text-emerald-400 mt-0.5">
-                            {elPreset.tag}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Right Sidebar Uploader Panel */}
-              <div className="w-full md:w-72 bg-[#0b0e17] p-6 flex flex-col justify-between border-t md:border-t-0 border-slate-800">
-                <div className="space-y-4">
-                  <div className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
-                    {isAr ? "رفع عنصرك الخاص" : "Custom Media Element"}
-                  </div>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    {isAr
-                      ? "اسحب صورتك أو ارفع ملف منتجك الخاص لربطه كمرجع بصري دقيق مع المحرك الذكي."
-                      : "Drop your image or upload your own product photo to use as a visual element reference."}
-                  </p>
-
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#0f131f] group"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
-                      <UploadCloud className="w-6 h-6" />
-                    </div>
-                    <span className="text-xs font-bold text-slate-200 block mb-1">
-                      {isAr ? "اسحب الصورة هنا" : "Drop an Image"}
-                    </span>
-                    <span className="text-[10px] text-slate-500 block">
-                      {isAr ? "أو ارفع ملفك الخاص" : "or upload your own media"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-4">
-                  <button
-                    onClick={() => {
-                      fileInputRef.current?.click();
-                      setShowElementModal(false);
-                    }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer"
-                  >
-                    <UploadCloud className="w-4 h-4" />
-                    <span>{isAr ? "رفع صورة عنصر" : "Upload media"}</span>
-                  </button>
-
-                  {selectedElementId && (
-                    <button
-                      onClick={() => {
-                        setSelectedElementId(null);
-                        setShowElementModal(false);
-                      }}
-                      className="w-full bg-slate-800/80 hover:bg-rose-600/20 hover:text-rose-400 text-slate-400 font-bold py-2 px-4 rounded-xl text-xs transition-colors cursor-pointer"
-                    >
-                      {isAr ? "إلغاء تحديد العنصر" : "Clear Element"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Locations Reference Library Modal ── */}
-      {showLocationModal && (
-        <div 
-          onClick={() => setShowLocationModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Paperclip className="w-5 h-5 text-sky-400" />
-                  {isAr ? "مكتبة المواقع والخلفيات (Locations)" : "Locations Reference Library"}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr ? "اختر موقعاً أو بيئة مرجعية لتثبيت خلفية وأجواء المشهد في الإعلان" : "Select an environment location to lock background atmosphere for generation"}
-                </p>
-              </div>
-
-              {/* Search box & Close button */}
-              <div className="flex items-center gap-3">
-                <div className="relative w-full sm:w-60">
-                  <input
-                    type="text"
-                    placeholder={isAr ? "ابحث عن موقع..." : "Search location..."}
-                    value={locationSearchQuery}
-                    onChange={(e) => setLocationSearchQuery(e.target.value)}
-                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
-                  />
-                  <span className="absolute right-3 top-2.5 text-slate-500">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </span>
-                </div>
-
-                <button 
-                  onClick={() => setShowLocationModal(false)}
-                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content Body: Grid of Location Cards */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {HOOK_LOCATIONS.filter((loc) => {
-                  const search = locationSearchQuery.toLowerCase();
-                  return (
-                    loc.nameAr.toLowerCase().includes(search) ||
-                    loc.nameEn.toLowerCase().includes(search) ||
-                    loc.tag.toLowerCase().includes(search)
-                  );
-                }).map((locPreset) => {
-                  const isSelected = selectedLocationId === locPreset.id;
-                  return (
-                    <div
-                      key={locPreset.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedLocationId(null);
-                        } else {
-                          setSelectedLocationId(locPreset.id);
-                          setAttachedFiles((prev) => {
-                            const exists = prev.some((f) => f.url === locPreset.imageUrl);
-                            if (exists) return prev;
-                            return [
-                              ...prev,
-                              {
-                                id: `location-${locPreset.id}-${Date.now()}`,
-                                url: locPreset.imageUrl,
-                                name: locPreset.nameAr,
-                                type: "image",
-                              },
-                            ];
-                          });
-                        }
-                        setShowLocationModal(false);
-                      }}
-                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
-                        isSelected
-                          ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-500/5"
-                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
-                      }`}
-                    >
-                      {/* Image Preview */}
-                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
-                        <img
-                          src={locPreset.imageUrl}
-                          alt={locPreset.nameAr}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {/* Checked Badge overlay */}
-                        {isSelected && (
-                          <div className="absolute top-3 right-3 bg-sky-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Footer */}
-                      <div className="p-3">
-                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-sky-400 transition-colors">
-                          {isAr ? locPreset.nameAr : locPreset.nameEn}
-                        </div>
-                        <div className="text-[11px] font-semibold text-sky-400 mt-0.5">
-                          {locPreset.tag}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Camera Motion Reference Library Modal ── */}
-      {showCameraModal && (
-        <div 
-          onClick={() => setShowCameraModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Paperclip className="w-5 h-5 text-amber-400" />
-                  {isAr ? "مكتبة حركة وزوايا الكاميرا (Camera)" : "Camera Motion Library"}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr ? "اختر زاوية تصوير أو نوع عدسة وحركة كاميرا لتحديد التأطير في المشهد" : "Select a camera angle, lens type or motion to control framing"}
-                </p>
-              </div>
-
-              {/* Search box & Close button */}
-              <div className="flex items-center gap-3">
-                <div className="relative w-full sm:w-60">
-                  <input
-                    type="text"
-                    placeholder={isAr ? "ابحث عن زاوية كاميرا..." : "Search camera motion..."}
-                    value={cameraSearchQuery}
-                    onChange={(e) => setCameraSearchQuery(e.target.value)}
-                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
-                  />
-                  <span className="absolute right-3 top-2.5 text-slate-500">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </span>
-                </div>
-
-                <button 
-                  onClick={() => setShowCameraModal(false)}
-                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Content Body: Grid of Camera Cards */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {HOOK_CAMERAS.filter((cam) => {
-                  const search = cameraSearchQuery.toLowerCase();
-                  return (
-                    cam.nameAr.toLowerCase().includes(search) ||
-                    cam.nameEn.toLowerCase().includes(search) ||
-                    cam.tag.toLowerCase().includes(search)
-                  );
-                }).map((camPreset) => {
-                  const isSelected = selectedCameraId === camPreset.id;
-                  return (
-                    <div
-                      key={camPreset.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedCameraId(null);
-                        } else {
-                          setSelectedCameraId(camPreset.id);
-                          setAttachedFiles((prev) => {
-                            const exists = prev.some((f) => f.url === camPreset.imageUrl);
-                            if (exists) return prev;
-                            return [
-                              ...prev,
-                              {
-                                id: `camera-${camPreset.id}-${Date.now()}`,
-                                url: camPreset.imageUrl,
-                                name: camPreset.nameAr,
-                                type: "image",
-                              },
-                            ];
-                          });
-                        }
-                        setShowCameraModal(false);
-                      }}
-                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
-                        isSelected
-                          ? "border-amber-500 ring-2 ring-amber-500/20 bg-amber-500/5"
-                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
-                      }`}
-                    >
-                      {/* Image Preview */}
-                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
-                        <img
-                          src={camPreset.imageUrl}
-                          alt={camPreset.nameAr}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {/* Checked Badge overlay */}
-                        {isSelected && (
-                          <div className="absolute top-3 right-3 bg-amber-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Footer */}
-                      <div className="p-3">
-                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-amber-400 transition-colors">
-                          {isAr ? camPreset.nameAr : camPreset.nameEn}
-                        </div>
-                        <div className="text-[11px] font-semibold text-amber-400 mt-0.5">
-                          {camPreset.tag}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Effects Reference Library Modal ── */}
-      {showEffectModal && (
-        <div 
-          onClick={() => setShowEffectModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                  <Paperclip className="w-5 h-5 text-purple-400" />
-                  {isAr ? "مكتبة التأثيرات والإضاءة (Effects)" : "Effects & Lighting Library"}
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  {isAr ? "اختر تأثير لون، نمط إضاءة، انطباع نفسي أو حركة لإضافتها على الإعلان" : "Select color grading, lighting mode, mood or action effect"}
-                </p>
-              </div>
-
-              {/* Search box & Close button */}
-              <div className="flex items-center gap-3">
-                <div className="relative w-full sm:w-60">
-                  <input
-                    type="text"
-                    placeholder={isAr ? "ابحث عن تأثير..." : "Search effects..."}
-                    value={effectSearchQuery}
-                    onChange={(e) => setEffectSearchQuery(e.target.value)}
-                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
-                  />
-                  <span className="absolute right-3 top-2.5 text-slate-500">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </span>
-                </div>
-
-                <button 
-                  onClick={() => setShowEffectModal(false)}
-                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Toolbar (Category Tabs) */}
-            <div className="px-6 py-4 bg-[#0a0d14] border-b border-slate-900 flex items-center gap-2">
-              {(["all", "color", "lighting", "mood", "action"] as const).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setEffectActiveCategory(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    effectActiveCategory === cat
-                      ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20"
-                      : "bg-[#111520] text-slate-400 hover:text-slate-200 hover:bg-[#161b2a]"
-                  }`}
-                >
-                  {cat === "all" && (isAr ? "الكل" : "All")}
-                  {cat === "color" && (isAr ? "الألوان Color" : "Color")}
-                  {cat === "lighting" && (isAr ? "الإضاءة Lighting" : "Lighting")}
-                  {cat === "mood" && (isAr ? "المزاج Mood" : "Mood")}
-                  {cat === "action" && (isAr ? "الحركة Action" : "Action")}
-                </button>
-              ))}
-            </div>
-
-            {/* Content Body: Grid of Effects Cards */}
-            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {HOOK_EFFECTS.filter((eff) => {
-                  const matchesCategory = effectActiveCategory === "all" || eff.category === effectActiveCategory;
-                  const search = effectSearchQuery.toLowerCase();
-                  const matchesSearch =
-                    eff.nameAr.toLowerCase().includes(search) ||
-                    eff.nameEn.toLowerCase().includes(search) ||
-                    eff.tag.toLowerCase().includes(search);
-                  return matchesCategory && matchesSearch;
-                }).map((effPreset) => {
-                  const isSelected = selectedEffectId === effPreset.id;
-                  return (
-                    <div
-                      key={effPreset.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedEffectId(null);
-                        } else {
-                          setSelectedEffectId(effPreset.id);
-                          setAttachedFiles((prev) => {
-                            const exists = prev.some((f) => f.url === effPreset.imageUrl);
-                            if (exists) return prev;
-                            return [
-                              ...prev,
-                              {
-                                id: `effect-${effPreset.id}-${Date.now()}`,
-                                url: effPreset.imageUrl,
-                                name: effPreset.nameAr,
-                                type: "image",
-                              },
-                            ];
-                          });
-                        }
-                        setShowEffectModal(false);
-                      }}
-                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
-                        isSelected
-                          ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-500/5"
-                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
-                      }`}
-                    >
-                      {/* Image Preview */}
-                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
-                        <img
-                          src={effPreset.imageUrl}
-                          alt={effPreset.nameAr}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        {/* Checked Badge overlay */}
-                        {isSelected && (
-                          <div className="absolute top-3 right-3 bg-purple-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
-                            <Check className="w-3.5 h-3.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info Footer */}
-                      <div className="p-3">
-                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-purple-400 transition-colors">
-                          {isAr ? effPreset.nameAr : effPreset.nameEn}
-                        </div>
-                        <div className="text-[11px] font-semibold text-purple-400 mt-0.5 flex items-center justify-between">
-                          <span>{effPreset.tag}</span>
-                          <span className="text-[9px] uppercase tracking-wider text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded">
-                            {effPreset.category}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ───────────────────────────────────────────────────────────── */}
       {/* ── UNIFIED REFERENCE STUDIO DIALOG (Magnific UI Parity) ───── */}
