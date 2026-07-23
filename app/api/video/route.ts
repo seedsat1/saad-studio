@@ -1326,17 +1326,29 @@ function mapToKieInput(model: string, payload: Record<string, unknown>) {
     const isFast = model === "bytedance/seedance-2-fast";
     const out: Record<string, unknown> = { ...input };
 
-    // Reference images take priority over single start/end frame
-    if (referenceImages.length > 0) {
-      out.reference_image_urls = referenceImages.slice(0, 9); // KIE max 9
+    // Map start/first frame
+    if (startImage) {
+      out.first_frame_url = startImage;
+    } else if (referenceImages.length > 0) {
+      out.first_frame_url = referenceImages[0];
+    } else {
       delete out.first_frame_url;
+    }
+
+    // Map end/last frame
+    if (endImage) {
+      out.last_frame_url = endImage;
+    } else if (referenceImages.length > 1) {
+      out.last_frame_url = referenceImages[1];
+    } else {
       delete out.last_frame_url;
+    }
+
+    // Map reference images list
+    if (referenceImages.length > 0) {
+      out.reference_image_urls = referenceImages.slice(0, 9);
     } else {
       delete out.reference_image_urls;
-      if (startImage)  out.first_frame_url = startImage;
-      else             delete out.first_frame_url;
-      if (endImage)    out.last_frame_url = endImage;
-      else             delete out.last_frame_url;
     }
 
     // Reference videos: max 3, total duration ≤15s (validated client-side)
