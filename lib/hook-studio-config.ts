@@ -815,3 +815,175 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
   }
 ];
 
+export interface HookLocationPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_LOCATIONS: HookLocationPreset[] = [
+  {
+    id: "beach",
+    tag: "@beach",
+    nameAr: "شاطئ رملي مشمس",
+    nameEn: "Sandy Beach",
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Sunny tropical sandy beach with turquoise ocean water and soft waves."
+  },
+  {
+    id: "bridge",
+    tag: "@bridge",
+    nameAr: "جسر بحري حديث",
+    nameEn: "Coastal Highway Bridge",
+    imageUrl: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Long coastal sea bridge highway stretching over clear ocean waters."
+  },
+  {
+    id: "cafe",
+    tag: "@cafe",
+    nameAr: "مقهى عصري راقي",
+    nameEn: "Modern Cafe Interior",
+    imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Warm minimalist modern cafe interior with wooden tables and warm ambient lighting."
+  },
+  {
+    id: "castle",
+    tag: "@castle",
+    nameAr: "قلعة تاريخية قديمة",
+    nameEn: "Medieval Stone Castle",
+    imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Grand medieval stone castle towers under soft daylight."
+  },
+  {
+    id: "countryside",
+    tag: "@countryside",
+    nameAr: "ريف وأزهار خضراء",
+    nameEn: "Green Countryside",
+    imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Lush green countryside hills with blooming wildflowers and blue sky."
+  },
+  {
+    id: "desert",
+    tag: "@desert",
+    nameAr: "صحراء وكثبان رملية",
+    nameEn: "Desert Dunes",
+    imageUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Vast desert sand dunes under bright sunny sky with warm gold tones."
+  },
+  {
+    id: "forest",
+    tag: "@forest",
+    nameAr: "غابة ضبابية كثيفة",
+    nameEn: "Misty Forest",
+    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Deep green forest with tall trees, moss floor, and misty sunlight rays."
+  },
+  {
+    id: "garden",
+    tag: "@garden",
+    nameAr: "حديقة يابانية هادئة",
+    nameEn: "Zen Garden",
+    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Peaceful Japanese zen garden with stone pathway and curated greenery."
+  },
+  {
+    id: "interior",
+    tag: "@interior",
+    nameAr: "تصميم داخلي مودرن",
+    nameEn: "Modern Living Interior",
+    imageUrl: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Spacious modern luxury interior with beige couch and large sunlit windows."
+  },
+  {
+    id: "jungle",
+    tag: "@jungle",
+    nameAr: "غابة استوائية كثيفة",
+    nameEn: "Tropical Jungle",
+    imageUrl: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Vibrant tropical rainforest jungle with dense ferns and sun shafts."
+  },
+  {
+    id: "laboratory",
+    tag: "@laboratory",
+    nameAr: "مختبر علمي متطور",
+    nameEn: "High-Tech Laboratory",
+    imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Ultra-clean high-tech medical research laboratory with white equipment."
+  },
+  {
+    id: "library",
+    tag: "@library",
+    nameAr: "مكتبة ضخمة فاخرة",
+    nameEn: "Grand Library",
+    imageUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Grand modern architectural library with tall bookshelves and wooden stairs."
+  },
+  {
+    id: "mars",
+    tag: "@mars",
+    nameAr: "كوكب المريخ وسماء النجوم",
+    nameEn: "Mars Surface",
+    imageUrl: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Red rocky Martian planet landscape under brilliant starry night sky."
+  },
+  {
+    id: "mountain",
+    tag: "@mountain",
+    nameAr: "جبال شامخة صخرية",
+    nameEn: "Rocky Mountain Range",
+    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Majestic high mountain range peaks under clear blue sky."
+  },
+  {
+    id: "rooftop",
+    tag: "@rooftop",
+    nameAr: "سطح برج في المدينة",
+    nameEn: "City Rooftop",
+    imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Urban city penthouse rooftop terrace overlooking city skyscrapers."
+  },
+  {
+    id: "ruins",
+    tag: "@ruins",
+    nameAr: "أنقاض وحطام قديم",
+    nameEn: "Ancient Ruins",
+    imageUrl: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Overgrown ancient stone ruins with sunlight streaming through broken arches."
+  },
+  {
+    id: "snow-field",
+    tag: "@snow-field",
+    nameAr: "حقل ثلجي جليلي",
+    nameEn: "Snowy Mountain Field",
+    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Crisp white snow-covered landscape field with blue ice mountains."
+  },
+  {
+    id: "stadium",
+    tag: "@stadium",
+    nameAr: "ملعب رياضي ضخم",
+    nameEn: "Sports Stadium Arena",
+    imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Grand modern sports stadium arena with green pitch and empty seats."
+  },
+  {
+    id: "temple",
+    tag: "@temple",
+    nameAr: "معبد قبة أثري",
+    nameEn: "Ancient Temple Interior",
+    imageUrl: "https://images.unsplash.com/photo-1548625149-fc4a29cf7092?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Sacred ancient stone temple interior with domed roof and sunlit arches."
+  },
+  {
+    id: "underwater",
+    tag: "@underwater",
+    nameAr: "أعماق المحيط والمرجان",
+    nameEn: "Deep Underwater Ocean",
+    imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Deep blue ocean underwater scene with coral reefs and sunlight rays penetrating water."
+  }
+];
+

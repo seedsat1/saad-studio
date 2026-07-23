@@ -33,6 +33,7 @@ import {
   HOOK_VIDEO_MODELS,
   HOOK_STYLES,
   HOOK_ELEMENTS,
+  HOOK_LOCATIONS,
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
@@ -335,6 +336,9 @@ export default function HookStudioPage() {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showElementModal, setShowElementModal] = useState(false);
   const [elementSearchQuery, setElementSearchQuery] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState("");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -1002,6 +1006,7 @@ export default function HookStudioPage() {
           hookAngle: selectedHookAngle,
           artStyle: selectedStyle,
           selectedElementId,
+          selectedLocationId,
           refImages,
           refVideos,
           refAudios,
@@ -1802,6 +1807,56 @@ export default function HookStudioPage() {
                 );
               })()}
             </div>
+
+            {/* Hook Location Visual Trigger */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {isAr ? "الموقع والخلفية" : "LOCATION REFERENCE"}
+              </label>
+              {(() => {
+                const activeLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationModal(true)}
+                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-sky-500 transition-colors text-left cursor-pointer group"
+                  >
+                    {activeLocation ? (
+                      <>
+                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
+                          <img src={activeLocation.imageUrl} alt={activeLocation.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
+                            {isAr ? activeLocation.nameAr : activeLocation.nameEn}
+                          </div>
+                          <div className="text-[11px] text-sky-400 font-medium text-left">
+                            {activeLocation.tag}
+                          </div>
+                        </div>
+                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
+                          {isAr ? "تغيير" : "Edit"}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 flex-shrink-0">
+                          <Paperclip className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
+                            {isAr ? "+ ربط موقع / خلفية" : "+ Select Location"}
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate text-left">
+                            {isAr ? "تثبيت موقع المشهد" : "Set scene environment"}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>
@@ -2182,6 +2237,129 @@ export default function HookStudioPage() {
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Locations Reference Library Modal ── */}
+      {showLocationModal && (
+        <div 
+          onClick={() => setShowLocationModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <Paperclip className="w-5 h-5 text-sky-400" />
+                  {isAr ? "مكتبة المواقع والخلفيات (Locations)" : "Locations Reference Library"}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {isAr ? "اختر موقعاً أو بيئة مرجعية لتثبيت خلفية وأجواء المشهد في الإعلان" : "Select an environment location to lock background atmosphere for generation"}
+                </p>
+              </div>
+
+              {/* Search box & Close button */}
+              <div className="flex items-center gap-3">
+                <div className="relative w-full sm:w-60">
+                  <input
+                    type="text"
+                    placeholder={isAr ? "ابحث عن موقع..." : "Search location..."}
+                    value={locationSearchQuery}
+                    onChange={(e) => setLocationSearchQuery(e.target.value)}
+                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+                  />
+                  <span className="absolute right-3 top-2.5 text-slate-500">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                </div>
+
+                <button 
+                  onClick={() => setShowLocationModal(false)}
+                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body: Grid of Location Cards */}
+            <div className="flex-1 overflow-y-auto p-6 bg-[#080a0f]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {HOOK_LOCATIONS.filter((loc) => {
+                  const search = locationSearchQuery.toLowerCase();
+                  return (
+                    loc.nameAr.toLowerCase().includes(search) ||
+                    loc.nameEn.toLowerCase().includes(search) ||
+                    loc.tag.toLowerCase().includes(search)
+                  );
+                }).map((locPreset) => {
+                  const isSelected = selectedLocationId === locPreset.id;
+                  return (
+                    <div
+                      key={locPreset.id}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedLocationId(null);
+                        } else {
+                          setSelectedLocationId(locPreset.id);
+                          setAttachedFiles((prev) => {
+                            const exists = prev.some((f) => f.url === locPreset.imageUrl);
+                            if (exists) return prev;
+                            return [
+                              ...prev,
+                              {
+                                id: `location-${locPreset.id}-${Date.now()}`,
+                                url: locPreset.imageUrl,
+                                name: locPreset.nameAr,
+                                type: "image",
+                              },
+                            ];
+                          });
+                        }
+                        setShowLocationModal(false);
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
+                        isSelected
+                          ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-500/5"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
+                      }`}
+                    >
+                      {/* Image Preview */}
+                      <div className="aspect-[4/3] w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60">
+                        <img
+                          src={locPreset.imageUrl}
+                          alt={locPreset.nameAr}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        {/* Checked Badge overlay */}
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 bg-sky-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info Footer */}
+                      <div className="p-3">
+                        <div className="text-xs font-bold text-slate-200 truncate group-hover:text-sky-400 transition-colors">
+                          {isAr ? locPreset.nameAr : locPreset.nameEn}
+                        </div>
+                        <div className="text-[11px] font-semibold text-sky-400 mt-0.5">
+                          {locPreset.tag}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
