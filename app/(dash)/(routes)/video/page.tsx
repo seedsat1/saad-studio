@@ -2718,7 +2718,13 @@ function VideoPageInner() {
             ) : (
               <>
                 <Film size={12} />
-                <span>{activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}</span>
+                <span>
+                  {activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}
+                  {" · "}
+                  <span style={{ color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f", fontWeight: 700 }}>
+                    {estimatedCredits} cr
+                  </span>
+                </span>
                 {pendingTasks.size > 0 && (
                   <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
                     {pendingTasks.size}

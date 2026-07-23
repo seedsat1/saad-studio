@@ -110,14 +110,74 @@ export function ReferenceStudioModal({
     } catch {}
   };
 
+const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
+  {
+    id: "preset-1",
+    url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
+    name: "Red Sneakers Product",
+    type: "image",
+    createdAt: new Date("2026-07-15").getTime(),
+  },
+  {
+    id: "preset-2",
+    url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+    name: "Wireless Headphones",
+    type: "image",
+    createdAt: new Date("2026-07-10").getTime(),
+  },
+  {
+    id: "preset-3",
+    url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
+    name: "Luxury Smart Watch",
+    type: "image",
+    createdAt: new Date("2026-07-02").getTime(),
+  },
+  {
+    id: "preset-4",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80",
+    name: "Portrait Model Shot",
+    type: "image",
+    createdAt: new Date("2026-06-25").getTime(),
+  },
+  {
+    id: "preset-5",
+    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=600&q=80",
+    name: "Fashion Studio Shoot",
+    type: "image",
+    createdAt: new Date("2026-06-18").getTime(),
+  },
+  {
+    id: "preset-6",
+    url: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=600&q=80",
+    name: "Cosmetic Bottle",
+    type: "image",
+    createdAt: new Date("2026-06-05").getTime(),
+  },
+  {
+    id: "preset-7",
+    url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80",
+    name: "Modern Architecture",
+    type: "image",
+    createdAt: new Date("2026-05-28").getTime(),
+  },
+  {
+    id: "preset-8",
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80",
+    name: "Corporate Presenter",
+    type: "image",
+    createdAt: new Date("2026-05-14").getTime(),
+  },
+];
+
   const fetchUserAssets = async () => {
     setIsLoadingAssets(true);
     try {
       const res = await fetch("/api/assets", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) {
-          const mapped: UploadedItem[] = data
+        const rawList = Array.isArray(data) ? data : Array.isArray(data?.assets) ? data.assets : [];
+        if (rawList.length > 0) {
+          const mapped: UploadedItem[] = rawList
             .filter((item: any) => item.url && (item.type === "image" || item.type === "video"))
             .map((item: any) => ({
               id: item.id || `asset-${Math.random()}`,
@@ -127,10 +187,15 @@ export function ReferenceStudioModal({
               createdAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
             }));
           setServerAssets(mapped);
+        } else {
+          setServerAssets(DEFAULT_PRESET_ASSETS);
         }
+      } else {
+        setServerAssets(DEFAULT_PRESET_ASSETS);
       }
     } catch (err) {
       console.error("Failed to fetch user assets:", err);
+      setServerAssets(DEFAULT_PRESET_ASSETS);
     } finally {
       setIsLoadingAssets(false);
     }
@@ -145,7 +210,9 @@ export function ReferenceStudioModal({
   const allCombinedAssets = useMemo(() => {
     const map = new Map<string, UploadedItem>();
     uploadedItems.forEach((item) => map.set(item.url, item));
-    serverAssets.forEach((item) => {
+    
+    const assetsToUse = serverAssets.length > 0 ? serverAssets : DEFAULT_PRESET_ASSETS;
+    assetsToUse.forEach((item) => {
       if (!map.has(item.url)) {
         map.set(item.url, item);
       }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SimpleToast from "../../../../components/SimpleToast";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { getGenerationCostSync } from "@/lib/pricing";
 
 /* ───────────────────────── static scene data ───────────────────────── */
 
@@ -358,6 +359,22 @@ export default function NextSceneEnginePage() {
   const dragCounter = useRef(0);
 
   const availableDurations = MODEL_DURATIONS[selectedModel] ?? MODEL_DURATIONS.kling;
+
+  const estimatedCredits = useMemo(() => {
+    const routes: Record<string, { t2v: string; i2v: string }> = {
+      kling:    { t2v: "kwaivgi/kling-v3.0-pro/text-to-video", i2v: "kwaivgi/kling-v3.0-pro/text-to-video" },
+      seedance: { t2v: "bytedance/seedance-v2/text-to-video",  i2v: "bytedance/seedance-v2/text-to-video" },
+      minimax:  { t2v: "kling/v2-5-turbo-text-to-video-pro",   i2v: "minimax/hailuo-2.3/i2v-pro" },
+    };
+    const modelRoutes = routes[selectedModel] ?? routes.kling;
+    const modelRoute = uploadedImage ? modelRoutes.i2v : modelRoutes.t2v;
+    const q = quality === "pro" || quality === "1080p" ? "pro" : "std";
+    try {
+      return Math.max(1, Math.ceil(getGenerationCostSync(modelRoute, duration, 1, q)));
+    } catch {
+      return 0;
+    }
+  }, [selectedModel, uploadedImage, duration, quality]);
 
   const handleModelChange = useCallback((model: string) => {
     setSelectedModel(model);
@@ -800,7 +817,7 @@ export default function NextSceneEnginePage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Generate
+                    Generate · <span style={{ color: "#fbb11f", fontWeight: 700 }}>{estimatedCredits} cr</span>
                   </>
                 )}
               </button>

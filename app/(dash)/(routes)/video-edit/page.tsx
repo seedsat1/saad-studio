@@ -644,7 +644,11 @@ function VideoEditPageContent() {
               ) : (
                 <>
                   <Sparkles size={14} />
-                  <span>Generate & Edit Video</span>
+                  <span>
+                    Generate & Edit Video
+                    {" · "}
+                    <span style={{ color: "#fbb11f", fontWeight: 700 }}>{creditsCost} cr</span>
+                  </span>
                 </>
               )}
             </button>
