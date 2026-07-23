@@ -1150,7 +1150,8 @@ export interface HookEffectPreset {
   nameEn: string;
   imageUrl: string;
   category: "color" | "lighting" | "mood" | "action";
-  promptDescription: string;
+  promptDescription?: string;
+  systemPromptAddon: string;
 }
 
 export const HOOK_EFFECTS: HookEffectPreset[] = [
@@ -1162,6 +1163,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     nameEn: "Earthy Warm Tones",
     imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
     category: "color",
+    promptDescription: "Earthy natural color grade, warm ochre and terracotta muted tones, organic feel.",
     systemPromptAddon: "Earthy natural color grade, warm ochre and terracotta muted tones, organic feel."
   },
   {

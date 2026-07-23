@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { spendCredits, InsufficientCreditsError, refundGenerationCharge } from "@/lib/credit-ledger";
-import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS } from "@/lib/hook-studio-config";
+import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
 
@@ -291,6 +291,8 @@ export async function POST(req: NextRequest) {
       artStyle = "photorealistic",
       selectedElementId = null,
       selectedLocationId = null,
+      selectedCameraId = null,
+      selectedEffectId = null,
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -335,6 +337,8 @@ export async function POST(req: NextRequest) {
     const selectedStyle = HOOK_STYLES.find((s) => s.id === artStyle) || HOOK_STYLES[0];
     const selectedElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
     const selectedLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
+    const selectedCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
+    const selectedEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
     const selectedBrain = LLM_BRAIN_MODELS.find((b) => b.id === llmBrain) || LLM_BRAIN_MODELS[0];
     let safeDuration = normalizeDurationSeconds(duration);
     if (selectedModel.id === "kling-3.0-pro" || selectedModel.id === "kling-3.0-turbo" || selectedModel.id === "kling-o3-omni") {
@@ -466,7 +470,7 @@ export async function POST(req: NextRequest) {
             messages: [
               { role: "system", content: systemPrompt },
               ...formattedHistory,
-              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + (selectedElement ? ("\nElement Reference Tag: " + selectedElement.tag + " (" + selectedElement.promptDescription + ")") : "") + (selectedLocation ? ("\nLocation Reference Tag: " + selectedLocation.tag + " (" + selectedLocation.promptDescription + ")") : "") + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
+              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + (selectedElement ? ("\nElement Reference Tag: " + selectedElement.tag + " (" + selectedElement.promptDescription + ")") : "") + (selectedLocation ? ("\nLocation Reference Tag: " + selectedLocation.tag + " (" + selectedLocation.promptDescription + ")") : "") + (selectedCamera ? ("\nCamera Motion Tag: " + selectedCamera.tag + " (" + selectedCamera.promptDescription + ")") : "") + (selectedEffect ? ("\nEffect/Lighting Tag: " + selectedEffect.tag + " (" + (selectedEffect.systemPromptAddon || selectedEffect.promptDescription || "") + ")") : "") + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
             ],
             response_format: { type: "json_object" }
           });
