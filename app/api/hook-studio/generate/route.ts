@@ -96,6 +96,19 @@ function resolveHookWavespeedRoute(modelId: string, apiRoute: string, hasStartIm
   return apiRoute;
 }
 
+function getInternalImageModelId(modelId: string, hasRefs: boolean): string {
+  if (modelId === "seedream-5.0-pro") {
+    return "seedream/5-pro";
+  }
+  if (modelId === "gpt-image-2") {
+    return hasRefs ? "gpt-image-2-image-to-image" : "gpt-image-2-text-to-image";
+  }
+  if (modelId === "nano-banana-pro") {
+    return "nano-banana-pro";
+  }
+  return "seedream/5-pro"; // fallback
+}
+
 function normalizeKlingStdDuration(value: unknown) {
   const parsed =
     typeof value === "number"
@@ -337,71 +350,38 @@ export async function POST(req: NextRequest) {
     );
 
     if (executeStoryboard && executeAsImage) {
-      const cost = 4; // 1 credit per image, 4 images = 4 credits
-      let newBalance = 0;
-      let generationId: string | null = null;
-      try {
-        const charge = await spendCredits({
-          userId,
-          credits: cost,
-          prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] Image Scenes: ${prompt}`,
-          assetType: "IMAGE",
-          modelUsed: "seedream-5.0-pro",
-          resolution: "1k",
-          aspectRatio: aspectRatio,
-          providerName: "WaveSpeed",
-          providerModel: "bytedance/seedream-v5.0-pro",
-        });
-        newBalance = charge.remainingCredits;
-        generationId = charge.generationId;
-      } catch (err: any) {
-        if (err instanceof InsufficientCreditsError) {
-          return NextResponse.json(
-            { error: "رصيد الكريدت غير كافٍ لتوليد الصور", requiredCredits: err.requiredCredits },
-            { status: 402 }
-          );
-        }
-        throw err;
-      }
-
-      const apiKey = process.env.WAVESPEED_API_KEY;
-      if (!apiKey) {
-        if (generationId) {
-          await refundGenerationCharge(generationId, userId, cost, {
-            reason: "generation_refund_provider_failed",
-            clearMediaUrl: true,
-          }).catch(() => {});
-        }
-        return NextResponse.json({ error: "مفتاح API الخاص بـ WaveSpeed غير مكوّن على الخادم." }, { status: 500 });
-      }
-
       try {
         const imagePromises = scenePrompts.slice(0, 4).map(async (scene: any, idx: number) => {
           const scenePrompt = `${scene.prompt || scene.description || ""}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`;
-          const res = await fetch("https://api.wavespeed.ai/api/v3/bytedance/seedream-v5.0-pro", {
+          const internalModelId = getInternalImageModelId(selectedModel.id, safeRefImages.length > 0);
+          
+          const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}/api/generate/image`, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${apiKey}`,
               "Content-Type": "application/json",
+              Cookie: req.headers.get("cookie") || "",
+              Authorization: req.headers.get("authorization") || "",
             },
             body: JSON.stringify({
               prompt: scenePrompt,
-              aspect_ratio: aspectRatio === "source" ? "1:1" : aspectRatio,
-              output_format: "png",
-              resolution: "1k",
+              modelId: internalModelId,
+              aspectRatio: aspectRatio === "source" ? "1:1" : aspectRatio,
+              quality: quality || "std",
+              imageUrl: safeRefImages[0] || undefined,
+              imageUrls: safeRefImages.length > 0 ? safeRefImages : undefined,
             }),
           });
           const data = await res.json().catch(() => null);
           if (!res.ok) {
-            console.error(`WaveSpeed scene ${idx + 1} failed:`, data);
+            console.error(`Internal image generation scene ${idx + 1} failed:`, data);
             return {
               title: scene.title || `Scene ${idx + 1}`,
               prompt: scenePrompt,
               url: null,
-              error: data?.error || data?.message || `WaveSpeed returned status ${res.status}`
+              error: data?.error || `Internal generation returned status ${res.status}`
             };
           }
-          const url = data?.output_url || data?.url || data?.data?.url || null;
+          const url = data?.mediaUrl || data?.mediaUrls?.[0] || null;
           return {
             title: scene.title || `Scene ${idx + 1}`,
             prompt: scenePrompt,
@@ -414,18 +394,8 @@ export async function POST(req: NextRequest) {
 
         if (imageUrls.length === 0) {
           const failedResults = results.map(r => r.error).filter(Boolean);
-          const detailMsg = failedResults.length > 0 ? failedResults[0] : "WaveSpeed API returned empty outputs";
+          const detailMsg = failedResults.length > 0 ? failedResults[0] : "API returned empty outputs";
           throw new Error(`لم يتم توليد أي صور بنجاح. السبب: ${detailMsg}`);
-        }
-
-        if (generationId) {
-          await prismadb.generation.update({
-            where: { id: generationId },
-            data: {
-              mediaUrl: imageUrls.join(","),
-              status: "completed",
-            },
-          });
         }
 
         return NextResponse.json({
@@ -433,17 +403,9 @@ export async function POST(req: NextRequest) {
           mode: "image",
           imageUrls,
           results,
-          creditsDeducted: cost,
-          remainingCredits: newBalance,
         });
       } catch (genErr: any) {
-        console.error("WaveSpeed image storyboard dispatch error:", genErr);
-        if (generationId) {
-          await refundGenerationCharge(generationId, userId, cost, {
-            reason: "generation_refund_provider_failed",
-            clearMediaUrl: true,
-          }).catch(() => {});
-        }
+        console.error("Internal image storyboard dispatch error:", genErr);
         return NextResponse.json({ error: genErr.message || "حدث خطأ أثناء توليد صور المشاهد" }, { status: 400 });
       }
     }
