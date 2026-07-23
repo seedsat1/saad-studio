@@ -197,6 +197,7 @@ export async function startVeoGeneration(
       generation_config: {
         video_config: {
           task,
+          duration_seconds: params.durationSeconds,
         }
       }
     };

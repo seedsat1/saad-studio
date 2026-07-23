@@ -22,7 +22,7 @@ function normalizeDurationSeconds(value: unknown, fallback = 5) {
       : typeof value === "string"
         ? Number.parseInt(value, 10)
         : fallback;
-  return Number.isFinite(parsed) ? Math.min(15, Math.max(4, parsed)) : fallback;
+  return Number.isFinite(parsed) ? Math.min(15, Math.max(3, parsed)) : fallback;
 }
 
 function normalizeSeedanceMiniResolution(value: unknown) {
@@ -590,6 +590,7 @@ export async function POST(req: NextRequest) {
               aspect_ratio: aspectRatio,
               duration: safeDuration,
               resolution: quality || "720p",
+              image: safeRefImages[0],
               reference_image_urls: safeRefImages,
               reference_video_urls: safeRefVideos,
               reference_audio_urls: safeRefAudios,

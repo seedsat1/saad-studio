@@ -693,6 +693,9 @@ export default function HookStudioPage() {
           hookAngle: selectedHookAngle,
           scenePrompts: hookData.scenes,
           executeStoryboard: true,
+          refImages: hookData.refImages || [],
+          refVideos: hookData.refVideos || [],
+          refAudios: hookData.refAudios || [],
         }),
       });
 
@@ -784,6 +787,9 @@ export default function HookStudioPage() {
           scenePrompts: hookData.scenes,
           executeStoryboard: true,
           executeAsImage: true,
+          refImages: hookData.refImages || [],
+          refVideos: hookData.refVideos || [],
+          refAudios: hookData.refAudios || [],
         }),
       });
 
@@ -1017,6 +1023,9 @@ export default function HookStudioPage() {
           scenes,
           videoUrl: "",
           modelRecommendation: recommendedModel,
+          refImages,
+          refVideos,
+          refAudios,
         };
 
         // Update latest storyboard in state
