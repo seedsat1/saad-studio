@@ -1304,7 +1304,7 @@ export default function CinematicVideoPage() {
                     ) : (
                       <>
                         <Film className="h-4 w-4" />
-                        Action
+                        Action · {cost}c
                       </>
                     )}
                     <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />

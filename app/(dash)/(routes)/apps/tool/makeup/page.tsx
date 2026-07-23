@@ -437,7 +437,7 @@ export default function MakeupPage() {
             {isGenerating ? (
               <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Processing…</span>
             ) : (
-              <span className="flex items-center justify-center gap-2"><Wand2 size={15} /> Apply Makeup</span>
+              <span className="flex items-center justify-center gap-2"><Wand2 size={15} /> Apply Makeup · <span style={{ color: "#fbb11f" }}>{CREDIT_COST} cr</span></span>
             )}
           </motion.button>
           <div className="text-center mt-2.5 text-[10px]" style={{ color: "#475569" }}>

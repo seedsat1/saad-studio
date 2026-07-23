@@ -1220,7 +1220,13 @@ export default function CinematicStylesPage() {
                 className="flex h-14 flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-black text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status === "processing" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {status === "processing" ? "Processing" : "Generate"}
+                {status === "processing"
+                  ? "Processing"
+                  : providerMode === "local"
+                    ? "Generate (Free)"
+                    : quotedCredits != null
+                      ? `Generate · ${quotedCredits} cr`
+                      : "Generate"}
               </button>
             </div>
             <button

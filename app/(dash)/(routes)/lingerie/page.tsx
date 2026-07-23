@@ -356,7 +356,7 @@ export default function LingerieStudioPage() {
           ) : (
             <>
               <Wand2 className="w-5 h-5 text-pink-200" />
-              <span>توليد وتجسيد الأزياء ✨</span>
+              <span>توليد وتجسيد الأزياء · <span style={{ color: "#fbb11f" }}>2 كريدت</span> ✨</span>
             </>
           )}
         </button>

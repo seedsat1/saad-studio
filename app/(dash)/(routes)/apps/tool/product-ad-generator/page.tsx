@@ -409,7 +409,7 @@ export default function ProductAdGeneratorPage() {
               {isGenerating ? (
                 <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
               ) : (
-                <><Sparkles className="w-4 h-4" />Generate {numScenes} Scenes</>
+                <><Sparkles className="w-4 h-4" />Generate {numScenes} Scenes · <span style={{ color: "#fbb11f" }}>{totalCredits} cr</span></>
               )}
             </button>
 

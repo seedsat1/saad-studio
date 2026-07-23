@@ -444,7 +444,7 @@ const ImageGeneratePage = () => {
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4" />
-                        Generate Image
+                        Generate Image · <span style={{ color: "#fbb11f" }}>2 cr</span>
                       </>
                     )}
                   </span>

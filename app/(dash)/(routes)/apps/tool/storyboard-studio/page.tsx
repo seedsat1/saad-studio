@@ -1020,7 +1020,7 @@ export default function StoryboardProductionPage() {
               ) : (
                 <>
                   <Sparkles size={13} />
-                  <span>Generate Storyboard</span>
+                  <span>Generate Storyboard · <span style={{ color: "#fbb11f" }}>{totalCost} cr</span></span>
                 </>
               )}
             </button>

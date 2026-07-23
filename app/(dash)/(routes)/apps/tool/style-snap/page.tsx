@@ -276,7 +276,7 @@ export default function StyleSnapPage() {
                 {isGenerating ? (
                   <span className="flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Generating…</span>
                 ) : (
-                  <span className="flex items-center justify-center gap-2"><Sparkles size={15} /> Generate Character</span>
+                  <span className="flex items-center justify-center gap-2"><Sparkles size={15} /> Generate Character · <span style={{ color: "#fbb11f" }}>{CREDIT_COST} cr</span></span>
                 )}
               </motion.button>
               <p className="text-center mt-2 text-[10px]" style={{ color: "#475569" }}>

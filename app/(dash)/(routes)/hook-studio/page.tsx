@@ -51,6 +51,7 @@ import {
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
+import { getGenerationCostSync } from "@/lib/pricing";
 
 interface AttachedFile {
   id: string;
@@ -475,6 +476,17 @@ export default function HookStudioPage() {
   const activeGenreObj =
     HOOK_GENRES.find((g) => g.id === selectedGenre) || HOOK_GENRES[0];
   const isImageModel = activeVideoModelObj.durations[0] === 0;
+
+  const dynamicVideoCredits = (() => {
+    try {
+      const dur = Number.parseInt(selectedDuration, 10) || 5;
+      const c = getGenerationCostSync(activeVideoModelObj.apiRoute, dur, 1, selectedQuality);
+      return Math.max(1, Math.ceil(c));
+    } catch {
+      return activeVideoModelObj.creditCost;
+    }
+  })();
+  const dynamicScenesCredits = dynamicVideoCredits; // storyboard scene stills use same base
 
   // Auto-scroll to bottom of chat feed when a new message is added or changed
   useEffect(() => {
@@ -1277,7 +1289,7 @@ export default function HookStudioPage() {
                               className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
                             >
                               <Play className="w-3.5 h-3.5 fill-white" />
-                              <span>{isAr ? "🎬 إنتاج فيديو كامل (15 ك)" : "🎬 Produce Full Video (15c)"}</span>
+                              <span>{isAr ? `🎬 إنتاج فيديو كامل (${dynamicVideoCredits} ك)` : `🎬 Produce Full Video (${dynamicVideoCredits}c)`}</span>
                             </button>
                           )}
                           <button

@@ -390,7 +390,7 @@ export default function FaceSwapPage(props: any) {
                 ) : (
                   <>
                     <Sparkles className="h-4.5 w-4.5" />
-                    <span>{t("Face Swap for Free")}</span>
+                    <span>{t("Face Swap")} · <span style={{ color: "#fbb11f" }}>{CREDIT_COST} cr</span></span>
                   </>
                 )}
               </button>

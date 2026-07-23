@@ -755,8 +755,8 @@ export default function RelightPage(props: any) {
             )}
           >
             <span>{t("Generate")}</span>
-            <span className="inline-flex items-center text-[10px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1">
-              {t("5 Free Gens")}
+            <span className="inline-flex items-center text-[10px] bg-black/10 px-1.5 py-0.5 rounded font-black ml-1" style={{ color: "#fbb11f" }}>
+              {CREDIT_COST} cr
             </span>
           </button>
 

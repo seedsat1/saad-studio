@@ -659,19 +659,19 @@ export default function ClipCraftStudioPage() {
   const getExportButtonConfig = () => {
     switch (activeTool) {
       case "captions":
-        return { label: "Export Captions", color: "bg-blue-600 text-slate-100 hover:bg-blue-550" };
+        return { label: "Export Captions · ~10 cr/min", color: "bg-blue-600 text-slate-100 hover:bg-blue-550" };
       case "dubbing":
-        return { label: "Export", color: "bg-purple-650 text-slate-100 hover:bg-purple-550" };
+        return { label: "Export · ~24 cr/min", color: "bg-purple-650 text-slate-100 hover:bg-purple-550" };
       case "reframe":
-        return { label: "Export All", color: "bg-rose-500 text-slate-100 hover:bg-rose-450" };
+        return { label: "Export All · ~16 cr/min", color: "bg-rose-500 text-slate-100 hover:bg-rose-450" };
       case "transcription":
-        return { label: "Export", color: "bg-teal-500 text-slate-950 hover:bg-teal-400" };
+        return { label: "Export · ~6 cr/min", color: "bg-teal-500 text-slate-950 hover:bg-teal-400" };
       case "edit-videos":
-        return { label: "Export Video", color: "bg-orange-500 text-slate-950 hover:bg-orange-400" };
+        return { label: "Export Video · ~30 cr/min", color: "bg-orange-500 text-slate-950 hover:bg-orange-400" };
       case "audiogram":
-        return { label: "Export", color: "bg-violet-650 text-slate-100 hover:bg-violet-550" };
+        return { label: "Export · ~10 cr/min", color: "bg-violet-650 text-slate-100 hover:bg-violet-550" };
       default:
-        return { label: "Export", color: "bg-cyan-500 text-slate-950 hover:bg-cyan-400" };
+        return { label: "Export · pay per minute", color: "bg-cyan-500 text-slate-950 hover:bg-cyan-400" };
     }
   };
 
