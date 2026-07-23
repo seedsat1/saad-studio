@@ -1117,9 +1117,26 @@ export default function HookStudioPage() {
           generatedHook: generatedHookObj,
         };
         setMessages((prev) => [...prev, agentMessage]);
+      } else {
+        const errorText = data?.error || (isAr ? "يلزم وجود اشتراك مدفوع أو رصيد كريديت لاستخدام الوكيل." : "Paid subscription or credit balance required to use agent.");
+        const agentMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          sender: "agent",
+          text: `⚠️ ${errorText}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, agentMessage]);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      const errorText = err.message || (isAr ? "حدث خطأ أثناء الاتصال بالخادم" : "Error connecting to server");
+      const agentMessage: ChatMessage = {
+        id: Math.random().toString(36).substr(2, 9),
+        sender: "agent",
+        text: `❌ ${errorText}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, agentMessage]);
     } finally {
       setIsGenerating(false);
     }

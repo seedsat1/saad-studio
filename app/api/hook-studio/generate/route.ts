@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { spendCredits, InsufficientCreditsError, refundGenerationCharge } from "@/lib/credit-ledger";
+import { spendCredits, InsufficientCreditsError, refundGenerationCharge, ensureUserRow } from "@/lib/credit-ledger";
 import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
@@ -274,6 +274,19 @@ export async function POST(req: NextRequest) {
     const { userId } = auth();
     if (!userId) {
       return NextResponse.json({ error: "غير مصرح لك للوصول" }, { status: 401 });
+    }
+
+    // Strict Subscription & Credit Guard for Agent Chat and Storyboard
+    const dbUser = await ensureUserRow(userId);
+    if (!dbUser || dbUser.creditBalance <= 0) {
+      return NextResponse.json(
+        {
+          error: "يرجى الاشتراك في إحدى باقات Saad Studio أو شحن رصيد الكريديت لبدء استخدام واستشارة وكيل الهوك ستوديو.",
+          requireSubscription: true,
+          currentCredits: dbUser?.creditBalance ?? 0,
+        },
+        { status: 402 }
+      );
     }
 
     const body = await req.json();
