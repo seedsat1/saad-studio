@@ -25,11 +25,13 @@ import {
   FileAudio,
   FileText,
   UploadCloud,
+  Scissors,
 } from "lucide-react";
 import {
   LLM_BRAIN_MODELS,
   HOOK_GENRES,
   HOOK_VIDEO_MODELS,
+  HOOK_STYLES,
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
@@ -325,6 +327,7 @@ export default function HookStudioPage() {
   const [generateAudio, setGenerateAudio] = useState(true);
   const [selectedGenre, setSelectedGenre] = useState("advertising");
   const [selectedHookAngle, setSelectedHookAngle] = useState("brand-reveal");
+  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -341,6 +344,7 @@ export default function HookStudioPage() {
     url: string;
     title?: string;
   } | null>(null);
+  const [removingBgUrl, setRemovingBgUrl] = useState<string | null>(null);
 
   // Chat Feed Messages & latest storyboard state
   const [latestStoryboard, setLatestStoryboard] = useState<any>(null);
@@ -447,6 +451,7 @@ export default function HookStudioPage() {
     ratio: isAr ? "الأبعاد" : "RATIO",
     quality: isAr ? "الجودة" : "QUALITY",
     genre: isAr ? "النوع" : "GENRE",
+    artStyle: isAr ? "الأسلوب الفني / الستايل" : "ART STYLE",
     hookAngle: isAr ? "زاوية الهوك" : "HOOK ANGLE",
     systemAgent: isAr ? "عميل النظام • نشط" : "SYSTEM AGENT • Active",
     generatedHookHeader: isAr ? "🎬 الهوك المولد" : "🎬 Generated Video Hook",
@@ -988,6 +993,7 @@ export default function HookStudioPage() {
           quality: selectedQuality,
           generateAudio,
           hookAngle: selectedHookAngle,
+          artStyle: selectedStyle,
           refImages,
           refVideos,
           refAudios,
@@ -1093,6 +1099,29 @@ export default function HookStudioPage() {
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       window.open(url, "_blank");
+    }
+  };
+
+  const handleRemoveBackground = async (url: string) => {
+    if (removingBgUrl) return;
+    setRemovingBgUrl(url);
+    try {
+      const res = await fetch("/api/generate/remove-bg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to remove background");
+      }
+      if (data.imageUrl) {
+        await handleDownload(data.imageUrl, "transparent-scene.png");
+      }
+    } catch (err: any) {
+      alert(isAr ? `خطأ أثناء إزالة الخلفية: ${err.message}` : `Error removing background: ${err.message}`);
+    } finally {
+      setRemovingBgUrl(null);
     }
   };
 
@@ -1305,6 +1334,18 @@ export default function HookStudioPage() {
                                   title={isAr ? "تحميل الصورة" : "Download Image"}
                                 >
                                   <Download className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveBackground(url)}
+                                  disabled={removingBgUrl !== null}
+                                  className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
+                                  title={isAr ? "تصدير مفرغ PNG" : "Export Transparent PNG"}
+                                >
+                                  {removingBgUrl === url ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                                  ) : (
+                                    <Scissors className="w-3.5 h-3.5" />
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -1669,6 +1710,24 @@ export default function HookStudioPage() {
                 <option value="heritage-pride">{isAr ? "فخر تراثي" : "Heritage Pride"}</option>
                 <option value="fear-tension">{isAr ? "توتر ورعب" : "Fear & Tension"}</option>
                 <option value="product-proof">{isAr ? "إثبات المنتج" : "Product Proof"}</option>
+              </select>
+            </div>
+
+            {/* Hook Style */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {t.artStyle}
+              </label>
+              <select
+                value={selectedStyle}
+                onChange={(e) => setSelectedStyle(e.target.value)}
+                className="w-full bg-[#11141e] text-xs text-slate-200 border border-slate-800 rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 font-medium cursor-pointer"
+              >
+                {HOOK_STYLES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {isAr ? s.nameAr : s.nameEn}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

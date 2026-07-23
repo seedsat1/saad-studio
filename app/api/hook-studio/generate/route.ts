@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { spendCredits, InsufficientCreditsError, refundGenerationCharge } from "@/lib/credit-ledger";
-import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS } from "@/lib/hook-studio-config";
+import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
 
@@ -288,6 +288,7 @@ export async function POST(req: NextRequest) {
       quality = "pro",
       generateAudio = true,
       hookAngle = "brand-reveal",
+      artStyle = "photorealistic",
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -329,6 +330,7 @@ export async function POST(req: NextRequest) {
 
     const selectedModel = HOOK_VIDEO_MODELS.find((m) => m.id === modelId) || HOOK_VIDEO_MODELS[0];
     const selectedGenre = HOOK_GENRES.find((g) => g.id === genre) || HOOK_GENRES[0];
+    const selectedStyle = HOOK_STYLES.find((s) => s.id === artStyle) || HOOK_STYLES[0];
     const selectedBrain = LLM_BRAIN_MODELS.find((b) => b.id === llmBrain) || LLM_BRAIN_MODELS[0];
     let safeDuration = normalizeDurationSeconds(duration);
     if (selectedModel.id === "kling-3.0-pro" || selectedModel.id === "kling-3.0-turbo" || selectedModel.id === "kling-o3-omni") {
@@ -352,7 +354,10 @@ export async function POST(req: NextRequest) {
     if (executeStoryboard && executeAsImage) {
       try {
         const imagePromises = scenePrompts.slice(0, 4).map(async (scene: any, idx: number) => {
-          const scenePrompt = `${scene.prompt || scene.description || ""}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`;
+          let scenePrompt = `${scene.prompt || scene.description || ""}. [Style: ${selectedGenre.nameEn}. ${selectedStyle.systemPromptAddon}. ${selectedGenre.systemPromptAddon}]`;
+          if (safeRefImages.length > 0) {
+            scenePrompt += ` Maintain strict character and style consistency matching the reference image.`;
+          }
           const internalModelId = getInternalImageModelId(selectedModel.id, safeRefImages.length > 0);
           
           const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}/api/generate/image`, {
@@ -457,7 +462,7 @@ export async function POST(req: NextRequest) {
             messages: [
               { role: "system", content: systemPrompt },
               ...formattedHistory,
-              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
+              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
             ],
             response_format: { type: "json_object" }
           });
@@ -558,7 +563,7 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             modelRoute: selectedModel.apiRoute,
             payload: {
-              prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
+              prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedStyle.systemPromptAddon}. ${selectedGenre.systemPromptAddon}]${safeRefImages.length > 0 ? " Maintain strict character and style consistency matching the reference image." : ""}`,
               aspect_ratio: aspectRatio,
               duration: safeDuration,
               resolution: quality || "720p",
@@ -599,7 +604,7 @@ export async function POST(req: NextRequest) {
     } else if (waveKey) {
       try {
         const payload: Record<string, any> = {
-          prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
+          prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedStyle.systemPromptAddon}. ${selectedGenre.systemPromptAddon}]${safeRefImages.length > 0 ? " Maintain strict character and style consistency matching the reference image." : ""}`,
           duration: safeDuration,
           resolution:
             selectedModel.id === "seedance-2.0-pro"

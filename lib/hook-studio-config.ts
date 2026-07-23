@@ -394,3 +394,49 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
   },
 ];
 
+export interface HookStylePreset {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  systemPromptAddon: string;
+}
+
+export const HOOK_STYLES: HookStylePreset[] = [
+  {
+    id: "photorealistic",
+    nameAr: "واقعي / تصوير طبيعي",
+    nameEn: "Photorealistic",
+    systemPromptAddon: "Photorealistic style, captured on 35mm lens, natural textures, highly detailed, realistic lighting."
+  },
+  {
+    id: "anime",
+    nameAr: "أنمي / رسوم متحركة",
+    nameEn: "Anime / Cel-shaded",
+    systemPromptAddon: "Modern anime style, vibrant color grading, cel-shaded characters, beautifully hand-drawn backgrounds."
+  },
+  {
+    id: "3d-pixar",
+    nameAr: "ثلاثي الأبعاد / بيكسار",
+    nameEn: "3D Render / Pixar style",
+    systemPromptAddon: "3D animated style, soft volumetric lighting, clay textures, cute character design, Pixar aesthetic."
+  },
+  {
+    id: "cyberpunk",
+    nameAr: "سايبربانك / مستقبلي",
+    nameEn: "Cyberpunk / Futuristic",
+    systemPromptAddon: "Cyberpunk aesthetic, neon lighting, rainy streets at night, holographic displays, futuristic details."
+  },
+  {
+    id: "fantasy",
+    nameAr: "فانتازيا / خيالي",
+    nameEn: "Fantasy / Ethereal",
+    systemPromptAddon: "Fantasy style, magical glowing lights, mystical environment, ethereal atmosphere, epic movie concept art."
+  },
+  {
+    id: "oil-painting",
+    nameAr: "لوحة زيتية / كلاسيكي",
+    nameEn: "Oil Painting",
+    systemPromptAddon: "Classic oil painting style, visible brush strokes, rich warm color palette, fine art texture."
+  }
+];
+
