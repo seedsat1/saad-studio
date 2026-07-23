@@ -1,6 +1,28 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Hook Studio Reference Media, Duration, Auto-Scroll, Clipboard Paste, and Dynamic Stills Model Routing Updates (2026-07-23)
+#### Latest task: Art Style Presets Dropdown, Character Consistency, and Background Removal Transparent PNG Export in Hook Studio (2026-07-23)
+
+- Status:
+  Implemented three critical features in Hook Studio:
+  1. **Art Style Presets Dropdown**:
+     - Defined `HOOK_STYLES` inside `lib/hook-studio-config.ts` containing key presets (Photorealistic, Anime, 3D Pixar, Cyberpunk, Fantasy, Oil Painting).
+     - Bound the selection to `selectedStyle` state and rendered a new dropdown selection block in the sidebar beneath the Hook Angle dropdown.
+     - Passed `artStyle` to the generation backend in `/api/hook-studio/generate`.
+  2. **Character and Style Consistency Support**:
+     - Configured the generation backend to resolve `selectedStyle` and append its `systemPromptAddon` along with instructions to enforce strict character and style consistency based on the uploaded reference images.
+     - Applied these style instructions dynamically to LLM storyboard, scene still, Google Veo redirect, and WaveSpeed generation payload prompts.
+  3. **Background Removal Transparent PNG Export**:
+     - Imported the `Scissors` icon and rendered it in the hover overlay of all generated scene stills.
+     - When clicked, a loader spinner displays and calls `/api/generate/remove-bg` with the image URL, charging 4 credits, running the recraft/remove-background model, and automatically downloading the resulting transparent PNG to the user's computer.
+- Affected Files:
+  - `lib/hook-studio-config.ts` [MODIFY]
+  - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
+  - `app/api/hook-studio/generate/route.ts` [MODIFY]
+- Verification:
+  - TypeScript compilation verified cleanly.
+  - Successfully committed and pushed all changes to `origin/main` on GitHub.
+
+#### Previous task: Hook Studio Reference Media, Duration, Auto-Scroll, Clipboard Paste, and Dynamic Stills Model Routing Updates (2026-07-23)
 
 - Status:
   Fully implemented major cinematic updates, media integrations, and UI enhancements in Hook Studio:
