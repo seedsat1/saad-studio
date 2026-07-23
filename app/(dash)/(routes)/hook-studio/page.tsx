@@ -483,6 +483,13 @@ export default function HookStudioPage() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+      e.preventDefault();
+      processFiles(e.clipboardData.files);
+    }
+  };
+
   const processFiles = (files: FileList) => {
     const newFiles: AttachedFile[] = [];
     const counts = {
@@ -1451,6 +1458,7 @@ export default function HookStudioPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSendMessage();
                 }}
+                onPaste={handlePaste}
                 placeholder={t.inputPlaceholder}
                 className="flex-1 bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none py-1"
               />
