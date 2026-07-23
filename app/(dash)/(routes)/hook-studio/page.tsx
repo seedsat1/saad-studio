@@ -429,6 +429,7 @@ export default function HookStudioPage() {
     HOOK_VIDEO_MODELS.find((m) => m.id === selectedVideoModel) || HOOK_VIDEO_MODELS[0];
   const activeGenreObj =
     HOOK_GENRES.find((g) => g.id === selectedGenre) || HOOK_GENRES[0];
+  const isImageModel = activeVideoModelObj.durations[0] === 0;
 
   // Helper translations
   const t = {
@@ -1146,18 +1147,21 @@ export default function HookStudioPage() {
                     {msg.sender === "agent" && msg.generatedHook && !msg.videoTask && !msg.imageTask && (
                       <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col gap-2">
                         <span className="text-slate-400 text-[11px] mb-1">
-                          {isAr 
-                            ? "هل ترغب في إنتاج الستوريبورد كفيديو كامل أم كـ 4 صور منفصلة للمشاهد؟"
-                            : "Would you like to generate this storyboard as a full video or as 4 scene stills?"}
+                          {isImageModel
+                            ? (isAr ? "النموذج المختار مخصص للصور فقط. اضغط أدناه لتوليد لقطات المشاهد:" : "Selected model is for images only. Click below to generate scene stills:")
+                            : (isAr ? "هل ترغب في إنتاج الستوريبورد كفيديو كامل أم كـ 4 صور منفصلة للمشاهد؟" : "Would you like to generate this storyboard as a full video or as 4 scene stills?")
+                          }
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => executeStoryboardVideo(msg.id, msg.generatedHook)}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
-                          >
-                            <Play className="w-3.5 h-3.5 fill-white" />
-                            <span>{isAr ? "🎬 إنتاج فيديو كامل (15 ك)" : "🎬 Produce Full Video (15c)"}</span>
-                          </button>
+                          {!isImageModel && (
+                            <button
+                              onClick={() => executeStoryboardVideo(msg.id, msg.generatedHook)}
+                              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-white" />
+                              <span>{isAr ? "🎬 إنتاج فيديو كامل (15 ك)" : "🎬 Produce Full Video (15c)"}</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => executeStoryboardImages(msg.id, msg.generatedHook)}
                             className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"

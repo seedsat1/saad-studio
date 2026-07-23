@@ -365,7 +365,13 @@ export async function POST(req: NextRequest) {
 
       const apiKey = process.env.WAVESPEED_API_KEY;
       if (!apiKey) {
-        return NextResponse.json({ error: "WaveSpeed API key is not configured on the server" }, { status: 500 });
+        if (generationId) {
+          await refundGenerationCharge(generationId, userId, cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ error: "مفتاح API الخاص بـ WaveSpeed غير مكوّن على الخادم." }, { status: 500 });
       }
 
       try {
@@ -385,6 +391,15 @@ export async function POST(req: NextRequest) {
             }),
           });
           const data = await res.json().catch(() => null);
+          if (!res.ok) {
+            console.error(`WaveSpeed scene ${idx + 1} failed:`, data);
+            return {
+              title: scene.title || `Scene ${idx + 1}`,
+              prompt: scenePrompt,
+              url: null,
+              error: data?.error || data?.message || `WaveSpeed returned status ${res.status}`
+            };
+          }
           const url = data?.output_url || data?.url || data?.data?.url || null;
           return {
             title: scene.title || `Scene ${idx + 1}`,
@@ -395,6 +410,12 @@ export async function POST(req: NextRequest) {
 
         const results = await Promise.all(imagePromises);
         const imageUrls = results.map(r => r.url).filter(Boolean);
+
+        if (imageUrls.length === 0) {
+          const failedResults = results.map(r => r.error).filter(Boolean);
+          const detailMsg = failedResults.length > 0 ? failedResults[0] : "WaveSpeed API returned empty outputs";
+          throw new Error(`لم يتم توليد أي صور بنجاح. السبب: ${detailMsg}`);
+        }
 
         if (generationId) {
           await prismadb.generation.update({
@@ -416,7 +437,13 @@ export async function POST(req: NextRequest) {
         });
       } catch (genErr: any) {
         console.error("WaveSpeed image storyboard dispatch error:", genErr);
-        return NextResponse.json({ error: "حدث خطأ أثناء توليد صور المشاهد" }, { status: 500 });
+        if (generationId) {
+          await refundGenerationCharge(generationId, userId, cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ error: genErr.message || "حدث خطأ أثناء توليد صور المشاهد" }, { status: 400 });
       }
     }
 
