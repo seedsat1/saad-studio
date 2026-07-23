@@ -1,6 +1,25 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Hook Studio Storyboard Decouple & Cinematic Upgrades (2026-07-23)
+#### Latest task: Hook Studio Reference Media, Duration, Auto-Scroll, Clipboard Paste, and Dynamic Stills Model Routing Updates (2026-07-23)
+
+- Status:
+  Fully implemented major cinematic updates, media integrations, and UI enhancements in Hook Studio:
+  1. Passed reference media arrays (`refImages`, `refVideos`, `refAudios`) from frontend page to backend generate API.
+  2. Mapped first reference image to `image` and `first_frame_url` to serve as starting frames for Google Gemini Omni and Seedance 2.0.
+  3. Fixed duration limit by allowing 3 seconds minimum for Gemini Omni Flash and forwarding `duration_seconds` within the `video_config` payload to the Google Interactions API.
+  4. Added Clipboard paste (`Ctrl + V`) listener to the Hook Studio input textbox to automatically parse, upload, and attach copied images/videos.
+  5. Implemented auto-scroll to the bottom of the chat container when new messages arrive.
+  6. Refactored the `executeAsImage` scene stills block in `/api/hook-studio/generate` to dynamically route requests to the user's selected image model (Gemini 3 Pro via `Nano Banana Pro`, OpenAI via `GPT Image 2`, or WaveSpeed via `Seedream 5.0 Pro`) instead of hardcoding Seedream 5.0 Pro.
+- Affected Files:
+  - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
+  - `app/api/hook-studio/generate/route.ts` [MODIFY]
+  - `app/api/video/route.ts` [MODIFY]
+  - `lib/gemini-veo.ts` [MODIFY]
+- Verification:
+  - Verified compilation via `npx tsc --noEmit`. Only existing Framer Motion type errors in `app/(landing)/(routes)/plugin/page.tsx` remain.
+  - Successfully committed and pushed all changes to `origin/main` branch on GitHub.
+
+#### Previous task: Hook Studio Storyboard Decouple & Cinematic Upgrades (2026-07-23)
 
 - Status:
   Fully implemented decoupling of storyboard generation and video execution, integrated advanced cinematic directing terminology, expanded to Broadcast Directing (news, studios, video walls, TV reports, control room, official government coverage), and updated avatars/layout.
