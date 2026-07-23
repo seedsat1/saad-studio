@@ -399,17 +399,18 @@ export interface HookStylePreset {
   nameAr: string;
   nameEn: string;
   imageUrl: string;
-  category: "all" | "photo" | "art" | "3d";
+  category: "illustration" | "3d" | "design";
   systemPromptAddon: string;
 }
 
 export const HOOK_STYLES: HookStylePreset[] = [
+  // ── DESIGN CATEGORY ──
   {
     id: "photorealistic",
     nameAr: "تصوير واقعي",
     nameEn: "#photo",
     imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-    category: "photo",
+    category: "design",
     systemPromptAddon: "Photorealistic style, captured on 35mm lens, natural textures, highly detailed, realistic lighting."
   },
   {
@@ -417,33 +418,59 @@ export const HOOK_STYLES: HookStylePreset[] = [
     nameAr: "إضاءة طبيعية",
     nameEn: "#natural",
     imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
-    category: "photo",
+    category: "design",
     systemPromptAddon: "Natural lighting, lifestyle photography, authentic candid moment, film grain, soft highlights."
-  },
-  {
-    id: "popsurrealism",
-    nameAr: "سريالية بوب",
-    nameEn: "#popsurrealism",
-    imageUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=300&q=80",
-    category: "art",
-    systemPromptAddon: "Pop surrealism style, vibrant neon pastel colors, dreamy whimsical landscape, abstract shapes, Salvador Dali meets modern pop art."
   },
   {
     id: "editorial",
     nameAr: "تصفيف مجلات",
     nameEn: "#editorial",
     imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80",
-    category: "photo",
+    category: "design",
     systemPromptAddon: "High fashion editorial magazine style, dramatic studio lighting, rich colors, stylized composition."
   },
   {
-    id: "anime",
-    nameAr: "أنمي كلاسيكي",
-    nameEn: "#classic-anime",
-    imageUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=300&q=80",
-    category: "art",
-    systemPromptAddon: "Classic 90s anime style, hand-drawn character design, retro color palette, cell shading."
+    id: "neomemphis",
+    nameAr: "نيو ميمفيس ريترو",
+    nameEn: "#neomemphis",
+    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    category: "design",
+    systemPromptAddon: "Neo Memphis style design, bold patterns, bright geometry, colorful retro shapes, high contrast flat graphics."
   },
+  {
+    id: "boldposter",
+    nameAr: "ملصق جريء ريترو",
+    nameEn: "#boldposter",
+    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    category: "design",
+    systemPromptAddon: "Bold vintage poster style, retro saturated color palette, graphic print texture, strong typography base."
+  },
+  {
+    id: "letterpop",
+    nameAr: "بوب تيبوغرافي",
+    nameEn: "#letterpop",
+    imageUrl: "https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=300&q=80",
+    category: "design",
+    systemPromptAddon: "Pop typography art, bold lettering, vibrant neon accent hues, decorative graphic design poster."
+  },
+  {
+    id: "minimaltypo",
+    nameAr: "تيبوغرافي مبسط",
+    nameEn: "#minimaltypo",
+    imageUrl: "https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&w=300&q=80",
+    category: "design",
+    systemPromptAddon: "Minimalist layout, fine typography, black and white stark graphic design, plenty of negative space."
+  },
+  {
+    id: "coffeeshopmockup",
+    nameAr: "موك اب كوب قهوة",
+    nameEn: "#coffeeshopmockup",
+    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=300&q=80",
+    category: "design",
+    systemPromptAddon: "Realistic branding mockup, coffee cup placement on wooden shop counter, soft natural morning bokeh."
+  },
+
+  // ── 3D CATEGORY ──
   {
     id: "character3d",
     nameAr: "شخصية ثلاثية الأبعاد",
@@ -453,51 +480,125 @@ export const HOOK_STYLES: HookStylePreset[] = [
     systemPromptAddon: "3D stylized character render, octane render, soft ambient occlusion, bright clay textures, cute design."
   },
   {
-    id: "cyberpunk",
-    nameAr: "مستقبل سايبر",
-    nameEn: "#cyberpunk",
-    imageUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=300&q=80",
-    category: "art",
-    systemPromptAddon: "Cyberpunk aesthetic, neon lighting, rainy streets at night, holographic displays, futuristic details."
+    id: "claytoon",
+    nameAr: "رسوم صلصال 3D",
+    nameEn: "#claytoon",
+    imageUrl: "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Claymation style, soft 3D clay textures, handmade look, plasticine material, stop-motion animation feel."
   },
   {
-    id: "pixelart",
-    nameAr: "بكسل آرت ريترو",
-    nameEn: "#pixelart",
-    imageUrl: "https://images.unsplash.com/photo-1566241477600-ac026ad43874?auto=format&fit=crop&w=300&q=80",
-    category: "art",
-    systemPromptAddon: "16-bit retro pixel art, detailed pixelation, limited vibrant color palette, old school game console style."
+    id: "dreamglass",
+    nameAr: "زجاج حلمي متوهج",
+    nameEn: "#dreamglass",
+    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Dream glass rendering, semi-transparent frosted textures, glowing iridescent internal refraction, pastel aura."
+  },
+  {
+    id: "glam3d",
+    nameAr: "شخصية 3D متألقة",
+    nameEn: "#glam3d",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Glamorous 3D character design, highly detailed clothing, glossy hair textures, cute doll look, soft studio lighting."
+  },
+  {
+    id: "minimalcharacters",
+    nameAr: "شخصيات 3D مبسطة",
+    nameEn: "#minimalcharacters",
+    imageUrl: "https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Minimalist 3D character layout, basic geometric shapes, clean pastel color blocks, smooth rendering."
+  },
+  {
+    id: "vinyltoy",
+    nameAr: "لعبة فينيل 3D",
+    nameEn: "#vinyltoy",
+    imageUrl: "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Vinyl toy figure aesthetic, glossy smooth plastic texture, Funko Pop model layout, toy packaging style."
+  },
+  {
+    id: "motionstitched",
+    nameAr: "قماش صوف مطرز",
+    nameEn: "#motionstitched",
+    imageUrl: "https://images.unsplash.com/photo-1584992208183-b9eb816db7eb?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Felt wool animation style, stitched details, fabric textures, organic warm plush toy aesthetic."
+  },
+  {
+    id: "3dcolorful",
+    nameAr: "أشكال 3D ملونة",
+    nameEn: "#3dcolorful",
+    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Dynamic colorful 3D abstract shapes, rainbow gradient renders, high saturation glossy material."
+  },
+  {
+    id: "softprism3d",
+    nameAr: "موشور زجاجي 3D",
+    nameEn: "#softprism3d",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Soft prism glass rendering, colorful chromatic aberration, rainbow refraction beams, luxury cosmetic aesthetic."
+  },
+  {
+    id: "kawaii3d",
+    nameAr: "كاواي ياباني لطيف",
+    nameEn: "#kawaii3d",
+    imageUrl: "https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Cute Japanese Kawaii 3D model, pastel pink and sky blue colors, smiling faces, happy anime toy design."
+  },
+  {
+    id: "isometricdesign",
+    nameAr: "تصميم آيزومتريك ثلاثي الأبعاد",
+    nameEn: "#isometricdesign",
+    imageUrl: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=300&q=80",
+    category: "3d",
+    systemPromptAddon: "Isometric 3D rendering, miniature room layout, block building graphics, cute toy furniture."
+  },
+
+  // ── ILLUSTRATION CATEGORY ──
+  {
+    id: "anime",
+    nameAr: "أنمي كلاسيكي",
+    nameEn: "#classic-anime",
+    imageUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Classic 90s anime style, hand-drawn character design, retro color palette, cell shading."
+  },
+  {
+    id: "origami",
+    nameAr: "فن الأوريغامي الورقي",
+    nameEn: "#origami",
+    imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=300&q=80",
+    category: "illustration",
+    systemPromptAddon: "Origami paper art, folded clean paper textures, geometric folds, shadows, creative minimalist composition."
   },
   {
     id: "watercolor",
-    nameAr: "ألوان مائية",
+    nameAr: "رسم ألوان مائية",
     nameEn: "#watercolor",
     imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=300&q=80",
-    category: "art",
+    category: "illustration",
     systemPromptAddon: "Soft watercolor painting, visible paint bleeding, textured paper background, elegant brush strokes."
   },
   {
     id: "oilpainting",
-    nameAr: "رسم زيتي كلاسيكي",
+    nameAr: "لوحة زيتية كلاسيكية",
     nameEn: "#oilpainting",
     imageUrl: "https://images.unsplash.com/photo-1579783928621-7a13d66a6211?auto=format&fit=crop&w=300&q=80",
-    category: "art",
+    category: "illustration",
     systemPromptAddon: "Classic fine art oil painting style, visible rich impasto brush strokes, warm classical lighting, canvas texture."
   },
   {
-    id: "vector",
-    nameAr: "رسم فيكتور مسطح",
-    nameEn: "#vector",
-    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
-    category: "art",
-    systemPromptAddon: "Flat vector illustration, minimalist shapes, clean lines, solid graphic design, bold colors."
-  },
-  {
     id: "sketch",
-    nameAr: "رسم خط قلم رصاص",
+    nameAr: "خط قلم رصاص ورسم ورق",
     nameEn: "#sketch",
     imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
-    category: "art",
+    category: "illustration",
     systemPromptAddon: "Hand drawn pencil sketch, detailed crosshatching, graphite paper texture, monochrome pencil art."
   }
 ];

@@ -330,7 +330,7 @@ export default function HookStudioPage() {
   const [selectedStyle, setSelectedStyle] = useState("photorealistic");
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [styleSearchQuery, setStyleSearchQuery] = useState("");
-  const [styleActiveCategory, setStyleActiveCategory] = useState<"all" | "photo" | "art" | "3d">("all");
+  const [styleActiveCategory, setStyleActiveCategory] = useState<"all" | "illustration" | "3d" | "design">("all");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -1857,7 +1857,7 @@ export default function HookStudioPage() {
             <div className="px-6 py-4 bg-[#0a0d14] border-b border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               {/* Category tabs */}
               <div className="flex flex-wrap gap-1.5">
-                {(["all", "photo", "art", "3d"] as const).map((cat) => (
+                {(["all", "illustration", "3d", "design"] as const).map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setStyleActiveCategory(cat)}
@@ -1868,9 +1868,9 @@ export default function HookStudioPage() {
                     }`}
                   >
                     {cat === "all" && (isAr ? "الكل" : "All")}
-                    {cat === "photo" && (isAr ? "تصوير فوتوغرافي" : "Photo")}
-                    {cat === "art" && (isAr ? "رسم وفنون" : "Illustration")}
+                    {cat === "illustration" && (isAr ? "رسومات وتوضيحات" : "Illustration")}
                     {cat === "3d" && (isAr ? "ثلاثي الأبعاد" : "3D")}
+                    {cat === "design" && (isAr ? "تصاميم وتصوير" : "Design")}
                   </button>
                 ))}
               </div>
