@@ -951,7 +951,7 @@ function VideoPageInner() {
 
   const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
   const [activeStudioTab, setActiveStudioTab] = useState("style");
-  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
@@ -2747,6 +2747,7 @@ function VideoPageInner() {
             selectedCameraId={selectedCameraId}
             selectedEffectId={selectedEffectId}
             selectedCharacterId={selectedCharacterPresetId}
+            onClearStyle={() => setSelectedStyle(null)}
             onClearElement={() => setSelectedElementId(null)}
             onClearLocation={() => setSelectedLocationId(null)}
             onClearCamera={() => setSelectedCameraId(null)}

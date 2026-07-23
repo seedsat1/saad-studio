@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Replicate Unified Reference Studio & Action Tiles UI across `/image`, `/video`, and `/cinema-flow` (2026-07-24)
+
+- Status:
+  Replicated the **Unified Reference Studio Modal** and **Action Tiles UI** (`Style`, `Character`, `Add` rounded square tiles & active reference badges) onto `/image`, `/video`, and `/cinema-flow`:
+  1. **Reusable Components**:
+     - `components/ReferenceStudioModal.tsx`: Complete 11-tab reference studio modal (History, Uploads, Stock, Style, Character, Element, Location, Color, Effects, Camera, Sketch) with right drag-and-drop drop zone.
+     - `components/ReferenceActionTiles.tsx`: Horizontal rounded square dashed action tiles (`Style`, `Character`, `Add`) and active selected badges with remove handlers.
+  2. **Page Integrations**:
+     - `app/(dash)/(routes)/image/page.tsx` (`/image`): Added action tiles to parameters sidebar and modal at root. Bound attached files and tags to prompt.
+     - `app/(dash)/(routes)/video/page.tsx` (`/video`): Added action tiles to video tools sidebar and modal at root. Bound attached files to reference images array.
+     - `app/(dash)/(routes)/cinema-flow/page.tsx` (`/cinema-flow`): Added action tiles above Director Agent prompt input bar and modal at root. Bound attached files to active media references.
+  3. **Verification**:
+     - `npx tsc --noEmit` passed with 0 errors across the entire codebase.
+     - Committed and pushed changes to GitHub `main` branch (`edfa5c7`).
+
 #### Latest task: Unified Reference Studio Dialog & Sidebar Clean-up (2026-07-23)
 
 - Status:

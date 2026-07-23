@@ -48,6 +48,7 @@ import {
   HOOK_CHARACTERS,
   HOOK_SKETCHES,
 } from "@/lib/hook-studio-config";
+import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
 
@@ -342,7 +343,7 @@ export default function HookStudioPage() {
   const [generateAudio, setGenerateAudio] = useState(true);
   const [selectedGenre, setSelectedGenre] = useState("advertising");
   const [selectedHookAngle, setSelectedHookAngle] = useState("brand-reveal");
-  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [styleSearchQuery, setStyleSearchQuery] = useState("");
   const [styleActiveCategory, setStyleActiveCategory] = useState<"all" | "illustration" | "3d" | "design">("all");
@@ -1757,194 +1758,26 @@ export default function HookStudioPage() {
               </select>
             </div>
 
-            {/* Unified Reference Studio Trigger Button */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-                {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
-              </label>
-
-              {/* Quick Action Square Tiles Row (Style | Character | Add) */}
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-                {/* 1. Style Tile */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveStudioTab("style");
-                    setShowReferenceStudioModal(true);
-                  }}
-                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-indigo-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
-                >
-                  <Sparkles className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 group-hover:scale-110 transition-all duration-200" />
-                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Style</span>
-                </button>
-
-                {/* 2. Character Tile */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveStudioTab("character");
-                    setShowReferenceStudioModal(true);
-                  }}
-                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-emerald-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
-                >
-                  <User className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition-all duration-200" />
-                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Character</span>
-                </button>
-
-                {/* 3. Add Tile (Opens Reference Studio) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveStudioTab("uploads");
-                    setShowReferenceStudioModal(true);
-                  }}
-                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-sky-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
-                >
-                  <Plus className="w-5 h-5 text-slate-400 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-200" />
-                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Add</span>
-                </button>
-              </div>
-
-              {/* Active Selected Badges */}
-              {(() => {
-                const activeStyle = HOOK_STYLES.find((s) => s.id === selectedStyle);
-                const activeElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
-                const activeLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
-                const activeCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
-                const activeEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
-                const activeCharacter = HOOK_CHARACTERS.find((c) => c.id === selectedCharacterId);
-
-                const hasAnyActive = activeStyle || activeElement || activeLocation || activeCamera || activeEffect || activeCharacter;
-
-                if (!hasAnyActive) return null;
-
-                return (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {activeStyle && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("style");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 cursor-pointer hover:bg-indigo-500/20 transition-colors"
-                      >
-                        🎨 {isAr ? activeStyle.nameAr : activeStyle.nameEn}
-                      </span>
-                    )}
-
-                    {activeElement && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("element");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 transition-colors"
-                      >
-                        📦 {activeElement.tag}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedElementId(null);
-                          }}
-                          className="hover:text-red-400"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )}
-
-                    {activeLocation && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("location");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-sky-500/10 text-sky-300 border border-sky-500/20 cursor-pointer hover:bg-sky-500/20 transition-colors"
-                      >
-                        📍 {activeLocation.tag}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedLocationId(null);
-                          }}
-                          className="hover:text-red-400"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )}
-
-                    {activeCamera && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("camera");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-colors"
-                      >
-                        🎥 {activeCamera.tag}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCameraId(null);
-                          }}
-                          className="hover:text-red-400"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )}
-
-                    {activeEffect && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("effects");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-pink-500/10 text-pink-300 border border-pink-500/20 cursor-pointer hover:bg-pink-500/20 transition-colors"
-                      >
-                        ✨ {activeEffect.tag}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedEffectId(null);
-                          }}
-                          className="hover:text-red-400"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )}
-
-                    {activeCharacter && (
-                      <span
-                        onClick={() => {
-                          setActiveStudioTab("character");
-                          setShowReferenceStudioModal(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 cursor-pointer hover:bg-emerald-500/20 transition-colors"
-                      >
-                        👤 {activeCharacter.tag}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCharacterId(null);
-                          }}
-                          className="hover:text-red-400"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+            {/* Unified Reference Studio Trigger */}
+            <ReferenceActionTiles
+              onOpenStudio={(tab) => {
+                setActiveStudioTab(tab as any);
+                setShowReferenceStudioModal(true);
+              }}
+              selectedStyle={selectedStyle}
+              selectedElementId={selectedElementId}
+              selectedLocationId={selectedLocationId}
+              selectedCameraId={selectedCameraId}
+              selectedEffectId={selectedEffectId}
+              selectedCharacterId={selectedCharacterId}
+              onClearStyle={() => setSelectedStyle(null)}
+              onClearElement={() => setSelectedElementId(null)}
+              onClearLocation={() => setSelectedLocationId(null)}
+              onClearCamera={() => setSelectedCameraId(null)}
+              onClearEffect={() => setSelectedEffectId(null)}
+              onClearCharacter={() => setSelectedCharacterId(null)}
+              isAr={isAr}
+            />
           </div>
         </div>
       </div>

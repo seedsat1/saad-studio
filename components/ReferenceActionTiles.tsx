@@ -13,12 +13,13 @@ import {
 
 export interface ReferenceActionTilesProps {
   onOpenStudio: (tab: string) => void;
-  selectedStyle?: string;
+  selectedStyle?: string | null;
   selectedElementId?: string | null;
   selectedLocationId?: string | null;
   selectedCameraId?: string | null;
   selectedEffectId?: string | null;
   selectedCharacterId?: string | null;
+  onClearStyle?: () => void;
   onClearElement?: () => void;
   onClearLocation?: () => void;
   onClearCamera?: () => void;
@@ -35,6 +36,7 @@ export function ReferenceActionTiles({
   selectedCameraId,
   selectedEffectId,
   selectedCharacterId,
+  onClearStyle,
   onClearElement,
   onClearLocation,
   onClearCamera,
@@ -100,6 +102,18 @@ export function ReferenceActionTiles({
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 cursor-pointer hover:bg-indigo-500/20 transition-colors"
             >
               🎨 {isAr ? activeStyle.nameAr : activeStyle.nameEn}
+              {onClearStyle && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClearStyle();
+                  }}
+                  className="hover:text-red-400"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </span>
           )}
 

@@ -34,7 +34,7 @@ export interface ReferenceStudioModalProps {
   onClose: () => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  selectedStyle?: string;
+  selectedStyle?: string | null;
   onSelectStyle?: (id: string) => void;
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
