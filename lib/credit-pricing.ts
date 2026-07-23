@@ -122,7 +122,7 @@ function hasSoundEnabled(payload?: VideoPayload): boolean {
 }
 
 function applySoundMultiplier(baseCost: number, payload?: VideoPayload): number {
-  return baseCost;
+  return hasSoundEnabled(payload) ? parseFloat((baseCost * 1.5).toFixed(2)) : baseCost;
 }
 
 function getKling3Credits(payload?: VideoPayload): number {
@@ -291,12 +291,12 @@ export function getVideoCreditsByModelId(modelId: string, payload?: VideoPayload
 export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayload): number {
   if (modelRoute === "kwaivgi/kling-v3-turbo-std/image-to-video" || modelRoute === "kwaivgi/kling-v3-turbo-pro/image-to-video") {
     const duration = readDuration(payload, 5);
-    const perSecond = modelRoute.includes("-pro/") ? 3.0 : 2.4;
+    const perSecond = modelRoute.includes("-pro/") ? 5.0 : 4.0;
     return parseFloat((duration * perSecond).toFixed(2));
   }
   if (modelRoute.includes("kling/v3-turbo")) {
     const duration = readDuration(payload, 5);
-    return applySoundMultiplier(parseFloat((duration * (5 / 3)).toFixed(2)), payload);
+    return applySoundMultiplier(parseFloat((duration * 4.0).toFixed(2)), payload);
   }
   if (modelRoute === "kwaivgi/kling-v3.0-std/image-to-video") {
     return getKling30StdImageCredits(payload);
@@ -306,14 +306,14 @@ export function getVideoCreditsByRoute(modelRoute: string, payload?: VideoPayloa
   }
   if (modelRoute.startsWith("kwaivgi/kling-video-o3-")) {
     const duration = readDuration(payload, 5);
-    const tier = modelRoute.includes("-4k/") ? 5.0 : modelRoute.includes("-pro/") ? 2.8 : 1.8;
+    const tier = modelRoute.includes("-4k/") ? 7.5 : modelRoute.includes("-pro/") ? 4.0 : 3.0;
     const refMultiplier = modelRoute.includes("/reference-to-video") ? 1.5 : 1;
-    const soundMultiplier = payload?.sound === true || payload?.generate_audio === true ? 1.33 : 1;
+    const soundMultiplier = payload?.sound === true || payload?.generate_audio === true ? 1.5 : 1;
     return parseFloat((duration * tier * refMultiplier * soundMultiplier).toFixed(2));
   }
   if (modelRoute.startsWith("kwaivgi/kling-v2.6-")) {
     const duration = readDuration(payload, 5);
-    const tier = modelRoute.includes("-pro/") ? 1.4 : 0.84;
+    const tier = modelRoute.includes("-pro/") ? 2.5 : 1.5;
     const soundMultiplier = payload?.sound === true || payload?.generate_audio === true ? 2 : 1;
     return parseFloat((duration * tier * soundMultiplier).toFixed(2));
   }

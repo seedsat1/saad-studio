@@ -513,12 +513,13 @@ export async function getGenerationCost(
 
   if (constitutionId === "seedance2mini") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((20 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      const cost = Math.max(0, (28 / 11) * durationSec - (2 / 11));
-      return parseFloat((cost * numUnits).toFixed(2));
-    }
+    const perSec15 = ({
+      "480p": 32 / 15,
+      "720p": 64 / 15,
+      "1080p": 161 / 15,
+      "4k": 321 / 15,
+    } as Record<string, number>)[q] ?? 64 / 15;
+    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2f") {
@@ -532,15 +533,13 @@ export async function getGenerationCost(
 
   if (constitutionId === "seedance2") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((60 / 15) * durationSec * numUnits).toFixed(2));
-    } else if (q === "1080p") {
-      return parseFloat(((130 / 15) * durationSec * numUnits).toFixed(2));
-    } else if (q === "4k") {
-      return parseFloat(((200 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      return parseFloat(((90 / 15) * durationSec * numUnits).toFixed(2));
-    }
+    const perSec15 = ({
+      "480p": 58 / 15,
+      "720p": 116 / 15,
+      "1080p": 290 / 15,
+      "4k": 580 / 15,
+    } as Record<string, number>)[q] ?? 116 / 15;
+    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }
 
   const perUnit = calcUserCredits(model, durationSec);
@@ -612,12 +611,13 @@ export function getGenerationCostSync(
 
   if (constitutionId === "seedance2mini") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((20 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      const cost = Math.max(0, (28 / 11) * durationSec - (2 / 11));
-      return parseFloat((cost * numUnits).toFixed(2));
-    }
+    const perSec15 = ({
+      "480p": 32 / 15,
+      "720p": 64 / 15,
+      "1080p": 161 / 15,
+      "4k": 321 / 15,
+    } as Record<string, number>)[q] ?? 64 / 15;
+    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }
 
   if (constitutionId === "seedance2f") {
@@ -631,15 +631,13 @@ export function getGenerationCostSync(
 
   if (constitutionId === "seedance2") {
     const q = quality?.trim().toLowerCase() ?? "720p";
-    if (q === "480p") {
-      return parseFloat(((60 / 15) * durationSec * numUnits).toFixed(2));
-    } else if (q === "1080p") {
-      return parseFloat(((130 / 15) * durationSec * numUnits).toFixed(2));
-    } else if (q === "4k") {
-      return parseFloat(((200 / 15) * durationSec * numUnits).toFixed(2));
-    } else {
-      return parseFloat(((90 / 15) * durationSec * numUnits).toFixed(2));
-    }
+    const perSec15 = ({
+      "480p": 58 / 15,
+      "720p": 116 / 15,
+      "1080p": 290 / 15,
+      "4k": 580 / 15,
+    } as Record<string, number>)[q] ?? 116 / 15;
+    return parseFloat((perSec15 * durationSec * numUnits).toFixed(2));
   }
 
   const perUnit = calcUserCredits(model, durationSec);
