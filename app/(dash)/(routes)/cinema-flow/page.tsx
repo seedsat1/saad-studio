@@ -16,6 +16,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { normalizeMediaUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { AssetInspector } from "@/components/AssetInspector";
+import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
+import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { useLanguage } from "@/lib/use-language";
 
 interface CharacterRecord {
   id: string;
@@ -186,10 +189,20 @@ const uploadMediaFile = async (file: File) => {
 
 export default function CinemaFlowPage() {
   const { user } = useUser();
+  const firstName = user?.firstName ?? "Ellen";
   const { guardGeneration } = useGenerationGate();
   const { addAsset } = useAssetStore();
   const { toast } = useToast();
-  const firstName = user?.firstName ?? "Ellen";
+  const { lang } = useLanguage();
+  const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState("style");
+  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
+  const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
 
   // Gallery states
   const [assets, setAssets] = useState<MediaAsset[]>([]);
@@ -1903,6 +1916,26 @@ export default function CinemaFlowPage() {
 
         {/* Chat input box */}
         <div className="flex-shrink-0 p-4 border-t border-white/5 bg-zinc-950/20">
+          <div className="mb-3">
+            <ReferenceActionTiles
+              onOpenStudio={(tab) => {
+                setActiveStudioTab(tab);
+                setShowReferenceStudioModal(true);
+              }}
+              selectedStyle={selectedStyle}
+              selectedElementId={selectedElementId}
+              selectedLocationId={selectedLocationId}
+              selectedCameraId={selectedCameraId}
+              selectedEffectId={selectedEffectId}
+              selectedCharacterId={selectedCharacterPresetId}
+              onClearElement={() => setSelectedElementId(null)}
+              onClearLocation={() => setSelectedLocationId(null)}
+              onClearCamera={() => setSelectedCameraId(null)}
+              onClearEffect={() => setSelectedEffectId(null)}
+              onClearCharacter={() => setSelectedCharacterPresetId(null)}
+              isAr={lang === "ar"}
+            />
+          </div>
           {/* Active Reference Badges */}
           {(activeCharacter || activeImageReferences.length > 0) && (
             <div className="flex flex-wrap gap-2 mb-2 pb-2 border-b border-white/5">
@@ -2195,6 +2228,57 @@ export default function CinemaFlowPage() {
         </button>
       </div>
 
+      {/* Unified Reference Studio Modal */}
+      <ReferenceStudioModal
+        isOpen={showReferenceStudioModal}
+        onClose={() => setShowReferenceStudioModal(false)}
+        activeTab={activeStudioTab}
+        setActiveTab={setActiveStudioTab}
+        selectedStyle={selectedStyle}
+        onSelectStyle={(id) => {
+          setSelectedStyle(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedElementId={selectedElementId}
+        onSelectElement={(id) => {
+          setSelectedElementId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedLocationId={selectedLocationId}
+        onSelectLocation={(id) => {
+          setSelectedLocationId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedCameraId={selectedCameraId}
+        onSelectCamera={(id) => {
+          setSelectedCameraId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedEffectId={selectedEffectId}
+        onSelectEffect={(id) => {
+          setSelectedEffectId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedCharacterId={selectedCharacterPresetId}
+        onSelectCharacter={(id) => {
+          setSelectedCharacterPresetId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedSketchId={selectedSketchId}
+        onSelectSketch={(id) => {
+          setSelectedSketchId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onAttachFile={(file) => {
+          addActiveImageReference({
+            id: file.id,
+            type: file.type,
+            url: file.url,
+            prompt: file.name,
+          });
+        }}
+        isAr={lang === "ar"}
+      />
     </div>
   );
 }

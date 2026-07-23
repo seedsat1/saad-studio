@@ -34,6 +34,8 @@ import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/use-language";
 import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
+import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
+import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -1284,6 +1286,16 @@ export default function ImageWorkspacePage() {
   const [inspectorAsset, setInspectorAsset] = useState<Asset | null>(null);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
 
+  const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState("style");
+  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
+  const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+
   useEffect(() => {
     const requestedTool = searchParams.get("tool");
     if (requestedTool && TOOLS.some((tool) => tool.id === requestedTool)) {
@@ -1913,6 +1925,27 @@ export default function ImageWorkspacePage() {
   const renderRightPanel = () => {
     if (activeTool === "create") {
       return <>
+        <SettingsAccordion label="References & Styling" summary={selectedStyle} defaultOpen>
+          <ReferenceActionTiles
+            onOpenStudio={(tab) => {
+              setActiveStudioTab(tab);
+              setShowReferenceStudioModal(true);
+            }}
+            selectedStyle={selectedStyle}
+            selectedElementId={selectedElementId}
+            selectedLocationId={selectedLocationId}
+            selectedCameraId={selectedCameraId}
+            selectedEffectId={selectedEffectId}
+            selectedCharacterId={selectedCharacterPresetId}
+            onClearElement={() => setSelectedElementId(null)}
+            onClearLocation={() => setSelectedLocationId(null)}
+            onClearCamera={() => setSelectedCameraId(null)}
+            onClearEffect={() => setSelectedEffectId(null)}
+            onClearCharacter={() => setSelectedCharacterPresetId(null)}
+            isAr={lang === "ar"}
+          />
+        </SettingsAccordion>
+
         <SettingsAccordion label="Model" summary={selectedModel.label} defaultOpen>
           <div className="mb-2 rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-500/[0.10] via-pink-500/[0.08] to-sky-500/[0.10] px-3 py-2.5">
             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-pink-200/90">
@@ -2314,6 +2347,59 @@ export default function ImageWorkspacePage() {
         </div>
 
         <AnimatePresence>{mobileSettingsOpen ? <><motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 bg-black/70 md:hidden" onClick={() => setMobileSettingsOpen(false)} /><motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="fixed bottom-0 left-0 right-0 z-50 h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-slate-950 p-4 md:hidden"><div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold text-white">{t("Settings")}</p><button onClick={() => setMobileSettingsOpen(false)} className="rounded-lg bg-white/5 p-2 text-zinc-400"><X className="h-4 w-4" /></button></div><div className="space-y-4">{renderRightPanel()}</div></motion.div></> : null}</AnimatePresence>
+
+        {/* Unified Reference Studio Modal */}
+        <ReferenceStudioModal
+          isOpen={showReferenceStudioModal}
+          onClose={() => setShowReferenceStudioModal(false)}
+          activeTab={activeStudioTab}
+          setActiveTab={setActiveStudioTab}
+          selectedStyle={selectedStyle}
+          onSelectStyle={(id) => {
+            setSelectedStyle(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedElementId={selectedElementId}
+          onSelectElement={(id) => {
+            setSelectedElementId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedLocationId={selectedLocationId}
+          onSelectLocation={(id) => {
+            setSelectedLocationId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedCameraId={selectedCameraId}
+          onSelectCamera={(id) => {
+            setSelectedCameraId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedEffectId={selectedEffectId}
+          onSelectEffect={(id) => {
+            setSelectedEffectId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedCharacterId={selectedCharacterPresetId}
+          onSelectCharacter={(id) => {
+            setSelectedCharacterPresetId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          selectedSketchId={selectedSketchId}
+          onSelectSketch={(id) => {
+            setSelectedSketchId(id);
+            setShowReferenceStudioModal(false);
+          }}
+          onAttachFile={(file) => {
+            fetch(file.url)
+              .then((r) => r.blob())
+              .then((blob) => {
+                const f = new File([blob], `${file.name}.jpg`, { type: "image/jpeg" });
+                setReferenceFiles((prev) => [...prev, f]);
+              })
+              .catch(() => {});
+          }}
+          isAr={lang === "ar"}
+        />
       </div>
 
       <AnimatePresence>{inspectorAsset ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[60] bg-black/80 p-4" onClick={() => setInspectorAsset(null)}><motion.div initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }} className="mx-auto h-[82vh] max-w-5xl overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}><AssetInspector asset={inspectorAsset} onClose={() => setInspectorAsset(null)} /></motion.div></motion.div> : null}</AnimatePresence>

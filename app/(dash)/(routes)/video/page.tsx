@@ -25,6 +25,8 @@ import { getGenerationCostSync } from "@/lib/pricing";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
+import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
+import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
 
 // -- Utilities -----------------------------------------------------------------
 
@@ -946,6 +948,16 @@ function VideoPageInner() {
   const [sceneControl,  setSceneControl]  = useState(false);
   const [orientation,   setOrientation]   = useState<"video" | "image">("video");
   const [omniTab,       setOmniTab]       = useState<"elements" | "frames">("elements");
+
+  const [showReferenceStudioModal, setShowReferenceStudioModal] = useState(false);
+  const [activeStudioTab, setActiveStudioTab] = useState("style");
+  const [selectedStyle, setSelectedStyle] = useState("photorealistic");
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
+  const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
+  const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
 
   // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
   type KlingEl = { name: string; description: string; files: File[]; previews: string[]; };
@@ -2724,6 +2736,24 @@ function VideoPageInner() {
         style={{ width: 288, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="flex flex-col gap-5 p-4 flex-1">
+          <ReferenceActionTiles
+            onOpenStudio={(tab) => {
+              setActiveStudioTab(tab);
+              setShowReferenceStudioModal(true);
+            }}
+            selectedStyle={selectedStyle}
+            selectedElementId={selectedElementId}
+            selectedLocationId={selectedLocationId}
+            selectedCameraId={selectedCameraId}
+            selectedEffectId={selectedEffectId}
+            selectedCharacterId={selectedCharacterPresetId}
+            onClearElement={() => setSelectedElementId(null)}
+            onClearLocation={() => setSelectedLocationId(null)}
+            onClearCamera={() => setSelectedCameraId(null)}
+            onClearEffect={() => setSelectedEffectId(null)}
+            onClearCharacter={() => setSelectedCharacterPresetId(null)}
+            isAr={lang === "ar"}
+          />
           {activeTool === "lipsync" ? (
             <div className="flex-grow flex flex-col gap-5">
               {/* Dynamic Avatar/Lipsync Info */}
@@ -5450,6 +5480,58 @@ function VideoPageInner() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+      {/* Unified Reference Studio Modal */}
+      <ReferenceStudioModal
+        isOpen={showReferenceStudioModal}
+        onClose={() => setShowReferenceStudioModal(false)}
+        activeTab={activeStudioTab}
+        setActiveTab={setActiveStudioTab}
+        selectedStyle={selectedStyle}
+        onSelectStyle={(id) => {
+          setSelectedStyle(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedElementId={selectedElementId}
+        onSelectElement={(id) => {
+          setSelectedElementId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedLocationId={selectedLocationId}
+        onSelectLocation={(id) => {
+          setSelectedLocationId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedCameraId={selectedCameraId}
+        onSelectCamera={(id) => {
+          setSelectedCameraId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedEffectId={selectedEffectId}
+        onSelectEffect={(id) => {
+          setSelectedEffectId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedCharacterId={selectedCharacterPresetId}
+        onSelectCharacter={(id) => {
+          setSelectedCharacterPresetId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        selectedSketchId={selectedSketchId}
+        onSelectSketch={(id) => {
+          setSelectedSketchId(id);
+          setShowReferenceStudioModal(false);
+        }}
+        onAttachFile={(file) => {
+          fetch(file.url)
+            .then((r) => r.blob())
+            .then((blob) => {
+              const f = new File([blob], `${file.name}.jpg`, { type: "image/jpeg" });
+              setReferenceImages((prev) => [...prev, f]);
+            })
+            .catch(() => {});
+        }}
+        isAr={lang === "ar"}
+      />
     </div>
   );
 }
