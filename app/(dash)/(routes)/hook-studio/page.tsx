@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useState, useRef, DragEvent } from "react";
+import React, { useState, useRef, useEffect, DragEvent } from "react";
 import {
   Sparkles,
   Bot,
@@ -332,7 +332,7 @@ export default function HookStudioPage() {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   // Status
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -430,6 +430,13 @@ export default function HookStudioPage() {
   const activeGenreObj =
     HOOK_GENRES.find((g) => g.id === selectedGenre) || HOOK_GENRES[0];
   const isImageModel = activeVideoModelObj.durations[0] === 0;
+
+  // Auto-scroll to bottom of chat feed when a new message is added or changed
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Helper translations
   const t = {
@@ -1105,7 +1112,7 @@ export default function HookStudioPage() {
       {/* Left/Center: Main Chat Area */}
       <div className="flex-1 flex flex-col min-h-0 bg-[#06080b]">
         {/* Chat Feed Messages */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-800/80">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-800/80">
           {showEmptyHookStudioTitle && (
             <div className="flex min-h-full items-center justify-center pb-28">
               <div
