@@ -1,20 +1,22 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Locations & Elements Reference Libraries, 36 Art Style Presets, and Transparent PNG Export in Hook Studio (2026-07-23)
+#### Latest task: Camera Motion & Effects Reference Libraries, Locations, Elements, 36 Art Styles, and Transparent PNG Export in Hook Studio (2026-07-23)
 
 - Status:
   Implemented key UI/UX and feature enhancements in Hook Studio matching professional design editors (like Magnific):
-  1. **Locations Reference Library Modal**:
-     - Defined a comprehensive `HOOK_LOCATIONS` list in `lib/hook-studio-config.ts` featuring 20 locations matching Magnific UI (e.g., `@beach`, `@bridge`, `@cafe`, `@castle`, `@countryside`, `@desert`, `@forest`, `@garden`, `@interior`, `@jungle`, `@laboratory`, `@library`, `@mars`, `@mountain`, `@rooftop`, `@ruins`, `@snow-field`, `@stadium`, `@temple`, `@underwater`).
-     - Added an interactive Location selector button in Hook Studio sidebar showing active location thumbnail, `@tag`, or `+ ربط موقع / خلفية` (+ Select Location).
-     - Implemented a fullscreen popup modal showing a visual grid of location cards with search and click-to-bind background references.
-  2. **Elements Reference Library & Custom Product Uploader Modal**:
-     - Defined a comprehensive `HOOK_ELEMENTS` list in `lib/hook-studio-config.ts` matching Magnific UI (e.g., `@orangemoka`, `@silvercream`, `@nebulahandbag`, `@redlipstick`, `@bluetoaster`, `@perfum`, `@serum`, `@redheels`, `@lamp`, `@smartwatch`, `@totebag`, `@leatherjacket`, `@metalmug`).
-     - Added an interactive Element selector button in Hook Studio sidebar showing active element thumbnail, `@tag`, or `+ ربط عنصر / منتج` (+ Select Element).
-     - Implemented a fullscreen popup modal with drag-and-drop custom product uploader.
-  3. **Visual Art Style Presets Library Modal**:
+  1. **Camera Motion Reference Library Modal**:
+     - Defined `HOOK_CAMERAS` list in `lib/hook-studio-config.ts` with 18 camera angle & motion presets (e.g., `#layered`, `#drone`, `#360`, `#portrait`, `#close-up`, `#tilt-shift`, `#cinematic`, `#high-angle`, `#low-angle`, `#panoramic`, `#symmetry`, `#fish-eye`, `#first-person`, `#mid-shot`, `#full-body`, `#wide-shot`, `#tilt-shot`, `#aerial`).
+     - Added an interactive Camera Motion selector button in Hook Studio sidebar and a popup modal with live search.
+  2. **Effects & Lighting Reference Library Modal**:
+     - Defined `HOOK_EFFECTS` list in `lib/hook-studio-config.ts` with 30 presets categorized into Color, Lighting, Mood, Action (e.g., `#earthy`, `#softhue`, `#b&w`, `#sepia`, `#muted-green`, `#deep-teal`, `#duotone`, `#vibrant`, `#gold-glow`, `#high-flash`, `#chiaroscuro`, `#back-light`, `#studio`, `#iridescent`, `#golden-hour`, `#hardlight`, `#volumetric`, `#cold`, `#zen`, `#tension`, `#playful`, `#nostalgic`, `#long-exposure`, `#walking`, `#jumping`, `#glitching`, `#spinning`).
+     - Added an interactive Effects selector button in Hook Studio sidebar and a modal with category filter tabs.
+  3. **Locations Reference Library Modal**:
+     - Defined 20 location presets matching Magnific UI (e.g., `@beach`, `@bridge`, `@cafe`, `@castle`, `@forest`, `@mars`, etc.).
+  4. **Elements Reference Library & Custom Product Uploader Modal**:
+     - Defined 13 element presets matching Magnific UI with custom drag-and-drop media uploader.
+  5. **Visual Art Style Presets Library Modal**:
      - Defined 36 popular styles matching screenshots (Illustration, 3D, Design).
-  4. **Background Removal Transparent PNG Export**:
+  6. **Background Removal Transparent PNG Export**:
      - Added `Scissors` icon button calling `/api/generate/remove-bg` with 4 credits charge and transparent PNG download.
 - Affected Files:
   - `lib/hook-studio-config.ts` [MODIFY]
