@@ -1,27 +1,16 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Unified Reference Studio Dialog (Magnific UI Parity) in Hook Studio (2026-07-23)
+#### Latest task: Unified Reference Studio Dialog & Sidebar Clean-up (2026-07-23)
 
 - Status:
-  Unified all reference popups into a single, high-performance **Unified Reference Studio Modal** matching the exact user layout screenshot (Magnific UI structure):
-  1. **Unified Left Navigation Rail**:
-     - `History` (السجل التاريخي)
-     - `Uploads` (الملفات المرفوعة)
-     - `Stock` (صور الستوك)
-     - `Style` (الستايل الفني مع أثر التثبيت 📌)
-     - `Character` (الشخصيات والوجوه مع 📌)
-     - `Element` (العناصر والمنتجات)
-     - `Location` (المواقع والخلفيات)
-     - `Color` (لوحة الألوان)
-     - `Effects` (التأثيرات والإضاءة)
-     - `Camera` (حركة وزوايا الكاميرا)
-     - `Sketch` (الرسومات والسكيتشات)
-  2. **Central Content Grid Area**:
-     - Dynamic category filtering, search input, and grid displays for all 11 reference types.
-  3. **Right Dedicated Upload Panel**:
-     - Displays "Drop an image or upload your own media" with `Upload media` and `Take photo` buttons matching user screenshot.
-  4. **Sidebar Trigger Integration**:
-     - All sidebar card triggers and top `استوديو المراجع الموحد (Reference Studio)` button open the unified modal to the corresponding tab directly.
+  Unified all reference popups into a single **Unified Reference Studio Modal** matching Magnific UI and cleaned up redundant sidebar cards:
+  1. **Sidebar UI Clean-up**:
+     - Removed the stack of 5 redundant visual cards (Style, Element, Location, Camera, Effects) from the sidebar.
+     - Replaced with a single sleek gradient **`Open Reference Studio`** button (`فتح استوديو المراجع الموحد`).
+     - Added an interactive **Active Reference Pills Bar** below the button showing selected references (`🎨 Style`, `📦 Element`, `📍 Location`, `🎥 Camera`, `✨ Effect`, `👤 Character`) with quick remove `(x)` buttons.
+  2. **Unified Reference Studio Modal**:
+     - Complete 11-tab Left Navigation Rail (History, Uploads, Stock, Style, Character, Element, Location, Color, Effects, Camera, Sketch).
+     - Dedicated Right Drag & Drop Uploader Panel matching user screenshot.
 - Affected Files:
   - `lib/hook-studio-config.ts` [MODIFY]
   - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
