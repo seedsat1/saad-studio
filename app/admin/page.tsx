@@ -1137,6 +1137,7 @@ export default function AdminDashboard() {
             { label: "Explore CMS", href: "/admin/cms/explore", icon: Compass },
             { label: "Discover CMS", href: "/admin/cms/discover", icon: Compass },
             { label: "Page Builder", href: "/admin/page-builder", icon: LayoutTemplate },
+            { label: "Generation Lab", href: "/admin/generation-lab", icon: Sparkles },
             { label: "Model Test Lab", href: "/admin/model-test", icon: Zap },
           ].map(({ label, href, icon: Icon }) => (
             <button

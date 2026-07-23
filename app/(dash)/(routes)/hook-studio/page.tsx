@@ -34,6 +34,8 @@ import {
   HOOK_STYLES,
   HOOK_ELEMENTS,
   HOOK_LOCATIONS,
+  HOOK_CAMERAS,
+  HOOK_EFFECTS,
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";

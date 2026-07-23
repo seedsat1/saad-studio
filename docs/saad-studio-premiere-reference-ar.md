@@ -1,4 +1,12 @@
 # Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## Admin WaveSpeed Generation Lab (2026-07-23)
+
+- Added admin-only page `/admin/generation-lab` for private WaveSpeed model experiments.
+- The page supports Image, Video, and Avatar modes with a dark generator layout: model selector, prompt, reference media, settings, submit button, polling state, and results gallery.
+- `/api/admin/generation-lab` verifies admin access and submits directly to `https://api.wavespeed.ai/api/v3/{route}`, then polls `predictions/{id}/result`.
+- The admin lab does not use subscriber credits, `/api/generation/preflight`, local prompt precheck, local reference-image safety checks, or local NSFW scan helpers. WaveSpeed provider-side validation still applies.
+- Avatar mode uses a custom route input because the repo currently has no verified WaveSpeed route for InfiniteTalk/avatar generation.
+
 ## Hook Studio storyboard decouple and cinematic directing behavior (2026-07-23)
 
 - Hook Studio uses a decoupled generation and video execution flow:

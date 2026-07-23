@@ -987,3 +987,449 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
   }
 ];
 
+export interface HookCameraPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_CAMERAS: HookCameraPreset[] = [
+  {
+    id: "layered",
+    tag: "#layered",
+    nameAr: "عمق طبقات متدرجة",
+    nameEn: "Layered Depth",
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Multi-layered depth composition with crisp foreground and blurred background element framing."
+  },
+  {
+    id: "drone",
+    tag: "#drone",
+    nameAr: "تصوير طائرة درون",
+    nameEn: "Drone Shot",
+    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "High altitude smooth flying drone shot over expansive scenery."
+  },
+  {
+    id: "camera360",
+    tag: "#360",
+    nameAr: "لقطة كروية 360 درجة",
+    nameEn: "360 Panoramic",
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "360-degree tiny planet curvature panoramic wide lens perspective."
+  },
+  {
+    id: "portrait",
+    tag: "#portrait",
+    nameAr: "لقطة بورتري قريبة",
+    nameEn: "Portrait Shot",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Intimate head-and-shoulders portrait shot with soft bokeh background."
+  },
+  {
+    id: "closeup",
+    tag: "#close-up",
+    nameAr: "لقطة قريبة جداً",
+    nameEn: "Close-Up",
+    imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Tight extreme close-up shot capturing rich facial textures and eye details."
+  },
+  {
+    id: "tiltshift",
+    tag: "#tilt-shift",
+    nameAr: "تأثير المصغرات (تيلت شفت)",
+    nameEn: "Tilt-Shift",
+    imageUrl: "https://images.unsplash.com/photo-1477959858617-67f30ac4ce78?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Tilt-shift selective blur lens effect creating a miniature model appearance."
+  },
+  {
+    id: "cinematic",
+    tag: "#cinematic",
+    nameAr: "لقطة سينمائية فاخرة",
+    nameEn: "Cinematic Framing",
+    imageUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Widescreen anamorphic cinematic framing with moody atmospheric lighting."
+  },
+  {
+    id: "highangle",
+    tag: "#high-angle",
+    nameAr: "زاوية مرتفعة من الأعلى",
+    nameEn: "High-Angle",
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "High camera angle pointing down from above the subject."
+  },
+  {
+    id: "lowangle",
+    tag: "#low-angle",
+    nameAr: "زاوية منخفضة من الأسفل",
+    nameEn: "Low-Angle",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Low camera angle looking upward to emphasize grand scale and presence."
+  },
+  {
+    id: "panoramic",
+    tag: "#panoramic",
+    nameAr: "لقطة بانورامية واسعة",
+    nameEn: "Panoramic View",
+    imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Ultra-wide panoramic horizon shot capturing expansive scenery."
+  },
+  {
+    id: "symmetry",
+    tag: "#symmetry",
+    nameAr: "تكوين متناظر متطابق",
+    nameEn: "Symmetry",
+    imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Perfectly centered architectural symmetry framing with balanced lines."
+  },
+  {
+    id: "fisheye",
+    tag: "#fish-eye",
+    nameAr: "عدسة عين السمكة",
+    nameEn: "Fish-Eye Lens",
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Ultra wide 180-degree fisheye lens distortion with curved edge perspective."
+  },
+  {
+    id: "firstperson",
+    tag: "#first-person",
+    nameAr: "منظور الشخص الأول POV",
+    nameEn: "First-Person POV",
+    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "First-person point-of-view perspective shot as seen directly through eyes."
+  },
+  {
+    id: "midshot",
+    tag: "#mid-shot",
+    nameAr: "لقطة متوسطة (من الخصر)",
+    nameEn: "Mid-Shot",
+    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Balanced medium waist-up shot framing body gestures and background clearly."
+  },
+  {
+    id: "fullbody",
+    tag: "#full-body",
+    nameAr: "لقطة كاملة للجسم",
+    nameEn: "Full-Body Shot",
+    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Full length body shot showing complete outfit and standing environment stance."
+  },
+  {
+    id: "wideshot",
+    tag: "#wide-shot",
+    nameAr: "لقطة واسعة شاملة",
+    nameEn: "Wide Shot",
+    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Wide environmental establishing shot capturing subject in vast landscape."
+  },
+  {
+    id: "tiltshot",
+    tag: "#tilt-shot",
+    nameAr: "لقطة مائلة دتش أنجل",
+    nameEn: "Tilt Shot",
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Dutch angle tilted camera horizon creating dynamic action tension."
+  },
+  {
+    id: "aerial",
+    tag: "#aerial",
+    nameAr: "لقطة جوية رأسية",
+    nameEn: "Aerial Top-Down",
+    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Direct overhead top-down bird's eye view aerial perspective."
+  }
+];
+
+export interface HookEffectPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  category: "color" | "lighting" | "mood" | "action";
+  promptDescription: string;
+}
+
+export const HOOK_EFFECTS: HookEffectPreset[] = [
+  // ── COLOR ──
+  {
+    id: "earthy",
+    tag: "#earthy",
+    nameAr: "ألوان ترابية دافئة",
+    nameEn: "Earthy Warm Tones",
+    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Earthy natural color grade, warm ochre and terracotta muted tones, organic feel."
+  },
+  {
+    id: "softhue",
+    tag: "#softhue",
+    nameAr: "درجات باستيل ناعمة",
+    nameEn: "Soft Hue Pastels",
+    imageUrl: "https://images.unsplash.com/photo-1579783928586-282b09efb48e?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Soft pastel hue color palette, gentle highlights, low contrast cream and pink tones."
+  },
+  {
+    id: "bw",
+    tag: "#b&w",
+    nameAr: "أبيض وأسود أحادي",
+    nameEn: "Black & White",
+    imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "High contrast black and white monochrome photography style, deep shadows."
+  },
+  {
+    id: "sepia",
+    tag: "#sepia",
+    nameAr: "سيبيا دافئة كلاسيكية",
+    nameEn: "Classic Sepia",
+    imageUrl: "https://images.unsplash.com/photo-1579783928621-7a13d66a6211?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Vintage sepia brown monochrome tone, aged photo print look."
+  },
+  {
+    id: "mutedgreen",
+    tag: "#muted-green",
+    nameAr: "أخضر هادئ مطفأ",
+    nameEn: "Muted Green",
+    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Muted sage and forest green color grading, cinematic film stock aesthetic."
+  },
+  {
+    id: "deepteal",
+    tag: "#deep-teal",
+    nameAr: "تيل وبرتقالي عميق",
+    nameEn: "Deep Teal & Orange",
+    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Deep teal and orange color grade, rich cinematic Hollywood shadow contrast."
+  },
+  {
+    id: "duotone",
+    tag: "#duotone",
+    nameAr: "إضاءة ثنائية اللون",
+    nameEn: "Neon Duotone",
+    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Vibrant duotone lighting, high contrast dual neon gel color split."
+  },
+  {
+    id: "vibrant",
+    tag: "#vibrant",
+    nameAr: "ألوان مشبعة حيوية",
+    nameEn: "Vibrant Colors",
+    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Rich highly saturated color pop, punchy vibrant tones, bright vivid spectrum."
+  },
+  {
+    id: "terracotatateal",
+    tag: "#terracote-&-teal",
+    nameAr: "طين فخاري مع تيل",
+    nameEn: "Terracotta & Teal",
+    imageUrl: "https://images.unsplash.com/photo-1509281373149-e957c6296406?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Warm terracotta clay and cool teal contrast palette, aesthetic magazine color grade."
+  },
+  {
+    id: "icyblue",
+    tag: "#icy-blue",
+    nameAr: "أزرق ثلجي بارد",
+    nameEn: "Icy Blue Tones",
+    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Cool icy blue and frost white color grading, winter atmospheric chill."
+  },
+  {
+    id: "redscale",
+    tag: "#redscale",
+    nameAr: "تووهج أحمر ريدسكيل",
+    nameEn: "Redscale Glow",
+    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    category: "color",
+    systemPromptAddon: "Redscale film glow, warm fiery red and amber shadows with high intensity."
+  },
+
+  // ── LIGHTING ──
+  {
+    id: "goldglow",
+    tag: "#gold-glow",
+    nameAr: "تووهج ذهبي دافئ",
+    nameEn: "Gold Glow",
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Warm golden light ambient glow, soft golden hour sun reflections."
+  },
+  {
+    id: "highflash",
+    tag: "#high-flash",
+    nameAr: "فلاش قوي ستوديو",
+    nameEn: "High-Flash Studio",
+    imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Harsh direct camera flash photography, sharp shadows, high fashion studio aesthetic."
+  },
+  {
+    id: "chiaroscuro",
+    tag: "#chiaroscuro",
+    nameAr: "تباين ضوء وظل شديد",
+    nameEn: "Chiaroscuro",
+    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Chiaroscuro lighting technique, dramatic dark background with single strong spotlight key."
+  },
+  {
+    id: "backlight",
+    tag: "#back-light",
+    nameAr: "إضاءة خلفية وظلال",
+    nameEn: "Back-Lit Silhouette",
+    imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Strong backlighting, rim light highlights around subject silhouette, glowing background atmosphere."
+  },
+  {
+    id: "studiolight",
+    tag: "#studio",
+    nameAr: "إضاءة استوديو احترافية",
+    nameEn: "Studio Key Light",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Professional 3-point studio lighting, soft fill light, clean commercial look."
+  },
+  {
+    id: "iridescent",
+    tag: "#iridescent",
+    nameAr: "انعكاسات زجاجية متوهجة",
+    nameEn: "Iridescent Reflection",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Iridescent metallic sheen, prism rainbow light refractions, glossy surface highlights."
+  },
+  {
+    id: "goldenhour",
+    tag: "#golden-hour",
+    nameAr: "الساعة الذهبية لغروب الشمس",
+    nameEn: "Golden Hour Glow",
+    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Sunset golden hour light rays, warm sun flare, long soft shadows."
+  },
+  {
+    id: "hardlight",
+    tag: "#hardlight",
+    nameAr: "ضوء شمس حاد عالي التباين",
+    nameEn: "Hard Sunlight",
+    imageUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Direct midday hard sunlight, sharp crisp shadows, high contrast highlights."
+  },
+  {
+    id: "volumetric",
+    tag: "#volumetric",
+    nameAr: "أشعة ضوء ضبابية عمودية",
+    nameEn: "Volumetric Light Beams",
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    category: "lighting",
+    systemPromptAddon: "Volumetric God rays cutting through atmospheric haze, dramatic beam highlights."
+  },
+
+  // ── MOOD ──
+  {
+    id: "coldmood",
+    tag: "#cold",
+    nameAr: "أجواء غامضة باردة",
+    nameEn: "Cold Hazy Mood",
+    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    category: "mood",
+    systemPromptAddon: "Cold atmospheric mood, mysterious fog and solitary quiet ambience."
+  },
+  {
+    id: "zenmood",
+    tag: "#zen",
+    nameAr: "سكينة وهدوء تام",
+    nameEn: "Zen Tranquility",
+    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=300&q=80",
+    category: "mood",
+    systemPromptAddon: "Zen peaceful atmosphere, balanced minimalist composition, calm serene mood."
+  },
+  {
+    id: "tension",
+    tag: "#tension",
+    nameAr: "تشويق وإثارة عالية",
+    nameEn: "High Tension Suspense",
+    imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80",
+    category: "mood",
+    systemPromptAddon: "Dramatic cinematic tension, high suspense lighting, intense confrontation mood."
+  },
+  {
+    id: "playful",
+    tag: "#playful",
+    nameAr: "أجواء مرحة ومبهجة",
+    nameEn: "Playful Joy",
+    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    category: "mood",
+    systemPromptAddon: "Playful upbeat mood, colorful happy energy, fun social interaction."
+  },
+  {
+    id: "nostalgic",
+    tag: "#nostalgic",
+    nameAr: "ذكريات ريترو نوسـتالجيا",
+    nameEn: "Nostalgic Vintage",
+    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    category: "mood",
+    systemPromptAddon: "Nostalgic retro memory aesthetic, warm film grain, emotional vintage atmosphere."
+  },
+
+  // ── ACTION ──
+  {
+    id: "longexposure",
+    tag: "#long-exposure",
+    nameAr: "تعريض طويل مع ضبابية الحركة",
+    nameEn: "Long Exposure Blur",
+    imageUrl: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&w=300&q=80",
+    category: "action",
+    systemPromptAddon: "Long exposure photography effect, silky motion blur trails, dynamic speed atmosphere."
+  },
+  {
+    id: "walking",
+    tag: "#walking",
+    nameAr: "حركة مشي وتتبع",
+    nameEn: "Walking Motion",
+    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    category: "action",
+    systemPromptAddon: "Dynamic walking movement tracking, smooth camera motion following subject."
+  },
+  {
+    id: "jumping",
+    tag: "#jumping",
+    nameAr: "قفزة تجميد في الهواء",
+    nameEn: "Mid-Air Jump Freeze",
+    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80",
+    category: "action",
+    systemPromptAddon: "Mid-air freeze action shot, fast shutter speed capturing energetic jump height."
+  },
+  {
+    id: "glitching",
+    tag: "#glitching",
+    nameAr: "تشويه جليتش رقمي",
+    nameEn: "Digital Glitch",
+    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    category: "action",
+    systemPromptAddon: "Digital glitch distortion effect, chromatic aberration artifacts, futuristic cyber styling."
+  },
+  {
+    id: "spinning",
+    tag: "#spinning",
+    nameAr: "دوران ومغزل عالي السرعة",
+    nameEn: "High-Speed Spin",
+    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    category: "action",
+    systemPromptAddon: "Spinning rotation motion blur effect, high speed rotational kinetic energy."
+  }
+];
+
