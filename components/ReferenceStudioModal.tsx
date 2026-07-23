@@ -62,54 +62,6 @@ export interface UploadedItem {
   createdAt: number;
 }
 
-export function ReferenceStudioModal({
-  isOpen,
-  onClose,
-  activeTab,
-  setActiveTab,
-  selectedStyle,
-  onSelectStyle,
-  selectedElementId,
-  onSelectElement,
-  selectedLocationId,
-  onSelectLocation,
-  selectedCameraId,
-  onSelectCamera,
-  selectedEffectId,
-  onSelectEffect,
-  selectedCharacterId,
-  onSelectCharacter,
-  selectedSketchId,
-  onSelectSketch,
-  onAttachFile,
-  isAr = true,
-}: ReferenceStudioModalProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
-  const [serverAssets, setServerAssets] = useState<UploadedItem[]>([]);
-  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
-  const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("saad_studio_user_uploads");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setUploadedItems(parsed);
-      }
-    } catch {}
-  }, []);
-
-  const saveUploadedItems = (items: UploadedItem[]) => {
-    setUploadedItems(items);
-    try {
-      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
-    } catch {}
-  };
-
 const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
   {
     id: "preset-1",
@@ -168,6 +120,54 @@ const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
     createdAt: new Date("2026-05-14").getTime(),
   },
 ];
+
+export function ReferenceStudioModal({
+  isOpen,
+  onClose,
+  activeTab,
+  setActiveTab,
+  selectedStyle,
+  onSelectStyle,
+  selectedElementId,
+  onSelectElement,
+  selectedLocationId,
+  onSelectLocation,
+  selectedCameraId,
+  onSelectCamera,
+  selectedEffectId,
+  onSelectEffect,
+  selectedCharacterId,
+  onSelectCharacter,
+  selectedSketchId,
+  onSelectSketch,
+  onAttachFile,
+  isAr = true,
+}: ReferenceStudioModalProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
+  const [serverAssets, setServerAssets] = useState<UploadedItem[]>(DEFAULT_PRESET_ASSETS);
+  const [isLoadingAssets, setIsLoadingAssets] = useState(false);
+  const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("saad_studio_user_uploads");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setUploadedItems(parsed);
+      }
+    } catch {}
+  }, []);
+
+  const saveUploadedItems = (items: UploadedItem[]) => {
+    setUploadedItems(items);
+    try {
+      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
+    } catch {}
+  };
 
   const fetchUserAssets = async () => {
     setIsLoadingAssets(true);

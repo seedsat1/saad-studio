@@ -49,6 +49,7 @@ import {
   HOOK_SKETCHES,
 } from "@/lib/hook-studio-config";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
 import { getGenerationCostSync } from "@/lib/pricing";
