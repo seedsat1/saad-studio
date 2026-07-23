@@ -1763,17 +1763,47 @@ export default function HookStudioPage() {
                 {isAr ? "المراجع والمظهر الفني" : "REFERENCES & STYLING"}
               </label>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveStudioTab("uploads");
-                  setShowReferenceStudioModal(true);
-                }}
-                className="w-full bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 text-white font-bold text-xs py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-600/20 transition-all duration-300 transform active:scale-95 cursor-pointer group"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform duration-300" />
-                <span>{isAr ? "فتح استوديو المراجع الموحد" : "Open Reference Studio"}</span>
-              </button>
+              {/* Quick Action Square Tiles Row (Style | Character | Add) */}
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+                {/* 1. Style Tile */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveStudioTab("style");
+                    setShowReferenceStudioModal(true);
+                  }}
+                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-indigo-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+                >
+                  <Sparkles className="w-5 h-5 text-slate-400 group-hover:text-indigo-400 group-hover:scale-110 transition-all duration-200" />
+                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Style</span>
+                </button>
+
+                {/* 2. Character Tile */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveStudioTab("character");
+                    setShowReferenceStudioModal(true);
+                  }}
+                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-emerald-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+                >
+                  <User className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 group-hover:scale-110 transition-all duration-200" />
+                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Character</span>
+                </button>
+
+                {/* 3. Add Tile (Opens Reference Studio) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveStudioTab("uploads");
+                    setShowReferenceStudioModal(true);
+                  }}
+                  className="w-20 h-20 rounded-2xl border border-dashed border-slate-700/80 bg-[#121520] hover:bg-[#191d2c] hover:border-sky-500/80 flex flex-col items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer group flex-shrink-0"
+                >
+                  <Plus className="w-5 h-5 text-slate-400 group-hover:text-sky-400 group-hover:scale-110 transition-all duration-200" />
+                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white">Add</span>
+                </button>
+              </div>
 
               {/* Active Selected Badges */}
               {(() => {
