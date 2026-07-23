@@ -32,6 +32,7 @@ import {
   HOOK_GENRES,
   HOOK_VIDEO_MODELS,
   HOOK_STYLES,
+  HOOK_ELEMENTS,
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
@@ -331,6 +332,9 @@ export default function HookStudioPage() {
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [styleSearchQuery, setStyleSearchQuery] = useState("");
   const [styleActiveCategory, setStyleActiveCategory] = useState<"all" | "illustration" | "3d" | "design">("all");
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
+  const [showElementModal, setShowElementModal] = useState(false);
+  const [elementSearchQuery, setElementSearchQuery] = useState("");
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -997,6 +1001,7 @@ export default function HookStudioPage() {
           generateAudio,
           hookAngle: selectedHookAngle,
           artStyle: selectedStyle,
+          selectedElementId,
           refImages,
           refVideos,
           refAudios,
@@ -1747,6 +1752,56 @@ export default function HookStudioPage() {
                 );
               })()}
             </div>
+
+            {/* Hook Element Visual Trigger */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                {isAr ? "العنصر والمرجع" : "ELEMENT REFERENCE"}
+              </label>
+              {(() => {
+                const activeElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setShowElementModal(true)}
+                    className="w-full bg-[#11141e] border border-slate-800 rounded-xl p-2 flex items-center gap-3 hover:border-indigo-500 transition-colors text-left cursor-pointer group"
+                  >
+                    {activeElement ? (
+                      <>
+                        <div className="w-10 h-10 rounded-lg overflow-hidden relative flex-shrink-0 border border-slate-800">
+                          <img src={activeElement.imageUrl} alt={activeElement.nameAr} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold text-slate-400 truncate text-left">
+                            {isAr ? activeElement.nameAr : activeElement.nameEn}
+                          </div>
+                          <div className="text-[11px] text-emerald-400 font-medium text-left">
+                            {activeElement.tag}
+                          </div>
+                        </div>
+                        <div className="text-slate-500 group-hover:text-slate-300 text-xs px-1">
+                          {isAr ? "تغيير" : "Edit"}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                          <Paperclip className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-bold text-slate-300 truncate text-left">
+                            {isAr ? "+ ربط عنصر / منتج" : "+ Select Element"}
+                          </div>
+                          <div className="text-[10px] text-slate-500 truncate text-left">
+                            {isAr ? "تضمين مجسم أو منتج خاص" : "Attach product element"}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>
@@ -1947,6 +2002,186 @@ export default function HookStudioPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Elements Library & Custom Upload Modal ── */}
+      {showElementModal && (
+        <div 
+          onClick={() => setShowElementModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md transition-all animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-5xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[85vh] transition-all animate-in zoom-in-95 duration-200"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-slate-800/60 bg-[#0c0f16]/95 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                  <Paperclip className="w-5 h-5 text-emerald-400" />
+                  {isAr ? "مكتبة العناصر والمنتجات (Elements)" : "Elements Reference Library"}
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  {isAr ? "اختر عنصراً مرجعياً جاهزاً أو قم برفع منتجك الخاص لربطه مع الموديل" : "Select an object reference or upload your product photo to bind with generation"}
+                </p>
+              </div>
+
+              {/* Search box & Close button */}
+              <div className="flex items-center gap-3">
+                <div className="relative w-full sm:w-60">
+                  <input
+                    type="text"
+                    placeholder={isAr ? "ابحث عن عنصر..." : "Search element..."}
+                    value={elementSearchQuery}
+                    onChange={(e) => setElementSearchQuery(e.target.value)}
+                    className="w-full bg-[#111520] border border-slate-800/80 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                  <span className="absolute right-3 top-2.5 text-slate-500">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </span>
+                </div>
+
+                <button 
+                  onClick={() => setShowElementModal(false)}
+                  className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Split Content Body: Left = Grid, Right = Drag/Upload Panel */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-[#080a0f]">
+              {/* Left Grid Area */}
+              <div className="flex-1 overflow-y-auto p-6 border-r border-slate-900">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {HOOK_ELEMENTS.filter((el) => {
+                    const search = elementSearchQuery.toLowerCase();
+                    return (
+                      el.nameAr.toLowerCase().includes(search) ||
+                      el.nameEn.toLowerCase().includes(search) ||
+                      el.tag.toLowerCase().includes(search)
+                    );
+                  }).map((elPreset) => {
+                    const isSelected = selectedElementId === elPreset.id;
+                    return (
+                      <div
+                        key={elPreset.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedElementId(null);
+                          } else {
+                            setSelectedElementId(elPreset.id);
+                            setAttachedFiles((prev) => {
+                              const exists = prev.some((f) => f.url === elPreset.imageUrl);
+                              if (exists) return prev;
+                              return [
+                                ...prev,
+                                {
+                                  id: `element-${elPreset.id}-${Date.now()}`,
+                                  url: elPreset.imageUrl,
+                                  name: elPreset.nameAr,
+                                  type: "image",
+                                },
+                              ];
+                            });
+                          }
+                          setShowElementModal(false);
+                        }}
+                        className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-300 ${
+                          isSelected
+                            ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/5"
+                            : "border-slate-800 hover:border-slate-700 bg-[#0d1017] hover:bg-[#11151f]"
+                        }`}
+                      >
+                        {/* Image Preview */}
+                        <div className="aspect-square w-full overflow-hidden relative bg-slate-900 border-b border-slate-800/60 p-2 flex items-center justify-center">
+                          <img
+                            src={elPreset.imageUrl}
+                            alt={elPreset.nameAr}
+                            className="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-500"
+                          />
+                          {/* Checked Badge overlay */}
+                          {isSelected && (
+                            <div className="absolute top-3 right-3 bg-emerald-500 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Info Footer */}
+                        <div className="p-3">
+                          <div className="text-xs font-bold text-slate-200 truncate group-hover:text-emerald-400 transition-colors">
+                            {isAr ? elPreset.nameAr : elPreset.nameEn}
+                          </div>
+                          <div className="text-[11px] font-semibold text-emerald-400 mt-0.5">
+                            {elPreset.tag}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right Sidebar Uploader Panel */}
+              <div className="w-full md:w-72 bg-[#0b0e17] p-6 flex flex-col justify-between border-t md:border-t-0 border-slate-800">
+                <div className="space-y-4">
+                  <div className="text-xs font-bold text-slate-200 uppercase tracking-wider block">
+                    {isAr ? "رفع عنصرك الخاص" : "Custom Media Element"}
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    {isAr
+                      ? "اسحب صورتك أو ارفع ملف منتجك الخاص لربطه كمرجع بصري دقيق مع المحرك الذكي."
+                      : "Drop your image or upload your own product photo to use as a visual element reference."}
+                  </p>
+
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#0f131f] group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-1">
+                      {isAr ? "اسحب الصورة هنا" : "Drop an Image"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      {isAr ? "أو ارفع ملفك الخاص" : "or upload your own media"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-4">
+                  <button
+                    onClick={() => {
+                      fileInputRef.current?.click();
+                      setShowElementModal(false);
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer"
+                  >
+                    <UploadCloud className="w-4 h-4" />
+                    <span>{isAr ? "رفع صورة عنصر" : "Upload media"}</span>
+                  </button>
+
+                  {selectedElementId && (
+                    <button
+                      onClick={() => {
+                        setSelectedElementId(null);
+                        setShowElementModal(false);
+                      }}
+                      className="w-full bg-slate-800/80 hover:bg-rose-600/20 hover:text-rose-400 text-slate-400 font-bold py-2 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      {isAr ? "إلغاء تحديد العنصر" : "Clear Element"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -699,3 +699,119 @@ export const HOOK_STYLES: HookStylePreset[] = [
   }
 ];
 
+export interface HookElementPreset {
+  id: string;
+  tag: string;
+  nameAr: string;
+  nameEn: string;
+  imageUrl: string;
+  promptDescription: string;
+}
+
+export const HOOK_ELEMENTS: HookElementPreset[] = [
+  {
+    id: "orangemoka",
+    tag: "@orangemoka",
+    nameAr: "وعاء موكا برتقالي",
+    nameEn: "Orange Moka Pot",
+    imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Classic orange Moka pot coffee maker on clean table background."
+  },
+  {
+    id: "silvercream",
+    tag: "@silvercream",
+    nameAr: "كريم تجميل فضي",
+    nameEn: "Silver Cream Tube",
+    imageUrl: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Sleek silver cosmetic cream tube held against minimal pastel background."
+  },
+  {
+    id: "nebulahandbag",
+    tag: "@nebulahandbag",
+    nameAr: "حقيبة يد فاخرة",
+    nameEn: "Luxury Handbag",
+    imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Deep purple luxury leather handbag with gold clasp."
+  },
+  {
+    id: "redlipstick",
+    tag: "@redlipstick",
+    nameAr: "أحمر شفاه ياقوتي",
+    nameEn: "Red Lipstick",
+    imageUrl: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Classic gold bullet red lipstick tube open on pink surface."
+  },
+  {
+    id: "bluetoaster",
+    tag: "@bluetoaster",
+    nameAr: "محمصة خبز زرقاء",
+    nameEn: "Retro Blue Toaster",
+    imageUrl: "https://images.unsplash.com/photo-1583634648128-3a58222ba096?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Retro pastel blue kitchen toaster with toasted bread slice."
+  },
+  {
+    id: "perfum",
+    tag: "@perfum",
+    nameAr: "زجاجة عطور فاخرة",
+    nameEn: "Luxury Perfume Bottle",
+    imageUrl: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Elegant amber glass perfume bottle with crystal cap."
+  },
+  {
+    id: "serum",
+    tag: "@serum",
+    nameAr: "سيروم عناية بالبشرة",
+    nameEn: "Skincare Serum Bottle",
+    imageUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Glass dropper serum bottle with iridescent glow on warm marble."
+  },
+  {
+    id: "redheels",
+    tag: "@redheels",
+    nameAr: "حذاء كعب أحمر",
+    nameEn: "Red Stiletto Heels",
+    imageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Glossy red high heel stiletto shoes on dark reflective glass."
+  },
+  {
+    id: "lamp",
+    tag: "@lamp",
+    nameAr: "مصباح طاولة عصري",
+    nameEn: "Modern Table Lamp",
+    imageUrl: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Minimalist spherical glowing orb table lamp with brass stand."
+  },
+  {
+    id: "smartwatch",
+    tag: "@smartwatch",
+    nameAr: "ساعة ذكية سوداء",
+    nameEn: "Black Smartwatch",
+    imageUrl: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Modern black smartwatch with dark OLED screen on neutral pedestal."
+  },
+  {
+    id: "totebag",
+    tag: "@totebag",
+    nameAr: "حقيبة قماشية قتانية",
+    nameEn: "Cotton Tote Bag",
+    imageUrl: "https://images.unsplash.com/photo-1597484661643-2f5f88447493?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Minimalist unbleached natural cotton canvas tote bag hanging."
+  },
+  {
+    id: "leatherjacket",
+    tag: "@leatherjacket",
+    nameAr: "سترة جلدية سوداء",
+    nameEn: "Black Leather Jacket",
+    imageUrl: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Classic black biker leather jacket with silver zippers."
+  },
+  {
+    id: "metalmug",
+    tag: "@metalmug",
+    nameAr: "كوب معدني",
+    nameEn: "Enamel Metal Mug",
+    imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80",
+    promptDescription: "Classic white enamel metal coffee mug on wooden table."
+  }
+];
+

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { spendCredits, InsufficientCreditsError, refundGenerationCharge } from "@/lib/credit-ledger";
-import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES } from "@/lib/hook-studio-config";
+import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
 
@@ -289,6 +289,7 @@ export async function POST(req: NextRequest) {
       generateAudio = true,
       hookAngle = "brand-reveal",
       artStyle = "photorealistic",
+      selectedElementId = null,
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -331,6 +332,7 @@ export async function POST(req: NextRequest) {
     const selectedModel = HOOK_VIDEO_MODELS.find((m) => m.id === modelId) || HOOK_VIDEO_MODELS[0];
     const selectedGenre = HOOK_GENRES.find((g) => g.id === genre) || HOOK_GENRES[0];
     const selectedStyle = HOOK_STYLES.find((s) => s.id === artStyle) || HOOK_STYLES[0];
+    const selectedElement = HOOK_ELEMENTS.find((el) => el.id === selectedElementId);
     const selectedBrain = LLM_BRAIN_MODELS.find((b) => b.id === llmBrain) || LLM_BRAIN_MODELS[0];
     let safeDuration = normalizeDurationSeconds(duration);
     if (selectedModel.id === "kling-3.0-pro" || selectedModel.id === "kling-3.0-turbo" || selectedModel.id === "kling-o3-omni") {
@@ -462,7 +464,7 @@ export async function POST(req: NextRequest) {
             messages: [
               { role: "system", content: systemPrompt },
               ...formattedHistory,
-              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
+              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + (selectedElement ? ("\nElement Reference Tag: " + selectedElement.tag + " (" + selectedElement.promptDescription + ")") : "") + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
             ],
             response_format: { type: "json_object" }
           });
