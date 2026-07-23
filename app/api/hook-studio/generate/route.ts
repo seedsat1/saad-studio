@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
-import { spendCredits, InsufficientCreditsError } from "@/lib/credit-ledger";
+import { spendCredits, InsufficientCreditsError, refundGenerationCharge } from "@/lib/credit-ledger";
 import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
@@ -280,6 +280,7 @@ export async function POST(req: NextRequest) {
       longScript = "",
       onlyStoryboard = false,
       executeStoryboard = false,
+      executeAsImage = false,
     } = body;
 
     let scenePrompts = body.scenePrompts || [];
@@ -333,6 +334,91 @@ export async function POST(req: NextRequest) {
       safeRefVideos.length > 0,
       safeRefImages.length,
     );
+
+    if (executeStoryboard && executeAsImage) {
+      const cost = 4; // 1 credit per image, 4 images = 4 credits
+      let newBalance = 0;
+      let generationId: string | null = null;
+      try {
+        const charge = await spendCredits({
+          userId,
+          credits: cost,
+          prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] Image Scenes: ${prompt}`,
+          assetType: "IMAGE",
+          modelUsed: "seedream-5.0-pro",
+          resolution: "1k",
+          aspectRatio: aspectRatio,
+          providerName: "WaveSpeed",
+          providerModel: "bytedance/seedream-v5.0-pro",
+        });
+        newBalance = charge.remainingCredits;
+        generationId = charge.generationId;
+      } catch (err: any) {
+        if (err instanceof InsufficientCreditsError) {
+          return NextResponse.json(
+            { error: "رصيد الكريدت غير كافٍ لتوليد الصور", requiredCredits: err.requiredCredits },
+            { status: 402 }
+          );
+        }
+        throw err;
+      }
+
+      const apiKey = process.env.WAVESPEED_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json({ error: "WaveSpeed API key is not configured on the server" }, { status: 500 });
+      }
+
+      try {
+        const imagePromises = scenePrompts.slice(0, 4).map(async (scene: any, idx: number) => {
+          const scenePrompt = `${scene.prompt || scene.description || ""}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`;
+          const res = await fetch("https://api.wavespeed.ai/api/v3/bytedance/seedream-v5.0-pro", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              prompt: scenePrompt,
+              aspect_ratio: aspectRatio === "source" ? "1:1" : aspectRatio,
+              output_format: "png",
+              resolution: "1k",
+            }),
+          });
+          const data = await res.json().catch(() => null);
+          const url = data?.output_url || data?.url || data?.data?.url || null;
+          return {
+            title: scene.title || `Scene ${idx + 1}`,
+            prompt: scenePrompt,
+            url,
+          };
+        });
+
+        const results = await Promise.all(imagePromises);
+        const imageUrls = results.map(r => r.url).filter(Boolean);
+
+        if (generationId) {
+          await prismadb.generation.update({
+            where: { id: generationId },
+            data: {
+              mediaUrl: imageUrls.join(","),
+              status: "completed",
+            },
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          mode: "image",
+          imageUrls,
+          results,
+          creditsDeducted: cost,
+          remainingCredits: newBalance,
+        });
+      } catch (genErr: any) {
+        console.error("WaveSpeed image storyboard dispatch error:", genErr);
+        return NextResponse.json({ error: "حدث خطأ أثناء توليد صور المشاهد" }, { status: 500 });
+      }
+    }
 
     if (executeStoryboard) {
       if (selectedModel.id === "kling-3.0-pro" && !safeRefImages[0]) {
@@ -490,9 +576,25 @@ export async function POST(req: NextRequest) {
           taskId = data?.taskId || taskId;
           resultUrl = data?.mediaUrl || data?.url || null;
           if (resultUrl && !resultUrl.startsWith("task:")) status = "completed";
+        } else {
+          if (generationId) {
+            await refundGenerationCharge(generationId, userId, cost, {
+              reason: "generation_refund_provider_failed",
+              clearMediaUrl: true,
+            }).catch(() => {});
+          }
+          const errMsg = data?.error || data?.message || `Google API returned status ${localRes.status}`;
+          return NextResponse.json({ error: `Google API error: ${errMsg}` }, { status: 400 });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Local Google API redirect error:", err);
+        if (generationId) {
+          await refundGenerationCharge(generationId, userId, cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ error: `Google API redirect error: ${err.message}` }, { status: 500 });
       }
     } else if (waveKey) {
       try {
@@ -580,9 +682,25 @@ export async function POST(req: NextRequest) {
           taskId = data?.task_id || data?.id || taskId;
           resultUrl = data?.output_url || data?.url || data?.data?.url || null;
           if (resultUrl) status = "completed";
+        } else {
+          if (generationId) {
+            await refundGenerationCharge(generationId, userId, cost, {
+              reason: "generation_refund_provider_failed",
+              clearMediaUrl: true,
+            }).catch(() => {});
+          }
+          const errMsg = data?.error || data?.message || `WaveSpeed returned status ${res.status}`;
+          return NextResponse.json({ error: `WaveSpeed error: ${errMsg}` }, { status: 400 });
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("WaveSpeed API dispatch error:", err);
+        if (generationId) {
+          await refundGenerationCharge(generationId, userId, cost, {
+            reason: "generation_refund_provider_failed",
+            clearMediaUrl: true,
+          }).catch(() => {});
+        }
+        return NextResponse.json({ error: `WaveSpeed dispatch error: ${err.message}` }, { status: 500 });
       }
     }
 

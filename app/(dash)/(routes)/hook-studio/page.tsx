@@ -77,6 +77,11 @@ interface ChatMessage {
     videoUrl?: string;
     error?: string;
   };
+  imageTask?: {
+    status: "processing" | "completed" | "failed";
+    imageUrls?: string[];
+    error?: string;
+  };
 }
 
 const readUploadError = async (response: Response) => {
@@ -323,6 +328,7 @@ export default function HookStudioPage() {
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
+  const [logoError, setLogoError] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -743,9 +749,99 @@ export default function HookStudioPage() {
     }
   };
 
+  // Image execution handler (Triggered by button click or text command "نفذ صور")
+  const executeStoryboardImages = async (messageId: string, hookData: any) => {
+    const taskIdTemp = Math.random().toString(36).substr(2, 9);
+    const executionMsgId = `exec-img-${taskIdTemp}`;
+    
+    const executionMsg: ChatMessage = {
+      id: executionMsgId,
+      sender: "agent",
+      text: isAr ? "جاري البدء في توليد صور المشاهد بالذكاء الاصطناعي..." : "Starting generation of scene images...",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      imageTask: {
+        status: "processing",
+      }
+    };
+    
+    setMessages((prev) => [...prev, executionMsg]);
+    
+    try {
+      const res = await fetch("/api/hook-studio/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: hookData.phrase || "Execute Storyboard Stills",
+          llmBrain: selectedThinkingModel,
+          genre: selectedGenre,
+          modelId: selectedVideoModel,
+          duration: 0,
+          aspectRatio: selectedRatio,
+          quality: selectedQuality,
+          generateAudio: false,
+          hookAngle: selectedHookAngle,
+          scenePrompts: hookData.scenes,
+          executeStoryboard: true,
+          executeAsImage: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.imageUrls) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === executionMsgId
+              ? {
+                  ...m,
+                  text: isAr ? "✅ اكتمل توليد صور المشاهد بنجاح!" : "✅ Scene images generated successfully!",
+                  imageTask: {
+                    status: "completed",
+                    imageUrls: data.imageUrls,
+                  },
+                }
+              : m
+          )
+        );
+      } else {
+        const errorText = data.error || (isAr ? "فشل توليد صور المشاهد" : "Failed to generate scene images");
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === executionMsgId
+              ? {
+                  ...m,
+                  text: `❌ ${errorText}`,
+                  imageTask: {
+                    status: "failed",
+                    error: errorText,
+                  },
+                }
+              : m
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errorText = err.message || (isAr ? "حدث خطأ أثناء الاتصال بالخادم" : "Error connecting to server");
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === executionMsgId
+            ? {
+                ...m,
+                text: `❌ ${errorText}`,
+                imageTask: {
+                  status: "failed",
+                  error: errorText,
+                },
+              }
+            : m
+        )
+      );
+    }
+  };
+
   const isExecutionCommand = (text: string) => {
     const normalized = normalizeHookPrompt(text);
-    return ["نفذ", "نفذ الفيديو", "توليد", "ابدأ التوليد", "شغل", "شغل التوليد", "ولّد", "ولد", "execute", "run", "generate"].includes(normalized);
+    return ["نفذ", "نفذ الفيديو", "نفذ صور", "نفذ الصور", "توليد", "توليد صور", "ولد صور", "ولّد صور", "ابدأ التوليد", "شغل", "شغل التوليد", "ولّد", "ولد", "execute", "run", "generate", "generate images", "generate video"].some(cmd => normalized.includes(cmd));
   };
 
   // Generation Handler
@@ -763,7 +859,25 @@ export default function HookStudioPage() {
         };
         setMessages((prev) => [...prev, userMessage]);
         setInputText("");
-        executeStoryboardVideo(userMessage.id, latestStoryboard);
+
+        const lowerInput = userMessage.text.toLowerCase();
+        if (lowerInput.includes("صور") || lowerInput.includes("صوره") || lowerInput.includes("image") || lowerInput.includes("still")) {
+          executeStoryboardImages(userMessage.id, latestStoryboard);
+        } else if (lowerInput.includes("فيديو") || lowerInput.includes("فديو") || lowerInput.includes("video")) {
+          executeStoryboardVideo(userMessage.id, latestStoryboard);
+        } else {
+          // Ask user what they want with choice buttons
+          const askMessage: ChatMessage = {
+            id: Math.random().toString(36).substr(2, 9),
+            sender: "agent",
+            text: isAr
+              ? "هل ترغب في إنتاج الستوريبورد كفيديو كامل أم كـ 4 صور منفصلة للمشاهد؟"
+              : "Would you like to produce the storyboard as a full video or as 4 scene images?",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            generatedHook: latestStoryboard,
+          };
+          setMessages((prev) => [...prev, askMessage]);
+        }
       } else {
         const userMessage: ChatMessage = {
           id: Math.random().toString(36).substr(2, 9),
@@ -1003,8 +1117,15 @@ export default function HookStudioPage() {
                   ) : (
                     <User className="w-4 h-4" />
                   )
+                ) : logoError ? (
+                  <Bot className="w-4.5 h-4.5 text-indigo-400" />
                 ) : (
-                  <img src="/EveLogo.png" alt="AI Agent Logo" className="w-full h-full object-contain p-1" />
+                  <img
+                    src="/EveLogo.png"
+                    alt="AI Agent Logo"
+                    className="w-full h-full object-contain p-1"
+                    onError={() => setLogoError(true)}
+                  />
                 )}
               </div>
 
@@ -1021,16 +1142,30 @@ export default function HookStudioPage() {
                   >
                     {msg.text}
 
-                    {/* Storyboard Action Button inside storyboard chat bubble */}
-                    {msg.sender === "agent" && msg.generatedHook && !msg.videoTask && (
-                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center gap-2">
-                        <button
-                          onClick={() => executeStoryboardVideo(msg.id, msg.generatedHook)}
-                          className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-white" />
-                          <span>{isAr ? "🎬 تنفيذ وإنتاج الفيديو" : "🎬 Execute Video"}</span>
-                        </button>
+                    {/* Storyboard Action Buttons inside storyboard chat bubble */}
+                    {msg.sender === "agent" && msg.generatedHook && !msg.videoTask && !msg.imageTask && (
+                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col gap-2">
+                        <span className="text-slate-400 text-[11px] mb-1">
+                          {isAr 
+                            ? "هل ترغب في إنتاج الستوريبورد كفيديو كامل أم كـ 4 صور منفصلة للمشاهد؟"
+                            : "Would you like to generate this storyboard as a full video or as 4 scene stills?"}
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => executeStoryboardVideo(msg.id, msg.generatedHook)}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-white" />
+                            <span>{isAr ? "🎬 إنتاج فيديو كامل (15 ك)" : "🎬 Produce Full Video (15c)"}</span>
+                          </button>
+                          <button
+                            onClick={() => executeStoryboardImages(msg.id, msg.generatedHook)}
+                            className="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span>{isAr ? "📸 توليد صور المشاهد (4 ك)" : "📸 Generate Scene Stills (4c)"}</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1095,6 +1230,58 @@ export default function HookStudioPage() {
                       <div className="text-xs text-red-400 font-medium">
                         {isAr ? "فشل التوليد: " : "Generation failed: "}
                         {msg.videoTask.error || (isAr ? "حدث خطأ غير متوقع" : "Unexpected error occurred")}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Image Generation Inline Grid & Status */}
+                {msg.imageTask && (
+                  <div className="bg-[#111520] border border-slate-800/50 rounded-2xl p-4 space-y-3 max-w-xl shadow-lg">
+                    {msg.imageTask.status === "processing" && (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                        <span className="text-xs text-slate-300 font-medium">
+                          {isAr ? "جاري توليد صور المشاهد بالذكاء الاصطناعي..." : "Generating scene stills..."}
+                        </span>
+                      </div>
+                    )}
+
+                    {msg.imageTask.status === "failed" && (
+                      <div className="text-xs text-rose-500 font-medium">
+                        {isAr ? "فشل توليد الصور: " : "Failed to generate images: "}
+                        {msg.imageTask.error || (isAr ? "حدث خطأ غير متوقع" : "Unexpected error occurred")}
+                      </div>
+                    )}
+
+                    {msg.imageTask.status === "completed" && msg.imageTask.imageUrls && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-2">
+                          {msg.imageTask.imageUrls.map((url, index) => (
+                            <div key={index} className="relative group rounded-xl overflow-hidden border border-slate-800 aspect-video">
+                              <img src={url} alt={`Scene ${index + 1}`} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => setPreviewMedia({ type: "image", url, title: isAr ? `مشهد ${index + 1}` : `Scene ${index + 1}` })}
+                                  className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
+                                  title={isAr ? "عرض الصورة" : "View Image"}
+                                >
+                                  <Sparkles className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDownload(url, `scene-${index + 1}`)}
+                                  className="p-1.5 bg-slate-850 hover:bg-slate-800 rounded-lg text-slate-200 hover:text-white transition-colors"
+                                  title={isAr ? "تحميل الصورة" : "Download Image"}
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {isAr ? "تم توليد الصور كلقطات ثابتة للمشاهد الأربعة بنجاح." : "Images generated as scene stills successfully."}
+                        </div>
                       </div>
                     )}
                   </div>

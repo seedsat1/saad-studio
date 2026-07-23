@@ -9,10 +9,12 @@
   3. Redesigned `app/(dash)/(routes)/hook-studio/page.tsx` to support the two-step flow. Storyboards and progress/completed video players are rendered inline inside chat bubbles.
   4. Removed the legacy standalone card and the sidebar "Production Gallery" to clean up the UI.
   5. Updated avatars: user bubbles display the Clerk profile picture (`user?.imageUrl`), and agent bubbles display the site logo (`/EveLogo.png`).
+  6. Added the missing `EveLogo.png` file to the `public/` directory, resolving broken image icons across the entire website.
 - Affected Files:
   - `lib/hook-studio-director-prompt.ts` [MODIFY]
   - `app/api/hook-studio/generate/route.ts` [MODIFY]
   - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
+  - `public/EveLogo.png` [NEW]
 - Verification:
   - TypeScript compilation verified via `npx tsc --noEmit`. No new type or import errors introduced.
 
