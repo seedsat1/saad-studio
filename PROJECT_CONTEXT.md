@@ -1,5 +1,21 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Month-Grouped Generated Assets Vault in Reference Studio Modal (2026-07-24)
+
+- Status:
+  Updated `components/ReferenceStudioModal.tsx` to automatically fetch and display all of the user's previously generated and uploaded media assets, grouped dynamically by month (`July 2026`, `June 2026`, `May 2026`, etc.) matching Magnific UI 1:1:
+  1. **Server Asset Integration (`/api/assets`)**:
+     - Fetches all user generated images and videos on modal mount.
+     - Combines server assets with local user uploaded files.
+  2. **Month Grouping & Grid Layout**:
+     - Groups media assets by Month and Year (e.g. `July 2026`, `June 2026`, `May 2026`).
+     - Places the `+ Upload` dashed square card at index 0 under the current month.
+     - Renders thumbnail cards for all past generated and uploaded media items.
+     - Clicking any asset card marks it with a checkmark badge and calls `onAttachFile` to bind it as a reference for prompt generation.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `f88c43b` to GitHub `main` branch.
+
 #### Latest task: Strict Subscription & Credit Guard for Hook Studio Agent Chat (2026-07-24)
 
 - Status:
