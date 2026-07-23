@@ -969,6 +969,10 @@ export default function HookStudioPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: userMessage.text,
+          history: messages.map((m) => ({
+            role: m.sender === "user" ? "user" : "assistant",
+            content: m.text || "",
+          })),
           llmBrain: selectedThinkingModel,
           genre: selectedGenre,
           modelId: selectedVideoModel,

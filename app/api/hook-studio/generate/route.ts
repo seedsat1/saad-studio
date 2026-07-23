@@ -266,6 +266,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       prompt,
+      history = [],
       llmBrain = "gpt-4o",
       genre = "advertising",
       modelId = "seedance-2.0-pro",
@@ -480,11 +481,20 @@ export async function POST(req: NextRequest) {
         try {
           const systemPrompt = buildHookStudioDirectorSystemPrompt();
 
+          const historyList = Array.isArray(history) ? history : [];
+          const formattedHistory = historyList
+            .map((h: any) => ({
+              role: (h.role === "user" ? "user" : "assistant") as "user" | "assistant",
+              content: typeof h.content === "string" ? h.content : "",
+            }))
+            .filter((h: any) => h.content.trim().length > 0);
+
           const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             temperature: 0.7,
             messages: [
               { role: "system", content: systemPrompt },
+              ...formattedHistory,
               { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
             ],
             response_format: { type: "json_object" }
