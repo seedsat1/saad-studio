@@ -1,11 +1,11 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Expanded 24 Visual Art Style Presets, Category Tabs, and Background Removal Transparent PNG Export in Hook Studio (2026-07-23)
+#### Latest task: Expanded 36 Visual Art Style Presets, Category Tabs, and Background Removal Transparent PNG Export in Hook Studio (2026-07-23)
 
 - Status:
   Implemented key UI/UX and feature enhancements in Hook Studio matching professional design editors (like Magnific):
   1. **Visual Art Style Presets Library Modal**:
-     - Defined a comprehensive `HOOK_STYLES` list in `lib/hook-studio-config.ts` featuring 24 popular styles matching the user's screenshots (e.g., photo, natural, claytoon, dreamglass, glam3d, minimalcharacters, vinyltoy, motionstitched, 3dcolorful, softprism3d, kawaii3d, isometricdesign, classic-anime, videogame3d, origami, watercolor, oilpainting, sketch, neomemphis, letterpop, boldposter, minimaltypo, coffeeshopmockup) categorized into Illustration, 3D, and Design.
+     - Defined a comprehensive `HOOK_STYLES` list in `lib/hook-studio-config.ts` featuring 36 popular styles matching the user's screenshots (e.g., photo, natural, claytoon, dreamglass, glam3d, minimalcharacters, vinyltoy, motionstitched, 3dcolorful, softprism3d, kawaii3d, isometricdesign, classic-anime, videogame3d, origami, watercolor, oilpainting, sketch, neomemphis, letterpop, boldposter, minimaltypo, coffeeshopmockup, waxcrayon, dotted, risograph, traditional-japan, cartoonfun, retrocomic, linework, grainy-flat, pastelbeauty, coloredpencil, pointillism, classyvaporwave) categorized into Illustration, 3D, and Design.
      - Replaced the simple sidebar dropdown with an interactive card button showing the currently active style's thumbnail, name, tag, and an "Edit" button.
      - Implemented a fullscreen popup modal showing a visual grid of style cards with category filters (All, Illustration, 3D, Design), live search, hover zoom animations, active checkmark overlays, and responsive design. Selecting a style updates the selection instantly.
   2. **Character and Style Consistency Support**:
