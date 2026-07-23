@@ -1,23 +1,27 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Camera Motion & Effects Reference Libraries, Locations, Elements, 36 Art Styles, and Transparent PNG Export in Hook Studio (2026-07-23)
+#### Latest task: Unified Reference Studio Dialog (Magnific UI Parity) in Hook Studio (2026-07-23)
 
 - Status:
-  Implemented key UI/UX and feature enhancements in Hook Studio matching professional design editors (like Magnific):
-  1. **Camera Motion Reference Library Modal**:
-     - Defined `HOOK_CAMERAS` list in `lib/hook-studio-config.ts` with 18 camera angle & motion presets (e.g., `#layered`, `#drone`, `#360`, `#portrait`, `#close-up`, `#tilt-shift`, `#cinematic`, `#high-angle`, `#low-angle`, `#panoramic`, `#symmetry`, `#fish-eye`, `#first-person`, `#mid-shot`, `#full-body`, `#wide-shot`, `#tilt-shot`, `#aerial`).
-     - Added an interactive Camera Motion selector button in Hook Studio sidebar and a popup modal with live search.
-  2. **Effects & Lighting Reference Library Modal**:
-     - Defined `HOOK_EFFECTS` list in `lib/hook-studio-config.ts` with 30 presets categorized into Color, Lighting, Mood, Action (e.g., `#earthy`, `#softhue`, `#b&w`, `#sepia`, `#muted-green`, `#deep-teal`, `#duotone`, `#vibrant`, `#gold-glow`, `#high-flash`, `#chiaroscuro`, `#back-light`, `#studio`, `#iridescent`, `#golden-hour`, `#hardlight`, `#volumetric`, `#cold`, `#zen`, `#tension`, `#playful`, `#nostalgic`, `#long-exposure`, `#walking`, `#jumping`, `#glitching`, `#spinning`).
-     - Added an interactive Effects selector button in Hook Studio sidebar and a modal with category filter tabs.
-  3. **Locations Reference Library Modal**:
-     - Defined 20 location presets matching Magnific UI (e.g., `@beach`, `@bridge`, `@cafe`, `@castle`, `@forest`, `@mars`, etc.).
-  4. **Elements Reference Library & Custom Product Uploader Modal**:
-     - Defined 13 element presets matching Magnific UI with custom drag-and-drop media uploader.
-  5. **Visual Art Style Presets Library Modal**:
-     - Defined 36 popular styles matching screenshots (Illustration, 3D, Design).
-  6. **Background Removal Transparent PNG Export**:
-     - Added `Scissors` icon button calling `/api/generate/remove-bg` with 4 credits charge and transparent PNG download.
+  Unified all reference popups into a single, high-performance **Unified Reference Studio Modal** matching the exact user layout screenshot (Magnific UI structure):
+  1. **Unified Left Navigation Rail**:
+     - `History` (السجل التاريخي)
+     - `Uploads` (الملفات المرفوعة)
+     - `Stock` (صور الستوك)
+     - `Style` (الستايل الفني مع أثر التثبيت 📌)
+     - `Character` (الشخصيات والوجوه مع 📌)
+     - `Element` (العناصر والمنتجات)
+     - `Location` (المواقع والخلفيات)
+     - `Color` (لوحة الألوان)
+     - `Effects` (التأثيرات والإضاءة)
+     - `Camera` (حركة وزوايا الكاميرا)
+     - `Sketch` (الرسومات والسكيتشات)
+  2. **Central Content Grid Area**:
+     - Dynamic category filtering, search input, and grid displays for all 11 reference types.
+  3. **Right Dedicated Upload Panel**:
+     - Displays "Drop an image or upload your own media" with `Upload media` and `Take photo` buttons matching user screenshot.
+  4. **Sidebar Trigger Integration**:
+     - All sidebar card triggers and top `استوديو المراجع الموحد (Reference Studio)` button open the unified modal to the corresponding tab directly.
 - Affected Files:
   - `lib/hook-studio-config.ts` [MODIFY]
   - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
