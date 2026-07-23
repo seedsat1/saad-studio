@@ -250,7 +250,7 @@ function buildAdvisoryReply(prompt: string, hasReferences: boolean) {
     "Hook:",
     "“Got an idea? Let Saad Studio turn it into a ready ad before the moment is gone.”",
     "",
-    "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a clear call to action: Try Saad Studio now.",
+    "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a call to action: Try Saad Studio now.",
     "",
     "Type: generate this ad, and I will turn it into a hook and storyboard ready for video generation.",
   ].join("\n");
@@ -278,7 +278,11 @@ export async function POST(req: NextRequest) {
       refVideos = [],
       refAudios = [],
       longScript = "",
+      onlyStoryboard = false,
+      executeStoryboard = false,
     } = body;
+
+    let scenePrompts = body.scenePrompts || [];
 
     if (!prompt || typeof prompt !== "string" || prompt.trim() === "") {
       return NextResponse.json({ error: "يرجى كتابة فكرة أو وصف الهوك المطلوب" }, { status: 400 });
@@ -289,7 +293,7 @@ export async function POST(req: NextRequest) {
       (Array.isArray(refVideos) && refVideos.length > 0) ||
       (Array.isArray(refAudios) && refAudios.length > 0);
 
-    if (isCasualHookStudioPrompt(prompt, hasReferences)) {
+    if (!executeStoryboard && isCasualHookStudioPrompt(prompt, hasReferences)) {
       return NextResponse.json({
         success: true,
         mode: "chat",
@@ -300,7 +304,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    if (isAdvisoryHookStudioPrompt(prompt, hasReferences)) {
+    if (!executeStoryboard && isAdvisoryHookStudioPrompt(prompt, hasReferences)) {
       return NextResponse.json({
         success: true,
         mode: "chat",
@@ -329,20 +333,90 @@ export async function POST(req: NextRequest) {
       safeRefVideos.length > 0,
       safeRefImages.length,
     );
-    if (selectedModel.id === "kling-3.0-pro" && !safeRefImages[0]) {
-      return NextResponse.json({ error: "Kling 3.0 Image-to-Video requires a start image reference." }, { status: 400 });
-    }
-    if (selectedModel.id === "kling-3.0-turbo" && !safeRefImages[0]) {
-      return NextResponse.json({ error: "Kling V3 Turbo Image-to-Video requires a start image reference." }, { status: 400 });
-    }
-    if (selectedModel.id === "kling-o3-omni" && providerRoute.includes("/image-to-video") && !safeRefImages[0]) {
-      return NextResponse.json({ error: "Kling O3 Image-to-Video requires a start image reference." }, { status: 400 });
-    }
-    if (selectedModel.id === "kling-2.6" && providerRoute.includes("/image-to-video") && !safeRefImages[0]) {
-      return NextResponse.json({ error: "Kling 2.6 Image-to-Video requires a start image reference." }, { status: 400 });
+
+    if (executeStoryboard) {
+      if (selectedModel.id === "kling-3.0-pro" && !safeRefImages[0]) {
+        return NextResponse.json({ error: "Kling 3.0 Image-to-Video requires a start image reference." }, { status: 400 });
+      }
+      if (selectedModel.id === "kling-3.0-turbo" && !safeRefImages[0]) {
+        return NextResponse.json({ error: "Kling V3 Turbo Image-to-Video requires a start image reference." }, { status: 400 });
+      }
+      if (selectedModel.id === "kling-o3-omni" && providerRoute.includes("/image-to-video") && !safeRefImages[0]) {
+        return NextResponse.json({ error: "Kling O3 Image-to-Video requires a start image reference." }, { status: 400 });
+      }
+      if (selectedModel.id === "kling-2.6" && providerRoute.includes("/image-to-video") && !safeRefImages[0]) {
+        return NextResponse.json({ error: "Kling 2.6 Image-to-Video requires a start image reference." }, { status: 400 });
+      }
     }
 
-    // Deduct user credits for generation
+    // Step 1: Storyboard Generation only (No video render, no credits charge)
+    if (onlyStoryboard) {
+      let hookText = "عندك فكرة؟ خلّي Saad Studio يحولها لإعلان جاهز قبل ما تضيع اللحظة.";
+      let directorTreatment = "افتتاحية قوية تربط المرجع البصري برسالة الإعلان، ثم إثبات سريع للقيمة، ثم دعوة واضحة للفعل.";
+      let angle = selectedGenre.nameAr || selectedGenre.nameEn;
+      let genreLabel = selectedGenre.nameAr || selectedGenre.nameEn;
+      let scenePromptsFallback: Array<any> = [
+        { title: "الافتتاحية", shotType: "Establishing Shot", lens: "24mm", cameraAngle: "Low Angle", movement: "Dolly In", lighting: "Rembrandt", description: "لقطة قريبة للمرجع البصري مع إحساس إنتاجي فاخر يعرّف هوية الإعلان.", audio: "موسيقى غامضة", prompt: "A cinematic establishing shot, 24mm lens, Rembrandt lighting, showing the product details." },
+        { title: "المشكلة", shotType: "Medium Shot", lens: "35mm", cameraAngle: "Eye Level", movement: "Static", lighting: "Soft Light", description: "إظهار لحظة احتياج أو فضول عند الجمهور قبل ظهور الحل.", audio: "نبضات قلب سريعة", prompt: "A medium shot at eye level, soft light, showing a person thinking with curiosity." },
+        { title: "الحل", shotType: "Close-Up", lens: "50mm Anamorphic", cameraAngle: "Low Angle", movement: "Push In", lighting: "Neon Cinematic", description: "ظهور Saad Studio كأداة تحول الفكرة إلى إنتاج بصري جاهز.", audio: "موسيقى ملحمية", prompt: "A close-up shot, 50mm Anamorphic lens, luxury cinematic neon, revealing the digital studio interface." },
+        { title: "الدعوة", shotType: "Beauty Shot", lens: "85mm", cameraAngle: "Eye Level", movement: "Orbit 180°", lighting: "Golden Hour", description: "نهاية واضحة بشعار الموقع ودعوة تجربة مباشرة.", audio: "شعار صوتي دافئ", prompt: "A product beauty shot, 85mm lens, golden hour glow, showing a call to action." }
+      ];
+      let recommendedModelAdvice = "نوصي باستخدام Seedance 2.0 للإعلانات السينمائية التي تحتاج ثبات المرجع البصري، حركة ناعمة، وصوت أصلي عند الحاجة.";
+
+      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "sk-placeholder") {
+        try {
+          const systemPrompt = buildHookStudioDirectorSystemPrompt();
+
+          const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            temperature: 0.7,
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
+            ],
+            response_format: { type: "json_object" }
+          });
+          const parsed = JSON.parse(completion.choices[0].message.content || "{}");
+          if (parsed.hookText) hookText = parsed.hookText;
+          if (parsed.directorTreatment) directorTreatment = parsed.directorTreatment;
+          if (parsed.angle) angle = parsed.angle;
+          if (parsed.genreLabel) genreLabel = parsed.genreLabel;
+          if (Array.isArray(parsed.scenePrompts) && parsed.scenePrompts.length > 0) {
+            scenePrompts = parsed.scenePrompts.slice(0, 4).map((scene: any, index: number) => ({
+              title: typeof scene?.title === "string" ? scene.title : `Scene ${index + 1}`,
+              shotType: typeof scene?.shotType === "string" ? scene.shotType : "Medium Shot",
+              lens: typeof scene?.lens === "string" ? scene.lens : "35mm",
+              cameraAngle: typeof scene?.cameraAngle === "string" ? scene.cameraAngle : "Eye Level",
+              movement: typeof scene?.movement === "string" ? scene.movement : "Static",
+              lighting: typeof scene?.lighting === "string" ? scene.lighting : "Soft Light",
+              description: typeof scene?.description === "string" ? scene.description : "",
+              audio: typeof scene?.audio === "string" ? scene.audio : "",
+              prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
+            }));
+          } else {
+            scenePrompts = scenePromptsFallback;
+          }
+          if (parsed.recommendedModel) recommendedModelAdvice = parsed.recommendedModel;
+        } catch (err) {
+          console.error("OpenAI Hook Studio generation error, using fallback:", err);
+          scenePrompts = scenePromptsFallback;
+        }
+      } else {
+        scenePrompts = scenePromptsFallback;
+      }
+
+      return NextResponse.json({
+        success: true,
+        hookText,
+        directorTreatment,
+        angle,
+        genreLabel,
+        scenePrompts,
+        recommendedModel: recommendedModelAdvice,
+      });
+    }
+
+    // Step 2: Video Execution (Bypasses OpenAI, spends credits, dispatches task)
     const cost = selectedModel.creditCost;
     const isImageModel = selectedModel.durations[0] === 0;
     const assetType = isImageModel ? "IMAGE" : "VIDEO";
@@ -353,7 +427,7 @@ export async function POST(req: NextRequest) {
       const charge = await spendCredits({
         userId,
         credits: cost,
-        prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] ${prompt}`,
+        prompt: `[${selectedBrain.name}] [${selectedGenre.nameAr}] Execution: ${prompt}`,
         assetType: assetType,
         modelUsed: selectedModel.id,
         duration: isImageModel ? 0 : safeDuration,
@@ -374,53 +448,11 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
+    // Construct final generation prompt from storyboard scene prompts
+    const promptToUse = Array.isArray(scenePrompts) && scenePrompts.length > 0
+      ? scenePrompts.map((s: any, idx: number) => `Scene ${idx + 1} (${s.shotType || "Medium"}, ${s.lens || "35mm"}, ${s.movement || "Static"}, ${s.lighting || "Soft Light"}): ${s.prompt || s.description || ""}`).join(" | ")
+      : prompt;
 
-    let hookText = "عندك فكرة؟ خلّي Saad Studio يحولها لإعلان جاهز قبل ما تضيع اللحظة.";
-    let directorTreatment = "افتتاحية قوية تربط المرجع البصري برسالة الإعلان، ثم إثبات سريع للقيمة، ثم دعوة واضحة للفعل.";
-    let angle = selectedGenre.nameAr || selectedGenre.nameEn;
-    let genreLabel = selectedGenre.nameAr || selectedGenre.nameEn;
-    let scenePrompts: Array<{ title: string; prompt: string }> = [
-      { title: "الافتتاحية", prompt: "لقطة قريبة للمرجع البصري مع إحساس إنتاجي فاخر يعرّف هوية الإعلان." },
-      { title: "المشكلة", prompt: "إظهار لحظة احتياج أو فضول عند الجمهور قبل ظهور الحل." },
-      { title: "الحل", prompt: "ظهور Saad Studio كأداة تحول الفكرة إلى إنتاج بصري جاهز." },
-      { title: "الدعوة", prompt: "نهاية واضحة بشعار الموقع ودعوة تجربة مباشرة." },
-    ];
-    let recommendedModelAdvice = "نوصي باستخدام Seedance 2.0 للإعلانات السينمائية التي تحتاج ثبات المرجع البصري، حركة ناعمة، وصوت أصلي عند الحاجة.";
-
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "sk-placeholder") {
-      try {
-        const systemPrompt = buildHookStudioDirectorSystemPrompt();
-
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o",
-          temperature: 0.7,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
-          ],
-          response_format: { type: "json_object" }
-        });
-        const parsed = JSON.parse(completion.choices[0].message.content || "{}");
-        if (parsed.hookText) hookText = parsed.hookText;
-        if (parsed.directorTreatment) directorTreatment = parsed.directorTreatment;
-        if (parsed.angle) angle = parsed.angle;
-        if (parsed.genreLabel) genreLabel = parsed.genreLabel;
-        if (Array.isArray(parsed.scenePrompts) && parsed.scenePrompts.length > 0) {
-          scenePrompts = parsed.scenePrompts
-            .slice(0, 4)
-            .map((scene: any, index: number) => ({
-              title: typeof scene?.title === "string" ? scene.title : `Scene ${index + 1}`,
-              prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
-            }))
-            .filter((scene: { title: string; prompt: string }) => scene.prompt.trim());
-        }
-        if (parsed.recommendedModel) recommendedModelAdvice = parsed.recommendedModel;
-      } catch (err) {
-        console.error("OpenAI Hook Studio generation error, using fallback:", err);
-      }
-    }
-
-    // Call Google direct provider or WaveSpeed API v3
     const waveKey = process.env.WAVESPEED_API_KEY;
     let taskId = `ws-hook-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     let resultUrl: string | null = null;
@@ -431,18 +463,17 @@ export async function POST(req: NextRequest) {
     if (isGoogleModel) {
       try {
         const localOrigin = req.headers.get("origin") || "http://localhost:3000";
-        // Forward to our local video route which supports direct Google connection (veo-3.1-generate-preview)
         const localRes = await fetch(`${localOrigin}/api/video`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Cookie: req.headers.get("cookie") || "", // Forward Clerk session cookie for authentication
-            Authorization: req.headers.get("authorization") || "", // Forward Authorization header
+            Cookie: req.headers.get("cookie") || "",
+            Authorization: req.headers.get("authorization") || "",
           },
           body: JSON.stringify({
             modelRoute: selectedModel.apiRoute,
             payload: {
-              prompt: `${prompt.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
+              prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
               aspect_ratio: aspectRatio,
               duration: safeDuration,
               resolution: quality || "720p",
@@ -466,7 +497,7 @@ export async function POST(req: NextRequest) {
     } else if (waveKey) {
       try {
         const payload: Record<string, any> = {
-          prompt: `${prompt.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
+          prompt: `${promptToUse.trim()}. [Style: ${selectedGenre.nameEn}. ${selectedGenre.systemPromptAddon}]`,
           duration: safeDuration,
           resolution:
             selectedModel.id === "seedance-2.0-pro"
@@ -555,7 +586,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update DB Generation record with final results
     if (generationId) {
       try {
         await prismadb.generation.update({
@@ -580,12 +610,6 @@ export async function POST(req: NextRequest) {
       modelUsed: selectedModel.name,
       creditsDeducted: cost,
       remainingCredits: newBalance,
-      hookText,
-      directorTreatment,
-      angle,
-      genreLabel,
-      scenePrompts,
-      recommendedModel: recommendedModelAdvice,
     });
   } catch (error: any) {
     console.error("Hook Studio Generation Route Error:", error);

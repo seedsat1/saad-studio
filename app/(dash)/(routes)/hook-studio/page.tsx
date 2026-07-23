@@ -32,6 +32,7 @@ import {
   HOOK_VIDEO_MODELS,
 } from "@/lib/hook-studio-config";
 import { useLanguage } from "@/lib/use-language";
+import { useUser } from "@clerk/nextjs";
 
 interface AttachedFile {
   id: string;
@@ -54,9 +55,27 @@ interface ChatMessage {
     genre: string;
     duration: string;
     treatment?: string;
-    scenes: Array<{ id: number; url?: string; title?: string; prompt?: string }>;
+    scenes: Array<{
+      id: number;
+      title?: string;
+      shotType?: string;
+      lens?: string;
+      cameraAngle?: string;
+      movement?: string;
+      lighting?: string;
+      description?: string;
+      audio?: string;
+      prompt?: string;
+      url?: string;
+    }>;
     videoUrl: string;
     modelRecommendation?: string;
+  };
+  videoTask?: {
+    status: "processing" | "completed" | "failed";
+    taskId?: string;
+    videoUrl?: string;
+    error?: string;
   };
 }
 
@@ -99,6 +118,96 @@ const normalizeHookPrompt = (value: string) =>
     .replace(/\s+/g, " ");
 
 const isArabicText = (value: string) => /[\u0600-\u06ff]/.test(value);
+
+const formatHookStudioDirectorReply = ({
+  isAr,
+  hookText,
+  angle,
+  genre,
+  duration,
+  treatment,
+  scenes,
+  recommendedModel,
+}: {
+  isAr: boolean;
+  hookText: string;
+  angle: string;
+  genre: string;
+  duration: string;
+  treatment: string;
+  scenes: Array<{
+    title?: string;
+    shotType?: string;
+    lens?: string;
+    cameraAngle?: string;
+    movement?: string;
+    lighting?: string;
+    description?: string;
+    audio?: string;
+    prompt?: string;
+    id?: number;
+  }>;
+  recommendedModel: string;
+}) => {
+  const safeScenes = scenes.slice(0, 4);
+  if (isAr) {
+    return [
+      `🎬 الهوك: "${hookText}"`,
+      "",
+      `🎯 زاوية المخرج: ${angle}`,
+      `🎭 نوع الإنتاج: ${genre}`,
+      `⏱️ مدة اللقطة: ${duration}`,
+      "",
+      `📝 المعالجة الإخراجية: ${treatment}`,
+      "",
+      "📋 خطة لقطات الستوريبورد (Storyboard):",
+      ...safeScenes.map((scene, index) => {
+        const title = scene.title || `مشهد ${index + 1}`;
+        const details = [
+          scene.shotType ? `🎥 اللقطة: ${scene.shotType}` : null,
+          scene.lens ? `🔍 العدسة: ${scene.lens}` : null,
+          scene.cameraAngle ? `📐 زاوية الكاميرا: ${scene.cameraAngle}` : null,
+          scene.movement ? `⚙️ حركة الكاميرا: ${scene.movement}` : null,
+          scene.lighting ? `💡 الإضاءة: ${scene.lighting}` : null,
+          scene.description ? `📝 الوصف البصري: ${scene.description}` : null,
+          scene.audio ? `🔊 هندسة الصوت: ${scene.audio}` : null,
+          scene.prompt ? `✨ برومبت التوليد: ${scene.prompt}` : null,
+        ].filter(Boolean).map(line => `   ${line}`).join("\n");
+        return `\n${index + 1}. 🎬 ${title}:\n${details}`;
+      }),
+      "",
+      `💡 الموديل الموصى به: ${recommendedModel}`,
+    ].join("\n");
+  }
+
+  return [
+    `🎬 Hook: "${hookText}"`,
+    "",
+    `🎯 Director Angle: ${angle}`,
+    `🎭 Production Genre: ${genre}`,
+    `⏱️ Target Duration: ${duration}`,
+    "",
+    `📝 Director Treatment: ${treatment}`,
+    "",
+    "📋 Storyboard Shot List:",
+    ...safeScenes.map((scene, index) => {
+      const title = scene.title || `Scene ${index + 1}`;
+      const details = [
+        scene.shotType ? `🎥 Shot Type: ${scene.shotType}` : null,
+        scene.lens ? `Lens: ${scene.lens}` : null,
+        scene.cameraAngle ? `📐 Camera Angle: ${scene.cameraAngle}` : null,
+        scene.movement ? `⚙️ Movement: ${scene.movement}` : null,
+        scene.lighting ? `💡 Lighting: ${scene.lighting}` : null,
+        scene.description ? `📝 Visual Description: ${scene.description}` : null,
+        scene.audio ? `🔊 Sound Design: ${scene.audio}` : null,
+        scene.prompt ? `✨ Generation Prompt: ${scene.prompt}` : null,
+      ].filter(Boolean).map(line => `   ${line}`).join("\n");
+      return `\n${index + 1}. 🎬 ${title}:\n${details}`;
+    }),
+    "",
+    `Recommended model: ${recommendedModel}`,
+  ].join("\n");
+};
 
 const isCasualHookStudioMessage = (value: string, hasAttachments: boolean) => {
   const normalized = normalizeHookPrompt(value);
@@ -200,6 +309,7 @@ const isAdvisoryHookStudioMessage = (value: string, hasAttachments: boolean) => 
 export default function HookStudioPage() {
   const { lang } = useLanguage();
   const isAr = lang === "ar";
+  const { user } = useUser();
 
   // Sidebar Configuration States
   const [selectedVideoModel, setSelectedVideoModel] = useState("seedance-2.0-pro");
@@ -226,7 +336,8 @@ export default function HookStudioPage() {
     title?: string;
   } | null>(null);
 
-  // Chat Feed Messages
+  // Chat Feed Messages & latest storyboard state
+  const [latestStoryboard, setLatestStoryboard] = useState<any>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -262,18 +373,18 @@ export default function HookStudioPage() {
         phrase: isAr
           ? "\"ماذا لو أخبرتك أن سماعاتك تعرف مشاعرك قبل أن تعرفها أنت؟\""
           : "\"What if I told you your headphones know your feelings before you do?\"",
-            angle: isAr ? "زاوية إخراجية" : "Director Angle",
-            genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
-            duration: "15s",
-            treatment: isAr
-              ? "معالجة إخراجية تجريبية لمنتج تقني بنبرة سينمائية سريعة."
-              : "Sample director treatment for a cinematic tech product spot.",
-            scenes: [
-              { id: 1, title: "Scene 1", prompt: "Opening product reveal." },
-              { id: 2, title: "Scene 2", prompt: "User reaction and emotional beat." },
-              { id: 3, title: "Scene 3", prompt: "Feature transformation moment." },
-              { id: 4, title: "Scene 4", prompt: "Final call to action." },
-            ],
+        angle: isAr ? "زاوية إخراجية" : "Director Angle",
+        genre: isAr ? "سينمائي / تقني" : "Cinematic / Tech",
+        duration: "15s",
+        treatment: isAr
+          ? "معالجة إخراجية تجريبية لمنتج تقني بنبرة سينمائية سريعة."
+          : "Sample director treatment for a cinematic tech product spot.",
+        scenes: [
+          { id: 1, title: "Scene 1", prompt: "Opening product reveal." },
+          { id: 2, title: "Scene 2", prompt: "User reaction and emotional beat." },
+          { id: 3, title: "Scene 3", prompt: "Feature transformation moment." },
+          { id: 4, title: "Scene 4", prompt: "Final call to action." },
+        ],
         videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
         modelRecommendation: isAr
           ? "نوصي باستخدام Seedance 2.0 للحصول على معالجة سينمائية متعددة المراجع وثبات مذهل للألوان والتحكم بالمنتجات."
@@ -308,32 +419,6 @@ export default function HookStudioPage() {
       : "We recommend using Seedance 2.0 as a balanced and excellent choice for narrative and general scenes.";
   };
 
-
-  // Production Gallery Data
-  const [gallery, setGallery] = useState<
-    Array<{
-      id: string;
-      prompt: string;
-      modelName: string;
-      genre: string;
-      url: string;
-      date: string;
-      credits: number;
-    }>
-  >([
-    {
-      id: "demo-1",
-      prompt: isAr
-        ? "افتتاحية سينمائية درامية لرجل يكتشف خريطة سرية تحت الأرض في مدينة عتيقة"
-        : "Dramatic cinematic opening of a man discovering an ancient secret map underground",
-      modelName: "Seedance 2.0",
-      genre: isAr ? "سينمائي" : "Cinematic",
-      url: "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
-      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      credits: 15,
-    },
-  ]);
-
   const activeVideoModelObj =
     HOOK_VIDEO_MODELS.find((m) => m.id === selectedVideoModel) || HOOK_VIDEO_MODELS[0];
   const activeGenreObj =
@@ -365,7 +450,6 @@ export default function HookStudioPage() {
     badgeInstant: isAr ? "فوري" : "Instant",
     inputPlaceholder: isAr ? "اسأل هوك ستوديو..." : "Ask Hook Studio...",
     dragPromptText: isAr ? "اسحب وأفلت الملفات هنا (صور، فيديوهات، صوتيات)" : "Drag & drop files here (images, videos, audio)",
-    productionGallery: isAr ? "معرض الإنتاج" : "Production Gallery",
   };
 
   // Drag & Drop Handlers
@@ -493,15 +577,215 @@ export default function HookStudioPage() {
       "Hook:",
       "“Got an idea? Let Saad Studio turn it into a ready ad before the moment is gone.”",
       "",
-      "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a clear call to action: Try Saad Studio now.",
+      "Storyboard: close opening shot with the reference, quick reveal of the site interface, fast generated-video results, then a call to action: Try Saad Studio now.",
       "",
       "Type: generate this ad, and I will turn it into a hook and storyboard ready for video generation.",
     ].join("\n");
   };
 
+  // Poll video task status helper
+  const pollVideoTaskStatus = (msgId: string, taskId: string) => {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > 60) {
+        clearInterval(interval);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msgId
+              ? {
+                  ...m,
+                  text: isAr ? "❌ انتهت مهلة التوليد. يرجى المحاولة مرة أخرى." : "❌ Generation timed out. Please try again.",
+                  videoTask: {
+                    status: "failed",
+                    error: "Timeout",
+                  },
+                }
+              : m
+          )
+        );
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`);
+        const data = await res.json();
+        
+        if (res.ok && data) {
+          if (data.status === "completed" && data.outputs && data.outputs[0]) {
+            clearInterval(interval);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === msgId
+                  ? {
+                      ...m,
+                      text: isAr ? "✨ تم توليد الفيديو بنجاح!" : "✨ Video generated successfully!",
+                      videoTask: {
+                        status: "completed",
+                        videoUrl: data.outputs[0],
+                      },
+                    }
+                  : m
+              )
+            );
+          } else if (data.status === "failed") {
+            clearInterval(interval);
+            const errorMsg = data.error || (isAr ? "فشل توليد الفيديو من المزود" : "Provider failed to generate video");
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === msgId
+                  ? {
+                      ...m,
+                      text: `❌ ${errorMsg}`,
+                      videoTask: {
+                        status: "failed",
+                        error: errorMsg,
+                      },
+                    }
+                  : m
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Polling error:", err);
+      }
+    }, 4000);
+  };
+
+  // Video execution handler (Triggered by button click or text command "نفذ")
+  const executeStoryboardVideo = async (messageId: string, hookData: any) => {
+    const taskIdTemp = Math.random().toString(36).substr(2, 9);
+    const executionMsgId = `exec-${taskIdTemp}`;
+    
+    const executionMsg: ChatMessage = {
+      id: executionMsgId,
+      sender: "agent",
+      text: isAr ? "جاري البدء في إنتاج وتوليد الفيديو..." : "Starting video generation...",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      videoTask: {
+        status: "processing",
+      }
+    };
+    
+    setMessages((prev) => [...prev, executionMsg]);
+    
+    try {
+      const res = await fetch("/api/hook-studio/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: hookData.phrase || "Execute Storyboard",
+          llmBrain: selectedThinkingModel,
+          genre: selectedGenre,
+          modelId: selectedVideoModel,
+          duration: Number.parseInt(selectedDuration, 10),
+          aspectRatio: selectedRatio,
+          quality: selectedQuality,
+          generateAudio,
+          hookAngle: selectedHookAngle,
+          scenePrompts: hookData.scenes,
+          executeStoryboard: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.taskId) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === executionMsgId
+              ? {
+                  ...m,
+                  text: isAr ? `جاري توليد وإنتاج الفيديو بالذكاء الاصطناعي... \nالموديل: ${data.modelUsed || activeVideoModelObj.name}` : `Generating video using AI... \nModel: ${data.modelUsed || activeVideoModelObj.name}`,
+                  videoTask: {
+                    status: "processing",
+                    taskId: data.taskId,
+                  },
+                }
+              : m
+          )
+        );
+        pollVideoTaskStatus(executionMsgId, data.taskId);
+      } else {
+        const errorText = data.error || (isAr ? "فشل بدء توليد الفيديو" : "Failed to start video generation");
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === executionMsgId
+              ? {
+                  ...m,
+                  text: `❌ ${errorText}`,
+                  videoTask: {
+                    status: "failed",
+                    error: errorText,
+                  },
+                }
+              : m
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
+      const errorText = err.message || (isAr ? "حدث خطأ أثناء الاتصال بالخادم" : "Error connecting to server");
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === executionMsgId
+            ? {
+                ...m,
+                text: `❌ ${errorText}`,
+                videoTask: {
+                  status: "failed",
+                  error: errorText,
+                },
+              }
+            : m
+        )
+      );
+    }
+  };
+
+  const isExecutionCommand = (text: string) => {
+    const normalized = normalizeHookPrompt(text);
+    return ["نفذ", "نفذ الفيديو", "توليد", "ابدأ التوليد", "شغل", "شغل التوليد", "ولّد", "ولد", "execute", "run", "generate"].includes(normalized);
+  };
+
   // Generation Handler
   const handleSendMessage = async () => {
     if (!inputText.trim() && attachedFiles.length === 0) return;
+
+    // Check if the input is an execution command
+    if (isExecutionCommand(inputText)) {
+      if (latestStoryboard) {
+        const userMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          sender: "user",
+          text: inputText,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+        setInputText("");
+        executeStoryboardVideo(userMessage.id, latestStoryboard);
+      } else {
+        const userMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          sender: "user",
+          text: inputText,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, userMessage]);
+        setInputText("");
+        
+        const agentMessage: ChatMessage = {
+          id: Math.random().toString(36).substr(2, 9),
+          sender: "agent",
+          text: isAr
+            ? "يرجى طلب ستوري بورد أولاً قبل إصدار أمر التنفيذ."
+            : "Please request a storyboard first before executing.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        setMessages((prev) => [...prev, agentMessage]);
+      }
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Math.random().toString(36).substr(2, 9),
@@ -568,6 +852,7 @@ export default function HookStudioPage() {
           refImages,
           refVideos,
           refAudios,
+          onlyStoryboard: true, // Generate storyboard first
         }),
       });
 
@@ -584,29 +869,59 @@ export default function HookStudioPage() {
       }
 
       if (res.ok && data.success) {
+        const scenes = Array.isArray(data.scenePrompts) && data.scenePrompts.length > 0
+          ? data.scenePrompts.slice(0, 4).map((scene: any, index: number) => ({
+              id: index + 1,
+              title: typeof scene?.title === "string" ? scene.title : `${t.sceneText} ${index + 1}`,
+              shotType: scene.shotType || "Medium Shot",
+              lens: scene.lens || "35mm",
+              cameraAngle: scene.cameraAngle || "Eye Level",
+              movement: scene.movement || "Static",
+              lighting: scene.lighting || "Soft Light",
+              description: scene.description || "",
+              audio: scene.audio || "",
+              prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
+            }))
+          : getFallbackScenes(userMessage.text);
+        const hookText = data.hookText || (isAr
+          ? "ماذا لو كان إعلانك القادم جاهزاً قبل أن تضيع الفكرة؟"
+          : "What if your next ad was ready before the idea faded?");
+        const angle = data.angle || (isAr ? "زاوية إخراجية" : "Director Angle");
+        const genre = data.genreLabel || (isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn);
+        const treatment = data.directorTreatment || getDirectorFallbackTreatment(userMessage.text);
+        const recommendedModel = data.recommendedModel || getRecommendedModelDescription(selectedGenre, userMessage.text);
+        
+        const generatedHookObj = {
+          phrase: isAr
+            ? `"${hookText || "ماذا لو أخبرتك أن المحتوى الفيروسي يصنع بالذكاء الاصطناعي؟"}"`
+            : `"${hookText || "What if I told you viral hooks are generated by AI?"}"`,
+          angle,
+          genre,
+          duration: selectedDuration,
+          treatment,
+          scenes,
+          videoUrl: "",
+          modelRecommendation: recommendedModel,
+        };
+
+        // Update latest storyboard in state
+        setLatestStoryboard(generatedHookObj);
+
         const agentMessage: ChatMessage = {
-          id: data.generationId || Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).substr(2, 9),
           sender: "agent",
-          text: "",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          generatedHook: {
-            phrase: isAr
-              ? `"${data.hookText || "ماذا لو أخبرتك أن المحتوى الفيروسي يصنع بالذكاء الاصطناعي؟"}"`
-              : `"${data.hookText || "What if I told you viral hooks are generated by AI?"}"`,
-            angle: data.angle || (isAr ? "زاوية إخراجية" : "Director Angle"),
-            genre: data.genreLabel || (isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn),
+          text: formatHookStudioDirectorReply({
+            isAr,
+            hookText,
+            angle,
+            genre,
             duration: selectedDuration,
-            treatment: data.directorTreatment || getDirectorFallbackTreatment(userMessage.text),
-            scenes: Array.isArray(data.scenePrompts) && data.scenePrompts.length > 0
-              ? data.scenePrompts.slice(0, 4).map((scene: any, index: number) => ({
-                  id: index + 1,
-                  title: typeof scene?.title === "string" ? scene.title : `${t.sceneText} ${index + 1}`,
-                  prompt: typeof scene?.prompt === "string" ? scene.prompt : String(scene || ""),
-                }))
-              : getFallbackScenes(userMessage.text),
-            videoUrl: data.mediaUrl || "https://assets.mixkit.co/videos/preview/mixkit-set-of-plateaus-seen-from-the-sky-in-a-sunset-26070-large.mp4",
-            modelRecommendation: data.recommendedModel || getRecommendedModelDescription(selectedGenre, userMessage.text),
-          },
+            treatment,
+            scenes,
+            recommendedModel,
+          }),
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          generatedHook: generatedHookObj,
         };
         setMessages((prev) => [...prev, agentMessage]);
       }
@@ -618,16 +933,8 @@ export default function HookStudioPage() {
   };
 
   const handlePublishToGallery = (hook: NonNullable<ChatMessage["generatedHook"]>) => {
-    const newEntry = {
-      id: Math.random().toString(36).substr(2, 9),
-      prompt: hook.phrase,
-      modelName: activeVideoModelObj.name,
-      genre: isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn,
-      url: hook.videoUrl,
-      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      credits: activeVideoModelObj.creditCost,
-    };
-    setGallery([newEntry, ...gallery]);
+    // Gallery is visual only inside sidebar, but we keep this hook function just in case
+    console.log("Publishing to gallery:", hook);
   };
 
   const handleDownload = async (url: string, filename: string = "media-file") => {
@@ -647,16 +954,9 @@ export default function HookStudioPage() {
     }
   };
 
-  const copyPrompt = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   const visibleMessages = messages.filter(
     (msg) => !["welcome", "user-demo", "agent-response-demo"].includes(msg.id),
   );
-  const visibleGallery = gallery.filter((item) => item.id !== "demo-1");
   const hookStudioEmptyTitle = isAr ? "هوك ستوديو" : "Hook Studio";
   const showEmptyHookStudioTitle =
     visibleMessages.length === 0 && !inputText.trim() && attachedFiles.length === 0;
@@ -691,13 +991,21 @@ export default function HookStudioPage() {
             >
               {/* Avatar */}
               <div
-                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-lg ${
+                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-lg overflow-hidden ${
                   msg.sender === "user"
                     ? "bg-slate-800 text-slate-300 text-xs font-bold"
-                    : "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white"
+                    : "bg-[#0c0f16] border border-slate-800"
                 }`}
               >
-                {msg.sender === "user" ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                {msg.sender === "user" ? (
+                  user?.imageUrl ? (
+                    <img src={user.imageUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )
+                ) : (
+                  <img src="/EveLogo.png" alt="AI Agent Logo" className="w-full h-full object-contain p-1" />
+                )}
               </div>
 
               {/* Message Content */}
@@ -708,10 +1016,87 @@ export default function HookStudioPage() {
                     className={`rounded-2xl p-3.5 text-xs leading-relaxed shadow-sm border ${
                       msg.sender === "user"
                         ? "bg-[#181232]/85 border-purple-900/20 text-purple-100 rounded-tr-none"
-                        : "bg-[#111520] border-slate-800/50 text-slate-200 rounded-tl-none"
+                        : "bg-[#111520] border-slate-800/50 text-slate-200 rounded-tl-none whitespace-pre-line"
                     }`}
                   >
                     {msg.text}
+
+                    {/* Storyboard Action Button inside storyboard chat bubble */}
+                    {msg.sender === "agent" && msg.generatedHook && !msg.videoTask && (
+                      <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center gap-2">
+                        <button
+                          onClick={() => executeStoryboardVideo(msg.id, msg.generatedHook)}
+                          className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-xl flex items-center gap-2 transition-all shadow-md active:scale-95 text-xs"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          <span>{isAr ? "🎬 تنفيذ وإنتاج الفيديو" : "🎬 Execute Video"}</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Video Generation Inline Player & Status */}
+                {msg.videoTask && (
+                  <div className="bg-[#111520] border border-slate-800/50 rounded-2xl p-4 space-y-3 max-w-md shadow-lg">
+                    {msg.videoTask.status === "processing" && (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                        <span className="text-xs text-slate-300 font-medium">
+                          {isAr ? "جاري توليد وإنتاج الفيديو..." : "Generating video..."}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {msg.videoTask.status === "completed" && msg.videoTask.videoUrl && (
+                      <div className="space-y-3">
+                        <div 
+                          onClick={() => setPreviewMedia({ type: "video", url: msg.videoTask!.videoUrl!, title: "Generated Hook" })}
+                          className="relative rounded-xl overflow-hidden group cursor-zoom-in border border-slate-800"
+                        >
+                          <video src={msg.videoTask.videoUrl} className="object-cover w-full h-48 group-hover:scale-105 transition-transform" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-75 group-hover:opacity-100 transition-opacity">
+                            <Play className="w-8 h-8 text-white fill-white" />
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <button
+                            onClick={() => handleDownload(msg.videoTask!.videoUrl!, "generated-hook.mp4")}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{isAr ? "تحميل" : "Download"}</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              const newEntry = {
+                                id: Math.random().toString(36).substr(2, 9),
+                                prompt: msg.text || "Storyboard Hook",
+                                modelName: activeVideoModelObj.name,
+                                genre: isAr ? activeGenreObj.nameAr : activeGenreObj.nameEn,
+                                url: msg.videoTask!.videoUrl!,
+                                date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                                credits: activeVideoModelObj.creditCost,
+                              };
+                              console.log("Published to gallery:", newEntry);
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-all"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{isAr ? "نشر في المعرض" : "Publish to Gallery"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {msg.videoTask.status === "failed" && (
+                      <div className="text-xs text-red-400 font-medium">
+                        {isAr ? "فشل التوليد: " : "Generation failed: "}
+                        {msg.videoTask.error || (isAr ? "حدث خطأ غير متوقع" : "Unexpected error occurred")}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -765,110 +1150,6 @@ export default function HookStudioPage() {
                         )}
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* Agent Response Storyboard Card */}
-                {msg.generatedHook && (
-                  <div className="bg-[#0f131c]/95 border border-slate-800/80 rounded-3xl p-5 space-y-4 shadow-2xl backdrop-blur-md w-full">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xs font-bold text-white tracking-wide">
-                        {t.generatedHookHeader}
-                      </h3>
-                      <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {t.storyboardReady}
-                      </span>
-                    </div>
-
-                    {/* Phrase */}
-                    <div className="bg-[#07090d] border border-slate-800/60 rounded-xl p-4 text-center font-bold text-sm md:text-base text-emerald-300 leading-relaxed shadow-inner">
-                      {msg.generatedHook.phrase}
-                    </div>
-
-                    {/* Details Row */}
-                    <div className="grid grid-cols-3 gap-2 text-center bg-[#0a0d13] border border-slate-800/50 rounded-xl p-3 text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
-                          {t.angleLabel}
-                        </span>
-                        <span className="text-xs font-bold text-slate-200">
-                          {msg.generatedHook.angle}
-                        </span>
-                      </div>
-                      <div className="border-x border-slate-800/50">
-                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
-                          {t.genreLabel}
-                        </span>
-                        <span className="text-xs font-bold text-slate-200">
-                          {msg.generatedHook.genre}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-500 font-semibold block mb-1 uppercase">
-                          {t.durationLabel}
-                        </span>
-                        <span className="text-xs font-bold text-slate-200">
-                          {msg.generatedHook.duration}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Model Recommendation glowing advice block */}
-                    {msg.generatedHook.modelRecommendation && (
-                      <div className="bg-indigo-950/40 border border-indigo-900/30 rounded-2xl p-3.5 text-xs text-indigo-300 flex items-start gap-2.5 shadow-sm">
-                        <Sparkles className="w-4 h-4 text-indigo-400 mt-0.5 flex-shrink-0" />
-                        <div className="text-right">
-                          <span className="font-bold block mb-0.5">{isAr ? "💡 الموديل الموصى به:" : "💡 Recommended Model:"}</span>
-                          <span className="leading-relaxed block text-indigo-200">{msg.generatedHook.modelRecommendation}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {msg.generatedHook.treatment && (
-                      <div className="bg-[#080b10] border border-slate-800/70 rounded-2xl p-3.5 text-xs leading-relaxed text-slate-200 whitespace-pre-line">
-                        {msg.generatedHook.treatment}
-                      </div>
-                    )}
-
-                    <p className="text-[10px] text-slate-400">
-                      {t.scenesDesc}
-                    </p>
-
-                    {/* Storyboard grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {msg.generatedHook.scenes.map((scene) => (
-                        <div
-                          key={scene.id}
-                          className="bg-[#06080c] border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/40 transition-all shadow-md relative"
-                        >
-                          <div className="aspect-video w-full bg-slate-950/80 relative overflow-hidden p-3 flex items-center justify-center">
-                            <p className="text-[10px] leading-relaxed text-slate-300 line-clamp-5 text-center">
-                              {scene.prompt}
-                            </p>
-                          </div>
-                          <div className="p-2 text-center border-t border-slate-800/50">
-                            <span className="text-[10px] font-bold text-slate-400">
-                              {scene.title || `${t.sceneText} ${scene.id}`}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        onClick={() => handlePublishToGallery(msg.generatedHook!)}
-                        className="flex-1 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>{t.btnGenerate}</span>
-                      </button>
-                      <button className="flex-1 py-2 rounded-xl bg-[#151924] border border-slate-800 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all flex items-center justify-center gap-2">
-                        <Trash2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{t.btnRegenerate}</span>
-                      </button>
-                    </div>
                   </div>
                 )}
 
@@ -1124,12 +1405,12 @@ export default function HookStudioPage() {
 
             {/* Native Audio */}
             <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#11141e] px-3 py-2.5 text-xs text-slate-200">
-              <span className="font-semibold">{isAr ? "ØªÙˆÙ„ÙŠØ¯ ØµÙˆØª Ø£ØµÙ„ÙŠ" : "Native audio"}</span>
+              <span className="font-semibold">{isAr ? "توليد صوت أصلي" : "Native audio"}</span>
               <input
                 type="checkbox"
                 checked={generateAudio}
                 onChange={(e) => setGenerateAudio(e.target.checked)}
-                className="h-4 w-4 accent-indigo-500"
+                className="h-4 w-4 accent-indigo-500 cursor-pointer"
               />
             </label>
 
@@ -1173,36 +1454,6 @@ export default function HookStudioPage() {
             </div>
           </div>
         </div>
-
-        {/* Dynamic Production Gallery Inside Sidebar Bottom / Accordion to avoid cluttering */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-3">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-            {t.productionGallery}
-          </label>
-          <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-            {visibleGallery.map((item) => (
-              <div
-                key={item.id}
-                className="bg-[#11141e] border border-slate-800 rounded-xl p-2 space-y-2 text-xs"
-              >
-                <div 
-                  onClick={() => setPreviewMedia({ type: "video", url: item.url, title: item.prompt })}
-                  className="relative rounded-lg overflow-hidden group cursor-zoom-in aspect-video bg-black"
-                >
-                  <video src={item.url} className="object-cover w-full h-full" />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity">
-                    <Play className="w-5 h-5 text-white fill-white" />
-                  </div>
-                </div>
-                <p className="text-[10px] text-slate-400 line-clamp-1">{item.prompt}</p>
-                <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono">
-                  <span>{item.modelName}</span>
-                  <span>{item.date}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ── Fullscreen Lightbox Modal ── */}
@@ -1216,66 +1467,61 @@ export default function HookStudioPage() {
             className="relative max-w-4xl w-full bg-[#080b11] border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] transition-all animate-in zoom-in-95 duration-200"
           >
             {/* Close Button top-right */}
-            <button
-              type="button"
+            <button 
               onClick={() => setPreviewMedia(null)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-900/60 hover:bg-slate-900/80 flex items-center justify-center text-slate-300 border border-slate-800 transition-all"
+              className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-black/50 hover:bg-rose-600 text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Media View */}
-            <div className="flex-1 bg-black flex items-center justify-center overflow-hidden min-h-[300px] p-6">
+            {/* Header info */}
+            {previewMedia.title && (
+              <div className="p-5 border-b border-slate-800/60 bg-[#0c0f16]/95">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Media Preview</span>
+                <span className="text-sm font-bold text-slate-200 truncate block">{previewMedia.title}</span>
+              </div>
+            )}
+
+            {/* Media Body */}
+            <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-black/40">
               {previewMedia.type === "image" && (
-                <img
-                  src={previewMedia.url}
-                  alt={previewMedia.title || "preview"}
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                <img 
+                  src={previewMedia.url} 
+                  alt={previewMedia.title || "Image Preview"} 
+                  className="max-h-[60vh] object-contain rounded-2xl shadow-xl"
                 />
               )}
               {previewMedia.type === "video" && (
-                <video
-                  src={previewMedia.url}
-                  controls
+                <video 
+                  src={previewMedia.url} 
+                  controls 
                   autoPlay
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                  className="max-h-[60vh] w-full object-contain rounded-2xl shadow-xl"
                 />
               )}
               {previewMedia.type === "audio" && (
-                <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col items-center gap-4 text-center">
-                  <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                <div className="bg-[#11141e] border border-slate-800 rounded-3xl p-10 flex flex-col items-center gap-5 w-full max-w-md shadow-xl text-center">
+                  <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                     <Volume2 className="w-8 h-8" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-white truncate max-w-xs">{previewMedia.title || "Audio File"}</h4>
-                    <p className="text-[10px] text-slate-500">MPEG Audio Track</p>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Now Playing</span>
+                    <span className="text-sm font-bold text-slate-200 truncate max-w-xs block">{previewMedia.title}</span>
                   </div>
-                  <audio src={previewMedia.url} controls className="w-full" autoPlay />
+                  <audio src={previewMedia.url} controls className="w-full mt-2" />
                 </div>
               )}
             </div>
 
-            {/* Footer / Controls */}
-            <div className="p-4 border-t border-slate-900 bg-[#07090d] flex items-center justify-between w-full text-xs">
-              <span className="text-slate-400 truncate max-w-md font-medium">
-                {previewMedia.title || "Media Preview"}
-              </span>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleDownload(previewMedia.url, previewMedia.title || "media")}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{isAr ? "تحميل" : "Download"}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMedia(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
-                >
-                  {isAr ? "إغلاق" : "Close"}
-                </button>
-              </div>
+            {/* Footer action */}
+            <div className="p-4 border-t border-slate-800/60 bg-[#0c0f16]/95 flex justify-end">
+              <button
+                onClick={() => handleDownload(previewMedia.url, previewMedia.title || "downloaded-file")}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-5 rounded-xl flex items-center gap-2 transition-colors text-xs"
+              >
+                <Download className="w-4 h-4" />
+                <span>{isAr ? "تحميل الملف" : "Download File"}</span>
+              </button>
             </div>
           </div>
         </div>

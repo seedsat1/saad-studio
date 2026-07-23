@@ -1,12 +1,13 @@
-﻿# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
-## Hook Studio director prompt reference behavior (2026-07-22)
+# Ù…Ø±Ø¬Ø¹ Saad Studio Ù„ØªÙƒØ§Ù…Ù„ Premiere ÙˆReap
+## Hook Studio storyboard decouple and cinematic directing behavior (2026-07-23)
 
-- Hook Studio uses a centralized prompt contract in `lib/hook-studio-director-prompt.ts` instead of keeping the thinking-model system prompt inline inside the generation route.
-- The contract frames Hook Studio as a production director for ads, cinema, drama, horror, heritage, documentary, music videos, comedy, fantasy, social ads, product launches, and brand films.
-- Creative replies must follow the language typed by the user. Page labels still follow the Arabic/English UI toggle.
-- `/api/hook-studio/generate` must keep the thinking-model output as raw JSON with: `hookText`, `directorTreatment`, `angle`, `genreLabel`, `scenePrompts`, and `recommendedModel`.
-- The local reference folder `E:\saad-agent\release-production-v4\win-unpacked\DEZ\system_prompts_leaks-main\system_prompts_leaks-main` is read-only reference material. `LICENSE`, `README.md`, and selected Anthropic/OpenAI/Google/Kimi files were inspected; the declared license is CC0 1.0 Universal.
-- Do not copy a full external prompt into the product. Allowed use is pattern-level planning only: clear role contract, language rules, output constraints, and JSON schema, implemented as original Saad Studio wording.
+- Hook Studio uses a decoupled generation and video execution flow:
+  1. **Storyboard Phase**: When the user requests a storyboard, the client calls `/api/hook-studio/generate` with `onlyStoryboard: true` to generate hook text, director treatment, angle, genre, recommended model, and scene metadata without spending credits or starting a video rendering task.
+  2. **Execution Phase**: The assistant's storyboard reply renders inline in the chat bubble with a "🎬 تنفيذ وإنتاج الفيديو" (Execute Video) action button. When clicked or triggered by typing "نفذ" / "ولّد", the client dispatches the scenes to `/api/hook-studio/generate` with `executeStoryboard: true`. This bills credits, bypasses the LLM, and directly renders a unified video via WaveSpeed or Google.
+- The Hook Studio Director system prompt (`lib/hook-studio-director-prompt.ts`) includes comprehensive cinematic & broadcast directing parameters (shot types, lens focal lengths, lighting styles, color theory, genre-based blocking, news studios, video walls, control room, official government coverage) and returns a detailed storyboard JSON with: `shotType`, `lens`, `cameraAngle`, `movement`, `lighting`, `description`, and `audio` for each scene.
+- The `/hook-studio` chat feed renders progress cards and playable videos inline inside chat bubbles upon completion. Sidebar "Production Gallery" is removed.
+- Chat avatars are updated: user bubbles display the Clerk profile picture (`user?.imageUrl`), and agent bubbles display the site logo (`/EveLogo.png`).
+- The local reference folder `E:\saad-agent\release-production-v4\win-unpacked\DEZ\system_prompts_leaks-main\system_prompts_leaks-main` remains read-only comparison material. No prompt text is copied.
 
 ## Premiere storage migration to Backblaze B2 (2026-07-16)
 

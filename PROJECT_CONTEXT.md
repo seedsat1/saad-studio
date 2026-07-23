@@ -1,6 +1,22 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Add Nested Sequence (Nest) Support for Synchronize, Multi-Cam, and One-Click Edit (2026-07-22)
+#### Latest task: Hook Studio Storyboard Decouple & Cinematic Upgrades (2026-07-23)
+
+- Status:
+  Fully implemented decoupling of storyboard generation and video execution, integrated advanced cinematic directing terminology, expanded to Broadcast Directing (news, studios, video walls, TV reports, control room, official government coverage), and updated avatars/layout.
+  1. Updated `lib/hook-studio-director-prompt.ts` with comprehensive cinematic & broadcast directing shot types, lenses, lighting, colors, and a rich JSON schema.
+  2. Modified `app/api/hook-studio/generate/route.ts` to support `onlyStoryboard` (generates rich metadata JSON without charging credits) and `executeStoryboard` (bypasses LLM, bills user, and dispatches concatenated visual prompts to WaveSpeed/Google).
+  3. Redesigned `app/(dash)/(routes)/hook-studio/page.tsx` to support the two-step flow. Storyboards and progress/completed video players are rendered inline inside chat bubbles.
+  4. Removed the legacy standalone card and the sidebar "Production Gallery" to clean up the UI.
+  5. Updated avatars: user bubbles display the Clerk profile picture (`user?.imageUrl`), and agent bubbles display the site logo (`/EveLogo.png`).
+- Affected Files:
+  - `lib/hook-studio-director-prompt.ts` [MODIFY]
+  - `app/api/hook-studio/generate/route.ts` [MODIFY]
+  - `app/(dash)/(routes)/hook-studio/page.tsx` [MODIFY]
+- Verification:
+  - TypeScript compilation verified via `npx tsc --noEmit`. No new type or import errors introduced.
+
+#### Previous task: Add Nested Sequence (Nest) Support for Synchronize, Multi-Cam, and One-Click Edit (2026-07-22)
 
 - Status:
   Fully implemented recursive nested sequence support in the ExtendScript/JSX layer for Premiere Pro:
