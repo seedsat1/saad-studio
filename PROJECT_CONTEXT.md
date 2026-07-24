@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix CSP `connect-src` blob: restriction and storage proxy attachment (2026-07-24)
+
+- Status:
+  Resolved the `Content Security Policy` violation error and Backblaze connection timeout error when attaching files from `ReferenceStudioModal`:
+  1. **CSP `connect-src` Update (`middleware.ts`)**:
+     - Added `blob:` and `data:` to `connect-src` header (`connect-src 'self' blob: data: https: wss:`). This allows the browser to perform `fetch("blob:https://...")` when converting uploaded files to reference objects without triggering CSP block errors.
+  2. **Storage Media Proxying (`image/page.tsx` & `video/page.tsx`)**:
+     - Updated `onAttachFile` handlers to automatically route remote storage URLs (such as `https://f003.backblazeb2.com/...`) through `/api/proxy-image?url=...`.
+     - Prevents client-side network connection timeouts (`net::ERR_CONNECTION_TIMED_OUT`) and browser CORS blocks.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `02d756c` to GitHub `main` branch.
+
 #### Latest task: Admin Generation Lab result preview and download controls (2026-07-24)
 
 - Status:
