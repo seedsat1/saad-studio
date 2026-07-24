@@ -712,26 +712,26 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
   {
     id: "orangemoka",
     tag: "@orangemoka",
-    nameAr: "وعاء موكا برتقالي",
+    nameAr: "وعاء موكا برتقالي (Google AI)",
     nameEn: "Orange Moka Pot",
-    imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Classic orange Moka pot coffee maker on clean table background."
+    imageUrl: "/images/presets/elem_orangemoka.jpg",
+    promptDescription: "Classic orange Moka pot coffee maker on clean table background, Google Nano Banana product model."
   },
   {
     id: "silvercream",
     tag: "@silvercream",
-    nameAr: "كريم تجميل فضي",
+    nameAr: "كريم تجميل فضي (Google AI)",
     nameEn: "Silver Cream Tube",
-    imageUrl: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Sleek silver cosmetic cream tube held against minimal pastel background."
+    imageUrl: "/images/presets/elem_silvercream.jpg",
+    promptDescription: "Sleek silver cosmetic cream tube held against minimal pastel background, Google Nano Banana product model."
   },
   {
     id: "nebulahandbag",
     tag: "@nebulahandbag",
-    nameAr: "حقيبة يد فاخرة",
+    nameAr: "حقيبة يد فاخرة (Google AI)",
     nameEn: "Luxury Handbag",
-    imageUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Deep purple luxury leather handbag with gold clasp."
+    imageUrl: "/images/presets/elem_nebulahandbag.jpg",
+    promptDescription: "Deep purple luxury leather handbag with gold clasp, Google Nano Banana product model."
   },
   {
     id: "redlipstick",
@@ -752,10 +752,10 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
   {
     id: "perfum",
     tag: "@perfum",
-    nameAr: "زجاجة عطور فاخرة",
+    nameAr: "زجاجة عطور فاخرة (Google AI)",
     nameEn: "Luxury Perfume Bottle",
-    imageUrl: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Elegant amber glass perfume bottle with crystal cap."
+    imageUrl: "/images/presets/elem_perfum.jpg",
+    promptDescription: "Elegant amber glass perfume bottle with crystal cap, Google Nano Banana product model."
   },
   {
     id: "serum",
