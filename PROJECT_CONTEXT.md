@@ -1,5 +1,17 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Auto-Switch to Uploads Tab & Instant Selection Upon Media Upload (2026-07-24)
+
+- Status:
+  Fixed the issue where uploaded files didn't immediately appear when uploading while viewing Preset tabs (Style, Character, Element, Location, etc.):
+  1. **UX Resolution (`components/ReferenceStudioModal.tsx`)**:
+     - Updated `handleFilesSelected` to automatically switch `setActiveTab("uploads")` upon file drop/selection so the uploaded item immediately appears in the main view gallery.
+     - Automatically selects and binds the new upload (`setSelectedUploadId(newItems[0].id)`) and triggers `onAttachFile`.
+     - Added native `onDragOver` and `onDrop` handlers to the upload drop-box.
+  2. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `2c27cc1` to GitHub `main` branch.
+
 #### Latest task: Add Bilingual Support (Arabic & English) to Legal Pages (2026-07-24)
 
 - Status:
