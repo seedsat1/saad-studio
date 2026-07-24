@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add WaveSpeed Motion FX & Cinematic FX Models to Model Registry (2026-07-24)
+
+- Status:
+  Added economical WaveSpeed AI Effects models directly to `VIDEO_MODEL_SPECS` in `lib/hook-studio-config.ts`:
+  1. **New WaveSpeed FX Models Added**:
+     - `wavespeed-motion-fx` (`wavespeed-ai/motion-fx`): High-speed visual effects, lighting, and slow-motion video generator (7 Credits).
+     - `wavespeed-cinematic-fx` (`wavespeed-ai/cinematic-video-generator`): Cinematic lighting, volumetric atmosphere, and realistic particle FX (8 Credits).
+  2. **Type Safety & Registry**:
+     - Added `"FX"` badge type to `VideoModelSpec` interface.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `5287f61` to GitHub `main` branch.
+
 #### Latest task: Bind Effects Presets to Seedance 2.0 & Google FX Visual Effect Engines (2026-07-24)
 
 - Status:
