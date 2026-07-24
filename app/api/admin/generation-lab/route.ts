@@ -188,6 +188,27 @@ function normalizeStatus(value: unknown): "processing" | "completed" | "failed" 
   return "processing";
 }
 
+function safeDownloadFilename(value: string | null): string {
+  const fallback = "generation-lab-output";
+  const clean = String(value || fallback)
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean || fallback;
+}
+
+function assertRemoteDownloadUrl(value: string): URL {
+  const url = new URL(value);
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("Only HTTP downloads are supported.");
+  }
+  const host = url.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1") {
+    throw new Error("Local download URLs are not allowed.");
+  }
+  return url;
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!(await isAdmin())) {
@@ -243,6 +264,23 @@ export async function GET(req: NextRequest) {
   try {
     if (!(await isAdmin())) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const downloadUrl = req.nextUrl.searchParams.get("downloadUrl");
+    if (downloadUrl) {
+      const url = assertRemoteDownloadUrl(downloadUrl);
+      const filename = safeDownloadFilename(req.nextUrl.searchParams.get("filename"));
+      const fileRes = await fetch(url, { cache: "no-store" });
+      if (!fileRes.ok || !fileRes.body) {
+        return NextResponse.json({ error: `Download failed (${fileRes.status})` }, { status: 502 });
+      }
+      return new NextResponse(fileRes.body, {
+        headers: {
+          "Content-Type": fileRes.headers.get("content-type") || "application/octet-stream",
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
     }
 
     const taskIdParam = req.nextUrl.searchParams.get("taskId") || "";

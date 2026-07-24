@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Admin Generation Lab result preview and download controls (2026-07-24)
+
+- Status:
+  Fixed the `/admin/generation-lab` result gallery so generated images/videos are usable after completion:
+  1. **Root Cause**:
+     - Result cards only rendered media plus a small `Open` link; the image/video result surface had no dedicated preview click handler and no explicit download control.
+     - Direct browser downloads from WaveSpeed/CDN URLs can be blocked or degraded by cross-origin behavior.
+  2. **Resolution & Fix**:
+     - Added Preview, Open, and Download icon controls to every result card in `app/admin/generation-lab/page.tsx`.
+     - Added a modal preview for generated images and videos, with Open and Download controls inside the modal.
+     - Added an admin-only download proxy path to `app/api/admin/generation-lab/route.ts` using `downloadUrl` and `Content-Disposition: attachment`.
+  3. **Verification**:
+     - `npx.cmd next lint --file app/admin/generation-lab/page.tsx --file app/api/admin/generation-lab/route.ts` passed after the UI/API change.
+  4. **Decisions / Remaining**:
+     - Download proxy remains admin-only and rejects localhost URLs; it is intended for remote generated asset URLs.
+     - No WaveSpeed model payload behavior changed.
+
 #### Latest task: Hook Studio Reference Modal Unified Component Fix (2026-07-24)
 
 - Status:

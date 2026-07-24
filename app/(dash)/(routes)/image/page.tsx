@@ -2391,13 +2391,16 @@ export default function ImageWorkspacePage() {
             setShowReferenceStudioModal(false);
           }}
           onAttachFile={(file) => {
-            fetch(file.url)
+            const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
+              ? file.url
+              : `/api/proxy-image?url=${encodeURIComponent(file.url)}`;
+            fetch(targetUrl)
               .then((r) => r.blob())
               .then((blob) => {
-                const f = new File([blob], `${file.name}.jpg`, { type: "image/jpeg" });
+                const f = new File([blob], `${file.name || "ref"}.jpg`, { type: "image/jpeg" });
                 setReferenceFiles((prev) => [...prev, f]);
               })
-              .catch(() => {});
+              .catch((err) => console.error("Failed to attach reference file:", err));
           }}
           isAr={lang === "ar"}
         />

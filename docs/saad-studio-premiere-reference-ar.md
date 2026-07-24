@@ -4,6 +4,7 @@
 - Added admin-only page `/admin/generation-lab` for private WaveSpeed model experiments.
 - The page supports Image, Video, and Avatar modes with a dark generator layout: model selector, prompt, reference media, settings, submit button, polling state, and results gallery.
 - `/api/admin/generation-lab` verifies admin access and submits directly to `https://api.wavespeed.ai/api/v3/{route}`, then polls `predictions/{id}/result`.
+- Result cards expose Preview, Open, and Download actions; downloads route through the admin API with `downloadUrl` so remote WaveSpeed/CDN outputs can be saved as attachments instead of only opened in-browser.
 - The admin lab does not use subscriber credits, `/api/generation/preflight`, local prompt precheck, local reference-image safety checks, or local NSFW scan helpers. WaveSpeed provider-side validation still applies.
 - Avatar mode uses a custom route input because the repo currently has no verified WaveSpeed route for InfiniteTalk/avatar generation.
 

@@ -5,7 +5,10 @@ import {
   Box,
   ChevronDown,
   Database,
+  Download,
   Eraser,
+  ExternalLink,
+  Eye,
   Film,
   Image as ImageIcon,
   Loader2,
@@ -20,6 +23,7 @@ import {
   Video,
   Wand2,
   Wrench,
+  X,
 } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
 
@@ -50,6 +54,11 @@ type UploadedItem = {
   name: string;
   type: "image" | "video" | "audio";
 };
+
+type OutputPreview = {
+  url: string;
+  index: number;
+} | null;
 
 const IMAGE_MODELS: LabModel[] = [
   {
@@ -149,6 +158,17 @@ function firstValue<T>(values: T[], fallback: T): T {
   return values.length ? values[0] : fallback;
 }
 
+function outputExtension(url: string, mode: LabMode): string {
+  const path = url.split("?")[0] || "";
+  const match = path.match(/\.([a-z0-9]{2,5})$/i);
+  if (match?.[1]) return match[1].toLowerCase();
+  return mode === "image" ? "png" : "mp4";
+}
+
+function outputFilename(url: string, mode: LabMode, index: number): string {
+  return `generation-lab-${mode}-${index + 1}.${outputExtension(url, mode)}`;
+}
+
 async function uploadFile(file: File): Promise<string> {
   const form = new FormData();
   form.append("file", file);
@@ -183,6 +203,7 @@ export default function AdminGenerationLabPage() {
   const [taskId, setTaskId] = useState("");
   const [outputs, setOutputs] = useState<string[]>([]);
   const [submittedRoute, setSubmittedRoute] = useState("");
+  const [preview, setPreview] = useState<OutputPreview>(null);
   const refInput = useRef<HTMLInputElement>(null);
   const startInput = useRef<HTMLInputElement>(null);
   const lastInput = useRef<HTMLInputElement>(null);
@@ -209,6 +230,7 @@ export default function AdminGenerationLabPage() {
     setError("");
     setTaskId("");
     setOutputs([]);
+    setPreview(null);
     setRefs([]);
     setStartImage(null);
     setLastImage(null);
@@ -360,6 +382,7 @@ export default function AdminGenerationLabPage() {
     setError("");
     setOutputs([]);
     setTaskId("");
+    setPreview(null);
 
     try {
       const payload = buildPayload();
@@ -383,6 +406,20 @@ export default function AdminGenerationLabPage() {
       setStatus("error");
       setError(submitError instanceof Error ? submitError.message : "Submit failed.");
     }
+  };
+
+  const openOutput = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const downloadOutput = (url: string, index: number) => {
+    const download = `/api/admin/generation-lab?downloadUrl=${encodeURIComponent(url)}&filename=${encodeURIComponent(outputFilename(url, mode, index))}`;
+    const link = document.createElement("a");
+    link.href = download;
+    link.download = outputFilename(url, mode, index);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   const reset = () => {
@@ -631,15 +668,39 @@ export default function AdminGenerationLabPage() {
                   <div key={`${url}-${index}`} className="overflow-hidden rounded-xl border border-white/10 bg-[#181818]">
                     <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-xs text-zinc-400">
                       <span>Result {index + 1}</span>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="text-lime-400 hover:text-lime-300">
-                        Open
-                      </a>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPreview({ url, index })}
+                          className="rounded p-1.5 text-zinc-300 hover:bg-white/10 hover:text-white"
+                          title="Preview"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => openOutput(url)}
+                          className="rounded p-1.5 text-zinc-300 hover:bg-white/10 hover:text-white"
+                          title="Open"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => downloadOutput(url, index)}
+                          className="rounded p-1.5 text-lime-400 hover:bg-lime-400/10 hover:text-lime-300"
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                     {mode === "image" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt={`Generated result ${index + 1}`} className="h-auto w-full object-contain" />
+                      <button onClick={() => setPreview({ url, index })} className="block w-full cursor-zoom-in bg-black/20">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`Generated result ${index + 1}`} className="h-auto w-full object-contain" />
+                      </button>
                     ) : (
-                      <video src={url} controls className="h-auto w-full bg-black" />
+                      <div className="bg-black">
+                        <video src={url} controls className="h-auto w-full bg-black" />
+                      </div>
                     )}
                   </div>
                 ))}
@@ -653,6 +714,46 @@ export default function AdminGenerationLabPage() {
           </div>
         </main>
       </div>
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-5">
+          <div className="flex max-h-full w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-white/10 bg-[#151515] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-sm text-zinc-300">
+              <span className="font-semibold text-white">Result {preview.index + 1}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openOutput(preview.url)}
+                  className="rounded p-2 text-zinc-300 hover:bg-white/10 hover:text-white"
+                  title="Open"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => downloadOutput(preview.url, preview.index)}
+                  className="rounded p-2 text-lime-400 hover:bg-lime-400/10 hover:text-lime-300"
+                  title="Download"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setPreview(null)}
+                  className="rounded p-2 text-zinc-300 hover:bg-white/10 hover:text-white"
+                  title="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black p-4">
+              {mode === "image" ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview.url} alt={`Generated result ${preview.index + 1}`} className="max-h-[80vh] w-auto max-w-full object-contain" />
+              ) : (
+                <video src={preview.url} controls autoPlay className="max-h-[80vh] w-full max-w-full bg-black" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

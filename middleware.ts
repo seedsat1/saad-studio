@@ -119,7 +119,7 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
       "img-src 'self' data: blob: https:",
       "media-src 'self' data: blob: https:",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "connect-src 'self' https: wss:",
+      "connect-src 'self' blob: data: https: wss:",
       "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://accounts.google.com https://clerk.saadstudio.app",
       "frame-ancestors 'self'",
       "base-uri 'self'",
