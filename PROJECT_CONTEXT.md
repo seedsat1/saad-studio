@@ -1,5 +1,21 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Custom AI Image Generation for Reference Studio Style Cards (2026-07-24)
+
+- Status:
+  Generated custom high-quality AI images to replace broken/missing preset card images in `lib/hook-studio-config.ts`:
+  1. **Generated & Saved AI Assets (`public/images/presets/`)**:
+     - `minimaltypo.jpg`: Sleek monochrome black & white typography poster art.
+     - `vinyltoy.jpg`: 3D vinyl collectible toy figure aesthetic.
+     - `motionstitched.jpg`: Hand-stitched felt wool animation style puppet.
+     - `oilpainting.jpg`: Renaissance impasto oil painting art piece.
+     - `sketch.jpg`: Graphite line art & pencil sketch texture.
+  2. **Config Integration**:
+     - Bound new high-resolution images to `HOOK_STYLES` in `lib/hook-studio-config.ts`.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `d7bdef6` to GitHub `main` branch.
+
 #### Latest task: Fix CSP `connect-src` blob: restriction and storage proxy attachment (2026-07-24)
 
 - Status:
