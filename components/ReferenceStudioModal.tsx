@@ -274,8 +274,14 @@ export function ReferenceStudioModal({
     const updated = [...newItems, ...uploadedItems];
     saveUploadedItems(updated);
 
-    if (newItems[0] && onAttachFile) {
-      onAttachFile(newItems[0]);
+    // Switch tab to "uploads" so user immediately sees their uploaded file!
+    setActiveTab("uploads");
+
+    if (newItems[0]) {
+      setSelectedUploadId(newItems[0].id);
+      if (onAttachFile) {
+        onAttachFile(newItems[0]);
+      }
     }
   };
 
@@ -1163,6 +1169,17 @@ export function ReferenceStudioModal({
 
             <div
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer?.files) {
+                  handleFilesSelected(e.dataTransfer.files);
+                }
+              }}
               className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
             >
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
