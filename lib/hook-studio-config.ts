@@ -1448,34 +1448,34 @@ export const HOOK_CHARACTERS: HookCharacterPreset[] = [
   {
     id: "businesswoman",
     tag: "@businesswoman",
-    nameAr: "سيدة أعمال سعودية",
+    nameAr: "سيدة أعمال سعودية (Google AI)",
     nameEn: "Saudi Businesswoman",
-    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Professional confident Saudi businesswoman wearing elegant modern attire."
+    imageUrl: "/images/presets/char_businesswoman.jpg",
+    promptDescription: "Professional confident Saudi businesswoman wearing elegant modern attire, Google Gemini 3D character model."
   },
   {
     id: "influencer",
     tag: "@influencer",
-    nameAr: "صانع محتوى ريادي",
+    nameAr: "صانع محتوى ريادي (Google AI)",
     nameEn: "Tech Influencer",
-    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Charismatic young Middle Eastern tech content creator speaking directly to camera."
+    imageUrl: "/images/presets/char_influencer.jpg",
+    promptDescription: "Charismatic young Middle Eastern tech content creator speaking directly to camera, Google Gemini 3D character model."
   },
   {
     id: "barista",
     tag: "@barista",
-    nameAr: "بارستا محترف",
+    nameAr: "بارستا محترف (Google AI)",
     nameEn: "Master Barista",
-    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Passionate artisan barista pouring specialty drip coffee with intense focus."
+    imageUrl: "/images/presets/char_barista.jpg",
+    promptDescription: "Passionate artisan barista pouring specialty drip coffee with intense focus, Google Gemini 3D character model."
   },
   {
     id: "athlete",
     tag: "@athlete",
-    nameAr: "رياضي لياقة بدنية",
+    nameAr: "رياضي لياقة بدنية (Google AI)",
     nameEn: "Fitness Athlete",
-    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
-    promptDescription: "Athletic fit runner preparing for training session in high performance sportswear."
+    imageUrl: "/images/presets/char_athlete.jpg",
+    promptDescription: "Athletic fit runner preparing for training session in high performance sportswear, Google Gemini 3D character model."
   }
 ];
 
