@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   ScrollText,
   Search,
-  ArrowUpRight,
   CheckCircle2,
   ChevronRight,
   EyeOff,
@@ -14,6 +13,7 @@ import {
   Wallet,
   Scale,
   Globe,
+  Mail,
 } from "lucide-react";
 
 interface Section {
@@ -36,7 +36,7 @@ export default function TermsPage() {
       content: (
         <div className="space-y-4">
           <p>
-            مرحباً بك في منصة <strong>Saad Studio</strong> (&quot;سعد ستوديو&quot;، &quot;المنصة&quot;، &quot;نحن&quot;). تُحدد اتفاقية شروط الاستخدام هذه (&quot;الشروط&quot;، &quot;الاتفاقية&quot;) الأحكام السارية على وصولك واستخدامك لموقعنا الإلكتروني (<a href="https://www.saadstudio.app" className="text-sky-400 hover:underline">saadstudio.app</a>)، وتطبيقاتنا، إضافة Premiere Pro (CEP Extension)، وأدوات التوليد عبر الذكاء الاصطناعي، وواجهات برمجة التطبيقات (APIs) التابعة لنا.
+            مرحباً بك في منصة <strong>سعد ستوديو (Saad Studio)</strong> (&quot;سعد ستوديو&quot;، &quot;المنصة&quot;، &quot;نحن&quot;). تُحدد اتفاقية شروط الاستخدام هذه (&quot;الشروط&quot;، &quot;الاتفاقية&quot;) الأحكام السارية على وصولك واستخدامك لموقعنا الإلكتروني (<a href="https://www.saadstudio.app" className="text-sky-400 hover:underline">saadstudio.app</a>)، وتطبيقاتنا، إضافة Premiere Pro (CEP Extension)، وأدوات التوليد عبر الذكاء الاصطناعي، وواجهات برمجة التطبيقات التابعة لنا.
           </p>
           <p>
             بمجرد وصولك للخدمة أو إنشائك لحساب، فإنك تقر بأنك قرأت هذه الاتفاقية وفهمتها ووافقت على الالتزام بكافة بنودها. إذا كنت لا توافق على هذه الشروط، فلا يحق لك استخدام المنصة.
@@ -67,7 +67,7 @@ export default function TermsPage() {
           <div className="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-xl text-emerald-200 flex items-start gap-3">
             <EyeOff className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
             <div>
-              <strong>تعهد عدم رؤية ومراجعة الوسائط:</strong> نؤكد صراحةً أن Saad Studio لا تخزن أي صورة أو فيديو خاص بأي شخص على سيرفراتها. <strong>التوليد يتم فورياً ومباشرة بينك وبين المزود المصدر، ولا يتم مراجعتها من قبل إدارة الموقع ولا نراها نهائياً تحت أي ظرف.</strong>
+              <strong>تعهد عدم رؤية ومراجعة الوسائط:</strong> نؤكد صراحةً أن سعد ستوديو لا تخزن أي صورة أو فيديو خاص بأي شخص على سيرفراتها. <strong>التوليد يتم فورياً ومباشرة بينك وبين المزود المصدر، ولا يتم مراجعتها من قبل إدارة الموقع ولا نراها نهائياً تحت أي ظرف.</strong>
             </div>
           </div>
           <ul className="list-disc pr-6 space-y-2">
@@ -200,7 +200,7 @@ export default function TermsPage() {
       badge: "ملكية المحتوى",
       content: (
         <div className="space-y-4">
-          <p>يمتلك المستخدم حقوق الاستخدام التجاري والشخصي للمخرجات الناتجة عن مدخلاته، بينما تظل جميع برمجيات وواجهات وسيرفرات Saad Studio مملوكة حصرياً للمنصة.</p>
+          <p>يمتلك المستخدم حقوق الاستخدام التجاري والشخصي للمخرجات الناتجة عن مدخلاته، بينما تظل جميع برمجيات وواجهات وسيرفرات سعد ستوديو مملوكة حصرياً للمنصة.</p>
         </div>
       ),
     },
@@ -276,10 +276,9 @@ export default function TermsPage() {
       content: (
         <div className="space-y-4">
           <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 text-slate-200 space-y-2">
-            <p><strong>Saad Studio - الفريق القانوني والدعم الفني</strong></p>
+            <p><strong>سعد ستوديو (Saad Studio) - الفريق القانوني والدعم الفني</strong></p>
             <p>جمهورية العراق - بغداد</p>
             <p>البريد الإلكتروني للدعم: <a href="mailto:support@saadstudio.app" className="text-sky-400 hover:underline">support@saadstudio.app</a></p>
-            <p>استفسارات الخصوصية: <a href="mailto:privacy@saadstudio.app" className="text-sky-400 hover:underline">privacy@saadstudio.app</a></p>
             <p>الموقع الرسمي: <a href="https://www.saadstudio.app" className="text-sky-400 hover:underline">https://www.saadstudio.app</a></p>
           </div>
           <p className="text-slate-400 text-xs pt-4">
@@ -488,10 +487,9 @@ export default function TermsPage() {
       content: (
         <div className="space-y-4">
           <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 text-slate-200 space-y-2">
-            <p><strong>Saad Studio - Legal & Support Team</strong></p>
+            <p><strong>Saad Studio - Support & Legal Team</strong></p>
             <p>Baghdad, Republic of Iraq</p>
             <p>Support Email: <a href="mailto:support@saadstudio.app" className="text-sky-400 hover:underline">support@saadstudio.app</a></p>
-            <p>Privacy Email: <a href="mailto:privacy@saadstudio.app" className="text-sky-400 hover:underline">privacy@saadstudio.app</a></p>
             <p>Official Website: <a href="https://www.saadstudio.app" className="text-sky-400 hover:underline">https://www.saadstudio.app</a></p>
           </div>
           <p className="text-slate-400 text-xs pt-4">
@@ -563,7 +561,7 @@ export default function TermsPage() {
           </h1>
           <p className="text-slate-300 text-xs md:text-sm max-w-2xl mx-auto leading-relaxed">
             {lang === "ar"
-              ? "تحدد هذه الاتفاقية الأحكام والقواعد القانونية المنظمة لاستخدامك لمنصة Saad Studio وإضافة Premiere Pro وأدوات التوليد عبر الذكاء الاصطناعي في جمهورية العراق."
+              ? "تحدد هذه الاتفاقية الأحكام والقواعد القانونية المنظمة لاستخدامك لمنصة سعد ستوديو وإضافة Premiere Pro وأدوات التوليد عبر الذكاء الاصطناعي في جمهورية العراق."
               : "These Terms of Use govern your access to Saad Studio, Premiere Pro CEP Extension, and AI generation tools in the Republic of Iraq."}
           </p>
         </motion.div>
@@ -722,15 +720,16 @@ export default function TermsPage() {
               </h3>
               <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto">
                 {lang === "ar"
-                  ? "الفريق القانوني والدعم الفني في Saad Studio متاح للإجابة على جميع الاستفسارات."
-                  : "The legal & technical support team at Saad Studio is available for assistance."}
+                  ? "فريق الدعم الفني في سعد ستوديو متاح للإجابة على جميع الاستفسارات."
+                  : "The Saad Studio Support team is available for assistance."}
               </p>
               <div className="pt-2">
                 <a
                   href="mailto:support@saadstudio.app"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs md:text-sm transition-all shadow-lg shadow-sky-600/25"
                 >
-                  {lang === "ar" ? "مراسلة الفريق القانوني" : "Contact Legal Team"}
+                  <Mail className="w-4 h-4" />
+                  {lang === "ar" ? "مراسلة الدعم الفني" : "Contact Support Team"}
                 </a>
               </div>
             </div>

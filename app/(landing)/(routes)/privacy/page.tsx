@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   ShieldCheck,
   Search,
-  ArrowUpRight,
   FileText,
   CheckCircle2,
   ChevronRight,
@@ -13,6 +12,7 @@ import {
   ShieldAlert,
   BadgePercent,
   Globe,
+  Mail,
 } from "lucide-react";
 
 interface Section {
@@ -35,7 +35,7 @@ export default function PrivacyPage() {
       content: (
         <div className="space-y-4">
           <p>
-            تلتزم منصة <strong>Saad Studio</strong> (المشار إليها بـ &quot;المنصة&quot; أو &quot;نحن&quot;) بحماية خصوصية وأمان بيانات مستخدمينا في جمهورية العراق والمنطقة. توضح سياسة الخصوصية هذه كيفية جمع، استخدام، وحماية البيانات عند استخدامك لموقعنا الإلكتروني، تطبيقاتنا، إضافة Premiere Pro (CEP Extension)، وأدوات التوليد بالذكاء الاصطناعي التي تعتمد على المعالجة المباشرة مع المنصات العالمية مثل <strong>Google</strong> و <strong>OpenAI</strong> و <strong>BytePlus</strong>.
+            تلتزم منصة <strong>سعد ستوديو (Saad Studio)</strong> (المشار إليها بـ &quot;المنصة&quot; أو &quot;نحن&quot;) بحماية خصوصية وأمان بيانات مستخدمينا في جمهورية العراق والمنطقة. توضح سياسة الخصوصية هذه كيفية جمع، استخدام، وحماية البيانات عند استخدامك لموقعنا الإلكتروني، تطبيقاتنا، إضافة Premiere Pro (CEP Extension)، وأدوات التوليد بالذكاء الاصطناعي التي تعتمد على المعالجة المباشرة مع المنصات العالمية مثل <strong>Google</strong> و <strong>OpenAI</strong> و <strong>BytePlus</strong>.
           </p>
           <p>
             باستخدامك لخدمات المنصة، فإنك توافق على ممارسات التعامل الآمن مع البيانات الموضحة في هذه السياسة.
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
             </div>
           </div>
           <ul className="list-disc pr-6 space-y-2">
-            <li><strong>فحص برمجي أوتوماتيكي:</strong> تخضع جميع الصور المرفوعة والأوامر التوجيهية (Prompts) لفلترة آلية برمجيّة مسبقة فور إرسالها.</li>
+            <li><strong>فحص برمجي أوتوماتيكي:</strong> تخضع جميع الصور المرفوعة والأوامر التوجيهية لفلترة آلية برمجيّة مسبقة فور إرسالها.</li>
             <li><strong>رفض وحظر فوري:</strong> في حال اكتشاف النظام الآلي لأي محتوى يخدش الحياء أو يخالف الآداب العامة، يقوم النظام برفض المعاملة فوراً وإظهار تنبيه للمستخدم دون حفظ الصورة أو إرسالها.</li>
             <li><strong>معالجة خوارزمية بدون مراجعة بشرية:</strong> عملية الفحص والفلترة تم برمجتها وتطويرها خوارزمياً بالكامل لتتم أوتوماتيكياً ودون أي مراجعة يدوية أو بشرية من الفريق الفني.</li>
           </ul>
@@ -113,7 +113,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pr-6 space-y-2">
             <li><strong>بيانات الحساب والملف الشخصي:</strong> الاسم، البريد الإلكتروني، اسم المستخدم، كلمة المرور المشفرة، والصورة الشخصية.</li>
             <li><strong>بيانات الدفع والاشتراك:</strong> تفاصيل المعاملات المالية ورصيد الكريديت وسجل الاشتراكات. يتم معالجة عمليات التحويل والدفع إلكترونياً من خلال وسائل الدفع المحلية المعتمدة في العراق مثل <strong>زين كاش (Zain Cash)</strong> و <strong>كي كارد الرافدين (Qi Card)</strong>. لا نقوم بتخزين أرقام البطاقات السريّة أو رموز الأمان الخاصة بحسابك البنكي على سيرفراتنا.</li>
-            <li><strong>الأوامر والنصوص (Prompts & Queries):</strong> النصوص والأوامر التوجيهية وسيناريوهات الهوك ستوديو والمعلمات السينمائية التي تدير بها نماذج الذكاء الاصطناعي العالمية.</li>
+            <li><strong>الأوامر والنصوص التوجيهية:</strong> النصوص والأوامر التوجيهية وسيناريوهات الهوك ستوديو والمعلمات السينمائية التي تدير بها نماذج الذكاء الاصطناعي العالمية.</li>
             <li><strong>بيانات التواصل والدعم:</strong> الرسائل والاستفسارات والملاحظات التي ترسلها لفريق الدعم الفني.</li>
           </ul>
           <p><strong>5.2. بيانات تسجيل الدخول عبر طرف ثالث:</strong> عند تسجيل الدخول باستخدام حساب Google، نجمع اسم الحساب والبريد الإلكتروني والصورة الشخصية وفقاً لإعدادات حسابك وشروط الاستخدام الآمن لـ Google API.</p>
@@ -128,11 +128,11 @@ export default function PrivacyPage() {
       content: (
         <div className="space-y-4">
           <div className="bg-violet-950/40 border border-violet-800/50 p-4 rounded-xl text-violet-200">
-            <strong>معالجة لحظية بدون تخزين بيومتري:</strong> عند استخدام أدوات الذكاء الاصطناعي التي تتطلب مطابقة الوجوه أو دمج الأصوات (Lip-Sync / Voice Synthesis / Face Reference)، تتم المعالجة بشكل مؤقت جداً في الذاكرة الرامية أثناء المعالجة وتتدمر فوراً.
+            <strong>معالجة لحظية بدون تخزين بيومتري:</strong> عند استخدام أدوات الذكاء الاصطناعي التي تتطلب مطابقة الوجوه أو دمج الأصوات، تتم المعالجة بشكل مؤقت جداً في الذاكرة الرامية أثناء المعالجة وتتدمر فوراً.
           </div>
           <ul className="list-disc pr-6 space-y-2">
             <li><strong>الغرض الفني:</strong> تُستخدم الصور والأصوات المرفوعة حصرياً لإنجاز التوليد والتعديل المباشر الذي يطلبه المستخدم في تلك الجلسة فقط.</li>
-            <li><strong>الحذف الفوري (Zero Retention):</strong> يتم استخراج الخصائص البصرية والصوتية مؤقتاً في الذاكرة الرامية (RAM) أثناء التوليد، وتُدمر فوراً بمجرد انتهاء عملية التوليد المباشرة.</li>
+            <li><strong>الحذف الفوري:</strong> يتم استخراج الخصائص البصرية والصوتية مؤقتاً في الذاكرة الرامية (RAM) أثناء التوليد، وتُدمر فوراً بمجرد انتهاء عملية التوليد المباشرة.</li>
             <li><strong>لا مراجعة ولا تخزين:</strong> لا يتم الاطلاع على الصور أو مراجعتها من قبل إدارة المنصة نهائياً.</li>
           </ul>
         </div>
@@ -147,7 +147,7 @@ export default function PrivacyPage() {
           <p>نستخدم بيانات الحساب والتقنية للأغراض التشغيلية التالية:</p>
           <ul className="list-disc pr-6 space-y-2">
             <li><strong>تقديم وتشغيل الخدمة:</strong> توجيه الأوامر وتوليد الفيديوهات والصور والأصوات عبر المنصات العالمية مباشرة (مثل Google Gemini, OpenAI, و BytePlus)، وتشغيل إضافة Premiere Pro، وإدارة رصيد الحساب والاشتراكات.</li>
-            <li><strong>تخصيص التجربة:</strong> حفظ تفاصيل الإعدادات المفضلة، أنماط الـ Style، والمراجع النصية لسهولة الوصول إليها.</li>
+            <li><strong>تخصيص التجربة:</strong> حفظ تفاصيل الإعدادات المفضلة، وأنماط التصميم، والمراجع النصية لسهولة الوصول إليها.</li>
             <li><strong>تحسين جودة الخدمة وأمانها:</strong> مراقبة استقرار السيرفرات، تطبيق الفلاتر الأخلاقية المبرمجة آلياً، منع الاحتيال أو الاستخدام المسيء، وتطوير خوارزميات المنصة.</li>
             <li><strong>التواصل والإشعارات:</strong> إرسال تحديثات النظام، تنبيهات الأمان، وتفاصيل الحساب.</li>
           </ul>
@@ -200,10 +200,10 @@ export default function PrivacyPage() {
       badge: "تحكم المستخدم",
       content: (
         <div className="space-y-4">
-          <p>يحق لجميع مستخدمي Saad Studio:</p>
+          <p>يحق لجميع مستخدمي سعد ستوديو:</p>
           <ul className="list-disc pr-6 space-y-2">
             <li>الوصول إلى بيانات حسابهم وتحديثها من خلال إعدادات الحساب.</li>
-            <li>طلب حذف الحساب نهائياً عبر التواصل مع فريق الدعم والخصوصية.</li>
+            <li>طلب حذف الحساب نهائياً عبر التواصل مع فريق الدعم الفني.</li>
             <li>إلغاء الاشتراك في الرسائل التسويقية والإشعارات غير الأساسية.</li>
           </ul>
         </div>
@@ -215,7 +215,7 @@ export default function PrivacyPage() {
       badge: "فئة الاستخدام",
       content: (
         <div className="space-y-4">
-          <p>خدمات منصة Saad Studio مخصصة للمستخدمين الذين يبلغون من العمر <strong>18 عاماً أو أكثر</strong>. لا نجمع عمداً أي بيانات شخصية من القاصرين. إذا تبين لنا جمع بيانات شخصية لشخص دون سن 18 عاماً، فسنقوم باتخاذ الخطوات الفورية لمسح تلك البيانات.</p>
+          <p>خدمات منصة سعد ستوديو مخصصة للمستخدمين الذين يبلغون من العمر <strong>18 عاماً أو أكثر</strong>. لا نجمع عمداً أي بيانات شخصية من القاصرين. إذا تبين لنا جمع بيانات شخصية لشخص دون سن 18 عاماً، فسنقوم باتخاذ الخطوات الفورية لمسح تلك البيانات.</p>
         </div>
       ),
     },
@@ -227,9 +227,8 @@ export default function PrivacyPage() {
         <div className="space-y-4">
           <p>قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر لتعكس التطورات الفنية أو التشغيلية. سيتم إخطار المستخدمين بأي تغييرات جوهرية عبر البريد الإلكتروني أو من خلال تنبيه داخل المنصة.</p>
           <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 text-slate-200 space-y-2">
-            <p><strong>Saad Studio - فريق الخصوصية والدعم الفني</strong></p>
+            <p><strong>سعد ستوديو (Saad Studio) - فريق الدعم الفني والخصوصية</strong></p>
             <p>جمهورية العراق - بغداد</p>
-            <p>البريد الإلكتروني للخصوصية: <a href="mailto:privacy@saadstudio.app" className="text-violet-400 hover:underline">privacy@saadstudio.app</a></p>
             <p>الدعم الفني والاستفسارات: <a href="mailto:support@saadstudio.app" className="text-violet-400 hover:underline">support@saadstudio.app</a></p>
             <p>الموقع الرسمي: <a href="https://www.saadstudio.app" className="text-violet-400 hover:underline">https://www.saadstudio.app</a></p>
           </div>
@@ -257,8 +256,8 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-2",
-      title: "2. Direct Generation & Zero Storage",
-      badge: "Zero Local Hosting",
+      title: "2. Direct Generation & Zero Media Storage",
+      badge: "Zero Local Media Hosting",
       content: (
         <div className="space-y-4">
           <div className="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-xl text-emerald-200 flex items-start gap-3">
@@ -405,9 +404,8 @@ export default function PrivacyPage() {
       content: (
         <div className="space-y-4">
           <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 text-slate-200 space-y-2">
-            <p><strong>Saad Studio - Privacy & Support Team</strong></p>
+            <p><strong>Saad Studio - Support & Legal Team</strong></p>
             <p>Baghdad, Republic of Iraq</p>
-            <p>Privacy Inquiries: <a href="mailto:privacy@saadstudio.app" className="text-violet-400 hover:underline">privacy@saadstudio.app</a></p>
             <p>Support Email: <a href="mailto:support@saadstudio.app" className="text-violet-400 hover:underline">support@saadstudio.app</a></p>
             <p>Official Website: <a href="https://www.saadstudio.app" className="text-violet-400 hover:underline">https://www.saadstudio.app</a></p>
           </div>
@@ -480,7 +478,7 @@ export default function PrivacyPage() {
           </h1>
           <p className="text-slate-300 text-xs md:text-sm max-w-2xl mx-auto leading-relaxed">
             {lang === "ar"
-              ? "توضح هذه السياسة التزام Saad Studio الشفاف بأمان بياناتك الشخصية وحمايتها عند استخدام موقعنا وأدوات الذكاء الاصطناعي وإضافة Premiere Pro المخصصة لمنصتنا في العراق والمنطقة."
+              ? "توضح هذه السياسة التزام سعد ستوديو الشفاف بأمان بياناتك الشخصية وحمايتها عند استخدام موقعنا وأدوات الذكاء الاصطناعي وإضافة Premiere Pro المخصصة لمنصتنا في العراق والمنطقة."
               : "This policy describes Saad Studio's commitment to protecting your personal data when using our website, AI generation tools, and Premiere Pro CEP extension in Iraq and the region."}
           </p>
         </motion.div>
@@ -523,7 +521,7 @@ export default function PrivacyPage() {
               </h3>
               <p className="text-xs text-blue-200 leading-relaxed">
                 {lang === "ar"
-                  ? "الأسعار وتكلفة التوليد لكل نموذج غير ثابتة دائمياً (حتى للااشتراك السنوي) وتتغير وفقاً لسياسات وأسعار الشركات المزودة (Google, OpenAI, BytePlus)."
+                  ? "الأسعار وتكلفة التوليد لكل نموذج غير ثابتة دائمياً (حتى للاشتراك السنوي) وتتغير وفقاً لسياسات وأسعار الشركات المزودة (Google, OpenAI, BytePlus)."
                   : "Prices and credit costs are non-fixed (even for annual subscriptions) and fluctuate based on source provider compute rates."}
               </p>
             </div>
@@ -639,15 +637,16 @@ export default function PrivacyPage() {
               </h3>
               <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto">
                 {lang === "ar"
-                  ? "فريق الدعم الفني والخصوصية في Saad Studio جاهز لمساعدتك في أي استفسار أو طلب حذف بيانات."
-                  : "The Saad Studio Support & Privacy team is ready to assist you with any inquiries."}
+                  ? "فريق الدعم الفني في سعد ستوديو جاهز لمساعدتك في أي استفسار."
+                  : "The Saad Studio Support team is ready to assist you with any inquiries."}
               </p>
               <div className="pt-2">
                 <a
-                  href="mailto:privacy@saadstudio.app"
+                  href="mailto:support@saadstudio.app"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs md:text-sm transition-all shadow-lg shadow-violet-600/25"
                 >
-                  {lang === "ar" ? "مراسلة مسؤولي الخصوصية" : "Contact Privacy Team"}
+                  <Mail className="w-4 h-4" />
+                  {lang === "ar" ? "مراسلة الدعم الفني" : "Contact Support Team"}
                 </a>
               </div>
             </div>
