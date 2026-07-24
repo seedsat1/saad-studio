@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Bind Effects Presets to Seedance 2.0 & Google FX Visual Effect Engines (2026-07-24)
+
+- Status:
+  Bound Effects & Lighting reference presets to specialized VFX and cinematic lighting engines:
+  1. **AI FX Engines Bound**:
+     - `wavespeed/seedance-2.0`: Seedance 2.0 Visual Effects Engine (Fire, Smoke, Glitch, Neon Duotone, Hologram, FX Simulation).
+     - `kwaivgi/kling-v3.0-std`: Kling 3.0 Slow-Mo & Cinematic Lighting FX mode.
+     - `google/gemini-omni-flash`: Google FX Lighting & Transition Engine.
+  2. **Generated 3D AI FX Assets (`public/images/presets/`)**:
+     - `fx_duotone.jpg`: Neon Duotone Split Light (Seedance 2.0 FX).
+     - `fx_iridescent.jpg`: Iridescent Holographic Prism (Seedance 2.0 FX).
+     - `fx_goldglow.jpg`: Golden Volumetric Bokeh Glow (Google FX Engine).
+     - `fx_chiaroscuro.jpg`: Chiaroscuro Spotlight Contrast (Seedance 2.0 FX).
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed to GitHub `main` branch.
+
 #### Latest task: Bind Element Presets to Google Nano Banana & Bytedance Seedream Edit Models (2026-07-24)
 
 - Status:
