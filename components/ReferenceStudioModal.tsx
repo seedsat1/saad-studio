@@ -157,7 +157,12 @@ export function ReferenceStudioModal({
       const saved = localStorage.getItem("saad_studio_user_uploads");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setUploadedItems(parsed);
+        if (Array.isArray(parsed)) {
+          // Strip revoked session blob: URLs from previous page reloads
+          const valid = parsed.filter((item: any) => item && item.url && !item.url.startsWith("blob:"));
+          setUploadedItems(valid);
+          localStorage.setItem("saad_studio_user_uploads", JSON.stringify(valid));
+        }
       }
     } catch {}
   }, []);
@@ -165,7 +170,8 @@ export function ReferenceStudioModal({
   const saveUploadedItems = (items: UploadedItem[]) => {
     setUploadedItems(items);
     try {
-      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
+      const persistent = items.filter((item) => item.url && !item.url.startsWith("blob:"));
+      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(persistent.slice(0, 50)));
     } catch {}
   };
 
@@ -1045,12 +1051,18 @@ export function ReferenceStudioModal({
                             >
                               <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
                                 {item.type === "video" ? (
-                                  <video src={item.url} className="w-full h-full object-cover" muted />
+                                  <video 
+                                    src={item.url} 
+                                    className="w-full h-full object-cover" 
+                                    muted 
+                                    onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                                  />
                                 ) : (
                                   <img
                                     src={item.url}
                                     alt={item.name}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                                   />
                                 )}
 
