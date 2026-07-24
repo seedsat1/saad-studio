@@ -457,7 +457,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "minimaltypo",
     nameAr: "تيبوغرافي مبسط",
     nameEn: "#minimaltypo",
-    imageUrl: "https://images.unsplash.com/photo-1561070791-26c113006238?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/minimaltypo.jpg",
     category: "design",
     systemPromptAddon: "Minimalist layout, fine typography, black and white stark graphic design, plenty of negative space."
   },
@@ -515,7 +515,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "vinyltoy",
     nameAr: "لعبة فينيل 3D",
     nameEn: "#vinyltoy",
-    imageUrl: "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/vinyltoy.jpg",
     category: "3d",
     systemPromptAddon: "Vinyl toy figure aesthetic, glossy smooth plastic texture, Funko Pop model layout, toy packaging style."
   },
@@ -523,7 +523,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "motionstitched",
     nameAr: "قماش صوف مطرز",
     nameEn: "#motionstitched",
-    imageUrl: "https://images.unsplash.com/photo-1584992208183-b9eb816db7eb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/motionstitched.jpg",
     category: "3d",
     systemPromptAddon: "Felt wool animation style, stitched details, fabric textures, organic warm plush toy aesthetic."
   },
@@ -589,7 +589,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "oilpainting",
     nameAr: "لوحة زيتية كلاسيكية",
     nameEn: "#oilpainting",
-    imageUrl: "https://images.unsplash.com/photo-1579783928621-7a13d66a6211?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/oilpainting.jpg",
     category: "illustration",
     systemPromptAddon: "Classic fine art oil painting style, visible rich impasto brush strokes, warm classical lighting, canvas texture."
   },
@@ -597,7 +597,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "sketch",
     nameAr: "خط قلم رصاص ورسم ورق",
     nameEn: "#sketch",
-    imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/sketch.jpg",
     category: "illustration",
     systemPromptAddon: "Hand drawn pencil sketch, detailed crosshatching, graphite paper texture, monochrome pencil art."
   },
