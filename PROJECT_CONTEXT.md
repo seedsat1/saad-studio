@@ -1,5 +1,19 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Revoked Session `blob:` URLs `ERR_FILE_NOT_FOUND` in Reference Studio (2026-07-24)
+
+- Status:
+  Fixed the `net::ERR_FILE_NOT_FOUND` error caused by expired `blob:` URLs in `ReferenceStudioModal.tsx`:
+  1. **Root Cause**:
+     - When local files were uploaded in previous browser sessions, temporary `blob:https://www.saadstudio.app/...` URLs were stored in `localStorage` (`saad_studio_user_uploads`).
+     - Upon page refresh, the browser revokes previous `blob:` objects, causing `<img src="blob:..." />` and `<video src="blob:..." />` to log `net::ERR_FILE_NOT_FOUND`.
+  2. **Resolution & Fix**:
+     - Updated `useEffect` and `saveUploadedItems` in `ReferenceStudioModal.tsx` to automatically strip `blob:` URLs from `localStorage`.
+     - Added `onError` fallback handlers on media tags to safely hide broken media elements.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `db6306d` to GitHub `main` branch.
+
 #### Latest task: Custom AI Image Generation for Reference Studio Style Cards (2026-07-24)
 
 - Status:
