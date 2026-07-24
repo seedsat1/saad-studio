@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Replace Mock Character Presets with Google Gemini 3D AI Character Models (2026-07-24)
+
+- Status:
+  Replaced mock Unsplash character images in `HOOK_CHARACTERS` with custom Google Gemini 3D AI Character renders:
+  1. **Generated Google AI Characters (`public/images/presets/`)**:
+     - `char_businesswoman.jpg`: Saudi Businesswoman (Google AI Gemini 3D model).
+     - `char_influencer.jpg`: Tech Influencer (Google AI Gemini 3D model).
+     - `char_barista.jpg`: Master Barista (Google AI Gemini 3D model).
+     - `char_athlete.jpg`: Fitness Athlete (Google AI Gemini 3D model).
+  2. **Model Binding**:
+     - Updated `HOOK_CHARACTERS` in `lib/hook-studio-config.ts` to link to these AI character models and updated prompts for Google Gemini character consistency.
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed to GitHub `main` branch.
+
 #### Latest task: Auto-Switch to Uploads Tab & Instant Selection Upon Media Upload (2026-07-24)
 
 - Status:
