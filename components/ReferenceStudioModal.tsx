@@ -1053,8 +1053,11 @@ export function ReferenceStudioModal({
                                 {item.type === "video" ? (
                                   <video 
                                     src={item.url} 
-                                    className="w-full h-full object-cover" 
+                                    className="w-full h-full object-cover pointer-events-none" 
                                     muted 
+                                    controlsList="nodownload"
+                                    data-idm-members="disabled"
+                                    data-idm-skip="true"
                                     onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
                                   />
                                 ) : (
