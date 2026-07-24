@@ -1,5 +1,16 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Disable IDM Extension Floating Download Panel on Preview Videos (2026-07-24)
+
+- Status:
+  Prevented Internet Download Manager (IDM) browser extension from injecting its floating capture panel over preview video tags:
+  1. **Attributes Added (`components/ReferenceStudioModal.tsx`)**:
+     - Added `controlsList="nodownload"`, `data-idm-members="disabled"`, and `data-idm-skip="true"` on preview `<video>` elements.
+     - Added `pointer-events-none` class so mouse hover doesn't trigger IDM DOM element inspection overlays on reference thumbnails.
+  2. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+     - Pushed commit `43b20a1` to GitHub `main` branch.
+
 #### Latest task: Fix Revoked Session `blob:` URLs `ERR_FILE_NOT_FOUND` in Reference Studio (2026-07-24)
 
 - Status:
