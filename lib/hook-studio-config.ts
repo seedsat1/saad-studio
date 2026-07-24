@@ -27,7 +27,7 @@ export interface VideoModelSpec {
   name: string;
   apiRoute: string;
   provider: "wavespeed" | "kling" | "seedance" | "bytedance" | "openai" | "google";
-  badge: "TOP" | "NEW" | "PRO" | "FAST" | "4K";
+  badge: "TOP" | "NEW" | "PRO" | "FAST" | "4K" | "FX";
   description: string;
   maxRefImages: number;
   maxRefVideos: number;
@@ -391,6 +391,42 @@ export const HOOK_VIDEO_MODELS: VideoModelSpec[] = [
     qualityModes: ["720p"],
     supportsScript: true,
     creditCost: 10,
+  },
+  {
+    id: "wavespeed-motion-fx",
+    name: "WaveSpeed Motion FX",
+    apiRoute: "wavespeed-ai/motion-fx",
+    provider: "wavespeed",
+    badge: "FX",
+    description: "WaveSpeed AI Motion FX — high speed visual effects, lighting, and slow-motion video generator.",
+    maxRefImages: 6,
+    maxRefVideos: 1,
+    maxRefVideoSeconds: 10,
+    maxRefAudios: 0,
+    maxRefAudioSeconds: 0,
+    durations: [3, 5, 8, 10],
+    aspectRatios: ["16:9", "9:16", "1:1"],
+    qualityModes: ["720p", "1080p"],
+    supportsScript: true,
+    creditCost: 7,
+  },
+  {
+    id: "wavespeed-cinematic-fx",
+    name: "WaveSpeed Cinematic FX",
+    apiRoute: "wavespeed-ai/cinematic-video-generator",
+    provider: "wavespeed",
+    badge: "PRO",
+    description: "WaveSpeed AI Cinematic FX Generator — cinematic lighting, volumetric atmosphere, and realistic particle FX.",
+    maxRefImages: 8,
+    maxRefVideos: 1,
+    maxRefVideoSeconds: 15,
+    maxRefAudios: 0,
+    maxRefAudioSeconds: 0,
+    durations: [4, 6, 8, 10, 12],
+    aspectRatios: ["16:9", "9:16", "21:9"],
+    qualityModes: ["Standard", "Pro"],
+    supportsScript: true,
+    creditCost: 8,
   },
 ];
 
