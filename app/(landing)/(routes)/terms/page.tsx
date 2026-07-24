@@ -6,17 +6,13 @@ import {
   ScrollText,
   Search,
   ArrowUpRight,
-  ShieldCheck,
   CheckCircle2,
   ChevronRight,
   EyeOff,
   ShieldAlert,
   BadgePercent,
-  FileCode2,
   Wallet,
-  AlertTriangle,
   Scale,
-  Sparkles,
   Globe,
 } from "lucide-react";
 
@@ -35,7 +31,7 @@ export default function TermsPage() {
   const sectionsAr: Section[] = [
     {
       id: "sec-1",
-      title: "1. النطاق والموافقة على الأحكام (Overview & Agreement)",
+      title: "1. النطاق والموافقة على الأحكام",
       badge: "نطاق الاتفاقية",
       content: (
         <div className="space-y-4">
@@ -50,7 +46,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-2",
-      title: "2. الأهلية وإنشاء الحساب (Eligibility & Registration)",
+      title: "2. الأهلية وإنشاء الحساب",
       badge: "أهلية الاستخدام",
       content: (
         <div className="space-y-4">
@@ -64,7 +60,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-3",
-      title: "3. تعهد التوليد المباشر وعدم تخزين الوسائط (Direct Generation & Zero Storage)",
+      title: "3. تعهد التوليد المباشر وعدم تخزين الوسائط",
       badge: "توليد مباشر بدون تخزين",
       content: (
         <div className="space-y-4">
@@ -83,7 +79,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-4",
-      title: "4. الفحص الآلي والأخلاقي للمحتوى (Automated Ethical Content Moderation)",
+      title: "4. الفحص الآلي والأخلاقي للمحتوى",
       badge: "فحص أوتوماتيكي",
       content: (
         <div className="space-y-4">
@@ -102,7 +98,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-5",
-      title: "5. سياسة الأسعار وتغيرات الموردين (Dynamic Pricing & Supplier Terms)",
+      title: "5. سياسة الأسعار وتغيرات الموردين",
       badge: "مرونة الأسعار",
       content: (
         <div className="space-y-4">
@@ -121,7 +117,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-6",
-      title: "6. الاشتراكات وطرق الدفع المحلية (Subscriptions & Local Iraqi Payments)",
+      title: "6. الاشتراكات وطرق الدفع المحلية",
       badge: "زين كاش وكي كارد",
       content: (
         <div className="space-y-4">
@@ -151,7 +147,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-7",
-      title: "7. نظام الكريديت والباقات (Credits & Top-Up Allocation)",
+      title: "7. نظام الكريديت والباقات",
       badge: "وحدات التوليد",
       content: (
         <div className="space-y-4">
@@ -165,7 +161,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-8",
-      title: "8. استخدام إضافة Premiere Pro والتكامل المباشر (Premiere Pro CEP Integration)",
+      title: "8. استخدام إضافة Premiere Pro والتكامل المباشر",
       badge: "إضافة المونتاج",
       content: (
         <div className="space-y-4">
@@ -180,7 +176,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-9",
-      title: "9. تغيير واستبدال النماذج والميزات (Model Updates & Provider Swaps)",
+      title: "9. تغيير واستبدال النماذج والميزات",
       badge: "تحديث النماذج",
       content: (
         <div className="space-y-4">
@@ -190,7 +186,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-10",
-      title: "10. قواعد السلوك واستخدام المحتوى (User Conduct)",
+      title: "10. قواعد السلوك واستخدام المحتوى",
       badge: "الاستخدام العادل",
       content: (
         <div className="space-y-4">
@@ -200,7 +196,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-11",
-      title: "11. حقوق الملكية الفكرية والاستخدام التجاري (Intellectual Property & Rights)",
+      title: "11. حقوق الملكية الفكرية والاستخدام التجاري",
       badge: "ملكية المحتوى",
       content: (
         <div className="space-y-4">
@@ -210,7 +206,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-12",
-      title: "12. حذف الحساب والسياسة البيومترية (Account Erasure & Biometrics)",
+      title: "12. حذف الحساب والسياسة البيومترية",
       badge: "حذف البيانات",
       content: (
         <div className="space-y-4">
@@ -220,7 +216,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-13",
-      title: "13. إخلاء المسؤولية عن الضمانات (Disclaimer of Warranties)",
+      title: "13. إخلاء المسؤولية عن الضمانات",
       badge: "إخلاء المسؤولية",
       content: (
         <div className="space-y-4">
@@ -230,7 +226,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-14",
-      title: "14. تحديد المسؤولية القانونية (Limitation of Liability)",
+      title: "14. تحديد المسؤولية القانونية",
       badge: "الحد الأقصى للمسؤولية",
       content: (
         <div className="space-y-4">
@@ -240,7 +236,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-15",
-      title: "15. القوة القاهرة وتوقف البنية التحتية (Force Majeure)",
+      title: "15. القوة القاهرة وتوقف البنية التحتية",
       badge: "ظروف قاهرة",
       content: (
         <div className="space-y-4">
@@ -250,7 +246,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-16",
-      title: "16. التعويض وحماية المنصة (Indemnification)",
+      title: "16. التعويض وحماية المنصة",
       badge: "التعويض",
       content: (
         <div className="space-y-4">
@@ -260,7 +256,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-17",
-      title: "17. القانون الحاكم وحل النزاعات (Governing Law & Disputes)",
+      title: "17. القانون الحاكم وحل النزاعات",
       badge: "القانون العراقي",
       content: (
         <div className="space-y-4">
@@ -275,7 +271,7 @@ export default function TermsPage() {
     },
     {
       id: "sec-18",
-      title: "18. التحديثات والتواصل (Updates & Contact Us)",
+      title: "18. التحديثات والتواصل",
       badge: "التواصل والدعم",
       content: (
         <div className="space-y-4">
@@ -516,12 +512,12 @@ export default function TermsPage() {
 
   return (
     <div
-      className={`min-h-screen bg-slate-950 text-slate-100 py-16 px-4 md:px-8 ${
+      className={`min-h-screen bg-slate-950 text-slate-100 py-12 px-4 md:px-8 ${
         lang === "ar" ? "dir-rtl text-right" : "dir-ltr text-left"
       }`}
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      <div className="max-w-7xl mx-auto space-y-12">
+      <div className="max-w-7xl mx-auto space-y-10">
 
         {/* ── Language Switcher & Header ────────────────────────────── */}
         <motion.div
@@ -639,7 +635,7 @@ export default function TermsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* Sticky Table of Contents Sidebar */}
-          <div className="lg:col-span-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-md sticky top-6 space-y-4">
+          <div className="lg:col-span-4 bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 backdrop-blur-md sticky top-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-2">
                 <ScrollText className="w-4 h-4" /> {lang === "ar" ? "فهرس الشروط" : "Terms Index"}
@@ -647,34 +643,34 @@ export default function TermsPage() {
               <span className="text-xs text-slate-500">{currentSections.length} {lang === "ar" ? "بنود" : "Sections"}</span>
             </div>
 
-            <nav className="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <nav className="space-y-1.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {currentSections.map((sec) => (
                 <a
                   key={sec.id}
                   href={`#${sec.id}`}
                   onClick={() => setActiveSection(sec.id)}
-                  className={`group flex items-center justify-between text-xs py-2.5 px-3 rounded-lg transition-all ${
+                  className={`group flex items-center justify-between text-xs py-2.5 px-3 rounded-xl transition-all ${
                     activeSection === sec.id
-                      ? "bg-sky-600/20 text-sky-300 font-semibold border border-sky-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                      ? "bg-sky-600/25 text-sky-200 font-bold border border-sky-500/40 shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/70"
                   }`}
                 >
-                  <span className="truncate pr-2">{sec.title}</span>
-                  <ChevronRight className={`w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity shrink-0 ${lang === "ar" ? "rotate-180" : ""}`} />
+                  <span className="leading-snug text-right pl-1">{sec.title}</span>
+                  <ChevronRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity shrink-0 ${lang === "ar" ? "rotate-180" : ""}`} />
                 </a>
               ))}
             </nav>
 
-            <div className="pt-4 border-t border-slate-800 space-y-3">
-              <div className="p-3 bg-emerald-950/30 rounded-xl border border-emerald-900/40 text-xs text-emerald-300 flex items-center gap-3">
+            <div className="pt-3 border-t border-slate-800 space-y-2.5">
+              <div className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-900/40 text-[11px] text-emerald-300 flex items-center gap-2.5">
                 <EyeOff className="w-4 h-4 shrink-0 text-emerald-400" />
                 <span>{lang === "ar" ? "التوليد المباشر وعدم تخزين الوسائط محمي" : "Direct Generation & Zero Storage Active"}</span>
               </div>
-              <div className="p-3 bg-amber-950/30 rounded-xl border border-amber-900/40 text-xs text-amber-300 flex items-center gap-3">
+              <div className="p-2.5 bg-amber-950/30 rounded-xl border border-amber-900/40 text-[11px] text-amber-300 flex items-center gap-2.5">
                 <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
                 <span>{lang === "ar" ? "الفحص الأخلاقي المبرمج آلياً فعال" : "Automated Code Moderation Active"}</span>
               </div>
-              <div className="p-3 bg-blue-950/30 rounded-xl border border-blue-900/40 text-xs text-blue-300 flex items-center gap-3">
+              <div className="p-2.5 bg-blue-950/30 rounded-xl border border-blue-900/40 text-[11px] text-blue-300 flex items-center gap-2.5">
                 <BadgePercent className="w-4 h-4 shrink-0 text-blue-400" />
                 <span>{lang === "ar" ? "تسعير الموردين (Google, OpenAI, BytePlus)" : "Global Supplier Rates (Google, OpenAI, BytePlus)"}</span>
               </div>

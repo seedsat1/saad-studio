@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Search,
   ArrowUpRight,
-  Lock,
   FileText,
   CheckCircle2,
   ChevronRight,
@@ -31,7 +30,7 @@ export default function PrivacyPage() {
   const sectionsAr: Section[] = [
     {
       id: "sec-1",
-      title: "1. نظرة عامة ونطاق الخدمة (Overview & Scope)",
+      title: "1. نظرة عامة ونطاق الخدمة",
       badge: "نطاق الخدمة",
       content: (
         <div className="space-y-4">
@@ -46,7 +45,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-2",
-      title: "2. التعامل المباشر وعدم تخزين الوسائط (Direct Generation & Zero Media Storage)",
+      title: "2. التعامل المباشر وعدم تخزين الوسائط",
       badge: "توليد مباشر بدون تخزين",
       content: (
         <div className="space-y-4">
@@ -66,7 +65,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-3",
-      title: "3. الفحص الآلي والأخلاقي للمحتوى (Automated Ethical Content Moderation)",
+      title: "3. الفحص الآلي والأخلاقي للمحتوى",
       badge: "فحص أوتوماتيكي",
       content: (
         <div className="space-y-4">
@@ -86,7 +85,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-4",
-      title: "4. سياسة الأسعار وتغيرات الموردين (Dynamic Pricing & Supplier Policies)",
+      title: "4. سياسة الأسعار وتغيرات الموردين",
       badge: "سياسة الأسعار",
       content: (
         <div className="space-y-4">
@@ -106,7 +105,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-5",
-      title: "5. البيانات التي يتم التعامل معها (Information Handled)",
+      title: "5. البيانات التي يتم التعامل معها",
       badge: "جمع البيانات",
       content: (
         <div className="space-y-4">
@@ -124,7 +123,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-6",
-      title: "6. معالجة الوجوه والأصوات (Facial & Voice Media Processing)",
+      title: "6. معالجة الوجوه والأصوات",
       badge: "حماية بيومترية",
       content: (
         <div className="space-y-4">
@@ -141,7 +140,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-7",
-      title: "7. كيف نستخدم بيانات الحساب (How We Use Account Information)",
+      title: "7. كيف نستخدم بيانات الحساب",
       badge: "استخدام البيانات",
       content: (
         <div className="space-y-4">
@@ -157,7 +156,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-8",
-      title: "8. سياسة عدم التخزين وحذف الحساب (Zero Storage & Account Erasure)",
+      title: "8. سياسة عدم التخزين وحذف الحساب",
       badge: "حذف الحساب",
       content: (
         <div className="space-y-4">
@@ -172,7 +171,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-9",
-      title: "9. مشاركة البيانات مع الأطراف الثالثة (Data Sharing)",
+      title: "9. مشاركة البيانات مع الأطراف الثالثة",
       badge: "المزودون والمعالجون",
       content: (
         <div className="space-y-4">
@@ -187,7 +186,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-10",
-      title: "10. حماية وأمان البيانات (Security Safeguards)",
+      title: "10. حماية وأمان البيانات",
       badge: "الأمان والحماية",
       content: (
         <div className="space-y-4">
@@ -197,7 +196,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-11",
-      title: "11. حقوق التحكم وحيارات المستخدم (User Choices & Rights)",
+      title: "11. حقوق التحكم وحيارات المستخدم",
       badge: "تحكم المستخدم",
       content: (
         <div className="space-y-4">
@@ -212,7 +211,7 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-12",
-      title: "12. حماية القاصرين (Minors Policy)",
+      title: "12. حماية القاصرين",
       badge: "فئة الاستخدام",
       content: (
         <div className="space-y-4">
@@ -222,8 +221,8 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-13",
-      title: "13. التحديثات والتواصل (Updates & Contact Us)",
-      badge: "التواصل الدعم",
+      title: "13. التحديثات والتواصل",
+      badge: "التواصل والدعم",
       content: (
         <div className="space-y-4">
           <p>قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر لتعكس التطورات الفنية أو التشغيلية. سيتم إخطار المستخدمين بأي تغييرات جوهرية عبر البريد الإلكتروني أو من خلال تنبيه داخل المنصة.</p>
@@ -258,8 +257,8 @@ export default function PrivacyPage() {
     },
     {
       id: "sec-2",
-      title: "2. Direct Generation & Zero Media Storage",
-      badge: "Zero Local Media Hosting",
+      title: "2. Direct Generation & Zero Storage",
+      badge: "Zero Local Hosting",
       content: (
         <div className="space-y-4">
           <div className="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-xl text-emerald-200 flex items-start gap-3">
@@ -430,12 +429,12 @@ export default function PrivacyPage() {
 
   return (
     <div
-      className={`min-h-screen bg-slate-950 text-slate-100 py-16 px-4 md:px-8 ${
+      className={`min-h-screen bg-slate-950 text-slate-100 py-12 px-4 md:px-8 ${
         lang === "ar" ? "dir-rtl text-right" : "dir-ltr text-left"
       }`}
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      <div className="max-w-7xl mx-auto space-y-12">
+      <div className="max-w-7xl mx-auto space-y-10">
 
         {/* ── Language Switcher & Header ────────────────────────────── */}
         <motion.div
@@ -524,7 +523,7 @@ export default function PrivacyPage() {
               </h3>
               <p className="text-xs text-blue-200 leading-relaxed">
                 {lang === "ar"
-                  ? "الأسعار وتكلفة التوليد لكل نموذج غير ثابتة دائمياً (حتى للاشتراك السنوي) وتتغير وفقاً لسياسات وأسعار الشركات المزودة (Google, OpenAI, BytePlus)."
+                  ? "الأسعار وتكلفة التوليد لكل نموذج غير ثابتة دائمياً (حتى للااشتراك السنوي) وتتغير وفقاً لسياسات وأسعار الشركات المزودة (Google, OpenAI, BytePlus)."
                   : "Prices and credit costs are non-fixed (even for annual subscriptions) and fluctuate based on source provider compute rates."}
               </p>
             </div>
@@ -553,7 +552,7 @@ export default function PrivacyPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* Table of Contents Sticky Index */}
-          <div className="lg:col-span-4 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-md sticky top-6 space-y-4">
+          <div className="lg:col-span-4 bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 backdrop-blur-md sticky top-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <span className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-2">
                 <FileText className="w-4 h-4" /> {lang === "ar" ? "فهرس السياسة" : "Policy Index"}
@@ -561,34 +560,34 @@ export default function PrivacyPage() {
               <span className="text-xs text-slate-500">{currentSections.length} {lang === "ar" ? "بنود" : "Sections"}</span>
             </div>
 
-            <nav className="space-y-1 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <nav className="space-y-1.5 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {currentSections.map((sec) => (
                 <a
                   key={sec.id}
                   href={`#${sec.id}`}
                   onClick={() => setActiveSection(sec.id)}
-                  className={`group flex items-center justify-between text-xs py-2.5 px-3 rounded-lg transition-all ${
+                  className={`group flex items-center justify-between text-xs py-2.5 px-3 rounded-xl transition-all ${
                     activeSection === sec.id
-                      ? "bg-violet-600/20 text-violet-300 font-semibold border border-violet-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                      ? "bg-violet-600/25 text-violet-200 font-bold border border-violet-500/40 shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800/70"
                   }`}
                 >
-                  <span className="truncate pr-2">{sec.title}</span>
-                  <ChevronRight className={`w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity shrink-0 ${lang === "ar" ? "rotate-180" : ""}`} />
+                  <span className="leading-snug text-right pl-1">{sec.title}</span>
+                  <ChevronRight className={`w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity shrink-0 ${lang === "ar" ? "rotate-180" : ""}`} />
                 </a>
               ))}
             </nav>
 
-            <div className="pt-4 border-t border-slate-800 space-y-3">
-              <div className="p-3 bg-emerald-950/30 rounded-xl border border-emerald-900/40 text-xs text-emerald-300 flex items-center gap-3">
+            <div className="pt-3 border-t border-slate-800 space-y-2.5">
+              <div className="p-2.5 bg-emerald-950/30 rounded-xl border border-emerald-900/40 text-[11px] text-emerald-300 flex items-center gap-2.5">
                 <EyeOff className="w-4 h-4 shrink-0 text-emerald-400" />
                 <span>{lang === "ar" ? "التوليد مباشر وعدم رؤية الوسائط فعال" : "Direct Generation & Zero Storage Active"}</span>
               </div>
-              <div className="p-3 bg-amber-950/30 rounded-xl border border-amber-900/40 text-xs text-amber-300 flex items-center gap-3">
+              <div className="p-2.5 bg-amber-950/30 rounded-xl border border-amber-900/40 text-[11px] text-amber-300 flex items-center gap-2.5">
                 <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
                 <span>{lang === "ar" ? "الفحص الآلي والمبرمج للمحتوى فعال" : "Automated Code Moderation Active"}</span>
               </div>
-              <div className="p-3 bg-blue-950/30 rounded-xl border border-blue-900/40 text-xs text-blue-300 flex items-center gap-3">
+              <div className="p-2.5 bg-blue-950/30 rounded-xl border border-blue-900/40 text-[11px] text-blue-300 flex items-center gap-2.5">
                 <BadgePercent className="w-4 h-4 shrink-0 text-blue-400" />
                 <span>{lang === "ar" ? "مرونة الأسعار حسب سياسات الموردين فعالة" : "Dynamic Supplier Rates Active"}</span>
               </div>

@@ -60,6 +60,7 @@ export interface UploadedItem {
   name: string;
   type: "image" | "video";
   createdAt: number;
+  categoryTab?: string;
 }
 
 const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
@@ -259,30 +260,142 @@ export function ReferenceStudioModal({
     if (!files || files.length === 0) return;
 
     const newItems: UploadedItem[] = [];
+    const categoryTab = ["history", "stock"].includes(activeTab) ? "uploads" : activeTab;
+
     Array.from(files).forEach((file) => {
       const url = URL.createObjectURL(file);
       const isVideo = file.type.startsWith("video/");
+      const cleanName = file.name.replace(/\.[^/.]+$/, "");
       newItems.push({
-        id: `upload-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: `custom-${categoryTab}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         url,
-        name: file.name,
+        name: cleanName,
         type: isVideo ? "video" : "image",
         createdAt: Date.now(),
+        categoryTab,
       });
     });
 
     const updated = [...newItems, ...uploadedItems];
     saveUploadedItems(updated);
 
-    // Switch tab to "uploads" so user immediately sees their uploaded file!
-    setActiveTab("uploads");
-
     if (newItems[0]) {
-      setSelectedUploadId(newItems[0].id);
+      const first = newItems[0];
+      setSelectedUploadId(first.id);
+
+      if (categoryTab === "style") onSelectStyle?.(first.id);
+      else if (categoryTab === "location") onSelectLocation?.(first.id);
+      else if (categoryTab === "character") onSelectCharacter?.(first.id);
+      else if (categoryTab === "element") onSelectElement?.(first.id);
+      else if (categoryTab === "camera") onSelectCamera?.(first.id);
+      else if (categoryTab === "effects") onSelectEffect?.(first.id);
+      else if (categoryTab === "sketch") onSelectSketch?.(first.id);
+
       if (onAttachFile) {
-        onAttachFile(newItems[0]);
+        onAttachFile({
+          id: first.id,
+          url: first.url,
+          name: first.name,
+          type: first.type,
+        });
       }
     }
+  };
+
+  const renderCustomCategoryItems = (
+    catKey: string,
+    badgeColor: string = "indigo",
+    onSelectCustom?: (id: string, item: UploadedItem) => void,
+    checkSelected?: (id: string) => boolean
+  ) => {
+    const customList = uploadedItems.filter((i) => i.categoryTab === catKey);
+    if (customList.length === 0) return null;
+
+    return customList.map((customItem) => {
+      const isSelected = checkSelected
+        ? checkSelected(customItem.id)
+        : selectedUploadId === customItem.id;
+
+      return (
+        <div
+          key={customItem.id}
+          onClick={() => {
+            setSelectedUploadId(customItem.id);
+            onSelectCustom?.(customItem.id, customItem);
+            if (onAttachFile) {
+              onAttachFile({
+                id: customItem.id,
+                url: customItem.url,
+                name: customItem.name,
+                type: customItem.type,
+              });
+            }
+          }}
+          className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+            isSelected
+              ? `border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-500/10`
+              : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+          }`}
+        >
+          <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+            {customItem.type === "video" ? (
+              <video
+                src={customItem.url}
+                className="w-full h-full object-cover pointer-events-none"
+                muted
+                controlsList="nodownload"
+                data-idm-members="disabled"
+                data-idm-skip="true"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <img
+                src={customItem.url}
+                alt={customItem.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            )}
+
+            <div className="absolute top-2 left-2 bg-indigo-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10 flex items-center gap-1">
+              <span>{isAr ? "مرفوعك الخاص" : "Your Upload"}</span>
+            </div>
+
+            {isSelected && (
+              <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1 shadow z-10">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const filtered = uploadedItems.filter((i) => i.id !== customItem.id);
+                saveUploadedItems(filtered);
+              }}
+              className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              title={isAr ? "حذف المرجع" : "Delete reference"}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="p-2.5">
+            <div className="text-xs font-bold text-slate-200 truncate">
+              {customItem.name}
+            </div>
+            <div className="text-[10px] text-indigo-400 font-medium truncate mt-0.5">
+              {isAr ? "مرجع مخصص" : "Custom Preset"}
+            </div>
+          </div>
+        </div>
+      );
+    });
   };
 
   if (!isOpen) return null;
@@ -592,6 +705,7 @@ export function ReferenceStudioModal({
             {/* Style Tab */}
             {activeTab === "style" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("style", "indigo", (id) => onSelectStyle?.(id), (id) => selectedStyle === id)}
                 {HOOK_STYLES.filter((s) => {
                   const matchCat = activeCategory === "all" || s.category === activeCategory;
                   const matchSearch =
@@ -649,6 +763,7 @@ export function ReferenceStudioModal({
             {/* Character Tab */}
             {activeTab === "character" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("character", "emerald", (id) => onSelectCharacter?.(id), (id) => selectedCharacterId === id)}
                 {HOOK_CHARACTERS.filter((c) => {
                   const search = searchQuery.toLowerCase();
                   return (
@@ -707,6 +822,7 @@ export function ReferenceStudioModal({
             {/* Element Tab */}
             {activeTab === "element" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("element", "purple", (id) => onSelectElement?.(id), (id) => selectedElementId === id)}
                 {HOOK_ELEMENTS.filter((el) => {
                   const search = searchQuery.toLowerCase();
                   return (
@@ -765,6 +881,7 @@ export function ReferenceStudioModal({
             {/* Location Tab */}
             {activeTab === "location" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("location", "sky", (id) => onSelectLocation?.(id), (id) => selectedLocationId === id)}
                 {HOOK_LOCATIONS.filter((loc) => {
                   const search = searchQuery.toLowerCase();
                   return (
@@ -823,6 +940,7 @@ export function ReferenceStudioModal({
             {/* Camera Tab */}
             {activeTab === "camera" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("camera", "amber", (id) => onSelectCamera?.(id), (id) => selectedCameraId === id)}
                 {HOOK_CAMERAS.filter((cam) => {
                   const search = searchQuery.toLowerCase();
                   return (
@@ -881,6 +999,7 @@ export function ReferenceStudioModal({
             {/* Effects Tab */}
             {activeTab === "effects" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("effects", "pink", (id) => onSelectEffect?.(id), (id) => selectedEffectId === id)}
                 {HOOK_EFFECTS.filter((eff) => {
                   const matchCat = activeCategory === "all" || eff.category === activeCategory;
                   const search = searchQuery.toLowerCase();
@@ -940,6 +1059,7 @@ export function ReferenceStudioModal({
             {/* Sketch Tab */}
             {activeTab === "sketch" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {renderCustomCategoryItems("sketch", "teal", (id) => onSelectSketch?.(id), (id) => selectedSketchId === id)}
                 {HOOK_SKETCHES.filter((sk) => {
                   const search = searchQuery.toLowerCase();
                   return (
