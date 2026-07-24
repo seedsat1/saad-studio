@@ -1214,11 +1214,11 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
   {
     id: "duotone",
     tag: "#duotone",
-    nameAr: "إضاءة ثنائية اللون",
+    nameAr: "إضاءة ثنائية اللون (Seedance FX)",
     nameEn: "Neon Duotone",
-    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "/images/presets/fx_duotone.jpg",
     category: "color",
-    systemPromptAddon: "Vibrant duotone lighting, high contrast dual neon gel color split."
+    systemPromptAddon: "Vibrant duotone lighting, high contrast dual neon gel color split, Seedance 2.0 FX engine."
   },
   {
     id: "vibrant",
