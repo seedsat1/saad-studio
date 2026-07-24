@@ -1,5 +1,16 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add Bilingual Support (Arabic & English) to Legal Pages (2026-07-24)
+
+- Status:
+  Updated `app/(landing)/(routes)/privacy/page.tsx` and `app/(landing)/(routes)/terms/page.tsx` based on user directive:
+  1. **Bilingual Toggle**: Added interactive language switcher (`🌐 العربية | English`) with full RTL/LTR layout and translation switching.
+  2. **Consistent Policies**: Preserved all directives in both languages (Saad Studio, Baghdad courts, Google/OpenAI/BytePlus, Zain Cash & Qi Card, zero media storage, automated ethical moderation, non-fixed supplier pricing, and zero date mentions).
+  3. **Verification**:
+     - `npx tsc --noEmit` passed with 0 errors.
+     - `npx.cmd next lint --file "app/(landing)/(routes)/privacy/page.tsx"` passed with 0 warnings/errors.
+     - `npx.cmd next lint --file "app/(landing)/(routes)/terms/page.tsx"` passed with 0 warnings/errors.
+
 #### Latest task: Disable IDM Extension Floating Download Panel on Preview Videos (2026-07-24)
 
 - Status:
