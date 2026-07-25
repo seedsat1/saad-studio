@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Style Selection vs Reference Image File Attachment (2026-07-25)
+
+- Status:
+  Resolved issue where selecting an art style (e.g. `#minimalcharacters`) in `ReferenceStudioModal` attached the style's thumbnail image into `@image1` / `referenceImages` instead of applying it as a preset style setting:
+  1. **Style Selection Handler Separation (`ReferenceStudioModal.tsx`)**:
+     - Removed `onAttachFile` invocation when clicking a style item (`styleItem`) inside `ReferenceStudioModal.tsx`.
+     - Clicking a style item now updates `selectedStyle` (e.g., `#minimalcharacters` / `minimalcharacters`) and toggles its selection badge without converting its preview thumbnail into a file blob in reference images.
+     - Updated `onSelectStyle` prop type in `ReferenceStudioModalProps` to `(id: string | null) => void`.
+  2. **Affected Files**:
+     - `components/ReferenceStudioModal.tsx` [MODIFY]
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+
 #### Latest task: Auth-Guarded API Fetches (`/api/characters`, `/api/assets`, `/api/editor/credits`) (2026-07-25)
 
 - Status:

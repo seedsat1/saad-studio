@@ -38,7 +38,7 @@ export interface ReferenceStudioModalProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   selectedStyle?: string | null;
-  onSelectStyle?: (id: string) => void;
+  onSelectStyle?: (id: string | null) => void;
   selectedElementId?: string | null;
   onSelectElement?: (id: string | null) => void;
   selectedLocationId?: string | null;
@@ -1014,15 +1014,7 @@ export function ReferenceStudioModal({
                     <div
                       key={styleItem.id}
                       onClick={() => {
-                        onSelectStyle?.(styleItem.id);
-                        if (onAttachFile) {
-                          onAttachFile({
-                            id: `style-${styleItem.id}-${Date.now()}`,
-                            url: styleItem.imageUrl,
-                            name: styleItem.nameAr,
-                            type: "image",
-                          });
-                        }
+                        onSelectStyle?.(isSelected ? null : styleItem.id);
                       }}
                       className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
                         isSelected
