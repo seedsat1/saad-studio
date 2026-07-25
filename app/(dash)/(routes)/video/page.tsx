@@ -28,6 +28,7 @@ import { getFallbackUrls } from "@/lib/utils";
 import { NewModelsBanner } from "@/components/NewModelsBanner";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 
 // -- Utilities -----------------------------------------------------------------
 
@@ -1870,7 +1871,17 @@ function VideoPageInner() {
         ? (basePrompt.includes(`@${selectedCharacterTag}`) ? basePrompt : `@${selectedCharacterTag} ${basePrompt}`.trim())
         : basePrompt;
       const promptedText = characterPrompt ? `${characterPrompt}\n\n${basePrompt}` : klingCharacterPrompt;
-      payload.prompt = toolPrefix ? `${toolPrefix} ${promptedText}` : promptedText;
+      // Inject Style/Effect/Camera/Sketch/Location/Element systemPromptAddon into the prompt
+      // so the model actually applies the selected preset (thumbnails are just index cards).
+      const promptedWithPresets = withPresetsAppended(promptedText, {
+        selectedStyleId: selectedStyle,
+        selectedEffectId,
+        selectedCameraId,
+        selectedSketchId,
+        selectedLocationId,
+        selectedElementId,
+      });
+      payload.prompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets}` : promptedWithPresets;
 
       const isSeedanceV2 = selectedModel.id.startsWith("bytedance-seedance-v2");
       const isKling30Video =

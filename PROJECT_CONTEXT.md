@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Google Gemini Omni Routing to Fast Kie Provider (`gemini-omni-video`) (2026-07-25)
+
+- Status:
+  Resolved issue where `google/gemini-omni-flash` was being bypassed directly into Google's experimental direct interactions API (`startVeoGeneration`), causing requests to hang in `processing` / `Running`:
+  1. **Provider Route Normalization (`app/api/video/route.ts`)**:
+     - Removed `google/gemini-omni-flash` from `isDirectGoogleVeo31ProRoute` in `app/api/video/route.ts`.
+     - Route `google/gemini-omni-flash` now resolves to `kieModel = "gemini-omni-video"`.
+     - Requests now dispatch through Kie's high-speed `gemini-omni-video` GPU cluster provider (the exact same engine used by Higgsfield), generating videos fast without hanging.
+  2. **Affected Files**:
+     - `app/api/video/route.ts` [MODIFY]
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+
 #### Latest task: Fix Style Selection vs Reference Image File Attachment (2026-07-25)
 
 - Status:

@@ -37,6 +37,7 @@ import { useLanguage } from "@/lib/use-language";
 import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 
 type ToolId = "create" | "relight" | "inpaint" | "upscale" | "face-swap" | "enhance";
 
@@ -1586,7 +1587,17 @@ export default function ImageWorkspacePage() {
           pkg?.consistencyProfile ? `Consistency Profile: ${pkg.consistencyProfile}` : "",
         ].filter(Boolean).join("\n")
       : "";
-    const effectivePrompt = characterPrompt ? `${characterPrompt}\n\n${prompt}` : prompt;
+    const basePrompt = characterPrompt ? `${characterPrompt}\n\n${prompt}` : prompt;
+    // Inject Style/Effect/Camera/Sketch/Location/Element systemPromptAddon into the prompt
+    // so the model actually applies the selected preset (thumbnails are just index cards).
+    const effectivePrompt = withPresetsAppended(basePrompt, {
+      selectedStyleId: selectedStyle,
+      selectedEffectId,
+      selectedCameraId,
+      selectedSketchId,
+      selectedLocationId,
+      selectedElementId,
+    });
     const body: Record<string, unknown> = {
       prompt: effectivePrompt,
       modelId: selectedModel.id,
@@ -1635,7 +1646,7 @@ export default function ImageWorkspacePage() {
 
     // 3. Update UI state with permanent Supabase URL(s)
     addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");

@@ -80,6 +80,15 @@ interface UserCharacterRecord {
 interface UserElementRecord extends UserCharacterRecord {}
 interface UserLocationRecord extends UserCharacterRecord {}
 
+interface UserPaletteRecord {
+  id: string;
+  name: string;
+  colors: string[];
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
   {
     id: "preset-1",
@@ -197,6 +206,15 @@ export function ReferenceStudioModal({
   const [isSavingLoc, setIsSavingLoc] = useState(false);
   const [createLocError, setCreateLocError] = useState<string | null>(null);
   const newLocFileInputRef = useRef<HTMLInputElement>(null);
+
+  // User-owned color palettes (from /api/palettes, backed by UserPalette table)
+  const [userPalettes, setUserPalettes] = useState<UserPaletteRecord[]>([]);
+  const [isLoadingUserPals, setIsLoadingUserPals] = useState(false);
+  const [selectedPaletteId, setSelectedPaletteId] = useState<string | null>(null);
+  const [newPalName, setNewPalName] = useState("");
+  const [newPalColors, setNewPalColors] = useState<string[]>(["#0EA5E9", "#F43F5E", "#FACC15", "#22C55E"]);
+  const [isSavingPal, setIsSavingPal] = useState(false);
+  const [createPalError, setCreatePalError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -318,6 +336,93 @@ export function ReferenceStudioModal({
       fetchUserLocations();
     }
   }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
+
+  const fetchUserPalettes = async () => {
+    setIsLoadingUserPals(true);
+    try {
+      const res = await fetch("/api/palettes", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.palettes)) {
+          setUserPalettes(data.palettes as UserPaletteRecord[]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user palettes:", err);
+    } finally {
+      setIsLoadingUserPals(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "color" && (!isAuthLoaded || isSignedIn)) {
+      fetchUserPalettes();
+    }
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
+
+  const paletteToImageDataUrl = (name: string, colors: string[]): string => {
+    const W = 800, H = 300;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx || colors.length === 0) return "";
+    const stripe = W / colors.length;
+    colors.forEach((hex, i) => {
+      ctx.fillStyle = hex;
+      ctx.fillRect(i * stripe, 0, Math.ceil(stripe) + 1, H);
+    });
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, H - 56, W, 56);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px Inter, Arial, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText(name, 24, H - 28);
+    return canvas.toDataURL("image/png");
+  };
+
+  const submitNewPalette = async () => {
+    if (isSavingPal) return;
+    setCreatePalError(null);
+    const name = newPalName.trim().slice(0, 60) || (isAr ? "لوحة بلا اسم" : "Untitled Palette");
+    const validColors = newPalColors.filter((c) => /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c));
+    if (validColors.length < 2) {
+      setCreatePalError(isAr ? "أضف على الأقل لونين صالحين" : "Add at least 2 valid hex colors");
+      return;
+    }
+    setIsSavingPal(true);
+    try {
+      const res = await fetch("/api/palettes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, colors: validColors }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.palette) {
+        setCreatePalError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.palette as UserPaletteRecord;
+      setUserPalettes((prev) => [created, ...prev]);
+      setSelectedPaletteId(created.id);
+      setNewPalName("");
+      if (onAttachFile) {
+        const dataUrl = paletteToImageDataUrl(created.name, created.colors);
+        if (dataUrl) {
+          onAttachFile({
+            id: `palette-${created.id}`,
+            url: dataUrl,
+            name: `${created.name} (${created.colors.length} colors)`,
+            type: "image",
+          });
+        }
+      }
+    } catch (err: any) {
+      setCreatePalError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingPal(false);
+    }
+  };
 
   const handleNewLocFilesSelected = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
@@ -465,6 +570,42 @@ export function ReferenceStudioModal({
       } catch {}
     }
     setNewCharPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const deleteUserAsset = async (kind: "characters" | "elements" | "locations" | "palettes", id: string) => {
+    const labels = {
+      characters: isAr ? "هذا الكاركتر" : "this character",
+      elements: isAr ? "هذا العنصر" : "this element",
+      locations: isAr ? "هذا الموقع" : "this location",
+      palettes: isAr ? "هذه اللوحة" : "this palette",
+    };
+    const ok = window.confirm(
+      (isAr ? `حذف ${labels[kind]}؟ لا يمكن التراجع.` : `Delete ${labels[kind]}? This cannot be undone.`),
+    );
+    if (!ok) return;
+    try {
+      const res = await fetch(`/api/${kind}/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        alert(String(data?.error || (isAr ? "فشل الحذف" : "Delete failed")));
+        return;
+      }
+      if (kind === "characters") {
+        setUserCharacters((prev) => prev.filter((c) => c.id !== id));
+        if (selectedCharacterId === id) onSelectCharacter?.(null);
+      } else if (kind === "elements") {
+        setUserElements((prev) => prev.filter((e) => e.id !== id));
+        if (selectedElementId === id) onSelectElement?.(null);
+      } else if (kind === "locations") {
+        setUserLocations((prev) => prev.filter((l) => l.id !== id));
+        if (selectedLocationId === id) onSelectLocation?.(null);
+      } else if (kind === "palettes") {
+        setUserPalettes((prev) => prev.filter((p) => p.id !== id));
+        if (selectedPaletteId === id) setSelectedPaletteId(null);
+      }
+    } catch (err: any) {
+      alert(err?.message || (isAr ? "فشل الحذف" : "Delete failed"));
+    }
   };
 
   const submitNewCharacter = async () => {
@@ -1096,6 +1237,14 @@ export function ReferenceStudioModal({
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteUserAsset("characters", uc.id); }}
+                          className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title={isAr ? "حذف الكاركتر" : "Delete character"}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
                       <div className="p-2.5">
                         <div className="text-xs font-bold text-slate-200 truncate">{uc.name}</div>
@@ -1216,6 +1365,14 @@ export function ReferenceStudioModal({
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteUserAsset("elements", ue.id); }}
+                          className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title={isAr ? "حذف العنصر" : "Delete element"}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
                       <div className="p-2.5">
                         <div className="text-xs font-bold text-slate-200 truncate">{ue.name}</div>
@@ -1336,6 +1493,14 @@ export function ReferenceStudioModal({
                             <Check className="w-3.5 h-3.5 stroke-[3]" />
                           </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); deleteUserAsset("locations", ul.id); }}
+                          className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                          title={isAr ? "حذف الموقع" : "Delete location"}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
                       <div className="p-2.5">
                         <div className="text-xs font-bold text-slate-200 truncate">{ul.name}</div>
@@ -1425,15 +1590,9 @@ export function ReferenceStudioModal({
                     <div
                       key={camItem.id}
                       onClick={() => {
+                        // Camera is a prompt-only modifier (tag + description injected server-side).
+                        // Do NOT attach thumbnail — it would confuse the model as a visual ref.
                         onSelectCamera?.(isSelected ? null : camItem.id);
-                        if (!isSelected && onAttachFile) {
-                          onAttachFile({
-                            id: `cam-${camItem.id}-${Date.now()}`,
-                            url: camItem.imageUrl,
-                            name: camItem.nameAr,
-                            type: "image",
-                          });
-                        }
                       }}
                       className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
                         isSelected
@@ -1485,15 +1644,9 @@ export function ReferenceStudioModal({
                     <div
                       key={effItem.id}
                       onClick={() => {
+                        // Effect is a prompt-only modifier (tag + systemPromptAddon injected server-side).
+                        // Do NOT attach thumbnail — it would confuse the model as a visual ref.
                         onSelectEffect?.(isSelected ? null : effItem.id);
-                        if (!isSelected && onAttachFile) {
-                          onAttachFile({
-                            id: `eff-${effItem.id}-${Date.now()}`,
-                            url: effItem.imageUrl,
-                            name: effItem.nameAr,
-                            type: "image",
-                          });
-                        }
                       }}
                       className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
                         isSelected
@@ -1544,15 +1697,9 @@ export function ReferenceStudioModal({
                     <div
                       key={sketchItem.id}
                       onClick={() => {
+                        // Sketch is a prompt-only modifier (description injected server-side).
+                        // Do NOT attach thumbnail — it would confuse the model as a visual ref.
                         onSelectSketch?.(isSelected ? null : sketchItem.id);
-                        if (!isSelected && onAttachFile) {
-                          onAttachFile({
-                            id: `sketch-${sketchItem.id}-${Date.now()}`,
-                            url: sketchItem.imageUrl,
-                            name: sketchItem.nameAr,
-                            type: "image",
-                          });
-                        }
                       }}
                       className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
                         isSelected
@@ -1587,7 +1734,7 @@ export function ReferenceStudioModal({
             )}
 
             {/* Uploads & History Tabs */}
-            {["uploads", "history"].includes(activeTab) && (
+            {["uploads", "history", "stock"].includes(activeTab) && (
               <div className="space-y-6">
                 {isLoadingAssets && serverAssets.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-2">
@@ -1703,28 +1850,221 @@ export function ReferenceStudioModal({
               </div>
             )}
 
-            {/* Fallback for Stock / Color Tabs */}
-            {["stock", "color"].includes(activeTab) && (
-              <div className="flex flex-col items-center justify-center h-64 text-center p-6 bg-[#0c0f18] rounded-3xl border border-dashed border-slate-800">
-                <div className="w-14 h-14 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-3">
-                  <UploadCloud className="w-7 h-7" />
-                </div>
-                <h4 className="text-sm font-bold text-slate-200">
-                  {isAr ? "مكتبة وسائط مرجعية جاهزة" : "Reference Media Vault"}
-                </h4>
-                <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">
-                  {isAr
-                    ? "يمكنك اختيار أي ملف مرفوع أو سحب ملف جديد من اللوحة اليمنى للتطبيق المباشر"
-                    : "Select any reference asset or drop custom media from the right panel."}
-                </p>
+            {/* Color Tab */}
+            {activeTab === "color" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                {userPalettes.map((pal) => {
+                  const isSelected = selectedPaletteId === pal.id;
+                  return (
+                    <div
+                      key={pal.id}
+                      onClick={() => {
+                        const nextSelected = isSelected ? null : pal.id;
+                        setSelectedPaletteId(nextSelected);
+                        if (nextSelected && onAttachFile) {
+                          const dataUrl = paletteToImageDataUrl(pal.name, pal.colors);
+                          if (dataUrl) {
+                            onAttachFile({
+                              id: `palette-${pal.id}`,
+                              url: dataUrl,
+                              name: `${pal.name} (${pal.colors.length} colors)`,
+                              type: "image",
+                            });
+                          }
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-rose-500 ring-2 ring-rose-500/20 bg-rose-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[16/9] w-full flex overflow-hidden">
+                        {pal.colors.map((c, idx) => (
+                          <div key={idx} className="flex-1 h-full" style={{ backgroundColor: c }} />
+                        ))}
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 bg-rose-500 text-white rounded-full p-1 shadow">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); deleteUserAsset("palettes", pal.id); }}
+                        className="absolute bottom-2 right-2 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                        title={isAr ? "حذف اللوحة" : "Delete palette"}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{pal.name}</div>
+                        <div className="text-[10px] text-rose-400 font-mono truncate mt-0.5">
+                          {pal.colors.slice(0, 4).join(" · ")}
+                          {pal.colors.length > 4 ? " …" : ""}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserPals && userPalettes.length === 0 && (
+                  <div className="aspect-[16/9] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+                {!isLoadingUserPals && userPalettes.length === 0 && (
+                  <div className="col-span-full flex flex-col items-center justify-center h-48 text-center p-6 bg-[#0c0f18] rounded-3xl border border-dashed border-slate-800">
+                    <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center mb-2">
+                      <Palette className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-200">
+                      {isAr ? "لا توجد لوحات ألوان بعد" : "No palettes yet"}
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">
+                      {isAr
+                        ? "أنشئ لوحة ألوان من اللوحة اليمنى — سيتم إرفاقها كمرجع لوني للتوليدات"
+                        : "Create a palette from the right panel — it'll be attached as a color reference for generations."}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Right Panel: Media Upload Drop Zone (or Create form on Character/Element/Location tab) ── */}
+        {/* ── Right Panel: Media Upload Drop Zone (or Create form on Character/Element/Location/Color tab) ── */}
         <div className="w-full md:w-72 bg-[#0b0e17] p-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 flex-shrink-0">
-          {activeTab === "location" ? (
+          {activeTab === "color" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء لوحة ألوان" : "Create Color Palette"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "أضف من 2 إلى 8 ألوان hex. تُحفظ في مكتبتك وتُرفق كمرجع لوني للتوليدات."
+                      : "Add 2 to 8 hex colors. Saved to your library and attached as a color reference for generations."}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newPalName}
+                    onChange={(e) => setNewPalName(e.target.value)}
+                    placeholder={isAr ? "مثال: غروب دافئ، صيف باستيل…" : "e.g. warm sunset, pastel summer…"}
+                    maxLength={60}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-all"
+                    disabled={isSavingPal}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                      {isAr ? "الألوان" : "Colors"} ({newPalColors.length}/8)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => newPalColors.length < 8 && setNewPalColors([...newPalColors, "#FFFFFF"])}
+                      disabled={isSavingPal || newPalColors.length >= 8}
+                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 disabled:opacity-40 flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      {isAr ? "أضف لون" : "Add color"}
+                    </button>
+                  </div>
+
+                  {/* Live preview strip */}
+                  <div className="flex h-12 rounded-lg overflow-hidden border border-slate-800">
+                    {newPalColors.map((c, i) => (
+                      <div key={i} className="flex-1" style={{ backgroundColor: c }} />
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {newPalColors.map((color, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) => {
+                            const next = [...newPalColors];
+                            next[idx] = e.target.value.toUpperCase();
+                            setNewPalColors(next);
+                          }}
+                          disabled={isSavingPal}
+                          className="w-9 h-9 rounded-lg border border-slate-800 bg-transparent cursor-pointer p-0"
+                        />
+                        <input
+                          type="text"
+                          value={color}
+                          onChange={(e) => {
+                            let v = e.target.value.trim().toUpperCase();
+                            if (v && !v.startsWith("#")) v = "#" + v;
+                            const next = [...newPalColors];
+                            next[idx] = v;
+                            setNewPalColors(next);
+                          }}
+                          maxLength={7}
+                          disabled={isSavingPal}
+                          className="flex-1 bg-[#121624] border border-slate-800 rounded-lg px-2 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-rose-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewPalColors(newPalColors.filter((_, i) => i !== idx))}
+                          disabled={isSavingPal || newPalColors.length <= 2}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                          title={isAr ? "حذف" : "Remove"}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {createPalError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createPalError}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewPalette}
+                  disabled={isSavingPal || newPalColors.filter((c) => /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(c)).length < 2}
+                  className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-rose-500/20"
+                >
+                  {isSavingPal ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Palette className="w-4 h-4" />
+                      <span>{isAr ? "حفظ اللوحة" : "Save Palette"}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : activeTab === "location" ? (
             <>
               <div className="space-y-4 overflow-y-auto pr-1">
                 <div>

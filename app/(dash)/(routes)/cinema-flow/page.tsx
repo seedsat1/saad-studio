@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { AssetInspector } from "@/components/AssetInspector";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
 import { ReferenceActionTiles } from "@/components/ReferenceActionTiles";
+import { withPresetsAppended } from "@/lib/reference-prompt-injector";
 import { useLanguage } from "@/lib/use-language";
 
 interface CharacterRecord {
@@ -761,6 +762,17 @@ export default function CinemaFlowPage() {
         finalPrompt = `${promptText}\n\n${refsStr}`;
       }
 
+      // Inject Style/Effect/Camera/Sketch/Location/Element systemPromptAddon
+      // so the model actually applies the selected preset (thumbnails are just index cards).
+      finalPrompt = withPresetsAppended(finalPrompt, {
+        selectedStyleId: selectedStyle,
+        selectedEffectId,
+        selectedCameraId,
+        selectedSketchId,
+        selectedLocationId,
+        selectedElementId,
+      });
+
       if (activeCharacter) {
         // Route generation to Character Studio generation endpoint
         res = await fetch(`/api/characters/${activeCharacter.id}/generate`, {
@@ -902,13 +914,21 @@ export default function CinemaFlowPage() {
     const extraReferenceUrls = imageRefUrls && imageRefUrls.length > 1 ? imageRefUrls.slice(1) : [];
 
     try {
+      const videoPrompt = withPresetsAppended(promptText, {
+        selectedStyleId: selectedStyle,
+        selectedEffectId,
+        selectedCameraId,
+        selectedSketchId,
+        selectedLocationId,
+        selectedElementId,
+      });
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           modelRoute: selectedVideoModel,
           payload: {
-            prompt: promptText,
+            prompt: videoPrompt,
             duration: videoDuration,
             aspectRatio: aspectRatio,
             resolution: videoQuality,

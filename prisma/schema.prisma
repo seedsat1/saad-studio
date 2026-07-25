@@ -61,6 +61,7 @@ model User {
   characters    UserCharacter[]
   elements      UserElement[]
   locations     UserLocation[]
+  palettes      UserPalette[]
   providerUsageRecords ProviderUsageRecord[]
 }
 
@@ -630,6 +631,19 @@ model UserLocation {
   metadata             Json     @default("{}")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model UserPalette {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  colors      Json     @default("[]")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([userId, updatedAt])
 }
