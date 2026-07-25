@@ -2061,7 +2061,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE;
+    const isDirectGoogleVeo31ProRoute = modelRoute === GOOGLE_VEO31_PRO_ROUTE || modelRoute === "google/gemini-omni-flash";
     
     // WaveSpeed Models Checklist Bypass
     const isWaveSpeedOnlyModel = 
