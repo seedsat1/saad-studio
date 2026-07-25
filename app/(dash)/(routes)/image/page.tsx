@@ -2318,20 +2318,43 @@ export default function ImageWorkspacePage() {
                   })}
                 </div>
               )}
-              <div className="flex items-end gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-500/20 text-pink-300 ring-1 ring-pink-500/30"><Sparkles className="h-4 w-4" /></div>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(6, Math.max(2, prompt.split('\n').length))} className="max-h-48 min-h-[44px] flex-1 resize-y bg-transparent px-2 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar" />
-                {activeTool === "create" && selectedModel.maxRefImages > 0 ? (
-                  <>
-                    <input type="file" multiple={selectedModel.maxRefImages > 1} accept="image/*" className="hidden" id="image-attach" onChange={handleAttach} />
-                    <label htmlFor="image-attach" title={`Attach reference image (max ${selectedModel.maxRefImages})`} className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:text-zinc-200">
-                      <Paperclip className="h-4 w-4" />
-                      {selectedModel.maxRefImages > 1 && <span className="absolute -right-1 -top-1 rounded-full bg-violet-500 px-1 text-[9px] font-bold text-white">{selectedModel.maxRefImages}</span>}
-                    </label>
-                  </>
-                ) : null}
-                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("flex h-9 w-9 items-center justify-center rounded-xl", canGenerate ? "bg-pink-600 text-white" : "bg-white/5 text-zinc-600")}><ArrowUp className="h-4 w-4" /></button>
-                <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2.5 text-sm", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? t("Generate another") : composer.button}</button>
+              <div className="flex flex-col gap-2 rounded-2xl bg-white/[0.04] p-3 ring-1 ring-white/10 shadow-2xl backdrop-blur-xl">
+                {referenceFiles.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 pb-2.5 border-b border-white/5">
+                    {referenceFiles.map((file, i) => {
+                      const u = URL.createObjectURL(file);
+                      return (
+                        <div key={`${file.name}_${i}`} className="relative">
+                          <img src={u} alt={file.name} className="h-10 w-10 rounded-lg object-cover ring-1 ring-pink-400/30" />
+                          <button onClick={() => setReferenceFiles((prev) => prev.filter((_, idx) => idx !== i))} className="absolute -right-1 -top-1 rounded-full bg-black/80 p-0.5 text-zinc-200 hover:text-white"><X className="h-3 w-3" /></button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="w-full flex-1 min-h-[64px]">
+                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
+                </div>
+                <div className="flex items-center justify-between border-t border-white/5 pt-2 gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/20 text-pink-300 ring-1 ring-pink-500/30"><Sparkles className="h-4 w-4" /></div>
+                    {activeTool === "create" && selectedModel.maxRefImages > 0 ? (
+                      <>
+                        <input type="file" multiple={selectedModel.maxRefImages > 1} accept="image/*" className="hidden" id="image-attach" onChange={handleAttach} />
+                        <label htmlFor="image-attach" title={`Attach reference image (max ${selectedModel.maxRefImages})`} className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-white/5 text-zinc-400 ring-1 ring-white/10 hover:text-zinc-200">
+                          <Paperclip className="h-4 w-4" />
+                          {selectedModel.maxRefImages > 1 && <span className="absolute -right-1 -top-1 rounded-full bg-violet-500 px-1 text-[9px] font-bold text-white">{selectedModel.maxRefImages}</span>}
+                        </label>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2 ml-auto">
+                    {prompt && (
+                      <button onClick={() => setPrompt("")} className="p-1 hover:bg-white/10 rounded text-zinc-400 hover:text-white"><X className="h-4 w-4" /></button>
+                    )}
+                    <button onClick={handleGenerate} disabled={!canGenerate} className={cn("btn-generate rounded-xl px-4 py-2 text-sm font-semibold shadow-md", !canGenerate && "cursor-not-allowed opacity-40")}>{generating ? t("Generate another") : composer.button}</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -2598,144 +2598,162 @@ function VideoPageInner() {
           )}
         </AnimatePresence>
 
-        {/* Clickable reference image badges */}
-        {referenceImages.length > 0 && (
-          <div className="mx-4 mb-2 flex flex-wrap gap-2 items-center bg-slate-950/20 p-2.5 rounded-xl border border-white/[0.03]">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
-              <Sparkles size={11} className="text-cyan-400" /> {t("Click to insert reference:")}
-            </span>
-            {(() => {
-              let imageCount = 0;
-              return referenceImages.map((file, idx) => {
-                const isImage = file.type.startsWith("image/");
-                if (!isImage) return null;
-                imageCount++;
-                const tag = `@image${imageCount}`;
-                const previewSrc = referencePreviews[idx];
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setPrompt(prev => prev ? `${prev} ${tag}` : tag);
-                    }}
-                    className="flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
-                    style={{
-                      background: "rgba(6, 182, 212, 0.08)",
-                      border: "1px solid rgba(6, 182, 212, 0.25)",
-                      color: "#22d3ee",
-                    }}
-                    title={lang === "ar" ? `انقر لإدراج ${tag} في الوصف` : `Click to insert ${tag} into prompt`}
-                  >
-                    {previewSrc && (
-                      <img
-                        src={previewSrc}
-                        alt={`Ref ${imageCount}`}
-                        className="w-6 h-6 rounded object-cover border border-cyan-500/30"
-                      />
-                    )}
-                    <span className="font-mono text-[10px]">{tag}</span>
-                  </button>
-                );
-              });
-            })()}
-          </div>
-        )}
-
-        {/* Pinned prompt bar - Auto & Vertically Expanding Upwards */}
+        {/* Unified Studio Composite Prompt Card */}
         <div
-          className="flex-shrink-0 mx-4 mb-4 mt-2 rounded-xl flex items-end gap-2 px-3 py-2.5 transition-all duration-200"
+          className="flex-shrink-0 mx-4 mb-4 mt-2 rounded-2xl flex flex-col gap-2 p-3 transition-all duration-200 shadow-2xl"
           style={{
-            minHeight: 58,
-            maxHeight: 240,
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: "rgba(10, 16, 28, 0.85)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid rgba(255, 255, 255, 0.09)",
+            boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
           }}
         >
-          <div className="flex items-center self-end mb-2 flex-shrink-0">
-            {(isSubmitting || pendingTasks.size > 0)
-              ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "#06b6d4" }} />
-              : <Sparkles size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
-            }
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const el = document.querySelector("[data-character-ref='1']") as HTMLElement | null;
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
-            className="hidden md:flex flex-shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 self-end mb-1"
-            style={{
-              background: selectedCharacter ? "rgba(217,70,239,0.12)" : "rgba(255,255,255,0.05)",
-              border: `1px solid ${selectedCharacter ? "rgba(217,70,239,0.25)" : "rgba(255,255,255,0.08)"}`,
-              color: selectedCharacter ? "#f5d0fe" : "#94a3b8",
-            }}
-            title={t("Character Reference")}
-          >
-            <Users size={14} />
-            <span className="max-w-[120px] truncate text-[12px] font-semibold">
-              {selectedCharacter ? selectedCharacter.name : t("No character")}
-            </span>
-          </button>
-          <textarea
-            rows={Math.min(6, Math.max(2, prompt.split('\n').length))}
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleGenerate();
-              }
-            }}
-            placeholder={
-              activeTool === "lipsync"
-                ? t("Lipsync prompt (optional) e.g., talk naturally, smile...")
-                : isKling30Video
-                ? t("Describe the video… use @image1 for references")
-                : t("Describe the video you want to create…")
-            }
-            className="flex-1 bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[44px] max-h-[190px] py-2 px-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
-            style={{ color: "#e2e8f0" }}
-          />
-          {prompt && (
-            <button onClick={() => setPrompt("")} className="self-end mb-2.5 p-1 hover:bg-white/10 rounded transition-colors">
-              <X size={13} style={{ color: "#94a3b8" }} />
-            </button>
+          {/* Top Section inside Card: Reference Badges */}
+          {referenceImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center pb-2.5 border-b border-white/[0.06]">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mr-1 flex items-center gap-1">
+                <Sparkles size={11} className="text-cyan-400" /> {t("Click to insert reference:")}
+              </span>
+              {(() => {
+                let imageCount = 0;
+                return referenceImages.map((file, idx) => {
+                  const isImage = file.type.startsWith("image/");
+                  if (!isImage) return null;
+                  imageCount++;
+                  const tag = `@image${imageCount}`;
+                  const previewSrc = referencePreviews[idx];
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setPrompt(prev => prev ? `${prev} ${tag}` : tag);
+                      }}
+                      className="flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
+                      style={{
+                        background: "rgba(6, 182, 212, 0.12)",
+                        border: "1px solid rgba(6, 182, 212, 0.3)",
+                        color: "#22d3ee",
+                      }}
+                      title={lang === "ar" ? `انقر لإدراج ${tag} في الوصف` : `Click to insert ${tag} into prompt`}
+                    >
+                      {previewSrc && (
+                        <img
+                          src={previewSrc}
+                          alt={`Ref ${imageCount}`}
+                          className="w-5 h-5 rounded object-cover border border-cyan-500/30"
+                        />
+                      )}
+                      <span className="font-mono text-[10px]">{tag}</span>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
           )}
-          <button
-            onClick={handleGenerate}
-            disabled={isSubmitting || !canGenerate}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold transition-all self-end mb-1"
-            style={{
-              background:   isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "rgba(6,182,212,0.15)",
-              border:       `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.35)"}`,
-              color:        isSubmitting || !canGenerate ? "#475569" : "#06b6d4",
-              cursor:       isSubmitting || !canGenerate ? "not-allowed" : "pointer",
-            }}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={12} className="animate-spin" />
-                <span>{t("Sending…")}</span>
-              </>
-            ) : (
-              <>
-                <Film size={12} />
-                <span>
-                  {activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}
-                  {" · "}
-                  <span style={{ color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f", fontWeight: 700 }}>
-                    {estimatedCredits} cr
-                  </span>
+
+          {/* Middle Section inside Card: Full Width Multi-Line Textarea */}
+          <div className="flex-1 w-full min-h-[64px]">
+            <textarea
+              rows={Math.min(8, Math.max(3, prompt.split('\n').length))}
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
+              placeholder={
+                activeTool === "lipsync"
+                  ? t("Lipsync prompt (optional) e.g., talk naturally, smile...")
+                  : isKling30Video
+                  ? t("Describe the video… use @image1 for references")
+                  : t("Describe the video you want to create…")
+              }
+              className="w-full bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[64px] max-h-[220px] p-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
+              style={{ color: "#f8fafc" }}
+            />
+          </div>
+
+          {/* Bottom Section inside Card: Action Toolbar */}
+          <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] gap-2 flex-wrap sm:flex-nowrap">
+            {/* Left Action Tools */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center justify-center p-1.5 rounded-lg bg-white/5 border border-white/10 text-cyan-400">
+                {(isSubmitting || pendingTasks.size > 0)
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Sparkles size={14} />
+                }
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.querySelector("[data-character-ref='1']") as HTMLElement | null;
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-all hover:bg-white/10"
+                style={{
+                  background: selectedCharacter ? "rgba(217,70,239,0.12)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${selectedCharacter ? "rgba(217,70,239,0.25)" : "rgba(255,255,255,0.08)"}`,
+                  color: selectedCharacter ? "#f5d0fe" : "#94a3b8",
+                }}
+                title={t("Character Reference")}
+              >
+                <Users size={14} />
+                <span className="max-w-[140px] truncate text-[12px] font-semibold">
+                  {selectedCharacter ? selectedCharacter.name : t("No character")}
                 </span>
-                {pendingTasks.size > 0 && (
-                  <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
-                    {pendingTasks.size}
-                  </span>
+              </button>
+            </div>
+
+            {/* Right Action Tools */}
+            <div className="flex items-center gap-2 ml-auto">
+              {prompt && (
+                <button
+                  onClick={() => setPrompt("")}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                  title={lang === "ar" ? "مسح النص" : "Clear text"}
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <button
+                onClick={handleGenerate}
+                disabled={isSubmitting || !canGenerate}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-[12.5px] font-semibold transition-all shadow-md"
+                style={{
+                  background: isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, rgba(6,182,212,0.25), rgba(59,130,246,0.25))",
+                  border: `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.4)"}`,
+                  color: isSubmitting || !canGenerate ? "#475569" : "#ffffff",
+                  cursor: isSubmitting || !canGenerate ? "not-allowed" : "pointer",
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>{t("Sending…")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Film size={13} className="text-cyan-400" />
+                    <span>
+                      {activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}
+                      {" · "}
+                      <span style={{ color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f", fontWeight: 700 }}>
+                        {estimatedCredits} cr
+                      </span>
+                    </span>
+                    {pendingTasks.size > 0 && (
+                      <span style={{ background: "rgba(6,182,212,0.2)", border: "1px solid rgba(6,182,212,0.35)", borderRadius: 10, padding: "0 5px", fontSize: 10, color: "#06b6d4", lineHeight: 1.6 }}>
+                        {pendingTasks.size}
+                      </span>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </button>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
