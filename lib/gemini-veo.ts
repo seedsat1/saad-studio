@@ -162,6 +162,9 @@ export async function startVeoGeneration(
 
     // 3. Formulate the prompt text with correct image reference tags
     let promptText = params.prompt;
+    if (params.negativePrompt && params.negativePrompt.trim()) {
+      promptText += `. Do not include: ${params.negativePrompt.trim()}`;
+    }
     if (params.image) {
       promptText = `<FIRST_FRAME> ${promptText}`;
     }
@@ -197,7 +200,6 @@ export async function startVeoGeneration(
       generation_config: {
         video_config: {
           task,
-          duration_seconds: params.durationSeconds,
         }
       }
     };

@@ -1,5 +1,17 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Align Gemini Omni Flash Integration with Official Google Specs (2026-07-25)
+
+- Status:
+  Aligned Google Gemini Omni Flash (`gemini-omni-flash-preview`) implementation with official Google documentation:
+  1. **Payload Specification**:
+     - Removed invalid `duration_seconds` parameter from `generation_config.video_config` in `lib/gemini-veo.ts` (Google REST schema only accepts `video_config: { task }`).
+     - Automated tag injection: `<FIRST_FRAME>` for starting frame, `<IMAGE_REF_0>` for reference images, and inlined negative prompt string (`. Do not include: ...`) into prompt text as specified in Google docs.
+  2. **Model Registry Capabilities**:
+     - Updated `google-gemini-omni-flash` in `lib/video-model-registry.ts` with `durations: []` so duration is model-managed and no invalid duration payload is sent.
+  3. **Verification**:
+     - `npx tsc --noEmit` completed with **0 errors**.
+
 #### Latest task: Translate Arabic SRT Subtitles to Chinese maintaining Timecodes (2026-07-25)
 
 - Status:

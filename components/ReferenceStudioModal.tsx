@@ -63,6 +63,19 @@ export interface UploadedItem {
   categoryTab?: string;
 }
 
+interface UserCharacterRecord {
+  id: string;
+  name: string;
+  description: string;
+  referenceUrls: string[];
+  coverUrl: string | null;
+  status: string;
+  provider: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
   {
     id: "preset-1",
@@ -153,6 +166,16 @@ export function ReferenceStudioModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // User-owned characters (from /api/characters, backed by UserCharacter table)
+  const [userCharacters, setUserCharacters] = useState<UserCharacterRecord[]>([]);
+  const [isLoadingUserChars, setIsLoadingUserChars] = useState(false);
+  const [showCreateChar, setShowCreateChar] = useState(false);
+  const [newCharName, setNewCharName] = useState("");
+  const [newCharPreviews, setNewCharPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
+  const [isSavingChar, setIsSavingChar] = useState(false);
+  const [createCharError, setCreateCharError] = useState<string | null>(null);
+  const newCharFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("saad_studio_user_uploads");
@@ -213,6 +236,99 @@ export function ReferenceStudioModal({
       fetchUserAssets();
     }
   }, [isOpen]);
+
+  const fetchUserCharacters = async () => {
+    setIsLoadingUserChars(true);
+    try {
+      const res = await fetch("/api/characters", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.characters)) {
+          setUserCharacters(data.characters as UserCharacterRecord[]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user characters:", err);
+    } finally {
+      setIsLoadingUserChars(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "character") {
+      fetchUserCharacters();
+    }
+  }, [isOpen, activeTab]);
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("read_failed"));
+      reader.readAsDataURL(file);
+    });
+
+  const handleNewCharFilesSelected = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 8);
+    const previews: Array<{ dataUrl: string; name: string }> = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) {
+        setCreateCharError(isAr ? "الحد الأقصى لكل صورة 8MB" : "Max 8MB per image");
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        previews.push({ dataUrl, name: f.name });
+      } catch {}
+    }
+    setNewCharPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const submitNewCharacter = async () => {
+    if (isSavingChar) return;
+    setCreateCharError(null);
+    const name = newCharName.trim().slice(0, 80) || (isAr ? "كاركتر بلا اسم" : "Untitled Character");
+    if (newCharPreviews.length === 0) {
+      setCreateCharError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
+      return;
+    }
+    setIsSavingChar(true);
+    try {
+      const res = await fetch("/api/characters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          images: newCharPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.character) {
+        setCreateCharError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.character as UserCharacterRecord;
+      setUserCharacters((prev) => [created, ...prev]);
+      setShowCreateChar(false);
+      setNewCharName("");
+      setNewCharPreviews([]);
+      onSelectCharacter?.(created.id);
+      if (created.coverUrl && onAttachFile) {
+        onAttachFile({
+          id: `char-${created.id}`,
+          url: created.coverUrl,
+          name: created.name,
+          type: "image",
+        });
+      }
+    } catch (err: any) {
+      setCreateCharError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingChar(false);
+    }
+  };
 
   const allCombinedAssets = useMemo(() => {
     const map = new Map<string, UploadedItem>();
@@ -763,6 +879,83 @@ export function ReferenceStudioModal({
             {/* Character Tab */}
             {activeTab === "character" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {/* Create character card */}
+                <div
+                  onClick={() => setShowCreateChar(true)}
+                  className="aspect-[4/3] rounded-2xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400/80 bg-emerald-500/5 hover:bg-emerald-500/10 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group"
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-300 group-hover:text-emerald-200 flex items-center justify-center">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-bold text-emerald-200">
+                    {isAr ? "إنشاء كاركتر جديد" : "Create Character"}
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {isAr ? "ارفع صورة مرجعية" : "Upload a reference photo"}
+                  </span>
+                </div>
+
+                {/* User's own characters from /api/characters */}
+                {userCharacters.map((uc) => {
+                  const isSelected = selectedCharacterId === uc.id;
+                  const cover = uc.coverUrl || uc.referenceUrls?.[0] || "";
+                  return (
+                    <div
+                      key={uc.id}
+                      onClick={() => {
+                        onSelectCharacter?.(isSelected ? null : uc.id);
+                        if (!isSelected && cover && onAttachFile) {
+                          onAttachFile({
+                            id: `char-${uc.id}`,
+                            url: cover,
+                            name: uc.name,
+                            type: "image",
+                          });
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={uc.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-600">
+                            <User className="w-8 h-8" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                          {isAr ? "كاركتر خاص" : "My Character"}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{uc.name}</div>
+                        <div className="text-[10px] text-emerald-400 font-medium truncate mt-0.5">
+                          {uc.referenceUrls?.length || 1} {isAr ? "مرجع" : "ref"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserChars && userCharacters.length === 0 && (
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+
                 {renderCustomCategoryItems("character", "emerald", (id) => onSelectCharacter?.(id), (id) => selectedCharacterId === id)}
                 {HOOK_CHARACTERS.filter((c) => {
                   const search = searchQuery.toLowerCase();
@@ -1343,6 +1536,139 @@ export function ReferenceStudioModal({
           </div>
         </div>
       </div>
+
+      {/* ── Create Character Dialog ── */}
+      {showCreateChar && (
+        <div
+          onClick={() => !isSavingChar && setShowCreateChar(false)}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-[#0c0f18] border border-emerald-500/30 rounded-3xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white">
+                  {isAr ? "إنشاء كاركتر جديد" : "Create New Character"}
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {isAr
+                    ? "الصور تُرفع لتخزينك ويُستخدمن مرجعاً في التوليدات"
+                    : "Images are uploaded to your storage and used as reference in generations"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSavingChar && setShowCreateChar(false)}
+                className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400"
+                disabled={isSavingChar}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {isAr ? "الاسم" : "Name"}
+              </label>
+              <input
+                type="text"
+                value={newCharName}
+                onChange={(e) => setNewCharName(e.target.value)}
+                placeholder={isAr ? "مثال: سارة، أحمد، أوسكار…" : "e.g. Sara, Ahmed, Oscar…"}
+                maxLength={80}
+                className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
+                disabled={isSavingChar}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {isAr ? "الصور المرجعية" : "Reference photos"}
+              </label>
+              <input
+                type="file"
+                ref={newCharFileInputRef}
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  handleNewCharFilesSelected(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <div
+                onClick={() => !isSavingChar && newCharFileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  if (!isSavingChar && e.dataTransfer?.files) handleNewCharFilesSelected(e.dataTransfer.files);
+                }}
+                className="border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] gap-1"
+              >
+                <UploadCloud className="w-6 h-6 text-emerald-400" />
+                <span className="text-xs font-bold text-slate-200">
+                  {isAr ? "اسحب صور أو اضغط لاختيار" : "Drop images or click to pick"}
+                </span>
+                <span className="text-[10px] text-slate-500">
+                  {isAr ? "PNG، JPG، WEBP • حتى 8 صور • 8MB/صورة" : "PNG, JPG, WEBP • up to 8 images • 8MB each"}
+                </span>
+              </div>
+
+              {newCharPreviews.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {newCharPreviews.map((p, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                      <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setNewCharPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                        disabled={isSavingChar}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {createCharError && (
+              <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                {createCharError}
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => !isSavingChar && setShowCreateChar(false)}
+                className="flex-1 bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                disabled={isSavingChar}
+              >
+                {isAr ? "إلغاء" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                onClick={submitNewCharacter}
+                disabled={isSavingChar || newCharPreviews.length === 0}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+              >
+                {isSavingChar ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                  </>
+                ) : (
+                  <span>{isAr ? "حفظ الكاركتر" : "Save Character"}</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
