@@ -445,7 +445,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "photorealistic",
     nameAr: "تصوير واقعي",
     nameEn: "#photo",
-    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/photorealistic.webp",
     category: "design",
     systemPromptAddon: "Photorealistic style, captured on 35mm lens, natural textures, highly detailed, realistic lighting."
   },
@@ -453,7 +453,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "natural",
     nameAr: "إضاءة طبيعية",
     nameEn: "#natural",
-    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/natural.webp",
     category: "design",
     systemPromptAddon: "Natural lighting, lifestyle photography, authentic candid moment, film grain, soft highlights."
   },
@@ -461,7 +461,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "editorial",
     nameAr: "تصفيف مجلات",
     nameEn: "#editorial",
-    imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/editorial.webp",
     category: "design",
     systemPromptAddon: "High fashion editorial magazine style, dramatic studio lighting, rich colors, stylized composition."
   },
@@ -469,7 +469,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "neomemphis",
     nameAr: "نيو ميمفيس ريترو",
     nameEn: "#neomemphis",
-    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/neomemphis.webp",
     category: "design",
     systemPromptAddon: "Neo Memphis style design, bold patterns, bright geometry, colorful retro shapes, high contrast flat graphics."
   },
@@ -477,7 +477,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "boldposter",
     nameAr: "ملصق جريء ريترو",
     nameEn: "#boldposter",
-    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/boldposter.webp",
     category: "design",
     systemPromptAddon: "Bold vintage poster style, retro saturated color palette, graphic print texture, strong typography base."
   },
@@ -485,7 +485,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "letterpop",
     nameAr: "بوب تيبوغرافي",
     nameEn: "#letterpop",
-    imageUrl: "https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/letterpop.webp",
     category: "design",
     systemPromptAddon: "Pop typography art, bold lettering, vibrant neon accent hues, decorative graphic design poster."
   },
@@ -493,7 +493,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "minimaltypo",
     nameAr: "تيبوغرافي مبسط",
     nameEn: "#minimaltypo",
-    imageUrl: "/images/presets/minimaltypo.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/minimaltypo.webp",
     category: "design",
     systemPromptAddon: "Minimalist layout, fine typography, black and white stark graphic design, plenty of negative space."
   },
@@ -501,7 +501,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "coffeeshopmockup",
     nameAr: "موك اب كوب قهوة",
     nameEn: "#coffeeshopmockup",
-    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/coffeeshopmockup.webp",
     category: "design",
     systemPromptAddon: "Realistic branding mockup, coffee cup placement on wooden shop counter, soft natural morning bokeh."
   },
@@ -511,7 +511,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "character3d",
     nameAr: "شخصية ثلاثية الأبعاد",
     nameEn: "#character3d",
-    imageUrl: "https://images.unsplash.com/photo-1620428268482-cf1851a36764?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/character3d.webp",
     category: "3d",
     systemPromptAddon: "3D stylized character render, octane render, soft ambient occlusion, bright clay textures, cute design."
   },
@@ -519,7 +519,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "claytoon",
     nameAr: "رسوم صلصال 3D",
     nameEn: "#claytoon",
-    imageUrl: "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/claytoon.webp",
     category: "3d",
     systemPromptAddon: "Claymation style, soft 3D clay textures, handmade look, plasticine material, stop-motion animation feel."
   },
@@ -527,7 +527,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "dreamglass",
     nameAr: "زجاج حلمي متوهج",
     nameEn: "#dreamglass",
-    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dreamglass.webp",
     category: "3d",
     systemPromptAddon: "Dream glass rendering, semi-transparent frosted textures, glowing iridescent internal refraction, pastel aura."
   },
@@ -535,7 +535,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "glam3d",
     nameAr: "شخصية 3D متألقة",
     nameEn: "#glam3d",
-    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/glam3d.webp",
     category: "3d",
     systemPromptAddon: "Glamorous 3D character design, highly detailed clothing, glossy hair textures, cute doll look, soft studio lighting."
   },
@@ -543,7 +543,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "minimalcharacters",
     nameAr: "شخصيات 3D مبسطة",
     nameEn: "#minimalcharacters",
-    imageUrl: "https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/minimalcharacters.webp",
     category: "3d",
     systemPromptAddon: "Minimalist 3D character layout, basic geometric shapes, clean pastel color blocks, smooth rendering."
   },
@@ -551,7 +551,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "vinyltoy",
     nameAr: "لعبة فينيل 3D",
     nameEn: "#vinyltoy",
-    imageUrl: "/images/presets/vinyltoy.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/vinyltoy.webp",
     category: "3d",
     systemPromptAddon: "Vinyl toy figure aesthetic, glossy smooth plastic texture, Funko Pop model layout, toy packaging style."
   },
@@ -559,7 +559,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "motionstitched",
     nameAr: "قماش صوف مطرز",
     nameEn: "#motionstitched",
-    imageUrl: "/images/presets/motionstitched.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/motionstitched.webp",
     category: "3d",
     systemPromptAddon: "Felt wool animation style, stitched details, fabric textures, organic warm plush toy aesthetic."
   },
@@ -567,7 +567,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "3dcolorful",
     nameAr: "أشكال 3D ملونة",
     nameEn: "#3dcolorful",
-    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/3dcolorful.webp",
     category: "3d",
     systemPromptAddon: "Dynamic colorful 3D abstract shapes, rainbow gradient renders, high saturation glossy material."
   },
@@ -575,7 +575,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "softprism3d",
     nameAr: "موشور زجاجي 3D",
     nameEn: "#softprism3d",
-    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/softprism3d.webp",
     category: "3d",
     systemPromptAddon: "Soft prism glass rendering, colorful chromatic aberration, rainbow refraction beams, luxury cosmetic aesthetic."
   },
@@ -583,7 +583,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "kawaii3d",
     nameAr: "كاواي ياباني لطيف",
     nameEn: "#kawaii3d",
-    imageUrl: "https://images.unsplash.com/photo-1566577134770-3d85bb3a9cc4?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/kawaii3d.webp",
     category: "3d",
     systemPromptAddon: "Cute Japanese Kawaii 3D model, pastel pink and sky blue colors, smiling faces, happy anime toy design."
   },
@@ -591,7 +591,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "isometricdesign",
     nameAr: "تصميم آيزومتريك ثلاثي الأبعاد",
     nameEn: "#isometricdesign",
-    imageUrl: "https://images.unsplash.com/photo-1600132806370-bf17e65e942f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/isometricdesign.webp",
     category: "3d",
     systemPromptAddon: "Isometric 3D rendering, miniature room layout, block building graphics, cute toy furniture."
   },
@@ -601,7 +601,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "anime",
     nameAr: "أنمي كلاسيكي",
     nameEn: "#classic-anime",
-    imageUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/anime.webp",
     category: "illustration",
     systemPromptAddon: "Classic 90s anime style, hand-drawn character design, retro color palette, cell shading."
   },
@@ -609,7 +609,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "origami",
     nameAr: "فن الأوريغامي الورقي",
     nameEn: "#origami",
-    imageUrl: "https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/origami.webp",
     category: "illustration",
     systemPromptAddon: "Origami paper art, folded clean paper textures, geometric folds, shadows, creative minimalist composition."
   },
@@ -617,7 +617,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "watercolor",
     nameAr: "رسم ألوان مائية",
     nameEn: "#watercolor",
-    imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/watercolor.webp",
     category: "illustration",
     systemPromptAddon: "Soft watercolor painting, visible paint bleeding, textured paper background, elegant brush strokes."
   },
@@ -625,7 +625,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "oilpainting",
     nameAr: "لوحة زيتية كلاسيكية",
     nameEn: "#oilpainting",
-    imageUrl: "/images/presets/oilpainting.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/oilpainting.webp",
     category: "illustration",
     systemPromptAddon: "Classic fine art oil painting style, visible rich impasto brush strokes, warm classical lighting, canvas texture."
   },
@@ -633,7 +633,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "sketch",
     nameAr: "خط قلم رصاص ورسم ورق",
     nameEn: "#sketch",
-    imageUrl: "/images/presets/sketch.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/sketch.webp",
     category: "illustration",
     systemPromptAddon: "Hand drawn pencil sketch, detailed crosshatching, graphite paper texture, monochrome pencil art."
   },
@@ -641,7 +641,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "waxcrayon",
     nameAr: "رسم شمع ألوان",
     nameEn: "#waxcrayon",
-    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/waxcrayon.webp",
     category: "illustration",
     systemPromptAddon: "Crayon artwork, thick hand-drawn wax textures, childish nostalgic drawing feel, colorful crayon strokes."
   },
@@ -649,7 +649,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "dotted",
     nameAr: "تنقيط فني هافتون",
     nameEn: "#dotted",
-    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/dotted.webp",
     category: "illustration",
     systemPromptAddon: "Dotted pop art shading, vintage halftone pattern dots, stylized retro printing look."
   },
@@ -657,7 +657,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "risograph",
     nameAr: "طباعة ريزوغراف دافئة",
     nameEn: "#risograph",
-    imageUrl: "https://images.unsplash.com/photo-1509281373149-e957c6296406?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/risograph.webp",
     category: "illustration",
     systemPromptAddon: "Risograph print style, grainy duotone textures, overlapping colors, retro graphic print illustration."
   },
@@ -665,7 +665,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "traditional-japan",
     nameAr: "فن ياباني تقليدي",
     nameEn: "#traditional-japan",
-    imageUrl: "https://images.unsplash.com/photo-1542044896530-05d85be9b11a?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/traditional-japan.webp",
     category: "illustration",
     systemPromptAddon: "Traditional Japanese Ukiyo-e woodblock print aesthetic, vintage paper aging, elegant waves and lines."
   },
@@ -673,7 +673,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "cartoonfun",
     nameAr: "رسوم كرتون مرحة",
     nameEn: "#cartoonfun",
-    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cartoonfun.webp",
     category: "illustration",
     systemPromptAddon: "Fun cute cartoon character drawing, bold black outlines, simple flat color fill, modern web illustration."
   },
@@ -681,7 +681,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "retrocomic",
     nameAr: "قصص مصورة عتيقة",
     nameEn: "#retrocomic",
-    imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/retrocomic.webp",
     category: "illustration",
     systemPromptAddon: "Vintage 1960s comic book aesthetic, retro speech bubbles background layout, pop-art style ink dots."
   },
@@ -689,7 +689,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "linework",
     nameAr: "رسم خطوط نظيف",
     nameEn: "#linework",
-    imageUrl: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/linework.webp",
     category: "illustration",
     systemPromptAddon: "Clean black line art on off-white background, minimalist ink pen drawings, aesthetic contours."
   },
@@ -697,7 +697,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "grainy-flat",
     nameAr: "مسطح ذو نسيج رملي",
     nameEn: "#grainy-flat",
-    imageUrl: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/grainy-flat.webp",
     category: "illustration",
     systemPromptAddon: "Flat illustration style with grainy paper texture, natural warm ambient lighting, beautiful simple vectors."
   },
@@ -705,7 +705,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "pastelbeauty",
     nameAr: "جمالية الباستيل الناعمة",
     nameEn: "#pastelbeauty",
-    imageUrl: "https://images.unsplash.com/photo-1579783928586-282b09efb48e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pastelbeauty.webp",
     category: "illustration",
     systemPromptAddon: "Soft pastel aesthetic art, cream and pink hues, beautiful stylized drawings, dream-like calmness."
   },
@@ -713,7 +713,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "coloredpencil",
     nameAr: "ألوان خشبية رسم",
     nameEn: "#coloredpencil",
-    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/coloredpencil.webp",
     category: "illustration",
     systemPromptAddon: "Detailed colored pencil texture drawing, fine crosshatches, vibrant soft coloring, handmade sketchpad."
   },
@@ -721,7 +721,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "pointillism",
     nameAr: "رسم تنقيطي انطباعي",
     nameEn: "#pointillism",
-    imageUrl: "https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/pointillism.webp",
     category: "illustration",
     systemPromptAddon: "Pointillism impressionist art style, composed entirely of tiny distinct paint dots, rich textured coloring."
   },
@@ -729,7 +729,7 @@ export const HOOK_STYLES: HookStylePreset[] = [
     id: "classyvaporwave",
     nameAr: "فيبورويف كلاسيكي",
     nameEn: "#classyvaporwave",
-    imageUrl: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/classyvaporwave.webp",
     category: "illustration",
     systemPromptAddon: "Vaporwave visual aesthetic, neon pink and purple sunset grid landscapes, 80s computer synth graphics."
   }
@@ -750,7 +750,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@orangemoka",
     nameAr: "وعاء موكا برتقالي (Google AI)",
     nameEn: "Orange Moka Pot",
-    imageUrl: "/images/presets/elem_orangemoka.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/orangemoka.webp",
     promptDescription: "Classic orange Moka pot coffee maker on clean table background, Google Nano Banana product model."
   },
   {
@@ -758,7 +758,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@silvercream",
     nameAr: "كريم تجميل فضي (Google AI)",
     nameEn: "Silver Cream Tube",
-    imageUrl: "/images/presets/elem_silvercream.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/silvercream.webp",
     promptDescription: "Sleek silver cosmetic cream tube held against minimal pastel background, Google Nano Banana product model."
   },
   {
@@ -766,7 +766,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@nebulahandbag",
     nameAr: "حقيبة يد فاخرة (Google AI)",
     nameEn: "Luxury Handbag",
-    imageUrl: "/images/presets/elem_nebulahandbag.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/nebulahandbag.webp",
     promptDescription: "Deep purple luxury leather handbag with gold clasp, Google Nano Banana product model."
   },
   {
@@ -774,7 +774,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@redlipstick",
     nameAr: "أحمر شفاه ياقوتي",
     nameEn: "Red Lipstick",
-    imageUrl: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/redlipstick.webp",
     promptDescription: "Classic gold bullet red lipstick tube open on pink surface."
   },
   {
@@ -782,7 +782,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@bluetoaster",
     nameAr: "محمصة خبز زرقاء",
     nameEn: "Retro Blue Toaster",
-    imageUrl: "https://images.unsplash.com/photo-1583634648128-3a58222ba096?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/bluetoaster.webp",
     promptDescription: "Retro pastel blue kitchen toaster with toasted bread slice."
   },
   {
@@ -790,7 +790,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@perfum",
     nameAr: "زجاجة عطور فاخرة (Google AI)",
     nameEn: "Luxury Perfume Bottle",
-    imageUrl: "/images/presets/elem_perfum.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/perfum.webp",
     promptDescription: "Elegant amber glass perfume bottle with crystal cap, Google Nano Banana product model."
   },
   {
@@ -798,7 +798,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@serum",
     nameAr: "سيروم عناية بالبشرة",
     nameEn: "Skincare Serum Bottle",
-    imageUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/serum.webp",
     promptDescription: "Glass dropper serum bottle with iridescent glow on warm marble."
   },
   {
@@ -806,7 +806,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@redheels",
     nameAr: "حذاء كعب أحمر",
     nameEn: "Red Stiletto Heels",
-    imageUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/redheels.webp",
     promptDescription: "Glossy red high heel stiletto shoes on dark reflective glass."
   },
   {
@@ -814,7 +814,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@lamp",
     nameAr: "مصباح طاولة عصري",
     nameEn: "Modern Table Lamp",
-    imageUrl: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/lamp.webp",
     promptDescription: "Minimalist spherical glowing orb table lamp with brass stand."
   },
   {
@@ -822,7 +822,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@smartwatch",
     nameAr: "ساعة ذكية سوداء",
     nameEn: "Black Smartwatch",
-    imageUrl: "https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/smartwatch.webp",
     promptDescription: "Modern black smartwatch with dark OLED screen on neutral pedestal."
   },
   {
@@ -830,7 +830,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@totebag",
     nameAr: "حقيبة قماشية قتانية",
     nameEn: "Cotton Tote Bag",
-    imageUrl: "https://images.unsplash.com/photo-1597484661643-2f5f88447493?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/totebag.webp",
     promptDescription: "Minimalist unbleached natural cotton canvas tote bag hanging."
   },
   {
@@ -838,7 +838,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@leatherjacket",
     nameAr: "سترة جلدية سوداء",
     nameEn: "Black Leather Jacket",
-    imageUrl: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/leatherjacket.webp",
     promptDescription: "Classic black biker leather jacket with silver zippers."
   },
   {
@@ -846,7 +846,7 @@ export const HOOK_ELEMENTS: HookElementPreset[] = [
     tag: "@metalmug",
     nameAr: "كوب معدني",
     nameEn: "Enamel Metal Mug",
-    imageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/metalmug.webp",
     promptDescription: "Classic white enamel metal coffee mug on wooden table."
   }
 ];
@@ -866,7 +866,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@beach",
     nameAr: "شاطئ رملي مشمس",
     nameEn: "Sandy Beach",
-    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/beach.webp",
     promptDescription: "Sunny tropical sandy beach with turquoise ocean water and soft waves."
   },
   {
@@ -874,7 +874,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@bridge",
     nameAr: "جسر بحري حديث",
     nameEn: "Coastal Highway Bridge",
-    imageUrl: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/bridge.webp",
     promptDescription: "Long coastal sea bridge highway stretching over clear ocean waters."
   },
   {
@@ -882,7 +882,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@cafe",
     nameAr: "مقهى عصري راقي",
     nameEn: "Modern Cafe Interior",
-    imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cafe.webp",
     promptDescription: "Warm minimalist modern cafe interior with wooden tables and warm ambient lighting."
   },
   {
@@ -890,7 +890,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@castle",
     nameAr: "قلعة تاريخية قديمة",
     nameEn: "Medieval Stone Castle",
-    imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/castle.webp",
     promptDescription: "Grand medieval stone castle towers under soft daylight."
   },
   {
@@ -898,7 +898,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@countryside",
     nameAr: "ريف وأزهار خضراء",
     nameEn: "Green Countryside",
-    imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/countryside.webp",
     promptDescription: "Lush green countryside hills with blooming wildflowers and blue sky."
   },
   {
@@ -906,7 +906,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@desert",
     nameAr: "صحراء وكثبان رملية",
     nameEn: "Desert Dunes",
-    imageUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/desert.webp",
     promptDescription: "Vast desert sand dunes under bright sunny sky with warm gold tones."
   },
   {
@@ -914,7 +914,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@forest",
     nameAr: "غابة ضبابية كثيفة",
     nameEn: "Misty Forest",
-    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/forest.webp",
     promptDescription: "Deep green forest with tall trees, moss floor, and misty sunlight rays."
   },
   {
@@ -922,7 +922,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@garden",
     nameAr: "حديقة يابانية هادئة",
     nameEn: "Zen Garden",
-    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/garden.webp",
     promptDescription: "Peaceful Japanese zen garden with stone pathway and curated greenery."
   },
   {
@@ -930,7 +930,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@interior",
     nameAr: "تصميم داخلي مودرن",
     nameEn: "Modern Living Interior",
-    imageUrl: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/interior.webp",
     promptDescription: "Spacious modern luxury interior with beige couch and large sunlit windows."
   },
   {
@@ -938,7 +938,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@jungle",
     nameAr: "غابة استوائية كثيفة",
     nameEn: "Tropical Jungle",
-    imageUrl: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/jungle.webp",
     promptDescription: "Vibrant tropical rainforest jungle with dense ferns and sun shafts."
   },
   {
@@ -946,7 +946,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@laboratory",
     nameAr: "مختبر علمي متطور",
     nameEn: "High-Tech Laboratory",
-    imageUrl: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/laboratory.webp",
     promptDescription: "Ultra-clean high-tech medical research laboratory with white equipment."
   },
   {
@@ -954,7 +954,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@library",
     nameAr: "مكتبة ضخمة فاخرة",
     nameEn: "Grand Library",
-    imageUrl: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/library.webp",
     promptDescription: "Grand modern architectural library with tall bookshelves and wooden stairs."
   },
   {
@@ -962,7 +962,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@mars",
     nameAr: "كوكب المريخ وسماء النجوم",
     nameEn: "Mars Surface",
-    imageUrl: "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/mars.webp",
     promptDescription: "Red rocky Martian planet landscape under brilliant starry night sky."
   },
   {
@@ -970,7 +970,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@mountain",
     nameAr: "جبال شامخة صخرية",
     nameEn: "Rocky Mountain Range",
-    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/mountain.webp",
     promptDescription: "Majestic high mountain range peaks under clear blue sky."
   },
   {
@@ -978,7 +978,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@rooftop",
     nameAr: "سطح برج في المدينة",
     nameEn: "City Rooftop",
-    imageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/rooftop.webp",
     promptDescription: "Urban city penthouse rooftop terrace overlooking city skyscrapers."
   },
   {
@@ -986,7 +986,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@ruins",
     nameAr: "أنقاض وحطام قديم",
     nameEn: "Ancient Ruins",
-    imageUrl: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/ruins.webp",
     promptDescription: "Overgrown ancient stone ruins with sunlight streaming through broken arches."
   },
   {
@@ -994,7 +994,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@snow-field",
     nameAr: "حقل ثلجي جليلي",
     nameEn: "Snowy Mountain Field",
-    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/snow-field.webp",
     promptDescription: "Crisp white snow-covered landscape field with blue ice mountains."
   },
   {
@@ -1002,7 +1002,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@stadium",
     nameAr: "ملعب رياضي ضخم",
     nameEn: "Sports Stadium Arena",
-    imageUrl: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/stadium.webp",
     promptDescription: "Grand modern sports stadium arena with green pitch and empty seats."
   },
   {
@@ -1010,7 +1010,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@temple",
     nameAr: "معبد قبة أثري",
     nameEn: "Ancient Temple Interior",
-    imageUrl: "https://images.unsplash.com/photo-1548625149-fc4a29cf7092?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/temple.webp",
     promptDescription: "Sacred ancient stone temple interior with domed roof and sunlit arches."
   },
   {
@@ -1018,7 +1018,7 @@ export const HOOK_LOCATIONS: HookLocationPreset[] = [
     tag: "@underwater",
     nameAr: "أعماق المحيط والمرجان",
     nameEn: "Deep Underwater Ocean",
-    imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/underwater.webp",
     promptDescription: "Deep blue ocean underwater scene with coral reefs and sunlight rays penetrating water."
   }
 ];
@@ -1038,7 +1038,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#layered",
     nameAr: "عمق طبقات متدرجة",
     nameEn: "Layered Depth",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/layered.webp",
     promptDescription: "Multi-layered depth composition with crisp foreground and blurred background element framing."
   },
   {
@@ -1046,7 +1046,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#drone",
     nameAr: "تصوير طائرة درون",
     nameEn: "Drone Shot",
-    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/drone.webp",
     promptDescription: "High altitude smooth flying drone shot over expansive scenery."
   },
   {
@@ -1054,7 +1054,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#360",
     nameAr: "لقطة كروية 360 درجة",
     nameEn: "360 Panoramic",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/camera360.webp",
     promptDescription: "360-degree tiny planet curvature panoramic wide lens perspective."
   },
   {
@@ -1062,7 +1062,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#portrait",
     nameAr: "لقطة بورتري قريبة",
     nameEn: "Portrait Shot",
-    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/portrait.webp",
     promptDescription: "Intimate head-and-shoulders portrait shot with soft bokeh background."
   },
   {
@@ -1070,7 +1070,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#close-up",
     nameAr: "لقطة قريبة جداً",
     nameEn: "Close-Up",
-    imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/closeup.webp",
     promptDescription: "Tight extreme close-up shot capturing rich facial textures and eye details."
   },
   {
@@ -1078,7 +1078,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#tilt-shift",
     nameAr: "تأثير المصغرات (تيلت شفت)",
     nameEn: "Tilt-Shift",
-    imageUrl: "https://images.unsplash.com/photo-1477959858617-67f30ac4ce78?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshift.webp",
     promptDescription: "Tilt-shift selective blur lens effect creating a miniature model appearance."
   },
   {
@@ -1086,7 +1086,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#cinematic",
     nameAr: "لقطة سينمائية فاخرة",
     nameEn: "Cinematic Framing",
-    imageUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/cinematic.webp",
     promptDescription: "Widescreen anamorphic cinematic framing with moody atmospheric lighting."
   },
   {
@@ -1094,7 +1094,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#high-angle",
     nameAr: "زاوية مرتفعة من الأعلى",
     nameEn: "High-Angle",
-    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/highangle.webp",
     promptDescription: "High camera angle pointing down from above the subject."
   },
   {
@@ -1102,7 +1102,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#low-angle",
     nameAr: "زاوية منخفضة من الأسفل",
     nameEn: "Low-Angle",
-    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/lowangle.webp",
     promptDescription: "Low camera angle looking upward to emphasize grand scale and presence."
   },
   {
@@ -1110,7 +1110,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#panoramic",
     nameAr: "لقطة بانورامية واسعة",
     nameEn: "Panoramic View",
-    imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/panoramic.webp",
     promptDescription: "Ultra-wide panoramic horizon shot capturing expansive scenery."
   },
   {
@@ -1118,7 +1118,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#symmetry",
     nameAr: "تكوين متناظر متطابق",
     nameEn: "Symmetry",
-    imageUrl: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/symmetry.webp",
     promptDescription: "Perfectly centered architectural symmetry framing with balanced lines."
   },
   {
@@ -1126,7 +1126,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#fish-eye",
     nameAr: "عدسة عين السمكة",
     nameEn: "Fish-Eye Lens",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fisheye.webp",
     promptDescription: "Ultra wide 180-degree fisheye lens distortion with curved edge perspective."
   },
   {
@@ -1134,7 +1134,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#first-person",
     nameAr: "منظور الشخص الأول POV",
     nameEn: "First-Person POV",
-    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/firstperson.webp",
     promptDescription: "First-person point-of-view perspective shot as seen directly through eyes."
   },
   {
@@ -1142,7 +1142,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#mid-shot",
     nameAr: "لقطة متوسطة (من الخصر)",
     nameEn: "Mid-Shot",
-    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/midshot.webp",
     promptDescription: "Balanced medium waist-up shot framing body gestures and background clearly."
   },
   {
@@ -1150,7 +1150,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#full-body",
     nameAr: "لقطة كاملة للجسم",
     nameEn: "Full-Body Shot",
-    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/fullbody.webp",
     promptDescription: "Full length body shot showing complete outfit and standing environment stance."
   },
   {
@@ -1158,7 +1158,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#wide-shot",
     nameAr: "لقطة واسعة شاملة",
     nameEn: "Wide Shot",
-    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/wideshot.webp",
     promptDescription: "Wide environmental establishing shot capturing subject in vast landscape."
   },
   {
@@ -1166,7 +1166,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#tilt-shot",
     nameAr: "لقطة مائلة دتش أنجل",
     nameEn: "Tilt Shot",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tiltshot.webp",
     promptDescription: "Dutch angle tilted camera horizon creating dynamic action tension."
   },
   {
@@ -1174,7 +1174,7 @@ export const HOOK_CAMERAS: HookCameraPreset[] = [
     tag: "#aerial",
     nameAr: "لقطة جوية رأسية",
     nameEn: "Aerial Top-Down",
-    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/aerial.webp",
     promptDescription: "Direct overhead top-down bird's eye view aerial perspective."
   }
 ];
@@ -1197,7 +1197,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#earthy",
     nameAr: "ألوان ترابية دافئة",
     nameEn: "Earthy Warm Tones",
-    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/earthy.webp",
     category: "color",
     promptDescription: "Earthy natural color grade, warm ochre and terracotta muted tones, organic feel.",
     systemPromptAddon: "Earthy natural color grade, warm ochre and terracotta muted tones, organic feel."
@@ -1207,7 +1207,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#softhue",
     nameAr: "درجات باستيل ناعمة",
     nameEn: "Soft Hue Pastels",
-    imageUrl: "https://images.unsplash.com/photo-1579783928586-282b09efb48e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/softhue.webp",
     category: "color",
     systemPromptAddon: "Soft pastel hue color palette, gentle highlights, low contrast cream and pink tones."
   },
@@ -1216,7 +1216,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#b&w",
     nameAr: "أبيض وأسود أحادي",
     nameEn: "Black & White",
-    imageUrl: "https://images.unsplash.com/photo-1576016770956-debb63d90029?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/bw.webp",
     category: "color",
     systemPromptAddon: "High contrast black and white monochrome photography style, deep shadows."
   },
@@ -1225,7 +1225,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#sepia",
     nameAr: "سيبيا دافئة كلاسيكية",
     nameEn: "Classic Sepia",
-    imageUrl: "https://images.unsplash.com/photo-1579783928621-7a13d66a6211?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/sepia.webp",
     category: "color",
     systemPromptAddon: "Vintage sepia brown monochrome tone, aged photo print look."
   },
@@ -1234,7 +1234,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#muted-green",
     nameAr: "أخضر هادئ مطفأ",
     nameEn: "Muted Green",
-    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/mutedgreen.webp",
     category: "color",
     systemPromptAddon: "Muted sage and forest green color grading, cinematic film stock aesthetic."
   },
@@ -1243,7 +1243,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#deep-teal",
     nameAr: "تيل وبرتقالي عميق",
     nameEn: "Deep Teal & Orange",
-    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/deepteal.webp",
     category: "color",
     systemPromptAddon: "Deep teal and orange color grade, rich cinematic Hollywood shadow contrast."
   },
@@ -1252,7 +1252,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#duotone",
     nameAr: "إضاءة ثنائية اللون (Seedance FX)",
     nameEn: "Neon Duotone",
-    imageUrl: "/images/presets/fx_duotone.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/duotone.webp",
     category: "color",
     systemPromptAddon: "Vibrant duotone lighting, high contrast dual neon gel color split, Seedance 2.0 FX engine."
   },
@@ -1261,7 +1261,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#vibrant",
     nameAr: "ألوان مشبعة حيوية",
     nameEn: "Vibrant Colors",
-    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/vibrant.webp",
     category: "color",
     systemPromptAddon: "Rich highly saturated color pop, punchy vibrant tones, bright vivid spectrum."
   },
@@ -1270,7 +1270,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#terracote-&-teal",
     nameAr: "طين فخاري مع تيل",
     nameEn: "Terracotta & Teal",
-    imageUrl: "https://images.unsplash.com/photo-1509281373149-e957c6296406?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/terracotatateal.webp",
     category: "color",
     systemPromptAddon: "Warm terracotta clay and cool teal contrast palette, aesthetic magazine color grade."
   },
@@ -1279,7 +1279,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#icy-blue",
     nameAr: "أزرق ثلجي بارد",
     nameEn: "Icy Blue Tones",
-    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/icyblue.webp",
     category: "color",
     systemPromptAddon: "Cool icy blue and frost white color grading, winter atmospheric chill."
   },
@@ -1288,7 +1288,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#redscale",
     nameAr: "تووهج أحمر ريدسكيل",
     nameEn: "Redscale Glow",
-    imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/redscale.webp",
     category: "color",
     systemPromptAddon: "Redscale film glow, warm fiery red and amber shadows with high intensity."
   },
@@ -1299,7 +1299,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#gold-glow",
     nameAr: "تووهج ذهبي دافئ",
     nameEn: "Gold Glow",
-    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/goldglow.webp",
     category: "lighting",
     systemPromptAddon: "Warm golden light ambient glow, soft golden hour sun reflections."
   },
@@ -1308,7 +1308,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#high-flash",
     nameAr: "فلاش قوي ستوديو",
     nameEn: "High-Flash Studio",
-    imageUrl: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/highflash.webp",
     category: "lighting",
     systemPromptAddon: "Harsh direct camera flash photography, sharp shadows, high fashion studio aesthetic."
   },
@@ -1317,7 +1317,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#chiaroscuro",
     nameAr: "تباين ضوء وظل شديد",
     nameEn: "Chiaroscuro",
-    imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/chiaroscuro.webp",
     category: "lighting",
     systemPromptAddon: "Chiaroscuro lighting technique, dramatic dark background with single strong spotlight key."
   },
@@ -1326,7 +1326,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#back-light",
     nameAr: "إضاءة خلفية وظلال",
     nameEn: "Back-Lit Silhouette",
-    imageUrl: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/backlight.webp",
     category: "lighting",
     systemPromptAddon: "Strong backlighting, rim light highlights around subject silhouette, glowing background atmosphere."
   },
@@ -1335,7 +1335,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#studio",
     nameAr: "إضاءة استوديو احترافية",
     nameEn: "Studio Key Light",
-    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/studiolight.webp",
     category: "lighting",
     systemPromptAddon: "Professional 3-point studio lighting, soft fill light, clean commercial look."
   },
@@ -1344,7 +1344,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#iridescent",
     nameAr: "انعكاسات زجاجية متوهجة",
     nameEn: "Iridescent Reflection",
-    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/iridescent.webp",
     category: "lighting",
     systemPromptAddon: "Iridescent metallic sheen, prism rainbow light refractions, glossy surface highlights."
   },
@@ -1353,7 +1353,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#golden-hour",
     nameAr: "الساعة الذهبية لغروب الشمس",
     nameEn: "Golden Hour Glow",
-    imageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/goldenhour.webp",
     category: "lighting",
     systemPromptAddon: "Sunset golden hour light rays, warm sun flare, long soft shadows."
   },
@@ -1362,7 +1362,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#hardlight",
     nameAr: "ضوء شمس حاد عالي التباين",
     nameEn: "Hard Sunlight",
-    imageUrl: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/hardlight.webp",
     category: "lighting",
     systemPromptAddon: "Direct midday hard sunlight, sharp crisp shadows, high contrast highlights."
   },
@@ -1371,7 +1371,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#volumetric",
     nameAr: "أشعة ضوء ضبابية عمودية",
     nameEn: "Volumetric Light Beams",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/volumetric.webp",
     category: "lighting",
     systemPromptAddon: "Volumetric God rays cutting through atmospheric haze, dramatic beam highlights."
   },
@@ -1382,7 +1382,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#cold",
     nameAr: "أجواء غامضة باردة",
     nameEn: "Cold Hazy Mood",
-    imageUrl: "https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/coldmood.webp",
     category: "mood",
     systemPromptAddon: "Cold atmospheric mood, mysterious fog and solitary quiet ambience."
   },
@@ -1391,7 +1391,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#zen",
     nameAr: "سكينة وهدوء تام",
     nameEn: "Zen Tranquility",
-    imageUrl: "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/zenmood.webp",
     category: "mood",
     systemPromptAddon: "Zen peaceful atmosphere, balanced minimalist composition, calm serene mood."
   },
@@ -1400,7 +1400,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#tension",
     nameAr: "تشويق وإثارة عالية",
     nameEn: "High Tension Suspense",
-    imageUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/tension.webp",
     category: "mood",
     systemPromptAddon: "Dramatic cinematic tension, high suspense lighting, intense confrontation mood."
   },
@@ -1409,7 +1409,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#playful",
     nameAr: "أجواء مرحة ومبهجة",
     nameEn: "Playful Joy",
-    imageUrl: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/playful.webp",
     category: "mood",
     systemPromptAddon: "Playful upbeat mood, colorful happy energy, fun social interaction."
   },
@@ -1418,7 +1418,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#nostalgic",
     nameAr: "ذكريات ريترو نوسـتالجيا",
     nameEn: "Nostalgic Vintage",
-    imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/nostalgic.webp",
     category: "mood",
     systemPromptAddon: "Nostalgic retro memory aesthetic, warm film grain, emotional vintage atmosphere."
   },
@@ -1429,7 +1429,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#long-exposure",
     nameAr: "تعريض طويل مع ضبابية الحركة",
     nameEn: "Long Exposure Blur",
-    imageUrl: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/longexposure.webp",
     category: "action",
     systemPromptAddon: "Long exposure photography effect, silky motion blur trails, dynamic speed atmosphere."
   },
@@ -1438,7 +1438,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#walking",
     nameAr: "حركة مشي وتتبع",
     nameEn: "Walking Motion",
-    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/walking.webp",
     category: "action",
     systemPromptAddon: "Dynamic walking movement tracking, smooth camera motion following subject."
   },
@@ -1447,7 +1447,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#jumping",
     nameAr: "قفزة تجميد في الهواء",
     nameEn: "Mid-Air Jump Freeze",
-    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/jumping.webp",
     category: "action",
     systemPromptAddon: "Mid-air freeze action shot, fast shutter speed capturing energetic jump height."
   },
@@ -1456,7 +1456,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#glitching",
     nameAr: "تشويه جليتش رقمي",
     nameEn: "Digital Glitch",
-    imageUrl: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/glitching.webp",
     category: "action",
     systemPromptAddon: "Digital glitch distortion effect, chromatic aberration artifacts, futuristic cyber styling."
   },
@@ -1465,7 +1465,7 @@ export const HOOK_EFFECTS: HookEffectPreset[] = [
     tag: "#spinning",
     nameAr: "دوران ومغزل عالي السرعة",
     nameEn: "High-Speed Spin",
-    imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/spinning.webp",
     category: "action",
     systemPromptAddon: "Spinning rotation motion blur effect, high speed rotational kinetic energy."
   }
@@ -1486,7 +1486,7 @@ export const HOOK_CHARACTERS: HookCharacterPreset[] = [
     tag: "@businesswoman",
     nameAr: "سيدة أعمال سعودية (Google AI)",
     nameEn: "Saudi Businesswoman",
-    imageUrl: "/images/presets/char_businesswoman.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/businesswoman.webp",
     promptDescription: "Professional confident Saudi businesswoman wearing elegant modern attire, Google Gemini 3D character model."
   },
   {
@@ -1494,7 +1494,7 @@ export const HOOK_CHARACTERS: HookCharacterPreset[] = [
     tag: "@influencer",
     nameAr: "صانع محتوى ريادي (Google AI)",
     nameEn: "Tech Influencer",
-    imageUrl: "/images/presets/char_influencer.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/influencer.webp",
     promptDescription: "Charismatic young Middle Eastern tech content creator speaking directly to camera, Google Gemini 3D character model."
   },
   {
@@ -1502,7 +1502,7 @@ export const HOOK_CHARACTERS: HookCharacterPreset[] = [
     tag: "@barista",
     nameAr: "بارستا محترف (Google AI)",
     nameEn: "Master Barista",
-    imageUrl: "/images/presets/char_barista.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/barista.webp",
     promptDescription: "Passionate artisan barista pouring specialty drip coffee with intense focus, Google Gemini 3D character model."
   },
   {
@@ -1510,7 +1510,7 @@ export const HOOK_CHARACTERS: HookCharacterPreset[] = [
     tag: "@athlete",
     nameAr: "رياضي لياقة بدنية (Google AI)",
     nameEn: "Fitness Athlete",
-    imageUrl: "/images/presets/char_athlete.jpg",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/athlete.webp",
     promptDescription: "Athletic fit runner preparing for training session in high performance sportswear, Google Gemini 3D character model."
   }
 ];
@@ -1530,7 +1530,7 @@ export const HOOK_SKETCHES: HookSketchPreset[] = [
     tag: "#pencil-sketch",
     nameAr: "رسم رصاص يدوّي",
     nameEn: "Hand-Drawn Pencil",
-    imageUrl: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/handdrawn.webp",
     promptDescription: "Detailed monochrome graphite pencil sketch drawing on textured paper."
   },
   {
@@ -1538,7 +1538,7 @@ export const HOOK_SKETCHES: HookSketchPreset[] = [
     tag: "#ink-linework",
     nameAr: "تخطيط حبر ستوريبورد",
     nameEn: "Ink Storyboard Lines",
-    imageUrl: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/storyboard-line.webp",
     promptDescription: "Clean graphic black ink linework vector style storyboard frame."
   },
   {
@@ -1546,7 +1546,7 @@ export const HOOK_SKETCHES: HookSketchPreset[] = [
     tag: "#blueprint",
     nameAr: "رسم معماري مخطط blueprint",
     nameEn: "Architectural Blueprint",
-    imageUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=300&q=80",
+    imageUrl: "https://saadstudio-storage.s3.eu-central-003.backblazeb2.com/reference-thumbnails/architectural-blueprint.webp",
     promptDescription: "Cyan blue background architectural draft blueprint line drawing."
   }
 ];
