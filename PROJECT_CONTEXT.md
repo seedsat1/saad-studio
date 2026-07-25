@@ -1,17 +1,20 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Unified Composite Studio Prompt Card Architecture (2026-07-25)
+#### Latest task: Clipboard Image Paste & Composite Studio Prompt Card (2026-07-25)
 
 - Status:
-  Transformed prompt input area into a clean, unified **Composite Prompt Card** in `/video` and `/image` pages matching modern AI creation studios (Midjourney / Magnific):
-  1. **Unified Structure**:
+  Added native support for pasting copied images (`Copy Image` via Ctrl+V or right-click context menu) into prompt input areas in `/video` and `/image` pages:
+  1. **Clipboard Image Interception (`onPaste`)**:
+     - Added `onPaste` handler to textarea in `/video` and `/image` pages.
+     - Automatically catches image files/blobs copied to the clipboard (`e.clipboardData.files`) and attaches them instantly as reference images (`@image1`, `@image2`).
+  2. **Unified Composite Card Structure**:
      - **Top Section Inside Card**: Displays `@image1`, `@image2`, `@image3` reference tags and image thumbnails inside the prompt card header with a divider line.
      - **Middle Main Area**: Dedicated full-width `<textarea>` row (`min-h-[64px]` to `max-h-[220px]`, `resize-y`, custom scrollbar) allowing uncrowded multi-line prompt typing without button overlap.
-     - **Bottom Toolbar Inside Card**: Dedicated action bar hosting `Sparkles`, `Character reference` button on the left, and `Clear X`, `Generate` button on the right.
-  2. **Affected Files**:
+     - **Bottom Toolbar Inside Card**: Action bar hosting `Sparkles`, `Character reference` button on left, and `Clear X`, `Generate` button on right.
+  3. **Affected Files**:
      - `app/(dash)/(routes)/video/page.tsx` [MODIFY]
      - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
-  3. **Verification**:
+  4. **Verification**:
      - `npx tsc --noEmit` completed with **0 errors**.
 
 #### Latest task: Restore Duration Selection UI for Google Gemini Omni Flash (2026-07-25)

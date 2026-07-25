@@ -2658,6 +2658,17 @@ function VideoPageInner() {
               rows={Math.min(8, Math.max(3, prompt.split('\n').length))}
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
+              onPaste={e => {
+                if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
+                  const pastedFiles = Array.from(e.clipboardData.files).filter(f =>
+                    f.type.startsWith("image/") || f.type.startsWith("video/") || f.type.startsWith("audio/")
+                  );
+                  if (pastedFiles.length > 0) {
+                    e.preventDefault();
+                    setReferenceImages(prev => mergeReferenceFiles(prev, pastedFiles, selectedModel));
+                  }
+                }
+              }}
               onKeyDown={e => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

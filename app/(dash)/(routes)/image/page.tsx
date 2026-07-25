@@ -2333,7 +2333,7 @@ export default function ImageWorkspacePage() {
                   </div>
                 )}
                 <div className="w-full flex-1 min-h-[64px]">
-                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
+                  <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} onPaste={(e) => { if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) { const pastedFiles = Array.from(e.clipboardData.files).filter(f => f.type.startsWith("image/")); if (pastedFiles.length > 0) { e.preventDefault(); setReferenceFiles(prev => [...prev, ...pastedFiles]); } } }} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(8, Math.max(3, prompt.split('\n').length))} className="w-full flex-1 resize-y bg-transparent p-1.5 text-sm text-white placeholder:text-zinc-500 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar min-h-[64px] max-h-[220px]" />
                 </div>
                 <div className="flex items-center justify-between border-t border-white/5 pt-2 gap-2 flex-wrap sm:flex-nowrap">
                   <div className="flex items-center gap-2">
