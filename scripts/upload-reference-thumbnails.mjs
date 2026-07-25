@@ -30,7 +30,9 @@ loadDotenv(".env.local");
 loadDotenv(".env");
 loadDotenv(".env.production");
 
-const MAP_PATH = process.argv[2] || resolve(
+const args = process.argv.slice(2).filter(Boolean);
+const FORCE = args.includes("--force");
+const MAP_PATH = args.find((a) => !a.startsWith("--")) || resolve(
   "C:\\Users\\PC\\AppData\\Local\\Temp\\claude\\E------------next14-ai-saas-next14-ai-saas-main-next14-ai-saas-main\\bf0ed58f-e39f-491a-ab5f-67e1054e613f\\scratchpad\\preset-url-map.json",
 );
 const OUT_PATH = resolve(dirname(MAP_PATH), "preset-b2-urls.json");
@@ -62,7 +64,7 @@ async function objectExists(key) {
 
 async function uploadOne(presetId, srcUrl) {
   const key = `reference-thumbnails/${presetId}.webp`;
-  if (await objectExists(key)) {
+  if (!FORCE && (await objectExists(key))) {
     return `${PUBLIC}/${encodeURIComponent(key).replace(/%2F/g, "/")}`;
   }
   const res = await fetch(srcUrl);
