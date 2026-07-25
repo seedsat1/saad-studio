@@ -1,5 +1,18 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Relative Storage Paths in `/api/proxy-image` (2026-07-25)
+
+- Status:
+  Resolved HTTP 400 Bad Request error when proxying relative storage paths (e.g. `images/user_.../characters/.../1.png`):
+  1. **Relative Path Resolution (`getFallbackUrls`)**:
+     - Updated `app/api/proxy-image/route.ts` to pass `rawUrl` to `getFallbackUrls(rawUrl)` prior to hostname validation.
+     - Automatically expands relative storage paths into complete storage URLs (`Backblaze B2`, `R2`, and app origin `/api/media/...`), validating each candidate host safely.
+     - Preserves early video blocking and authentication checks.
+  2. **Affected Files**:
+     - `app/api/proxy-image/route.ts` [MODIFY]
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+
 #### Latest task: Clipboard Image Paste & Composite Studio Prompt Card (2026-07-25)
 
 - Status:

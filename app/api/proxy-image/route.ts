@@ -57,40 +57,51 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Missing url parameter", { status: 400 });
   }
 
-  // Validate the URL
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return new NextResponse("Invalid URL", { status: 400 });
-  }
-
-  if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
-    return new NextResponse("URL scheme not allowed", { status: 400 });
-  }
-
-  if (!isSafeExternalHost(parsed.hostname)) {
-    return new NextResponse("URL host not allowed", { status: 400 });
-  }
-
-  // Block proxying of video files. They must be loaded directly from direct R2/custom domain instead.
-  const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(parsed.pathname.toLowerCase());
+  // Block proxying of video files early.
+  const isVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(rawUrl.toLowerCase());
   if (isVideo) {
     return new NextResponse("Videos cannot be proxied through this route. Load directly from direct R2/custom domain instead.", { status: 400 });
   }
 
+  // Resolve candidate URLs (supports relative paths like "images/user_..." as well as absolute URLs)
+  const candidateUrls = getFallbackUrls(rawUrl);
+  if (!candidateUrls.includes(rawUrl) && (rawUrl.startsWith("http://") || rawUrl.startsWith("https://"))) {
+    candidateUrls.unshift(rawUrl);
+  }
+
+  const validFetchUrls: string[] = [];
+  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app";
+
+  for (const cUrl of candidateUrls) {
+    try {
+      const fullUrl = cUrl.startsWith("/") ? `${appBaseUrl}${cUrl}` : cUrl;
+      const parsed = new URL(fullUrl);
+
+      if (!ALLOWED_SCHEMES.has(parsed.protocol)) continue;
+      if (!isSafeExternalHost(parsed.hostname)) continue;
+
+      const candidateIsVideo = /\.(mp4|mov|webm|avi|mkv|m4v|flv|3gp)(?:\?|$)/i.test(parsed.pathname.toLowerCase());
+      if (candidateIsVideo) continue;
+
+      if (!validFetchUrls.includes(fullUrl)) {
+        validFetchUrls.push(fullUrl);
+      }
+    } catch {
+      // Ignore invalid candidates
+    }
+  }
+
+  if (!validFetchUrls.length) {
+    return new NextResponse("Invalid URL", { status: 400 });
+  }
+
   try {
-    const urls = getFallbackUrls(rawUrl);
     let upstream: Response | null = null;
     let lastError: any = null;
 
-    for (const url of urls) {
+    for (const fetchUrl of validFetchUrls) {
       try {
-        console.log("[api/proxy-image] Attempting fetch from:", url);
-        const fetchUrl = url.startsWith("/")
-          ? `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${url}`
-          : url;
-
+        console.log("[api/proxy-image] Attempting fetch from:", fetchUrl);
         upstream = await fetch(fetchUrl, {
           signal: AbortSignal.timeout(30_000),
           headers: {
@@ -101,17 +112,17 @@ export async function GET(req: NextRequest) {
         if (upstream.ok) {
           break;
         } else {
-          console.warn(`[api/proxy-image] Failed to fetch from ${url}: Status ${upstream.status}`);
+          console.warn(`[api/proxy-image] Failed to fetch from ${fetchUrl}: Status ${upstream.status}`);
         }
       } catch (err) {
         lastError = err;
-        console.warn(`[api/proxy-image] Error fetching from ${url}:`, err);
+        console.warn(`[api/proxy-image] Error fetching from ${fetchUrl}:`, err);
       }
     }
 
     if (!upstream || !upstream.ok) {
       return new NextResponse(
-        `Failed to fetch upstream resource after trying all fallbacks. Last error: ${lastError?.message || "status " + upstream?.status}`,
+        `Failed to fetch upstream resource after trying fallbacks. Last error: ${lastError?.message || "status " + upstream?.status}`,
         { status: upstream?.status || 502 }
       );
     }
