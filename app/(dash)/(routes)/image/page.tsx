@@ -2320,7 +2320,7 @@ export default function ImageWorkspacePage() {
               )}
               <div className="flex items-end gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-500/20 text-pink-300 ring-1 ring-pink-500/30"><Sparkles className="h-4 w-4" /></div>
-                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={1} className="max-h-24 min-h-[36px] flex-1 resize-none bg-transparent px-1 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-60" />
+                <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder={composer.placeholder} disabled={!composer.promptEnabled} rows={Math.min(6, Math.max(2, prompt.split('\n').length))} className="max-h-48 min-h-[44px] flex-1 resize-y bg-transparent px-2 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-60 overflow-y-auto leading-relaxed custom-scrollbar" />
                 {activeTool === "create" && selectedModel.maxRefImages > 0 ? (
                   <>
                     <input type="file" multiple={selectedModel.maxRefImages > 1} accept="image/*" className="hidden" id="image-attach" onChange={handleAttach} />

@@ -2642,26 +2642,29 @@ function VideoPageInner() {
           </div>
         )}
 
-        {/* Pinned prompt bar */}
+        {/* Pinned prompt bar - Auto & Vertically Expanding Upwards */}
         <div
-          className="flex-shrink-0 mx-4 mb-4 mt-2 rounded-xl flex items-center gap-2 px-3"
+          className="flex-shrink-0 mx-4 mb-4 mt-2 rounded-xl flex items-end gap-2 px-3 py-2.5 transition-all duration-200"
           style={{
-            minHeight: 52,
+            minHeight: 58,
+            maxHeight: 240,
             background: "rgba(255,255,255,0.04)",
             border: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          {(isSubmitting || pendingTasks.size > 0)
-            ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "#06b6d4" }} />
-            : <Sparkles size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
-          }
+          <div className="flex items-center self-end mb-2 flex-shrink-0">
+            {(isSubmitting || pendingTasks.size > 0)
+              ? <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: "#06b6d4" }} />
+              : <Sparkles size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
+            }
+          </div>
           <button
             type="button"
             onClick={() => {
               const el = document.querySelector("[data-character-ref='1']") as HTMLElement | null;
               if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
             }}
-            className="hidden md:flex flex-shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5"
+            className="hidden md:flex flex-shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 self-end mb-1"
             style={{
               background: selectedCharacter ? "rgba(217,70,239,0.12)" : "rgba(255,255,255,0.05)",
               border: `1px solid ${selectedCharacter ? "rgba(217,70,239,0.25)" : "rgba(255,255,255,0.08)"}`,
@@ -2675,7 +2678,7 @@ function VideoPageInner() {
             </span>
           </button>
           <textarea
-            rows={1}
+            rows={Math.min(6, Math.max(2, prompt.split('\n').length))}
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => {
@@ -2691,18 +2694,18 @@ function VideoPageInner() {
                 ? t("Describe the video… use @image1 for references")
                 : t("Describe the video you want to create…")
             }
-            className="flex-1 bg-transparent outline-none text-[13px] resize-none py-3 leading-relaxed"
+            className="flex-1 bg-transparent outline-none text-[13.5px] sm:text-[14px] resize-y min-h-[44px] max-h-[190px] py-2 px-1.5 leading-relaxed overflow-y-auto custom-scrollbar"
             style={{ color: "#e2e8f0" }}
           />
           {prompt && (
-            <button onClick={() => setPrompt("")}>
-              <X size={13} style={{ color: "#475569" }} />
+            <button onClick={() => setPrompt("")} className="self-end mb-2.5 p-1 hover:bg-white/10 rounded transition-colors">
+              <X size={13} style={{ color: "#94a3b8" }} />
             </button>
           )}
           <button
             onClick={handleGenerate}
             disabled={isSubmitting || !canGenerate}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-semibold transition-all self-end mb-1"
             style={{
               background:   isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "rgba(6,182,212,0.15)",
               border:       `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.35)"}`,

@@ -59,6 +59,8 @@ model User {
   generations   Generation[]
   transactions  AdminTransaction[]
   characters    UserCharacter[]
+  elements      UserElement[]
+  locations     UserLocation[]
   providerUsageRecords ProviderUsageRecord[]
 }
 
@@ -592,6 +594,42 @@ model UserCharacter {
   metadata              Json     @default("{}")
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model UserElement {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  description         String   @default("")
+  referenceUrls       Json     @default("[]")
+  coverUrl            String?
+  provider            String   @default("reference")
+  providerElementId   String?
+  status              String   @default("ready")
+  metadata            Json     @default("{}")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+}
+
+model UserLocation {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                 String
+  description          String   @default("")
+  referenceUrls        Json     @default("[]")
+  coverUrl             String?
+  provider             String   @default("reference")
+  providerLocationId   String?
+  status               String   @default("ready")
+  metadata             Json     @default("{}")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([userId, updatedAt])
 }

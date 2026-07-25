@@ -76,6 +76,9 @@ interface UserCharacterRecord {
   updatedAt: string;
 }
 
+interface UserElementRecord extends UserCharacterRecord {}
+interface UserLocationRecord extends UserCharacterRecord {}
+
 const DEFAULT_PRESET_ASSETS: UploadedItem[] = [
   {
     id: "preset-1",
@@ -175,6 +178,24 @@ export function ReferenceStudioModal({
   const [createCharError, setCreateCharError] = useState<string | null>(null);
   const newCharFileInputRef = useRef<HTMLInputElement>(null);
 
+  // User-owned elements (from /api/elements, backed by UserElement table)
+  const [userElements, setUserElements] = useState<UserElementRecord[]>([]);
+  const [isLoadingUserElems, setIsLoadingUserElems] = useState(false);
+  const [newElemName, setNewElemName] = useState("");
+  const [newElemPreviews, setNewElemPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
+  const [isSavingElem, setIsSavingElem] = useState(false);
+  const [createElemError, setCreateElemError] = useState<string | null>(null);
+  const newElemFileInputRef = useRef<HTMLInputElement>(null);
+
+  // User-owned locations (from /api/locations, backed by UserLocation table)
+  const [userLocations, setUserLocations] = useState<UserLocationRecord[]>([]);
+  const [isLoadingUserLocs, setIsLoadingUserLocs] = useState(false);
+  const [newLocName, setNewLocName] = useState("");
+  const [newLocPreviews, setNewLocPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
+  const [isSavingLoc, setIsSavingLoc] = useState(false);
+  const [createLocError, setCreateLocError] = useState<string | null>(null);
+  const newLocFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("saad_studio_user_uploads");
@@ -258,6 +279,174 @@ export function ReferenceStudioModal({
       fetchUserCharacters();
     }
   }, [isOpen, activeTab]);
+
+  const fetchUserElements = async () => {
+    setIsLoadingUserElems(true);
+    try {
+      const res = await fetch("/api/elements", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.elements)) {
+          setUserElements(data.elements as UserElementRecord[]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user elements:", err);
+    } finally {
+      setIsLoadingUserElems(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "element") {
+      fetchUserElements();
+    }
+  }, [isOpen, activeTab]);
+
+  const fetchUserLocations = async () => {
+    setIsLoadingUserLocs(true);
+    try {
+      const res = await fetch("/api/locations", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.locations)) {
+          setUserLocations(data.locations as UserLocationRecord[]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user locations:", err);
+    } finally {
+      setIsLoadingUserLocs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === "location") {
+      fetchUserLocations();
+    }
+  }, [isOpen, activeTab]);
+
+  const handleNewLocFilesSelected = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 8);
+    const previews: Array<{ dataUrl: string; name: string }> = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) {
+        setCreateLocError(isAr ? "الحد الأقصى لكل صورة 8MB" : "Max 8MB per image");
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        previews.push({ dataUrl, name: f.name });
+      } catch {}
+    }
+    setNewLocPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const submitNewLocation = async () => {
+    if (isSavingLoc) return;
+    setCreateLocError(null);
+    const name = newLocName.trim().slice(0, 80) || (isAr ? "موقع بلا اسم" : "Untitled Location");
+    if (newLocPreviews.length === 0) {
+      setCreateLocError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
+      return;
+    }
+    setIsSavingLoc(true);
+    try {
+      const res = await fetch("/api/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          images: newLocPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.location) {
+        setCreateLocError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.location as UserLocationRecord;
+      setUserLocations((prev) => [created, ...prev]);
+      setNewLocName("");
+      setNewLocPreviews([]);
+      onSelectLocation?.(created.id);
+      if (created.coverUrl && onAttachFile) {
+        onAttachFile({
+          id: `loc-${created.id}`,
+          url: created.coverUrl,
+          name: created.name,
+          type: "image",
+        });
+      }
+    } catch (err: any) {
+      setCreateLocError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingLoc(false);
+    }
+  };
+
+  const handleNewElemFilesSelected = async (files: FileList | File[] | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files).slice(0, 8);
+    const previews: Array<{ dataUrl: string; name: string }> = [];
+    for (const f of list) {
+      if (!f.type.startsWith("image/")) continue;
+      if (f.size > 8 * 1024 * 1024) {
+        setCreateElemError(isAr ? "الحد الأقصى لكل صورة 8MB" : "Max 8MB per image");
+        continue;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        previews.push({ dataUrl, name: f.name });
+      } catch {}
+    }
+    setNewElemPreviews((prev) => [...prev, ...previews].slice(0, 8));
+  };
+
+  const submitNewElement = async () => {
+    if (isSavingElem) return;
+    setCreateElemError(null);
+    const name = newElemName.trim().slice(0, 80) || (isAr ? "عنصر بلا اسم" : "Untitled Element");
+    if (newElemPreviews.length === 0) {
+      setCreateElemError(isAr ? "أرفع صورة مرجعية واحدة على الأقل" : "Upload at least one reference image");
+      return;
+    }
+    setIsSavingElem(true);
+    try {
+      const res = await fetch("/api/elements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          images: newElemPreviews.map((p) => ({ dataUrl: p.dataUrl, name: p.name })),
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.element) {
+        setCreateElemError(String(data?.error || (isAr ? "فشل الحفظ" : "Save failed")));
+        return;
+      }
+      const created = data.element as UserElementRecord;
+      setUserElements((prev) => [created, ...prev]);
+      setNewElemName("");
+      setNewElemPreviews([]);
+      onSelectElement?.(created.id);
+      if (created.coverUrl && onAttachFile) {
+        onAttachFile({
+          id: `elem-${created.id}`,
+          url: created.coverUrl,
+          name: created.name,
+          type: "image",
+        });
+      }
+    } catch (err: any) {
+      setCreateElemError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } finally {
+      setIsSavingElem(false);
+    }
+  };
 
   const readFileAsDataUrl = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -997,6 +1186,67 @@ export function ReferenceStudioModal({
             {/* Element Tab */}
             {activeTab === "element" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {/* User's own elements from /api/elements */}
+                {userElements.map((ue) => {
+                  const isSelected = selectedElementId === ue.id;
+                  const cover = ue.coverUrl || ue.referenceUrls?.[0] || "";
+                  return (
+                    <div
+                      key={ue.id}
+                      onClick={() => {
+                        onSelectElement?.(isSelected ? null : ue.id);
+                        if (!isSelected && cover && onAttachFile) {
+                          onAttachFile({
+                            id: `elem-${ue.id}`,
+                            url: cover,
+                            name: ue.name,
+                            type: "image",
+                          });
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-purple-500 ring-2 ring-purple-500/20 bg-purple-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={ue.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-600">
+                            <Package className="w-8 h-8" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-purple-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                          {isAr ? "عنصر خاص" : "My Element"}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-purple-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{ue.name}</div>
+                        <div className="text-[10px] text-purple-400 font-medium truncate mt-0.5">
+                          {ue.referenceUrls?.length || 1} {isAr ? "مرجع" : "ref"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserElems && userElements.length === 0 && (
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+
                 {renderCustomCategoryItems("element", "purple", (id) => onSelectElement?.(id), (id) => selectedElementId === id)}
                 {HOOK_ELEMENTS.filter((el) => {
                   const search = searchQuery.toLowerCase();
@@ -1056,6 +1306,67 @@ export function ReferenceStudioModal({
             {/* Location Tab */}
             {activeTab === "location" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                {/* User's own locations from /api/locations */}
+                {userLocations.map((ul) => {
+                  const isSelected = selectedLocationId === ul.id;
+                  const cover = ul.coverUrl || ul.referenceUrls?.[0] || "";
+                  return (
+                    <div
+                      key={ul.id}
+                      onClick={() => {
+                        onSelectLocation?.(isSelected ? null : ul.id);
+                        if (!isSelected && cover && onAttachFile) {
+                          onAttachFile({
+                            id: `loc-${ul.id}`,
+                            url: cover,
+                            name: ul.name,
+                            type: "image",
+                          });
+                        }
+                      }}
+                      className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${
+                        isSelected
+                          ? "border-sky-500 ring-2 ring-sky-500/20 bg-sky-500/10"
+                          : "border-slate-800 hover:border-slate-700 bg-[#0d1017]"
+                      }`}
+                    >
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-900 relative">
+                        {cover ? (
+                          <img
+                            src={cover}
+                            alt={ul.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-600">
+                            <MapPin className="w-8 h-8" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-sky-600/90 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow z-10">
+                          {isAr ? "موقع خاص" : "My Location"}
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-2 right-2 bg-sky-500 text-white rounded-full p-1 shadow">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-slate-200 truncate">{ul.name}</div>
+                        <div className="text-[10px] text-sky-400 font-medium truncate mt-0.5">
+                          {ul.referenceUrls?.length || 1} {isAr ? "مرجع" : "ref"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isLoadingUserLocs && userLocations.length === 0 && (
+                  <div className="aspect-[4/3] rounded-2xl border border-slate-800 bg-[#0d1017] flex items-center justify-center text-slate-500">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                )}
+
                 {renderCustomCategoryItems("location", "sky", (id) => onSelectLocation?.(id), (id) => selectedLocationId === id)}
                 {HOOK_LOCATIONS.filter((loc) => {
                   const search = searchQuery.toLowerCase();
@@ -1426,9 +1737,293 @@ export function ReferenceStudioModal({
           </div>
         </div>
 
-        {/* ── Right Panel: Media Upload Drop Zone (or Character Creation form on Character tab) ── */}
+        {/* ── Right Panel: Media Upload Drop Zone (or Create form on Character/Element/Location tab) ── */}
         <div className="w-full md:w-72 bg-[#0b0e17] p-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 flex-shrink-0">
-          {activeTab === "character" ? (
+          {activeTab === "location" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء موقع جديد" : "Create New Location"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "ارفع صور مكانك أو بيئتك المميزة. سيُحفظ في مكتبتك الخاصة ويُستخدم مرجعاً في التوليدات."
+                      : "Upload photos of your venue or scene. Saved to your library and used as a reference in generations."}
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  ref={newLocFileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewLocFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newLocName}
+                    onChange={(e) => setNewLocName(e.target.value)}
+                    placeholder={isAr ? "مثال: مكتبي، متجري، شقتي…" : "e.g. my office, my store…"}
+                    maxLength={80}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
+                    disabled={isSavingLoc}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الصور المرجعية" : "Reference photos"}
+                  </label>
+                  <div
+                    onClick={() => !isSavingLoc && newLocFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!isSavingLoc && e.dataTransfer?.files) handleNewLocFilesSelected(e.dataTransfer.files);
+                    }}
+                    className="border-2 border-dashed border-slate-800 hover:border-sky-500/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-2 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-0.5">
+                      {isAr ? "اسحب صور هنا" : "Drop photos here"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
+                    </span>
+                  </div>
+
+                  {newLocPreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mt-2">
+                      {newLocPreviews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                          <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewLocPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                            disabled={isSavingLoc}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createLocError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createLocError}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewLocation}
+                  disabled={isSavingLoc || newLocPreviews.length === 0}
+                  className="w-full bg-sky-600 hover:bg-sky-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-sky-500/20"
+                >
+                  {isSavingLoc ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{isAr ? "حفظ الموقع" : "Save Location"}</span>
+                    </>
+                  )}
+                </button>
+
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewLocFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isSavingLoc}
+                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : activeTab === "element" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء عنصر جديد" : "Create New Element"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "ارفع صور منتجك أو عنصرك المميز. سيُحفظ في مكتبتك الخاصة ويُستخدم مرجعاً في التوليدات."
+                      : "Upload photos of your product or unique prop. Saved to your library and used as a reference in generations."}
+                  </p>
+                </div>
+
+                <input
+                  type="file"
+                  ref={newElemFileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewElemFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newElemName}
+                    onChange={(e) => setNewElemName(e.target.value)}
+                    placeholder={isAr ? "مثال: كوبي المميز، حقيبتي…" : "e.g. my mug, my tote bag…"}
+                    maxLength={80}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-all"
+                    disabled={isSavingElem}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الصور المرجعية" : "Reference photos"}
+                  </label>
+                  <div
+                    onClick={() => !isSavingElem && newElemFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!isSavingElem && e.dataTransfer?.files) handleNewElemFilesSelected(e.dataTransfer.files);
+                    }}
+                    className="border-2 border-dashed border-slate-800 hover:border-purple-500/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-2 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-0.5">
+                      {isAr ? "اسحب صور هنا" : "Drop photos here"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
+                    </span>
+                  </div>
+
+                  {newElemPreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mt-2">
+                      {newElemPreviews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                          <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewElemPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                            disabled={isSavingElem}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createElemError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createElemError}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewElement}
+                  disabled={isSavingElem || newElemPreviews.length === 0}
+                  className="w-full bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-purple-500/20"
+                >
+                  {isSavingElem ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{isAr ? "حفظ العنصر" : "Save Element"}</span>
+                    </>
+                  )}
+                </button>
+
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewElemFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isSavingElem}
+                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : activeTab === "character" ? (
             <>
               <div className="space-y-4 overflow-y-auto pr-1">
                 <div>
