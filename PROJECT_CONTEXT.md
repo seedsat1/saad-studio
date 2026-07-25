@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Auth-Guarded API Fetches (`/api/characters`, `/api/assets`, `/api/editor/credits`) (2026-07-25)
+
+- Status:
+  Resolved 401 Unauthorized browser console warnings when components mount prior to Clerk authentication hydration or in unauthenticated states:
+  1. **Unauthenticated Fetch Guard (`useAuth`)**:
+     - Updated `app/(dash)/(routes)/video/page.tsx`, `app/(dash)/(routes)/image/page.tsx`, `components/TopNavbar.tsx`, and `components/ReferenceStudioModal.tsx`.
+     - Guarded initial `useEffect` calls for `/api/characters`, `/api/assets`, and `/api/editor/credits` with `if (isAuthLoaded && !isSignedIn) return;`.
+     - Prevents premature unauthenticated background requests that log 401 Unauthorized errors in browser devtools.
+     - Fetches automatically trigger as soon as Clerk completes auth hydration for signed-in users.
+  2. **Affected Files**:
+     - `components/TopNavbar.tsx` [MODIFY]
+     - `app/(dash)/(routes)/video/page.tsx` [MODIFY]
+     - `app/(dash)/(routes)/image/page.tsx` [MODIFY]
+     - `components/ReferenceStudioModal.tsx` [MODIFY]
+  3. **Verification**:
+     - `npx tsc --noEmit` verified with **0 errors**.
+
 #### Latest task: Fix Relative Storage Paths in `/api/proxy-image` (2026-07-25)
 
 - Status:

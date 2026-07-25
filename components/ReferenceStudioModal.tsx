@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
   Sparkles,
   User,
@@ -160,6 +161,7 @@ export function ReferenceStudioModal({
   onAttachFile,
   isAr = true,
 }: ReferenceStudioModalProps) {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [uploadedItems, setUploadedItems] = useState<UploadedItem[]>([]);
@@ -198,50 +200,41 @@ export function ReferenceStudioModal({
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("saad_studio_user_uploads");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Strip revoked session blob: URLs from previous page reloads
-          const valid = parsed.filter((item: any) => item && item.url && !item.url.startsWith("blob:"));
-          setUploadedItems(valid);
-          localStorage.setItem("saad_studio_user_uploads", JSON.stringify(valid));
-        }
+      const stored = localStorage.getItem("saad_studio_user_uploads");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) setUploadedItems(parsed);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to load reference uploads from localStorage", e);
+    }
   }, []);
 
   const saveUploadedItems = (items: UploadedItem[]) => {
     setUploadedItems(items);
     try {
-      const persistent = items.filter((item) => item.url && !item.url.startsWith("blob:"));
-      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(persistent.slice(0, 50)));
-    } catch {}
+      localStorage.setItem("saad_studio_user_uploads", JSON.stringify(items.slice(0, 50)));
+    } catch (e) {
+      console.warn("Failed to save reference uploads to localStorage", e);
+    }
   };
 
   const fetchUserAssets = async () => {
     setIsLoadingAssets(true);
     try {
-      const res = await fetch("/api/assets", { cache: "no-store" });
+      const res = await fetch("/api/assets?type=image", { cache: "no-store" });
       if (res.ok) {
-        const data = await res.json();
-        const rawList = Array.isArray(data) ? data : Array.isArray(data?.assets) ? data.assets : [];
-        if (rawList.length > 0) {
-          const mapped: UploadedItem[] = rawList
-            .filter((item: any) => item.url && (item.type === "image" || item.type === "video"))
-            .map((item: any) => ({
-              id: item.id || `asset-${Math.random()}`,
-              url: item.url,
-              name: item.prompt ? String(item.prompt).slice(0, 35) : "Generated Asset",
-              type: item.type === "video" ? "video" : "image",
-              createdAt: item.createdAt ? new Date(item.createdAt).getTime() : Date.now(),
-            }));
+        const data = await res.json().catch(() => null);
+        if (Array.isArray(data?.assets)) {
+          const mapped: UploadedItem[] = data.assets.map((asset: any) => ({
+            id: asset.id,
+            url: asset.url,
+            name: asset.prompt || asset.model || "Asset",
+            type: asset.type || "image",
+            createdAt: new Date(asset.createdAt || Date.now()).getTime(),
+          }));
           setServerAssets(mapped);
-        } else {
-          setServerAssets(DEFAULT_PRESET_ASSETS);
         }
-      } else {
-        setServerAssets(DEFAULT_PRESET_ASSETS);
       }
     } catch (err) {
       console.error("Failed to fetch user assets:", err);
@@ -252,10 +245,10 @@ export function ReferenceStudioModal({
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && (!isAuthLoaded || isSignedIn)) {
       fetchUserAssets();
     }
-  }, [isOpen]);
+  }, [isOpen, isAuthLoaded, isSignedIn]);
 
   const fetchUserCharacters = async () => {
     setIsLoadingUserChars(true);
@@ -275,10 +268,10 @@ export function ReferenceStudioModal({
   };
 
   useEffect(() => {
-    if (isOpen && activeTab === "character") {
+    if (isOpen && activeTab === "character" && (!isAuthLoaded || isSignedIn)) {
       fetchUserCharacters();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
 
   const fetchUserElements = async () => {
     setIsLoadingUserElems(true);
@@ -298,10 +291,10 @@ export function ReferenceStudioModal({
   };
 
   useEffect(() => {
-    if (isOpen && activeTab === "element") {
+    if (isOpen && activeTab === "element" && (!isAuthLoaded || isSignedIn)) {
       fetchUserElements();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
 
   const fetchUserLocations = async () => {
     setIsLoadingUserLocs(true);
@@ -321,10 +314,10 @@ export function ReferenceStudioModal({
   };
 
   useEffect(() => {
-    if (isOpen && activeTab === "location") {
+    if (isOpen && activeTab === "location" && (!isAuthLoaded || isSignedIn)) {
       fetchUserLocations();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, isAuthLoaded, isSignedIn]);
 
   const handleNewLocFilesSelected = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;

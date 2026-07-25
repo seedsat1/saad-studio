@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useLanguage } from "@/lib/use-language";
+import { useAuth } from "@clerk/nextjs";
 
 import MediaGrid, { MediaItem } from "@/components/MediaGrid";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
@@ -875,6 +876,7 @@ function normalizeCharacterTag(name: string): string {
 // -- Main Component -------------------------------------------------------------
 
 function VideoPageInner() {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { t, lang } = useVideoTranslation();
   const searchParams = useSearchParams();
   const [activeTool,    setActiveTool]    = useState<VideoToolId>("create-video");
@@ -911,6 +913,7 @@ function VideoPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (isAuthLoaded && !isSignedIn) return;
     let cancelled = false;
     const loadCharacters = async () => {
       try {
@@ -927,7 +930,7 @@ function VideoPageInner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthLoaded, isSignedIn]);
 
   // Prompt fields
   const [prompt,    setPrompt]    = useState("");

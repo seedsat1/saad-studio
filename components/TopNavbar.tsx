@@ -914,7 +914,9 @@ const TopNavbar = () => {
 
     // Fetch on sign-in/navigation only. Periodic polling kept Neon awake even
     // while the dashboard was idle.
-    loadCredits();
+    if (isSignedIn) {
+      loadCredits();
+    }
 
     const handleCreditsUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<{ balance: number }>;

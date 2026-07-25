@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction, type ChangeEvent, type DragEvent } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
   Aperture,
   ArrowUp,
@@ -1226,6 +1227,7 @@ function useImageTranslation() {
 }
 
 export default function ImageWorkspacePage() {
+  const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const { t, lang } = useImageTranslation();
   const searchParams = useSearchParams();
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
@@ -1341,6 +1343,7 @@ export default function ImageWorkspacePage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (isAuthLoaded && !isSignedIn) return;
     let cancelled = false;
     const loadCharacters = async () => {
       try {
@@ -1357,9 +1360,10 @@ export default function ImageWorkspacePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthLoaded, isSignedIn]);
 
   useEffect(() => {
+    if (isAuthLoaded && !isSignedIn) return;
     let cancelled = false;
     const loadPersisted = async () => {
       try {
@@ -1385,7 +1389,7 @@ export default function ImageWorkspacePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthLoaded, isSignedIn]);
 
   // Recover an in-flight generation that was interrupted by a page refresh.
   // Strategy: if a pending marker exists in localStorage, show placeholders + poll
