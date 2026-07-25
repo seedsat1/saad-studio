@@ -169,7 +169,6 @@ export function ReferenceStudioModal({
   // User-owned characters (from /api/characters, backed by UserCharacter table)
   const [userCharacters, setUserCharacters] = useState<UserCharacterRecord[]>([]);
   const [isLoadingUserChars, setIsLoadingUserChars] = useState(false);
-  const [showCreateChar, setShowCreateChar] = useState(false);
   const [newCharName, setNewCharName] = useState("");
   const [newCharPreviews, setNewCharPreviews] = useState<Array<{ dataUrl: string; name: string }>>([]);
   const [isSavingChar, setIsSavingChar] = useState(false);
@@ -311,7 +310,6 @@ export function ReferenceStudioModal({
       }
       const created = data.character as UserCharacterRecord;
       setUserCharacters((prev) => [created, ...prev]);
-      setShowCreateChar(false);
       setNewCharName("");
       setNewCharPreviews([]);
       onSelectCharacter?.(created.id);
@@ -879,22 +877,6 @@ export function ReferenceStudioModal({
             {/* Character Tab */}
             {activeTab === "character" && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
-                {/* Create character card */}
-                <div
-                  onClick={() => setShowCreateChar(true)}
-                  className="aspect-[4/3] rounded-2xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400/80 bg-emerald-500/5 hover:bg-emerald-500/10 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-300 group-hover:text-emerald-200 flex items-center justify-center">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-emerald-200">
-                    {isAr ? "إنشاء كاركتر جديد" : "Create Character"}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    {isAr ? "ارفع صورة مرجعية" : "Upload a reference photo"}
-                  </span>
-                </div>
-
                 {/* User's own characters from /api/characters */}
                 {userCharacters.map((uc) => {
                   const isSelected = selectedCharacterId === uc.id;
@@ -1444,231 +1426,245 @@ export function ReferenceStudioModal({
           </div>
         </div>
 
-        {/* ── Right Panel: Media Upload Drop Zone ── */}
+        {/* ── Right Panel: Media Upload Drop Zone (or Character Creation form on Character tab) ── */}
         <div className="w-full md:w-72 bg-[#0b0e17] p-5 flex flex-col justify-between border-t md:border-t-0 md:border-l border-slate-800/80 flex-shrink-0">
-          <div className="space-y-4">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
-              {isAr ? "رفع الوسائط المخصصة" : "Drop or upload media"}
-            </span>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              {isAr
-                ? "اسحب أو ارفع ملفات صور وفيديوهات مرجعية خاصة بك لربطها فوراً مع محرك التوليد."
-                : "Drop an image or upload your own media to bind reference tag automatically."}
-            </p>
+          {activeTab === "character" ? (
+            <>
+              <div className="space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block">
+                    {isAr ? "إنشاء كاركتر جديد" : "Create New Character"}
+                  </span>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1">
+                    {isAr
+                      ? "أضف اسماً وارفع صور مرجعية. سيُحفظ في مكتبتك الخاصة ويُستخدم مرجعاً في كل التوليدات."
+                      : "Name it and upload reference photos. Saved to your library and used as a reference in every generation."}
+                  </p>
+                </div>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                handleFilesSelected(e.target.files);
-                e.target.value = "";
-              }}
-            />
+                <input
+                  type="file"
+                  ref={newCharFileInputRef}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewCharFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
 
-            <input
-              type="file"
-              ref={cameraInputRef}
-              accept="image/*"
-              capture="user"
-              className="hidden"
-              onChange={(e) => {
-                handleFilesSelected(e.target.files);
-                e.target.value = "";
-              }}
-            />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الاسم" : "Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={newCharName}
+                    onChange={(e) => setNewCharName(e.target.value)}
+                    placeholder={isAr ? "مثال: سارة، أحمد، أوسكار…" : "e.g. Sara, Ahmed, Oscar…"}
+                    maxLength={80}
+                    className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
+                    disabled={isSavingChar}
+                  />
+                </div>
 
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (e.dataTransfer?.files) {
-                  handleFilesSelected(e.dataTransfer.files);
-                }
-              }}
-              className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
-                <UploadCloud className="w-6 h-6" />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {isAr ? "الصور المرجعية" : "Reference photos"}
+                  </label>
+                  <div
+                    onClick={() => !isSavingChar && newCharFileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!isSavingChar && e.dataTransfer?.files) handleNewCharFilesSelected(e.dataTransfer.files);
+                    }}
+                    className="border-2 border-dashed border-slate-800 hover:border-emerald-500/80 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2 group-hover:scale-110 transition-transform">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-bold text-slate-200 block mb-0.5">
+                      {isAr ? "اسحب صور هنا" : "Drop photos here"}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      PNG, JPG, WEBP · {isAr ? "حتى 8 صور · 8MB/صورة" : "up to 8 · 8MB each"}
+                    </span>
+                  </div>
+
+                  {newCharPreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-1.5 mt-2">
+                      {newCharPreviews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
+                          <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setNewCharPreviews((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
+                            disabled={isSavingChar}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {createCharError && (
+                  <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                    {createCharError}
+                  </div>
+                )}
               </div>
-              <span className="text-xs font-bold text-slate-200 block mb-1">
-                {isAr ? "اسحب الملف هنا" : "Drop media here"}
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                PNG, JPG, MP4, WEBP (Max 50MB)
-              </span>
-            </div>
-          </div>
 
-          <div className="space-y-2 pt-4">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-            >
-              <UploadCloud className="w-4 h-4" />
-              <span>{isAr ? "رفع وسائط" : "Upload media"}</span>
-            </button>
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={submitNewCharacter}
+                  disabled={isSavingChar || newCharPreviews.length === 0}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+                >
+                  {isSavingChar ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>{isAr ? "حفظ الكاركتر" : "Save Character"}</span>
+                    </>
+                  )}
+                </button>
 
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Camera className="w-4 h-4 text-slate-400" />
-              <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
-            </button>
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleNewCharFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
-            >
-              {isAr ? "إغلاق الاستوديو" : "Close Studio"}
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isSavingChar}
+                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-4">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                  {isAr ? "رفع الوسائط المخصصة" : "Drop or upload media"}
+                </span>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {isAr
+                    ? "اسحب أو ارفع ملفات صور وفيديوهات مرجعية خاصة بك لربطها فوراً مع محرك التوليد."
+                    : "Drop an image or upload your own media to bind reference tag automatically."}
+                </p>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFilesSelected(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.dataTransfer?.files) {
+                      handleFilesSelected(e.dataTransfer.files);
+                    }
+                  }}
+                  className="border-2 border-dashed border-slate-800 hover:border-indigo-500/80 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] group"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold text-slate-200 block mb-1">
+                    {isAr ? "اسحب الملف هنا" : "Drop media here"}
+                  </span>
+                  <span className="text-[10px] text-slate-500 block">
+                    PNG, JPG, MP4, WEBP (Max 50MB)
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-white hover:bg-slate-200 text-slate-900 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>{isAr ? "رفع وسائط" : "Upload media"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="w-full bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Camera className="w-4 h-4 text-slate-400" />
+                  <span>{isAr ? "التقاط صورة" : "Take photo"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full bg-[#151926]/60 hover:bg-[#1c2234] text-slate-400 hover:text-slate-200 font-semibold py-2 px-4 rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  {isAr ? "إغلاق الاستوديو" : "Close Studio"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Create Character Dialog ── */}
-      {showCreateChar && (
-        <div
-          onClick={() => !isSavingChar && setShowCreateChar(false)}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-[#0c0f18] border border-emerald-500/30 rounded-3xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-white">
-                  {isAr ? "إنشاء كاركتر جديد" : "Create New Character"}
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {isAr
-                    ? "الصور تُرفع لتخزينك ويُستخدمن مرجعاً في التوليدات"
-                    : "Images are uploaded to your storage and used as reference in generations"}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => !isSavingChar && setShowCreateChar(false)}
-                className="p-1.5 rounded-full hover:bg-slate-800 text-slate-400"
-                disabled={isSavingChar}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isAr ? "الاسم" : "Name"}
-              </label>
-              <input
-                type="text"
-                value={newCharName}
-                onChange={(e) => setNewCharName(e.target.value)}
-                placeholder={isAr ? "مثال: سارة، أحمد، أوسكار…" : "e.g. Sara, Ahmed, Oscar…"}
-                maxLength={80}
-                className="w-full bg-[#121624] border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-all"
-                disabled={isSavingChar}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                {isAr ? "الصور المرجعية" : "Reference photos"}
-              </label>
-              <input
-                type="file"
-                ref={newCharFileInputRef}
-                multiple
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  handleNewCharFilesSelected(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <div
-                onClick={() => !isSavingChar && newCharFileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => {
-                  e.preventDefault(); e.stopPropagation();
-                  if (!isSavingChar && e.dataTransfer?.files) handleNewCharFilesSelected(e.dataTransfer.files);
-                }}
-                className="border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-[#0f1320] hover:bg-[#13182a] gap-1"
-              >
-                <UploadCloud className="w-6 h-6 text-emerald-400" />
-                <span className="text-xs font-bold text-slate-200">
-                  {isAr ? "اسحب صور أو اضغط لاختيار" : "Drop images or click to pick"}
-                </span>
-                <span className="text-[10px] text-slate-500">
-                  {isAr ? "PNG، JPG، WEBP • حتى 8 صور • 8MB/صورة" : "PNG, JPG, WEBP • up to 8 images • 8MB each"}
-                </span>
-              </div>
-
-              {newCharPreviews.length > 0 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {newCharPreviews.map((p, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900">
-                      <img src={p.dataUrl} alt={p.name} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setNewCharPreviews((prev) => prev.filter((_, i) => i !== idx))}
-                        className="absolute top-1 right-1 bg-black/70 hover:bg-red-600 text-white rounded-full p-0.5"
-                        disabled={isSavingChar}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {createCharError && (
-              <div className="text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
-                {createCharError}
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => !isSavingChar && setShowCreateChar(false)}
-                className="flex-1 bg-[#151926] hover:bg-[#1c2234] text-slate-300 font-semibold py-2.5 px-4 rounded-xl text-xs transition-all cursor-pointer"
-                disabled={isSavingChar}
-              >
-                {isAr ? "إلغاء" : "Cancel"}
-              </button>
-              <button
-                type="button"
-                onClick={submitNewCharacter}
-                disabled={isSavingChar || newCharPreviews.length === 0}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
-              >
-                {isSavingChar ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>{isAr ? "جاري الحفظ…" : "Saving…"}</span>
-                  </>
-                ) : (
-                  <span>{isAr ? "حفظ الكاركتر" : "Save Character"}</span>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

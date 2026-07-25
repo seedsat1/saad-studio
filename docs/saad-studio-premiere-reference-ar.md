@@ -1,11 +1,10 @@
 # مرجع Saad Studio لتكامل Premiere وReap
-## مطابقة وتحديث ربط Google Gemini Omni Flash حسب التوثيق الرسمي (2026-07-25)
+## مطابقة وتحديث ربط Google Gemini Omni Flash وإعادة خيار الوقت في الواجهة (2026-07-25)
 
 - تم تحديث وتطابق واجهة `google/gemini-omni-flash` بالكامل مع وثائق Google الرسمية لنموذج `gemini-omni-flash-preview`:
-  1. **إتاحة الاتصال المباشر**: نموذج `google/gemini-omni-flash` يتصل مباشرة برابط كوكل الرسمي `https://generativelanguage.googleapis.com/v1beta/interactions`.
-  2. **إلغاء البارامتر غير المدعوم**: تم حذف `duration_seconds` من `generation_config.video_config` لتفادي خطأ 400 Bad Request من سيرفر كوكل.
+  1. **إعادة قائمة الوقت (Duration)**: تم إعادة مصفوفة الأوقات المتاحة (`3s` حتى `10s`) في [video-model-registry.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts) ليعود خيار اختيار الوقت بالظهور كاملاً في شريط الواجهة الجانبي.
+  2. **حماية حمولة API**: تم الإبقاء على حظر إرسال `duration_seconds` داخل `generation_config.video_config` في [gemini-veo.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/gemini-veo.ts) حتى لا يسبب خطأ 400 من سيرفر كوكل.
   3. **تنسيق التاجات السلبية والقطع**: تم تفعيل تضمين الوصف السلبي تلقائياً كجزء من النص الأصلي (`. Do not include: ...`) وحقن التاجات المرجعية مثل `<FIRST_FRAME>` و `<IMAGE_REF_0>` حسب معايير التوثيق.
-  4. **سجل النموذج وتحديد الخصائص**: تم ضبط قدرات مدة الفيديو إلى نموذجية تدار آلياً في [video-model-registry.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts).
 
 ## إضافة الدعم ثنائي اللغة (العربية والإنجليزي) لصفحات الخصوصية والشروط (2026-07-24)
 

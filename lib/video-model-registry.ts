@@ -570,7 +570,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
       optional_video: true,
       has_end_frame:  true,
       aspect_ratios: ["16:9", "9:16"],
-      durations:     [],
+      durations:     [3, 4, 5, 6, 7, 8, 9, 10],
       resolutions:   ["720p"],
       max_reference_images: 3,
     }),
