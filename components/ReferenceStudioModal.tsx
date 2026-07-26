@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   Layers,
   Palette,
+  Clapperboard,
 } from "lucide-react";
 import {
   HOOK_STYLES,
@@ -1062,6 +1063,20 @@ export function ReferenceStudioModal({
                   <span>Sketch</span>
                 </div>
               </button>
+
+              <a
+                href="/storyboard"
+                onClick={() => onClose()}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-slate-400 hover:bg-[#131724] hover:text-slate-200"
+              >
+                <div className="flex items-center gap-3">
+                  <Clapperboard className="w-4 h-4 text-orange-400" />
+                  <span>{isAr ? "استوديو الستوري بورد" : "Storyboard"}</span>
+                </div>
+                <span className="text-[9px] font-bold bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded">
+                  {isAr ? "افتح" : "OPEN"}
+                </span>
+              </a>
             </div>
           </div>
 

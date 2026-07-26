@@ -5,17 +5,76 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type CanvasNodeType, NODE_CONFIGS, hexToRgb } from "./canvas-types";
 
 const ITEMS: Array<{ type: CanvasNodeType; group: string }> = [
-  { type: "upload-image",   group: "Source"   },
-  { type: "text-prompt",    group: "Source"   },
-  { type: "text-to-image",  group: "Generate" },
-  { type: "image-edit",     group: "Generate" },
-  { type: "image-to-video", group: "Animate"  },
-  { type: "video-to-video", group: "Animate"  },
-  { type: "upscale",        group: "Enhance"  },
-  { type: "export",         group: "Output"   },
+  // Source
+  { type: "upload-image",         group: "Source"    },
+  { type: "text-prompt",          group: "Source"    },
+  { type: "assets",               group: "Source"    },
+  { type: "stock",                group: "Source"    },
+  { type: "add-reference",        group: "Source"    },
+  // Loaders
+  { type: "checkpoint-loader",    group: "Loaders"   },
+  { type: "lora-loader",          group: "Loaders"   },
+  // Generate (image)
+  { type: "text-to-image",        group: "Generate"  },
+  { type: "image-edit",           group: "Generate"  },
+  { type: "designer",             group: "Generate"  },
+  { type: "variations",           group: "Generate"  },
+  { type: "svg-generator",        group: "Generate"  },
+  { type: "image-to-svg",         group: "Generate"  },
+  { type: "comic-layout",         group: "Generate"  },
+  // Control
+  { type: "controlnet-canny",     group: "Control"   },
+  { type: "controlnet-depth",     group: "Control"   },
+  { type: "controlnet-openpose",  group: "Control"   },
+  { type: "controlnet-lineart",   group: "Control"   },
+  { type: "controlnet-scribble",  group: "Control"   },
+  { type: "ip-adapter",           group: "Control"   },
+  // Masks
+  { type: "mask-sam",             group: "Masks"     },
+  { type: "mask-grow",            group: "Masks"     },
+  { type: "mask-invert",          group: "Masks"     },
+  { type: "mask-from-color",      group: "Masks"     },
+  // Face / Identity / Style
+  { type: "face-swap",            group: "Face"      },
+  { type: "lipsync",              group: "Face"      },
+  { type: "head-animation",       group: "Face"      },
+  { type: "style-transfer",       group: "Face"      },
+  // Animate / Video
+  { type: "image-to-video",       group: "Animate"   },
+  { type: "text-to-video",        group: "Animate"   },
+  { type: "video-to-video",       group: "Animate"   },
+  { type: "video-as-prompt",      group: "Animate"   },
+  { type: "video-audio-joint",    group: "Animate"   },
+  { type: "frame-interpolation",  group: "Animate"   },
+  // Audio
+  { type: "voiceover",            group: "Audio"     },
+  { type: "tts",                  group: "Audio"     },
+  { type: "speech-synth",         group: "Audio"     },
+  { type: "speak",                group: "Audio"     },
+  { type: "sound-effects",        group: "Audio"     },
+  { type: "music-generator",      group: "Audio"     },
+  { type: "singer",               group: "Audio"     },
+  { type: "beat-detection",       group: "Audio"     },
+  // Enhance
+  { type: "upscale",              group: "Enhance"   },
+  { type: "video-upscale",        group: "Enhance"   },
+  // Assist
+  { type: "assistant",            group: "Assist"    },
+  { type: "translate",            group: "Assist"    },
+  // Post
+  { type: "video-combiner",       group: "Post"      },
+  { type: "media-extractor",      group: "Post"      },
+  { type: "subtitle-generator",   group: "Post"      },
+  // Output
+  { type: "export",               group: "Output"    },
+  // Utility
+  { type: "list",                 group: "Utility"   },
+  { type: "connector",            group: "Utility"   },
+  { type: "sticky-note",          group: "Utility"   },
+  { type: "stickers",             group: "Utility"   },
 ];
 
-const GROUPS = ["Source", "Generate", "Animate", "Enhance", "Output"];
+const GROUPS = ["Source", "Loaders", "Generate", "Control", "Masks", "Face", "Animate", "Audio", "Enhance", "Assist", "Post", "Output", "Utility"];
 
 interface NodeLibraryProps {
   onAddNode: (type: CanvasNodeType) => void;

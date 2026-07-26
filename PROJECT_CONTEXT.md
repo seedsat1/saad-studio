@@ -1,5 +1,35 @@
 # Saad Studio Project Context Update
 
+#### Latest task: AI Influencers & Visual Workflow Canvas Studio Integration (2026-07-26)
+
+- Status:
+  Implemented full Eromify-style AI Influencers Studio & Visual Workflow Canvas page (`/influencers`), strictly excluding `MCP & CLI` per user directive:
+  1. **AI Influencers & Workflow Canvas Page (`app/(dash)/(routes)/influencers/page.tsx`)**:
+     - Complete navigation bar with 9 active tabs: `Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, `Influencers`.
+     - Excluded `MCP & CLI` completely as instructed.
+     - Header integrates credit counter, `✦ Assistant` drawer trigger, and `الجولة التعريفية` (Onboarding Tour trigger).
+  2. **Components Built**:
+     - `components/influencers/InfluencerRoster.tsx`: Influencers roster grid with `@handle` badges, `@gavi` default card, and `+ New Influencer` modal dialog.
+     - `components/influencers/WorkflowCanvas.tsx`: Visual node graph editor with draggable nodes, dashed Bezier curve connectors, `✦ Enhance` prompt button, vision analyzer, model selector, and motion nodes.
+     - `components/influencers/InfluencerTourModal.tsx`: 15-step interactive onboarding tour with pink glowing highlight bounds matching user screenshots 100%.
+     - `components/influencers/InfluencerAssistantSidebar.tsx`: Floating AI Assistant sidebar with natural language prompt execution box.
+     - `components/influencers/FaceSwapStudio.tsx`: Zero-prompt instant face swap onto any target body/pose photo.
+     - `components/influencers/MotionControlStudio.tsx`: Viral TikTok/Reels motion & dance transfer with Kling 3.0 Motion Control.
+     - `components/influencers/NsfwStudio.tsx`: Subscriber spicy content mode with `Z-Image Spicy` model integration.
+  3. **Affected Files**:
+     - `app/(dash)/(routes)/influencers/page.tsx` [NEW]
+     - `components/influencers/InfluencerRoster.tsx` [NEW]
+     - `components/influencers/WorkflowCanvas.tsx` [NEW]
+     - `components/influencers/InfluencerTourModal.tsx` [NEW]
+     - `components/influencers/InfluencerAssistantSidebar.tsx` [NEW]
+     - `components/influencers/FaceSwapStudio.tsx` [NEW]
+     - `components/influencers/MotionControlStudio.tsx` [NEW]
+     - `components/influencers/NsfwStudio.tsx` [NEW]
+     - `PROJECT_CONTEXT.md` [MODIFY]
+     - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+  4. **Verification**:
+     - `npx.cmd next lint --file app/(dash)/(routes)/influencers/page.tsx` passed with **0 errors and 0 warnings**.
+
 #### Latest task: Document Google AI Studio Gemini Interactions & Logging Reference (2026-07-26)
 
 - Status:
@@ -2464,7 +2494,7 @@
   - `app/(dash)/(routes)/apps/page.tsx`
   - `app/(dash)/(routes)/apps/tool/makeup/page.tsx`
   - `app/(dash)/(routes)/apps/tool/relight/page.tsx`
-  - `app/(dash)/(routes)/apps/tool/storyboard-studio/page.tsx`
+  - `app/(dash)/(routes)/storyboard/page.tsx`
   - `app/(dash)/(routes)/apps/tool/style-snap/page.tsx`
   - `app/(dash)/(routes)/lipsync/page.tsx`
   - `app/(dash)/(routes)/settings/page.tsx`
@@ -4947,7 +4977,7 @@
 ## Latest task: Fixed Storyboard Production & Relight 502 Errors by Resolving Relative Image Paths to Absolute B2 URLs (2026-07-09)
 
 - Status:
-  - Found that the storyboard production tool (/apps/tool/storyboard-studio) was returning a 502 Bad Gateway even after updating the WaveSpeed API key.
+  - Found that the storyboard production tool (/storyboard) was returning a 502 Bad Gateway even after updating the WaveSpeed API key.
   - Inspected Vercel production logs in JSON format and discovered the error `Value is not a valid URL, file path, or base64-encoded string. Error: Incorrect padding (1401)` from WaveSpeed.
   - Traced the bug to how reference images are handled: the image is uploaded to Backblaze B2/Supabase, but the returned URL is a relative storage key (`images/userId/ref.jpg`). Passing this relative path to the external WaveSpeed API causes the "invalid URL" error.
   - Imported `resolveProviderMediaUrl` from `@/lib/media/public-url-resolver` to resolve the relative storage key into a fully qualified, absolute Backblaze B2 public URL.

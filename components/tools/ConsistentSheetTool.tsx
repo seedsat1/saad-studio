@@ -319,7 +319,7 @@ export function ConsistentSheetTool({ config }: { config: ToolConfig }) {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#08101f", color: "white" }}>
       <div className="flex-shrink-0 flex items-center gap-3 px-6 h-14 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-        <Link href="/apps/tool/storyboard-studio" className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.45)" }}>
+        <Link href="/storyboard" className="flex items-center gap-1.5 text-sm transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.45)" }}>
           <ArrowLeft className="w-4 h-4" /> Storyboard Studio
         </Link>
         <span style={{ color: "rgba(255,255,255,0.2)" }}>/</span>

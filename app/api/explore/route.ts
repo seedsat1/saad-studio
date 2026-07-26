@@ -90,7 +90,7 @@ Available target routes:
    - Trigger: user wants to edit lighting, relight image, change shadows (e.g. "تغيير الإضاءة", "relight").
 
 10. **Storyboard Studio (ستوري بورد)**:
-    - Path: "/apps/tool/storyboard-studio"
+    - Path: "/storyboard"
     - Trigger: user wants storyboards, frame sheets (e.g. "ستوري بورد", "storyboard").
 
 11. **AI Makeup (مكياج)**:

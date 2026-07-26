@@ -26,7 +26,7 @@ export const TOOL_ROUTE_MAP: Record<string, string> = {
   angles: "/variations#angles",
   shots: "/shots",
   "beauty2-studio": "/beauty2.html",
-  "storyboard-studio": "/apps/tool/storyboard-studio",
+  "storyboard-studio": "/storyboard",
   lipsync: "/lipsync",
   "clipcraft-studio": "/clipcraft-studio",
 };
@@ -40,7 +40,7 @@ const APP_CATEGORIES_RAW: AppCategory[] = [
     tools: [
       { id: "agent-studio", title: "Agent Studio", description: "AI agent orchestrator & custom skills workflow builder", href: "/agent-studio", badge: "NEW", gradient: "from-violet-600/30 to-fuchsia-900/30" },
       { id: "variations-studio", title: "Next Scene Studio", description: "AI video scene generator with filmstrip timeline & camera moves", href: "/variations", badge: "NEW", gradient: "from-violet-600/30 to-indigo-900/30" },
-      { id: "storyboard-studio", title: "Storyboard Studio", description: "Multi-panel storyboards with perspective control from one image", href: "/apps/tool/storyboard-studio", badge: "NEW", gradient: "from-cyan-600/30 to-violet-900/30" },
+      { id: "storyboard-studio", title: "Storyboard Studio", description: "Multi-panel storyboards with perspective control from one image", href: "/storyboard", badge: "NEW", gradient: "from-cyan-600/30 to-violet-900/30" },
       { id: "nano-banana-pro-inpaint", title: "Nano Banana Pro Inpaint", description: "Professional AI inpainting powered by Google Nano Banana", href: "/apps/tool/nano-banana-pro-inpaint", badge: "PRO", gradient: "from-yellow-600/30 to-amber-900/30" },
       { id: "expand-image", title: "Expand Image", description: "Expand any image beyond its edges", href: "/apps/tool/expand-image", badge: null, gradient: "from-violet-600/30 to-indigo-900/30" },
       { id: "angles", title: "Angles 2.0", description: "Generate any angle view in seconds", href: "/apps/tool/angles", badge: "PRO", gradient: "from-emerald-600/30 to-teal-900/30" },

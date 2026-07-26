@@ -192,7 +192,7 @@ const VIDEO_FEATURES = [
   { label: "Create Video",        href: "/video",           icon: VideoIcon,    color: "text-orange-400",  description: "Text-to-video generation",             badge: "" },
   { label: "Cinema Edit",         href: "/video-edit",      icon: Sparkles,     color: "text-cyan-400",    description: "Iterative & stateful video editing",   badge: "NEW" },
   { label: "Transitions",         href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300", description: "Generate styled scene transitions", badge: "READY" },
-  { label: "Storyboard Studio",   href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
+  { label: "Storyboard Studio",   href: "/storyboard", icon: Clapperboard, color: "text-violet-300", description: "Create cinematic production boards", badge: "READY" },
   { label: "Draw to Video",       href: "/apps/tool/draw-to-video", icon: PenTool, color: "text-lime-300", description: "Draw, add, remove, replace and animate elements", badge: "NEW" },
   { label: "Cinematic Styles",    href: "/apps/tool/cinematic-styles", icon: Blend,        color: "text-cyan-300",    description: "Apply stylized motion presets to clips", badge: "READY" },
   { label: "Edit Video",          href: "/edit",            icon: Scissors,     color: "text-cyan-400",    description: "Advanced AI timeline editing",           badge: "" },
@@ -485,7 +485,7 @@ const STUDIO_LINKS = [
   { label: "Adobe Plugin", href: "/plugin", icon: Plug, color: "text-amber-400" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },
-  { label: "Storyboard", href: "/apps/tool/storyboard-studio", icon: Clapperboard, color: "text-violet-300" },
+  { label: "Storyboard", href: "/storyboard", icon: Clapperboard, color: "text-violet-300" },
   { label: "Hook Studio", href: "/hook-studio", icon: Clapperboard, color: "text-pink-400" },
 ];
 

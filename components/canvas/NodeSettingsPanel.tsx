@@ -4,24 +4,17 @@ import { type CanvasNodeData, type CanvasNodeSettings, NODE_CONFIGS, hexToRgb } 
 import { useCanvasActions } from "./canvas-context";
 import { X, ExternalLink } from "lucide-react";
 import { VIDEO_MODEL_REGISTRY } from "@/lib/video-model-registry";
+import { IMAGE_MODELS as ALL_IMAGE_MODELS } from "@/lib/image-models";
 
-const IMAGE_MODELS = [
-  { id: "nano-banana-pro",                label: "Nano Banana Pro" },
-  { id: "google/imagen4",                 label: "Imagen 4" },
-  { id: "google/imagen4-ultra",           label: "Imagen 4 Ultra" },
-  { id: "flux-2/pro-text-to-image",       label: "FLUX.2 Pro T2I" },
-  { id: "flux-2/pro-image-to-image",      label: "FLUX.2 Pro I2I" },
-  { id: "seedream/4.5-text-to-image",     label: "Seedream 4.5 T2I" },
-  { id: "gpt-image/1.5-text-to-image",    label: "GPT Image 1.5 T2I" },
-];
+// Every model in the site's registry, filtered by what each canvas node needs.
+// Text-to-Image nodes get text-to-image models; Image-Edit nodes get edit + image-to-image models.
+const IMAGE_MODELS = ALL_IMAGE_MODELS
+  .filter((m) => m.inputType === "text-to-image")
+  .map((m) => ({ id: m.id, label: m.label }));
 
-const IMAGE_EDIT_MODELS = [
-  { id: "nano-banana-pro",                label: "Nano Banana Pro" },
-  { id: "google/nano-banana-edit",        label: "Nano Banana Edit" },
-  { id: "seedream/4.5-edit",              label: "Seedream 4.5 Edit" },
-  { id: "flux-2/pro-image-to-image",      label: "FLUX.2 Pro I2I" },
-  { id: "gpt-image/1.5-image-to-image",   label: "GPT Image 1.5 I2I" },
-];
+const IMAGE_EDIT_MODELS = ALL_IMAGE_MODELS
+  .filter((m) => m.inputType === "edit" || m.inputType === "image-to-image")
+  .map((m) => ({ id: m.id, label: m.label }));
 
 const VIDEO_MODELS = VIDEO_MODEL_REGISTRY.map((model) => ({
   id: model.api_route,

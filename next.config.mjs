@@ -174,6 +174,11 @@ const nextConfig = {
         destination: "/explore",
         permanent: true,
       },
+      {
+        source: "/apps/tool/storyboard-studio",
+        destination: "/storyboard",
+        permanent: true,
+      },
     ];
   },
 };

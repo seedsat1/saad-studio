@@ -28,7 +28,42 @@ export type CanvasNodeType =
   | 'stickers'
   | 'add-reference'
   | 'assets'
-  | 'stock';
+  | 'stock'
+  // ── RHTV-parity additions ────────────────────────────────────
+  // Control (ControlNet family + IP-Adapter)
+  | 'controlnet-canny'
+  | 'controlnet-depth'
+  | 'controlnet-openpose'
+  | 'controlnet-lineart'
+  | 'controlnet-scribble'
+  | 'ip-adapter'
+  // Masks & Segmentation
+  | 'mask-sam'
+  | 'mask-grow'
+  | 'mask-invert'
+  | 'mask-from-color'
+  // Loaders
+  | 'lora-loader'
+  | 'checkpoint-loader'
+  // Face / Identity / Style
+  | 'face-swap'
+  | 'lipsync'
+  | 'head-animation'
+  | 'style-transfer'
+  // Video specialized
+  | 'video-as-prompt'
+  | 'frame-interpolation'
+  | 'video-audio-joint'
+  // Audio specialized
+  | 'tts'
+  | 'singer'
+  | 'speech-synth'
+  | 'beat-detection'
+  // Layout / Post
+  | 'comic-layout'
+  | 'subtitle-generator'
+  // Translation
+  | 'translate';
 
 export interface CanvasNodeSettings {
   prompt?: string;
@@ -496,5 +531,386 @@ export const NODE_CONFIGS: Record<CanvasNodeType, NodeTypeConfig> = {
     hasVideoOutput: false,
     hasTextOutput: false,
     defaultSettings: { imageUrl: '' },
+  },
+
+  // ─── RHTV-parity node types ───────────────────────────────────────────────
+  // Control (ControlNet family + IP-Adapter)
+  'controlnet-canny': {
+    label: 'ControlNet · Canny',
+    description: 'Edge-guided generation using Canny edges',
+    emoji: '🧭',
+    accentColor: '#f43f5e',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'controlnet-depth': {
+    label: 'ControlNet · Depth',
+    description: 'Depth-map-guided generation',
+    emoji: '🏔️',
+    accentColor: '#f43f5e',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'controlnet-openpose': {
+    label: 'ControlNet · OpenPose',
+    description: 'Pose skeleton-driven generation',
+    emoji: '🕺',
+    accentColor: '#f43f5e',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'controlnet-lineart': {
+    label: 'ControlNet · Lineart',
+    description: 'Lineart-conditioned generation',
+    emoji: '✒️',
+    accentColor: '#f43f5e',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'controlnet-scribble': {
+    label: 'ControlNet · Scribble',
+    description: 'Scribble-guided generation',
+    emoji: '🖍️',
+    accentColor: '#f43f5e',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'ip-adapter': {
+    label: 'IP-Adapter',
+    description: 'Inject style/face identity from a reference image',
+    emoji: '🎯',
+    accentColor: '#fb7185',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+
+  // Masks & Segmentation
+  'mask-sam': {
+    label: 'Segment Anything',
+    description: 'Auto-generate masks from any subject in an image',
+    emoji: '✂️',
+    accentColor: '#eab308',
+    creditCost: 1,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'mask-grow': {
+    label: 'Grow Mask',
+    description: 'Expand a mask by N pixels',
+    emoji: '🔍',
+    accentColor: '#eab308',
+    creditCost: 0,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+  'mask-invert': {
+    label: 'Invert Mask',
+    description: 'Flip mask (foreground ↔ background)',
+    emoji: '🔄',
+    accentColor: '#eab308',
+    creditCost: 0,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+  'mask-from-color': {
+    label: 'Mask From Color',
+    description: 'Build a mask by picking a color range',
+    emoji: '🎨',
+    accentColor: '#eab308',
+    creditCost: 0,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+
+  // Loaders
+  'lora-loader': {
+    label: 'LoRA Loader',
+    description: 'Load a LoRA style/character adapter',
+    emoji: '📦',
+    accentColor: '#a855f7',
+    creditCost: 0,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: true,
+    defaultSettings: {},
+  },
+  'checkpoint-loader': {
+    label: 'Checkpoint Loader',
+    description: 'Load a base model checkpoint (SD/SDXL/Flux/…)',
+    emoji: '📂',
+    accentColor: '#a855f7',
+    creditCost: 0,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: true,
+    defaultSettings: {},
+  },
+
+  // Face / Identity / Style
+  'face-swap': {
+    label: 'Face Swap',
+    description: 'Swap face onto target using identity reference (DreamID)',
+    emoji: '🎭',
+    accentColor: '#22c55e',
+    creditCost: 3,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+  'lipsync': {
+    label: 'Lipsync',
+    description: 'Sync mouth to audio track (FlashTalk)',
+    emoji: '👄',
+    accentColor: '#22c55e',
+    creditCost: 4,
+    hasImageInput: false,
+    hasVideoInput: true,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+  'head-animation': {
+    label: 'Head Animation',
+    description: 'Animate head/face from single image (FlashHead)',
+    emoji: '💫',
+    accentColor: '#22c55e',
+    creditCost: 5,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'style-transfer': {
+    label: 'Style Transfer (USO)',
+    description: 'Apply artistic style of one image to another',
+    emoji: '🎨',
+    accentColor: '#22c55e',
+    creditCost: 2,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+
+  // Video specialized
+  'video-as-prompt': {
+    label: 'Video as Prompt',
+    description: 'Use a reference video as the visual prompt for generation',
+    emoji: '📼',
+    accentColor: '#0ea5e9',
+    creditCost: 8,
+    hasImageInput: false,
+    hasVideoInput: true,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'frame-interpolation': {
+    label: 'Frame Interpolation',
+    description: 'Insert generated frames between keyframes (FramePack)',
+    emoji: '🎞️',
+    accentColor: '#0ea5e9',
+    creditCost: 4,
+    hasImageInput: false,
+    hasVideoInput: true,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: false,
+    defaultSettings: {},
+  },
+  'video-audio-joint': {
+    label: 'Video + Audio Joint',
+    description: 'Generate synced video and audio together (Ovi)',
+    emoji: '🎬',
+    accentColor: '#0ea5e9',
+    creditCost: 12,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+
+  // Audio specialized
+  'tts': {
+    label: 'TTS (VoxCPM)',
+    description: 'Multi-language text-to-speech',
+    emoji: '🗣️',
+    accentColor: '#ef4444',
+    creditCost: 1,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'singer': {
+    label: 'AI Singer',
+    description: 'Generate sung vocals from lyrics (SoulX-Singer)',
+    emoji: '🎤',
+    accentColor: '#ef4444',
+    creditCost: 3,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'speech-synth': {
+    label: 'Speech Synthesis',
+    description: 'High-fidelity narrator voices (DMOSpeech2)',
+    emoji: '🎙️',
+    accentColor: '#ef4444',
+    creditCost: 2,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'beat-detection': {
+    label: 'Beat Detection',
+    description: 'Detect BPM and beat markers from an audio track',
+    emoji: '🥁',
+    accentColor: '#ef4444',
+    creditCost: 1,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: true,
+    defaultSettings: {},
+  },
+
+  // Layout / Post
+  'comic-layout': {
+    label: 'Comic Layout',
+    description: 'Multi-panel comic/webtoon composition from images',
+    emoji: '📖',
+    accentColor: '#f59e0b',
+    creditCost: 2,
+    hasImageInput: true,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: true,
+    hasVideoOutput: false,
+    hasTextOutput: false,
+    defaultSettings: { prompt: '' },
+  },
+  'subtitle-generator': {
+    label: 'Subtitles',
+    description: 'Auto-generate SRT subtitles from a video/audio track',
+    emoji: '💬',
+    accentColor: '#f59e0b',
+    creditCost: 2,
+    hasImageInput: false,
+    hasVideoInput: true,
+    hasPromptInput: false,
+    hasImageOutput: false,
+    hasVideoOutput: true,
+    hasTextOutput: true,
+    defaultSettings: {},
+  },
+
+  // Translation
+  'translate': {
+    label: 'Translate',
+    description: 'Translate a prompt between languages (Seed-X-Pro)',
+    emoji: '🌐',
+    accentColor: '#14b8a6',
+    creditCost: 0,
+    hasImageInput: false,
+    hasVideoInput: false,
+    hasPromptInput: true,
+    hasImageOutput: false,
+    hasVideoOutput: false,
+    hasTextOutput: true,
+    defaultSettings: { prompt: '' },
   },
 };
