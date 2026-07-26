@@ -1,4 +1,14 @@
 # مرجع Saad Studio لتكامل Premiere وReap
+## مرجع دليل Google AI Studio للسجلات وتصحيح الأخطاء (Gemini API & Interactions Logging) (2026-07-26)
+
+- تم توثيق قواعد وسجلات Google AI Studio لاستخدامها كمرجع لمراقبة استدعاءات Gemini API:
+  1. **سجلات التتبع والمراقبة (Logs & Datasets)**: يمكن متابعة إدخالات واستجابات `GenerateContent` و `Interactions API` مباشرة من لوحة **Google AI Studio -> Logs** للتحقق من أداء النموذج والوقوف على أسباب الأخطاء.
+  2. **التحكم بالخصوصية وحفظ البيانات (`store: true / false`)**:
+     - تكون خاصية التخزين مفعلة افتراضياً للـ `Interactions API` (`store=true`) لتسهيل إدارة حالة المحادثة والتفاعلات المتسلسلة.
+     - بالنسبة لـ `GenerateContent` تكون معطلة افتراضياً (`store=false`) ويمكن التعديل عليها حسب متطلبات الخصوصية من AI Studio أو إعدادات الطلب `config: {'store': false}`.
+  3. **القيود المعتمدة (Limitations)**:
+     - السجلات لا تشمل نماذج الوسائط الثقيلة: **Imagen و Veo**، وتقتصر على التفاعلات النصية ونماذج Gemini الشات والمحتوى.
+
 ## الحفاظ على المسار المباشر لكوكل لنموذج Google Gemini Omni (2026-07-25)
 
 - تم الإبقاء على المسار المباشر لخدمة Google الرسمية لـ `google/gemini-omni-flash`:

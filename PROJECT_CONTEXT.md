@@ -1,5 +1,16 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Document Google AI Studio Gemini Interactions & Logging Reference (2026-07-26)
+
+- Status:
+  Added authoritative reference notes on Google AI Studio Gemini API Logging & Interactions API configuration:
+  1. **Documentation Updates**:
+     - Documented `GenerateContent` and `Interactions API` logging and project retention settings (`store: true/false`).
+     - Clarified scope limitation: AI Studio logging covers text and multimodal Gemini models, excluding heavy media engines (Veo/Imagen).
+  2. **Affected Files**:
+     - `docs/saad-studio-premiere-reference-ar.md` [MODIFY]
+     - `PROJECT_CONTEXT.md` [MODIFY]
+
 #### Latest task: Maintain Direct Google API Route for `google/gemini-omni-flash` (2026-07-25)
 
 - Status:
