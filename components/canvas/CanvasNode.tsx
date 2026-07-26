@@ -28,21 +28,38 @@ const LLM_MODELS: ModelDef[] = [
   { id: "claude-3-5-sonnet",   label: "Claude 3.5 Sonnet",short: "Claude 3.5",   desc: "Analytical",                  icon: "AN", family: "Anthropic" },
 ];
 
-const IMAGE_MODELS: ModelDef[] = [
-  { id: "nano-banana-pro",              label: "Nano Banana Pro",  short: "Nano",       desc: "Fast, sharp",         badge: "FAST", icon: "KIE", family: "KIE"         },
-  { id: "google/imagen4",               label: "Imagen 4",         short: "Imagen 4",   desc: "Photorealism",        badge: "NEW",  icon: "G",   family: "Google"      },
-  { id: "google/imagen4-ultra",         label: "Imagen 4 Ultra",   short: "Imagen U",   desc: "Max fidelity",                       icon: "G",   family: "Google"      },
-  { id: "flux-2/pro-text-to-image",     label: "FLUX.2 Pro",       short: "FLUX.2",     desc: "Creative detail",                    icon: "BF",  family: "Black Forest" },
-  { id: "seedream/4.5-text-to-image",   label: "Seedream 4.5",     short: "Seedream",   desc: "Vivid artistic",                     icon: "BD",  family: "ByteDance"   },
-  { id: "gpt-image/1.5-text-to-image",  label: "GPT Image 1.5",    short: "GPT Image",  desc: "OpenAI",                             icon: "AI",  family: "OpenAI"      },
-];
+// Build ModelDef list from the site's full image-model registry so every model
+// registered in lib/image-models.ts appears in the canvas picker automatically.
+import { IMAGE_MODELS as ALL_IMAGE_MODELS } from "@/lib/image-models";
 
-const IMAGE_EDIT_MODELS: ModelDef[] = [
-  { id: "nano-banana-pro",                 label: "Nano Banana Pro",    short: "Nano",     desc: "Fast edits",  badge: "FAST", icon: "KIE", family: "KIE"         },
-  { id: "seedream/4.5-edit",               label: "Seedream 4.5 Edit",  short: "Seedream", desc: "Inpainting",                  icon: "BD",  family: "ByteDance"   },
-  { id: "flux-2/pro-image-to-image",       label: "FLUX.2 Pro I2I",     short: "FLUX I2I", desc: "Style xfer",                  icon: "BF",  family: "Black Forest" },
-  { id: "gpt-image/1.5-image-to-image",    label: "GPT Image 1.5 I2I",  short: "GPT I2I",  desc: "Guided",                      icon: "AI",  family: "OpenAI"      },
-];
+function familyIcon(group: string | undefined, label: string): string {
+  const g = (group || label || "AI").trim();
+  const parts = g.split(/[\s\/\-\.]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return g.slice(0, 2).toUpperCase();
+}
+
+function toModelDef(m: { id: string; label: string; sublabel?: string | null; group?: string; badge?: string | null }): ModelDef {
+  const label = m.label;
+  const short = label.length > 14 ? label.slice(0, 12) + "…" : label;
+  return {
+    id: m.id,
+    label,
+    short,
+    desc: (m.sublabel || m.group || "").toString().slice(0, 34),
+    badge: (m.badge as ModelDef["badge"]) || undefined,
+    icon: familyIcon(m.group, label),
+    family: m.group || "AI",
+  };
+}
+
+const IMAGE_MODELS: ModelDef[] = ALL_IMAGE_MODELS
+  .filter((m) => m.inputType === "text-to-image")
+  .map(toModelDef);
+
+const IMAGE_EDIT_MODELS: ModelDef[] = ALL_IMAGE_MODELS
+  .filter((m) => m.inputType === "edit" || m.inputType === "image-to-image")
+  .map(toModelDef);
 
 const VIDEO_MODELS: ModelDef[] = VIDEO_MODEL_REGISTRY.map((model) => {
   const icon = model.family_label
@@ -128,9 +145,19 @@ function getVideoQualityOptions(modelRoute: string | undefined): string[] {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function modelsFor(t: CanvasNodeType): ModelDef[] {
-  if (t === "assistant") return LLM_MODELS;
-  if (t === "image-to-video" || t === "video-to-video" || t === "text-to-video" || t === "video-combiner") return VIDEO_MODELS;
-  if (t === "image-edit" || t === "variations") return IMAGE_EDIT_MODELS;
+  if (t === "assistant" || t === "translate") return LLM_MODELS;
+  if (
+    t === "image-to-video" || t === "video-to-video" || t === "text-to-video" ||
+    t === "video-combiner" || t === "video-as-prompt" || t === "frame-interpolation" ||
+    t === "video-audio-joint" || t === "lipsync" || t === "head-animation" ||
+    t === "subtitle-generator"
+  ) return VIDEO_MODELS;
+  if (
+    t === "image-edit" || t === "variations" ||
+    t === "controlnet-canny" || t === "controlnet-depth" || t === "controlnet-openpose" ||
+    t === "controlnet-lineart" || t === "controlnet-scribble" ||
+    t === "ip-adapter" || t === "face-swap" || t === "style-transfer" || t === "comic-layout"
+  ) return IMAGE_EDIT_MODELS;
   return IMAGE_MODELS;
 }
 function modelById(id: string | undefined, t: CanvasNodeType) {
