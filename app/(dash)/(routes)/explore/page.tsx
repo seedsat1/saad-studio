@@ -369,7 +369,7 @@ function CanvasModelAd() {
   const promo = usePromoMedia();
   const content = usePromoContent();
   const slotId = "explore/ad/canvas";
-  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/original-series");
+  const href = promoText(content, slotId, "ctaHref", "https://www.saadstudio.app/canvas");
   const image = promoUrl(promo, `${slotId}/hero`, "/canvas.webp");
   const title = promoText(content, slotId, "title", "Canvas");
   const cta = promoText(content, slotId, "cta", "Open");
@@ -1935,7 +1935,7 @@ export default function ExplorePage() {
               { label: "Video Gen", icon: Video, badge: "", href: "/video" },
               { label: "3D Gen", icon: Box, badge: "", href: "/3d" },
               { label: "Blueprints", icon: Layers, badge: "NEW", href: "/explore" },
-              { label: "Realtime", icon: Monitor, badge: "NEW", href: "/original-series" },
+              { label: "Realtime", icon: Monitor, badge: "NEW", href: "/canvas" },
               { label: "Flow", icon: TrendingUp, badge: "", href: "/video" },
               { label: "Upscaler", icon: Aperture, badge: "NEW", href: "/edit?tool=upscale" },
               { label: "Draw", icon: Paintbrush, badge: "", href: "/edit" }

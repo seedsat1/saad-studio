@@ -278,7 +278,7 @@ const EXPLORE_HERO_SLIDES: HeroSlide[] = [
     subtitle: "The first-ever AI-powered streaming platform. Create, direct, and publish your own AI series.",
     tag: "NEW",
     bgImage: "/explore/hero-original-series.jpg",
-    ctaHref: "/original-series",
+    ctaHref: "/canvas",
     gradient: "from-slate-950 via-pink-950/50 to-slate-950",
     accentFrom: "from-pink-500",
     accentTo: "to-rose-500",
@@ -326,7 +326,7 @@ const DEFAULT_MODEL: ModelItem = { _id: "", name: "Model", tag: "AI", color: "te
 const HOME_STUDIO_PATHWAYS: AdCard[] = [
   { _id: "home-path-image", title: "Image Studio", description: "High-detail images, ads, portraits, product visuals, and edits.", image: "/GPT%20Image%202/SHOT%203.webp", href: "/image", badge: "", gradient: "", accentColor: "text-cyan-300" },
   { _id: "home-path-video", title: "Video Studio", description: "Generate cinematic motion, character shots, and social clips.", image: "/seedance%202/1%20(4).webp", href: "/video", badge: "", gradient: "", accentColor: "text-fuchsia-300" },
-  { _id: "home-path-canvas", title: "AI Canvas", description: "Build complete creative workflows from one visual workspace.", image: "/canvas.webp", href: "/original-series", badge: "", gradient: "", accentColor: "text-amber-200" },
+  { _id: "home-path-canvas", title: "AI Canvas", description: "Build complete creative workflows from one visual workspace.", image: "/canvas.webp", href: "/canvas", badge: "", gradient: "", accentColor: "text-amber-200" },
   { _id: "home-path-next-scene", title: "Next Scene", description: "Direct scenes, storyboards, shots, and cinematic worlds.", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", accentColor: "text-emerald-300" },
   { _id: "home-path-character", title: "Character", description: "Create consistent characters for brands, stories, and campaigns.", image: "/seedance%202/1%20(7).webp", href: "/character", badge: "", gradient: "", accentColor: "text-violet-300" },
   { _id: "home-path-apps", title: "Apps", description: "Specialized tools for edit, audio, relight, transitions, and more.", image: "/transitions/1%20(2).webp", href: "/apps", badge: "", gradient: "", accentColor: "text-lime-300" },
@@ -338,7 +338,7 @@ const HOME_SHOWCASE_TILES: AdCard[] = [
   { _id: "home-showcase-scene", title: "Scene engine", description: "", image: "/NEXT%20SCENE%20ENGINE.webp", href: "/cinema-studio", badge: "", gradient: "", className: "md:col-span-3" },
   { _id: "home-showcase-transitions", title: "Transitions", description: "", image: "/transitions/Hero.webp", href: "/apps/tool/transitions", badge: "", gradient: "", className: "md:col-span-3" },
   { _id: "home-showcase-nano", title: "Nano Banana", description: "", image: "/nano.webp", href: "/image?model=nano-banana-pro", badge: "", gradient: "", className: "md:col-span-4" },
-  { _id: "home-showcase-canvas", title: "Canvas workflow", description: "", image: "/canvas.webp", href: "/original-series", badge: "", gradient: "", className: "md:col-span-5" },
+  { _id: "home-showcase-canvas", title: "Canvas workflow", description: "", image: "/canvas.webp", href: "/canvas", badge: "", gradient: "", className: "md:col-span-5" },
   { _id: "home-showcase-kling", title: "Kling 3.0", description: "", image: "/Kling%203.0/Hero.webp", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", badge: "", gradient: "", className: "md:col-span-3" },
 ];
 
@@ -351,7 +351,7 @@ const HOME_STATS: StatItem[] = [
 
 const HOME_MODEL_SPOTLIGHTS: AdCard[] = [
   { _id: "home-spot-gpt", title: "GPT Image 2", description: "", image: "/GPT%20Image%202/SHOT%201.webp", href: "/image?tool=create&model=gpt-image-2-text-to-image", badge: "Image", gradient: "" },
-  { _id: "home-spot-canvas", title: "Canvas", description: "", image: "/canvas.webp", href: "/original-series", badge: "Workflow", gradient: "" },
+  { _id: "home-spot-canvas", title: "Canvas", description: "", image: "/canvas.webp", href: "/canvas", badge: "Workflow", gradient: "" },
   { _id: "home-spot-seedance", title: "Seedance 2", description: "", image: "/seedance%202/Hero.webp", href: "/video?tool=create-video&model=bytedance-seedance-v2-t2v", badge: "Video", gradient: "" },
   { _id: "home-spot-kling", title: "Kling 3.0", description: "", image: "/Kling%203.0/Hero.webp", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", badge: "Video", gradient: "" },
 ];

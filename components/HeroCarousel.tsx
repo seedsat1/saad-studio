@@ -108,7 +108,7 @@ const SLIDES: Slide[] = [
     title: "Original Series",
     subtitle: "The first-ever AI-powered streaming platform. Create, direct, and publish your own AI series.",
     cta: "Watch Now",
-    ctaHref: "/original-series",
+    ctaHref: "/canvas",
     accentColor: "#ec4899",
     glow: "rgba(236,72,153,0.25)",
   },

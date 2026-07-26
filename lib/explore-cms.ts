@@ -60,7 +60,7 @@ export const DEFAULT_EXPLORE_MODULES: ExploreModule[] = [
     layout: "banner",
     title: "Canvas",
     cta: "Open",
-    href: "https://www.saadstudio.app/original-series",
+    href: "https://www.saadstudio.app/canvas",
     hero: image("hero", "/canvas.webp", "Canvas hero"),
     gallery: [],
   },

@@ -105,7 +105,7 @@ const EXPLORE_ADS: ExploreAdCms[] = [
     slotId: "explore/ad/canvas",
     name: "Canvas",
     fallbackHero: "/canvas.webp",
-    defaults: { title: "Canvas", cta: "Open", ctaHref: "https://www.saadstudio.app/original-series" },
+    defaults: { title: "Canvas", cta: "Open", ctaHref: "https://www.saadstudio.app/canvas" },
   },
   {
     slotId: "explore/ad/seedance-2",

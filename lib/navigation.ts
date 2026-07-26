@@ -120,7 +120,7 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: "original-series",
     label: "AI Canvas",
     emoji: "🎨",
-    href: "/original-series",
+    href: "/canvas",
   },
   {
     id: "apps",

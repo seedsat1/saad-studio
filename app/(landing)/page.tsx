@@ -315,7 +315,7 @@ const HERO_SLIDES: HeroSlide[] = [
     gradient: "from-slate-950 via-rose-950/50 to-slate-950",
     accentFrom: "from-rose-500",
     accentTo: "to-pink-500",
-    ctaHref: "/original-series",
+    ctaHref: "/canvas",
     bgImage: "/landing/hero-2.jpg",
   },
   {
@@ -965,7 +965,7 @@ const MODEL_SPOTLIGHTS = [
   {
     title: "Canvas",
     badge: "Workflow",
-    href: "/original-series",
+    href: "/canvas",
     image: "/canvas.webp",
   },
   {
@@ -1002,7 +1002,7 @@ const STUDIO_PATHWAYS = [
   {
     title: "AI Canvas",
     description: "Build complete creative workflows from one visual workspace.",
-    href: "/original-series",
+    href: "/canvas",
     image: "/canvas.webp",
     icon: Layers,
     accent: "text-amber-200",
@@ -1039,7 +1039,7 @@ const SHOWCASE_TILES = [
   { title: "Scene engine", href: "/cinema-studio", image: "/NEXT%20SCENE%20ENGINE.webp", className: "md:col-span-3" },
   { title: "Transitions", href: "/apps/tool/transitions", image: "/transitions/Hero.webp", className: "md:col-span-3" },
   { title: "Nano Banana", href: "/image?model=nano-banana-pro", image: "/nano.webp", className: "md:col-span-4" },
-  { title: "Canvas workflow", href: "/original-series", image: "/canvas.webp", className: "md:col-span-5" },
+  { title: "Canvas workflow", href: "/canvas", image: "/canvas.webp", className: "md:col-span-5" },
   { title: "Kling 3.0", href: "/video?tool=create-video&model=kling-v3.0-pro-t2v", image: "/Kling%203.0/Hero.webp", className: "md:col-span-3" },
 ];
 

@@ -179,6 +179,11 @@ const nextConfig = {
         destination: "/storyboard",
         permanent: true,
       },
+      {
+        source: "/original-series",
+        destination: "/canvas",
+        permanent: true,
+      },
     ];
   },
 };

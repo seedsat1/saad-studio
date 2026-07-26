@@ -32,7 +32,7 @@ const isPublicRoute = createRouteMatcher([
   '/cinematic-video(.*)',
   '/cinema-board(.*)',
   '/moodboard(.*)',
-  '/original-series(.*)',
+  '/canvas(.*)',
   '/3d(.*)',
   '/payment(.*)',
   '/profile(.*)',

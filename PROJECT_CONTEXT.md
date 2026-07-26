@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Interactive Visual Workflow Canvas Default & Drag-and-Drop System (2026-07-26)
+
+- Status:
+  Updated `/influencers` so the **Visual Workflow Canvas** is the primary default view (`activeTab = "canvas"`) and added full drag-and-drop interactivity:
+  1. **Primary Default Canvas View**:
+     - Opening `/influencers` now renders `<WorkflowCanvas />` immediately on load.
+     - Floating top control bar allows adding new nodes (`+ Node`), changing active `@influencer` handle, and tracking node count.
+  2. **Drag-and-Drop & Interactive Bezier Curves**:
+     - All node cards (Root, Image, Video, Child Nodes) support real-time mouse dragging across the canvas grid.
+     - Connector curves (`svg` Bezier paths with pink/purple gradient and glowing dots) dynamically re-render in real-time as nodes move.
+     - Node cards feature `+` child node creation, `Enhance` prompt enhancer, model pickers, aspect ratio pickers, and `Wand2` generation.
+  3. **Verification**:
+     - `npx.cmd next lint --file app/(dash)/(routes)/influencers/page.tsx` passed with **0 errors and 0 warnings**.
+     - Pushed commit `c5a25fc` to GitHub `main` branch.
+
 #### Latest task: AI Influencers & Visual Workflow Canvas Studio Integration (2026-07-26)
 
 - Status:
@@ -5587,18 +5602,18 @@
 ## Latest task: Integrate Angles Production System Node Grid and Splitter Layout (2026-07-05)
 
 - Status:
-  - Integrated the complete "Angles Production System" workflow layout into the Canvas React Flow editor (/original-series).
+  - Integrated the complete "Angles Production System" workflow layout into the Canvas React Flow editor (/canvas).
   - Modified `components/canvas/CanvasNode.tsx` to support a custom `isRouter` mode for `connector` nodes, displaying a taller vertical card with 10 output handles mapped to `route 1` through `route 10` with green handle dots.
   - Upgraded `list` nodes in `components/canvas/CanvasNode.tsx` to render in-card rows representing items with custom purple output handle dots (`prompt-0` to `prompt-9`) positioned exactly at the vertical centers of the rows, plus an "Edit/Save" toggle for raw note text editing.
-  - Loosened `makeEdge` helper parameter types in `app/(dash)/(routes)/original-series/page.tsx` to allow custom handle strings.
-  - Enhanced `executeNode` in `app/(dash)/(routes)/original-series/page.tsx` to support:
+  - Loosened `makeEdge` helper parameter types in `app/(dash)/(routes)/canvas/page.tsx` to allow custom handle strings.
+  - Enhanced `executeNode` in `app/(dash)/(routes)/canvas/page.tsx` to support:
     - `"assistant"` nodes calling the real OpenAI completion backend route `/api/conversation` to generate dynamic camera angles.
     - `"list"` nodes capturing incoming texts, parsing them dynamically on semicolon/newlines, and populating row items automatically.
     - Downstream generation nodes connected to specific list item handles reading the exact item string index instead of the raw concatenated string.
   - Implemented `createAnglesProductionWorkflow` template generator and added it to the workspace initialization logic and template welcome launcher screen.
 - Affected files:
   - `components/canvas/CanvasNode.tsx` [MODIFY]
-  - `app/(dash)/(routes)/original-series/page.tsx` [MODIFY]
+  - `app/(dash)/(routes)/canvas/page.tsx` [MODIFY]
 - Verification:
   - Validated 100% clean TypeScript compilation of the entire workspace with `npx tsc --noEmit`.
 - Decision:
