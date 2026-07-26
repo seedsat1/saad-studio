@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Play, RefreshCw, X, Move, Layers, Zap } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Move, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CanvasNode = {
   id: string;
-  type: "root" | "image" | "video" | "faceswap";
+  type: "root" | "image" | "video";
   parentId?: string;
   x: number;
   y: number;
@@ -33,13 +33,14 @@ export function WorkflowCanvas({
   onGenerateImageNode,
   onGenerateVideoNode,
 }: WorkflowCanvasProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [nodes, setNodes] = useState<CanvasNode[]>(
     initialNodes || [
       {
         id: "root-1",
         type: "root",
-        x: 80,
-        y: 160,
+        x: 60,
+        y: 120,
         title: "الصورة المرجعية لـ @gavi",
         imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500",
         influencerHandle: "@gavi",
@@ -49,11 +50,11 @@ export function WorkflowCanvas({
         id: "child-1",
         type: "image",
         parentId: "root-1",
-        x: 420,
-        y: 60,
+        x: 380,
+        y: 40,
         title: "صورة ملابس رياضية",
         imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500",
-        prompt: "@gavi wearing sports top outfit, marble background",
+        prompt: "@gavi wearing sports top outfit",
         influencerHandle: "@gavi",
         status: "ready",
       },
@@ -61,8 +62,8 @@ export function WorkflowCanvas({
         id: "child-2",
         type: "image",
         parentId: "root-1",
-        x: 420,
-        y: 380,
+        x: 380,
+        y: 340,
         title: "صورة فستان ساحلي",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
         prompt: "@gavi in red dress on seaside balcony",
@@ -73,9 +74,9 @@ export function WorkflowCanvas({
         id: "child-3",
         type: "video",
         parentId: "child-2",
-        x: 780,
-        y: 380,
-        title: "فيديو حركي للشاطئ",
+        x: 720,
+        y: 340,
+        title: "فيديو حركة الشاطئ",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
         prompt: "She turns to camera, smiles softly at the seaside",
         status: "ready",
@@ -90,28 +91,32 @@ export function WorkflowCanvas({
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [isEnhancing, setIsEnhancing] = useState(false);
 
-  // Dragging Nodes state
+  // Dragging Nodes relative to container
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const handleMouseDownNode = (e: React.MouseEvent, nodeId: string) => {
-    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("textarea") || (e.target as HTMLElement).closest("select")) {
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("textarea") || target.closest("select") || target.closest("input")) {
       return;
     }
     const node = nodes.find((n) => n.id === nodeId);
-    if (!node) return;
+    if (!node || !containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
     setDraggingNodeId(nodeId);
     dragOffsetRef.current = {
-      x: e.clientX - node.x,
-      y: e.clientY - node.y,
+      x: e.clientX - rect.left - node.x,
+      y: e.clientY - rect.top - node.y,
     };
     setActiveNodeId(nodeId);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!draggingNodeId) return;
-    const newX = Math.max(10, e.clientX - dragOffsetRef.current.x);
-    const newY = Math.max(10, e.clientY - dragOffsetRef.current.y);
+    if (!draggingNodeId || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const newX = Math.max(10, e.clientX - rect.left - dragOffsetRef.current.x);
+    const newY = Math.max(10, e.clientY - rect.top - dragOffsetRef.current.y);
 
     setNodes((prev) =>
       prev.map((n) => (n.id === draggingNodeId ? { ...n, x: newX, y: newY } : n))
@@ -129,7 +134,7 @@ export function WorkflowCanvas({
       id: newId,
       type,
       parentId,
-      x: (parent?.x || 200) + 360,
+      x: (parent?.x || 200) + 340,
       y: (parent?.y || 200) + (type === "video" ? 40 : 0),
       title: type === "image" ? "عقدة صورة جديدة" : "عقدة فيديو جديدة",
       influencerHandle: parent?.influencerHandle || selectedHandle,
@@ -144,9 +149,9 @@ export function WorkflowCanvas({
     const newNode: CanvasNode = {
       id: newId,
       type: "image",
-      x: 200,
-      y: 200,
-      title: "عقدة صورة مستقلة",
+      x: 180,
+      y: 180,
+      title: "عقدة صورة جديدة",
       influencerHandle: selectedHandle,
       status: "idle",
     };
@@ -169,8 +174,18 @@ export function WorkflowCanvas({
       } else if (onGenerateImageNode) {
         resultUrl = await onGenerateImageNode(nodeId, promptText || "@gavi pose", selectedHandle, selectedModel, aspectRatio);
       } else {
-        await new Promise((r) => setTimeout(r, 1400));
-        resultUrl = targetNode.imageUrl || "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500";
+        // Fallback live image fetch
+        const res = await fetch("/api/image/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: promptText ? `${selectedHandle} ${promptText}` : `${selectedHandle} fashion portrait photo`,
+            model: "qwen",
+            aspect_ratio: aspectRatio,
+          }),
+        }).catch(() => null);
+        const data = await res?.json().catch(() => null);
+        resultUrl = data?.mediaUrl || data?.url || targetNode.imageUrl || "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500";
       }
 
       setNodes((prev) =>
@@ -196,7 +211,7 @@ export function WorkflowCanvas({
         prev ? `${prev}, highly detailed photorealistic skin texture, natural soft daylight, 85mm lens portrait` : `${selectedHandle} in a luxury beach resort, ultra-realistic UGC style photo`
       );
       setIsEnhancing(false);
-    }, 500);
+    }, 400);
   };
 
   const handleDeleteNode = (nodeId: string) => {
@@ -206,7 +221,8 @@ export function WorkflowCanvas({
 
   return (
     <div
-      className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-[#07080f] select-none"
+      ref={containerRef}
+      className="relative w-full h-[calc(100vh-8rem)] overflow-hidden bg-[#07080f] select-none"
       id="tour-canvas-board"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

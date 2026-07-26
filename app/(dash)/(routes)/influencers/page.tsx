@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import {
   Sparkles,
   Grid,
@@ -28,6 +29,7 @@ import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
 import { LibraryStudio } from "@/components/influencers/LibraryStudio";
 
 export default function InfluencersPage() {
+  const { userId, isLoaded, isSignedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers"
   >("canvas");
@@ -64,10 +66,15 @@ export default function InfluencersPage() {
     },
   ]);
 
-  // Load backend registered characters
+  // Load backend registered characters safely after auth hydration
   useEffect(() => {
+    if (isLoaded && !isSignedIn) return;
+
     fetch("/api/characters")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then((data) => {
         if (Array.isArray(data?.characters) && data.characters.length > 0) {
           const loaded: InfluencerItem[] = data.characters.map((c: any) => ({
@@ -84,7 +91,7 @@ export default function InfluencersPage() {
         }
       })
       .catch(() => null);
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   const handleAddInfluencer = async (name: string, handle: string, file: File) => {
     const formData = new FormData();
@@ -122,7 +129,7 @@ export default function InfluencersPage() {
   const influencerHandles = influencers.map((i) => i.handle);
 
   return (
-    <div className="h-[calc(100vh-4rem)] w-full overflow-hidden flex flex-col bg-[#05070f] text-white">
+    <div className="w-full flex flex-col bg-[#05070f] text-white">
       {/* Top Header Navigation Bar matching screenshots and video 100% */}
       <div className="h-16 border-b border-white/10 bg-[#090b14]/90 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-20">
         {/* Navigation Tabs - Excludes MCP & CLI completely */}
