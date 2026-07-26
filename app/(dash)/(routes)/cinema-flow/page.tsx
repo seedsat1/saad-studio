@@ -204,6 +204,7 @@ export default function CinemaFlowPage() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Gallery states
   const [assets, setAssets] = useState<MediaAsset[]>([]);
@@ -771,6 +772,7 @@ export default function CinemaFlowPage() {
         selectedSketchId,
         selectedLocationId,
         selectedElementId,
+        selectedPalette,
       });
 
       if (activeCharacter) {
@@ -921,6 +923,7 @@ export default function CinemaFlowPage() {
         selectedSketchId,
         selectedLocationId,
         selectedElementId,
+        selectedPalette,
       });
       const res = await fetch("/api/video", {
         method: "POST",
@@ -2290,6 +2293,7 @@ export default function CinemaFlowPage() {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
         }}
+        onSelectPalette={(pal) => setSelectedPalette(pal)}
         onAttachFile={(file) => {
           addActiveImageReference({
             id: file.id,

@@ -371,6 +371,7 @@ export default function HookStudioPage() {
   const [studioSearchQuery, setStudioSearchQuery] = useState("");
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Prompt Form State
   const [inputText, setInputText] = useState("");
@@ -1855,6 +1856,7 @@ export default function HookStudioPage() {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
         }}
+        onSelectPalette={(pal) => setSelectedPalette(pal)}
         onAttachFile={(file) => {
           setAttachedFiles((prev) => [
             ...prev,

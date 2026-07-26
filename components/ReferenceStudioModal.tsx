@@ -51,6 +51,7 @@ export interface ReferenceStudioModalProps {
   onSelectCharacter?: (id: string | null) => void;
   selectedSketchId?: string | null;
   onSelectSketch?: (id: string | null) => void;
+  onSelectPalette?: (palette: { id: string; name: string; colors: string[] } | null) => void;
   onAttachFile?: (file: { id: string; url: string; name: string; type: "image" | "video" }) => void;
   isAr?: boolean;
 }
@@ -167,6 +168,7 @@ export function ReferenceStudioModal({
   onSelectCharacter,
   selectedSketchId,
   onSelectSketch,
+  onSelectPalette,
   onAttachFile,
   isAr = true,
 }: ReferenceStudioModalProps) {
@@ -406,17 +408,8 @@ export function ReferenceStudioModal({
       setUserPalettes((prev) => [created, ...prev]);
       setSelectedPaletteId(created.id);
       setNewPalName("");
-      if (onAttachFile) {
-        const dataUrl = paletteToImageDataUrl(created.name, created.colors);
-        if (dataUrl) {
-          onAttachFile({
-            id: `palette-${created.id}`,
-            url: dataUrl,
-            name: `${created.name} (${created.colors.length} colors)`,
-            type: "image",
-          });
-        }
-      }
+      // Palette is prompt-only: inject hex codes as color-grading text, not as an image ref.
+      onSelectPalette?.({ id: created.id, name: created.name, colors: created.colors });
     } catch (err: any) {
       setCreatePalError(err?.message || (isAr ? "فشل الحفظ" : "Save failed"));
     } finally {
@@ -1861,16 +1854,12 @@ export function ReferenceStudioModal({
                       onClick={() => {
                         const nextSelected = isSelected ? null : pal.id;
                         setSelectedPaletteId(nextSelected);
-                        if (nextSelected && onAttachFile) {
-                          const dataUrl = paletteToImageDataUrl(pal.name, pal.colors);
-                          if (dataUrl) {
-                            onAttachFile({
-                              id: `palette-${pal.id}`,
-                              url: dataUrl,
-                              name: `${pal.name} (${pal.colors.length} colors)`,
-                              type: "image",
-                            });
-                          }
+                        // Palette is prompt-only: inject hex codes as color-grading text.
+                        // Do NOT attach the palette as an image ref — it would confuse the model.
+                        if (nextSelected) {
+                          onSelectPalette?.({ id: pal.id, name: pal.name, colors: pal.colors });
+                        } else {
+                          onSelectPalette?.(null);
                         }
                       }}
                       className={`relative group rounded-2xl overflow-hidden border cursor-pointer transition-all duration-200 ${

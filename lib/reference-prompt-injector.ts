@@ -28,6 +28,8 @@ export interface PresetSelections {
   selectedLocationId?: string | null;
   /** Semantic hint for a built-in preset element (not the user's own uploaded one). */
   selectedElementId?: string | null;
+  /** User-created color palette (from UserPalette). Injected as an explicit color-grade instruction. */
+  selectedPalette?: { name: string; colors: string[] } | null;
 }
 
 /**
@@ -69,6 +71,11 @@ export function buildPresetPromptSuffix(sel: PresetSelections): string {
   if (sel.selectedElementId) {
     const el = HOOK_ELEMENTS.find((x) => x.id === sel.selectedElementId);
     if (el?.promptDescription) parts.push(`Element (${el.tag}): ${el.promptDescription}`);
+  }
+
+  if (sel.selectedPalette && Array.isArray(sel.selectedPalette.colors) && sel.selectedPalette.colors.length >= 2) {
+    const hex = sel.selectedPalette.colors.join(", ");
+    parts.push(`Color Palette "${sel.selectedPalette.name}" — apply this color grade using only these hex tones: ${hex}`);
   }
 
   return parts.length > 0 ? ` [${parts.join(" . ")}]` : "";

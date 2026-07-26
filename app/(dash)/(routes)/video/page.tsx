@@ -962,6 +962,7 @@ function VideoPageInner() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   // Kling 3.0 structured elements (name + description + 2-4 images each, max 3 elements)
   type KlingEl = { name: string; description: string; files: File[]; previews: string[]; };
@@ -1880,6 +1881,7 @@ function VideoPageInner() {
         selectedSketchId,
         selectedLocationId,
         selectedElementId,
+        selectedPalette,
       });
       payload.prompt = toolPrefix ? `${toolPrefix} ${promptedWithPresets}` : promptedWithPresets;
 
@@ -5574,6 +5576,7 @@ function VideoPageInner() {
           setSelectedSketchId(id);
           setShowReferenceStudioModal(false);
         }}
+        onSelectPalette={(pal) => setSelectedPalette(pal)}
         onAttachFile={(file) => {
           const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
             ? file.url

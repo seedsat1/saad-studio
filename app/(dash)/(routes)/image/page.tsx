@@ -1298,6 +1298,7 @@ export default function ImageWorkspacePage() {
   const [selectedEffectId, setSelectedEffectId] = useState<string | null>(null);
   const [selectedCharacterPresetId, setSelectedCharacterPresetId] = useState<string | null>(null);
   const [selectedSketchId, setSelectedSketchId] = useState<string | null>(null);
+  const [selectedPalette, setSelectedPalette] = useState<{ id: string; name: string; colors: string[] } | null>(null);
 
   useEffect(() => {
     const requestedTool = searchParams.get("tool");
@@ -1597,6 +1598,7 @@ export default function ImageWorkspacePage() {
       selectedSketchId,
       selectedLocationId,
       selectedElementId,
+      selectedPalette,
     });
     const body: Record<string, unknown> = {
       prompt: effectivePrompt,
@@ -1646,7 +1648,7 @@ export default function ImageWorkspacePage() {
 
     // 3. Update UI state with permanent Supabase URL(s)
     addResultItems(persistedUrls, "create", selectedModel.label, prompt, aspectRatio);
-  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId]);
+  }, [addResultItems, aspectRatio, isAnnualUnlimitedCreate, numImages, prompt, quality, qualityOptions, referenceFiles, selectedCharacter, selectedModel, selectedStyle, selectedEffectId, selectedCameraId, selectedSketchId, selectedLocationId, selectedElementId, selectedPalette]);
 
   const generateRelight = useCallback(async () => {
     if (!relightFile) throw new Error("Upload image first");
@@ -2427,6 +2429,9 @@ export default function ImageWorkspacePage() {
           onSelectSketch={(id) => {
             setSelectedSketchId(id);
             setShowReferenceStudioModal(false);
+          }}
+          onSelectPalette={(pal) => {
+            setSelectedPalette(pal);
           }}
           onAttachFile={(file) => {
             const targetUrl = file.url.startsWith("blob:") || file.url.startsWith("data:")
