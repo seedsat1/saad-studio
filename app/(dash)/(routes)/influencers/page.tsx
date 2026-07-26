@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   Grid,
@@ -13,18 +13,19 @@ import {
   Zap,
   Flame,
   ArrowUpRight,
-  ShieldAlert,
-  Loader2,
-  Plus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InfluencerRoster, InfluencerItem } from "@/components/influencers/InfluencerRoster";
-import { WorkflowCanvas, CanvasNode } from "@/components/influencers/WorkflowCanvas";
+import { WorkflowCanvas } from "@/components/influencers/WorkflowCanvas";
 import { InfluencerTourModal } from "@/components/influencers/InfluencerTourModal";
 import { InfluencerAssistantSidebar } from "@/components/influencers/InfluencerAssistantSidebar";
 import { FaceSwapStudio } from "@/components/influencers/FaceSwapStudio";
 import { MotionControlStudio } from "@/components/influencers/MotionControlStudio";
 import { NsfwStudio } from "@/components/influencers/NsfwStudio";
+import { ImageStudio } from "@/components/influencers/ImageStudio";
+import { VideoStudio } from "@/components/influencers/VideoStudio";
+import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
+import { LibraryStudio } from "@/components/influencers/LibraryStudio";
 
 export default function InfluencersPage() {
   const [activeTab, setActiveTab] = useState<
@@ -276,39 +277,19 @@ export default function InfluencersPage() {
         )}
 
         {activeTab === "image" && (
-          <div className="max-w-3xl mx-auto p-8 text-right space-y-6 dir-rtl">
-            <h2 className="text-2xl font-bold text-white">توليد الصور وتحديد الشخصية المرجعية</h2>
-            <p className="text-xs text-zinc-400">
-              يمكنك كتابة نص التوليد واستدعاء المؤثرين باستخدام <span className="text-pink-400 font-bold dir-ltr">@handle</span>، مع إمكانية تحويل أي صورة مرجعية لنص عبر أداة Turn into prompt.
-            </p>
-          </div>
+          <ImageStudio influencerHandles={influencerHandles} />
         )}
 
         {activeTab === "video" && (
-          <div className="max-w-3xl mx-auto p-8 text-right space-y-6 dir-rtl">
-            <h2 className="text-2xl font-bold text-white">توليد الفيديوهات الحركية للمؤثرين</h2>
-            <p className="text-xs text-zinc-400">
-              توليد مقاطع سينمائية وحركية متناسقة للمؤثرين الافتراضيين مع نماذج Kling 3.0 و Seedance 2.0.
-            </p>
-          </div>
+          <VideoStudio influencerHandles={influencerHandles} />
         )}
 
         {activeTab === "upscale" && (
-          <div className="max-w-3xl mx-auto p-8 text-right space-y-6 dir-rtl">
-            <h2 className="text-2xl font-bold text-white">تحسين جلب الدقة Upscaler (4K / 8K)</h2>
-            <p className="text-xs text-zinc-400">
-              رفع دقة ووضوح صور وفيديوهات المؤثرين مع الحفاظ الدقيق على التفاصيل والملامح البشرية.
-            </p>
-          </div>
+          <UpscaleStudio />
         )}
 
         {activeTab === "library" && (
-          <div className="max-w-4xl mx-auto p-8 text-right space-y-6 dir-rtl">
-            <h2 className="text-2xl font-bold text-white">مكتبة الوسائط المولّدة (Generations Library)</h2>
-            <p className="text-xs text-zinc-400">
-              سجل كافة الصور والفيديوهات المولّدة لشخصياتك المرجعية مقسمة حسب الأشهر.
-            </p>
-          </div>
+          <LibraryStudio />
         )}
       </div>
 
