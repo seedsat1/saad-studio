@@ -250,41 +250,65 @@ function ModelDropdown({ value, onChange, nodeType, accentColor, rgb, onClose }:
           />
         </div>
       </div>
-      <div className="nowheel" style={{ maxHeight: 220, overflowY: "auto", padding: "5px 5px" }}>
-        {filtered.map(m => {
-          const isSel = value === m.id;
-          return (
-            <button key={m.id} className="nodrag"
-              onClick={e => { SP(e); onChange(m.id); onClose(); }}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "9px 10px", borderRadius: 9, marginBottom: 2,
-                background: isSel ? `rgba(${rgb},0.12)` : "transparent",
-                border: `1px solid ${isSel ? `rgba(${rgb},0.25)` : "transparent"}`,
-                cursor: "pointer", textAlign: "left", fontFamily: "inherit",
-              }}
-              onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; } }}
-              onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; } }}
-            >
-              <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, fontWeight: 700, fontFamily: "monospace", fontSize: m.icon.length <= 2 ? 11 : 9, letterSpacing: "-0.03em", background: isSel ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)", border: `1px solid ${isSel ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isSel ? `rgba(${rgb},1)` : "rgba(255,255,255,0.35)" }}>
-                {m.icon}
+      <div className="nowheel" style={{ maxHeight: 340, overflowY: "auto", padding: "5px 5px" }}>
+        {(() => {
+          // Group models by family, preserving original order (first-seen wins).
+          const order: string[] = [];
+          const bucket: Record<string, typeof filtered> = {};
+          for (const m of filtered) {
+            const fam = m.family || "AI";
+            if (!bucket[fam]) { bucket[fam] = []; order.push(fam); }
+            bucket[fam].push(m);
+          }
+          return order.map((fam) => (
+            <div key={fam} style={{ marginBottom: 4 }}>
+              <div style={{
+                padding: "8px 10px 4px",
+                fontSize: 9,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "#3d5573",
+              }}>
+                {fam}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: isSel ? "#e2e8f0" : "#7d96b0", fontSize: 11.5, fontWeight: isSel ? 600 : 400 }}>{m.label}</div>
-                <div style={{ color: "#1a2a3c", fontSize: 9, marginTop: 2 }}>{m.family} · {m.desc}</div>
-              </div>
-              {m.badge && (() => {
-                const badgeStyle = BADGE_STYLES[m.badge] ?? { color: "#94a3b8", bg: "rgba(148,163,184,0.14)" };
+              {bucket[fam].map((m) => {
+                const isSel = value === m.id;
                 return (
-                  <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 5, flexShrink: 0, color: badgeStyle.color, background: badgeStyle.bg }}>
-                    {m.badge}
-                  </span>
+                  <button key={m.id} className="nodrag"
+                    onClick={e => { SP(e); onChange(m.id); onClose(); }}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 10px", borderRadius: 9, marginBottom: 2,
+                      background: isSel ? `rgba(${rgb},0.12)` : "transparent",
+                      border: `1px solid ${isSel ? `rgba(${rgb},0.25)` : "transparent"}`,
+                      cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                    }}
+                    onMouseEnter={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; } }}
+                    onMouseLeave={e => { if (!isSel) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; } }}
+                  >
+                    <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, fontWeight: 700, fontFamily: "monospace", fontSize: m.icon.length <= 2 ? 11 : 9, letterSpacing: "-0.03em", background: isSel ? `rgba(${rgb},0.18)` : "rgba(255,255,255,0.06)", border: `1px solid ${isSel ? `rgba(${rgb},0.3)` : "rgba(255,255,255,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center", color: isSel ? `rgba(${rgb},1)` : "rgba(255,255,255,0.35)" }}>
+                      {m.icon}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ color: isSel ? "#e2e8f0" : "#7d96b0", fontSize: 11.5, fontWeight: isSel ? 600 : 400 }}>{m.label}</div>
+                      <div style={{ color: "#1a2a3c", fontSize: 9, marginTop: 2 }}>{m.desc}</div>
+                    </div>
+                    {m.badge && (() => {
+                      const badgeStyle = BADGE_STYLES[m.badge] ?? { color: "#94a3b8", bg: "rgba(148,163,184,0.14)" };
+                      return (
+                        <span style={{ fontSize: 8, fontWeight: 700, padding: "2px 6px", borderRadius: 5, flexShrink: 0, color: badgeStyle.color, background: badgeStyle.bg }}>
+                          {m.badge}
+                        </span>
+                      );
+                    })()}
+                    {isSel && <CheckCircle size={11} style={{ color: accentColor, flexShrink: 0 }} />}
+                  </button>
                 );
-              })()}
-              {isSel && <CheckCircle size={11} style={{ color: accentColor, flexShrink: 0 }} />}
-            </button>
-          );
-        })}
+              })}
+            </div>
+          ));
+        })()}
         {filtered.length === 0 && <div style={{ padding: 16, textAlign: "center", color: "#1e2f42", fontSize: 11 }}>No models found</div>}
       </div>
     </div>
