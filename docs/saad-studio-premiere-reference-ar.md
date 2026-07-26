@@ -1,4 +1,19 @@
 # مرجع Saad Studio لتكامل Premiere وReap
+## نظام استوديو المؤثرين الافتراضيين ولوحة العقد المرئية (AI Influencers Studio & Visual Canvas) (2026-07-26)
+
+- تم بناء نظام استوديو المؤثرين ولوحة العقد المرئية بالكامل في مسار `/influencers`:
+  1. **الواجهة الرئيسية ومسار الصفحة (`app/(dash)/(routes)/influencers/page.tsx`)**:
+     - شريط تبويبات علوي متكامل يضم 9 أقسام: `Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, `Influencers`.
+     - تم استبعاد قسم `MCP & CLI` نهائياً حسب توجيهات المستخدم المباشرة.
+  2. **مكونات النظام المُنفذة**:
+     - `InfluencerRoster`: شبكة عرض المؤثرين، شارات `@handle` للمنادي المباشر، المؤثر الافتراضي `@gavi` ومودال إضافة مؤثر جديد `+ New Influencer`.
+     - `WorkflowCanvas`: لوحة رسم العقد المرئية (Infinite Canvas) مع ربط الخيوط المنقطة وتوليد صور وفيديوهات الحركة المتفرعة.
+     - `InfluencerTourModal`: الجولة التفاعلية من 15 خطوة مع تحديد الإطار الوردي المضيء (Pink Glow Border).
+     - `InfluencerAssistantSidebar`: اللوحة الجانبية لمساعد الذكاء الاصطناعي السريع.
+     - `FaceSwapStudio`: أداة تبديل الوجوه الفورية بنقرة واحدة (Zero-Prompt Swap).
+     - `MotionControlStudio`: نسخ رقصات وحركات فيديوهات تيك توك وReels على شخصية المؤثر (`Kling 3.0 Motion Control`).
+     - `NsfwStudio`: المحتوى الخاص والمميز للمشتركين باستعمال نموذج `Z-Image Spicy`.
+
 ## مرجع دليل Google AI Studio للسجلات وتصحيح الأخطاء (Gemini API & Interactions Logging) (2026-07-26)
 
 - تم توثيق قواعد وسجلات Google AI Studio لاستخدامها كمرجع لمراقبة استدعاءات Gemini API:
