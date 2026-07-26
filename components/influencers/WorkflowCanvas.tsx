@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Play, RefreshCw, X, ArrowRight, CornerDownLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Play, RefreshCw, X, Move, Layers, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CanvasNode = {
   id: string;
-  type: "root" | "image" | "video";
+  type: "root" | "image" | "video" | "faceswap";
   parentId?: string;
   x: number;
   y: number;
@@ -38,9 +38,9 @@ export function WorkflowCanvas({
       {
         id: "root-1",
         type: "root",
-        x: 100,
-        y: 180,
-        title: "صورة مرجعية",
+        x: 80,
+        y: 160,
+        title: "الصورة المرجعية لـ @gavi",
         imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500",
         influencerHandle: "@gavi",
         status: "ready",
@@ -49,11 +49,11 @@ export function WorkflowCanvas({
         id: "child-1",
         type: "image",
         parentId: "root-1",
-        x: 450,
-        y: 80,
-        title: "صورة فستان وردي",
+        x: 420,
+        y: 60,
+        title: "صورة ملابس رياضية",
         imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500",
-        prompt: "@gavi in a pink bear hoodie pose",
+        prompt: "@gavi wearing sports top outfit, marble background",
         influencerHandle: "@gavi",
         status: "ready",
       },
@@ -61,11 +61,11 @@ export function WorkflowCanvas({
         id: "child-2",
         type: "image",
         parentId: "root-1",
-        x: 450,
-        y: 320,
-        title: "صورة الشاطئ",
+        x: 420,
+        y: 380,
+        title: "صورة فستان ساحلي",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
-        prompt: "@gavi in a red dress on beach balcony at sunset",
+        prompt: "@gavi in red dress on seaside balcony",
         influencerHandle: "@gavi",
         status: "ready",
       },
@@ -73,22 +73,54 @@ export function WorkflowCanvas({
         id: "child-3",
         type: "video",
         parentId: "child-2",
-        x: 820,
-        y: 320,
-        title: "فيديو حركة الشاطئ",
+        x: 780,
+        y: 380,
+        title: "فيديو حركي للشاطئ",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
-        prompt: "She turns to camera, smiles and plays with hair softly",
+        prompt: "She turns to camera, smiles softly at the seaside",
         status: "ready",
       },
     ]
   );
 
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>("child-2");
   const [promptText, setPromptText] = useState("");
   const [selectedHandle, setSelectedHandle] = useState("@gavi");
   const [selectedModel, setSelectedModel] = useState("Nano Banana Pro");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [isEnhancing, setIsEnhancing] = useState(false);
+
+  // Dragging Nodes state
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handleMouseDownNode = (e: React.MouseEvent, nodeId: string) => {
+    if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("textarea") || (e.target as HTMLElement).closest("select")) {
+      return;
+    }
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    setDraggingNodeId(nodeId);
+    dragOffsetRef.current = {
+      x: e.clientX - node.x,
+      y: e.clientY - node.y,
+    };
+    setActiveNodeId(nodeId);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggingNodeId) return;
+    const newX = Math.max(10, e.clientX - dragOffsetRef.current.x);
+    const newY = Math.max(10, e.clientY - dragOffsetRef.current.y);
+
+    setNodes((prev) =>
+      prev.map((n) => (n.id === draggingNodeId ? { ...n, x: newX, y: newY } : n))
+    );
+  };
+
+  const handleMouseUp = () => {
+    setDraggingNodeId(null);
+  };
 
   const handleAddChildNode = (parentId: string, type: "image" | "video") => {
     const parent = nodes.find((n) => n.id === parentId);
@@ -100,7 +132,22 @@ export function WorkflowCanvas({
       x: (parent?.x || 200) + 360,
       y: (parent?.y || 200) + (type === "video" ? 40 : 0),
       title: type === "image" ? "عقدة صورة جديدة" : "عقدة فيديو جديدة",
-      influencerHandle: parent?.influencerHandle || "@gavi",
+      influencerHandle: parent?.influencerHandle || selectedHandle,
+      status: "idle",
+    };
+    setNodes((prev) => [...prev, newNode]);
+    setActiveNodeId(newId);
+  };
+
+  const handleAddNewRootNode = () => {
+    const newId = `node-${Date.now()}`;
+    const newNode: CanvasNode = {
+      id: newId,
+      type: "image",
+      x: 200,
+      y: 200,
+      title: "عقدة صورة مستقلة",
+      influencerHandle: selectedHandle,
       status: "idle",
     };
     setNodes((prev) => [...prev, newNode]);
@@ -122,7 +169,7 @@ export function WorkflowCanvas({
       } else if (onGenerateImageNode) {
         resultUrl = await onGenerateImageNode(nodeId, promptText || "@gavi pose", selectedHandle, selectedModel, aspectRatio);
       } else {
-        await new Promise((r) => setTimeout(r, 1200));
+        await new Promise((r) => setTimeout(r, 1400));
         resultUrl = targetNode.imageUrl || "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500";
       }
 
@@ -152,10 +199,54 @@ export function WorkflowCanvas({
     }, 500);
   };
 
+  const handleDeleteNode = (nodeId: string) => {
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId && n.parentId !== nodeId));
+    if (activeNodeId === nodeId) setActiveNodeId(null);
+  };
+
   return (
-    <div className="relative w-full h-[calc(100vh-6rem)] overflow-hidden bg-[#07080f] select-none" id="tour-canvas-board">
+    <div
+      className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-[#07080f] select-none"
+      id="tour-canvas-board"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
       {/* Grid Pattern Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-70" />
+      <div className="absolute inset-0 bg-[radial-gradient(#ffffff0c_1px,transparent_1px)] [background-size:28px_28px] opacity-80 pointer-events-none" />
+
+      {/* Top Floating Control Bar matching screenshot 4 & 5 */}
+      <div className="absolute top-4 left-6 z-30 flex items-center gap-3 bg-[#0d0f19]/90 border border-white/10 p-2 rounded-2xl shadow-2xl backdrop-blur-xl">
+        <button
+          onClick={handleAddNewRootNode}
+          className="px-3.5 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-pink-500/20"
+        >
+          <Plus size={14} />
+          إضافة عقدة جديدة (+ Node)
+        </button>
+
+        <div className="h-4 w-px bg-white/10" />
+
+        <div className="flex items-center gap-2 text-xs font-bold text-zinc-300">
+          <span>المؤثر النشط:</span>
+          <select
+            value={selectedHandle}
+            onChange={(e) => setSelectedHandle(e.target.value)}
+            className="bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-pink-300 font-mono outline-none dir-ltr"
+          >
+            {influencerHandles.map((h) => (
+              <option key={h} value={h} className="bg-[#0d0f19] text-pink-300">
+                {h}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="h-4 w-px bg-white/10" />
+
+        <span className="text-[11px] font-semibold text-zinc-400">
+          عدد العقد: <strong className="text-white">{nodes.length}</strong>
+        </span>
+      </div>
 
       {/* Canvas SVG Connector Lines */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
@@ -168,9 +259,9 @@ export function WorkflowCanvas({
           const startY = parentNode.y + 160;
           const endX = node.x;
           const endY = node.y + 160;
-          const controlX1 = startX + 100;
+          const controlX1 = startX + 120;
           const controlY1 = startY;
-          const controlX2 = endX - 100;
+          const controlX2 = endX - 120;
           const controlY2 = endY;
 
           return (
@@ -179,10 +270,12 @@ export function WorkflowCanvas({
                 d={`M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`}
                 fill="none"
                 stroke="url(#line-gradient)"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeDasharray="6,6"
                 className="animate-pulse"
               />
+              <circle cx={startX} cy={startY} r="4" fill="#ec4899" />
+              <circle cx={endX} cy={endY} r="4" fill="#a855f7" />
             </g>
           );
         })}
@@ -198,7 +291,7 @@ export function WorkflowCanvas({
       <div className="relative z-10 w-full h-full p-8 overflow-auto">
         <div id="tour-canvas-child-nodes">
           {nodes.map((node) => {
-            const isRoot = node.id === "root-1";
+            const isRoot = node.type === "root";
             const isVideo = node.type === "video";
 
             return (
@@ -206,18 +299,35 @@ export function WorkflowCanvas({
                 key={node.id}
                 id={isRoot ? "tour-canvas-root-node" : isVideo ? "tour-video-motion-node" : undefined}
                 style={{ left: `${node.x}px`, top: `${node.y}px` }}
+                onMouseDown={(e) => handleMouseDownNode(e, node.id)}
                 className={cn(
-                  "absolute w-64 bg-[#0e101a]/95 border rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300 overflow-hidden group",
+                  "absolute w-64 bg-[#0e101a]/95 border rounded-2xl shadow-2xl backdrop-blur-md transition-shadow duration-200 overflow-hidden group cursor-grab active:cursor-grabbing",
                   activeNodeId === node.id ? "border-pink-500 ring-2 ring-pink-500/30" : "border-white/10 hover:border-white/20"
                 )}
-                onClick={() => setActiveNodeId(node.id)}
               >
                 {/* Node Top Header */}
-                <div className="px-3.5 py-2 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold text-pink-400 uppercase tracking-wider">
-                    {isVideo ? "فيديو" : "صورة"}
-                  </span>
-                  <span className="text-xs font-bold text-zinc-300 truncate max-w-[120px]">{node.title}</span>
+                <div className="px-3.5 py-2 bg-white/[0.04] border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Move size={12} className="text-zinc-500" />
+                    <span className="text-[10px] font-extrabold text-pink-400 uppercase tracking-wider">
+                      {isVideo ? "فيديو" : "صورة"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-zinc-300 truncate max-w-[100px]">{node.title}</span>
+                    {!isRoot && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteNode(node.id);
+                        }}
+                        className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-white/10"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Node Media Thumbnail Area */}
@@ -274,7 +384,8 @@ export function WorkflowCanvas({
 
                       <button
                         onClick={() => handleGenerate(node.id)}
-                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center gap-1"
+                        disabled={node.status === "generating"}
+                        className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center gap-1 disabled:opacity-50"
                       >
                         <Wand2 size={12} />
                         توليد

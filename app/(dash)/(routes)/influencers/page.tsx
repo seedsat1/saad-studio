@@ -29,7 +29,7 @@ import { NsfwStudio } from "@/components/influencers/NsfwStudio";
 export default function InfluencersPage() {
   const [activeTab, setActiveTab] = useState<
     "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers"
-  >("influencers");
+  >("canvas");
 
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
