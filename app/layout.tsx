@@ -269,10 +269,21 @@ export default function RootLayout({
                   }
 
                   if (activeIndex === -1) {
-                    if (currentUrl.indexOf('media.saadstudio.app') !== -1) {
-                      activeIndex = 0;
-                    } else if (currentUrl.indexOf('.r2.dev') !== -1) {
-                      activeIndex = 1;
+                    if (
+                      currentUrl.indexOf('media.saadstudio.app') !== -1 ||
+                      currentUrl.indexOf('.r2.dev') !== -1 ||
+                      currentUrl.indexOf('.supabase.co') !== -1
+                    ) {
+                      const nextUrl = candidates[0];
+                      console.log('[Media Fallback] Swapping from broken storage domain', currentUrl, 'to', nextUrl);
+                      target.setAttribute('src', nextUrl);
+                      if (target instanceof HTMLVideoElement || target instanceof HTMLAudioElement) {
+                        target.load();
+                        if (target.autoplay || target.paused === false) {
+                          target.play().catch(function() {});
+                        }
+                      }
+                      return;
                     }
                   }
 

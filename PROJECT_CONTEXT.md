@@ -1,5 +1,28 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Supabase Storage Domain Fallbacks & Clarify 402 Conversation Error (2026-07-27)
+
+- Status:
+  User reported console errors on Canvas page:
+  1. `*.supabase.co/... Failed to load resource: net::ERR_NAME_NOT_RESOLVED`
+  2. `api/conversation:1 Failed to load resource: the server responded with a status of 402 ()`
+  3. Preloaded font warnings.
+- Root cause found:
+  1. Old database generations contained legacy `supabase.co` image URLs. `getFallbackUrls()` in `lib/utils.ts`, `resolveProviderMediaUrl()` in `lib/media/public-url-resolver.ts`, and `saad-media-fallback-tracker` in `app/layout.tsx` did not recognize `supabase.co` as an internal storage host, preventing automatic URL resolution and client-side fallback swapping to Backblaze B2 (`saadstudio-storage`) / `/api/media/`.
+  2. `/api/conversation` returns HTTP 402 (Payment Required) when a user has insufficient credits for assistant chat.
+- Changes made:
+  - Updated `getFallbackUrls()` in `lib/utils.ts` to include `supabase.co` and `supabase.in` in `isOurStorage`, extracting key paths (`images/user_...`) to return Backblaze B2 and proxy fallbacks.
+  - Updated `saad-media-fallback-tracker` in `app/layout.tsx` to automatically swap broken `*.supabase.co` image links on client side to Backblaze B2 storage.
+  - Updated `resolveProviderMediaUrl()` in `lib/media/public-url-resolver.ts` to convert legacy Supabase storage paths directly to Backblaze B2 public URLs.
+- Affected files:
+  - `lib/utils.ts`
+  - `app/layout.tsx`
+  - `lib/media/public-url-resolver.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file lib/utils.ts --file app/layout.tsx --file lib/media/public-url-resolver.ts` passed with **0 errors and 0 warnings**.
+
 #### Latest task: Repair Independent `/influencers/*` Physical Pages (2026-07-27)
 
 - Status:

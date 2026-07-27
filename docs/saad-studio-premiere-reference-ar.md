@@ -1,4 +1,14 @@
 # مرجع Saad Studio لتكامل Premiere وReap
+## معالجة مسارات تخزين Supabase القديمة واستجابة 402 في الكانفاس (2026-07-27)
+
+- تم حل أخطاء التحميل وسجلات الكونسول في الكانفاس:
+  1. **روابط Supabase التجميعية القديمة (`ERR_NAME_NOT_RESOLVED`)**:
+     - تم تحديث `getFallbackUrls` في [lib/utils.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/utils.ts) لتجهيز مسارات fallback لـ Backblaze B2 و `/api/media/` فور التعرف على النطاق القديم `*.supabase.co` أو `*.supabase.in`.
+     - تم تحديث سكربت التبديل التلقائي في العميل `saad-media-fallback-tracker` في [app/layout.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/layout.tsx) لتبديل روابط Supabase التالفة في المتصفح تلقائياً إلى Backblaze B2 (`https://f003.backblazeb2.com/file/saadstudio-storage/...`).
+     - تم إضافة مطابقة نمط Supabase في `resolveProviderMediaUrl` بـ [lib/media/public-url-resolver.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/media/public-url-resolver.ts) لتحويل مفاتيح الصور القديمة إلى Backblaze B2 قبل إرسالها لخوادم التوليد.
+  2. **خطأ 402 (`Payment Required`) في `/api/conversation`**:
+     - ينطلق هذا الخطأ عندما لا يملك المستخدم رصيداً كافياً لتشغيل مساعد المحادثة، حيث يرجع المسار HTTP 402 مع رسالة `INSUFFICIENT_CREDITS_MESSAGE`.
+
 ## ربط كافة تبويبات وأدوات استوديو المؤثرين بالخوادم الحقيقية (Real API Integration) (2026-07-26)
 
 - تم استبدال العروض الصورية بربط حقيقي وعامل 100% لكل التبويبات الـ 9 في `/influencers`:

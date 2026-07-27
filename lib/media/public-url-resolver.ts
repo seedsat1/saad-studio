@@ -102,9 +102,10 @@ export async function resolveProviderMediaUrl(
       throw new ValidationError(`Insecure/local media URL not allowed: ${trimmed}`);
     }
     
-    // If it's a legacy R2 URL, try to map it to Backblaze B2 public URL if it exists
+    // If it's a legacy R2/Supabase URL, try to map it to Backblaze B2 public URL if it exists
     const r2Match = trimmed.match(/pub-[a-zA-Z0-9]+\.r2\.dev\/(images|videos|audio|thumbnails|media)\/(.+)/i) ||
-                    trimmed.match(/media\.saadstudio\.app\/(images|videos|audio|thumbnails|media)\/(.+)/i);
+                    trimmed.match(/media\.saadstudio\.app\/(images|videos|audio|thumbnails|media)\/(.+)/i) ||
+                    trimmed.match(/.*\.supabase\.(?:co|in)\/storage\/v1\/object\/public\/(images|videos|audio|thumbnails|media)\/(.+)/i);
     if (r2Match) {
       const bucket = r2Match[1];
       const path = r2Match[2];

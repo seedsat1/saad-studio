@@ -35,6 +35,8 @@ export function getFallbackUrls(url: string | null | undefined, _isDownload = fa
         host.includes("r2.dev") ||
         host.includes("backblazeb2.com") ||
         host.includes("saadstudio.app") ||
+        host.includes("supabase.co") ||
+        host.includes("supabase.in") ||
         host.includes("localhost") ||
         host.includes("127.0.0.1");
 
