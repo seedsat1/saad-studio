@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import {
@@ -28,11 +30,25 @@ import { VideoStudio } from "@/components/influencers/VideoStudio";
 import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
 import { LibraryStudio } from "@/components/influencers/LibraryStudio";
 
+type TabType = "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers";
+
+function getInitialTab(): TabType {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    if (
+      tabParam &&
+      ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(tabParam)
+    ) {
+      return tabParam as TabType;
+    }
+  }
+  return "canvas";
+}
+
 export default function InfluencersPage() {
   const { isLoaded, isSignedIn } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers"
-  >("canvas");
+  const [activeTab, setActiveTab] = useState<TabType>(getInitialTab);
 
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -46,12 +62,12 @@ export default function InfluencersPage() {
         tabParam &&
         ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(tabParam)
       ) {
-        setActiveTab(tabParam as any);
+        setActiveTab(tabParam as TabType);
       }
     }
   }, []);
 
-  const handleTabChange = (tabKey: "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers") => {
+  const handleTabChange = (tabKey: TabType) => {
     setActiveTab(tabKey);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);

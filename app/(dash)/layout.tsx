@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import TopNavbar from "@/components/TopNavbar";
 
 
+export const dynamic = "force-dynamic";
+
 const DashLayout = ({
   children,
 }: {
