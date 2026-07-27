@@ -352,8 +352,8 @@ export default function InfluencersPage() {
           <InfluencerRoster
             influencers={influencers}
             onAddInfluencer={handleAddInfluencer}
-            onSelectInfluencerForCanvas={(handle) => {
-              handleTabChange("canvas");
+            onSelectInfluencerForCanvas={(handle, action) => {
+              handleTabChange((action || "canvas") as any);
             }}
           />
         )}
