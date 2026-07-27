@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Restore Missing Aspect Ratio Picker for Kling 3.0 & Video Models (2026-07-27)
+
+- Status:
+  User reported that on `/video`, selecting `Kling 3.0` showed no Aspect Ratio selector options.
+- Root cause found:
+  `kling-v3.0-pro-t2v` (and `kling-v3-turbo`, `minimax-hailuo-2.3-i2v-fast`, `minimax-hailuo-2.3-i2v-pro`) in `lib/video-model-registry.ts` had empty `aspect_ratios: []` capability arrays. `app/(dash)/(routes)/video/page.tsx` checked `caps.aspect_ratios.length > 0`, causing the UI to hide the Aspect Ratio dropdown completely for these models.
+- Changes made:
+  - Updated `lib/video-model-registry.ts` to set `aspect_ratios: ["16:9", "9:16", "1:1", "4:3", "3:4"]` for Kling 3.0 & Kling V3 Turbo, and `aspect_ratios: ["16:9", "9:16", "1:1"]` for Minimax Hailuo 2.3.
+  - Added `effectiveAspectRatios` fallback in `app/(dash)/(routes)/video/page.tsx` so any video model without explicit sizes defaults to `["16:9", "9:16", "1:1", "4:3", "3:4"]` to ensure aspect ratio controls are always visible.
+- Affected files:
+  - `lib/video-model-registry.ts`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file lib/video-model-registry.ts --file "app/(dash)/(routes)/video/page.tsx"` passed with 0 errors.
+
 #### Latest task: Restore `/influencers?tab=*` Query Link Compatibility (2026-07-27)
 
 - Status:

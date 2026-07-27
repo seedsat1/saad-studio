@@ -173,7 +173,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     route_confirmed: true,
     capabilities: i2vCaps({
       has_end_frame:       true,
-      aspect_ratios:       [],
+      aspect_ratios:       ["16:9", "9:16", "1:1", "4:3", "3:4"],
       resolutions:         ["Standard", "Pro"],
       quality_param:       "resolution",
       durations:           [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
@@ -222,7 +222,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "kwaivgi/kling-v3-turbo-std/image-to-video",
     route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios:       [],
+      aspect_ratios:       ["16:9", "9:16", "1:1", "4:3", "3:4"],
       resolutions:         ["Standard", "Pro"],
       quality_param:       "resolution",
       durations:           [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
@@ -267,7 +267,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "hailuo/2-3-image-to-video-standard",
     route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios: [],
+      aspect_ratios: ["16:9", "9:16", "1:1"],
       durations:     [6, 10],
       resolutions:   ["768P", "1080P"],
     }),
@@ -281,7 +281,7 @@ export const VIDEO_MODEL_REGISTRY: WaveSpeedVideoModel[] = [
     api_route: "hailuo/2-3-image-to-video-pro",
     route_confirmed: true,
     capabilities: i2vCaps({
-      aspect_ratios: [],
+      aspect_ratios: ["16:9", "9:16", "1:1"],
       durations:     [6, 10],
       resolutions:   ["768P", "1080P"],
     }),

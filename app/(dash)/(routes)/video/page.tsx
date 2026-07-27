@@ -903,7 +903,7 @@ function VideoPageInner() {
         setSelectedModel(matched);
         const c = matched.capabilities;
         setDuration(c.durations[0] ?? null);
-        setAspectRatio(c.aspect_ratios[0] ?? null);
+        setAspectRatio(c.aspect_ratios[0] ?? (c.sizes.length > 0 ? null : "16:9"));
         setSize(c.sizes[0] ?? null);
         setResolution(c.resolutions[0] ?? null);
       }
@@ -1276,6 +1276,11 @@ function VideoPageInner() {
     : isVeo31LiteModel
       ? caps.resolutions.filter((value) => value.toLowerCase() !== "4k")
       : caps.resolutions;
+  const effectiveAspectRatios = caps.aspect_ratios.length > 0
+    ? caps.aspect_ratios
+    : caps.sizes.length > 0
+      ? []
+      : ["16:9", "9:16", "1:1", "4:3", "3:4"];
 
   useEffect(() => {
     if (!isVeo31Model) return;
@@ -1316,7 +1321,7 @@ function VideoPageInner() {
     setModelOpen(false);
     const c = m.capabilities;
     setDuration(c.durations[0] ?? null);
-    setAspectRatio(c.aspect_ratios[0] ?? null);
+    setAspectRatio(c.aspect_ratios[0] ?? (c.sizes.length > 0 ? null : "16:9"));
     setSize(c.sizes[0] ?? null);
     setResolution(c.resolutions[0] ?? null);
     setStartFrame(null);
@@ -4429,14 +4434,14 @@ function VideoPageInner() {
           )}
 
           {/* -- Aspect ratio ------------------------------------------------ */}
-          {caps.aspect_ratios.length > 0 && aspectRatio != null && (
+          {effectiveAspectRatios.length > 0 && (
             <div className="flex flex-col gap-2">
               <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
                 Aspect Ratio
               </label>
               <div className="relative">
                 <select
-                  value={aspectRatio}
+                  value={aspectRatio || effectiveAspectRatios[0]}
                   onChange={e => setAspectRatio(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
                   style={{
@@ -4445,7 +4450,7 @@ function VideoPageInner() {
                     color: selectedModel.family_color,
                   }}
                 >
-                  {caps.aspect_ratios.map(r => (
+                  {effectiveAspectRatios.map(r => (
                     <option key={r} value={r} style={{ background: "#0a1220", color: "#e2e8f0" }}>
                       {r}
                     </option>
@@ -5344,14 +5349,14 @@ function VideoPageInner() {
                 )}
 
                 {/* Aspect ratio */}
-                {caps.aspect_ratios.length > 0 && (
+                {effectiveAspectRatios.length > 0 && (
                   <div className="mb-4">
                     <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Aspect Ratio</label>
                     <div className="flex flex-wrap gap-2">
-                      {caps.aspect_ratios.map(r => (
+                      {effectiveAspectRatios.map(r => (
                         <button key={r} onClick={() => setAspectRatio(r)}
                           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{ background: aspectRatio === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: aspectRatio === r ? selectedModel.family_color : "#64748b", border: `1px solid ${aspectRatio === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                          style={{ background: (aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: (aspectRatio || effectiveAspectRatios[0]) === r ? selectedModel.family_color : "#64748b", border: `1px solid ${(aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
                         >{r}</button>
                       ))}
                     </div>

@@ -1,4 +1,14 @@
 # مرجع Saad Studio لتكامل Premiere وReap
+## إعادة وتأمين إظهار خيارات نسب الأبعاد (Aspect Ratio) لـ Kling 3.0 واستوديو الفيديو (2026-07-27)
+
+- **السبب والتشخيص:**
+  - نموذج `Kling 3.0` ونماذج Kling Turbo وHailuo كانت تمتلك مصفوفة قدرات فارغة لنسب الأبعاد (`aspect_ratios: []`) في [lib/video-model-registry.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/lib/video-model-registry.ts).
+  - كانت واجهة الاستوديو تجري فحصاً `caps.aspect_ratios.length > 0` مما أدى لإخفاء قائمة اختيار نسب الفيديو (16:9، 9:16، 1:1) بالكامل عند اختيار النموذج Kling 3.0.
+- **التعديل والتأمين:**
+  1. تم تعيين نسب الأبعاد الرسمية لنموذج Kling 3.0 وKling Turbo في السجل: `["16:9", "9:16", "1:1", "4:3", "3:4"]`.
+  2. تم تعيين نسب الأبعاد لـ Minimax Hailuo: `["16:9", "9:16", "1:1"]`.
+  3. تم إضافة احتياطي حماية `effectiveAspectRatios` في [app/(dash)/(routes)/video/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/(dash)/(routes)/video/page.tsx) ليضمن ظهور خيارات النسب تلقائياً لأي نموذج فيديو لا يملك أحجاماً ثابتة.
+
 ## مزامنة تقييم انتهاء الكريديت وخصم السلفة بالوقت الحقيقي (2026-07-27)
 
 - **السبب العلمي للاختلاف الظاهر في الصورة:**
