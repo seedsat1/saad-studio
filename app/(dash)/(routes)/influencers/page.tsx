@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import {
   Sparkles,
   Grid,
@@ -30,10 +31,26 @@ import { VideoStudio } from "@/components/influencers/VideoStudio";
 import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
 import { LibraryStudio } from "@/components/influencers/LibraryStudio";
 
-type TabType = "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers";
+export type TabType = "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers";
 
 function getInitialTab(): TabType {
   if (typeof window !== "undefined") {
+    const pathname = window.location.pathname;
+    if (pathname.includes("/canvas")) return "canvas";
+    if (pathname.includes("/image")) return "image";
+    if (pathname.includes("/video")) return "video";
+    if (pathname.includes("/motion")) return "motion";
+    if (pathname.includes("/faceswap")) return "faceswap";
+    if (pathname.includes("/upscale")) return "upscale";
+    if (pathname.includes("/nsfw")) return "nsfw";
+    if (pathname.includes("/library")) return "library";
+    if (pathname.includes("/influencers") && !pathname.endsWith("/influencers")) {
+      const parts = pathname.split("/").filter(Boolean);
+      const lastPart = parts[parts.length - 1];
+      if (["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(lastPart)) {
+        return lastPart as TabType;
+      }
+    }
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get("tab");
     if (
@@ -46,34 +63,28 @@ function getInitialTab(): TabType {
   return "canvas";
 }
 
-export default function InfluencersPage() {
+interface InfluencersPageProps {
+  defaultTab?: TabType;
+}
+
+export default function InfluencersPage({ defaultTab }: InfluencersPageProps) {
+  const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>(getInitialTab);
+  const [activeTab, setActiveTab] = useState<TabType>(() => defaultTab || getInitialTab());
 
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
-  // Sync active tab from URL query search params (?tab=...)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get("tab");
-      if (
-        tabParam &&
-        ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(tabParam)
-      ) {
-        setActiveTab(tabParam as TabType);
-      }
+    if (defaultTab) {
+      setActiveTab(defaultTab);
     }
-  }, []);
+  }, [defaultTab]);
 
   const handleTabChange = (tabKey: TabType) => {
     setActiveTab(tabKey);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", tabKey);
-      window.history.pushState({}, "", url.toString());
-    }
+    const targetUrl = tabKey === "influencers" ? "/influencers" : `/influencers/${tabKey}`;
+    router.push(targetUrl);
   };
 
   // Default Influencers List
