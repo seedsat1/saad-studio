@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Synchronize Real-time Credit Expiry Evaluation in `/api/editor/credits` (2026-07-27)
+
+- Status:
+  User asked why top navbar displayed `776 cr` while modal/API reported 0 credits and returned HTTP 402.
+- Root cause found:
+  The user had requested a Credit Advance (سلفة الكريديت) of 2,700 cr or their 30-day period expired. When `/api/conversation` ran `spendCredits()`, `handleCreditExpiry()` executed on the backend, deducting the 2,700 advance debt from the auto-renewed credits (`2,700 - 2,700 = 0 cr`). However, `/api/editor/credits` previously read `user.creditBalance` without evaluating `handleCreditExpiry()`, causing the top navbar to display stale pre-expiry credits (`776 cr`) prior to backend API requests.
+- Changes made:
+  - Exported `handleCreditExpiry` in `lib/credit-ledger.ts`.
+  - Added `await handleCreditExpiry(userId)` to `GET /api/editor/credits` in `app/api/editor/credits/route.ts` so credit queries always evaluate expiration and advance deductions before returning balance to the UI.
+- Affected files:
+  - `lib/credit-ledger.ts`
+  - `app/api/editor/credits/route.ts`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file lib/credit-ledger.ts --file app/api/editor/credits/route.ts` passed with **0 errors and 0 warnings**.
+
 #### Latest task: Fix Supabase Storage Domain Fallbacks & Clarify 402 Conversation Error (2026-07-27)
 
 - Status:

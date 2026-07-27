@@ -95,7 +95,7 @@ export async function ensureWelcomeCredits(userId: string) {
  * For monthly subscribers, expired credits are reset to 0.
  * Called automatically before every spendCredits().
  */
-async function handleCreditExpiry(userId: string): Promise<void> {
+export async function handleCreditExpiry(userId: string): Promise<void> {
   const user = await prismadb.user.findUnique({ where: { id: userId } });
   if (!user?.creditsExpireAt) return; // no expiry set → welcome/admin credits, skip
 

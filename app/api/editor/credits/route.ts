@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { ensureWelcomeCredits } from "@/lib/credit-ledger";
+import { ensureWelcomeCredits, handleCreditExpiry } from "@/lib/credit-ledger";
 import prismadb from "@/lib/prismadb";
 
 export async function GET() {
@@ -10,6 +10,7 @@ export async function GET() {
 
     let balance = 0;
     try {
+      await handleCreditExpiry(userId).catch(() => {});
       const user = await ensureWelcomeCredits(userId);
       balance = Number(user?.creditBalance ?? 0);
     } catch (error) {
