@@ -25,6 +25,13 @@ export function VideoStudio({
   const [resultVideoUrl, setResultVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const getModelRoute = () => {
+    if (selectedModel.includes("Seedance")) return "bytedance/seedance-2.0/text-to-video";
+    if (selectedModel.includes("Google")) return "google/veo-3.1-generate-preview";
+    if (selectedModel.includes("2.6")) return "kwaivgi/kling-v2.6-std/text-to-video";
+    return "kwaivgi/kling-v3.0-pro/text-to-video";
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -47,18 +54,26 @@ export function VideoStudio({
       const fullPrompt = prompt.includes("@") ? prompt : `${selectedHandle} ${prompt}`;
       let image_url = "";
       if (refImage) {
-        image_url = refPreview || "";
+        image_url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = reject;
+          reader.readAsDataURL(refImage);
+        });
       }
 
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: fullPrompt,
-          model: selectedModel.toLowerCase().includes("kling") ? "kwaivgi/kling-v3.0-std" : "google/gemini-omni-flash",
-          duration_seconds: parseInt(duration),
-          aspect_ratio: aspectRatio,
-          image_url,
+          modelRoute: getModelRoute(),
+          payload: {
+            prompt: fullPrompt,
+            duration: parseInt(duration),
+            aspect_ratio: aspectRatio,
+            image_url,
+            resolution: selectedModel.includes("Google") ? "1080p" : "720p",
+          },
         }),
       });
 

@@ -18,18 +18,36 @@ export function NsfwStudio({
   const [selectedModel, setSelectedModel] = useState("Z-Image Spicy");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setGenerating(true);
+    setError(null);
     try {
       if (onGenerateSpicyImage) {
         const url = await onGenerateSpicyImage(prompt, selectedHandle, selectedModel);
         setResultUrl(url);
       } else {
-        await new Promise((r) => setTimeout(r, 1500));
-        setResultUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600");
+        const fullPrompt = prompt.includes("@") ? prompt : `${selectedHandle} ${prompt}`;
+        const res = await fetch("/api/image/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: fullPrompt,
+            model: selectedModel.includes("Nano") ? "seedream/5-pro" : "z-image",
+            aspectRatio: "9:16",
+            quality: "1K",
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || (!data?.imageUrl && !data?.mediaUrl && !data?.url)) {
+          throw new Error(data?.error || "Image generation failed.");
+        }
+        setResultUrl(data.imageUrl || data.mediaUrl || data.url);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -98,6 +116,12 @@ export function NsfwStudio({
           {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
           توليد المحتوى الحصري (Generate Spicy Image)
         </button>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+            {error}
+          </div>
+        )}
 
         {resultUrl && (
           <div className="pt-4 border-t border-white/10 space-y-3">

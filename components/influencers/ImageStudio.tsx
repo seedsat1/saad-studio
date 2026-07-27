@@ -73,7 +73,7 @@ export function ImageStudio({
         body: JSON.stringify({
           prompt: fullPrompt,
           model: selectedModel.toLowerCase().includes("pro") ? "seedream/5-pro" : "qwen",
-          aspect_ratio: aspectRatio,
+          aspectRatio,
           quality,
         }),
       });

@@ -1,5 +1,62 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix `/influencers` Top Tool Tabs Click Blocking (2026-07-27)
+
+- Status:
+  User reported that the visible `/influencers` tool tabs (`Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`) could not be clicked.
+- Root cause found:
+  The tab bar sits directly under the fixed top navbar. In production viewport conditions, the fixed navbar/dropdown stacking layer can sit above the influencers tab row and intercept pointer clicks even when the tab buttons are visible.
+- Changes made:
+  - Promoted the `/influencers` tab row to an explicit positioned interactive layer with `relative`, `z-[60]`, and `pointer-events-auto`.
+  - Added explicit `type="button"` to tab/action buttons so they behave as pure client-side controls.
+- Affected files:
+  - `app/(dash)/(routes)/influencers/page.tsx`
+- Verification:
+  - `npx.cmd next lint --file "app/(dash)/(routes)/influencers/page.tsx"` passed with 0 warnings and 0 errors.
+- Remaining:
+  - Deploy is required before the clickability fix appears on `https://www.saadstudio.app/influencers`.
+
+#### Latest task: Diagnose and Repair `/influencers` Inner Tool Tabs Not Working (2026-07-27)
+
+- Status:
+  Inspected production `https://www.saadstudio.app/influencers` and confirmed the page itself returns `200 OK` and its `_next` chunks load successfully. The failure was not hosting/404; it was inside the page logic.
+- Root causes found:
+  1. Several `/influencers` tool tabs were UI-only fallbacks and did not call real APIs:
+     - `Face Swap` returned the uploaded preview/placeholder instead of `/api/generate/face-swap`.
+     - `Motion Control` returned a sample Google video instead of `/api/video`.
+     - `NSFW` returned an Unsplash placeholder instead of `/api/image/generate`.
+     - `Upscale` copied the preview URL instead of `/api/generate/upscale`.
+  2. `VideoStudio` sent the wrong `/api/video` request shape (`model`/flat fields) while the backend expects `{ modelRoute, payload }`.
+  3. Image generation tabs sent `aspect_ratio`, but `/api/image/generate` reads `aspectRatio`, so chosen ratios were ignored.
+  4. `/api/characters` and `/api/assets` could fire before Clerk auth hydration and surface 401 behavior in the browser.
+- Changes made:
+  - Wired `FaceSwapStudio` to `/api/generate/face-swap` using selected influencer reference image as source and uploaded target image as data URL.
+  - Wired `MotionControlStudio` to upload image/video through `/api/media/upload`, then call `/api/video` with `kwaivgi/kling-v3.0-pro/motion-control`.
+  - Wired `NsfwStudio` to `/api/image/generate` using `z-image` or `seedream/5-pro` depending on selected mode.
+  - Wired `UpscaleStudio` to `/api/generate/upscale` for image/video data URLs.
+  - Updated `VideoStudio` and `WorkflowCanvas` video nodes to use `{ modelRoute, payload }` and polling.
+  - Added auth hydration guards for `/api/characters` and `/api/assets`.
+- Affected files:
+  - `app/(dash)/(routes)/influencers/page.tsx`
+  - `components/influencers/FaceSwapStudio.tsx`
+  - `components/influencers/ImageStudio.tsx`
+  - `components/influencers/LibraryStudio.tsx`
+  - `components/influencers/MotionControlStudio.tsx`
+  - `components/influencers/NsfwStudio.tsx`
+  - `components/influencers/UpscaleStudio.tsx`
+  - `components/influencers/VideoStudio.tsx`
+  - `components/influencers/WorkflowCanvas.tsx`
+- Verification:
+  - `Invoke-WebRequest https://www.saadstudio.app/influencers` returned `200`.
+  - Production `/influencers` page chunk and dependent chunks returned `200`.
+  - `npx.cmd next lint --file ...` for the modified influencers files passed with warnings only for existing `<img>` usage.
+  - `npx.cmd tsc --noEmit --pretty false` failed on existing unrelated errors:
+    - `app/api/wavespeed/bria/fibo/relight/route.ts(212,13): Expected 4 arguments, but got 1.`
+    - `components/canvas/node-icons.tsx(13,14): missing CanvasNodeType icon keys.`
+- Remaining:
+  - Deploy is required before the repaired `/influencers` behavior appears on production.
+  - Full TypeScript verification remains blocked by the unrelated errors above.
+
 #### Latest task: Wire All 9 Influencer Studio Tool Tabs to Real API Endpoints (2026-07-26)
 
 - Status:

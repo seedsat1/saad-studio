@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Move, X, RefreshCw } from "lucide-react";
+import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Move, X, RefreshCw, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type CanvasNode = {
@@ -39,8 +39,8 @@ export function WorkflowCanvas({
       {
         id: "root-1",
         type: "root",
-        x: 60,
-        y: 120,
+        x: 40,
+        y: 80,
         title: "الصورة المرجعية لـ @gavi",
         imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500",
         influencerHandle: "@gavi",
@@ -50,7 +50,7 @@ export function WorkflowCanvas({
         id: "child-1",
         type: "image",
         parentId: "root-1",
-        x: 380,
+        x: 360,
         y: 40,
         title: "صورة ملابس رياضية",
         imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500",
@@ -62,8 +62,8 @@ export function WorkflowCanvas({
         id: "child-2",
         type: "image",
         parentId: "root-1",
-        x: 380,
-        y: 340,
+        x: 360,
+        y: 380,
         title: "صورة فستان ساحلي",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
         prompt: "@gavi in red dress on seaside balcony",
@@ -74,8 +74,8 @@ export function WorkflowCanvas({
         id: "child-3",
         type: "video",
         parentId: "child-2",
-        x: 720,
-        y: 340,
+        x: 680,
+        y: 380,
         title: "فيديو حركة الشاطئ",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
         prompt: "She turns to camera, smiles softly at the seaside",
@@ -134,7 +134,7 @@ export function WorkflowCanvas({
       id: newId,
       type,
       parentId,
-      x: (parent?.x || 200) + 340,
+      x: (parent?.x || 200) + 320,
       y: (parent?.y || 200) + (type === "video" ? 40 : 0),
       title: type === "image" ? "عقدة صورة جديدة" : "عقدة فيديو جديدة",
       influencerHandle: parent?.influencerHandle || selectedHandle,
@@ -174,7 +174,6 @@ export function WorkflowCanvas({
       } else if (onGenerateImageNode) {
         resultUrl = await onGenerateImageNode(nodeId, promptText || "@gavi pose", selectedHandle, selectedModel, aspectRatio);
       } else {
-        // Fallback live image fetch
         const res = await fetch("/api/image/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -222,7 +221,7 @@ export function WorkflowCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[calc(100vh-8rem)] overflow-hidden bg-[#07080f] select-none"
+      className="relative w-full min-h-[720px] h-[calc(100vh-8rem)] overflow-hidden bg-[#07080f] select-none"
       id="tour-canvas-board"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}

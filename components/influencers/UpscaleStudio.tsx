@@ -10,6 +10,11 @@ export function UpscaleStudio() {
   const [scaleFactor, setScaleFactor] = useState("4K");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const resultIsVideo = Boolean(
+    selectedFile?.type.startsWith("video/") ||
+      (resultUrl && /\.(mp4|webm|mov|mkv|avi|ogg)(?:\?|$)/i.test(resultUrl))
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -17,15 +22,38 @@ export function UpscaleStudio() {
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       setResultUrl(null);
+      setError(null);
     }
   };
 
   const handleUpscale = async () => {
     if (!selectedFile) return;
     setProcessing(true);
+    setError(null);
     try {
-      await new Promise((r) => setTimeout(r, 1400));
-      setResultUrl(previewUrl);
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+      const isVideo = selectedFile.type.startsWith("video/");
+      const scale = scaleFactor === "8K" ? "8" : scaleFactor === "4K" ? "4" : "2";
+      const res = await fetch("/api/generate/upscale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          [isVideo ? "videoUrl" : "imageUrl"]: dataUrl,
+          scale,
+        }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || (!data?.mediaUrl && !data?.imageUrl && !data?.videoUrl)) {
+        throw new Error(data?.error || "Upscale failed.");
+      }
+      setResultUrl(data.mediaUrl || data.imageUrl || data.videoUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upscale failed.");
     } finally {
       setProcessing(false);
     }
@@ -85,13 +113,23 @@ export function UpscaleStudio() {
             {processing ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpRight size={16} />}
             رفع الدقة والوضوح (Upscale Media)
           </button>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+              {error}
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 flex flex-col">
           <label className="block text-xs font-bold text-zinc-300">النتيجة فائقة الدقة (Upscaled Output)</label>
           <div className="flex-1 min-h-[260px] rounded-2xl border border-white/10 bg-black flex items-center justify-center overflow-hidden relative">
             {resultUrl ? (
-              <img src={resultUrl} alt="Result" className="w-full h-full object-cover" />
+              resultIsVideo ? (
+                <video src={resultUrl} controls className="w-full h-full object-cover" />
+              ) : (
+                <img src={resultUrl} alt="Result" className="w-full h-full object-cover" />
+              )
             ) : (
               <div className="text-center p-6 text-zinc-500 space-y-2">
                 <Sparkles size={32} className="mx-auto" />

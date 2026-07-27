@@ -29,7 +29,7 @@ import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
 import { LibraryStudio } from "@/components/influencers/LibraryStudio";
 
 export default function InfluencersPage() {
-  const { userId, isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<
     "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers"
   >("canvas");
@@ -68,6 +68,7 @@ export default function InfluencersPage() {
 
   // Load backend registered characters safely after auth hydration
   useEffect(() => {
+    if (!isLoaded) return;
     if (isLoaded && !isSignedIn) return;
 
     fetch("/api/characters")
@@ -127,14 +128,19 @@ export default function InfluencersPage() {
   };
 
   const influencerHandles = influencers.map((i) => i.handle);
+  const influencerImageUrls = influencers.reduce<Record<string, string>>((acc, item) => {
+    acc[item.handle] = item.coverUrl;
+    return acc;
+  }, {});
 
   return (
     <div className="w-full flex flex-col bg-[#05070f] text-white">
       {/* Top Header Navigation Bar matching screenshots and video 100% */}
-      <div className="h-16 border-b border-white/10 bg-[#090b14]/90 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-20">
+      <div className="relative h-16 border-b border-white/10 bg-[#090b14]/90 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-[60] pointer-events-auto">
         {/* Navigation Tabs - Excludes MCP & CLI completely */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <button
+            type="button"
             onClick={() => setActiveTab("canvas")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -146,6 +152,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("image")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -157,6 +164,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("video")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -168,6 +176,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("motion")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -179,6 +188,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("faceswap")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -190,6 +200,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("upscale")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -201,6 +212,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("nsfw")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -212,6 +224,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("library")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -223,6 +236,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab("influencers")}
             className={cn(
               "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
@@ -237,6 +251,7 @@ export default function InfluencersPage() {
         {/* Right Side Header Controls */}
         <div className="flex items-center gap-3 shrink-0">
           <button
+            type="button"
             onClick={() => setIsTourOpen(true)}
             className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-300 transition flex items-center gap-1.5"
           >
@@ -245,6 +260,7 @@ export default function InfluencersPage() {
           </button>
 
           <button
+            type="button"
             id="tour-assistant-trigger"
             onClick={() => setIsAssistantOpen(!isAssistantOpen)}
             className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5"
@@ -272,7 +288,7 @@ export default function InfluencersPage() {
         )}
 
         {activeTab === "faceswap" && (
-          <FaceSwapStudio influencerHandles={influencerHandles} />
+          <FaceSwapStudio influencerHandles={influencerHandles} influencerImageUrls={influencerImageUrls} />
         )}
 
         {activeTab === "motion" && (

@@ -2076,3 +2076,16 @@
 - الواجهة تعرض معالجة إخراجية وخطة مشاهد نصية مرتبطة بالطلب، ولا تعرض صور ستوريبورد demo عشوائية وكأنها مشاهد حقيقية.
 - إذا كتب المستخدم سؤال استشارة مثل `ماذا تقترح لي؟` مع موقع أو إعلان أو مرجع صورة/فيديو، يجب أن يرد Hook Studio باقتراح نصي أولاً دون خصم كريدت ودون إرسال الطلب للمزود.
 - إذا كتب المستخدم أمر توليد صريح مثل `ولّد هذا الإعلان`، ينتقل إلى مسار التوليد الطبيعي.
+# Influencers Inner Tabs API Repair (2026-07-27)
+
+- Production `/influencers` returned `200 OK` and its `_next` chunks loaded; the failure was in client tab behavior, not hosting.
+- Fixed UI-only fallbacks so `FaceSwapStudio`, `MotionControlStudio`, `NsfwStudio`, and `UpscaleStudio` call real API routes.
+- `VideoStudio` and `WorkflowCanvas` now send `/api/video` as `{ modelRoute, payload }` and poll `taskId`.
+- `ImageStudio` and `WorkflowCanvas` now send `aspectRatio` instead of the ignored `aspect_ratio` key.
+- `/api/characters` and `/api/assets` calls must wait for Clerk auth hydration to avoid premature 401 states.
+
+## Influencers Tab Bar Click Layer Fix (2026-07-27)
+
+- `/influencers` has a fixed global top navbar above the local studio tab bar.
+- The local studio tab row must stay an explicit interactive stacking layer (`relative z-[60] pointer-events-auto`) so navbar/dropdown layers do not intercept clicks on `Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, or `Influencers`.
+- Tab/action controls in `app/(dash)/(routes)/influencers/page.tsx` should use `type="button"` because they are client-side controls, not form submissions.

@@ -9,6 +9,20 @@ interface MotionControlStudioProps {
   onGenerateMotion?: (videoFile: File, characterImageFile: File, model: string) => Promise<string>;
 }
 
+async function uploadMediaFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/media/upload", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.publicUrl) {
+    throw new Error(data?.error || "Media upload failed.");
+  }
+  return data.publicUrl;
+}
+
 export function MotionControlStudio({
   influencerHandles = ["@gavi", "@sophie", "@katrina", "@kat"],
   onGenerateMotion,
@@ -20,6 +34,7 @@ export function MotionControlStudio({
   const [resultVideoUrl, setResultVideoUrl] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState("Kling 3.0 Motion Control");
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,14 +57,58 @@ export function MotionControlStudio({
   const handleGenerate = async () => {
     if (!motionVideo || !characterImage) return;
     setGenerating(true);
+    setError(null);
     try {
       if (onGenerateMotion) {
         const url = await onGenerateMotion(motionVideo, characterImage, selectedModel);
         setResultVideoUrl(url);
       } else {
-        await new Promise((r) => setTimeout(r, 2000));
-        setResultVideoUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4");
+        const [videoUrl, imageUrl] = await Promise.all([
+          uploadMediaFile(motionVideo),
+          uploadMediaFile(characterImage),
+        ]);
+        const res = await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelRoute: "kwaivgi/kling-v3.0-pro/motion-control",
+            payload: {
+              prompt: "Transfer the motion from the reference video to the uploaded influencer character.",
+              image_url: imageUrl,
+              video_url: videoUrl,
+              resolution: selectedModel.includes("720") ? "720p" : "1080p",
+              orientation: "image",
+              scene_control_mode: false,
+            },
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || (!data?.taskId && !data?.videoUrl)) {
+          throw new Error(data?.error || "Motion generation failed.");
+        }
+        if (data.videoUrl) {
+          setResultVideoUrl(data.videoUrl);
+        } else {
+          let attempts = 0;
+          const poll = setInterval(async () => {
+            attempts++;
+            const statusRes = await fetch(`/api/video?taskId=${data.taskId}`).catch(() => null);
+            const statusData = await statusRes?.json().catch(() => null);
+            if (statusData?.status === "completed" && statusData?.videoUrl) {
+              clearInterval(poll);
+              setResultVideoUrl(statusData.videoUrl);
+              setGenerating(false);
+            } else if (statusData?.status === "failed" || attempts > 30) {
+              clearInterval(poll);
+              setError(statusData?.error || "Motion generation timed out.");
+              setGenerating(false);
+            }
+          }, 4000);
+          return;
+        }
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Motion generation failed.");
     } finally {
       setGenerating(false);
     }
@@ -129,6 +188,12 @@ export function MotionControlStudio({
             {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
             توليد فيديو الحركة (Generate Motion)
           </button>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+              {error}
+            </div>
+          )}
         </div>
       </div>
 

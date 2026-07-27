@@ -62,8 +62,10 @@ async function objectExists(key) {
   }
 }
 
+const FOLDER = process.env.B2_UPLOAD_FOLDER || "reference-thumbnails";
+
 async function uploadOne(presetId, srcUrl) {
-  const key = `reference-thumbnails/${presetId}.webp`;
+  const key = `${FOLDER}/${presetId}.webp`;
   if (!FORCE && (await objectExists(key))) {
     return `${PUBLIC}/${encodeURIComponent(key).replace(/%2F/g, "/")}`;
   }

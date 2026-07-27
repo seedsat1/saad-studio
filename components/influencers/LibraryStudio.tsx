@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Folder, Image as ImageIcon, Video as VideoIcon, Download, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,10 +15,17 @@ type AssetRecord = {
 };
 
 export function LibraryStudio() {
+  const { isLoaded, isSignedIn } = useAuth();
   const [assets, setAssets] = useState<AssetRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadAssets = async () => {
+  const loadAssets = useCallback(async () => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setAssets([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/assets", { cache: "no-store" });
@@ -68,11 +76,11 @@ export function LibraryStudio() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     loadAssets();
-  }, []);
+  }, [loadAssets]);
 
   // Group assets by monthGroup
   const grouped = assets.reduce<Record<string, AssetRecord[]>>((acc, item) => {

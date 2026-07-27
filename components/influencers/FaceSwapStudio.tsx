@@ -6,11 +6,22 @@ import { cn } from "@/lib/utils";
 
 interface FaceSwapStudioProps {
   influencerHandles?: string[];
+  influencerImageUrls?: Record<string, string>;
   onSwapFace?: (targetFile: File, handle: string) => Promise<string>;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export function FaceSwapStudio({
   influencerHandles = ["@gavi", "@sophie", "@katrina", "@kat"],
+  influencerImageUrls = {},
   onSwapFace,
 }: FaceSwapStudioProps) {
   const [selectedHandle, setSelectedHandle] = useState(influencerHandles[0] || "@gavi");
@@ -18,6 +29,7 @@ export function FaceSwapStudio({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,14 +43,35 @@ export function FaceSwapStudio({
   const handleGenerate = async () => {
     if (!targetFile) return;
     setGenerating(true);
+    setError(null);
     try {
       if (onSwapFace) {
         const url = await onSwapFace(targetFile, selectedHandle);
         setResultUrl(url);
       } else {
-        await new Promise((r) => setTimeout(r, 1500));
-        setResultUrl(previewUrl || "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600");
+        const sourceImageUrl = influencerImageUrls[selectedHandle];
+        if (!sourceImageUrl) {
+          throw new Error("No reference image is available for the selected influencer.");
+        }
+
+        const targetImageUrl = await readFileAsDataUrl(targetFile);
+        const res = await fetch("/api/generate/face-swap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceImageUrl,
+            targetImageUrl,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok || (!data?.imageUrl && !data?.mediaUrl)) {
+          throw new Error(data?.error || "Face swap failed.");
+        }
+        setResultUrl(data.imageUrl || data.mediaUrl);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Face swap failed.");
     } finally {
       setGenerating(false);
     }
@@ -97,6 +130,12 @@ export function FaceSwapStudio({
             {generating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
             توليد الصورة بنقرة واحدة (Generate Face Swap)
           </button>
+
+          {error && (
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Right Side: Result Preview Frame */}
