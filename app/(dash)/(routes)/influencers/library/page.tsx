@@ -1,9 +1,7 @@
-"use client";
+import InfluencersStudioPage from "@/components/influencers/InfluencersStudioPage";
 
 export const dynamic = "force-dynamic";
 
-import InfluencersPage from "../page";
-
 export default function InfluencerLibraryPage() {
-  return <InfluencersPage defaultTab="library" />;
+  return <InfluencersStudioPage defaultTab="library" />;
 }

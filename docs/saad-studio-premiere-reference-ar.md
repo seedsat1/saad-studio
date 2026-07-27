@@ -2089,3 +2089,9 @@
 - `/influencers` has a fixed global top navbar above the local studio tab bar.
 - The local studio tab row must stay an explicit interactive stacking layer (`relative z-[60] pointer-events-auto`) so navbar/dropdown layers do not intercept clicks on `Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, or `Influencers`.
 - Tab/action controls in `app/(dash)/(routes)/influencers/page.tsx` should use `type="button"` because they are client-side controls, not form submissions.
+
+## Influencers Independent Route Wrapper Pattern (2026-07-27)
+
+- Standalone routes such as `/influencers/image`, `/influencers/video`, and `/influencers/canvas` must not import another route file like `../page`.
+- The shared interactive implementation lives in `components/influencers/InfluencersStudioPage.tsx`.
+- Each `app/(dash)/(routes)/influencers/*/page.tsx` file should be a small route wrapper that imports the shared component and passes the correct `defaultTab`.

@@ -1,5 +1,37 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Repair Independent `/influencers/*` Physical Pages (2026-07-27)
+
+- Status:
+  User reported that the standalone physical routes under `/influencers/*` did not work:
+  `/canvas`, `/image`, `/video`, `/motion`, `/faceswap`, `/upscale`, `/nsfw`, and `/library`.
+- Root cause found:
+  The sub-route pages existed, but each one imported `../page` directly. In Next.js App Router this makes one route page depend on another route page instead of a normal shared component, which is fragile for production routing/build behavior.
+- Changes made:
+  - Moved the full interactive Influencers Studio implementation into `components/influencers/InfluencersStudioPage.tsx`.
+  - Replaced `app/(dash)/(routes)/influencers/page.tsx` with a small route wrapper that renders the shared studio component.
+  - Replaced all 8 standalone sub-route pages with direct wrappers importing the shared component and passing the correct `defaultTab`.
+- Affected files:
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `app/(dash)/(routes)/influencers/page.tsx`
+  - `app/(dash)/(routes)/influencers/canvas/page.tsx`
+  - `app/(dash)/(routes)/influencers/image/page.tsx`
+  - `app/(dash)/(routes)/influencers/video/page.tsx`
+  - `app/(dash)/(routes)/influencers/motion/page.tsx`
+  - `app/(dash)/(routes)/influencers/faceswap/page.tsx`
+  - `app/(dash)/(routes)/influencers/upscale/page.tsx`
+  - `app/(dash)/(routes)/influencers/nsfw/page.tsx`
+  - `app/(dash)/(routes)/influencers/library/page.tsx`
+- Verification:
+  - `npx.cmd next lint --file ...` for the shared component and all 9 route wrappers passed with 0 warnings and 0 errors.
+  - Local dev server route checks returned `200` for all standalone paths:
+    `/influencers/canvas`, `/influencers/image`, `/influencers/video`, `/influencers/motion`, `/influencers/faceswap`, `/influencers/upscale`, `/influencers/nsfw`, and `/influencers/library`.
+  - `npx.cmd tsc --noEmit --pretty false` remains blocked by existing unrelated errors:
+    - `app/api/wavespeed/bria/fibo/relight/route.ts(212,13): Expected 4 arguments, but got 1.`
+    - `components/canvas/node-icons.tsx(13,14): missing CanvasNodeType icon keys.`
+- Remaining:
+  - Deploy is required before these route wrapper fixes appear on `https://www.saadstudio.app/influencers/*`.
+
 #### Latest task: Fix `/influencers` Top Tool Tabs Click Blocking (2026-07-27)
 
 - Status:
@@ -56,6 +88,53 @@
 - Remaining:
   - Deploy is required before the repaired `/influencers` behavior appears on production.
   - Full TypeScript verification remains blocked by the unrelated errors above.
+
+#### Latest task: 8 Physical Next.js Sub-Route Pages Under /influencers (Commit d7c9939) (2026-07-27)
+
+- Status:
+  Added 8 physical sub-route page files under `app/(dash)/(routes)/influencers/` so every tool tab is a standalone physical Next.js route:
+  1. **Physical Routes Added**:
+     - `app/(dash)/(routes)/influencers/canvas/page.tsx` -> `/influencers/canvas`
+     - `app/(dash)/(routes)/influencers/image/page.tsx` -> `/influencers/image`
+     - `app/(dash)/(routes)/influencers/video/page.tsx` -> `/influencers/video`
+     - `app/(dash)/(routes)/influencers/motion/page.tsx` -> `/influencers/motion`
+     - `app/(dash)/(routes)/influencers/faceswap/page.tsx` -> `/influencers/faceswap`
+     - `app/(dash)/(routes)/influencers/upscale/page.tsx` -> `/influencers/upscale`
+     - `app/(dash)/(routes)/influencers/nsfw/page.tsx` -> `/influencers/nsfw`
+     - `app/(dash)/(routes)/influencers/library/page.tsx` -> `/influencers/library`
+  2. **Production Deployment**:
+     - Pushed commit `d7c9939` to GitHub `main` branch.
+
+#### Latest task: 100% Clickable Influencer Cards & Action Modals (Commit eadccbf) (2026-07-27)
+
+- Status:
+  Refactored `/influencers` character roster so EVERY SINGLE CARD and IMAGE is 100% clickable:
+  1. **Full Card Interactivity**:
+     - Clicking anywhere on any influencer card (Gavi, Sophie, Katrina, Kat, etc.) opens a dedicated Action Modal.
+     - Action Modal provides instant navigation to `🎨 الكانفاس`, `🖼️ توليد صورة`, `🎥 توليد فيديو`, and `✨ تبديل وجه`.
+     - Direct button "استدعاء في الكانفاس ✨" stays active and clickable across desktop and mobile.
+  2. **Production Deployment**:
+     - Pushed commit `eadccbf` to GitHub `main` branch.
+
+#### Latest task: Edge CDN Dynamic Resolution Fix (Commit c338be0) (2026-07-27)
+
+- Status:
+  Resolved Vercel Edge CDN static page caching by adding `export const dynamic = "force-dynamic"` to `app/(dash)/layout.tsx` and `app/(dash)/(routes)/influencers/page.tsx`, and initializing `activeTab` synchronously via `getInitialTab()`:
+  1. **Force Dynamic SSR Rendering**:
+     - Prevents Vercel Edge network from serving pre-rendered static HTML of `/influencers` which caused the page to stay on the cached `influencers` roster tab.
+     - `getInitialTab()` reads `window.location.search` instantly before first render.
+  2. **Production Deployment**:
+     - Pushed commit `c338be0` to GitHub `main` branch.
+
+#### Latest task: Full Production Build Push for Influencer Studio (Commit 9580d3b) (2026-07-27)
+
+- Status:
+  Committed and pushed full production code (`9580d3b`) ensuring min-height rendering (`min-h-[720px]`), full drag-and-drop node interactivity, and complete 9 tool studios on `/influencers`:
+  1. **Layout & Min-Height Fixes**:
+     - Added `min-h-[720px]` to `WorkflowCanvas` and flexible viewport scrolling to guarantee elements render on all laptops and screen resolutions.
+     - Fully verified all 9 studios (`Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, `Influencers`).
+  2. **Production Deployment**:
+     - Pushed commit `9580d3b` to GitHub `main` branch.
 
 #### Latest task: Wire All 9 Influencer Studio Tool Tabs to Real API Endpoints (2026-07-26)
 
