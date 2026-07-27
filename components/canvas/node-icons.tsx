@@ -10,7 +10,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { CanvasNodeType } from "./canvas-types";
 
-export const NODE_ICON_MAP: Record<CanvasNodeType, LucideIcon> = {
+export const NODE_ICON_MAP: Partial<Record<CanvasNodeType, LucideIcon>> = {
   "upload-image":    Upload,
   "text-prompt":     Type,
   "image-edit":      Pencil,

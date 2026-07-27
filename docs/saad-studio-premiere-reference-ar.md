@@ -2115,3 +2115,9 @@
 - Standalone routes such as `/influencers/image`, `/influencers/video`, and `/influencers/canvas` must not import another route file like `../page`.
 - The shared interactive implementation lives in `components/influencers/InfluencersStudioPage.tsx`.
 - Each `app/(dash)/(routes)/influencers/*/page.tsx` file should be a small route wrapper that imports the shared component and passes the correct `defaultTab`.
+
+## Production Deploy Typecheck Guard for Influencers Routes (2026-07-27)
+
+- If `/influencers/*` routes work locally but are not reachable on production after a push, check whether Vercel/Next rejected the deploy because of unrelated TypeScript build blockers.
+- `app/api/wavespeed/bria/fibo/relight/route.ts` must call `refundGenerationCharge(generationId, userId, credits, options)` with a real generation id returned by `spendCredits()`.
+- `components/canvas/node-icons.tsx` should keep `NODE_ICON_MAP` as a partial map because unsupported/new `CanvasNodeType` values intentionally fall back to `ImageIcon`.

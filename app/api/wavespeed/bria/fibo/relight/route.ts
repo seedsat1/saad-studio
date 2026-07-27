@@ -138,6 +138,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   let chargedUserId: string | null = null;
+  let chargedGenerationId: string | null = null;
   let genId = `bria-relight-${Date.now()}`;
 
   try {
@@ -178,13 +179,14 @@ export async function POST(req: NextRequest) {
 
     // 1. Charge credits upfront
     chargedUserId = userId;
-    await spendCredits({
+    const charge = await spendCredits({
       userId,
       credits: CREDIT_COST,
       prompt: `Bria Relight · ${light_type} / ${light_direction}`,
       assetType: "image",
       modelUsed: WAVESPEED_MODEL,
     });
+    chargedGenerationId = charge.generationId;
 
     // 2. Upload reference image if it's base64
     const imageUrl = await uploadRefImage(raw, userId, genId);
@@ -208,11 +210,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     // Refund on failure
-    if (chargedUserId) {
-      await refundGenerationCharge({
-        userId: chargedUserId,
-        credits: CREDIT_COST,
-        reason: `Bria Relight failed: ${error?.message ?? "unknown"}`,
+    if (chargedUserId && chargedGenerationId) {
+      await refundGenerationCharge(chargedGenerationId, chargedUserId, CREDIT_COST, {
+        reason: "generation_refund_provider_failed",
       }).catch(() => null);
     }
     if (error instanceof InsufficientCreditsError) {

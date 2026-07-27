@@ -1,5 +1,26 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Unblock Production Deploy for `/influencers/*` Access (2026-07-27)
+
+- Status:
+  User reported they still could not enter the standalone `/influencers/*` pages after pushing the route wrapper fix.
+- Root cause found:
+  Local route wrappers were correct, but full TypeScript verification was still failing on unrelated build blockers. A Vercel/Next production build can reject the deploy before the new `/influencers/*` pages become live.
+- Errors fixed:
+  1. `app/api/wavespeed/bria/fibo/relight/route.ts` called `refundGenerationCharge()` with the old object-shaped arguments. It now stores `charge.generationId` from `spendCredits()` and refunds with the current `(generationId, userId, credits, options)` signature.
+  2. `components/canvas/node-icons.tsx` declared `NODE_ICON_MAP` as `Record<CanvasNodeType, LucideIcon>` even though new canvas node types intentionally fall back to `ImageIcon`. It is now `Partial<Record<CanvasNodeType, LucideIcon>>`.
+- Affected files:
+  - `app/api/wavespeed/bria/fibo/relight/route.ts`
+  - `components/canvas/node-icons.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed with 0 errors.
+  - `npx.cmd next lint --file "app/api/wavespeed/bria/fibo/relight/route.ts" --file "components/canvas/node-icons.tsx"` passed with 0 warnings and 0 errors.
+  - `npm.cmd run build` could not complete locally because sandboxed network blocked fetching Google Fonts (`Caveat`) from `fonts.googleapis.com`; this is an environment/network restriction, not a TypeScript route error.
+- Remaining:
+  - Commit and push the build-unblocking fix so production deploy can pick up the already-created `/influencers/*` routes.
+
 #### Latest task: Synchronize Real-time Credit Expiry Evaluation in `/api/editor/credits` (2026-07-27)
 
 - Status:
