@@ -1,5 +1,23 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Restore `/influencers?tab=*` Query Link Compatibility (2026-07-27)
+
+- Status:
+  User sent a screen-recording video showing that links such as `/influencers?tab=canvas`, `/influencers?tab=image`, and `/influencers?tab=video` still opened the Influencers roster instead of switching to the requested tool tab.
+- Root cause found:
+  The root route wrapper `app/(dash)/(routes)/influencers/page.tsx` passed `defaultTab="canvas"` into `InfluencersStudioPage`. Because the component initializes state with `defaultTab || getInitialTab()`, this forced the root page to ignore `window.location.search` and therefore ignored legacy `?tab=` links.
+- Changes made:
+  - Removed `defaultTab="canvas"` from the root `/influencers` route wrapper.
+  - Root `/influencers` now lets `InfluencersStudioPage` read `?tab=` through `getInitialTab()`, while subroutes such as `/influencers/image` still pass fixed `defaultTab` values.
+- Affected files:
+  - `app/(dash)/(routes)/influencers/page.tsx`
+- Verification:
+  - Video evidence reviewed: the page rendered but stayed on the `Influencers` tab despite `?tab=` style links.
+  - `npx.cmd next lint --file "app/(dash)/(routes)/influencers/page.tsx" --file "components/influencers/InfluencersStudioPage.tsx"` passed.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Remaining:
+  - Commit and push this compatibility fix so production supports both `/influencers/image` and `/influencers?tab=image`.
+
 #### Latest task: Unblock Production Deploy for `/influencers/*` Access (2026-07-27)
 
 - Status:

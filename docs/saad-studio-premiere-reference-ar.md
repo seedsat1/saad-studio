@@ -2121,3 +2121,9 @@
 - If `/influencers/*` routes work locally but are not reachable on production after a push, check whether Vercel/Next rejected the deploy because of unrelated TypeScript build blockers.
 - `app/api/wavespeed/bria/fibo/relight/route.ts` must call `refundGenerationCharge(generationId, userId, credits, options)` with a real generation id returned by `spendCredits()`.
 - `components/canvas/node-icons.tsx` should keep `NODE_ICON_MAP` as a partial map because unsupported/new `CanvasNodeType` values intentionally fall back to `ImageIcon`.
+
+## Influencers Query Tab Compatibility (2026-07-27)
+
+- `/influencers` must continue to support legacy query links such as `/influencers?tab=image` and `/influencers?tab=video`.
+- The root `/influencers/page.tsx` wrapper should not pass a fixed `defaultTab`; otherwise `InfluencersStudioPage` cannot read `window.location.search`.
+- Physical subroutes such as `/influencers/image` and `/influencers/video` should keep their fixed `defaultTab` wrappers.

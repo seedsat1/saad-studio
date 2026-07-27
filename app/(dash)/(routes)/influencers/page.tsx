@@ -3,5 +3,5 @@ import InfluencersStudioPage from "@/components/influencers/InfluencersStudioPag
 export const dynamic = "force-dynamic";
 
 export default function InfluencersPage() {
-  return <InfluencersStudioPage defaultTab="canvas" />;
+  return <InfluencersStudioPage />;
 }
