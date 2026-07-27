@@ -155,10 +155,10 @@ export function InfluencerRoster({
                 {onSelectInfluencerForCanvas && (
                   <button
                     onClick={() => onSelectInfluencerForCanvas(inf.handle)}
-                    className="w-full py-2 rounded-xl bg-white/10 hover:bg-pink-500 text-white font-bold text-xs backdrop-blur-md transition flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100"
+                    className="w-full py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs backdrop-blur-md transition flex items-center justify-center gap-1.5 opacity-100 sm:opacity-90 hover:opacity-100 cursor-pointer"
                   >
                     <Sparkles size={12} />
-                    استدعاء في الكانفاس
+                    استدعاء في الكانفاس ✨
                   </button>
                 )}
               </div>

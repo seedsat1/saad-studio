@@ -37,6 +37,29 @@ export default function InfluencersPage() {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
+  // Sync active tab from URL query search params (?tab=...)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (
+        tabParam &&
+        ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(tabParam)
+      ) {
+        setActiveTab(tabParam as any);
+      }
+    }
+  }, []);
+
+  const handleTabChange = (tabKey: "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers") => {
+    setActiveTab(tabKey);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", tabKey);
+      window.history.pushState({}, "", url.toString());
+    }
+  };
+
   // Default Influencers List
   const [influencers, setInfluencers] = useState<InfluencerItem[]>([
     {
@@ -134,17 +157,21 @@ export default function InfluencersPage() {
   }, {});
 
   return (
-    <div className="w-full flex flex-col bg-[#05070f] text-white">
+    <div className="w-full flex flex-col bg-[#05070f] text-white min-h-[calc(100vh-4rem)]">
       {/* Top Header Navigation Bar matching screenshots and video 100% */}
-      <div className="relative h-16 border-b border-white/10 bg-[#090b14]/90 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-[60] pointer-events-auto">
+      <div className="relative h-16 border-b border-white/10 bg-[#090b14]/95 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-[60]">
         {/* Navigation Tabs - Excludes MCP & CLI completely */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
           <button
             type="button"
-            onClick={() => setActiveTab("canvas")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("canvas");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "canvas" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "canvas" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Layers size={14} />
@@ -153,10 +180,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("image")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("image");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "image" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "image" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <ImageIcon size={14} />
@@ -165,10 +196,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("video")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("video");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "video" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "video" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <VideoIcon size={14} />
@@ -177,10 +212,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("motion")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("motion");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "motion" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "motion" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Zap size={14} />
@@ -189,10 +228,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("faceswap")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("faceswap");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "faceswap" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "faceswap" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Sparkles size={14} />
@@ -201,10 +244,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("upscale")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("upscale");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "upscale" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "upscale" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <ArrowUpRight size={14} />
@@ -213,10 +260,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("nsfw")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("nsfw");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "nsfw" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "nsfw" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Flame size={14} className="text-pink-400" />
@@ -225,10 +276,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("library")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("library");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "library" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "library" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Folder size={14} />
@@ -237,10 +292,14 @@ export default function InfluencersPage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("influencers")}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleTabChange("influencers");
+            }}
             className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0",
-              activeTab === "influencers" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+              activeTab === "influencers" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
             )}
           >
             <Grid size={14} />
@@ -253,7 +312,7 @@ export default function InfluencersPage() {
           <button
             type="button"
             onClick={() => setIsTourOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-300 transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-300 transition flex items-center gap-1.5 cursor-pointer"
           >
             <HelpCircle size={14} />
             الجولة التعريفية
@@ -263,7 +322,7 @@ export default function InfluencersPage() {
             type="button"
             id="tour-assistant-trigger"
             onClick={() => setIsAssistantOpen(!isAssistantOpen)}
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5"
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles size={14} />
             ✦ Assistant
@@ -272,13 +331,13 @@ export default function InfluencersPage() {
       </div>
 
       {/* Workspace Content rendering based on activeTab */}
-      <div className="flex-1 overflow-y-auto relative">
+      <div className="flex-1 overflow-y-auto relative pb-12">
         {activeTab === "influencers" && (
           <InfluencerRoster
             influencers={influencers}
             onAddInfluencer={handleAddInfluencer}
             onSelectInfluencerForCanvas={(handle) => {
-              setActiveTab("canvas");
+              handleTabChange("canvas");
             }}
           />
         )}
@@ -320,7 +379,7 @@ export default function InfluencersPage() {
       <InfluencerTourModal
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
-        onSelectTab={(tabKey) => setActiveTab(tabKey as any)}
+        onSelectTab={(tabKey) => handleTabChange(tabKey as any)}
       />
 
       {/* Floating AI Assistant Sidebar */}
@@ -328,8 +387,8 @@ export default function InfluencersPage() {
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         onExecuteCommand={(cmd) => {
-          if (cmd.includes("فيديو") || cmd.includes("video")) setActiveTab("video");
-          else if (cmd.includes("كانفاس") || cmd.includes("canvas")) setActiveTab("canvas");
+          if (cmd.includes("فيديو") || cmd.includes("video")) handleTabChange("video");
+          else if (cmd.includes("كانفاس") || cmd.includes("canvas")) handleTabChange("canvas");
         }}
       />
     </div>
