@@ -1,5 +1,26 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Diagnose Static-Looking `/influencers` Tool Navigation (2026-07-28)
+
+- Status:
+  User reported that `/influencers` felt like a random/static image and that none of the internal pages were practically reachable.
+- Root cause found:
+  Production was deployed successfully, and the route files exist, but the studio tool navigation in `components/influencers/InfluencersStudioPage.tsx` was implemented as JavaScript-only `<button>` controls calling `router.push()`. If client hydration is delayed, blocked, or fails on the user's browser, those controls render visually but have no native navigation target, making the page feel static.
+- Changes made:
+  - Converted the studio tab bar (`Canvas`, `Image`, `Video`, `Motion Control`, `Face Swap`, `Upscale`, `NSFW`, `Library`, `Influencers`) from button-only controls to real Next.js `<Link>` navigation with stable `href` values.
+  - Kept immediate client state updates on click for smooth hydrated navigation.
+- Affected files:
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - Latest Vercel production deployment for commit `0bab46d` was `READY`.
+  - Live `/influencers` returned `200 OK`.
+  - `npx.cmd next lint --file "components/influencers/InfluencersStudioPage.tsx"` passed.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Remaining:
+  - Commit, push, and wait for production deployment before asking the user to retry.
+
 #### Latest task: Restore Missing Aspect Ratio Picker for Kling 3.0 & Video Models (2026-07-27)
 
 - Status:

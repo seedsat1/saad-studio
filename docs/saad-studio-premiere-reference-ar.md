@@ -2137,3 +2137,19 @@
 - `/influencers` must continue to support legacy query links such as `/influencers?tab=image` and `/influencers?tab=video`.
 - The root `/influencers/page.tsx` wrapper should not pass a fixed `defaultTab`; otherwise `InfluencersStudioPage` cannot read `window.location.search`.
 - Physical subroutes such as `/influencers/image` and `/influencers/video` should keep their fixed `defaultTab` wrappers.
+
+## Influencers Native Link Navigation Guard (2026-07-28)
+
+- `/influencers` tool navigation must not rely only on JavaScript button handlers.
+- The local studio tabs should render as real links:
+  - `/influencers/canvas`
+  - `/influencers/image`
+  - `/influencers/video`
+  - `/influencers/motion`
+  - `/influencers/faceswap`
+  - `/influencers/upscale`
+  - `/influencers/nsfw`
+  - `/influencers/library`
+  - `/influencers`
+- Reason:
+  If hydration is delayed or blocked in the browser, button-only `router.push()` controls look clickable but behave like static UI. Native `href` links preserve basic navigation even before React finishes hydrating, while hydrated `onClick` can still update local tab state immediately.

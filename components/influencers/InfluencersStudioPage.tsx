@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 import {
   Sparkles,
   Grid,
@@ -65,6 +67,27 @@ interface InfluencersPageProps {
   defaultTab?: TabType;
 }
 
+const TAB_NAV_ITEMS: Array<{
+  key: TabType;
+  label: string;
+  Icon: LucideIcon;
+  iconClassName?: string;
+}> = [
+  { key: "canvas", label: "Canvas", Icon: Layers },
+  { key: "image", label: "Image", Icon: ImageIcon },
+  { key: "video", label: "Video", Icon: VideoIcon },
+  { key: "motion", label: "Motion Control", Icon: Zap },
+  { key: "faceswap", label: "Face Swap", Icon: Sparkles },
+  { key: "upscale", label: "Upscale", Icon: ArrowUpRight },
+  { key: "nsfw", label: "NSFW", Icon: Flame, iconClassName: "text-pink-400" },
+  { key: "library", label: "Library", Icon: Folder },
+  { key: "influencers", label: "Influencers", Icon: Grid },
+];
+
+function getTabHref(tabKey: TabType) {
+  return tabKey === "influencers" ? "/influencers" : `/influencers/${tabKey}`;
+}
+
 export default function InfluencersStudioPage({ defaultTab }: InfluencersPageProps) {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
@@ -81,8 +104,7 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
 
   const handleTabChange = (tabKey: TabType) => {
     setActiveTab(tabKey);
-    const targetUrl = tabKey === "influencers" ? "/influencers" : `/influencers/${tabKey}`;
-    router.push(targetUrl);
+    router.push(getTabHref(tabKey));
   };
 
   // Default Influencers List
@@ -187,149 +209,23 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
       <div className="relative h-16 border-b border-white/10 bg-[#090b14]/95 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-[60]">
         {/* Navigation Tabs - Excludes MCP & CLI completely */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("canvas");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "canvas" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Layers size={14} />
-            Canvas
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("image");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "image" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <ImageIcon size={14} />
-            Image
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("video");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "video" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <VideoIcon size={14} />
-            Video
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("motion");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "motion" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Zap size={14} />
-            Motion Control
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("faceswap");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "faceswap" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Sparkles size={14} />
-            Face Swap
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("upscale");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "upscale" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <ArrowUpRight size={14} />
-            Upscale
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("nsfw");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "nsfw" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Flame size={14} className="text-pink-400" />
-            NSFW
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("library");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "library" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Folder size={14} />
-            Library
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleTabChange("influencers");
-            }}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
-              activeTab === "influencers" ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40" : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
-            )}
-          >
-            <Grid size={14} />
-            Influencers
-          </button>
+          {TAB_NAV_ITEMS.map(({ key, label, Icon, iconClassName }) => (
+            <Link
+              key={key}
+              href={getTabHref(key)}
+              prefetch={false}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
+                activeTab === key
+                  ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md ring-2 ring-pink-500/40"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/10"
+              )}
+            >
+              <Icon size={14} className={iconClassName} />
+              {label}
+            </Link>
+          ))}
         </div>
 
         {/* Right Side Header Controls */}
