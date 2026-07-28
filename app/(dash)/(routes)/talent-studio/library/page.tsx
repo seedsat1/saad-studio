@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import { TalentStudioAliasProps, withTalentStudioQuery } from "@/lib/talent-studio-redirect";
 
 export const dynamic = "force-dynamic";
 
-export default function TalentStudioLibraryAliasPage() {
-  redirect("/influencers/library");
+export default function TalentStudioLibraryAliasPage({ searchParams }: TalentStudioAliasProps) {
+  redirect(withTalentStudioQuery("/influencers/library", searchParams));
 }

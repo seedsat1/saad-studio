@@ -1,5 +1,34 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Complete non-NSFW AI Talent Studio workflow wiring (2026-07-28)
+
+- Status:
+  User asked to leave NSFW aside for now and complete the normal pages and workflow mechanism.
+- Changes made:
+  - Repaired `components/influencers/talent-studio-i18n.ts` Arabic copy so the Talent Studio labels/tabs no longer show mojibake text.
+  - Talent action navigation now carries the selected `@handle` into the target page with `?talent=...` and stores it in session storage.
+  - `ImageStudio` now reads the selected talent from the URL, supports bilingual Arabic/English UI, and adds a real generation mode for either one image or a sequential 10-shot talent photo set.
+  - `WorkflowCanvas`, `VideoStudio`, and `FaceSwapStudio` now read `?talent=...` so they open on the selected talent instead of always falling back to `@gavi`.
+  - `/talent-studio/*` alias redirects now preserve query parameters such as `?talent=@gavi`.
+- Affected files:
+  - `components/influencers/talent-studio-i18n.ts`
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `components/influencers/ImageStudio.tsx`
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `components/influencers/VideoStudio.tsx`
+  - `components/influencers/FaceSwapStudio.tsx`
+  - `lib/talent-studio-redirect.ts`
+  - `app/(dash)/(routes)/talent-studio/*/page.tsx`
+- Verification:
+  - `npx.cmd next lint --file ...` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/image?talent=%40gavi` returned `200`.
+- Decisions:
+  - NSFW provider/local-agent integration was intentionally not changed in this task.
+  - The 10-image workflow is sequential to avoid firing 10 provider jobs at once.
+- Remaining:
+  - Live provider testing is still needed by the user because generating 10 images spends real credits/provider calls.
+
 #### Latest task: Restrict VIP/NSFW Studio to WaveSpeed Only (2026-07-28)
 
 - Status:

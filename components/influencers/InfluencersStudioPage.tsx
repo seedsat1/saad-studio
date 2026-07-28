@@ -98,10 +98,11 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
     setActiveTab(tabFromRoute);
   }, [defaultTab, pathname, searchParams]);
 
-  const navigateToTab = useCallback((tabKey: TabType) => {
+  const navigateToTab = useCallback((tabKey: TabType, handle?: string) => {
     setActiveTab(tabKey);
-    const href = getTabHref(tabKey);
+    const href = handle ? `${getTabHref(tabKey)}?talent=${encodeURIComponent(handle)}` : getTabHref(tabKey);
     if (typeof window !== "undefined") {
+      if (handle) window.sessionStorage.setItem("talent-studio-active-handle", handle);
       window.location.assign(href);
       return;
     }
@@ -269,9 +270,9 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
             influencers={influencers}
             onAddInfluencer={handleAddInfluencer}
             onDeleteInfluencer={handleDeleteInfluencer}
-            onSelectInfluencerForCanvas={(_, action) => {
-              if (isTabType(action)) navigateToTab(action);
-              else navigateToTab("canvas");
+            onSelectInfluencerForCanvas={(handle, action) => {
+              if (isTabType(action)) navigateToTab(action, handle);
+              else navigateToTab("canvas", handle);
             }}
           />
         )}

@@ -1,5 +1,16 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## AI Talent Studio - آلية الصفحات العادية وتوليد 10 صور (2026-07-28)
+
+- تم تأجيل تعديل صفحة `NSFW` في هذه المرحلة حسب طلب المستخدم، والتركيز فقط على الصفحات العادية وآلية العمل المترابطة.
+- اختيار أي موهبة من `/influencers` ثم اختيار `Canvas` أو `Image` أو `Video` أو `Face Swap` ينقل اسم الموهبة عبر query parameter:
+  - مثال: `/influencers/image?talent=@gavi`
+- صفحات `ImageStudio` و`WorkflowCanvas` و`VideoStudio` و`FaceSwapStudio` تقرأ `?talent=...` وتبدأ بالموهبة المختارة بدلا من fallback ثابت.
+- صفحة الصور أصبحت تدعم وضعين:
+  - صورة واحدة.
+  - مجموعة 10 صور متنوعة لنفس `@handle`، وتنفذها بشكل متسلسل مع عداد تقدم حتى لا ترسل 10 طلبات دفعة واحدة.
+- روابط الاختصار `/talent-studio/*` يجب أن تحافظ على query parameters عند إعادة التوجيه إلى `/influencers/*` حتى لا تضيع الموهبة المختارة.
+
 ## AI Talent Studio - VIP/NSFW عبر WaveSpeed فقط (2026-07-28)
 
 - صفحة `/influencers/nsfw` مخصصة لفحص WaveSpeed فقط في وضع VIP/NSFW.

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import { TalentStudioAliasProps, withTalentStudioQuery } from "@/lib/talent-studio-redirect";
 
 export const dynamic = "force-dynamic";
 
-export default function TalentStudioNsfwAliasPage() {
-  redirect("/influencers/nsfw");
+export default function TalentStudioNsfwAliasPage({ searchParams }: TalentStudioAliasProps) {
+  redirect(withTalentStudioQuery("/influencers/nsfw", searchParams));
 }

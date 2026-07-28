@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Video, Sparkles, Wand2, Upload, Loader2, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +14,14 @@ export function VideoStudio({
   influencerHandles = ["@gavi", "@sophie", "@katrina", "@kat"],
   onGenerateSuccess,
 }: VideoStudioProps) {
-  const [selectedHandle, setSelectedHandle] = useState(influencerHandles[0] || "@gavi");
+  const searchParams = useSearchParams();
+  const initialHandle = useMemo(() => {
+    const value = searchParams?.get("talent");
+    if (!value) return influencerHandles[0] || "@gavi";
+    const decoded = decodeURIComponent(value).trim();
+    return decoded.startsWith("@") ? decoded : `@${decoded}`;
+  }, [searchParams, influencerHandles]);
+  const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState("Kling 3.0 Pro");
   const [duration, setDuration] = useState("5s");
@@ -24,6 +32,10 @@ export function VideoStudio({
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [resultVideoUrl, setResultVideoUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedHandle(initialHandle);
+  }, [initialHandle]);
 
   const getModelRoute = () => {
     if (selectedModel.includes("Seedance")) return "bytedance/seedance-2.0/text-to-video";
@@ -136,7 +148,7 @@ export function VideoStudio({
                 onChange={(e) => setSelectedHandle(e.target.value)}
                 className="w-full h-11 rounded-xl bg-white/5 border border-white/10 px-3.5 text-xs text-pink-300 font-mono outline-none focus:border-purple-500 transition dir-ltr"
               >
-                {influencerHandles.map((h) => (
+                {Array.from(new Set([selectedHandle, ...influencerHandles])).map((h) => (
                   <option key={h} value={h} className="bg-[#0c0d16] text-pink-300">
                     {h}
                   </option>

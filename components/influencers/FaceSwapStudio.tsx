@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Upload, Sparkles, Wand2, ImagePlus, RefreshCw, Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,12 +25,23 @@ export function FaceSwapStudio({
   influencerImageUrls = {},
   onSwapFace,
 }: FaceSwapStudioProps) {
-  const [selectedHandle, setSelectedHandle] = useState(influencerHandles[0] || "@gavi");
+  const searchParams = useSearchParams();
+  const initialHandle = useMemo(() => {
+    const value = searchParams?.get("talent");
+    if (!value) return influencerHandles[0] || "@gavi";
+    const decoded = decodeURIComponent(value).trim();
+    return decoded.startsWith("@") ? decoded : `@${decoded}`;
+  }, [searchParams, influencerHandles]);
+  const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [targetFile, setTargetFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedHandle(initialHandle);
+  }, [initialHandle]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,7 +126,7 @@ export function FaceSwapStudio({
               onChange={(e) => setSelectedHandle(e.target.value)}
               className="w-full h-11 rounded-xl bg-white/5 border border-white/10 px-3.5 text-xs text-pink-300 font-mono outline-none focus:border-pink-500 transition dir-ltr"
             >
-              {influencerHandles.map((h) => (
+              {Array.from(new Set([selectedHandle, ...influencerHandles])).map((h) => (
                 <option key={h} value={h} className="bg-[#0c0d16] text-pink-300">
                   {h}
                 </option>

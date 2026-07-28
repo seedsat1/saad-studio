@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useMemo, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Sparkles, Wand2, Image as ImageIcon, Video as VideoIcon, Move, X, RefreshCw, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,13 @@ export function WorkflowCanvas({
   onGenerateVideoNode,
 }: WorkflowCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const searchParams = useSearchParams();
+  const initialHandle = useMemo(() => {
+    const value = searchParams?.get("talent");
+    if (!value) return influencerHandles[0] || "@gavi";
+    const decoded = decodeURIComponent(value).trim();
+    return decoded.startsWith("@") ? decoded : `@${decoded}`;
+  }, [searchParams, influencerHandles]);
   const [nodes, setNodes] = useState<CanvasNode[]>(
     initialNodes || [
       {
@@ -41,9 +49,9 @@ export function WorkflowCanvas({
         type: "root",
         x: 40,
         y: 80,
-        title: "الصورة المرجعية لـ @gavi",
+        title: `الصورة المرجعية لـ ${initialHandle}`,
         imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500",
-        influencerHandle: "@gavi",
+        influencerHandle: initialHandle,
         status: "ready",
       },
       {
@@ -54,8 +62,8 @@ export function WorkflowCanvas({
         y: 40,
         title: "صورة ملابس رياضية",
         imageUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500",
-        prompt: "@gavi wearing sports top outfit",
-        influencerHandle: "@gavi",
+        prompt: `${initialHandle} wearing sports top outfit`,
+        influencerHandle: initialHandle,
         status: "ready",
       },
       {
@@ -66,8 +74,8 @@ export function WorkflowCanvas({
         y: 380,
         title: "صورة فستان ساحلي",
         imageUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500",
-        prompt: "@gavi in red dress on seaside balcony",
-        influencerHandle: "@gavi",
+        prompt: `${initialHandle} in red dress on seaside balcony`,
+        influencerHandle: initialHandle,
         status: "ready",
       },
       {
@@ -86,7 +94,7 @@ export function WorkflowCanvas({
 
   const [activeNodeId, setActiveNodeId] = useState<string | null>("child-2");
   const [promptText, setPromptText] = useState("");
-  const [selectedHandle, setSelectedHandle] = useState("@gavi");
+  const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [selectedModel, setSelectedModel] = useState("Nano Banana Pro");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -172,7 +180,7 @@ export function WorkflowCanvas({
       if (targetNode.type === "video" && onGenerateVideoNode) {
         resultUrl = await onGenerateVideoNode(nodeId, promptText || "Motion render", selectedModel);
       } else if (onGenerateImageNode) {
-        resultUrl = await onGenerateImageNode(nodeId, promptText || "@gavi pose", selectedHandle, selectedModel, aspectRatio);
+        resultUrl = await onGenerateImageNode(nodeId, promptText || `${selectedHandle} pose`, selectedHandle, selectedModel, aspectRatio);
       } else {
         const res = await fetch("/api/image/generate", {
           method: "POST",
@@ -248,7 +256,7 @@ export function WorkflowCanvas({
             onChange={(e) => setSelectedHandle(e.target.value)}
             className="bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-pink-300 font-mono outline-none dir-ltr"
           >
-            {influencerHandles.map((h) => (
+            {Array.from(new Set([selectedHandle, ...influencerHandles])).map((h) => (
               <option key={h} value={h} className="bg-[#0d0f19] text-pink-300">
                 {h}
               </option>
