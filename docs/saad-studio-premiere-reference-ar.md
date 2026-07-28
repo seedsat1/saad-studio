@@ -1,5 +1,13 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## AI Talent Studio - VIP/NSFW عبر WaveSpeed فقط (2026-07-28)
+
+- صفحة `/influencers/nsfw` مخصصة لفحص WaveSpeed فقط في وضع VIP/NSFW.
+- لا تعرض القائمة موديلات KIE.ai داخل هذه الصفحة.
+- الموديل النصي الظاهر هو `seedream/5-pro` ويظهر مزوده `WaveSpeed`.
+- عند رفع صورة مرجعية، يتحول الطلب إلى `seedream/5-pro-image-to-image` حتى تبقى عملية image-to-image على WaveSpeed.
+- إذا احتجنا لاحقا إضافة مزود آخر، يجب أن يكون بطلب صريح ولا يضاف تلقائيا إلى صفحة فحص WaveSpeed.
+
 ## AI Talent Studio - رفع الصور وحذف المواهب والوسائط (2026-07-28)
 
 - صفحة `/influencers` وواجهات `/influencers/nsfw` و`/influencers/library` يجب أن تعرض أزرار رفع/استبدال/مسح واضحة، ولا تعتمد فقط على dropzone مخفي أو overlay يظهر عند hover.
@@ -18,8 +26,6 @@
   - يدعم رفع صورة مرجعية اختيارية قبل التوليد.
   - إذا وُجدت صورة مرجعية، ترفع أولا عبر `/api/media/upload` للحصول على رابط عام، ثم يستخدم الطلب مسار image-to-image المناسب:
     - `seedream/5-pro` يتحول إلى `seedream/5-pro-image-to-image`.
-    - `flux-2/pro-text-to-image` يتحول إلى `flux-2/pro-image-to-image`.
-    - `z-image` مع صورة مرجعية يستخدم `flux-2/pro-image-to-image` لأن مسار `z-image` الحالي نص-إلى-صورة.
   - زر `حذف النتيجة` يمسح المعاينة من الواجهة بعد التوليد.
 
 ## إعادة وتأمين إظهار خيارات نسب الأبعاد (Aspect Ratio) لـ Kling 3.0 واستوديو الفيديو (2026-07-27)
@@ -62,7 +68,7 @@
      - `Motion Control`: استوديو نسخ حركات فيديوهات تيك توك وReels على المؤثرين.
      - `Face Swap`: أداة تبديل الوجوه الفورية بدون برومبت.
      - `Upscale`: استوديو مضاعفة دقة الصور والفيديوهات لـ 4K/8K.
-     - `NSFW`: محرك المحتوى الخاص باستعمال نموذج `Z-Image Spicy`.
+    - `NSFW`: محرك المحتوى الخاص باستعمال `seedream/5-pro` عبر WaveSpeed.
      - `Library`: مكتبة وسائط المستخدم الحقيقية المجلوبة من `/api/assets` والمقسمة بالشهور.
      - `Influencers`: قائمة المؤثرين المربوطة بـ `/api/characters` مع مودال حفظ المؤثرين الحقيقي.
 
@@ -79,7 +85,7 @@
      - `InfluencerAssistantSidebar`: اللوحة الجانبية لمساعد الذكاء الاصطناعي السريع.
      - `FaceSwapStudio`: أداة تبديل الوجوه الفورية بنقرة واحدة (Zero-Prompt Swap).
      - `MotionControlStudio`: نسخ رقصات وحركات فيديوهات تيك توك وReels على شخصية المؤثر (`Kling 3.0 Motion Control`).
-     - `NsfwStudio`: المحتوى الخاص والمميز للمشتركين باستعمال نموذج `Z-Image Spicy`.
+    - `NsfwStudio`: المحتوى الخاص والمميز للمشتركين باستعمال `seedream/5-pro` عبر WaveSpeed.
 
 ## مرجع دليل Google AI Studio للسجلات وتصحيح الأخطاء (Gemini API & Interactions Logging) (2026-07-26)
 
@@ -2196,7 +2202,6 @@
   - `/influencers/nsfw`
   - `/talent-studio/nsfw` ثم redirect إلى `/influencers/nsfw`
 - موديلات `VIP/NSFW` الحالية:
-  - `z-image` عبر KIE.ai.
-  - `flux-2/pro-text-to-image` عبر KIE.ai.
-  - `seedream/5-pro` عبر WaveSpeed، حيث يحوله `/api/image/generate` إلى `bytedance/seedream-v5.0-pro`.
+  - `seedream/5-pro` عبر WaveSpeed فقط، حيث يحوله `/api/image/generate` إلى `bytedance/seedream-v5.0-pro`.
+  - عند رفع صورة مرجعية يستخدم `seedream/5-pro-image-to-image` عبر WaveSpeed.
 - إذا أضيف موديل NSFW جديد يجب أن يعرض الاختيار معرف الموديل الحقيقي والمزود الفعلي حتى لا تظهر تسمية مختلفة عن المسار المرسل للـ API.

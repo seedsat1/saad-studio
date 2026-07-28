@@ -1,5 +1,25 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Restrict VIP/NSFW Studio to WaveSpeed Only (2026-07-28)
+
+- Status:
+  User clarified that the VIP/NSFW page must be connected to WaveSpeed, not KIE.ai.
+- Root cause found:
+  The latest `NsfwStudio` model picker still exposed inherited KIE.ai choices (`z-image` and `flux-2/pro-text-to-image`) alongside WaveSpeed.
+- Changes made:
+  - Removed KIE.ai options from `components/influencers/NsfwStudio.tsx`.
+  - VIP/NSFW now shows only `seedream/5-pro` labeled as WaveSpeed.
+  - Reference-image uploads now route to `seedream/5-pro-image-to-image`, keeping image-to-image testing on WaveSpeed.
+- Affected files:
+  - `components/influencers/NsfwStudio.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/NsfwStudio.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Remaining:
+  - Commit, push, and let deployment update.
+
 #### Latest task: Fix AI Talent Studio Image Upload and Delete Controls (2026-07-28)
 
 - Status:
@@ -8973,8 +8993,7 @@
   - Direct routes remain reachable for testing:
     `/influencers`, `/influencers/nsfw`, and `/talent-studio/nsfw`.
   - `/talent-studio/nsfw` remains an alias redirect to `/influencers/nsfw`.
-  - NSFW model picker now uses real model IDs and shows the provider in the option label:
-    `z-image` via KIE.ai, `flux-2/pro-text-to-image` via KIE.ai, and `seedream/5-pro` via WaveSpeed.
+  - Superseded by the later WaveSpeed-only correction: VIP/NSFW now exposes `seedream/5-pro` via WaveSpeed only.
 - Affected files/paths:
   - `components/TopNavbar.tsx`
   - `components/influencers/NsfwStudio.tsx`

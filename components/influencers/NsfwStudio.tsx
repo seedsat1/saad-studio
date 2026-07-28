@@ -6,16 +6,6 @@ import { useLanguage } from "@/lib/use-language";
 
 const NSFW_MODELS = [
   {
-    id: "z-image",
-    label: "Z-Image Spicy",
-    provider: "KIE.ai",
-  },
-  {
-    id: "flux-2/pro-text-to-image",
-    label: "Flux 2 Pro Spicy",
-    provider: "KIE.ai",
-  },
-  {
     id: "seedream/5-pro",
     label: "Seedream 5.0 Pro VIP",
     provider: "WaveSpeed",
@@ -80,8 +70,7 @@ async function uploadMediaFile(file: File): Promise<string> {
 
 function resolveImageModelForReference(model: (typeof NSFW_MODELS)[number]["id"]) {
   if (model === "seedream/5-pro") return "seedream/5-pro-image-to-image";
-  if (model === "flux-2/pro-text-to-image") return "flux-2/pro-image-to-image";
-  return "flux-2/pro-image-to-image";
+  return "seedream/5-pro-image-to-image";
 }
 
 export function NsfwStudio({
@@ -92,7 +81,7 @@ export function NsfwStudio({
   const t = lang === "en" ? copy.en : copy.ar;
   const [selectedHandle, setSelectedHandle] = useState(influencerHandles[0] || "@gavi");
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState<(typeof NSFW_MODELS)[number]["id"]>("z-image");
+  const [selectedModel, setSelectedModel] = useState<(typeof NSFW_MODELS)[number]["id"]>("seedream/5-pro");
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referencePreviewUrl, setReferencePreviewUrl] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
