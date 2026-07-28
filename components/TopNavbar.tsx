@@ -106,7 +106,6 @@ const getTranslation = (key: string, lang: "en" | "ar") => {
     "Sign Up Free": "تسجيل مجاني",
     "Sign Up": "تسجيل مجاني",
     "Credits": "النقاط",
-    "AI Talent Studio": "استوديو المواهب الذكية",
   };
   return dict[key] || key;
 };
@@ -483,7 +482,6 @@ function appHref(app: string): string {
 const SHOW_EXPERIMENTAL_NAV = false;
 
 const STUDIO_LINKS = [
-  { label: "AI Talent Studio", href: "/influencers", icon: LayoutGrid, color: "text-pink-400" },
   { label: "Adobe Plugin", href: "/plugin", icon: Plug, color: "text-amber-400" },
   { label: "Cinematic Styles", href: "/apps/tool/cinematic-styles", icon: Blend, color: "text-cyan-300" },
   { label: "Transitions", href: "/apps/tool/transitions", icon: Blend, color: "text-cyan-300" },

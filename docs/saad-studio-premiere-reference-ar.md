@@ -2164,3 +2164,16 @@
   - استخدام نفس الهوية داخل الصور، الفيديو، الكانفاس، نسخ الحركة، تبديل الوجه، VIP/NSFW، رفع الدقة، والمكتبة.
 - النصوص الظاهرة في صفحة المواهب، تبويب الصفحة الداخلي، الجولة التعريفية، والمساعد يجب أن تعتمد على لغة `saad_language` عبر `useLanguage()` ولا تبقى عربية ثابتة.
 - الجولة التعريفية يجب أن تغيّر التبويب للمعاينة داخل الصفحة فقط، لا تعمل `window.location.assign()` بين الخطوات حتى لا تظهر الصفحة وكأنها تفتح ثم ترجع.
+
+## AI Talent Studio Hidden Test Mode and NSFW Providers (2026-07-28)
+
+- `AI Talent Studio` يمكن أن يكون مخفيا من `TopNavbar` مع بقاء مساراته المباشرة مفتوحة للفحص.
+- روابط الفحص المباشرة:
+  - `/influencers`
+  - `/influencers/nsfw`
+  - `/talent-studio/nsfw` ثم redirect إلى `/influencers/nsfw`
+- موديلات `VIP/NSFW` الحالية:
+  - `z-image` عبر KIE.ai.
+  - `flux-2/pro-text-to-image` عبر KIE.ai.
+  - `seedream/5-pro` عبر WaveSpeed، حيث يحوله `/api/image/generate` إلى `bytedance/seedream-v5.0-pro`.
+- إذا أضيف موديل NSFW جديد يجب أن يعرض الاختيار معرف الموديل الحقيقي والمزود الفعلي حتى لا تظهر تسمية مختلفة عن المسار المرسل للـ API.

@@ -4,6 +4,24 @@ import { useState } from "react";
 import { Sparkles, Wand2, Loader2, ImagePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const NSFW_MODELS = [
+  {
+    id: "z-image",
+    label: "Z-Image Spicy",
+    provider: "KIE.ai",
+  },
+  {
+    id: "flux-2/pro-text-to-image",
+    label: "Flux 2 Pro Spicy",
+    provider: "KIE.ai",
+  },
+  {
+    id: "seedream/5-pro",
+    label: "Seedream 5.0 Pro VIP",
+    provider: "WaveSpeed",
+  },
+] as const;
+
 interface NsfwStudioProps {
   influencerHandles?: string[];
   onGenerateSpicyImage?: (prompt: string, handle: string, model: string) => Promise<string>;
@@ -15,7 +33,7 @@ export function NsfwStudio({
 }: NsfwStudioProps) {
   const [selectedHandle, setSelectedHandle] = useState(influencerHandles[0] || "@gavi");
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState("Z-Image Spicy");
+  const [selectedModel, setSelectedModel] = useState<(typeof NSFW_MODELS)[number]["id"]>("z-image");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +53,7 @@ export function NsfwStudio({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: fullPrompt,
-            model: selectedModel.includes("Nano") ? "seedream/5-pro" : "z-image",
+            model: selectedModel,
             aspectRatio: "9:16",
             quality: "1K",
           }),
@@ -87,12 +105,14 @@ export function NsfwStudio({
             <label className="block text-xs font-bold text-zinc-300 mb-1.5">نموذج التوليد الخاص</label>
             <select
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={(e) => setSelectedModel(e.target.value as (typeof NSFW_MODELS)[number]["id"])}
               className="w-full h-11 rounded-xl bg-white/5 border border-white/10 px-3.5 text-xs text-pink-300 font-bold outline-none focus:border-pink-500 transition"
             >
-              <option value="Z-Image Spicy" className="bg-[#0c0d16]">Z-Image Spicy (Extreme Realism)</option>
-              <option value="Flux Spicy Pro" className="bg-[#0c0d16]">Flux Spicy Pro</option>
-              <option value="Nano Banana Spicy" className="bg-[#0c0d16]">Nano Banana Spicy</option>
+              {NSFW_MODELS.map((model) => (
+                <option key={model.id} value={model.id} className="bg-[#0c0d16]">
+                  {model.label} - {model.provider}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -8936,3 +8936,25 @@
   - `npx.cmd tsc --noEmit --pretty false` passed.
 - Errors/remaining:
   - `.next-dev.codex.log` and `.next-dev.codex.err.log` changed from local dev logging and should not be included in the commit.
+
+## Latest task: Hide AI Talent Studio from global nav but keep NSFW test route open (2026-07-28)
+
+- Status:
+  Prepared the AI Talent Studio for hidden server testing.
+- Behavior:
+  - Removed the visible `AI Talent Studio` entry from the global `TopNavbar` Studio menu.
+  - Direct routes remain reachable for testing:
+    `/influencers`, `/influencers/nsfw`, and `/talent-studio/nsfw`.
+  - `/talent-studio/nsfw` remains an alias redirect to `/influencers/nsfw`.
+  - NSFW model picker now uses real model IDs and shows the provider in the option label:
+    `z-image` via KIE.ai, `flux-2/pro-text-to-image` via KIE.ai, and `seedream/5-pro` via WaveSpeed.
+- Affected files/paths:
+  - `components/TopNavbar.tsx`
+  - `components/influencers/NsfwStudio.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd next lint --file components/TopNavbar.tsx --file components/influencers/NsfwStudio.tsx --file middleware.ts` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `/influencers/nsfw` returned `200`; local `/talent-studio/nsfw` returned `307` redirect.
+- Errors/remaining:
+  - `.next-dev.codex.log` and `.next-dev.codex.err.log` changed from local dev logging and should not be included in the commit.
