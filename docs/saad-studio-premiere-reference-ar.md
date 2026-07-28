@@ -2153,3 +2153,14 @@
   - `/influencers`
 - Reason:
   If hydration is delayed or blocked in the browser, button-only `router.push()` controls look clickable but behave like static UI. Native `href` links preserve basic navigation even before React finishes hydrating, while hydrated `onClick` can still update local tab state immediately.
+
+## AI Talent Studio Naming and Workflow (2026-07-28)
+
+- قسم `/influencers` هو واجهة `AI Talent Studio` / `استوديو المواهب الذكية`.
+- الروابط القديمة `/influencers/*` تبقى هي المصدر التشغيلي الأساسي، وروابط `/talent-studio/*` تعمل كاختصارات/aliases تعيد التوجيه لنفس الصفحات.
+- آلية العمل المقصودة:
+  - إنشاء أو تدريب موهبة واحدة قابلة لإعادة الاستخدام باسم و `@handle` وصورة مرجعية.
+  - توليد حوالي 10 صور متنوعة ومتسقة للشخصية لبناء هوية قوية.
+  - استخدام نفس الهوية داخل الصور، الفيديو، الكانفاس، نسخ الحركة، تبديل الوجه، VIP/NSFW، رفع الدقة، والمكتبة.
+- النصوص الظاهرة في صفحة المواهب، تبويب الصفحة الداخلي، الجولة التعريفية، والمساعد يجب أن تعتمد على لغة `saad_language` عبر `useLanguage()` ولا تبقى عربية ثابتة.
+- الجولة التعريفية يجب أن تغيّر التبويب للمعاينة داخل الصفحة فقط، لا تعمل `window.location.assign()` بين الخطوات حتى لا تظهر الصفحة وكأنها تفتح ثم ترجع.

@@ -19,6 +19,7 @@ const isPublicRoute = createRouteMatcher([
   '/character(.*)',
   '/characters(.*)',
   '/influencers(.*)',
+  '/talent-studio(.*)',
   '/api/influencers(.*)',
   '/music(.*)',
   '/code(.*)',

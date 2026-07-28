@@ -1,7 +1,7 @@
-import InfluencersStudioPage from "@/components/influencers/InfluencersStudioPage";
+import { TalentCanvasPage } from "@/components/influencers/TalentCanvasPage";
 
 export const dynamic = "force-dynamic";
 
 export default function InfluencerCanvasPage() {
-  return <InfluencersStudioPage defaultTab="canvas" />;
+  return <TalentCanvasPage />;
 }

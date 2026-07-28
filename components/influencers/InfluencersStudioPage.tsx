@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles,
@@ -11,7 +10,6 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   Layers,
-  Wand2,
   HelpCircle,
   Folder,
   Zap,
@@ -19,6 +17,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/use-language";
 import { InfluencerRoster, InfluencerItem } from "@/components/influencers/InfluencerRoster";
 import { WorkflowCanvas } from "@/components/influencers/WorkflowCanvas";
 import { InfluencerTourModal } from "@/components/influencers/InfluencerTourModal";
@@ -30,37 +29,33 @@ import { ImageStudio } from "@/components/influencers/ImageStudio";
 import { VideoStudio } from "@/components/influencers/VideoStudio";
 import { UpscaleStudio } from "@/components/influencers/UpscaleStudio";
 import { LibraryStudio } from "@/components/influencers/LibraryStudio";
+import { getTalentStudioCopy } from "@/components/influencers/talent-studio-i18n";
 
 export type TabType = "canvas" | "image" | "video" | "motion" | "faceswap" | "upscale" | "nsfw" | "library" | "influencers";
 
+const TAB_KEYS: TabType[] = ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"];
+
+function isTabType(value: string | null | undefined): value is TabType {
+  return !!value && TAB_KEYS.includes(value as TabType);
+}
+
+function getTabFromPathname(pathname: string, search?: string): TabType {
+  const parts = pathname.split("/").filter(Boolean);
+  const lastPart = parts[parts.length - 1];
+  if (isTabType(lastPart) && lastPart !== "influencers") return lastPart;
+
+  const params = new URLSearchParams(search || "");
+  const tabParam = params.get("tab");
+  if (isTabType(tabParam)) return tabParam;
+
+  return "influencers";
+}
+
 function getInitialTab(): TabType {
   if (typeof window !== "undefined") {
-    const pathname = window.location.pathname;
-    if (pathname.includes("/canvas")) return "canvas";
-    if (pathname.includes("/image")) return "image";
-    if (pathname.includes("/video")) return "video";
-    if (pathname.includes("/motion")) return "motion";
-    if (pathname.includes("/faceswap")) return "faceswap";
-    if (pathname.includes("/upscale")) return "upscale";
-    if (pathname.includes("/nsfw")) return "nsfw";
-    if (pathname.includes("/library")) return "library";
-    if (pathname.includes("/influencers") && !pathname.endsWith("/influencers")) {
-      const parts = pathname.split("/").filter(Boolean);
-      const lastPart = parts[parts.length - 1];
-      if (["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(lastPart)) {
-        return lastPart as TabType;
-      }
-    }
-    const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get("tab");
-    if (
-      tabParam &&
-      ["canvas", "image", "video", "motion", "faceswap", "upscale", "nsfw", "library", "influencers"].includes(tabParam)
-    ) {
-      return tabParam as TabType;
-    }
+    return getTabFromPathname(window.location.pathname, window.location.search);
   }
-  return "canvas";
+  return "influencers";
 }
 
 interface InfluencersPageProps {
@@ -69,19 +64,18 @@ interface InfluencersPageProps {
 
 const TAB_NAV_ITEMS: Array<{
   key: TabType;
-  label: string;
   Icon: LucideIcon;
   iconClassName?: string;
 }> = [
-  { key: "canvas", label: "Canvas", Icon: Layers },
-  { key: "image", label: "Image", Icon: ImageIcon },
-  { key: "video", label: "Video", Icon: VideoIcon },
-  { key: "motion", label: "Motion Control", Icon: Zap },
-  { key: "faceswap", label: "Face Swap", Icon: Sparkles },
-  { key: "upscale", label: "Upscale", Icon: ArrowUpRight },
-  { key: "nsfw", label: "NSFW", Icon: Flame, iconClassName: "text-pink-400" },
-  { key: "library", label: "Library", Icon: Folder },
-  { key: "influencers", label: "Influencers", Icon: Grid },
+  { key: "canvas", Icon: Layers },
+  { key: "image", Icon: ImageIcon },
+  { key: "video", Icon: VideoIcon },
+  { key: "motion", Icon: Zap },
+  { key: "faceswap", Icon: Sparkles },
+  { key: "upscale", Icon: ArrowUpRight },
+  { key: "nsfw", Icon: Flame, iconClassName: "text-pink-400" },
+  { key: "library", Icon: Folder },
+  { key: "influencers", Icon: Grid },
 ];
 
 function getTabHref(tabKey: TabType) {
@@ -90,24 +84,34 @@ function getTabHref(tabKey: TabType) {
 
 export default function InfluencersStudioPage({ defaultTab }: InfluencersPageProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { lang } = useLanguage();
+  const copy = getTalentStudioCopy(lang);
   const { isLoaded, isSignedIn } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(() => defaultTab || getInitialTab());
-
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   useEffect(() => {
-    if (defaultTab) {
-      setActiveTab(defaultTab);
-    }
-  }, [defaultTab]);
+    const tabFromRoute = defaultTab || getTabFromPathname(pathname || "/influencers", searchParams?.toString());
+    setActiveTab(tabFromRoute);
+  }, [defaultTab, pathname, searchParams]);
 
-  const handleTabChange = (tabKey: TabType) => {
+  const navigateToTab = useCallback((tabKey: TabType) => {
     setActiveTab(tabKey);
-    router.push(getTabHref(tabKey));
-  };
+    const href = getTabHref(tabKey);
+    if (typeof window !== "undefined") {
+      window.location.assign(href);
+      return;
+    }
+    router.push(href);
+  }, [router]);
 
-  // Default Influencers List
+  const previewTourTab = useCallback((tabKey: string) => {
+    if (isTabType(tabKey)) setActiveTab(tabKey);
+  }, []);
+
   const [influencers, setInfluencers] = useState<InfluencerItem[]>([
     {
       id: "inf-1",
@@ -136,16 +140,11 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
     },
   ]);
 
-  // Load backend registered characters safely after auth hydration
   useEffect(() => {
-    if (!isLoaded) return;
-    if (isLoaded && !isSignedIn) return;
+    if (!isLoaded || !isSignedIn) return;
 
     fetch("/api/characters")
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (Array.isArray(data?.characters) && data.characters.length > 0) {
           const loaded: InfluencerItem[] = data.characters.map((c: any) => ({
@@ -156,8 +155,7 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
           }));
           setInfluencers((prev) => {
             const existingHandles = new Set(prev.map((i) => i.handle));
-            const newItems = loaded.filter((i) => !existingHandles.has(i.handle));
-            return [...prev, ...newItems];
+            return [...prev, ...loaded.filter((i) => !existingHandles.has(i.handle))];
           });
         }
       })
@@ -165,9 +163,6 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
   }, [isLoaded, isSignedIn]);
 
   const handleAddInfluencer = async (name: string, handle: string, file: File) => {
-    const formData = new FormData();
-    formData.append("name", handle);
-    formData.append("description", `AI Influencer ${name}`);
     const dataUrl = await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
@@ -179,7 +174,7 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: handle,
-        description: `AI Influencer ${name}`,
+        description: `AI Talent ${name}`,
         images: [{ dataUrl, name: file.name }],
       }),
     });
@@ -187,33 +182,31 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
     const data = await res.json().catch(() => null);
     const cover = data?.character?.coverUrl || dataUrl;
 
-    const newItem: InfluencerItem = {
-      id: data?.character?.id || `inf-${Date.now()}`,
-      name,
-      handle,
-      coverUrl: cover,
-    };
-
-    setInfluencers((prev) => [newItem, ...prev]);
+    setInfluencers((prev) => [
+      {
+        id: data?.character?.id || `talent-${Date.now()}`,
+        name,
+        handle,
+        coverUrl: cover,
+      },
+      ...prev,
+    ]);
   };
 
   const influencerHandles = influencers.map((i) => i.handle);
-  const influencerImageUrls = influencers.reduce<Record<string, string>>((acc, item) => {
+  const influencerImageUrls = useMemo(() => influencers.reduce<Record<string, string>>((acc, item) => {
     acc[item.handle] = item.coverUrl;
     return acc;
-  }, {});
+  }, {}), [influencers]);
 
   return (
     <div className="w-full flex flex-col bg-[#05070f] text-white min-h-[calc(100vh-4rem)]">
-      {/* Top Header Navigation Bar matching screenshots and video 100% */}
       <div className="relative h-16 border-b border-white/10 bg-[#090b14]/95 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between shrink-0 z-[60]">
-        {/* Navigation Tabs - Excludes MCP & CLI completely */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-          {TAB_NAV_ITEMS.map(({ key, label, Icon, iconClassName }) => (
-            <Link
+          {TAB_NAV_ITEMS.map(({ key, Icon, iconClassName }) => (
+            <a
               key={key}
               href={getTabHref(key)}
-              prefetch={false}
               onClick={() => setActiveTab(key)}
               className={cn(
                 "px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer",
@@ -223,12 +216,11 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
               )}
             >
               <Icon size={14} className={iconClassName} />
-              {label}
-            </Link>
+              {copy.tabs[key]}
+            </a>
           ))}
         </div>
 
-        {/* Right Side Header Controls */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
@@ -236,80 +228,56 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
             className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-pink-300 transition flex items-center gap-1.5 cursor-pointer"
           >
             <HelpCircle size={14} />
-            الجولة التعريفية
+            {copy.tour}
           </button>
 
           <button
             type="button"
             id="tour-assistant-trigger"
-            onClick={() => setIsAssistantOpen(!isAssistantOpen)}
+            onClick={() => setIsAssistantOpen((open) => !open)}
             className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 hover:opacity-90 text-white text-xs font-bold shadow-lg shadow-purple-500/20 transition flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles size={14} />
-            ✦ Assistant
+            {copy.assistant}
           </button>
         </div>
       </div>
 
-      {/* Workspace Content rendering based on activeTab */}
       <div className="flex-1 overflow-y-auto relative pb-12">
         {activeTab === "influencers" && (
           <InfluencerRoster
             influencers={influencers}
             onAddInfluencer={handleAddInfluencer}
-            onSelectInfluencerForCanvas={(handle, action) => {
-              handleTabChange((action || "canvas") as any);
+            onSelectInfluencerForCanvas={(_, action) => {
+              if (isTabType(action)) navigateToTab(action);
+              else navigateToTab("canvas");
             }}
           />
         )}
 
-        {activeTab === "canvas" && (
-          <WorkflowCanvas influencerHandles={influencerHandles} />
-        )}
-
-        {activeTab === "faceswap" && (
-          <FaceSwapStudio influencerHandles={influencerHandles} influencerImageUrls={influencerImageUrls} />
-        )}
-
-        {activeTab === "motion" && (
-          <MotionControlStudio influencerHandles={influencerHandles} />
-        )}
-
-        {activeTab === "nsfw" && (
-          <NsfwStudio influencerHandles={influencerHandles} />
-        )}
-
-        {activeTab === "image" && (
-          <ImageStudio influencerHandles={influencerHandles} />
-        )}
-
-        {activeTab === "video" && (
-          <VideoStudio influencerHandles={influencerHandles} />
-        )}
-
-        {activeTab === "upscale" && (
-          <UpscaleStudio />
-        )}
-
-        {activeTab === "library" && (
-          <LibraryStudio />
-        )}
+        {activeTab === "canvas" && <WorkflowCanvas influencerHandles={influencerHandles} />}
+        {activeTab === "faceswap" && <FaceSwapStudio influencerHandles={influencerHandles} influencerImageUrls={influencerImageUrls} />}
+        {activeTab === "motion" && <MotionControlStudio influencerHandles={influencerHandles} />}
+        {activeTab === "nsfw" && <NsfwStudio influencerHandles={influencerHandles} />}
+        {activeTab === "image" && <ImageStudio influencerHandles={influencerHandles} />}
+        {activeTab === "video" && <VideoStudio influencerHandles={influencerHandles} />}
+        {activeTab === "upscale" && <UpscaleStudio />}
+        {activeTab === "library" && <LibraryStudio />}
       </div>
 
-      {/* Floating Interactive Tour Modal */}
       <InfluencerTourModal
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
-        onSelectTab={(tabKey) => handleTabChange(tabKey as any)}
+        onSelectTab={previewTourTab}
       />
 
-      {/* Floating AI Assistant Sidebar */}
       <InfluencerAssistantSidebar
         isOpen={isAssistantOpen}
         onClose={() => setIsAssistantOpen(false)}
         onExecuteCommand={(cmd) => {
-          if (cmd.includes("فيديو") || cmd.includes("video")) handleTabChange("video");
-          else if (cmd.includes("كانفاس") || cmd.includes("canvas")) handleTabChange("canvas");
+          const normalized = cmd.toLowerCase();
+          if (normalized.includes("video") || normalized.includes("فيديو")) navigateToTab("video");
+          else if (normalized.includes("canvas") || normalized.includes("كانفاس")) navigateToTab("canvas");
         }}
       />
     </div>

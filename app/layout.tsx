@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Cairo } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
 import {
@@ -25,13 +24,6 @@ const nexaLight = localFont({
   src: "../public/fonts/Nexa-Light.otf",
   variable: "--font-body",
   display: "swap",
-});
-
-const cairo = Cairo({
-  subsets: ["arabic"],
-  variable: "--font-cairo",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
 const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://saadstudio.app");
@@ -116,7 +108,7 @@ export default function RootLayout({
           <meta name="referrer" content="strict-origin-when-cross-origin" />
           <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         </head>
-        <body className={`${nexaBold.variable} ${nexaLight.variable} ${cairo.variable} font-body bg-[#060c18] text-[#e2e8f0] antialiased`}>
+        <body className={`${nexaBold.variable} ${nexaLight.variable} font-body bg-[#060c18] text-[#e2e8f0] antialiased`}>
           <Script id="saad-theme-init" strategy="beforeInteractive">
             {`
               try {

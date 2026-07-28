@@ -1,5 +1,74 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Make `/influencers/canvas` a True Standalone Canvas Page (2026-07-28)
+
+- Status:
+  User reported that the Canvas page still opens briefly and returns to the Influencers roster.
+- Root cause found:
+  Even with route syncing and native anchors, `/influencers/canvas` still rendered through the shared `InfluencersStudioPage` tab shell. Any client-side state/hydration instability inside that shared shell could still show the roster.
+- Changes made:
+  - Replaced `app/(dash)/(routes)/influencers/canvas/page.tsx` so it renders `WorkflowCanvas` directly.
+  - Removed dependency on `InfluencersStudioPage`, `defaultTab`, and tab state for the Canvas physical route.
+  - Added a minimal local header with a native link back to `/influencers`.
+- Affected files:
+  - `app/(dash)/(routes)/influencers/canvas/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd next lint --file "app/(dash)/(routes)/influencers/canvas/page.tsx"` passed.
+- Remaining:
+  - Restart local dev server and open `/influencers/canvas`.
+
+#### Latest task: Pin Influencers Active Tab to Current Route (2026-07-28)
+
+- Status:
+  User reported that Canvas opens briefly and then returns to `/influencers`.
+- Root cause found:
+  `InfluencersStudioPage` kept `activeTab` as local component state and did not resynchronize it from the current route after navigation. This allowed stale state such as `influencers` to remain active even when the user tried to reach `/influencers/canvas`.
+- Changes made:
+  - Added route-derived tab resolution using `usePathname()` and `useSearchParams()`.
+  - `/influencers/canvas`, `/influencers/image`, and other subroutes now force the matching active tab from the URL.
+  - Root `/influencers` now resolves to the roster tab unless a supported `?tab=` query is present.
+- Affected files:
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd next lint --file "components/influencers/InfluencersStudioPage.tsx"` passed.
+- Remaining:
+  - Restart local dev server and retry `/influencers/canvas`.
+
+#### Latest task: Force Native Navigation for Influencers Tabs (2026-07-28)
+
+- Status:
+  User reported the Canvas tab opens briefly and returns to `/influencers` even after route-derived tab sync.
+- Root cause found:
+  The server returns `200` for `http://localhost:3000/influencers/canvas`, and middleware does not redirect it. The remaining failure is therefore client-side navigation instability in local dev.
+- Changes made:
+  - Replaced Next `<Link>` tab navigation with plain native `<a href>` anchors.
+  - Changed `handleTabChange()` to use `window.location.assign()` in the browser for action-modal/tour navigation.
+- Affected files:
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `Invoke-WebRequest http://localhost:3000/influencers/canvas -MaximumRedirection 0` returned `200` with URL unchanged.
+  - `npx.cmd next lint --file "components/influencers/InfluencersStudioPage.tsx"` passed.
+
+#### Latest task: Remove Local Google Font Blocker From Root Layout (2026-07-28)
+
+- Status:
+  User showed localhost `/influencers` still displaying a red `1 error` toast and staying on the roster when trying to reach Canvas.
+- Root cause found:
+  Local dev logs showed Next.js failing to fetch Cairo from `fonts.googleapis.com` with `EACCES`. Because Cairo was imported in the root `app/layout.tsx`, the blocked Google font request affected every local route and could break or destabilize dev rendering/hydration.
+- Changes made:
+  - Removed the `Cairo` import from `next/font/google` in `app/layout.tsx`.
+  - Removed `cairo.variable` from the root `<body>` class list so localhost uses the existing local font fallbacks without external network access.
+- Affected files:
+  - `app/layout.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx.cmd next lint --file "app/layout.tsx"` passed.
+- Remaining:
+  - Restart the local dev server so the root layout rebuilds without the blocked Google font fetch.
+
 #### Latest task: Diagnose Static-Looking `/influencers` Tool Navigation (2026-07-28)
 
 - Status:
@@ -8839,3 +8908,31 @@
   - `npx.cmd tsc --noEmit --pretty false` reports no Hook Studio errors; it still reports only existing unrelated Framer Motion typing errors in `app/(landing)/(routes)/plugin/page.tsx` at lines 167 and 221.
 - Errors/remaining:
   - Existing unrelated dirty file `adobe/saadstudio-cep/jsx/index.jsx` was not touched.
+
+## Latest task: AI Talent Studio bilingual integration (2026-07-28)
+
+- Status:
+  Implemented the requested `/influencers` rename/behavior pass as `AI Talent Studio` / `استوديو المواهب الذكية` while preserving old `/influencers` URLs.
+- Behavior:
+  - The visible section name is now `AI Talent Studio` in English and `استوديو المواهب الذكية` in Arabic.
+  - The roster, top local tabs, canvas shell, assistant sidebar, and tour modal now read from a shared bilingual copy file.
+  - The workflow language explains the intended mechanism: train/build one reusable talent, generate around 10 diverse consistent images, then branch to image, video, canvas, motion control, face swap, VIP/NSFW, upscale, and library.
+  - The tour no longer performs hard route navigation on each step; it previews tabs in-place to avoid the flash/return behavior.
+  - Added `/talent-studio` aliases that redirect to the existing `/influencers` routes for cleaner future naming without breaking legacy links.
+  - `/influencers/canvas` uses a dedicated bilingual `TalentCanvasPage` wrapper around `WorkflowCanvas`.
+- Affected files/paths:
+  - `components/influencers/talent-studio-i18n.ts`
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `components/influencers/InfluencerRoster.tsx`
+  - `components/influencers/InfluencerTourModal.tsx`
+  - `components/influencers/InfluencerAssistantSidebar.tsx`
+  - `components/influencers/TalentCanvasPage.tsx`
+  - `app/(dash)/(routes)/influencers/canvas/page.tsx`
+  - `app/(dash)/(routes)/talent-studio/*/page.tsx`
+  - `components/TopNavbar.tsx`
+  - `middleware.ts`
+- Verification:
+  - `npx.cmd next lint --file ...` passed for the edited files with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Errors/remaining:
+  - `.next-dev.codex.log` and `.next-dev.codex.err.log` changed from local dev logging and should not be included in the commit.
