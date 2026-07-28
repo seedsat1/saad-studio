@@ -1,5 +1,17 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## AI Talent Studio - Canvas Source Node Contract (2026-07-29)
+
+- The `Root`/source talent node is an identity/reference input, not an Image Generator.
+- The source node should stay visually compact and expose only source-management actions such as replace, clear, delete, plus one image output connector.
+- Generation controls must live in explicit Image/Video/Upscale tool nodes or the bottom composer, not inside the source card.
+- Canvas node dimensions and connector line endpoints must be type-aware:
+  - source/reference cards may be narrower,
+  - Text nodes may be shorter,
+  - generator/result nodes may remain larger.
+- Video Generator and Image Upscaler nodes should consume the actively connected upstream image before any copied local media on the node, so rewiring the graph changes the real input.
+- Hidden hover add buttons on media/source cards should not be the primary workflow. Tool creation must remain explicit through the canvas toolbar or bottom workflow controls.
+
 ## AI Talent Studio - Canvas Tool Data Flow (2026-07-29)
 
 - Canvas nodes must represent real workflow tools with typed inputs and outputs, not static preview cards.

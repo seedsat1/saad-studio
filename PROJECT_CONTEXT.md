@@ -1,5 +1,31 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Refine AI Talent Canvas source node engineering (2026-07-29)
+
+- Status:
+  User reported that the Canvas still looked random and unplanned because the source talent card behaved like a large generator/result card with floating controls.
+- Root cause found:
+  `WorkflowCanvas` had layered drag connectors and generation controls onto the old oversized source card. Fixed node dimensions also made connector lines and ports align poorly once node types differed.
+- Changes made:
+  - Added type-aware node dimensions for source, text, and tool/result nodes.
+  - Connection lines now calculate start/end points from each node's real width and body height.
+  - The source/root talent node is now a compact reference card and no longer shows in-card generator/play/settings controls.
+  - Removed the random hover plus button from media/source cards so users create tools through the toolbar/bottom workflow instead of accidental hidden actions.
+  - Root active controls now manage only the source image/work: replace, clear, or delete.
+  - Video and Upscale nodes now prefer the currently connected image input before stale copied media.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - Source/root nodes are identity/reference inputs, not generator tools.
+  - Tool creation belongs to explicit canvas controls, and generation belongs to Image/Video/Upscale tool nodes or the bottom composer.
+- Remaining:
+  - Live browser visual confirmation after refresh, especially root card size, drag ports, and image-to-video/upscale connected input behavior.
+
 #### Latest task: Add real drag-to-connect Canvas tool wiring (2026-07-29)
 
 - Status:

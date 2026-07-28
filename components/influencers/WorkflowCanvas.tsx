@@ -81,8 +81,11 @@ const IMAGE_VARIANTS = [
   "modern apartment lifestyle photo, cozy daylight, natural expression",
 ];
 
-const NODE_WIDTH = 380;
-const NODE_CENTER_Y = 190;
+const DEFAULT_NODE_WIDTH = 380;
+const ROOT_NODE_WIDTH = 280;
+const TEXT_NODE_HEIGHT = 176;
+const DEFAULT_NODE_HEIGHT = 330;
+const ROOT_NODE_HEIGHT = 300;
 const ROOT_X = 120;
 const IMAGE_X = 560;
 const VIDEO_X = 1040;
@@ -106,6 +109,20 @@ function getAcceptedInputKinds(node: CanvasNode): ConnectionKind[] {
 function canConnectNodes(source: CanvasNode, target: CanvasNode) {
   if (source.id === target.id) return false;
   return getAcceptedInputKinds(target).includes(getNodeOutputKind(source));
+}
+
+function getNodeWidth(node: CanvasNode) {
+  return node.type === "root" ? ROOT_NODE_WIDTH : DEFAULT_NODE_WIDTH;
+}
+
+function getNodeBodyHeight(node: CanvasNode) {
+  if (node.type === "text") return TEXT_NODE_HEIGHT;
+  if (node.type === "root") return ROOT_NODE_HEIGHT;
+  return DEFAULT_NODE_HEIGHT;
+}
+
+function getNodeCenterY(node: CanvasNode) {
+  return 40 + getNodeBodyHeight(node) / 2;
 }
 
 function getImageNodePosition(index: number, count: number) {
@@ -343,11 +360,12 @@ export function WorkflowCanvas({
 
   const getInputImageUrl = (node?: CanvasNode | null) => {
     if (!node) return "";
+    const connectedImageUrl = getIncomingNodes(node, "image")
+      .map((source) => source.publicImageUrl || source.imageUrl)
+      .find(Boolean);
+    if ((node.type === "video" || node.type === "upscale") && connectedImageUrl) return connectedImageUrl;
     if (node.publicImageUrl || node.imageUrl) return node.publicImageUrl || node.imageUrl || "";
-    for (const source of getIncomingNodes(node, "image")) {
-      const url = source.publicImageUrl || source.imageUrl;
-      if (url) return url;
-    }
+    if (connectedImageUrl) return connectedImageUrl;
     let current = getParentNode(node);
     while (current) {
       const url = current.publicImageUrl || current.imageUrl;
@@ -953,10 +971,10 @@ export function WorkflowCanvas({
           const source = nodes.find((item) => item.id === connection.sourceId);
           const target = nodes.find((item) => item.id === connection.targetId);
           if (!source || !target) return null;
-          const startX = source.x + NODE_WIDTH;
-          const startY = source.y + NODE_CENTER_Y;
+          const startX = source.x + getNodeWidth(source);
+          const startY = source.y + getNodeCenterY(source);
           const endX = target.x;
-          const endY = target.y + NODE_CENTER_Y;
+          const endY = target.y + getNodeCenterY(target);
           return (
             <path
               key={connection.id}
@@ -972,8 +990,8 @@ export function WorkflowCanvas({
           (() => {
             const source = nodes.find((item) => item.id === connectingFrom.sourceId);
             if (!source) return null;
-            const startX = source.x + NODE_WIDTH;
-            const startY = source.y + NODE_CENTER_Y;
+            const startX = source.x + getNodeWidth(source);
+            const startY = source.y + getNodeCenterY(source);
             return (
               <path
                 d={`M ${startX} ${startY} C ${startX + 120} ${startY}, ${connectingFrom.x - 120} ${connectingFrom.y}, ${connectingFrom.x} ${connectingFrom.y}`}
@@ -1046,6 +1064,8 @@ export function WorkflowCanvas({
           const outputKind = getNodeOutputKind(node);
           const acceptedInputKinds = getAcceptedInputKinds(node);
           const canAcceptConnection = Boolean(connectingFrom && acceptedInputKinds.includes(connectingFrom.kind) && connectingFrom.sourceId !== node.id);
+          const nodeWidth = getNodeWidth(node);
+          const nodeBodyHeight = getNodeBodyHeight(node);
           const isFirstImageNode = isImage && nodes.find((item) => item.type === "image")?.id === node.id;
           const nodeKindLabel = isText
             ? node.title
@@ -1070,11 +1090,11 @@ export function WorkflowCanvas({
                       ? "tour-canvas-child-nodes"
                       : undefined
               }
-              style={{ left: `${node.x}px`, top: `${node.y}px` }}
+              style={{ left: `${node.x}px`, top: `${node.y}px`, width: `${nodeWidth}px` }}
               onMouseDown={(event) => handleMouseDownNode(event, node.id)}
               className={cn(
-                "absolute w-[380px] bg-[#171717]/95 border shadow-2xl backdrop-blur-md transition-shadow duration-200 group cursor-grab active:cursor-grabbing",
-                isText ? "rounded-2xl" : "rounded-[18px]",
+                "absolute bg-[#171717]/95 border shadow-2xl backdrop-blur-md transition-shadow duration-200 group cursor-grab active:cursor-grabbing",
+                isText ? "rounded-2xl" : isRoot ? "rounded-2xl" : "rounded-[18px]",
                 isActive ? "border-blue-500 ring-2 ring-blue-500/30" : "border-white/10 hover:border-blue-500/70",
               )}
             >
@@ -1132,7 +1152,7 @@ export function WorkflowCanvas({
                 </div>
               </div>
 
-              <div className={cn("relative bg-[#1b1b1b] flex items-center justify-center overflow-hidden", isText ? "h-44" : "h-[330px]")}>
+              <div className="relative bg-[#1b1b1b] flex items-center justify-center overflow-hidden" style={{ height: `${nodeBodyHeight}px` }}>
                 {(node.status === "generating" || node.status === "uploading") && (
                   <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 text-xs font-bold text-pink-200">
                     <Loader2 size={28} className="animate-spin" />
@@ -1193,21 +1213,7 @@ export function WorkflowCanvas({
                   </button>
                 )}
 
-                {!isVideo && !isText && !isUpscale && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleAddImageNode(node.id);
-                    }}
-                    className="absolute -right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-pink-500 hover:bg-pink-400 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition transform hover:scale-110"
-                    aria-label={copy.addNode}
-                  >
-                    <Plus size={16} />
-                  </button>
-                )}
-
-                {!isText && (
+                {!isText && !isRoot && (
                   <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
                     {isImage && (
                       <>
@@ -1273,7 +1279,7 @@ export function WorkflowCanvas({
               {isActive && (
                 <div className="p-3 bg-[#0a0b12] border-t border-white/10 space-y-3 animate-in fade-in duration-200">
                   {isRoot && (
-                    <>
+                    <div className="grid grid-cols-1 gap-2">
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -1295,22 +1301,13 @@ export function WorkflowCanvas({
                       </div>
                       <button
                         type="button"
-                        onClick={handleGenerateImageSet}
-                        disabled={batchGenerating || !node.publicImageUrl}
-                        className="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                      >
-                        {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                        {copy.generateSet}
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => handleDeleteNode(node.id)}
                         className="w-full px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/10 text-red-200 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-red-500/15"
                       >
                         <Trash2 size={12} />
                         {copy.deleteWork}
                       </button>
-                    </>
+                    </div>
                   )}
 
                   {isImage && (
