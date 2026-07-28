@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  Edit3,
   Image as ImageIcon,
   Loader2,
   Move,
@@ -34,6 +35,8 @@ export type CanvasNode = {
   aspectRatio?: string;
   status: "idle" | "uploading" | "generating" | "ready" | "failed";
 };
+
+type WorkflowMode = "image" | "edit" | "video";
 
 interface WorkflowCanvasProps {
   initialNodes?: CanvasNode[];
@@ -171,6 +174,7 @@ export function WorkflowCanvas({
   const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [selectedImageModel, setSelectedImageModel] = useState("Nano Banana Pro");
   const [selectedVideoModel, setSelectedVideoModel] = useState("Kling 3.0 Pro");
+  const [workflowMode, setWorkflowMode] = useState<WorkflowMode>("image");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [batchCount, setBatchCount] = useState(8);
   const [batchPrompt, setBatchPrompt] = useState("");
@@ -321,7 +325,7 @@ export function WorkflowCanvas({
     return url as string;
   };
 
-  const handleGenerateNodeImage = async (nodeId: string) => {
+  const handleGenerateNodeImage = async (nodeId: string, promptOverride?: string) => {
     const node = nodes.find((item) => item.id === nodeId);
     if (!node) return;
     const referenceUrl = sourceNode?.publicImageUrl;
@@ -330,7 +334,7 @@ export function WorkflowCanvas({
       return;
     }
 
-    const prompt = nodePrompt.trim() || node.prompt || `${selectedHandle} realistic lifestyle photo`;
+    const prompt = promptOverride?.trim() || nodePrompt.trim() || node.prompt || `${selectedHandle} realistic lifestyle photo`;
     updateNode(nodeId, { status: "generating", prompt });
 
     try {
@@ -451,6 +455,34 @@ export function WorkflowCanvas({
     }
   };
 
+  const handlePromptGenerate = async () => {
+    if (workflowMode === "video") {
+      if (activeNode?.type === "image" && activeNode.imageUrl) {
+        await handleCreateVideoFromImage(activeNode);
+      } else {
+        setCanvasError(isArabic ? "اختر صورة ناتجة أولاً حتى تحولها إلى فيديو." : "Select a generated image first to turn it into video.");
+      }
+      return;
+    }
+
+    if (workflowMode === "edit") {
+      if (activeNode?.type === "image") {
+        await handleGenerateNodeImage(activeNode.id, batchPrompt);
+      } else {
+        handleAddImageNode(sourceNode?.id || undefined);
+      }
+      return;
+    }
+
+    await handleGenerateImageSet();
+  };
+
+  const workflowModeOptions: Array<{ id: WorkflowMode; label: string; icon: typeof ImageIcon }> = [
+    { id: "image", label: isArabic ? "صورة" : "Image", icon: ImageIcon },
+    { id: "edit", label: isArabic ? "تعديل" : "Edit", icon: Edit3 },
+    { id: "video", label: isArabic ? "فيديو" : "Video", icon: VideoIcon },
+  ];
+
   return (
     <div
       ref={containerRef}
@@ -477,7 +509,30 @@ export function WorkflowCanvas({
       />
 
       <div className="absolute top-4 left-4 right-4 z-30 bg-[#0d0f19]/95 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <div className="grid grid-cols-1 xl:grid-cols-[auto_auto_auto_auto_1fr_auto] gap-3 items-end">
+        <div className="grid grid-cols-1 2xl:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] gap-3 items-end">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-zinc-500">Mode</label>
+            <div className="h-9 rounded-xl border border-white/10 bg-black/60 p-1 flex items-center gap-1">
+              {workflowModeOptions.map((mode) => {
+                const Icon = mode.icon;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setWorkflowMode(mode.id)}
+                    className={cn(
+                      "h-7 px-2 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition",
+                      workflowMode === mode.id ? "bg-white text-black" : "text-zinc-400 hover:text-white hover:bg-white/10",
+                    )}
+                  >
+                    <Icon size={12} />
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-zinc-500">{copy.activeTalent}</label>
             <select
@@ -562,8 +617,8 @@ export function WorkflowCanvas({
             </button>
             <button
               type="button"
-              onClick={handleGenerateImageSet}
-              disabled={batchGenerating || !sourceNode?.publicImageUrl}
+              onClick={handlePromptGenerate}
+              disabled={batchGenerating}
               className="h-9 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-1.5"
             >
               {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -843,41 +898,78 @@ export function WorkflowCanvas({
         })}
       </div>
 
-      {activeNode?.type === "image" && activeNode.imageUrl && (
-        <div className="absolute bottom-4 left-4 right-4 z-30 max-w-2xl mx-auto bg-[#0d0f19]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-xl">
-          <label className="text-[10px] font-bold text-zinc-500">{copy.videoPrompt}</label>
-          <div className="flex gap-2 mt-1">
+      <div className="absolute bottom-4 left-4 right-4 z-30 max-w-3xl mx-auto bg-[#0d0f19]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="rounded-xl border border-white/10 bg-black/50 p-1 flex items-center gap-1">
+              {workflowModeOptions.map((mode) => {
+                const Icon = mode.icon;
+                return (
+                  <button
+                    key={`bottom-${mode.id}`}
+                    type="button"
+                    onClick={() => setWorkflowMode(mode.id)}
+                    className={cn(
+                      "h-8 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition",
+                      workflowMode === mode.id ? "bg-white text-black" : "text-zinc-400 hover:text-white hover:bg-white/10",
+                    )}
+                  >
+                    <Icon size={13} />
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="text-[11px] text-zinc-500">
+              {workflowMode === "video" ? copy.videoModel : copy.imageModel}:{" "}
+              <span className="text-zinc-300">{workflowMode === "video" ? selectedVideoModel : selectedImageModel}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
-              value={videoPrompt}
-              onChange={(event) => setVideoPrompt(event.target.value)}
-              placeholder={copy.videoPromptPlaceholder}
+              value={workflowMode === "video" ? videoPrompt : batchPrompt}
+              onChange={(event) => {
+                if (workflowMode === "video") setVideoPrompt(event.target.value);
+                else setBatchPrompt(event.target.value);
+              }}
+              placeholder={
+                workflowMode === "video"
+                  ? copy.videoPromptPlaceholder
+                  : isArabic
+                    ? "اكتب المشهد هنا - مثال: @gavi في مقهى فاخر، إضاءة سينمائية، لقطة عمودية"
+                    : "Describe the scene - e.g. @gavi in a luxury cafe, cinematic light, vertical shot"
+              }
               className={cn(
                 "h-10 flex-1 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-purple-500",
                 isArabic ? "text-right" : "text-left",
               )}
             />
-            <select
-              value={selectedVideoModel}
-              onChange={(event) => setSelectedVideoModel(event.target.value)}
-              className="h-10 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
-            >
-              {["Kling 3.0 Pro", "Seedance 2.0", "Kling 2.6"].map((model) => (
-                <option key={model} value={model} className="bg-[#0d0f19]">
-                  {model}
-                </option>
-              ))}
-            </select>
+            {workflowMode === "video" && (
+              <select
+                value={selectedVideoModel}
+                onChange={(event) => setSelectedVideoModel(event.target.value)}
+                className="h-10 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
+              >
+                {["Kling 3.0 Pro", "Seedance 2.0", "Kling 2.6"].map((model) => (
+                  <option key={model} value={model} className="bg-[#0d0f19]">
+                    {model}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
-              onClick={() => handleCreateVideoFromImage(activeNode)}
-              className="h-10 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5"
+              onClick={handlePromptGenerate}
+              disabled={batchGenerating}
+              className="h-10 px-5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <VideoIcon size={14} />
-              {copy.toVideo}
+              {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : workflowMode === "video" ? <VideoIcon size={14} /> : <Sparkles size={14} />}
+              {workflowMode === "video" ? copy.toVideo : copy.generate}
             </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

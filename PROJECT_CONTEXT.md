@@ -1,5 +1,30 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add original-style Image/Edit/Video prompt rail to AI Talent Canvas (2026-07-28)
+
+- Status:
+  User sent first reference screenshots showing the original workflow includes Image/Edit/Video mode switching and a bottom prompt composer. The Canvas needed the same always-visible control path so video/image generation is not hidden inside nodes only.
+- Changes made:
+  - Added `Image`, `Edit`, and `Video` workflow modes inside `components/influencers/WorkflowCanvas.tsx`.
+  - Added an always-visible bottom prompt rail similar to the reference: mode switch, prompt input, model indicator, optional video model picker, and one generate action.
+  - The generate action now follows mode:
+    - Image: generate a batch from the uploaded source.
+    - Edit: regenerate the selected image node from the prompt.
+    - Video: convert the selected generated image into a video node.
+  - Kept the node-level controls for direct branch work.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas` returned `200`.
+- Decisions:
+  - The bottom prompt rail is now the primary user action path, while node buttons remain as fast local controls.
+- Remaining:
+  - Live browser testing for upload, image generation, edit, and video generation with provider credentials/credits.
+
 #### Latest task: Make AI Talent Canvas start empty and manage real work items (2026-07-28)
 
 - Status:

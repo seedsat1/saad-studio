@@ -2241,3 +2241,13 @@
 - Deleting a node in the talent canvas removes that node and all descendant image/video branches so stale outputs do not remain connected to a deleted source.
 - Generated image nodes should expose video conversion inside the canvas itself, not only in a separate Video page.
 - The `#tour-canvas-child-nodes` tour selector must point to a real generated image node when image nodes exist.
+
+## AI Talent Studio - Canvas Image/Edit/Video Prompt Rail (2026-07-28)
+
+- The original-style Canvas workflow includes three first-class modes: `Image`, `Edit`, and `Video`.
+- `/influencers/canvas` should keep an always-visible bottom prompt rail so the main action is not hidden inside cards.
+- The prompt rail action follows the selected mode:
+  - `Image`: generate a varied image batch from the uploaded source talent image.
+  - `Edit`: regenerate/edit the currently selected image node with the prompt.
+  - `Video`: convert the currently selected generated image into a connected video node.
+- Node-level actions may remain for speed, but the bottom prompt rail is the primary visible workflow control.
