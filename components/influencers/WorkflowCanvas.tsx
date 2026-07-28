@@ -61,6 +61,45 @@ const IMAGE_VARIANTS = [
   "modern apartment lifestyle photo, cozy daylight, natural expression",
 ];
 
+const NODE_WIDTH = 256;
+const NODE_CENTER_Y = 168;
+const ROOT_X = 120;
+const IMAGE_X = 480;
+const VIDEO_X = 1180;
+const BOARD_TOP = 130;
+const ROW_GAP = 340;
+const IMAGE_COLUMN_GAP = 320;
+
+function getImageNodePosition(index: number, count: number) {
+  const rows = Math.ceil(count / 2);
+  const column = index < rows ? 0 : 1;
+  const row = index % rows;
+  return {
+    x: IMAGE_X + column * IMAGE_COLUMN_GAP,
+    y: BOARD_TOP + row * ROW_GAP,
+  };
+}
+
+function getRootNodeY(imageCount: number) {
+  const rows = Math.max(1, Math.ceil(imageCount / 2));
+  return BOARD_TOP + ((rows - 1) * ROW_GAP) / 2;
+}
+
+function collectDescendantIds(nodes: CanvasNode[], parentId: string) {
+  const ids = new Set<string>();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const node of nodes) {
+      if (node.parentId && (node.parentId === parentId || ids.has(node.parentId)) && !ids.has(node.id)) {
+        ids.add(node.id);
+        changed = true;
+      }
+    }
+  }
+  return ids;
+}
+
 function normalizeHandle(value: string | null, fallback: string) {
   if (!value) return fallback;
   const decoded = decodeURIComponent(value).trim();
@@ -206,8 +245,8 @@ export function WorkflowCanvas({
     const newNode: CanvasNode = {
       id,
       type: "root",
-      x: 60,
-      y: 260,
+      x: ROOT_X,
+      y: getRootNodeY(batchCount),
       title: copy.referenceNode,
       imageUrl,
       influencerHandle: selectedHandle,
@@ -240,20 +279,35 @@ export function WorkflowCanvas({
 
   const handleDeleteNode = (nodeId: string) => {
     setNodes((prev) => {
-      const idsToDelete = new Set([nodeId]);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (const node of prev) {
-          if (node.parentId && idsToDelete.has(node.parentId) && !idsToDelete.has(node.id)) {
-            idsToDelete.add(node.id);
-            changed = true;
-          }
-        }
-      }
+      const idsToDelete = collectDescendantIds(prev, nodeId);
+      idsToDelete.add(nodeId);
       const next = prev.filter((node) => !idsToDelete.has(node.id));
       if (!next.some((node) => node.id === activeNodeId)) setActiveNodeId(next[0]?.id || null);
       return next;
+    });
+  };
+
+  const handleAutoArrange = () => {
+    setNodes((prev) => {
+      const root = prev.find((node) => node.type === "root");
+      const imageNodes = prev.filter((node) => node.type === "image");
+      const imagePositions = new Map<string, { x: number; y: number }>();
+      imageNodes.forEach((node, index) => imagePositions.set(node.id, getImageNodePosition(index, imageNodes.length || 1)));
+
+      return prev.map((node) => {
+        if (node.type === "root") {
+          return { ...node, x: ROOT_X, y: getRootNodeY(imageNodes.length || batchCount) };
+        }
+        if (node.type === "image") {
+          const position = imagePositions.get(node.id);
+          return position ? { ...node, ...position, parentId: node.parentId || root?.id } : node;
+        }
+        if (node.type === "video" && node.parentId) {
+          const imagePosition = imagePositions.get(node.parentId);
+          if (imagePosition) return { ...node, x: VIDEO_X, y: imagePosition.y };
+        }
+        return node;
+      });
     });
   };
 
@@ -291,19 +345,25 @@ export function WorkflowCanvas({
     }
 
     const id = `image-${Date.now()}`;
+    const sourceImageCount = nodes.filter((node) => node.type === "image" && node.parentId === (sourceNode?.id || parent.id)).length;
+    const position = parent.type === "root" ? getImageNodePosition(sourceImageCount, Math.max(sourceImageCount + 1, batchCount)) : { x: parent.x + IMAGE_COLUMN_GAP, y: parent.y };
     const newNode: CanvasNode = {
       id,
       type: "image",
       parentId: parent.id,
-      x: parent.x + 340,
-      y: parent.y,
+      x: position.x,
+      y: position.y,
       title: copy.imageNode,
       influencerHandle: parent.influencerHandle || selectedHandle,
       aspectRatio,
       status: "idle",
     };
     setCanvasError("");
-    setNodes((prev) => [...prev, newNode]);
+    setNodes((prev) =>
+      prev
+        .map((node) => (node.type === "root" ? { ...node, x: ROOT_X, y: getRootNodeY(Math.max(sourceImageCount + 1, batchCount)) } : node))
+        .concat(newNode),
+    );
     setActiveNodeId(id);
   };
 
@@ -359,16 +419,15 @@ export function WorkflowCanvas({
     setCanvasError("");
     const basePrompt = batchPrompt.trim() || "realistic social media photo set, different locations and outfits";
     const count = Math.min(Math.max(batchCount, 1), IMAGE_VARIANTS.length);
-    const rows = Math.ceil(count / 2);
+    const createdAt = Date.now();
     const createdNodes: CanvasNode[] = Array.from({ length: count }).map((_, index) => {
-      const column = index < rows ? 0 : 1;
-      const row = index % rows;
+      const position = getImageNodePosition(index, count);
       return {
-        id: `set-${Date.now()}-${index}`,
+        id: `set-${createdAt}-${index}`,
         type: "image",
         parentId: root.id,
-        x: root.x + 340 + column * 320,
-        y: 70 + row * 340,
+        x: position.x,
+        y: position.y,
         title: `${copy.imageNode} ${index + 1}`,
         prompt: `${selectedHandle} ${basePrompt}, ${IMAGE_VARIANTS[index]}`,
         influencerHandle: selectedHandle,
@@ -378,7 +437,14 @@ export function WorkflowCanvas({
     });
 
     setBatchGenerating(true);
-    setNodes((prev) => [...prev, ...createdNodes]);
+    setNodes((prev) => {
+      const descendantIds = collectDescendantIds(prev, root.id);
+      return prev
+        .filter((node) => !descendantIds.has(node.id))
+        .map((node) => (node.id === root.id ? { ...node, x: ROOT_X, y: getRootNodeY(count) } : node))
+        .concat(createdNodes);
+    });
+    setActiveNodeId(createdNodes[0]?.id || root.id);
 
     for (const node of createdNodes) {
       try {
@@ -413,7 +479,7 @@ export function WorkflowCanvas({
       id,
       type: "video",
       parentId: imageNode.id,
-      x: imageNode.x + 340,
+      x: VIDEO_X,
       y: imageNode.y,
       title: copy.videoNode,
       imageUrl,
@@ -423,7 +489,7 @@ export function WorkflowCanvas({
       status: "generating",
     };
 
-    setNodes((prev) => [...prev, newNode]);
+    setNodes((prev) => prev.filter((node) => !(node.type === "video" && node.parentId === imageNode.id)).concat(newNode));
     setActiveNodeId(id);
 
     try {
@@ -519,6 +585,14 @@ export function WorkflowCanvas({
         </button>
         <button
           type="button"
+          title={isArabic ? "Arrange workflow" : "Arrange workflow"}
+          onClick={handleAutoArrange}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <Move size={15} />
+        </button>
+        <button
+          type="button"
           title={copy.uploadSource}
           onClick={() => sourceInputRef.current?.click()}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
@@ -562,10 +636,10 @@ export function WorkflowCanvas({
           if (!node.parentId) return null;
           const parentNode = nodes.find((item) => item.id === node.parentId);
           if (!parentNode) return null;
-          const startX = parentNode.x + 256;
-          const startY = parentNode.y + 168;
+          const startX = parentNode.x + NODE_WIDTH;
+          const startY = parentNode.y + NODE_CENTER_Y;
           const endX = node.x;
-          const endY = node.y + 168;
+          const endY = node.y + NODE_CENTER_Y;
           return (
             <path
               key={`path-${node.id}`}
@@ -586,6 +660,20 @@ export function WorkflowCanvas({
       </svg>
 
       <div className="relative z-10 w-full h-full p-8 pt-20 overflow-auto">
+        {nodes.length > 0 && (
+          <div className="pointer-events-none absolute left-0 top-6 min-w-[1530px] text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+            <div className="absolute" style={{ left: `${ROOT_X}px` }}>
+              {copy.referenceNode}
+            </div>
+            <div className="absolute" style={{ left: `${IMAGE_X}px` }}>
+              {copy.imageNode}
+            </div>
+            <div className="absolute" style={{ left: `${VIDEO_X}px` }}>
+              {copy.videoNode}
+            </div>
+          </div>
+        )}
+
         {nodes.length === 0 && (
           <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-7 text-center shadow-2xl">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/15 text-pink-300">

@@ -2265,3 +2265,18 @@
   - `Edit`: regenerate/edit the currently selected image node with the prompt.
   - `Video`: convert the currently selected generated image into a connected video node.
 - Node-level actions may remain for speed, but the bottom prompt rail is the primary visible workflow control.
+
+## AI Talent Studio - Connected Canvas Graph (2026-07-29)
+
+- The Canvas must render as a connected workflow graph, not as scattered cards.
+- Standard lane order:
+  - left: source talent/reference image,
+  - middle: generated image variations,
+  - right: video outputs created from selected generated images.
+- Generating a new image set from the source rebuilds that source branch:
+  - remove previous image/video descendants under the source,
+  - place the source in the left lane,
+  - place the new image batch in deterministic middle-lane rows,
+  - keep connector lines from source to each generated image.
+- Creating a video from an image creates/replaces that image's video child in the right lane and keeps a connector from the image to the video.
+- The Canvas may include an arrange action that restores existing nodes to the lane layout when manual dragging makes the board hard to read.

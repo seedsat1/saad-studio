@@ -1,5 +1,33 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Make AI Talent Canvas a connected workflow graph (2026-07-29)
+
+- Status:
+  User reported that `/influencers/canvas?talent=@gavi` still felt random and disconnected instead of matching the original reference workflow.
+- Root cause found:
+  `WorkflowCanvas` appended every new image batch to existing nodes and placed videos with local offsets from whichever image was selected. This preserved old branches and made the board look like unrelated cards rather than one left-to-right workflow.
+- Changes made:
+  - Added deterministic Canvas lanes:
+    - source talent on the left,
+    - generated images in the middle,
+    - videos on the right.
+  - Image-set generation now rebuilds the current source branch by removing old descendants under the source before adding the new batch.
+  - Video generation now creates one clean video node per selected image in the fixed video lane.
+  - Added an arrange workflow button in the left toolbar to reflow existing nodes back into the intended connected structure.
+  - Connection lines now use shared node dimensions instead of hard-coded offsets.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - A new batch from a source should replace the previous generated branch for that source. This keeps the Canvas as a current work page, not permanent clutter.
+  - Multiple batches/projects should later be represented as separate saved canvas works rather than one ever-growing board.
+- Remaining:
+  - Browser visual confirmation after refresh and live provider testing with real image/video generation credentials.
+
 #### Latest task: Remove old top generation bar from AI Talent Canvas (2026-07-29)
 
 - Status:
