@@ -2229,3 +2229,15 @@
   - `seedream/5-pro` عبر WaveSpeed فقط، حيث يحوله `/api/image/generate` إلى `bytedance/seedream-v5.0-pro`.
   - عند رفع صورة مرجعية يستخدم `seedream/5-pro-image-to-image` عبر WaveSpeed.
 - إذا أضيف موديل NSFW جديد يجب أن يعرض الاختيار معرف الموديل الحقيقي والمزود الفعلي حتى لا تظهر تسمية مختلفة عن المسار المرسل للـ API.
+
+## AI Talent Studio - Empty Canvas Work Behavior (2026-07-28)
+
+- `/influencers/canvas` must not seed a permanent/default source image.
+- The Canvas starts empty unless explicit `initialNodes` are provided by a parent workflow.
+- The user begins a work by either uploading a talent/source image or creating a blank work node.
+- Uploaded source images are sent through `/api/media/upload`; the returned public URL is the reference URL for provider calls.
+- Batch image generation should be disabled until a real uploaded source image exists. This prevents the UI from implying that a demo/default image is the user's identity.
+- The source/root work must be user-removable: replace source image, clear source image, or delete the work.
+- Deleting a node in the talent canvas removes that node and all descendant image/video branches so stale outputs do not remain connected to a deleted source.
+- Generated image nodes should expose video conversion inside the canvas itself, not only in a separate Video page.
+- The `#tour-canvas-child-nodes` tour selector must point to a real generated image node when image nodes exist.

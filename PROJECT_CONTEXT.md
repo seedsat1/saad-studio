@@ -1,5 +1,32 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Make AI Talent Canvas start empty and manage real work items (2026-07-28)
+
+- Status:
+  User clarified from reference screenshots that the Canvas must not contain a permanent default source image. It should start empty or let the user create a new work, then branch from an uploaded/source identity into image and video nodes inside the same board.
+- Changes made:
+  - Rebuilt `components/influencers/WorkflowCanvas.tsx` so it no longer seeds `root-1` with a fixed Unsplash/default image.
+  - Canvas now opens empty when no `initialNodes` are passed.
+  - Added explicit `Upload Talent Image` / `Create Blank Work` empty state.
+  - Uploaded source images are sent to `/api/media/upload`; the public URL is used as the reference for image generation.
+  - Source/root work can be replaced, image-cleared, or deleted; deleting a node now recursively removes its child image/video branch.
+  - Batch image generation is blocked until a real uploaded source image exists, preventing fake/default identity generation.
+  - Image generation now routes reference-based jobs to image-to-image model IDs where supported.
+  - Generated image nodes now expose a visible `Video` button directly on the node, and the tour target `#tour-canvas-child-nodes` exists again.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx --file components/influencers/InfluencerTourModal.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas` returned `200`.
+- Decisions:
+  - Canvas state is still local UI state in this pass; persistent named projects/pages can be added as the next layer if the user wants saved canvas jobs.
+  - NSFW integration remains untouched per the user's current instruction to leave it aside.
+- Remaining:
+  - Live-test upload and provider generation from the browser because those calls depend on storage/provider credentials and user credits.
+
 #### Latest task: Make Canvas the main Talent workflow board (2026-07-28)
 
 - Status:

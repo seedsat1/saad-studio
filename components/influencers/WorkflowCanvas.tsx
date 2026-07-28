@@ -9,6 +9,8 @@ import {
   Play,
   Plus,
   Sparkles,
+  Trash2,
+  Upload,
   Video as VideoIcon,
   Wand2,
   X,
@@ -24,12 +26,13 @@ export type CanvasNode = {
   y: number;
   title: string;
   imageUrl?: string;
+  publicImageUrl?: string;
   videoUrl?: string;
   prompt?: string;
   influencerHandle?: string;
   model?: string;
   aspectRatio?: string;
-  status: "idle" | "generating" | "ready" | "failed";
+  status: "idle" | "uploading" | "generating" | "ready" | "failed";
 };
 
 interface WorkflowCanvasProps {
@@ -61,11 +64,11 @@ function normalizeHandle(value: string | null, fallback: string) {
   return decoded.startsWith("@") ? decoded : `@${decoded}`;
 }
 
-function getImageModelId(modelName: string) {
-  if (modelName.includes("Seedream")) return "seedream/5-pro";
-  if (modelName.includes("Flux")) return "flux-2/pro-text-to-image";
-  if (modelName.includes("GPT")) return "gpt-image-2";
-  return "qwen";
+function getImageModelId(modelName: string, hasReference: boolean) {
+  if (modelName.includes("Seedream")) return hasReference ? "seedream/5-pro-image-to-image" : "seedream/5-pro";
+  if (modelName.includes("Flux")) return hasReference ? "flux-2/pro-image-to-image" : "flux-2/pro-text-to-image";
+  if (modelName.includes("GPT")) return hasReference ? "gpt-image-2-image-to-image" : "gpt-image-2";
+  return hasReference ? "qwen/image-to-image" : "qwen";
 }
 
 function getVideoModelRoute(modelName: string) {
@@ -84,19 +87,23 @@ export function WorkflowCanvas({
   const isArabic = lang !== "en";
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const sourceInputRef = useRef<HTMLInputElement | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement | null>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+
   const initialHandle = useMemo(
     () => normalizeHandle(searchParams?.get("talent"), influencerHandles[0] || "@gavi"),
-    [searchParams, influencerHandles]
+    [searchParams, influencerHandles],
   );
 
   const copy = isArabic
     ? {
-        addNode: "إضافة عقدة",
+        addNode: "إضافة صورة",
         activeTalent: "الموهبة",
         imageCount: "عدد الصور",
         nodes: "العقد",
         basePrompt: "فكرة المجموعة",
-        promptPlaceholder: "مثال: حملة أزياء فاخرة، أماكن مختلفة، صور واقعية للسوشيال ميديا",
+        promptPlaceholder: "مثال: حملة أزياء، أماكن مختلفة، صور واقعية للسوشيال ميديا",
         generateSet: "ولّد مجموعة صور",
         generatingSet: "جاري توليد المجموعة...",
         aspect: "الأبعاد",
@@ -106,20 +113,31 @@ export function WorkflowCanvas({
         videoNode: "فيديو",
         referenceNode: "الشخصية الأصلية",
         clickToGenerate: "اكتب وصفاً ثم ولّد",
-        nodePrompt: "وصف هذه العقدة",
+        nodePrompt: "وصف هذه الصورة",
         generate: "توليد",
         toVideo: "حوّل إلى فيديو",
+        toVideoShort: "فيديو",
         videoPrompt: "حركة الفيديو",
-        videoPromptPlaceholder: "مثال: تنظر للكاميرا، حركة شعر خفيفة، مشهد سينمائي",
+        videoPromptPlaceholder: "مثال: تنظر للكاميرا، حركة شعر خفيفة، لقطة سينمائية",
+        emptyTitle: "ابدأ عمل كانفاس جديد",
+        emptySubtitle: "الكانفاس يبدأ فارغاً. ارفع صورة الشخصية أو أنشئ عملاً فارغاً، وبعدها ابني الصور والفيديو داخل نفس اللوحة.",
+        uploadSource: "رفع صورة الشخصية",
+        createBlank: "إنشاء عمل فارغ",
+        replaceSource: "استبدال الصورة",
+        removeSource: "مسح الصورة",
+        deleteWork: "حذف العمل",
+        sourceRequired: "ارفع صورة الشخصية أولاً حتى تكون الهوية واضحة قبل توليد مجموعة صور.",
+        uploadFailed: "فشل رفع الصورة. جرّب صورة أخرى أو افحص إعدادات التخزين.",
+        uploading: "جاري رفع الصورة...",
         failed: "فشل",
       }
     : {
-        addNode: "Add Node",
+        addNode: "Add Image",
         activeTalent: "Talent",
         imageCount: "Image count",
         nodes: "nodes",
         basePrompt: "Set idea",
-        promptPlaceholder: "Example: luxury fashion campaign, different places, realistic social media photos",
+        promptPlaceholder: "Example: fashion campaign, different places, realistic social media photos",
         generateSet: "Generate Image Set",
         generatingSet: "Generating set...",
         aspect: "Aspect",
@@ -132,26 +150,24 @@ export function WorkflowCanvas({
         nodePrompt: "Node prompt",
         generate: "Generate",
         toVideo: "Turn into Video",
+        toVideoShort: "Video",
         videoPrompt: "Video motion",
         videoPromptPlaceholder: "Example: looking at camera, gentle hair movement, cinematic shot",
+        emptyTitle: "Start a New Canvas Work",
+        emptySubtitle: "The canvas starts empty. Upload the talent reference or create a blank work, then build images and videos in the same board.",
+        uploadSource: "Upload Talent Image",
+        createBlank: "Create Blank Work",
+        replaceSource: "Replace Image",
+        removeSource: "Remove Image",
+        deleteWork: "Delete Work",
+        sourceRequired: "Upload the talent image first so the workflow has a clear identity before generating a set.",
+        uploadFailed: "Image upload failed. Try another image or check storage settings.",
+        uploading: "Uploading image...",
         failed: "Failed",
       };
 
-  const [nodes, setNodes] = useState<CanvasNode[]>(
-    initialNodes || [
-      {
-        id: "root-1",
-        type: "root",
-        x: 60,
-        y: 260,
-        title: copy.referenceNode,
-        imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500",
-        influencerHandle: initialHandle,
-        status: "ready",
-      },
-    ]
-  );
-  const [activeNodeId, setActiveNodeId] = useState<string | null>("root-1");
+  const [nodes, setNodes] = useState<CanvasNode[]>(initialNodes || []);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(initialNodes?.[0]?.id || null);
   const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [selectedImageModel, setSelectedImageModel] = useState("Nano Banana Pro");
   const [selectedVideoModel, setSelectedVideoModel] = useState("Kling 3.0 Pro");
@@ -160,18 +176,84 @@ export function WorkflowCanvas({
   const [batchPrompt, setBatchPrompt] = useState("");
   const [nodePrompt, setNodePrompt] = useState("");
   const [videoPrompt, setVideoPrompt] = useState("");
+  const [canvasError, setCanvasError] = useState("");
   const [batchGenerating, setBatchGenerating] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   const activeNode = nodes.find((node) => node.id === activeNodeId) || null;
+  const sourceNode = nodes.find((node) => node.type === "root") || null;
 
   const updateNode = (nodeId: string, patch: Partial<CanvasNode>) => {
     setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, ...patch } : node)));
   };
 
-  const handleMouseDownNode = (e: React.MouseEvent, nodeId: string) => {
-    const target = e.target as HTMLElement;
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("/api/media/upload", { method: "POST", body: formData });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.publicUrl) throw new Error(data?.error || copy.uploadFailed);
+    return data.publicUrl as string;
+  };
+
+  const createSourceNode = (imageUrl?: string, status: CanvasNode["status"] = "idle") => {
+    const id = `root-${Date.now()}`;
+    const newNode: CanvasNode = {
+      id,
+      type: "root",
+      x: 60,
+      y: 260,
+      title: copy.referenceNode,
+      imageUrl,
+      influencerHandle: selectedHandle,
+      status,
+    };
+    setCanvasError("");
+    setNodes([newNode]);
+    setActiveNodeId(id);
+    return id;
+  };
+
+  const handleSourceFileChange = async (event: React.ChangeEvent<HTMLInputElement>, targetNodeId?: string) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const previewUrl = URL.createObjectURL(file);
+    const nodeId = targetNodeId || createSourceNode(previewUrl, "uploading");
+    if (targetNodeId) updateNode(targetNodeId, { imageUrl: previewUrl, publicImageUrl: undefined, status: "uploading" });
+
+    try {
+      const publicImageUrl = await uploadFile(file);
+      updateNode(nodeId, { publicImageUrl, status: "ready" });
+      setCanvasError("");
+    } catch {
+      updateNode(nodeId, { status: "failed" });
+      setCanvasError(copy.uploadFailed);
+    }
+  };
+
+  const handleDeleteNode = (nodeId: string) => {
+    setNodes((prev) => {
+      const idsToDelete = new Set([nodeId]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const node of prev) {
+          if (node.parentId && idsToDelete.has(node.parentId) && !idsToDelete.has(node.id)) {
+            idsToDelete.add(node.id);
+            changed = true;
+          }
+        }
+      }
+      const next = prev.filter((node) => !idsToDelete.has(node.id));
+      if (!next.some((node) => node.id === activeNodeId)) setActiveNodeId(next[0]?.id || null);
+      return next;
+    });
+  };
+
+  const handleMouseDownNode = (event: React.MouseEvent, nodeId: string) => {
+    const target = event.target as HTMLElement;
     if (target.closest("button") || target.closest("textarea") || target.closest("select") || target.closest("input")) return;
 
     const node = nodes.find((item) => item.id === nodeId);
@@ -180,65 +262,73 @@ export function WorkflowCanvas({
     const rect = containerRef.current.getBoundingClientRect();
     setDraggingNodeId(nodeId);
     dragOffsetRef.current = {
-      x: e.clientX - rect.left - node.x,
-      y: e.clientY - rect.top - node.y,
+      x: event.clientX - rect.left - node.x,
+      y: event.clientY - rect.top - node.y,
     };
     setActiveNodeId(nodeId);
     setNodePrompt(node.prompt || "");
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (event: React.MouseEvent) => {
     if (!draggingNodeId || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     updateNode(draggingNodeId, {
-      x: Math.max(10, e.clientX - rect.left - dragOffsetRef.current.x),
-      y: Math.max(10, e.clientY - rect.top - dragOffsetRef.current.y),
+      x: Math.max(10, event.clientX - rect.left - dragOffsetRef.current.x),
+      y: Math.max(10, event.clientY - rect.top - dragOffsetRef.current.y),
     });
   };
 
-  const handleDeleteNode = (nodeId: string) => {
-    setNodes((prev) => prev.filter((node) => node.id !== nodeId && node.parentId !== nodeId));
-    if (activeNodeId === nodeId) setActiveNodeId("root-1");
-  };
+  const handleAddImageNode = (parentId = activeNodeId || "") => {
+    const parent = nodes.find((node) => node.id === parentId) || sourceNode;
+    if (!parent) {
+      setCanvasError(copy.sourceRequired);
+      return;
+    }
 
-  const handleAddImageNode = (parentId = activeNodeId || "root-1") => {
-    const parent = nodes.find((node) => node.id === parentId) || nodes[0];
     const id = `image-${Date.now()}`;
     const newNode: CanvasNode = {
       id,
       type: "image",
-      parentId: parent?.id || "root-1",
-      x: (parent?.x || 60) + 340,
-      y: parent?.y || 260,
+      parentId: parent.id,
+      x: parent.x + 340,
+      y: parent.y,
       title: copy.imageNode,
-      influencerHandle: parent?.influencerHandle || selectedHandle,
+      influencerHandle: parent.influencerHandle || selectedHandle,
       aspectRatio,
       status: "idle",
     };
+    setCanvasError("");
     setNodes((prev) => [...prev, newNode]);
     setActiveNodeId(id);
   };
 
-  const generateImage = async (prompt: string) => {
-    const res = await fetch("/api/image/generate", {
+  const generateImage = async (prompt: string, referenceUrl?: string) => {
+    const hasReference = Boolean(referenceUrl);
+    const response = await fetch("/api/image/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt,
-        model: getImageModelId(selectedImageModel),
+        model: getImageModelId(selectedImageModel, hasReference),
         aspectRatio,
         quality: "1K",
+        imageUrl: referenceUrl,
       }),
     });
-    const data = await res.json().catch(() => null);
-    const url = data?.mediaUrl || data?.url || data?.imageUrl;
-    if (!res.ok || !url) throw new Error(data?.error || "Image generation failed");
+    const data = await response.json().catch(() => null);
+    const url = data?.mediaUrl || data?.url || data?.imageUrl || data?.imageUrls?.[0];
+    if (!response.ok || !url) throw new Error(data?.error || "Image generation failed");
     return url as string;
   };
 
   const handleGenerateNodeImage = async (nodeId: string) => {
     const node = nodes.find((item) => item.id === nodeId);
     if (!node) return;
+    const referenceUrl = sourceNode?.publicImageUrl;
+    if (!referenceUrl) {
+      setCanvasError(copy.sourceRequired);
+      return;
+    }
 
     const prompt = nodePrompt.trim() || node.prompt || `${selectedHandle} realistic lifestyle photo`;
     updateNode(nodeId, { status: "generating", prompt });
@@ -246,22 +336,28 @@ export function WorkflowCanvas({
     try {
       const url = onGenerateImageNode
         ? await onGenerateImageNode(nodeId, prompt, selectedHandle, selectedImageModel, aspectRatio)
-        : await generateImage(prompt.includes("@") ? prompt : `${selectedHandle} ${prompt}`);
-      updateNode(nodeId, { status: "ready", imageUrl: url });
+        : await generateImage(prompt.includes("@") ? prompt : `${selectedHandle} ${prompt}`, referenceUrl);
+      updateNode(nodeId, { status: "ready", imageUrl: url, publicImageUrl: url });
+      setCanvasError("");
     } catch {
       updateNode(nodeId, { status: "failed" });
     }
   };
 
   const handleGenerateImageSet = async () => {
-    const root = nodes.find((node) => node.type === "root") || nodes[0];
-    if (!root) return;
+    const root = sourceNode;
+    if (!root?.publicImageUrl) {
+      setCanvasError(copy.sourceRequired);
+      return;
+    }
 
+    setCanvasError("");
     const basePrompt = batchPrompt.trim() || "realistic social media photo set, different locations and outfits";
     const count = Math.min(Math.max(batchCount, 1), IMAGE_VARIANTS.length);
+    const rows = Math.ceil(count / 2);
     const createdNodes: CanvasNode[] = Array.from({ length: count }).map((_, index) => {
-      const column = index < Math.ceil(count / 2) ? 0 : 1;
-      const row = index % Math.ceil(count / 2);
+      const column = index < rows ? 0 : 1;
+      const row = index % rows;
       return {
         id: `set-${Date.now()}-${index}`,
         type: "image",
@@ -281,8 +377,8 @@ export function WorkflowCanvas({
 
     for (const node of createdNodes) {
       try {
-        const url = await generateImage(node.prompt || `${selectedHandle} ${basePrompt}`);
-        updateNode(node.id, { status: "ready", imageUrl: url });
+        const url = await generateImage(node.prompt || `${selectedHandle} ${basePrompt}`, root.publicImageUrl);
+        updateNode(node.id, { status: "ready", imageUrl: url, publicImageUrl: url });
       } catch {
         updateNode(node.id, { status: "failed" });
       }
@@ -294,8 +390,8 @@ export function WorkflowCanvas({
   const pollVideoResult = async (taskId: string) => {
     for (let attempt = 0; attempt < 30; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, 4000));
-      const res = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`).catch(() => null);
-      const data = await res?.json().catch(() => null);
+      const response = await fetch(`/api/video?taskId=${encodeURIComponent(taskId)}`).catch(() => null);
+      const data = await response?.json().catch(() => null);
       if (data?.status === "completed" && data?.videoUrl) return data.videoUrl as string;
       if (data?.status === "failed") throw new Error(data?.error || "Video generation failed");
     }
@@ -303,7 +399,8 @@ export function WorkflowCanvas({
   };
 
   const handleCreateVideoFromImage = async (imageNode: CanvasNode) => {
-    if (!imageNode.imageUrl) return;
+    const imageUrl = imageNode.publicImageUrl || imageNode.imageUrl;
+    if (!imageUrl) return;
 
     const id = `video-${Date.now()}`;
     const prompt = videoPrompt.trim() || `${imageNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`;
@@ -314,7 +411,8 @@ export function WorkflowCanvas({
       x: imageNode.x + 340,
       y: imageNode.y,
       title: copy.videoNode,
-      imageUrl: imageNode.imageUrl,
+      imageUrl,
+      publicImageUrl: imageUrl,
       prompt,
       influencerHandle: imageNode.influencerHandle,
       status: "generating",
@@ -328,7 +426,7 @@ export function WorkflowCanvas({
       if (onGenerateVideoNode) {
         videoUrl = await onGenerateVideoNode(id, prompt, selectedVideoModel);
       } else {
-        const res = await fetch("/api/video", {
+        const response = await fetch("/api/video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -337,16 +435,17 @@ export function WorkflowCanvas({
               prompt,
               duration: 5,
               aspect_ratio: aspectRatio,
-              image_url: imageNode.imageUrl,
+              image_url: imageUrl,
               resolution: "720p",
             },
           }),
         });
-        const data = await res.json().catch(() => null);
-        if (!res.ok || (!data?.taskId && !data?.videoUrl)) throw new Error(data?.error || "Video generation failed");
+        const data = await response.json().catch(() => null);
+        if (!response.ok || (!data?.taskId && !data?.videoUrl)) throw new Error(data?.error || "Video generation failed");
         videoUrl = data.videoUrl || (await pollVideoResult(data.taskId));
       }
       updateNode(id, { status: "ready", videoUrl });
+      setCanvasError("");
     } catch {
       updateNode(id, { status: "failed" });
     }
@@ -362,13 +461,28 @@ export function WorkflowCanvas({
     >
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff0c_1px,transparent_1px)] [background-size:28px_28px] opacity-80 pointer-events-none" />
 
+      <input
+        ref={sourceInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => handleSourceFileChange(event)}
+      />
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => activeNode && handleSourceFileChange(event, activeNode.id)}
+      />
+
       <div className="absolute top-4 left-4 right-4 z-30 bg-[#0d0f19]/95 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
         <div className="grid grid-cols-1 xl:grid-cols-[auto_auto_auto_auto_1fr_auto] gap-3 items-end">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-zinc-500">{copy.activeTalent}</label>
             <select
               value={selectedHandle}
-              onChange={(e) => setSelectedHandle(e.target.value)}
+              onChange={(event) => setSelectedHandle(event.target.value)}
               className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-pink-300 font-mono outline-none dir-ltr"
             >
               {Array.from(new Set([selectedHandle, ...influencerHandles])).map((handle) => (
@@ -383,7 +497,7 @@ export function WorkflowCanvas({
             <label className="text-[10px] font-bold text-zinc-500">{copy.imageCount}</label>
             <select
               value={batchCount}
-              onChange={(e) => setBatchCount(Number(e.target.value))}
+              onChange={(event) => setBatchCount(Number(event.target.value))}
               className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white outline-none"
             >
               {[4, 6, 8, 10, 12].map((count) => (
@@ -398,7 +512,7 @@ export function WorkflowCanvas({
             <label className="text-[10px] font-bold text-zinc-500">{copy.aspect}</label>
             <select
               value={aspectRatio}
-              onChange={(e) => setAspectRatio(e.target.value)}
+              onChange={(event) => setAspectRatio(event.target.value)}
               className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white outline-none"
             >
               {["9:16", "1:1", "16:9", "3:4"].map((ratio) => (
@@ -413,7 +527,7 @@ export function WorkflowCanvas({
             <label className="text-[10px] font-bold text-zinc-500">{copy.imageModel}</label>
             <select
               value={selectedImageModel}
-              onChange={(e) => setSelectedImageModel(e.target.value)}
+              onChange={(event) => setSelectedImageModel(event.target.value)}
               className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
             >
               {["Nano Banana Pro", "Seedream 5.0 Pro", "Flux 2 Pro", "GPT Image 2"].map((model) => (
@@ -428,11 +542,11 @@ export function WorkflowCanvas({
             <label className="text-[10px] font-bold text-zinc-500">{copy.basePrompt}</label>
             <input
               value={batchPrompt}
-              onChange={(e) => setBatchPrompt(e.target.value)}
+              onChange={(event) => setBatchPrompt(event.target.value)}
               placeholder={copy.promptPlaceholder}
               className={cn(
                 "h-9 w-full bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-pink-500",
-                isArabic ? "text-right" : "text-left"
+                isArabic ? "text-right" : "text-left",
               )}
             />
           </div>
@@ -440,16 +554,16 @@ export function WorkflowCanvas({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleAddImageNode()}
+              onClick={() => sourceInputRef.current?.click()}
               className="h-9 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-xs font-bold flex items-center gap-1.5"
             >
-              <Plus size={14} />
-              {copy.addNode}
+              <Upload size={14} />
+              {copy.uploadSource}
             </button>
             <button
               type="button"
               onClick={handleGenerateImageSet}
-              disabled={batchGenerating}
+              disabled={batchGenerating || !sourceNode?.publicImageUrl}
               className="h-9 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-1.5"
             >
               {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
@@ -458,12 +572,15 @@ export function WorkflowCanvas({
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-3 text-[11px] text-zinc-500">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
           <span>
             {nodes.length} {copy.nodes}
           </span>
           <span className="h-1 w-1 rounded-full bg-zinc-700" />
-          <span>{copy.videoModel}: {selectedVideoModel}</span>
+          <span>
+            {copy.videoModel}: {selectedVideoModel}
+          </span>
+          {canvasError && <span className="text-pink-300">{canvasError}</span>}
         </div>
       </div>
 
@@ -496,20 +613,59 @@ export function WorkflowCanvas({
       </svg>
 
       <div className="relative z-10 w-full h-full p-8 pt-28 overflow-auto">
+        {nodes.length === 0 && (
+          <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-7 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/15 text-pink-300">
+              <Upload size={24} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-white">{copy.emptyTitle}</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">{copy.emptySubtitle}</p>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => sourceInputRef.current?.click()}
+                className="h-11 px-5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-sm font-bold text-white flex items-center gap-2"
+              >
+                <Upload size={16} />
+                {copy.uploadSource}
+              </button>
+              <button
+                type="button"
+                onClick={() => createSourceNode()}
+                className="h-11 px-5 rounded-xl border border-white/10 bg-white/5 text-sm font-bold text-zinc-200 hover:bg-white/10 flex items-center gap-2"
+              >
+                <Plus size={16} />
+                {copy.createBlank}
+              </button>
+            </div>
+            {canvasError && <p className="mt-4 text-xs font-bold text-pink-300">{canvasError}</p>}
+          </div>
+        )}
+
         {nodes.map((node) => {
           const isRoot = node.type === "root";
           const isVideo = node.type === "video";
+          const isImage = node.type === "image";
           const isActive = activeNodeId === node.id;
+          const isFirstImageNode = isImage && nodes.find((item) => item.type === "image")?.id === node.id;
 
           return (
             <div
               key={node.id}
-              id={isRoot ? "tour-canvas-root-node" : isVideo ? "tour-video-motion-node" : undefined}
+              id={
+                isRoot
+                  ? "tour-canvas-root-node"
+                  : isVideo
+                    ? "tour-video-motion-node"
+                    : isFirstImageNode
+                      ? "tour-canvas-child-nodes"
+                      : undefined
+              }
               style={{ left: `${node.x}px`, top: `${node.y}px` }}
-              onMouseDown={(e) => handleMouseDownNode(e, node.id)}
+              onMouseDown={(event) => handleMouseDownNode(event, node.id)}
               className={cn(
                 "absolute w-64 bg-[#0e101a]/95 border rounded-2xl shadow-2xl backdrop-blur-md transition-shadow duration-200 overflow-hidden group cursor-grab active:cursor-grabbing",
-                isActive ? "border-pink-500 ring-2 ring-pink-500/30" : "border-white/10 hover:border-white/20"
+                isActive ? "border-pink-500 ring-2 ring-pink-500/30" : "border-white/10 hover:border-white/20",
               )}
             >
               <div className="px-3.5 py-2 bg-white/[0.04] border-b border-white/5 flex items-center justify-between gap-2">
@@ -521,25 +677,25 @@ export function WorkflowCanvas({
                 </div>
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="text-xs font-bold text-zinc-300 truncate max-w-[92px]">{node.title}</span>
-                  {!isRoot && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteNode(node.id);
-                      }}
-                      className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-white/10"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleDeleteNode(node.id);
+                    }}
+                    className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-white/10"
+                    aria-label={isRoot ? copy.deleteWork : "Delete node"}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               </div>
 
               <div className="relative h-72 bg-black flex items-center justify-center overflow-hidden">
-                {node.status === "generating" && (
-                  <div className="absolute inset-0 z-20 bg-black/60 flex items-center justify-center">
-                    <Loader2 size={28} className="animate-spin text-pink-300" />
+                {(node.status === "generating" || node.status === "uploading") && (
+                  <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 text-xs font-bold text-pink-200">
+                    <Loader2 size={28} className="animate-spin" />
+                    {node.status === "uploading" ? copy.uploading : copy.generatingSet}
                   </div>
                 )}
                 {node.status === "failed" && (
@@ -553,8 +709,14 @@ export function WorkflowCanvas({
                   <img src={node.imageUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center p-4 space-y-2">
-                    {isVideo ? <VideoIcon size={34} className="mx-auto text-zinc-600" /> : <ImageIcon size={34} className="mx-auto text-zinc-600" />}
-                    <span className="text-xs font-bold text-zinc-500 block">{copy.clickToGenerate}</span>
+                    {isVideo ? (
+                      <VideoIcon size={34} className="mx-auto text-zinc-600" />
+                    ) : (
+                      <ImageIcon size={34} className="mx-auto text-zinc-600" />
+                    )}
+                    <span className="text-xs font-bold text-zinc-500 block">
+                      {isRoot ? copy.uploadSource : copy.clickToGenerate}
+                    </span>
                   </div>
                 )}
 
@@ -564,14 +726,29 @@ export function WorkflowCanvas({
                   </div>
                 )}
 
+                {isImage && node.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleCreateVideoFromImage(node);
+                    }}
+                    className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-purple-600/95 hover:bg-purple-500 text-white text-xs font-bold shadow-lg flex items-center gap-1.5"
+                  >
+                    <VideoIcon size={12} />
+                    {copy.toVideoShort}
+                  </button>
+                )}
+
                 {!isVideo && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={(event) => {
+                      event.stopPropagation();
                       handleAddImageNode(node.id);
                     }}
                     className="absolute -right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-pink-500 hover:bg-pink-400 text-white shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition transform hover:scale-110"
+                    aria-label={copy.addNode}
                   >
                     <Plus size={16} />
                   </button>
@@ -580,11 +757,52 @@ export function WorkflowCanvas({
 
               {isActive && (
                 <div className="p-3 bg-[#0a0b12] border-t border-white/10 space-y-3 animate-in fade-in duration-200">
-                  {!isRoot && !isVideo && (
+                  {isRoot && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => replaceInputRef.current?.click()}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                        >
+                          <Upload size={12} />
+                          {copy.replaceSource}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateNode(node.id, { imageUrl: undefined, publicImageUrl: undefined, status: "idle" })}
+                          disabled={!node.imageUrl}
+                          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-40"
+                        >
+                          <Trash2 size={12} />
+                          {copy.removeSource}
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGenerateImageSet}
+                        disabled={batchGenerating || !node.publicImageUrl}
+                        className="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                        {copy.generateSet}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteNode(node.id)}
+                        className="w-full px-3 py-2 rounded-xl border border-red-500/20 bg-red-500/10 text-red-200 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-red-500/15"
+                      >
+                        <Trash2 size={12} />
+                        {copy.deleteWork}
+                      </button>
+                    </>
+                  )}
+
+                  {isImage && (
                     <>
                       <textarea
                         value={nodePrompt || node.prompt || ""}
-                        onChange={(e) => setNodePrompt(e.target.value)}
+                        onChange={(event) => setNodePrompt(event.target.value)}
                         placeholder={copy.nodePrompt}
                         rows={2}
                         className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-xs text-white placeholder-zinc-500 outline-none resize-none"
@@ -618,18 +836,6 @@ export function WorkflowCanvas({
                       {node.status === "ready" ? copy.videoNode : copy.generatingSet}
                     </div>
                   )}
-
-                  {isRoot && (
-                    <button
-                      type="button"
-                      onClick={handleGenerateImageSet}
-                      disabled={batchGenerating}
-                      className="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                      {copy.generateSet}
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -643,16 +849,16 @@ export function WorkflowCanvas({
           <div className="flex gap-2 mt-1">
             <input
               value={videoPrompt}
-              onChange={(e) => setVideoPrompt(e.target.value)}
+              onChange={(event) => setVideoPrompt(event.target.value)}
               placeholder={copy.videoPromptPlaceholder}
               className={cn(
                 "h-10 flex-1 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-purple-500",
-                isArabic ? "text-right" : "text-left"
+                isArabic ? "text-right" : "text-left",
               )}
             />
             <select
               value={selectedVideoModel}
-              onChange={(e) => setSelectedVideoModel(e.target.value)}
+              onChange={(event) => setSelectedVideoModel(event.target.value)}
               className="h-10 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
             >
               {["Kling 3.0 Pro", "Seedance 2.0", "Kling 2.6"].map((model) => (
