@@ -1,5 +1,31 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Make Canvas the main Talent workflow board (2026-07-28)
+
+- Status:
+  User clarified, using the original reference screenshot, that the intended workflow should happen inside Canvas: source talent image -> multiple image variants -> selected variants converted to video nodes.
+- Changes made:
+  - Rebuilt `components/influencers/WorkflowCanvas.tsx` as a connected workflow board instead of a small demo canvas.
+  - Canvas now starts from a source talent node and reads `?talent=@handle`.
+  - Added a top workflow bar with active talent, image count, aspect ratio, image model, and batch prompt.
+  - Added `Generate Image Set` / `ولّد مجموعة صور`, with configurable counts `4/6/8/10/12`; 10 is no longer treated as a fixed rule.
+  - Batch generation creates multiple image nodes branching from the source node, then fills them sequentially from `/api/image/generate`.
+  - Each generated image node can be converted to a connected video node through `/api/video` with polling.
+  - Nodes show generating and failed states and can still be dragged/deleted.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx --file "app/(dash)/(routes)/influencers/canvas/page.tsx"` passed with existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas?talent=%40gavi` returned `200`.
+- Decisions:
+  - NSFW remains untouched in this task.
+  - Image batches run sequentially to avoid launching many provider jobs at once.
+- Remaining:
+  - User should live-test provider generation because image/video jobs spend real credits and depend on provider availability.
+
 #### Latest task: Complete non-NSFW AI Talent Studio workflow wiring (2026-07-28)
 
 - Status:
