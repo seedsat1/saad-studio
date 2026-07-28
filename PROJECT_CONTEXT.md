@@ -1,5 +1,31 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Align AI Talent Canvas chrome with original workflow reference (2026-07-28)
+
+- Status:
+  User challenged that the implemented Canvas still did not follow the original reference closely enough. The issue was visual/workflow parity: the functionality existed, but the page still looked like a wrapped local tool rather than the original-style workflow canvas.
+- Changes made:
+  - Reworked `components/influencers/TalentCanvasPage.tsx` from a fixed header into original-style floating Canvas chrome:
+    - top-left workflow selector/back control,
+    - top-center direct native route tabs,
+    - top-right saved state and assistant action.
+  - Preserved the active `?talent=@handle` query across all Canvas chrome links.
+  - Updated `components/influencers/WorkflowCanvas.tsx` so its tool panel sits below the floating chrome and the board occupies the full available height.
+  - Added a left vertical canvas toolbar with select/move, upload, add image, image mode, and video mode controls so the workflow does not feel hidden inside nodes only.
+- Affected files:
+  - `components/influencers/TalentCanvasPage.tsx`
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas?talent=%40gavi` returned `200`.
+- Decisions:
+  - This pass improves the Canvas workflow surface without changing provider routing or NSFW behavior.
+- Remaining:
+  - Live browser testing of upload, image generation, edit, and video conversion with real provider credentials/credits.
+
 #### Latest task: Add original-style Image/Edit/Video prompt rail to AI Talent Canvas (2026-07-28)
 
 - Status:

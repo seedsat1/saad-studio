@@ -6,6 +6,7 @@ import {
   Edit3,
   Image as ImageIcon,
   Loader2,
+  MousePointer2,
   Move,
   Play,
   Plus,
@@ -486,7 +487,7 @@ export function WorkflowCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative w-full min-h-[760px] h-[calc(100vh-8rem)] overflow-hidden bg-[#07080f] select-none"
+      className="relative w-full min-h-[760px] h-[calc(100vh-4rem)] overflow-hidden bg-[#07080f] select-none"
       id="tour-canvas-board"
       onMouseMove={handleMouseMove}
       onMouseUp={() => setDraggingNodeId(null)}
@@ -508,7 +509,55 @@ export function WorkflowCanvas({
         onChange={(event) => activeNode && handleSourceFileChange(event, activeNode.id)}
       />
 
-      <div className="absolute top-4 left-4 right-4 z-30 bg-[#0d0f19]/95 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
+      <div className="absolute left-3 top-1/2 z-40 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-white/10 bg-black/75 p-1.5 shadow-2xl backdrop-blur-xl">
+        <button
+          type="button"
+          title={isArabic ? "اختيار وتحريك" : "Select and move"}
+          className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white"
+        >
+          <MousePointer2 size={15} />
+        </button>
+        <button
+          type="button"
+          title={copy.uploadSource}
+          onClick={() => sourceInputRef.current?.click()}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <Upload size={15} />
+        </button>
+        <button
+          type="button"
+          title={copy.addNode}
+          onClick={() => handleAddImageNode(sourceNode?.id || undefined)}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <Plus size={16} />
+        </button>
+        <button
+          type="button"
+          title={workflowModeOptions.find((mode) => mode.id === "image")?.label}
+          onClick={() => setWorkflowMode("image")}
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 hover:text-white",
+            workflowMode === "image" ? "bg-pink-500 text-white" : "text-zinc-400",
+          )}
+        >
+          <ImageIcon size={15} />
+        </button>
+        <button
+          type="button"
+          title={workflowModeOptions.find((mode) => mode.id === "video")?.label}
+          onClick={() => setWorkflowMode("video")}
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-lg hover:bg-white/10 hover:text-white",
+            workflowMode === "video" ? "bg-purple-600 text-white" : "text-zinc-400",
+          )}
+        >
+          <VideoIcon size={15} />
+        </button>
+      </div>
+
+      <div className="absolute top-20 left-4 right-4 z-30 bg-[#0d0f19]/95 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
         <div className="grid grid-cols-1 2xl:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] gap-3 items-end">
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-zinc-500">Mode</label>
@@ -667,7 +716,7 @@ export function WorkflowCanvas({
         </defs>
       </svg>
 
-      <div className="relative z-10 w-full h-full p-8 pt-28 overflow-auto">
+      <div className="relative z-10 w-full h-full p-8 pt-44 overflow-auto">
         {nodes.length === 0 && (
           <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-7 text-center shadow-2xl">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/15 text-pink-300">

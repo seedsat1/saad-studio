@@ -1,5 +1,17 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## AI Talent Studio - Canvas Original-Style Chrome (2026-07-28)
+
+- `/influencers/canvas?talent=@handle` should read visually as the main workflow board, not as a regular page wrapped by a large local header.
+- The Canvas page chrome is an overlay:
+  - top-left back/workflow selector,
+  - top-center native links for `Canvas`, `Image`, `Video`, `Motion`, `Upscale`, `VIP/NSFW`, `Library`, and `Talents`,
+  - top-right local saved state and assistant action.
+- Canvas chrome links must preserve the active `?talent=@handle` query so moving from Canvas to Image/Video keeps the selected talent context.
+- The inner `WorkflowCanvas` control bar must sit below the floating chrome, and the board should fill the available viewport height.
+- A left vertical toolbar should expose the primary canvas actions directly: select/move, upload source, add image, image mode, and video mode.
+- This change is UI/workflow parity only; provider routing, NSFW routing, media upload, and `/api/video` polling behavior remain as previously documented.
+
 ## AI Talent Studio - الكانفاس هو مسار العمل الرئيسي (2026-07-28)
 
 - الكانفاس يجب أن يكون مركز العمل المتكامل، وليس مجرد صفحة تجريبية منفصلة.
