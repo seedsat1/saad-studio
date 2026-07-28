@@ -1,5 +1,32 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add real drag-to-connect Canvas tool wiring (2026-07-29)
+
+- Status:
+  User clarified that prior fixes still ignored the true reference behavior: tools must be manually connected by dragging from output ports to compatible input ports.
+- Root cause found:
+  The Canvas still used hidden `parentId` links as the only workflow structure. The visible connector buttons were decorative and did not create or validate real tool links.
+- Changes made:
+  - Added typed Canvas connections with `text`, `image`, and `video` output kinds.
+  - Added drag-to-connect behavior from each node output port to compatible input ports.
+  - Input ports now highlight only when the dragged output type is valid for that tool.
+  - Connection lines are now rendered from explicit connection records, with a live temporary line while dragging.
+  - Automatic node creation/generation still seeds matching visible connections so generated branches remain understandable.
+  - Downstream prompt/image lookup now reads from visible connections as well as legacy `parentId`.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas?talent=%40gavi` returned `200`.
+- Decisions:
+  - Visible connector ports are now the authority for workflow links. `parentId` is retained only as a compatibility/layout helper.
+  - Invalid links are rejected instead of silently creating random parent chains.
+- Remaining:
+  - Browser interaction check: drag a source/image/text output port into Image, Video, or Upscale input ports and confirm the wire appears and generation consumes the connected input.
+
 #### Latest task: Wire AI Talent Canvas as real tool data flow (2026-07-29)
 
 - Status:

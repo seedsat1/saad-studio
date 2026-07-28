@@ -41,6 +41,22 @@ export type CanvasNode = {
   status: "idle" | "uploading" | "generating" | "ready" | "failed";
 };
 
+type ConnectionKind = "text" | "image" | "video";
+
+type CanvasConnection = {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  kind: ConnectionKind;
+};
+
+type ConnectingState = {
+  sourceId: string;
+  kind: ConnectionKind;
+  x: number;
+  y: number;
+};
+
 type WorkflowMode = "image" | "edit" | "video";
 
 interface WorkflowCanvasProps {
@@ -73,6 +89,24 @@ const VIDEO_X = 1040;
 const BOARD_TOP = 130;
 const ROW_GAP = 420;
 const IMAGE_COLUMN_GAP = 430;
+
+function getNodeOutputKind(node: CanvasNode): ConnectionKind {
+  if (node.type === "text") return "text";
+  if (node.type === "video") return "video";
+  return "image";
+}
+
+function getAcceptedInputKinds(node: CanvasNode): ConnectionKind[] {
+  if (node.type === "image") return ["image", "text"];
+  if (node.type === "video") return ["image", "text"];
+  if (node.type === "upscale") return ["image"];
+  return [];
+}
+
+function canConnectNodes(source: CanvasNode, target: CanvasNode) {
+  if (source.id === target.id) return false;
+  return getAcceptedInputKinds(target).includes(getNodeOutputKind(source));
+}
 
 function getImageNodePosition(index: number, count: number) {
   const rows = Math.ceil(count / 2);
@@ -214,6 +248,19 @@ export function WorkflowCanvas({
       };
 
   const [nodes, setNodes] = useState<CanvasNode[]>(initialNodes || []);
+  const [connections, setConnections] = useState<CanvasConnection[]>(() =>
+    (initialNodes || [])
+      .filter((node) => node.parentId)
+      .map((node) => {
+        const source = (initialNodes || []).find((item) => item.id === node.parentId);
+        return {
+          id: `conn-${node.parentId}-${node.id}`,
+          sourceId: node.parentId || "",
+          targetId: node.id,
+          kind: source ? getNodeOutputKind(source) : "image",
+        };
+      }),
+  );
   const [activeNodeId, setActiveNodeId] = useState<string | null>(initialNodes?.[0]?.id || null);
   const [selectedHandle, setSelectedHandle] = useState(initialHandle);
   const [selectedImageModel, setSelectedImageModel] = useState("Nano Banana Pro");
@@ -226,16 +273,62 @@ export function WorkflowCanvas({
   const [canvasError, setCanvasError] = useState("");
   const [batchGenerating, setBatchGenerating] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [connectingFrom, setConnectingFrom] = useState<ConnectingState | null>(null);
 
   const activeNode = nodes.find((node) => node.id === activeNodeId) || null;
   const sourceNode = nodes.find((node) => node.type === "root") || null;
+
+  const getPointerPosition = (event: React.MouseEvent) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return {
+      x: rect ? event.clientX - rect.left : event.clientX,
+      y: rect ? event.clientY - rect.top : event.clientY,
+    };
+  };
+
+  const upsertConnection = (source: CanvasNode, target: CanvasNode) => {
+    const kind = getNodeOutputKind(source);
+    if (!canConnectNodes(source, target)) {
+      setCanvasError(isArabic ? "هذا الربط غير مناسب لنوع الأداة." : "This connection does not match the target tool input.");
+      return;
+    }
+    setConnections((prev) =>
+      prev
+        .filter((connection) => !(connection.targetId === target.id && connection.kind === kind))
+        .concat({
+          id: `conn-${source.id}-${target.id}-${kind}-${Date.now()}`,
+          sourceId: source.id,
+          targetId: target.id,
+          kind,
+        }),
+    );
+    const sourceImageUrl = kind === "image" ? source.publicImageUrl || source.imageUrl : "";
+    updateNode(target.id, {
+      parentId: source.id,
+      influencerHandle: target.influencerHandle || source.influencerHandle || selectedHandle,
+      imageUrl: sourceImageUrl || target.imageUrl,
+      publicImageUrl: sourceImageUrl || target.publicImageUrl,
+    });
+    setActiveNodeId(target.id);
+    setCanvasError("");
+  };
 
   const getParentNode = (node?: CanvasNode | null) => {
     if (!node?.parentId) return null;
     return nodes.find((item) => item.id === node.parentId) || null;
   };
 
+  const getIncomingNodes = (node?: CanvasNode | null, kind?: ConnectionKind) => {
+    if (!node) return [];
+    return connections
+      .filter((connection) => connection.targetId === node.id && (!kind || connection.kind === kind))
+      .map((connection) => nodes.find((item) => item.id === connection.sourceId))
+      .filter((item): item is CanvasNode => Boolean(item));
+  };
+
   const getUpstreamTextPrompt = (node?: CanvasNode | null) => {
+    const directText = getIncomingNodes(node, "text").find((item) => item.prompt?.trim());
+    if (directText?.prompt?.trim()) return directText.prompt.trim();
     let current = getParentNode(node);
     while (current) {
       if (current.type === "text" && current.prompt?.trim()) return current.prompt.trim();
@@ -251,6 +344,10 @@ export function WorkflowCanvas({
   const getInputImageUrl = (node?: CanvasNode | null) => {
     if (!node) return "";
     if (node.publicImageUrl || node.imageUrl) return node.publicImageUrl || node.imageUrl || "";
+    for (const source of getIncomingNodes(node, "image")) {
+      const url = source.publicImageUrl || source.imageUrl;
+      if (url) return url;
+    }
     let current = getParentNode(node);
     while (current) {
       const url = current.publicImageUrl || current.imageUrl;
@@ -287,6 +384,7 @@ export function WorkflowCanvas({
     };
     setCanvasError("");
     setNodes([newNode]);
+    setConnections([]);
     setActiveNodeId(id);
     return id;
   };
@@ -314,6 +412,7 @@ export function WorkflowCanvas({
     setNodes((prev) => {
       const idsToDelete = collectDescendantIds(prev, nodeId);
       idsToDelete.add(nodeId);
+      setConnections((existing) => existing.filter((connection) => !idsToDelete.has(connection.sourceId) && !idsToDelete.has(connection.targetId)));
       const next = prev.filter((node) => !idsToDelete.has(node.id));
       if (!next.some((node) => node.id === activeNodeId)) setActiveNodeId(next[0]?.id || null);
       return next;
@@ -360,7 +459,33 @@ export function WorkflowCanvas({
     setActiveNodeId(nodeId);
   };
 
+  const handleStartConnection = (event: React.MouseEvent, sourceNode: CanvasNode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const point = getPointerPosition(event);
+    setConnectingFrom({
+      sourceId: sourceNode.id,
+      kind: getNodeOutputKind(sourceNode),
+      x: point.x,
+      y: point.y,
+    });
+    setActiveNodeId(sourceNode.id);
+  };
+
+  const handleCompleteConnection = (event: React.MouseEvent, targetNode: CanvasNode) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!connectingFrom) return;
+    const source = nodes.find((node) => node.id === connectingFrom.sourceId);
+    if (source) upsertConnection(source, targetNode);
+    setConnectingFrom(null);
+  };
+
   const handleMouseMove = (event: React.MouseEvent) => {
+    if (connectingFrom && containerRef.current) {
+      const point = getPointerPosition(event);
+      setConnectingFrom((prev) => (prev ? { ...prev, x: point.x, y: point.y } : prev));
+    }
     if (!draggingNodeId || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     updateNode(draggingNodeId, {
@@ -396,6 +521,14 @@ export function WorkflowCanvas({
         .map((node) => (node.type === "root" ? { ...node, x: ROOT_X, y: getRootNodeY(Math.max(sourceImageCount + 1, batchCount)) } : node))
         .concat(newNode),
     );
+    setConnections((prev) =>
+      prev.concat({
+        id: `conn-${parent.id}-${id}-${Date.now()}`,
+        sourceId: parent.id,
+        targetId: id,
+        kind: getNodeOutputKind(parent),
+      }),
+    );
     setActiveNodeId(id);
   };
 
@@ -428,6 +561,16 @@ export function WorkflowCanvas({
     };
     setCanvasError("");
     setNodes((prev) => [...prev, newNode]);
+    if (parent) {
+      setConnections((prev) =>
+        prev.concat({
+          id: `conn-${parent.id}-${id}-${Date.now()}`,
+          sourceId: parent.id,
+          targetId: id,
+          kind: getNodeOutputKind(parent),
+        }),
+      );
+    }
     setActiveNodeId(id);
   };
 
@@ -499,6 +642,18 @@ export function WorkflowCanvas({
     setBatchGenerating(true);
     setNodes((prev) => {
       const descendantIds = collectDescendantIds(prev, root.id);
+      setConnections((existing) =>
+        existing
+          .filter((connection) => !descendantIds.has(connection.sourceId) && !descendantIds.has(connection.targetId))
+          .concat(
+            createdNodes.map((node) => ({
+              id: `conn-${root.id}-${node.id}`,
+              sourceId: root.id,
+              targetId: node.id,
+              kind: "image" as ConnectionKind,
+            })),
+          ),
+      );
       return prev
         .filter((node) => !descendantIds.has(node.id))
         .map((node) => (node.id === root.id ? { ...node, x: ROOT_X, y: getRootNodeY(count) } : node))
@@ -550,6 +705,16 @@ export function WorkflowCanvas({
     };
 
     setNodes((prev) => prev.filter((node) => !(node.type === "video" && node.parentId === imageNode.id)).concat(newNode));
+    setConnections((prev) =>
+      prev
+        .filter((connection) => !(connection.targetId.startsWith("video-") && connection.sourceId === imageNode.id))
+        .concat({
+          id: `conn-${imageNode.id}-${id}`,
+          sourceId: imageNode.id,
+          targetId: id,
+          kind: "image",
+        }),
+    );
     setActiveNodeId(id);
 
     try {
@@ -681,7 +846,10 @@ export function WorkflowCanvas({
       className="relative w-full min-h-[760px] h-[calc(100vh-4rem)] overflow-hidden bg-[#07080f] select-none"
       id="tour-canvas-board"
       onMouseMove={handleMouseMove}
-      onMouseUp={() => setDraggingNodeId(null)}
+      onMouseUp={() => {
+        setDraggingNodeId(null);
+        setConnectingFrom(null);
+      }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff0c_1px,transparent_1px)] [background-size:28px_28px] opacity-80 pointer-events-none" />
 
@@ -781,17 +949,17 @@ export function WorkflowCanvas({
       </div>
 
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-        {nodes.map((node) => {
-          if (!node.parentId) return null;
-          const parentNode = nodes.find((item) => item.id === node.parentId);
-          if (!parentNode) return null;
-          const startX = parentNode.x + NODE_WIDTH;
-          const startY = parentNode.y + NODE_CENTER_Y;
-          const endX = node.x;
-          const endY = node.y + NODE_CENTER_Y;
+        {connections.map((connection) => {
+          const source = nodes.find((item) => item.id === connection.sourceId);
+          const target = nodes.find((item) => item.id === connection.targetId);
+          if (!source || !target) return null;
+          const startX = source.x + NODE_WIDTH;
+          const startY = source.y + NODE_CENTER_Y;
+          const endX = target.x;
+          const endY = target.y + NODE_CENTER_Y;
           return (
             <path
-              key={`path-${node.id}`}
+              key={connection.id}
               d={`M ${startX} ${startY} C ${startX + 120} ${startY}, ${endX - 120} ${endY}, ${endX} ${endY}`}
               fill="none"
               stroke="url(#line-gradient)"
@@ -800,6 +968,21 @@ export function WorkflowCanvas({
             />
           );
         })}
+        {connectingFrom &&
+          (() => {
+            const source = nodes.find((item) => item.id === connectingFrom.sourceId);
+            if (!source) return null;
+            const startX = source.x + NODE_WIDTH;
+            const startY = source.y + NODE_CENTER_Y;
+            return (
+              <path
+                d={`M ${startX} ${startY} C ${startX + 120} ${startY}, ${connectingFrom.x - 120} ${connectingFrom.y}, ${connectingFrom.x} ${connectingFrom.y}`}
+                fill="none"
+                stroke="url(#line-gradient)"
+                strokeWidth="2.5"
+              />
+            );
+          })()}
         <defs>
           <linearGradient id="line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#ec4899" />
@@ -860,6 +1043,9 @@ export function WorkflowCanvas({
           const isUpscale = node.type === "upscale";
           const isActive = activeNodeId === node.id;
           const inputImageUrl = getInputImageUrl(node);
+          const outputKind = getNodeOutputKind(node);
+          const acceptedInputKinds = getAcceptedInputKinds(node);
+          const canAcceptConnection = Boolean(connectingFrom && acceptedInputKinds.includes(connectingFrom.kind) && connectingFrom.sourceId !== node.id);
           const isFirstImageNode = isImage && nodes.find((item) => item.type === "image")?.id === node.id;
           const nodeKindLabel = isText
             ? node.title
@@ -892,24 +1078,31 @@ export function WorkflowCanvas({
                 isActive ? "border-blue-500 ring-2 ring-blue-500/30" : "border-white/10 hover:border-blue-500/70",
               )}
             >
-              <button
-                type="button"
-                className="absolute -left-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#262626] text-zinc-300 shadow-lg hover:bg-[#303030]"
-                onClick={(event) => event.stopPropagation()}
-                aria-label="Input connector"
-              >
-                {isText ? <TypeIcon size={14} /> : isVideo ? <ImageIcon size={14} /> : <ImageIcon size={14} />}
-              </button>
-              {!isText && (
+              {acceptedInputKinds.length > 0 && (
                 <button
                   type="button"
-                  className="absolute -right-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#262626] text-zinc-300 shadow-lg hover:bg-[#303030]"
-                  onClick={(event) => event.stopPropagation()}
-                  aria-label="Output connector"
+                  className={cn(
+                    "absolute -left-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border shadow-lg transition",
+                    canAcceptConnection
+                      ? "border-pink-400 bg-pink-500 text-white ring-4 ring-pink-500/20"
+                      : "border-white/10 bg-[#262626] text-zinc-300 hover:bg-[#303030]",
+                  )}
+                  onMouseUp={(event) => handleCompleteConnection(event, node)}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  aria-label="Input connector"
                 >
-                  <ImageIcon size={14} />
+                  {acceptedInputKinds.includes("image") ? <ImageIcon size={14} /> : <TypeIcon size={14} />}
                 </button>
               )}
+              <button
+                type="button"
+                className="absolute -right-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#262626] text-zinc-300 shadow-lg hover:bg-[#303030]"
+                onMouseDown={(event) => handleStartConnection(event, node)}
+                aria-label="Output connector"
+                title={`${outputKind} output`}
+              >
+                {outputKind === "text" ? <TypeIcon size={14} /> : outputKind === "video" ? <VideoIcon size={14} /> : <ImageIcon size={14} />}
+              </button>
 
               <div className="absolute -top-7 left-3 flex items-center gap-2 text-xs font-extrabold text-white">
                 <NodeIcon size={13} className="text-zinc-300" />

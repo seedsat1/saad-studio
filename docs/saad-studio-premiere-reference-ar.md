@@ -3,6 +3,15 @@
 ## AI Talent Studio - Canvas Tool Data Flow (2026-07-29)
 
 - Canvas nodes must represent real workflow tools with typed inputs and outputs, not static preview cards.
+- Visible connector ports are interactive:
+  - drag from a node's right output port,
+  - drop on a compatible left input port,
+  - draw the wire from the explicit connection record.
+- Connector compatibility:
+  - `Text` output can connect to Image Generator or Video Generator prompt input.
+  - `Root/Image/Upscale` image output can connect to Image Generator, Video Generator, or Image Upscaler image input.
+  - `Video` output is reserved for future video-consuming tools and must not be treated as an image input.
+- `parentId` may remain as a compatibility/layout helper, but it is not the source of truth for visible Canvas wiring.
 - Prompt text belongs in one of these places only:
   - a `Text` node,
   - a generator tool node that is explicitly collecting generation input,
