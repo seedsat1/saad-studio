@@ -4,6 +4,7 @@
 
 - The `Root`/source talent node is an identity/reference input, not an Image Generator.
 - The source node should stay visually compact and expose only source-management actions such as replace, clear, delete, plus one image output connector.
+- Source-management actions should be compact overlay/header controls, not a full active panel below the reference image.
 - Generation controls must live in explicit Image/Video/Upscale tool nodes or the bottom composer, not inside the source card.
 - Canvas node dimensions and connector line endpoints must be type-aware:
   - source/reference cards may be narrower,
@@ -11,6 +12,7 @@
   - generator/result nodes may remain larger.
 - Video Generator and Image Upscaler nodes should consume the actively connected upstream image before any copied local media on the node, so rewiring the graph changes the real input.
 - Hidden hover add buttons on media/source cards should not be the primary workflow. Tool creation must remain explicit through the canvas toolbar or bottom workflow controls.
+- Temporary drag connector previews must clear on global mouseup, window blur, or Escape so an unfinished drag never looks like a real saved edge.
 
 ## AI Talent Studio - Canvas Tool Data Flow (2026-07-29)
 

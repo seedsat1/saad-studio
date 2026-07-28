@@ -1,5 +1,28 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Compact Canvas source card and clear dangling connector preview (2026-07-29)
+
+- Status:
+  User showed the Canvas source card still looked oversized and a purple connector preview could remain hanging without a target.
+- Root cause found:
+  The source card still rendered an active management panel under the image, and connection drag state only cleared reliably on board mouseup, not on global mouseup/blur/Escape.
+- Changes made:
+  - Reduced source/root node width and body height so it reads as a compact reference node.
+  - Removed the active bottom panel from source/root nodes.
+  - Added compact source replace/clear controls over the image instead of a full source-management panel.
+  - Added global pointer cleanup for mouseup, window blur, and Escape so incomplete connector drags do not leave a dangling line.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - Source cards should expose only compact source-management controls. Generator-level controls remain on tool nodes and the bottom composer.
+- Remaining:
+  - User should refresh the local Canvas and visually confirm the smaller source node plus drag-to-connect behavior.
+
 #### Latest task: Refine AI Talent Canvas source node engineering (2026-07-29)
 
 - Status:

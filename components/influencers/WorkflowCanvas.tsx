@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Aperture,
@@ -82,10 +82,10 @@ const IMAGE_VARIANTS = [
 ];
 
 const DEFAULT_NODE_WIDTH = 380;
-const ROOT_NODE_WIDTH = 280;
+const ROOT_NODE_WIDTH = 230;
 const TEXT_NODE_HEIGHT = 176;
 const DEFAULT_NODE_HEIGHT = 330;
-const ROOT_NODE_HEIGHT = 300;
+const ROOT_NODE_HEIGHT = 260;
 const ROOT_X = 120;
 const IMAGE_X = 560;
 const VIDEO_X = 1040;
@@ -291,6 +291,24 @@ export function WorkflowCanvas({
   const [batchGenerating, setBatchGenerating] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<ConnectingState | null>(null);
+
+  useEffect(() => {
+    const clearPointerState = () => {
+      setDraggingNodeId(null);
+      setConnectingFrom(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") clearPointerState();
+    };
+    window.addEventListener("mouseup", clearPointerState);
+    window.addEventListener("blur", clearPointerState);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mouseup", clearPointerState);
+      window.removeEventListener("blur", clearPointerState);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const activeNode = nodes.find((node) => node.id === activeNodeId) || null;
   const sourceNode = nodes.find((node) => node.type === "root") || null;
@@ -1199,6 +1217,36 @@ export function WorkflowCanvas({
                   </div>
                 )}
 
+                {isRoot && (
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        replaceInputRef.current?.click();
+                      }}
+                      className="flex h-8 flex-1 items-center justify-center rounded-lg border border-white/10 bg-black/70 text-zinc-200 hover:bg-black/85"
+                      title={copy.replaceSource}
+                      aria-label={copy.replaceSource}
+                    >
+                      <Upload size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        updateNode(node.id, { imageUrl: undefined, publicImageUrl: undefined, status: "idle" });
+                      }}
+                      disabled={!node.imageUrl}
+                      className="flex h-8 flex-1 items-center justify-center rounded-lg border border-white/10 bg-black/70 text-zinc-200 hover:bg-black/85 disabled:opacity-40"
+                      title={copy.removeSource}
+                      aria-label={copy.removeSource}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
+
                 {isImage && node.imageUrl && (
                   <button
                     type="button"
@@ -1276,7 +1324,7 @@ export function WorkflowCanvas({
                 )}
               </div>
 
-              {isActive && (
+              {isActive && !isRoot && (
                 <div className="p-3 bg-[#0a0b12] border-t border-white/10 space-y-3 animate-in fade-in duration-200">
                   {isRoot && (
                     <div className="grid grid-cols-1 gap-2">
