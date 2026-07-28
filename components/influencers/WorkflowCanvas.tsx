@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
+  Aperture,
   Edit3,
   Image as ImageIcon,
   Loader2,
@@ -10,10 +11,13 @@ import {
   Move,
   Play,
   Plus,
+  Settings,
   Sparkles,
   Trash2,
+  Type as TypeIcon,
   Upload,
   Video as VideoIcon,
+  Volume2,
   Wand2,
   X,
 } from "lucide-react";
@@ -22,7 +26,7 @@ import { useLanguage } from "@/lib/use-language";
 
 export type CanvasNode = {
   id: string;
-  type: "root" | "image" | "video";
+  type: "root" | "text" | "image" | "video" | "upscale";
   parentId?: string;
   x: number;
   y: number;
@@ -61,14 +65,14 @@ const IMAGE_VARIANTS = [
   "modern apartment lifestyle photo, cozy daylight, natural expression",
 ];
 
-const NODE_WIDTH = 256;
-const NODE_CENTER_Y = 168;
+const NODE_WIDTH = 380;
+const NODE_CENTER_Y = 190;
 const ROOT_X = 120;
-const IMAGE_X = 480;
-const VIDEO_X = 1180;
+const IMAGE_X = 560;
+const VIDEO_X = 1040;
 const BOARD_TOP = 130;
-const ROW_GAP = 340;
-const IMAGE_COLUMN_GAP = 320;
+const ROW_GAP = 420;
+const IMAGE_COLUMN_GAP = 430;
 
 function getImageNodePosition(index: number, count: number) {
   const rows = Math.ceil(count / 2);
@@ -367,6 +371,37 @@ export function WorkflowCanvas({
     setActiveNodeId(id);
   };
 
+  const handleAddCanvasTool = (type: "text" | "video" | "upscale") => {
+    const parent = activeNode || sourceNode;
+    const id = `${type}-${Date.now()}`;
+    const toolCount = nodes.filter((node) => node.type === type).length + 1;
+    const x = type === "video" ? VIDEO_X : type === "upscale" ? VIDEO_X : IMAGE_X;
+    const y = BOARD_TOP + Math.max(0, nodes.filter((node) => node.type !== "root").length) * 36;
+    const title =
+      type === "text"
+        ? `Text #${toolCount}`
+        : type === "video"
+          ? `Video Generator #${toolCount}`
+          : `Image Upscaler #${toolCount}`;
+    const newNode: CanvasNode = {
+      id,
+      type,
+      parentId: parent?.id,
+      x,
+      y,
+      title,
+      imageUrl: type !== "text" ? parent?.imageUrl : undefined,
+      publicImageUrl: type !== "text" ? parent?.publicImageUrl : undefined,
+      prompt: type === "text" ? "" : type === "video" ? videoPrompt : "enhance and upscale image to maximum quality",
+      influencerHandle: parent?.influencerHandle || selectedHandle,
+      aspectRatio,
+      status: "idle",
+    };
+    setCanvasError("");
+    setNodes((prev) => [...prev, newNode]);
+    setActiveNodeId(id);
+  };
+
   const generateImage = async (prompt: string, referenceUrl?: string) => {
     const hasReference = Boolean(referenceUrl);
     const response = await fetch("/api/image/generate", {
@@ -522,10 +557,48 @@ export function WorkflowCanvas({
     }
   };
 
+  const handleGenerateExistingVideoNode = async (videoNode: CanvasNode) => {
+    const imageUrl = videoNode.publicImageUrl || videoNode.imageUrl;
+    if (!imageUrl) return;
+    const prompt = videoPrompt.trim() || videoNode.prompt || `${videoNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`;
+    updateNode(videoNode.id, { status: "generating", prompt });
+
+    try {
+      let videoUrl = "";
+      if (onGenerateVideoNode) {
+        videoUrl = await onGenerateVideoNode(videoNode.id, prompt, selectedVideoModel);
+      } else {
+        const response = await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            modelRoute: getVideoModelRoute(selectedVideoModel),
+            payload: {
+              prompt,
+              duration: 5,
+              aspect_ratio: aspectRatio,
+              image_url: imageUrl,
+              resolution: "720p",
+            },
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || (!data?.taskId && !data?.videoUrl)) throw new Error(data?.error || "Video generation failed");
+        videoUrl = data.videoUrl || (await pollVideoResult(data.taskId));
+      }
+      updateNode(videoNode.id, { status: "ready", videoUrl });
+      setCanvasError("");
+    } catch {
+      updateNode(videoNode.id, { status: "failed" });
+    }
+  };
+
   const handlePromptGenerate = async () => {
     if (workflowMode === "video") {
       if (activeNode?.type === "image" && activeNode.imageUrl) {
         await handleCreateVideoFromImage(activeNode);
+      } else if (activeNode?.type === "video" && activeNode.imageUrl) {
+        await handleGenerateExistingVideoNode(activeNode);
       } else {
         setCanvasError(isArabic ? "اختر صورة ناتجة أولاً حتى تحولها إلى فيديو." : "Select a generated image first to turn it into video.");
       }
@@ -606,6 +679,30 @@ export function WorkflowCanvas({
           className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
         >
           <Plus size={16} />
+        </button>
+        <button
+          type="button"
+          title="Text node"
+          onClick={() => handleAddCanvasTool("text")}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <TypeIcon size={15} />
+        </button>
+        <button
+          type="button"
+          title="Video generator"
+          onClick={() => handleAddCanvasTool("video")}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <VideoIcon size={15} />
+        </button>
+        <button
+          type="button"
+          title="Image upscaler"
+          onClick={() => handleAddCanvasTool("upscale")}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
+        >
+          <Aperture size={15} />
         </button>
         <button
           type="button"
@@ -707,8 +804,20 @@ export function WorkflowCanvas({
           const isRoot = node.type === "root";
           const isVideo = node.type === "video";
           const isImage = node.type === "image";
+          const isText = node.type === "text";
+          const isUpscale = node.type === "upscale";
           const isActive = activeNodeId === node.id;
           const isFirstImageNode = isImage && nodes.find((item) => item.type === "image")?.id === node.id;
+          const nodeKindLabel = isText
+            ? node.title
+            : isVideo
+              ? node.title || "Video Generator"
+              : isUpscale
+                ? node.title || "Image Upscaler"
+                : isRoot
+                  ? node.title
+                  : node.title || "Image Generator";
+          const NodeIcon = isText ? TypeIcon : isVideo ? VideoIcon : isUpscale ? Aperture : ImageIcon;
 
           return (
             <div
@@ -725,15 +834,40 @@ export function WorkflowCanvas({
               style={{ left: `${node.x}px`, top: `${node.y}px` }}
               onMouseDown={(event) => handleMouseDownNode(event, node.id)}
               className={cn(
-                "absolute w-64 bg-[#0e101a]/95 border rounded-2xl shadow-2xl backdrop-blur-md transition-shadow duration-200 overflow-hidden group cursor-grab active:cursor-grabbing",
-                isActive ? "border-pink-500 ring-2 ring-pink-500/30" : "border-white/10 hover:border-white/20",
+                "absolute w-[380px] bg-[#171717]/95 border shadow-2xl backdrop-blur-md transition-shadow duration-200 group cursor-grab active:cursor-grabbing",
+                isText ? "rounded-2xl" : "rounded-[18px]",
+                isActive ? "border-blue-500 ring-2 ring-blue-500/30" : "border-white/10 hover:border-blue-500/70",
               )}
             >
-              <div className="px-3.5 py-2 bg-white/[0.04] border-b border-white/5 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="absolute -left-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#262626] text-zinc-300 shadow-lg hover:bg-[#303030]"
+                onClick={(event) => event.stopPropagation()}
+                aria-label="Input connector"
+              >
+                {isText ? <TypeIcon size={14} /> : isVideo ? <ImageIcon size={14} /> : <ImageIcon size={14} />}
+              </button>
+              {!isText && (
+                <button
+                  type="button"
+                  className="absolute -right-5 top-1/2 z-20 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-[#262626] text-zinc-300 shadow-lg hover:bg-[#303030]"
+                  onClick={(event) => event.stopPropagation()}
+                  aria-label="Output connector"
+                >
+                  <ImageIcon size={14} />
+                </button>
+              )}
+
+              <div className="absolute -top-7 left-3 flex items-center gap-2 text-xs font-extrabold text-white">
+                <NodeIcon size={13} className="text-zinc-300" />
+                <span>{nodeKindLabel}</span>
+              </div>
+
+              <div className="px-3.5 py-2 bg-white/[0.03] border-b border-white/5 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Move size={12} className="text-zinc-500 shrink-0" />
                   <span className="text-[10px] font-extrabold text-pink-400 uppercase tracking-wider">
-                    {isVideo ? copy.videoNode : isRoot ? copy.referenceNode : copy.imageNode}
+                    {isText ? "Text" : isVideo ? copy.videoNode : isUpscale ? "Upscale" : isRoot ? copy.referenceNode : copy.imageNode}
                   </span>
                 </div>
                 <div className="flex items-center gap-1 min-w-0">
@@ -752,7 +886,7 @@ export function WorkflowCanvas({
                 </div>
               </div>
 
-              <div className="relative h-72 bg-black flex items-center justify-center overflow-hidden">
+              <div className={cn("relative bg-[#1b1b1b] flex items-center justify-center overflow-hidden", isText ? "h-44" : "h-[330px]")}>
                 {(node.status === "generating" || node.status === "uploading") && (
                   <div className="absolute inset-0 z-20 bg-black/60 flex flex-col items-center justify-center gap-2 text-xs font-bold text-pink-200">
                     <Loader2 size={28} className="animate-spin" />
@@ -764,25 +898,35 @@ export function WorkflowCanvas({
                     {copy.failed}
                   </div>
                 )}
-                {isVideo && node.videoUrl ? (
+                {isText ? (
+                  <textarea
+                    value={node.prompt || ""}
+                    onChange={(event) => updateNode(node.id, { prompt: event.target.value })}
+                    placeholder={isArabic ? "Ø§ÙƒØªØ¨ ÙˆØµÙ Ø§Ù„Ù…Ø´Ù‡Ø¯ Ø£Ùˆ Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„Ø¹Ù‚Ø¯Ø©..." : "Try \"Happy dog with sunglasses and floating ring\""}
+                    className="h-full w-full resize-none bg-transparent p-4 text-sm text-white outline-none placeholder:text-zinc-600"
+                    onMouseDown={(event) => event.stopPropagation()}
+                  />
+                ) : isVideo && node.videoUrl ? (
                   <video src={node.videoUrl} controls className="w-full h-full object-cover" />
                 ) : node.imageUrl ? (
-                  <img src={node.imageUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={node.imageUrl} alt="" className="w-full h-full object-cover opacity-90" />
                 ) : (
                   <div className="text-center p-4 space-y-2">
                     {isVideo ? (
                       <VideoIcon size={34} className="mx-auto text-zinc-600" />
+                    ) : isUpscale ? (
+                      <Aperture size={34} className="mx-auto text-zinc-600" />
                     ) : (
                       <ImageIcon size={34} className="mx-auto text-zinc-600" />
                     )}
                     <span className="text-xs font-bold text-zinc-500 block">
-                      {isRoot ? copy.uploadSource : copy.clickToGenerate}
+                      {isRoot ? copy.uploadSource : isVideo ? "Describe the video you want to generate..." : isUpscale ? "Drop an image here to upscale..." : "Describe the image you want to generate..."}
                     </span>
                   </div>
                 )}
 
                 {node.influencerHandle && (
-                  <div className="absolute bottom-3 left-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-white font-extrabold text-xs border border-white/10 dir-ltr">
+                  <div className="absolute left-3 top-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-white font-extrabold text-xs border border-white/10 dir-ltr">
                     {node.influencerHandle}
                   </div>
                 )}
@@ -801,7 +945,7 @@ export function WorkflowCanvas({
                   </button>
                 )}
 
-                {!isVideo && (
+                {!isVideo && !isText && !isUpscale && (
                   <button
                     type="button"
                     onClick={(event) => {
@@ -813,6 +957,67 @@ export function WorkflowCanvas({
                   >
                     <Plus size={16} />
                   </button>
+                )}
+
+                {!isText && (
+                  <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2">
+                    {isImage && (
+                      <>
+                        <div className="flex h-7 items-center rounded-full bg-black/55 text-xs font-bold text-zinc-300">
+                          <button type="button" className="px-2 text-zinc-500" onClick={(event) => event.stopPropagation()}>
+                            -
+                          </button>
+                          <span className="px-1">x{batchCount}</span>
+                          <button type="button" className="px-2" onClick={(event) => event.stopPropagation()}>
+                            +
+                          </button>
+                        </div>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">{aspectRatio}</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">Auto</span>
+                      </>
+                    )}
+                    {isVideo && (
+                      <>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">x1</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">{aspectRatio === "9:16" ? "9:16" : "16:9"}</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">5-6s</span>
+                        <span className="flex h-7 items-center gap-1 rounded-full bg-black/55 px-3 text-xs font-bold text-zinc-300">
+                          <Volume2 size={12} />
+                          Sound
+                        </span>
+                      </>
+                    )}
+                    {isUpscale && (
+                      <>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">x1</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">Precision</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">2x</span>
+                        <span className="h-7 rounded-full bg-black/55 px-3 py-1.5 text-xs font-bold text-zinc-300">Balanced</span>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(event) => event.stopPropagation()}
+                      className="ml-auto flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-zinc-400 hover:text-white"
+                      aria-label="Node settings"
+                    >
+                      <Settings size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (isRoot) sourceInputRef.current?.click();
+                        else if (isImage) handleGenerateNodeImage(node.id);
+                        else if (isVideo && node.imageUrl) handleGenerateExistingVideoNode(node);
+                      }}
+                      disabled={(isVideo && !node.imageUrl) || node.status === "generating"}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-black hover:bg-white disabled:opacity-40"
+                      aria-label={copy.generate}
+                    >
+                      {node.status === "generating" ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                    </button>
+                  </div>
                 )}
               </div>
 

@@ -1,5 +1,33 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add original-style tool nodes to AI Talent Canvas (2026-07-29)
+
+- Status:
+  User clarified with reference screenshots/video that the Canvas should expose generator tool nodes, not only linked media result cards.
+- Root cause found:
+  `WorkflowCanvas` rendered each node mostly as a media card. It lacked the original-style tool-node surface with node titles, side input/output handles, in-node prompt areas, and per-tool controls for image/video/upscale workflows.
+- Changes made:
+  - Extended Canvas node types to include `text` and `upscale` alongside source, image, and video nodes.
+  - Added left-toolbar actions for Text, Video Generator, and Image Upscaler nodes.
+  - Enlarged Canvas nodes to original-style tool cards with:
+    - title label above the node,
+    - side connector buttons,
+    - prompt/text area for Text nodes,
+    - bottom control strips for Image Generator, Video Generator, and Image Upscaler.
+  - Video tool nodes now generate into the existing video node instead of creating another nested video node.
+  - Existing source-to-image-to-video workflow remains connected.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - This pass implements the UI/tool-node layer first. Upscale nodes are present in the Canvas surface and ready for direct endpoint wiring in a later pass if required.
+- Remaining:
+  - Live browser visual confirmation and optional direct `/api/generate/upscale` execution from the upscaler node.
+
 #### Latest task: Make AI Talent Canvas a connected workflow graph (2026-07-29)
 
 - Status:

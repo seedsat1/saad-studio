@@ -2280,3 +2280,15 @@
   - keep connector lines from source to each generated image.
 - Creating a video from an image creates/replaces that image's video child in the right lane and keeps a connector from the image to the video.
 - The Canvas may include an arrange action that restores existing nodes to the lane layout when manual dragging makes the board hard to read.
+
+## AI Talent Studio - Original-Style Tool Nodes (2026-07-29)
+
+- Canvas nodes should behave like workflow tools, not only final media preview cards.
+- Supported visible tool node surfaces:
+  - `Text` node with a large prompt/text area.
+  - `Image Generator` node with image prompt/generation controls and image count/aspect/model style controls.
+  - `Video Generator` node with video prompt/generation controls, image input handles, duration/aspect/sound controls, and a play action.
+  - `Image Upscaler` node with image input handles and upscale controls such as precision, scale, and balance.
+- Nodes should show side input/output connector buttons so the user understands where media or prompts enter and where output branches continue.
+- The left Canvas toolbar should expose adding these tool nodes directly.
+- When a video tool node is generated, update that same video node with the output instead of creating another nested video node.
