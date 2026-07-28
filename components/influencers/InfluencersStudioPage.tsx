@@ -180,6 +180,9 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
     });
 
     const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(data?.error || copy.createFailed);
+    }
     const cover = data?.character?.coverUrl || dataUrl;
 
     setInfluencers((prev) => [
@@ -191,6 +194,23 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
       },
       ...prev,
     ]);
+  };
+
+  const handleDeleteInfluencer = async (id: string) => {
+    const target = influencers.find((item) => item.id === id);
+    if (!target) return;
+
+    if (!target.isDefault && !target.id.startsWith("inf-")) {
+      const res = await fetch(`/api/characters/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete talent.");
+      }
+    }
+
+    setInfluencers((prev) => prev.filter((item) => item.id !== id));
   };
 
   const influencerHandles = influencers.map((i) => i.handle);
@@ -248,6 +268,7 @@ export default function InfluencersStudioPage({ defaultTab }: InfluencersPagePro
           <InfluencerRoster
             influencers={influencers}
             onAddInfluencer={handleAddInfluencer}
+            onDeleteInfluencer={handleDeleteInfluencer}
             onSelectInfluencerForCanvas={(_, action) => {
               if (isTabType(action)) navigateToTab(action);
               else navigateToTab("canvas");

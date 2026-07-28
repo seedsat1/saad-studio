@@ -1,5 +1,32 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix AI Talent Studio Image Upload and Delete Controls (2026-07-28)
+
+- Status:
+  User reported they could not upload an image or delete images while testing the hidden AI Talent Studio pages.
+- Root causes found:
+  - `InfluencerRoster` accepted `onDeleteInfluencer` as a prop but never rendered or called a delete control.
+  - New talent image upload relied only on clicking the preview/dropzone, with no explicit remove/replace affordance after selecting an image.
+  - `LibraryStudio` had a backend `DELETE /api/assets` route available but exposed only Download in the media overlay.
+  - `NsfwStudio` had no reference-image upload input, so VIP/NSFW image-to-image testing could not start from an uploaded image.
+- Changes made:
+  - Added explicit replace/remove controls for the new talent reference image.
+  - Wired talent deletion from the detail modal to `DELETE /api/characters/[id]` for saved talents, and local removal for built-in demo talents.
+  - Added media delete buttons in Library that call `DELETE /api/assets`.
+  - Rebuilt `NsfwStudio` with bilingual labels, optional reference-image upload, reference removal, result deletion, and image-to-image routing through uploaded public media URLs.
+- Affected files:
+  - `components/influencers/InfluencerRoster.tsx`
+  - `components/influencers/InfluencersStudioPage.tsx`
+  - `components/influencers/LibraryStudio.tsx`
+  - `components/influencers/NsfwStudio.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/InfluencerRoster.tsx --file components/influencers/InfluencersStudioPage.tsx --file components/influencers/NsfwStudio.tsx --file components/influencers/LibraryStudio.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Remaining:
+  - Commit, push, and let the hidden deployment update before live testing.
+
 #### Latest task: Make `/influencers/canvas` a True Standalone Canvas Page (2026-07-28)
 
 - Status:

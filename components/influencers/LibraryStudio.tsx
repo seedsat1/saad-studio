@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { Folder, Image as ImageIcon, Video as VideoIcon, Download, Loader2, RefreshCw } from "lucide-react";
+import { Folder, Download, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AssetRecord = {
@@ -18,6 +18,8 @@ export function LibraryStudio() {
   const { isLoaded, isSignedIn } = useAuth();
   const [assets, setAssets] = useState<AssetRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadAssets = useCallback(async () => {
     if (!isLoaded) return;
@@ -82,6 +84,28 @@ export function LibraryStudio() {
     loadAssets();
   }, [loadAssets]);
 
+  const handleDeleteAsset = async (id: string) => {
+    if (!window.confirm("Delete this media item?")) return;
+    setDeletingId(id);
+    setError(null);
+    try {
+      const res = await fetch("/api/assets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete media.");
+      }
+      setAssets((prev) => prev.filter((asset) => asset.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete media.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // Group assets by monthGroup
   const grouped = assets.reduce<Record<string, AssetRecord[]>>((acc, item) => {
     const key = item.monthGroup || "July 2026";
@@ -106,6 +130,12 @@ export function LibraryStudio() {
           <p className="text-xs text-zinc-400">سجل كافة الصور والفيديوهات المولّدة لشخصياتك مقسمة حسب الشهر.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="py-16 text-center text-zinc-500 space-y-3">
@@ -148,6 +178,15 @@ export function LibraryStudio() {
                         <Download size={12} />
                         تنزيل
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAsset(asset.id)}
+                        disabled={deletingId === asset.id}
+                        className="w-full py-2 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                      >
+                        {deletingId === asset.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        حذف
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Sparkles, ImagePlus, X, Loader2, Wand2, Video, ArrowRight, Layers } from "lucide-react";
+import { Plus, Sparkles, ImagePlus, X, Loader2, Wand2, Video, ArrowRight, Layers, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/use-language";
 import { getTalentStudioCopy } from "@/components/influencers/talent-studio-i18n";
 
@@ -17,13 +17,14 @@ export type InfluencerItem = {
 interface InfluencerRosterProps {
   influencers: InfluencerItem[];
   onAddInfluencer: (name: string, handle: string, file: File) => Promise<void>;
-  onDeleteInfluencer?: (id: string) => void;
+  onDeleteInfluencer?: (id: string) => Promise<void> | void;
   onSelectInfluencerForCanvas?: (handle: string, action?: string) => void;
 }
 
 export function InfluencerRoster({
   influencers,
   onAddInfluencer,
+  onDeleteInfluencer,
   onSelectInfluencerForCanvas,
 }: InfluencerRosterProps) {
   const { lang } = useLanguage();
@@ -36,7 +37,13 @@ export function InfluencerRoster({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const deleteLabel = isArabic ? "حذف الموهبة" : "Delete Talent";
+  const deleteConfirm = isArabic ? "هل تريد حذف هذه الموهبة؟" : "Delete this talent?";
+  const deleteFailed = isArabic ? "فشل حذف الموهبة" : "Failed to delete talent";
+  const removeImageLabel = isArabic ? "مسح الصورة" : "Remove image";
+  const replaceImageLabel = isArabic ? "استبدال الصورة" : "Replace image";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,6 +71,21 @@ export function InfluencerRoster({
       setError(err instanceof Error ? err.message : copy.createFailed);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteActiveInfluencer = async () => {
+    if (!activeInfluencer || !onDeleteInfluencer) return;
+    if (!window.confirm(deleteConfirm)) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDeleteInfluencer(activeInfluencer.id);
+      setActiveInfluencer(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : deleteFailed);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -187,6 +209,12 @@ export function InfluencerRoster({
               </div>
             </div>
 
+            {error && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold">
+                {error}
+              </div>
+            )}
+
             <div className="space-y-3">
               <label className="block text-xs font-bold text-zinc-300">{copy.selectedAction}</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -214,6 +242,18 @@ export function InfluencerRoster({
                 ))}
               </div>
             </div>
+
+            {onDeleteInfluencer && (
+              <button
+                type="button"
+                onClick={handleDeleteActiveInfluencer}
+                disabled={deleting}
+                className="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/15 border border-red-500/25 text-red-300 font-bold text-xs transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                {deleteLabel}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -269,7 +309,12 @@ export function InfluencerRoster({
                 <label className="block text-xs font-bold text-zinc-300 mb-1.5">{copy.referenceLabel}</label>
                 <label className="relative h-44 rounded-2xl border-2 border-dashed border-white/15 hover:border-pink-500/50 bg-white/[0.02] flex flex-col items-center justify-center gap-2 cursor-pointer overflow-hidden transition">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <>
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <span className="absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-black/70 text-white text-[11px] font-bold border border-white/10">
+                        {replaceImageLabel}
+                      </span>
+                    </>
                   ) : (
                     <>
                       <ImagePlus size={28} className="text-zinc-500" />
@@ -278,6 +323,19 @@ export function InfluencerRoster({
                   )}
                   <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 </label>
+                {previewUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewUrl(null);
+                    }}
+                    className="mt-2 w-full py-2 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 text-zinc-300 hover:text-red-300 text-xs font-bold transition flex items-center justify-center gap-2"
+                  >
+                    <X size={14} />
+                    {removeImageLabel}
+                  </button>
+                )}
               </div>
             </div>
 
