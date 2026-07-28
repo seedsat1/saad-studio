@@ -10,6 +10,8 @@
 - Canvas chrome links must preserve the active `?talent=@handle` query so moving from Canvas to Image/Video keeps the selected talent context.
 - The inner `WorkflowCanvas` control bar must sit below the floating chrome, and the board should fill the available viewport height.
 - A left vertical toolbar should expose the primary canvas actions directly: select/move, upload source, add image, image mode, and video mode.
+- Do not show a large full-width generation settings bar at the top of the Canvas. The original-style workflow keeps the board open and places generation settings in the bottom prompt rail.
+- The bottom prompt rail should own the practical generation controls: active talent, image count, aspect ratio, image model, prompt, and generate/video action.
 - This change is UI/workflow parity only; provider routing, NSFW routing, media upload, and `/api/video` polling behavior remain as previously documented.
 
 ## AI Talent Studio - الكانفاس هو مسار العمل الرئيسي (2026-07-28)

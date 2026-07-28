@@ -557,137 +557,6 @@ export function WorkflowCanvas({
         </button>
       </div>
 
-      <div className="absolute top-20 left-4 right-4 z-30 bg-[#0d0f19]/95 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-xl">
-        <div className="grid grid-cols-1 2xl:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] gap-3 items-end">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">Mode</label>
-            <div className="h-9 rounded-xl border border-white/10 bg-black/60 p-1 flex items-center gap-1">
-              {workflowModeOptions.map((mode) => {
-                const Icon = mode.icon;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setWorkflowMode(mode.id)}
-                    className={cn(
-                      "h-7 px-2 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition",
-                      workflowMode === mode.id ? "bg-white text-black" : "text-zinc-400 hover:text-white hover:bg-white/10",
-                    )}
-                  >
-                    <Icon size={12} />
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">{copy.activeTalent}</label>
-            <select
-              value={selectedHandle}
-              onChange={(event) => setSelectedHandle(event.target.value)}
-              className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-pink-300 font-mono outline-none dir-ltr"
-            >
-              {Array.from(new Set([selectedHandle, ...influencerHandles])).map((handle) => (
-                <option key={handle} value={handle} className="bg-[#0d0f19] text-pink-300">
-                  {handle}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">{copy.imageCount}</label>
-            <select
-              value={batchCount}
-              onChange={(event) => setBatchCount(Number(event.target.value))}
-              className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white outline-none"
-            >
-              {[4, 6, 8, 10, 12].map((count) => (
-                <option key={count} value={count} className="bg-[#0d0f19]">
-                  {count}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">{copy.aspect}</label>
-            <select
-              value={aspectRatio}
-              onChange={(event) => setAspectRatio(event.target.value)}
-              className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white outline-none"
-            >
-              {["9:16", "1:1", "16:9", "3:4"].map((ratio) => (
-                <option key={ratio} value={ratio} className="bg-[#0d0f19]">
-                  {ratio}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">{copy.imageModel}</label>
-            <select
-              value={selectedImageModel}
-              onChange={(event) => setSelectedImageModel(event.target.value)}
-              className="h-9 bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-purple-200 outline-none"
-            >
-              {["Nano Banana Pro", "Seedream 5.0 Pro", "Flux 2 Pro", "GPT Image 2"].map((model) => (
-                <option key={model} value={model} className="bg-[#0d0f19]">
-                  {model}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-zinc-500">{copy.basePrompt}</label>
-            <input
-              value={batchPrompt}
-              onChange={(event) => setBatchPrompt(event.target.value)}
-              placeholder={copy.promptPlaceholder}
-              className={cn(
-                "h-9 w-full bg-black/60 border border-white/10 rounded-xl px-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-pink-500",
-                isArabic ? "text-right" : "text-left",
-              )}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => sourceInputRef.current?.click()}
-              className="h-9 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 text-xs font-bold flex items-center gap-1.5"
-            >
-              <Upload size={14} />
-              {copy.uploadSource}
-            </button>
-            <button
-              type="button"
-              onClick={handlePromptGenerate}
-              disabled={batchGenerating}
-              className="h-9 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {batchGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-              {batchGenerating ? copy.generatingSet : copy.generateSet}
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
-          <span>
-            {nodes.length} {copy.nodes}
-          </span>
-          <span className="h-1 w-1 rounded-full bg-zinc-700" />
-          <span>
-            {copy.videoModel}: {selectedVideoModel}
-          </span>
-          {canvasError && <span className="text-pink-300">{canvasError}</span>}
-        </div>
-      </div>
-
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
         {nodes.map((node) => {
           if (!node.parentId) return null;
@@ -716,7 +585,7 @@ export function WorkflowCanvas({
         </defs>
       </svg>
 
-      <div className="relative z-10 w-full h-full p-8 pt-44 overflow-auto">
+      <div className="relative z-10 w-full h-full p-8 pt-20 overflow-auto">
         {nodes.length === 0 && (
           <div className="absolute left-1/2 top-1/2 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-7 text-center shadow-2xl">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/15 text-pink-300">
@@ -947,7 +816,7 @@ export function WorkflowCanvas({
         })}
       </div>
 
-      <div className="absolute bottom-4 left-4 right-4 z-30 max-w-3xl mx-auto bg-[#0d0f19]/95 border border-white/10 rounded-2xl p-3 shadow-2xl backdrop-blur-xl">
+      <div className="absolute bottom-4 left-4 right-4 z-30 mx-auto max-w-5xl rounded-2xl border border-white/10 bg-[#0d0f19]/95 p-3 shadow-2xl backdrop-blur-xl">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="rounded-xl border border-white/10 bg-black/50 p-1 flex items-center gap-1">
@@ -972,6 +841,63 @@ export function WorkflowCanvas({
             <div className="text-[11px] text-zinc-500">
               {workflowMode === "video" ? copy.videoModel : copy.imageModel}:{" "}
               <span className="text-zinc-300">{workflowMode === "video" ? selectedVideoModel : selectedImageModel}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-[120px_90px_90px_160px_1fr]">
+            <select
+              value={selectedHandle}
+              onChange={(event) => setSelectedHandle(event.target.value)}
+              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs font-mono text-pink-300 outline-none dir-ltr"
+              aria-label={copy.activeTalent}
+            >
+              {Array.from(new Set([selectedHandle, ...influencerHandles])).map((handle) => (
+                <option key={handle} value={handle} className="bg-[#0d0f19] text-pink-300">
+                  {handle}
+                </option>
+              ))}
+            </select>
+            <select
+              value={batchCount}
+              onChange={(event) => setBatchCount(Number(event.target.value))}
+              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
+              aria-label={copy.imageCount}
+            >
+              {[4, 6, 8, 10, 12].map((count) => (
+                <option key={count} value={count} className="bg-[#0d0f19]">
+                  {count}
+                </option>
+              ))}
+            </select>
+            <select
+              value={aspectRatio}
+              onChange={(event) => setAspectRatio(event.target.value)}
+              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-white outline-none"
+              aria-label={copy.aspect}
+            >
+              {["9:16", "1:1", "16:9", "3:4"].map((ratio) => (
+                <option key={ratio} value={ratio} className="bg-[#0d0f19]">
+                  {ratio}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedImageModel}
+              onChange={(event) => setSelectedImageModel(event.target.value)}
+              className="h-9 rounded-xl border border-white/10 bg-black/60 px-3 text-xs text-purple-200 outline-none"
+              aria-label={copy.imageModel}
+            >
+              {["Nano Banana Pro", "Seedream 5.0 Pro", "Flux 2 Pro", "GPT Image 2"].map((model) => (
+                <option key={model} value={model} className="bg-[#0d0f19]">
+                  {model}
+                </option>
+              ))}
+            </select>
+            <div className="hidden items-center justify-end gap-3 text-[11px] text-zinc-500 md:flex">
+              <span>
+                {nodes.length} {copy.nodes}
+              </span>
+              {canvasError && <span className="font-bold text-pink-300">{canvasError}</span>}
             </div>
           </div>
 

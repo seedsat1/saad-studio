@@ -1,5 +1,34 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Remove old top generation bar from AI Talent Canvas (2026-07-29)
+
+- Status:
+  User showed that `/influencers/canvas?talent=@gavi` still displayed a large top generation settings bar, unlike the original reference screenshots where the Canvas is mostly open space and generation controls sit in the bottom prompt rail.
+- Root cause found:
+  `WorkflowCanvas` still rendered the older full-width top workflow bar even after the page chrome was made original-style. This made the page look like a generic settings panel instead of the reference Canvas.
+- Changes made:
+  - Removed the full-width top settings/generation bar from `components/influencers/WorkflowCanvas.tsx`.
+  - Kept the left vertical toolbar and open Canvas board visible near the top.
+  - Moved the important controls into the bottom prompt rail:
+    - selected talent,
+    - image count,
+    - aspect ratio,
+    - image model,
+    - node count/error status.
+  - Expanded the bottom prompt rail width to better match the original centered composer.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with the existing `<img>` warning only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - Local `http://localhost:3000/influencers/canvas?talent=%40gavi` returned `200`.
+- Decisions:
+  - The bottom prompt rail is now the primary place for generation settings, matching the original reference better.
+- Remaining:
+  - Live visual browser confirmation after refresh, then provider/credit testing for actual generation.
+
 #### Latest task: Align AI Talent Canvas chrome with original workflow reference (2026-07-28)
 
 - Status:
