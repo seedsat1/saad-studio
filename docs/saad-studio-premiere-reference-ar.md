@@ -1,5 +1,22 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## AI Talent Studio - Canvas Tool Data Flow (2026-07-29)
+
+- Canvas nodes must represent real workflow tools with typed inputs and outputs, not static preview cards.
+- Prompt text belongs in one of these places only:
+  - a `Text` node,
+  - a generator tool node that is explicitly collecting generation input,
+  - the bottom prompt composer.
+- Image/result cards must not show an extra prompt textarea under the generated image. They should expose actions such as generate/regenerate, convert to video, delete, or connect.
+- Edge meaning:
+  - `Text -> Image Generator`: prompt input.
+  - `Root/Image -> Image Generator`: reference image input.
+  - `Image -> Video Generator`: image-to-video input.
+  - `Image -> Image Upscaler`: upscale input.
+- Video Generator nodes must consume the connected upstream image and call `/api/video`.
+- Image Upscaler nodes must consume the connected upstream image and call `/api/generate/upscale`.
+- If a node has no local media but is connected to a parent with media, it should preview/use the upstream media as its input.
+
 ## AI Talent Studio - Canvas Original-Style Chrome (2026-07-28)
 
 - `/influencers/canvas?talent=@handle` should read visually as the main workflow board, not as a regular page wrapped by a large local header.

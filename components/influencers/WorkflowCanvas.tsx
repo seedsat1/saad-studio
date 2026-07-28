@@ -222,7 +222,6 @@ export function WorkflowCanvas({
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [batchCount, setBatchCount] = useState(8);
   const [batchPrompt, setBatchPrompt] = useState("");
-  const [nodePrompt, setNodePrompt] = useState("");
   const [videoPrompt, setVideoPrompt] = useState("");
   const [canvasError, setCanvasError] = useState("");
   const [batchGenerating, setBatchGenerating] = useState(false);
@@ -230,6 +229,36 @@ export function WorkflowCanvas({
 
   const activeNode = nodes.find((node) => node.id === activeNodeId) || null;
   const sourceNode = nodes.find((node) => node.type === "root") || null;
+
+  const getParentNode = (node?: CanvasNode | null) => {
+    if (!node?.parentId) return null;
+    return nodes.find((item) => item.id === node.parentId) || null;
+  };
+
+  const getUpstreamTextPrompt = (node?: CanvasNode | null) => {
+    let current = getParentNode(node);
+    while (current) {
+      if (current.type === "text" && current.prompt?.trim()) return current.prompt.trim();
+      current = getParentNode(current);
+    }
+    return "";
+  };
+
+  const getEffectivePrompt = (node: CanvasNode, fallback: string, preferredPrompt = "") => {
+    return preferredPrompt.trim() || node.prompt?.trim() || getUpstreamTextPrompt(node) || batchPrompt.trim() || fallback;
+  };
+
+  const getInputImageUrl = (node?: CanvasNode | null) => {
+    if (!node) return "";
+    if (node.publicImageUrl || node.imageUrl) return node.publicImageUrl || node.imageUrl || "";
+    let current = getParentNode(node);
+    while (current) {
+      const url = current.publicImageUrl || current.imageUrl;
+      if (url) return url;
+      current = getParentNode(current);
+    }
+    return sourceNode?.publicImageUrl || sourceNode?.imageUrl || "";
+  };
 
   const updateNode = (nodeId: string, patch: Partial<CanvasNode>) => {
     setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, ...patch } : node)));
@@ -329,7 +358,6 @@ export function WorkflowCanvas({
       y: event.clientY - rect.top - node.y,
     };
     setActiveNodeId(nodeId);
-    setNodePrompt(node.prompt || "");
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -383,6 +411,7 @@ export function WorkflowCanvas({
         : type === "video"
           ? `Video Generator #${toolCount}`
           : `Image Upscaler #${toolCount}`;
+    const parentImageUrl = type !== "text" ? getInputImageUrl(parent) : "";
     const newNode: CanvasNode = {
       id,
       type,
@@ -390,8 +419,8 @@ export function WorkflowCanvas({
       x,
       y,
       title,
-      imageUrl: type !== "text" ? parent?.imageUrl : undefined,
-      publicImageUrl: type !== "text" ? parent?.publicImageUrl : undefined,
+      imageUrl: parentImageUrl || undefined,
+      publicImageUrl: parentImageUrl || undefined,
       prompt: type === "text" ? "" : type === "video" ? videoPrompt : "enhance and upscale image to maximum quality",
       influencerHandle: parent?.influencerHandle || selectedHandle,
       aspectRatio,
@@ -424,13 +453,9 @@ export function WorkflowCanvas({
   const handleGenerateNodeImage = async (nodeId: string, promptOverride?: string) => {
     const node = nodes.find((item) => item.id === nodeId);
     if (!node) return;
-    const referenceUrl = sourceNode?.publicImageUrl;
-    if (!referenceUrl) {
-      setCanvasError(copy.sourceRequired);
-      return;
-    }
+    const referenceUrl = getInputImageUrl(node) || sourceNode?.publicImageUrl;
 
-    const prompt = promptOverride?.trim() || nodePrompt.trim() || node.prompt || `${selectedHandle} realistic lifestyle photo`;
+    const prompt = promptOverride?.trim() || getEffectivePrompt(node, `${selectedHandle} realistic lifestyle photo`, batchPrompt);
     updateNode(nodeId, { status: "generating", prompt });
 
     try {
@@ -505,11 +530,11 @@ export function WorkflowCanvas({
   };
 
   const handleCreateVideoFromImage = async (imageNode: CanvasNode) => {
-    const imageUrl = imageNode.publicImageUrl || imageNode.imageUrl;
+    const imageUrl = getInputImageUrl(imageNode);
     if (!imageUrl) return;
 
     const id = `video-${Date.now()}`;
-    const prompt = videoPrompt.trim() || `${imageNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`;
+    const prompt = getEffectivePrompt(imageNode, `${imageNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`, videoPrompt);
     const newNode: CanvasNode = {
       id,
       type: "video",
@@ -558,9 +583,12 @@ export function WorkflowCanvas({
   };
 
   const handleGenerateExistingVideoNode = async (videoNode: CanvasNode) => {
-    const imageUrl = videoNode.publicImageUrl || videoNode.imageUrl;
-    if (!imageUrl) return;
-    const prompt = videoPrompt.trim() || videoNode.prompt || `${videoNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`;
+    const imageUrl = getInputImageUrl(videoNode);
+    if (!imageUrl) {
+      setCanvasError(isArabic ? "Ø§Ø±Ø¨Ø· Ø¹Ù‚Ø¯Ø© Ø§Ù„ÙÙŠØ¯ÙŠÙˆ Ø¨ØµÙˆØ±Ø© Ø£ÙˆÙ„Ø§Ù‹." : "Connect the video node to an image first.");
+      return;
+    }
+    const prompt = getEffectivePrompt(videoNode, `${videoNode.influencerHandle || selectedHandle} looking at camera, gentle motion, cinematic lighting`, videoPrompt);
     updateNode(videoNode.id, { status: "generating", prompt });
 
     try {
@@ -593,11 +621,35 @@ export function WorkflowCanvas({
     }
   };
 
+  const handleGenerateUpscaleNode = async (upscaleNode: CanvasNode) => {
+    const imageUrl = getInputImageUrl(upscaleNode);
+    if (!imageUrl) {
+      setCanvasError(isArabic ? "Ø§Ø±Ø¨Ø· Ø§Ù„Ù€ Upscaler Ø¨ØµÙˆØ±Ø© Ø£ÙˆÙ„Ø§Ù‹." : "Connect the upscaler to an image first.");
+      return;
+    }
+
+    updateNode(upscaleNode.id, { status: "generating", imageUrl, publicImageUrl: imageUrl });
+    try {
+      const response = await fetch("/api/generate/upscale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl, scale: 2, resolution: "720" }),
+      });
+      const data = await response.json().catch(() => null);
+      const outputUrl = data?.mediaUrl || data?.imageUrl || data?.url;
+      if (!response.ok || !outputUrl) throw new Error(data?.error || "Upscale failed");
+      updateNode(upscaleNode.id, { status: "ready", imageUrl: outputUrl, publicImageUrl: outputUrl });
+      setCanvasError("");
+    } catch {
+      updateNode(upscaleNode.id, { status: "failed" });
+    }
+  };
+
   const handlePromptGenerate = async () => {
     if (workflowMode === "video") {
       if (activeNode?.type === "image" && activeNode.imageUrl) {
         await handleCreateVideoFromImage(activeNode);
-      } else if (activeNode?.type === "video" && activeNode.imageUrl) {
+      } else if (activeNode?.type === "video" && getInputImageUrl(activeNode)) {
         await handleGenerateExistingVideoNode(activeNode);
       } else {
         setCanvasError(isArabic ? "اختر صورة ناتجة أولاً حتى تحولها إلى فيديو." : "Select a generated image first to turn it into video.");
@@ -807,6 +859,7 @@ export function WorkflowCanvas({
           const isText = node.type === "text";
           const isUpscale = node.type === "upscale";
           const isActive = activeNodeId === node.id;
+          const inputImageUrl = getInputImageUrl(node);
           const isFirstImageNode = isImage && nodes.find((item) => item.type === "image")?.id === node.id;
           const nodeKindLabel = isText
             ? node.title
@@ -910,6 +963,8 @@ export function WorkflowCanvas({
                   <video src={node.videoUrl} controls className="w-full h-full object-cover" />
                 ) : node.imageUrl ? (
                   <img src={node.imageUrl} alt="" className="w-full h-full object-cover opacity-90" />
+                ) : (isVideo || isUpscale) && inputImageUrl ? (
+                  <img src={inputImageUrl} alt="" className="w-full h-full object-cover opacity-45 grayscale" />
                 ) : (
                   <div className="text-center p-4 space-y-2">
                     {isVideo ? (
@@ -1009,9 +1064,10 @@ export function WorkflowCanvas({
                         event.stopPropagation();
                         if (isRoot) sourceInputRef.current?.click();
                         else if (isImage) handleGenerateNodeImage(node.id);
-                        else if (isVideo && node.imageUrl) handleGenerateExistingVideoNode(node);
+                        else if (isVideo) handleGenerateExistingVideoNode(node);
+                        else if (isUpscale) handleGenerateUpscaleNode(node);
                       }}
-                      disabled={(isVideo && !node.imageUrl) || node.status === "generating"}
+                      disabled={((isVideo || isUpscale) && !inputImageUrl) || node.status === "generating"}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-black hover:bg-white disabled:opacity-40"
                       aria-label={copy.generate}
                     >
@@ -1065,42 +1121,50 @@ export function WorkflowCanvas({
                   )}
 
                   {isImage && (
-                    <>
-                      <textarea
-                        value={nodePrompt || node.prompt || ""}
-                        onChange={(event) => setNodePrompt(event.target.value)}
-                        placeholder={copy.nodePrompt}
-                        rows={2}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-xs text-white placeholder-zinc-500 outline-none resize-none"
-                      />
-                      <div className="flex items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleGenerateNodeImage(node.id)}
-                          disabled={node.status === "generating"}
-                          className="flex-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1 disabled:opacity-50"
-                        >
-                          <Wand2 size={12} />
-                          {copy.generate}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCreateVideoFromImage(node)}
-                          disabled={!node.imageUrl || node.status === "generating"}
-                          className="flex-1 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-purple-200 text-xs font-bold transition flex items-center justify-center gap-1 disabled:opacity-40"
-                        >
-                          <Play size={12} />
-                          {copy.toVideo}
-                        </button>
-                      </div>
-                    </>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateNodeImage(node.id)}
+                        disabled={node.status === "generating"}
+                        className="px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Wand2 size={12} />
+                        {copy.generate}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCreateVideoFromImage(node)}
+                        disabled={!getInputImageUrl(node) || node.status === "generating"}
+                        className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-purple-200 text-xs font-bold transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+                      >
+                        <Play size={12} />
+                        {copy.toVideo}
+                      </button>
+                    </div>
                   )}
 
                   {isVideo && (
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <VideoIcon size={14} className="text-purple-300" />
-                      {node.status === "ready" ? copy.videoNode : copy.generatingSet}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateExistingVideoNode(node)}
+                      disabled={!getInputImageUrl(node) || node.status === "generating"}
+                      className="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {node.status === "generating" ? <Loader2 size={14} className="animate-spin" /> : <VideoIcon size={14} />}
+                      {copy.toVideo}
+                    </button>
+                  )}
+
+                  {isUpscale && (
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateUpscaleNode(node)}
+                      disabled={!getInputImageUrl(node) || node.status === "generating"}
+                      className="w-full px-3 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md hover:opacity-90 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {node.status === "generating" ? <Loader2 size={14} className="animate-spin" /> : <Aperture size={14} />}
+                      {isArabic ? "رفع الدقة" : "Upscale image"}
+                    </button>
                   )}
                 </div>
               )}

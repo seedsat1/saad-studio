@@ -1,5 +1,31 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Wire AI Talent Canvas as real tool data flow (2026-07-29)
+
+- Status:
+  User correctly flagged that the Canvas still placed a prompt textarea under an image/result node, which made the workflow feel fake and disconnected.
+- Root cause found:
+  `WorkflowCanvas` mixed output/result cards with tool inputs. Image nodes could ask for prompt text in the active detail panel, while Video and Upscale nodes did not consistently consume upstream parent image/text data.
+- Changes made:
+  - Removed the active image-node prompt textarea so image/result cards no longer behave like separate prompt forms.
+  - Added prompt resolution from the bottom composer, the current node prompt, or an upstream `Text` node.
+  - Added upstream image resolution so Video Generator and Image Upscaler can consume the connected parent/source image even when the image is not duplicated into that node.
+  - Wired Image Upscaler nodes to call `/api/generate/upscale`.
+  - Updated node play actions so Image generates images, Video generates video, and Upscale runs the upscaler from the connected input.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `git diff --check` passed with line-ending/global-ignore warnings only.
+- Decisions:
+  - Prompt input belongs to `Text` nodes, generator nodes, or the bottom composer. Output image/result cards should expose actions only.
+  - Canvas edges are treated as data flow: text prompt and media URLs move downstream to image, video, and upscale tools.
+- Remaining:
+  - Live browser visual check and provider-credit testing for actual generation results.
+
 #### Latest task: Add original-style tool nodes to AI Talent Canvas (2026-07-29)
 
 - Status:
