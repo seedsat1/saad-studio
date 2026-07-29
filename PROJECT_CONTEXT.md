@@ -1,5 +1,29 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add Canvas connector tool suggestions (2026-07-29)
+
+- Status:
+  User reported that dragging from a source output still produced an unhelpful random-looking line, and the Canvas did not show what node/tool it could connect to.
+- Root cause found:
+  Drag-to-connect only supported dropping onto already-created input ports. When no compatible node was present, the UI exposed a temporary line but no explicit target choices.
+- Changes made:
+  - Added connector suggestion menu that appears while dragging from a valid output port.
+  - Image outputs now offer compatible tool creation targets: Image Generator, Video Generator, and Image Upscaler.
+  - Text outputs now offer compatible Image Generator and Video Generator targets.
+  - Choosing a suggestion creates the target node near the drag position and immediately records a real typed connection from the source.
+  - Existing input-port drag/drop remains supported for already-created nodes.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx --file components/influencers/TalentCanvasPage.tsx` passed with existing `<img>` warnings only.
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+- Decisions:
+  - A Canvas connector drag should always reveal compatible next-step tools when the board has no obvious target.
+- Remaining:
+  - Live browser check: drag from the source output and confirm the tool suggestion menu appears and creates a connected node.
+
 #### Latest task: Compact Canvas source card and clear dangling connector preview (2026-07-29)
 
 - Status:

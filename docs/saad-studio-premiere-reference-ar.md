@@ -21,6 +21,8 @@
   - drag from a node's right output port,
   - drop on a compatible left input port,
   - draw the wire from the explicit connection record.
+- Dragging from a valid output port should also reveal compatible next-step tool suggestions when no target node exists yet.
+- Selecting a suggested tool must create that node and immediately save a real typed connection from the source output.
 - Connector compatibility:
   - `Text` output can connect to Image Generator or Video Generator prompt input.
   - `Root/Image/Upscale` image output can connect to Image Generator, Video Generator, or Image Upscaler image input.

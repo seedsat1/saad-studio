@@ -56,6 +56,7 @@ type ConnectingState = {
   x: number;
   y: number;
 };
+type ConnectionToolType = "image" | "video" | "upscale";
 
 type WorkflowMode = "image" | "edit" | "video";
 
@@ -610,6 +611,65 @@ export function WorkflowCanvas({
     setActiveNodeId(id);
   };
 
+  const handleCreateToolFromConnection = (event: React.MouseEvent, type: ConnectionToolType) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!connectingFrom) return;
+
+    const source = nodes.find((node) => node.id === connectingFrom.sourceId);
+    if (!source) {
+      setConnectingFrom(null);
+      return;
+    }
+
+    const id = `${type}-${Date.now()}`;
+    const toolCount = nodes.filter((node) => node.type === type).length + 1;
+    const x = Math.max(source.x + getNodeWidth(source) + 170, connectingFrom.x + 72);
+    const y = Math.max(BOARD_TOP, connectingFrom.y - getNodeCenterY({ ...source, type } as CanvasNode));
+    const parentImageUrl = type === "image" ? "" : getInputImageUrl(source);
+    const title =
+      type === "image"
+        ? `${copy.imageNode} ${toolCount}`
+        : type === "video"
+          ? `Video Generator #${toolCount}`
+          : `Image Upscaler #${toolCount}`;
+
+    const newNode: CanvasNode = {
+      id,
+      type,
+      parentId: source.id,
+      x,
+      y,
+      title,
+      imageUrl: parentImageUrl || undefined,
+      publicImageUrl: parentImageUrl || undefined,
+      prompt:
+        type === "video"
+          ? videoPrompt
+          : type === "upscale"
+            ? "enhance and upscale image to maximum quality"
+            : batchPrompt || `${selectedHandle} realistic lifestyle image`,
+      influencerHandle: source.influencerHandle || selectedHandle,
+      aspectRatio,
+      status: "idle",
+    };
+
+    setCanvasError("");
+    setNodes((prev) => [...prev, newNode]);
+    setConnections((prev) =>
+      prev
+        .filter((connection) => !(connection.targetId === id && connection.kind === getNodeOutputKind(source)))
+        .concat({
+          id: `conn-${source.id}-${id}-${Date.now()}`,
+          sourceId: source.id,
+          targetId: id,
+          kind: getNodeOutputKind(source),
+        }),
+    );
+    setActiveNodeId(id);
+    setConnectingFrom(null);
+  };
+
   const generateImage = async (prompt: string, referenceUrl?: string) => {
     const hasReference = Boolean(referenceUrl);
     const response = await fetch("/api/image/generate", {
@@ -876,6 +936,31 @@ export function WorkflowCanvas({
     { id: "video", label: isArabic ? "فيديو" : "Video", icon: VideoIcon },
   ];
 
+  const getConnectionToolOptions = (kind: ConnectionKind) => {
+    const imageGenerator = {
+      type: "image" as ConnectionToolType,
+      label: isArabic ? "مولد صور" : "Image Generator",
+      description: isArabic ? "يستعمل هذا المصدر كمرجع للصور" : "Use this output as the image reference",
+      icon: ImageIcon,
+    };
+    const videoGenerator = {
+      type: "video" as ConnectionToolType,
+      label: isArabic ? "مولد فيديو" : "Video Generator",
+      description: isArabic ? "حوّل الصورة أو البرومبت إلى فيديو" : "Turn image or prompt into video",
+      icon: VideoIcon,
+    };
+    const imageUpscaler = {
+      type: "upscale" as ConnectionToolType,
+      label: isArabic ? "رفع الدقة" : "Image Upscaler",
+      description: isArabic ? "استلم الصورة وارفع وضوحها" : "Enhance the connected image",
+      icon: Aperture,
+    };
+
+    if (kind === "image") return [imageGenerator, videoGenerator, imageUpscaler];
+    if (kind === "text") return [imageGenerator, videoGenerator];
+    return [];
+  };
+
   return (
     <div
       ref={containerRef}
@@ -1026,6 +1111,47 @@ export function WorkflowCanvas({
           </linearGradient>
         </defs>
       </svg>
+
+      {connectingFrom &&
+        (() => {
+          const options = getConnectionToolOptions(connectingFrom.kind);
+          const left = Math.min(Math.max(connectingFrom.x + 22, 70), 1220);
+          const top = Math.max(connectingFrom.y - 82, 78);
+          if (options.length === 0) return null;
+          return (
+            <div
+              className="absolute z-30 w-72 rounded-2xl border border-pink-500/40 bg-[#101119]/95 p-2 shadow-2xl shadow-pink-950/30 backdrop-blur-xl"
+              style={{ left: `${left}px`, top: `${top}px` }}
+              onMouseDown={(event) => event.stopPropagation()}
+              onMouseUp={(event) => event.stopPropagation()}
+            >
+              <div className="px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wider text-pink-300">
+                {isArabic ? "اربط الخرج مع أداة" : "Connect output to a tool"}
+              </div>
+              <div className="space-y-1">
+                {options.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.type}
+                      type="button"
+                      onMouseDown={(event) => handleCreateToolFromConnection(event, option.type)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-500/15 text-pink-200">
+                        <Icon size={16} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-extrabold text-white">{option.label}</span>
+                        <span className="block truncate text-xs text-zinc-400">{option.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
       <div className="relative z-10 w-full h-full p-8 pt-20 overflow-auto">
         {nodes.length > 0 && (
