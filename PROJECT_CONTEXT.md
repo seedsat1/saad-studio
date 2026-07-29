@@ -1,5 +1,30 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Make Canvas connector tool menu clickable after release (2026-07-29)
+
+- Status:
+  User showed that after dragging from the source output, the tool menu appears but the user cannot practically click the desired tool because releasing the mouse clears the connection state.
+- Root cause found:
+  `WorkflowCanvas` used the same transient `connectingFrom` state for both the live drag line and the suggested tool menu. Global/board `mouseup` cleared that state immediately, so the menu behaved like a drag-only preview instead of a stable selection menu.
+- Changes made:
+  - Added persistent `connectionMenu` state for a pending dropped connector.
+  - Releasing a connector now stops the temporary line but keeps the compatible tool menu open.
+  - Tool suggestions can now be selected with normal click after mouse release.
+  - Drag-release over a suggestion is also handled through `onMouseUp`.
+  - Starting a new connector, completing a real port connection, choosing a tool, Escape, or window blur clears the pending menu.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx` passed with existing `<img>` warnings only.
+  - `npm.cmd run lint` still fails from pre-existing unrelated errors in `app/(dash)/(routes)/agent-studio/page.tsx`, `app/(dash)/(routes)/apps/tool/face-swap/page.tsx`, `lib/providers/kie.ts`, `lib/runninghub.ts`, and `lib/studio-img.ts`.
+- Decisions:
+  - Connector suggestions are a dropped-connector menu, not a drag-only tooltip. The user should be able to release first, then choose the target tool deliberately.
+- Remaining:
+  - Live browser confirmation: drag from a source/image output, release, then click Image Generator, Video Generator, or Upscale and confirm a connected node is created.
+
 #### Latest task: Add Canvas connector tool suggestions (2026-07-29)
 
 - Status:

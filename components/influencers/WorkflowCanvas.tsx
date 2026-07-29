@@ -292,20 +292,29 @@ export function WorkflowCanvas({
   const [batchGenerating, setBatchGenerating] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<ConnectingState | null>(null);
+  const [connectionMenu, setConnectionMenu] = useState<ConnectingState | null>(null);
 
   useEffect(() => {
     const clearPointerState = () => {
       setDraggingNodeId(null);
       setConnectingFrom(null);
+      setConnectionMenu(null);
+    };
+    const finishPointerState = () => {
+      setDraggingNodeId(null);
+      setConnectingFrom((current) => {
+        if (current) setConnectionMenu(current);
+        return null;
+      });
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") clearPointerState();
     };
-    window.addEventListener("mouseup", clearPointerState);
+    window.addEventListener("mouseup", finishPointerState);
     window.addEventListener("blur", clearPointerState);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener("mouseup", clearPointerState);
+      window.removeEventListener("mouseup", finishPointerState);
       window.removeEventListener("blur", clearPointerState);
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -500,6 +509,7 @@ export function WorkflowCanvas({
     event.preventDefault();
     event.stopPropagation();
     const point = getPointerPosition(event);
+    setConnectionMenu(null);
     setConnectingFrom({
       sourceId: sourceNode.id,
       kind: getNodeOutputKind(sourceNode),
@@ -516,6 +526,7 @@ export function WorkflowCanvas({
     const source = nodes.find((node) => node.id === connectingFrom.sourceId);
     if (source) upsertConnection(source, targetNode);
     setConnectingFrom(null);
+    setConnectionMenu(null);
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
@@ -614,18 +625,20 @@ export function WorkflowCanvas({
   const handleCreateToolFromConnection = (event: React.MouseEvent, type: ConnectionToolType) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!connectingFrom) return;
+    const pendingConnection = connectionMenu || connectingFrom;
+    if (!pendingConnection) return;
 
-    const source = nodes.find((node) => node.id === connectingFrom.sourceId);
+    const source = nodes.find((node) => node.id === pendingConnection.sourceId);
     if (!source) {
       setConnectingFrom(null);
+      setConnectionMenu(null);
       return;
     }
 
     const id = `${type}-${Date.now()}`;
     const toolCount = nodes.filter((node) => node.type === type).length + 1;
-    const x = Math.max(source.x + getNodeWidth(source) + 170, connectingFrom.x + 72);
-    const y = Math.max(BOARD_TOP, connectingFrom.y - getNodeCenterY({ ...source, type } as CanvasNode));
+    const x = Math.max(source.x + getNodeWidth(source) + 170, pendingConnection.x + 72);
+    const y = Math.max(BOARD_TOP, pendingConnection.y - getNodeCenterY({ ...source, type } as CanvasNode));
     const parentImageUrl = type === "image" ? "" : getInputImageUrl(source);
     const title =
       type === "image"
@@ -668,6 +681,7 @@ export function WorkflowCanvas({
     );
     setActiveNodeId(id);
     setConnectingFrom(null);
+    setConnectionMenu(null);
   };
 
   const generateImage = async (prompt: string, referenceUrl?: string) => {
@@ -969,7 +983,10 @@ export function WorkflowCanvas({
       onMouseMove={handleMouseMove}
       onMouseUp={() => {
         setDraggingNodeId(null);
-        setConnectingFrom(null);
+        setConnectingFrom((current) => {
+          if (current) setConnectionMenu(current);
+          return null;
+        });
       }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff0c_1px,transparent_1px)] [background-size:28px_28px] opacity-80 pointer-events-none" />
@@ -1112,11 +1129,13 @@ export function WorkflowCanvas({
         </defs>
       </svg>
 
-      {connectingFrom &&
+      {(connectionMenu || connectingFrom) &&
         (() => {
-          const options = getConnectionToolOptions(connectingFrom.kind);
-          const left = Math.min(Math.max(connectingFrom.x + 22, 70), 1220);
-          const top = Math.max(connectingFrom.y - 82, 78);
+          const pendingConnection = connectionMenu || connectingFrom;
+          if (!pendingConnection) return null;
+          const options = getConnectionToolOptions(pendingConnection.kind);
+          const left = Math.min(Math.max(pendingConnection.x + 22, 70), 1220);
+          const top = Math.max(pendingConnection.y - 82, 78);
           if (options.length === 0) return null;
           return (
             <div
@@ -1135,7 +1154,8 @@ export function WorkflowCanvas({
                     <button
                       key={option.type}
                       type="button"
-                      onMouseDown={(event) => handleCreateToolFromConnection(event, option.type)}
+                      onMouseUp={(event) => handleCreateToolFromConnection(event, option.type)}
+                      onClick={(event) => handleCreateToolFromConnection(event, option.type)}
                       className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
                     >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-500/15 text-pink-200">

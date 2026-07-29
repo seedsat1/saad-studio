@@ -22,6 +22,7 @@
   - drop on a compatible left input port,
   - draw the wire from the explicit connection record.
 - Dragging from a valid output port should also reveal compatible next-step tool suggestions when no target node exists yet.
+- Releasing a dragged connector into empty canvas space should keep the compatible next-step tool menu open so the user can click the desired tool after release.
 - Selecting a suggested tool must create that node and immediately save a real typed connection from the source output.
 - Connector compatibility:
   - `Text` output can connect to Image Generator or Video Generator prompt input.
