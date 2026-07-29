@@ -1,5 +1,30 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Add Canvas keyboard shortcuts and create menu (2026-07-29)
+
+- Status:
+  User asked for real Canvas keyboard behavior such as deleting the selected node with Delete and opening a creation menu with Control shortcuts instead of relying only on mouse buttons.
+- Changes made:
+  - Added a persistent Canvas create menu opened from the left toolbar plus button.
+  - Added keyboard shortcuts outside editable fields:
+    - `Delete` / `Backspace`: delete the selected node and its descendants.
+    - `Ctrl`/`Cmd` + `+`, `Ctrl`/`Cmd` + `=`, numpad plus, or `Ctrl`/`Cmd` + `N`: open the create menu near the active node.
+    - `Escape`: close pending connector/create menus and transient connector state.
+  - Create menu actions now include upload source image, create blank work, Image Generator, Text node, Video Generator, Image Upscaler, and arrange workflow.
+  - Shortcuts are ignored while typing in `input`, `textarea`, `select`, or contenteditable elements to avoid deleting prompt text.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx` passed with existing `<img>` warnings only.
+- Decisions:
+  - Canvas keyboard shortcuts should operate on the selected node only when the focus is on the board, not while editing text.
+  - The plus toolbar action should open a general creation menu instead of immediately creating a single image node.
+- Remaining:
+  - Live browser interaction check: select a node, press Delete/Backspace, then use Ctrl+Plus or Ctrl+N to open the creation menu.
+
 #### Latest task: Make Canvas connector tool menu clickable after release (2026-07-29)
 
 - Status:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Aperture,
@@ -57,6 +57,11 @@ type ConnectingState = {
   y: number;
 };
 type ConnectionToolType = "image" | "video" | "upscale";
+
+type CreateMenuState = {
+  x: number;
+  y: number;
+};
 
 type WorkflowMode = "image" | "edit" | "video";
 
@@ -161,6 +166,12 @@ function normalizeHandle(value: string | null, fallback: string) {
   const decoded = decodeURIComponent(value).trim();
   if (!decoded) return fallback;
   return decoded.startsWith("@") ? decoded : `@${decoded}`;
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return target.isContentEditable || tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
 function getImageModelId(modelName: string, hasReference: boolean) {
@@ -293,12 +304,14 @@ export function WorkflowCanvas({
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<ConnectingState | null>(null);
   const [connectionMenu, setConnectionMenu] = useState<ConnectingState | null>(null);
+  const [createMenu, setCreateMenu] = useState<CreateMenuState | null>(null);
 
   useEffect(() => {
     const clearPointerState = () => {
       setDraggingNodeId(null);
       setConnectingFrom(null);
       setConnectionMenu(null);
+      setCreateMenu(null);
     };
     const finishPointerState = () => {
       setDraggingNodeId(null);
@@ -330,6 +343,26 @@ export function WorkflowCanvas({
       y: rect ? event.clientY - rect.top : event.clientY,
     };
   };
+
+  const getCreateMenuPosition = useCallback(() => {
+    const anchor = activeNode || sourceNode;
+    if (anchor) {
+      return {
+        x: Math.min(Math.max(anchor.x + getNodeWidth(anchor) + 24, 70), 1220),
+        y: Math.max(anchor.y + 22, 78),
+      };
+    }
+    return {
+      x: 90,
+      y: 120,
+    };
+  }, [activeNode, sourceNode]);
+
+  const openCreateMenu = useCallback(() => {
+    setConnectingFrom(null);
+    setConnectionMenu(null);
+    setCreateMenu(getCreateMenuPosition());
+  }, [getCreateMenuPosition]);
 
   const upsertConnection = (source: CanvasNode, target: CanvasNode) => {
     const kind = getNodeOutputKind(source);
@@ -454,7 +487,7 @@ export function WorkflowCanvas({
     }
   };
 
-  const handleDeleteNode = (nodeId: string) => {
+  const handleDeleteNode = useCallback((nodeId: string) => {
     setNodes((prev) => {
       const idsToDelete = collectDescendantIds(prev, nodeId);
       idsToDelete.add(nodeId);
@@ -463,7 +496,7 @@ export function WorkflowCanvas({
       if (!next.some((node) => node.id === activeNodeId)) setActiveNodeId(next[0]?.id || null);
       return next;
     });
-  };
+  }, [activeNodeId]);
 
   const handleAutoArrange = () => {
     setNodes((prev) => {
@@ -683,6 +716,40 @@ export function WorkflowCanvas({
     setConnectingFrom(null);
     setConnectionMenu(null);
   };
+
+  useEffect(() => {
+    const handleCanvasKeyDown = (event: KeyboardEvent) => {
+      if (isEditableKeyboardTarget(event.target)) return;
+
+      if (event.key === "Escape") {
+        setCreateMenu(null);
+        setConnectionMenu(null);
+        setConnectingFrom(null);
+        return;
+      }
+
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (!activeNodeId) return;
+        event.preventDefault();
+        handleDeleteNode(activeNodeId);
+        setCreateMenu(null);
+        setConnectionMenu(null);
+        return;
+      }
+
+      const isCreateShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        (event.key === "+" || event.key === "=" || event.code === "NumpadAdd" || event.key.toLowerCase() === "n");
+
+      if (isCreateShortcut) {
+        event.preventDefault();
+        openCreateMenu();
+      }
+    };
+
+    window.addEventListener("keydown", handleCanvasKeyDown);
+    return () => window.removeEventListener("keydown", handleCanvasKeyDown);
+  }, [activeNodeId, handleDeleteNode, openCreateMenu]);
 
   const generateImage = async (prompt: string, referenceUrl?: string) => {
     const hasReference = Boolean(referenceUrl);
@@ -1032,8 +1099,8 @@ export function WorkflowCanvas({
         </button>
         <button
           type="button"
-          title={copy.addNode}
-          onClick={() => handleAddImageNode(sourceNode?.id || undefined)}
+          title={isArabic ? "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡" : "Create menu"}
+          onClick={openCreateMenu}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white"
         >
           <Plus size={16} />
@@ -1172,6 +1239,133 @@ export function WorkflowCanvas({
             </div>
           );
         })()}
+
+      {createMenu && (
+        <div
+          className="absolute z-30 w-72 rounded-2xl border border-white/10 bg-[#101119]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-xl"
+          style={{ left: `${createMenu.x}px`, top: `${createMenu.y}px` }}
+          onMouseDown={(event) => event.stopPropagation()}
+          onMouseUp={(event) => event.stopPropagation()}
+        >
+          <div className="px-2 pb-2 text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
+            {isArabic ? "Ø¥Ù†Ø´Ø§Ø¡ Ø¯Ø§Ø®Ù„ Ø§Ù„ÙƒØ§Ù†ÙØ§Ø³" : "Create on canvas"}
+          </div>
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateMenu(null);
+                sourceInputRef.current?.click();
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-500/15 text-pink-200">
+                <Upload size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{copy.uploadSource}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø§Ø³ØªØ¹Ù…Ù„Ù‡Ø§ ÙƒÙ‡ÙˆÙŠØ© Ø£Ùˆ Ù…ØµØ¯Ø±" : "Use it as the source identity"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                createSourceNode();
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-zinc-200">
+                <Plus size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{copy.createBlank}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø§Ø¨Ø¯Ø£ Ù„ÙˆØ­Ø© Ø¹Ù…Ù„ Ø¬Ø¯ÙŠØ¯Ø©" : "Start a new blank work"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleAddImageNode(sourceNode?.id || activeNodeId || undefined);
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-500/15 text-pink-200">
+                <ImageIcon size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ù…ÙˆÙ„Ø¯ ØµÙˆØ±" : "Image Generator"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø£Ù†Ø´Ø¦ Ø¹Ù‚Ø¯Ø© ØµÙˆØ± Ù…ØªØµÙ„Ø©" : "Create a connected image node"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleAddCanvasTool("text");
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-zinc-200">
+                <TypeIcon size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ø¹Ù‚Ø¯Ø© Ù†Øµ" : "Text Node"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø¨Ø±ÙˆÙ…Ø¨Øª ÙŠØ±ØªØ¨Ø· Ø¨Ø£Ø¯ÙˆØ§Øª Ø§Ù„ØªÙˆÙ„ÙŠØ¯" : "Prompt input for generators"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleAddCanvasTool("video");
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/15 text-purple-200">
+                <VideoIcon size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ù…ÙˆÙ„Ø¯ ÙÙŠØ¯ÙŠÙˆ" : "Video Generator"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø­ÙˆÙ„ Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¥Ù„Ù‰ ÙÙŠØ¯ÙŠÙˆ" : "Turn a connected image into video"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleAddCanvasTool("upscale");
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-200">
+                <Aperture size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "Ø±ÙØ¹ Ø§Ù„Ø¯Ù‚Ø©" : "Image Upscaler"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø­Ø³Ù† Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ù…ØªØµÙ„Ø©" : "Enhance the connected image"}</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                handleAutoArrange();
+                setCreateMenu(null);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:border-pink-400/60 hover:bg-pink-500/10"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-zinc-200">
+                <Move size={16} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold text-white">{isArabic ? "ØªØ±ØªÙŠØ¨ Ø§Ù„Ø¹Ù…Ù„" : "Arrange Workflow"}</span>
+                <span className="block truncate text-xs text-zinc-400">{isArabic ? "Ø£Ø¹Ø¯ ØªØ±ØªÙŠØ¨ Ø§Ù„Ù†ÙˆØ¯Ø§Øª Ø¨Ø´ÙƒÙ„ ÙˆØ§Ø¶Ø­" : "Reflow nodes into lanes"}</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 w-full h-full p-8 pt-20 overflow-auto">
         {nodes.length > 0 && (

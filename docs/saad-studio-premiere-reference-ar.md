@@ -24,6 +24,11 @@
 - Dragging from a valid output port should also reveal compatible next-step tool suggestions when no target node exists yet.
 - Releasing a dragged connector into empty canvas space should keep the compatible next-step tool menu open so the user can click the desired tool after release.
 - Selecting a suggested tool must create that node and immediately save a real typed connection from the source output.
+- Canvas keyboard behavior:
+  - `Delete` / `Backspace` should delete the currently selected node and its descendant branch when focus is on the board.
+  - `Ctrl`/`Cmd` + `+`, numpad plus, or `Ctrl`/`Cmd` + `N` should open the Canvas create menu near the selected node.
+  - Keyboard shortcuts must be ignored while focus is inside prompt/text fields or other editable controls.
+  - The left-toolbar plus action should open the same create menu, not silently create one fixed node type.
 - Connector compatibility:
   - `Text` output can connect to Image Generator or Video Generator prompt input.
   - `Root/Image/Upscale` image output can connect to Image Generator, Video Generator, or Image Upscaler image input.
