@@ -38,6 +38,10 @@
   - a `Text` node,
   - a generator tool node that is explicitly collecting generation input,
   - the bottom prompt composer.
+- `Text` nodes are prompt-only sources:
+  - they must not inherit or display a talent `@handle` badge,
+  - their textarea placeholder must remain readable in Arabic and English,
+  - textarea direction should be automatic so mixed Arabic/English prompts stay usable.
 - Image/result cards must not show an extra prompt textarea under the generated image. They should expose actions such as generate/regenerate, convert to video, delete, or connect.
 - Edge meaning:
   - `Text -> Image Generator`: prompt input.

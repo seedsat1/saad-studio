@@ -1,5 +1,28 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Clean Canvas Text node prompt UI (2026-07-29)
+
+- Status:
+  User showed a Canvas `Text #1` node displaying the selected talent badge (`@gavi`) and a mojibake Arabic placeholder, making the text node look like a broken media/talent card instead of a prompt input.
+- Changes made:
+  - New Text nodes no longer inherit `influencerHandle` from the active/source node.
+  - Existing Text nodes no longer render the talent handle badge even if older state still contains one.
+  - Replaced the broken Arabic placeholder with a clean Arabic/English prompt placeholder.
+  - Added `dir="auto"` to the Text node textarea so Arabic and English prompt text align naturally.
+- Affected files:
+  - `components/influencers/WorkflowCanvas.tsx`
+  - `PROJECT_CONTEXT.md`
+  - `docs/saad-studio-premiere-reference-ar.md`
+- Verification:
+  - `npx.cmd tsc --noEmit --pretty false` passed.
+  - `npx.cmd next lint --file components/influencers/WorkflowCanvas.tsx` passed with existing `<img>` warnings only.
+- Errors discovered:
+  - Editing this UTF-8 Arabic-heavy file through default PowerShell `Get-Content`/`Set-Content` can corrupt Arabic strings; the file was restored from git and then edited with explicit UTF-8 handling.
+- Decisions:
+  - Canvas Text nodes are pure prompt/source-text nodes and must not show talent or image badges.
+- Remaining:
+  - Live browser check: create a Text node and confirm it shows only a readable placeholder/typed prompt, with no `@handle` badge.
+
 #### Latest task: Add Canvas keyboard shortcuts and create menu (2026-07-29)
 
 - Status:

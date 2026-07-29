@@ -636,7 +636,7 @@ export function WorkflowCanvas({
       imageUrl: parentImageUrl || undefined,
       publicImageUrl: parentImageUrl || undefined,
       prompt: type === "text" ? "" : type === "video" ? videoPrompt : "enhance and upscale image to maximum quality",
-      influencerHandle: parent?.influencerHandle || selectedHandle,
+      influencerHandle: type === "text" ? undefined : parent?.influencerHandle || selectedHandle,
       aspectRatio,
       status: "idle",
     };
@@ -1526,7 +1526,8 @@ export function WorkflowCanvas({
                   <textarea
                     value={node.prompt || ""}
                     onChange={(event) => updateNode(node.id, { prompt: event.target.value })}
-                    placeholder={isArabic ? "Ø§ÙƒØªØ¨ ÙˆØµÙ Ø§Ù„Ù…Ø´Ù‡Ø¯ Ø£Ùˆ Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„Ø¹Ù‚Ø¯Ø©..." : "Try \"Happy dog with sunglasses and floating ring\""}
+                    placeholder={isArabic ? "اكتب وصف المشهد أو برومبت العقدة..." : "Describe the scene or prompt for this node..."}
+                    dir="auto"
                     className="h-full w-full resize-none bg-transparent p-4 text-sm text-white outline-none placeholder:text-zinc-600"
                     onMouseDown={(event) => event.stopPropagation()}
                   />
@@ -1551,7 +1552,7 @@ export function WorkflowCanvas({
                   </div>
                 )}
 
-                {node.influencerHandle && (
+                {node.influencerHandle && !isText && (
                   <div className="absolute left-3 top-3 px-3 py-1 rounded-xl bg-black/80 backdrop-blur-md text-white font-extrabold text-xs border border-white/10 dir-ltr">
                     {node.influencerHandle}
                   </div>
