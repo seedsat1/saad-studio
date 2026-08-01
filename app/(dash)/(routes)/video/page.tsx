@@ -1030,7 +1030,10 @@ function VideoPageInner() {
     setStartFrame(null);
     setOmniTab("frames");
 
-    void fetch(requestedImageUrl)
+    const fallbacks = getFallbackUrls(requestedImageUrl);
+    const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedImageUrl;
+
+    void fetch(fetchUrl)
       .then((res) => {
         if (!res.ok) throw new Error("Unable to load linked image");
         return res.blob();
@@ -1057,7 +1060,11 @@ function VideoPageInner() {
     if (!requestedAudioUrl || !/^https?:\/\//i.test(requestedAudioUrl)) return;
 
     let cancelled = false;
-    void fetch(requestedAudioUrl)
+
+    const fallbacks = getFallbackUrls(requestedAudioUrl);
+    const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedAudioUrl;
+
+    void fetch(fetchUrl)
       .then((res) => {
         if (!res.ok) throw new Error("Unable to load linked audio");
         return res.blob();
@@ -1440,9 +1447,10 @@ function VideoPageInner() {
       
       let fetchUrl = url;
       if (isVideo) {
-        // Resolve fallbacks for video to get the direct R2 URL (which supports CORS)
+        // Resolve fallbacks for video to get a same-origin proxy or direct CORS-enabled URL
         const fallbacks = getFallbackUrls(url);
-        fetchUrl = fallbacks[0] || url;
+        const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
+        fetchUrl = proxyUrl || fallbacks[0] || url;
       } else {
         // For images, route through proxy-image to avoid CORS
         fetchUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;

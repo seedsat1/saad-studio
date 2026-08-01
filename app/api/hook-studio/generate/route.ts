@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
 import { spendCredits, InsufficientCreditsError, refundGenerationCharge, ensureUserRow } from "@/lib/credit-ledger";
-import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS } from "@/lib/hook-studio-config";
+import { HOOK_VIDEO_MODELS, HOOK_GENRES, LLM_BRAIN_MODELS, HOOK_STYLES, HOOK_ELEMENTS, HOOK_LOCATIONS, HOOK_CAMERAS, HOOK_EFFECTS, HOOK_CHARACTERS } from "@/lib/hook-studio-config";
 import { openai } from "@/lib/gptutils";
 import { buildHookStudioDirectorSystemPrompt } from "@/lib/hook-studio-director-prompt";
 
@@ -14,6 +14,25 @@ const SEEDANCE_BASE_ASPECT_RATIOS = new Set(["16:9", "9:16", "4:3", "3:4", "1:1"
 const SEEDANCE_BASE_RESOLUTIONS = new Set(["480p", "720p", "1080p", "4k"]);
 const SEEDANCE_TURBO_ASPECT_RATIOS = new Set(["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"]);
 const SEEDANCE_TURBO_RESOLUTIONS = new Set(["720p", "1080p"]);
+
+async function urlToBase64DataUrl(url: string): Promise<string | null> {
+  try {
+    // For localhost development, expand relative URLs or handle them safely
+    let targetUrl = url;
+    if (url.startsWith("/")) {
+      targetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://www.saadstudio.app"}${url}`;
+    }
+    const response = await fetch(targetUrl);
+    if (!response.ok) return null;
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get("content-type") || "image/jpeg";
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch (err) {
+    console.error("Failed to convert image URL to base64:", err);
+    return null;
+  }
+}
 
 function normalizeDurationSeconds(value: unknown, fallback = 5) {
   const parsed =
@@ -306,6 +325,7 @@ export async function POST(req: NextRequest) {
       selectedLocationId = null,
       selectedCameraId = null,
       selectedEffectId = null,
+      selectedCharacterId = null,
       refImages = [],
       refVideos = [],
       refAudios = [],
@@ -352,6 +372,7 @@ export async function POST(req: NextRequest) {
     const selectedLocation = HOOK_LOCATIONS.find((loc) => loc.id === selectedLocationId);
     const selectedCamera = HOOK_CAMERAS.find((cam) => cam.id === selectedCameraId);
     const selectedEffect = HOOK_EFFECTS.find((eff) => eff.id === selectedEffectId);
+    const selectedCharacter = HOOK_CHARACTERS.find((c) => c.id === selectedCharacterId);
     const selectedBrain = LLM_BRAIN_MODELS.find((b) => b.id === llmBrain) || LLM_BRAIN_MODELS[0];
     let safeDuration = normalizeDurationSeconds(duration);
     if (selectedModel.id === "kling-3.0-pro" || selectedModel.id === "kling-3.0-turbo" || selectedModel.id === "kling-o3-omni") {
@@ -477,13 +498,60 @@ export async function POST(req: NextRequest) {
             }))
             .filter((h: any) => h.content.trim().length > 0);
 
+          // Build list of image URLs to analyze
+          const imagesToAnalyze: string[] = [];
+          if (selectedCharacter && selectedCharacter.imageUrl) {
+            imagesToAnalyze.push(selectedCharacter.imageUrl);
+          }
+          if (selectedElement && selectedElement.imageUrl) {
+            imagesToAnalyze.push(selectedElement.imageUrl);
+          }
+          for (const url of safeRefImages) {
+            if (!imagesToAnalyze.includes(url)) {
+              imagesToAnalyze.push(url);
+            }
+          }
+
+          // Convert to base64 data URLs
+          const base64Images: string[] = [];
+          for (const url of imagesToAnalyze) {
+            const base64 = await urlToBase64DataUrl(url);
+            if (base64) {
+              base64Images.push(base64);
+            }
+          }
+
+          // Construct message content
+          const userMessageContent: any[] = [
+            {
+              type: "text",
+              text: "Prompt: " + prompt + 
+                    "\nGenre: " + selectedGenre.nameEn + 
+                    "\nArt Style: " + selectedStyle.nameEn + 
+                    (selectedElement ? ("\nElement Reference Tag: " + selectedElement.tag + " (" + selectedElement.promptDescription + ")") : "") + 
+                    (selectedLocation ? ("\nLocation Reference Tag: " + selectedLocation.tag + " (" + selectedLocation.promptDescription + ")") : "") + 
+                    (selectedCamera ? ("\nCamera Motion Tag: " + selectedCamera.tag + " (" + selectedCamera.promptDescription + ")") : "") + 
+                    (selectedEffect ? ("\nEffect/Lighting Tag: " + selectedEffect.tag + " (" + (selectedEffect.systemPromptAddon || selectedEffect.promptDescription || "") + ")") : "") + 
+                    (selectedCharacter ? ("\nCharacter Reference Tag: " + selectedCharacter.tag + " (" + selectedCharacter.promptDescription + ")") : "") + 
+                    "\nHook Angle: " + hookAngle + 
+                    "\nBrain Selected: " + selectedBrain.name
+            }
+          ];
+
+          for (const base64 of base64Images) {
+            userMessageContent.push({
+              type: "image_url",
+              image_url: { url: base64 }
+            });
+          }
+
           const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             temperature: 0.7,
             messages: [
               { role: "system", content: systemPrompt },
               ...formattedHistory,
-              { role: "user", content: "Prompt: " + prompt + "\nGenre: " + selectedGenre.nameEn + "\nArt Style: " + selectedStyle.nameEn + (selectedElement ? ("\nElement Reference Tag: " + selectedElement.tag + " (" + selectedElement.promptDescription + ")") : "") + (selectedLocation ? ("\nLocation Reference Tag: " + selectedLocation.tag + " (" + selectedLocation.promptDescription + ")") : "") + (selectedCamera ? ("\nCamera Motion Tag: " + selectedCamera.tag + " (" + selectedCamera.promptDescription + ")") : "") + (selectedEffect ? ("\nEffect/Lighting Tag: " + selectedEffect.tag + " (" + (selectedEffect.systemPromptAddon || selectedEffect.promptDescription || "") + ")") : "") + "\nHook Angle: " + hookAngle + "\nBrain Selected: " + selectedBrain.name }
+              { role: "user", content: userMessageContent }
             ],
             response_format: { type: "json_object" }
           });

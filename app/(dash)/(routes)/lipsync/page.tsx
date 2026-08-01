@@ -28,6 +28,7 @@ import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { useAssetStore } from "@/hooks/use-asset-store";
+import { getFallbackUrls } from "@/lib/utils";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 
 
@@ -352,7 +353,10 @@ function LipsyncStudioPageInner() {
       setLinkedStartFrameUrl(requestedImageUrl);
       setStartFrame(null);
 
-      void fetch(requestedImageUrl)
+      const fallbacks = getFallbackUrls(requestedImageUrl);
+      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedImageUrl;
+
+      void fetch(fetchUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Unable to load image URL");
           return res.blob();
@@ -378,7 +382,11 @@ function LipsyncStudioPageInner() {
     const requestedAudioUrl = searchParams.get("audioUrl");
     if (requestedAudioUrl && /^https?:\/\//i.test(requestedAudioUrl)) {
       let cancelled = false;
-      void fetch(requestedAudioUrl)
+
+      const fallbacks = getFallbackUrls(requestedAudioUrl);
+      const fetchUrl = fallbacks.find((u) => u.startsWith("/api/media/")) || requestedAudioUrl;
+
+      void fetch(fetchUrl)
         .then((res) => {
           if (!res.ok) throw new Error("Unable to load audio URL");
           return res.blob();

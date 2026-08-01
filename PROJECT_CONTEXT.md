@@ -1,5 +1,47 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Resolve Storage CORS Blockages via Same-Origin Proxy Routing (2026-08-01)
+
+- Status:
+  Direct browser `fetch` calls to Backblaze B2 friendly/raw URLs (e.g. `f003.backblazeb2.com/file/...`) in Hook Studio download features, Lipsync searchParams init, Video searchParams init, and Shots download features failed due to missing CORS headers (`Access-Control-Allow-Origin`).
+- Changes made:
+  - Updated `handleDownload` inside Hook Studio page component (`app/(dash)/(routes)/hook-studio/page.tsx`) to resolve fallback URLs using the `getFallbackUrls` utility and prioritize the `/api/media/` relative same-origin proxy URL, bypassing browser CORS errors completely.
+  - Resolved `fetchUrl` using `getFallbackUrls` in the `useEffect` URL query parameters listener inside Lipsync page (`app/(dash)/(routes)/lipsync/page.tsx`) for `imageUrl` and `audioUrl`.
+  - Resolved `fetchUrl` using `getFallbackUrls` in the `useEffect` URL query parameters listener inside Video page (`app/(dash)/(routes)/video/page.tsx`) for `imageUrl` and `audioUrl`.
+  - Updated `pickGalleryAsset` in `video/page.tsx` to search for and use `/api/media/` proxy URLs for videos instead of direct storage URLs.
+  - Updated `downloadImage` inside Shots page component (`app/(dash)/(routes)/shots/page.tsx`) to resolve fallback URLs using the `getFallbackUrls` utility and prioritize the same-origin proxy URL, avoiding CORS blocks on browser fetches.
+- Affected files:
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `app/(dash)/(routes)/lipsync/page.tsx`
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/shots/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Standardizing direct client-side asset fetches to fall back to the same-origin `/api/media/[path]` proxy completely eliminates CORS-related browser network failures, as same-origin requests bypass CORS validation.
+
+#### Latest task: Fix Hook Studio Character, Reference, and Arabic Language Compliance (2026-08-01)
+
+- Status:
+  User reported that Hook Studio did not adhere to the selected character, reference images, or Arabic language requirements during storyboard generation.
+- Changes made:
+  - Added `selectedCharacterId` to the request payload body in all three `/api/hook-studio/generate` POST fetch calls in the frontend page.
+  - Extracted `selectedCharacterId` and resolved the selected character from the `HOOK_CHARACTERS` registry in the backend route.
+  - Implemented `urlToBase64DataUrl` on the backend to fetch image URLs (both presets and uploaded references) and encode them as self-contained base64 data URLs.
+  - Passed the text descriptions of selected character/element presets and the base64 reference images directly as multimodal `image_url` contents to OpenAI's GPT-4o model, allowing the LLM to inspect the visual references.
+  - Refined the Hook Studio Director system prompt in `lib/hook-studio-director-prompt.ts` with strict instructions on matching the user's language (outputting user-facing fields in Arabic when prompt is in Arabic) and adhering to the visual appearance of characters and products/boxes in reference images.
+- Affected files:
+  - `lib/hook-studio-director-prompt.ts`
+  - `app/api/hook-studio/generate/route.ts`
+  - `app/(dash)/(routes)/hook-studio/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Converting image URLs to base64 on the server ensures GPT-4o receives the visual references reliably, even on localhost/private network boundaries.
+  - Storyboard fields are translated to Arabic for native user comprehension, while the underlying generation prompt is preserved in English for AI video generator compatibility.
+
 #### Latest task: Clean Canvas Text node prompt UI (2026-07-29)
 
 - Status:

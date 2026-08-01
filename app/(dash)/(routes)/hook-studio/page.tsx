@@ -54,6 +54,8 @@ import { useLanguage } from "@/lib/use-language";
 import { useUser } from "@clerk/nextjs";
 import { getGenerationCostSync } from "@/lib/pricing";
 
+import { getFallbackUrls } from "@/lib/utils";
+
 interface AttachedFile {
   id: string;
   name: string;
@@ -767,6 +769,7 @@ export default function HookStudioPage() {
           hookAngle: selectedHookAngle,
           scenePrompts: hookData.scenes,
           executeStoryboard: true,
+          selectedCharacterId,
           refImages: hookData.refImages || [],
           refVideos: hookData.refVideos || [],
           refAudios: hookData.refAudios || [],
@@ -861,6 +864,7 @@ export default function HookStudioPage() {
           scenePrompts: hookData.scenes,
           executeStoryboard: true,
           executeAsImage: true,
+          selectedCharacterId,
           refImages: hookData.refImages || [],
           refVideos: hookData.refVideos || [],
           refAudios: hookData.refAudios || [],
@@ -1053,6 +1057,7 @@ export default function HookStudioPage() {
           selectedLocationId,
           selectedCameraId,
           selectedEffectId,
+          selectedCharacterId,
           refImages,
           refVideos,
           refAudios,
@@ -1163,7 +1168,13 @@ export default function HookStudioPage() {
 
   const handleDownload = async (url: string, filename: string = "media-file") => {
     try {
-      const response = await fetch(url);
+      let fetchUrl = url;
+      const fallbacks = getFallbackUrls(url);
+      const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
+      if (proxyUrl) {
+        fetchUrl = proxyUrl;
+      }
+      const response = await fetch(fetchUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");

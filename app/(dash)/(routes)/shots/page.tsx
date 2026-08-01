@@ -29,6 +29,7 @@ import {
   type ShotPack,
 } from "@/lib/shots-studio";
 import { useGenerationGate } from "@/hooks/use-generation-gate";
+import { getFallbackUrls } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,13 @@ function fileToBase64(file: File): Promise<string> {
 
 async function downloadImage(url: string, filename: string) {
   try {
-    const res  = await fetch(url);
+    let fetchUrl = url;
+    const fallbacks = getFallbackUrls(url);
+    const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
+    if (proxyUrl) {
+      fetchUrl = proxyUrl;
+    }
+    const res  = await fetch(fetchUrl);
     const blob = await res.blob();
     const link = document.createElement("a");
     link.href     = URL.createObjectURL(blob);
