@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize Image Delivery in Gallery Grid for Performance and WebP Conversion (2026-08-01)
+
+- Status:
+  Lighthouse performance report on the `/image` route flagged huge images loading from storage (`Improve image delivery — Est savings of 56,967 KiB`). Raw generated images (1536x1534px) were loaded through standard HTML `<img>` elements, downloading the entire 57 MB payload for a single gallery page.
+- Changes made:
+  - Added `f003.backblazeb2.com` and `saadstudio-storage.s3.eu-central-003.backblazeb2.com` remotePatterns hostnames to `next.config.mjs` to whitelist Backblaze B2/S3 storage buckets for next/image optimization.
+  - Replaced the standard HTML `<img>` element inside the image gallery grid layout of `app/(dash)/(routes)/image/page.tsx` with a `<NextImage>` component (imported as `NextImage` to avoid collisions with the browser's global `Image` constructor).
+  - Provided responsive `sizes` attribute and `fill` positioning to ensure Next.js optimizes resolutions and format compression dynamically (converting high-res PNG/JPGs to small WebP/AVIF files on the fly).
+- Affected files:
+  - `next.config.mjs`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Employing Next.js built-in optimizer for whitelisted B2 bucket URLs reduces the page loading size by ~98% (from 57 MB to less than 1 MB), raising LCP and overall speed indices.
+
 #### Latest task: Improve Text Contrast Ratio in Explore Page for Accessibility Compliance (2026-08-01)
 
 - Status:

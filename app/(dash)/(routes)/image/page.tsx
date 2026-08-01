@@ -33,6 +33,7 @@ import { useGenerationGate } from "@/hooks/use-generation-gate";
 import { AssetInspector, type Asset } from "@/components/AssetInspector";
 import { useAssetStore } from "@/hooks/use-asset-store";
 import { useSearchParams } from "next/navigation";
+import NextImage from "next/image";
 import { useLanguage } from "@/lib/use-language";
 import { useDynamicKieModels } from "@/hooks/use-dynamic-models";
 import { ReferenceStudioModal } from "@/components/ReferenceStudioModal";
@@ -851,7 +852,14 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                   </div>
                 </div>
               ) : (
-                <img src={item.url} alt={item.prompt} className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]" />
+                <NextImage
+                  src={item.url}
+                  alt={item.prompt || "Generated image"}
+                  fill
+                  sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
+                  className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                  unoptimized={false}
+                />
               )}
 
               {/* Selection checkbox */}

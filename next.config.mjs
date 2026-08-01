@@ -99,6 +99,18 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
+        hostname: "f003.backblazeb2.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "saadstudio-storage.s3.eu-central-003.backblazeb2.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "oaidalleapiprodscus.blob.core.windows.net",
         port: "",
         pathname: "/**",

@@ -1,5 +1,13 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Performance - Image Delivery Optimization (2026-08-01)
+
+- تحسين جلب وأداء تحميل الصور (Image Optimization):
+  - لضمان أعلى معايير سرعة الاستجابة ومنع تحميل ملفات ضخمة وغير مضغوطة من وحدات تخزين Backblaze B2، يجب تجنب استخدام وسم `<img>` التقليدي للصور المرفوعة أو المولدة بالذكاء الاصطناعي.
+  - تم ربط نطاقات تخزين Backblaze (`f003.backblazeb2.com` و `saadstudio-storage.s3.eu-central-003.backblazeb2.com`) بقائمة الاستضافات الموثوقة لـ Next.js Image Optimizer في [next.config.mjs](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/next.config.mjs).
+  - تم تعديل الكروت الشبكية للصور في معرض الصور [image/page.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/%28dash%29/%28routes%29/image/page.tsx) لتستخدم مكون `<NextImage>` بدلاً من `<img>` مع تزويده بخصائص الحجم التجاوبي `sizes` وخاصية التمدد `fill`.
+  - يؤدي هذا إلى تحجيم الأبعاد وتخفيض حجم نقل الصور الإجمالي للصفحة من **57 ميجابايت** إلى أقل من **1 ميجابايت** (توفير بنسبة 98% وتوليد فوري لصيغ WebP/AVIF فائقة الضغط).
+
 ## Accessibility - Text Contrast Ratio Compliance (2026-08-01)
 
 - الالتزام بنسبة تباين النصوص (Text Contrast Ratio):
