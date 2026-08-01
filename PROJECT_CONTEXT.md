@@ -1,22 +1,26 @@
 # Saad Studio Project Context Update
 
-#### Latest task: Optimize LCP, Contrast Ratio, and Accessibility Labels on Video Route (2026-08-01)
+#### Latest task: Optimize LCP, Modern HTTP (HTTP/2), Contrast Ratio, and Panel Switch Accessibility on Video Route (2026-08-01)
 
 - Status:
-  Lighthouse performance and accessibility reports flagged issues on the `/video` route: high LCP load delay due to lazy loading of the style gateway card, low-contrast panel text/icons, and missing dropdown labels.
+  Lighthouse performance and accessibility audits flagged issues on the `/video` route: high LCP load delay, media loading over legacy HTTP/1.1 instead of HTTP/2 (causing connection serialization), missing panel switch button names, low-contrast text, and unlabelled dropdowns.
 - Changes made:
   - Applied `fetchPriority="high"` and removed `loading="lazy"` on the Style Library hero card (`/preset/card.webp`) inside `StyleLibraryGatewayCard` in both `app/(dash)/(routes)/video/page.tsx` and `app/(dash)/(routes)/image/page.tsx`.
+  - Swapped media fallback order inside `getFallbackUrls` in `lib/utils.ts`. When `_isDownload` is false, it now prioritizes the friendly B2 domain `f003.backblazeb2.com` (which supports HTTP/2 and modern HTTP multiplexing), falling back to S3 direct only if needed. Downloads and API download proxy pass `_isDownload = true` to preserve S3 direct CORS priorities.
+  - Resolved switch accessibility warnings by adding `role="switch"`, `aria-checked`, and translated `aria-label` definitions to all 4 settings panel switches (Scene control, Multi-shot, and Sound generation toggles) in `app/(dash)/(routes)/video/page.tsx`.
   - Overhauled color contrast ratios in the settings panel of `app/(dash)/(routes)/video/page.tsx` by upgrading low-contrast text classes (`#475569` and `#64748b`) to high-contrast slate/zinc equivalents (`#94a3b8` and `#a1a1aa`).
   - Added explicit translated `aria-label` attributes to all 5 `<select>` dropdowns in `app/(dash)/(routes)/video/page.tsx` (character reference, duration, aspect ratio, orientation, and quality choices).
   - Attached explicit `aria-label` tags to icon-only control buttons (dismiss error, clear text, and start/end frame close buttons) in `app/(dash)/(routes)/video/page.tsx`.
 - Affected files:
   - `app/(dash)/(routes)/video/page.tsx`
   - `app/(dash)/(routes)/image/page.tsx`
+  - `lib/utils.ts`
+  - `app/api/download/route.ts`
   - `PROJECT_CONTEXT.md`
 - Verification:
   - TypeScript compilation check (`npx tsc --noEmit`) completed successfully.
 - Decisions:
-  - Optimizing static LCP hero cards via `fetchPriority="high"` ensures immediate browser retrieval in early rendering phases, maximizing page rendering scores.
+  - Prioritizing friendly HTTP/2-enabled B2 URLs inside browser-facing rendering functions fixes LCP/speed issues while keeping downloads robust.
 
 #### Latest task: Overhaul Contrast Ratios and Form Inputs Accessibility on Image Route (2026-08-01)
 

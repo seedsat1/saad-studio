@@ -4542,6 +4542,9 @@ function VideoPageInner() {
                 <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Scene Control Mode</span>
               </div>
               <button
+                role="switch"
+                aria-checked={sceneControl}
+                aria-label={t("Toggle Scene Control Mode")}
                 onClick={() => setSceneControl(v => !v)}
                 className="relative w-9 h-5 rounded-full transition-all"
                 style={{ background: sceneControl ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
@@ -4637,6 +4640,9 @@ function VideoPageInner() {
             <div className="flex items-center justify-between">
               <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
               <button
+                role="switch"
+                aria-checked={multiShotEnabled}
+                aria-label={t("Toggle Multi-shot Mode")}
                 onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
                 className="relative w-9 h-5 rounded-full transition-all"
                 style={{ background: multiShotEnabled ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
@@ -4720,6 +4726,9 @@ function VideoPageInner() {
             <div className="flex items-center justify-between">
               <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
               <button
+                role="switch"
+                aria-checked={multiShotEnabled}
+                aria-label={t("Toggle Multi-shot Mode")}
                 onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
                 className="relative w-9 h-5 rounded-full transition-all"
                 style={{ background: multiShotEnabled ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
@@ -4978,6 +4987,9 @@ function VideoPageInner() {
                 </span>
               </div>
               <button
+                role="switch"
+                aria-checked={sound}
+                aria-label={t("Toggle Sound Generation")}
                 onClick={() => setSound(v => !v)}
                 className="relative w-9 h-5 rounded-full transition-all"
                 style={{ background: sound ? hexA(selectedModel.family_color, 0.6) : "rgba(255,255,255,0.08)" }}
