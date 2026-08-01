@@ -98,6 +98,8 @@ export default function RootLayout({
     >
       <html lang="en" dir="ltr" translate="no" className="notranslate" suppressHydrationWarning>
         <head>
+          <link rel="preconnect" href="https://f003.backblazeb2.com" crossOrigin="anonymous" />
+          <link rel="preconnect" href="https://saadstudio-storage.s3.eu-central-003.backblazeb2.com" crossOrigin="anonymous" />
           <Script
             id="saad-structured-data"
             type="application/ld+json"

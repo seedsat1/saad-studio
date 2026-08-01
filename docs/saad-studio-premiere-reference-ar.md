@@ -1,5 +1,11 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Performance - Preconnect and LCP Priority Standards (2026-08-01)
+
+- تخفيض زمن تأخير جلب الموارد الرئيسية (LCP & Preconnect):
+  - لتقليل وقت بدء تحميل الصور والتصاميم فوق خط الطي (above-the-fold) في المعارض البرمجية، قمنا بتعيين خاصية الأولوية التلقائية `priority={index < 4}` على أول 4 عناصر يتم استدعاؤها من المكوّن `<NextImage>` في صفحة التوليد والمكتبة. يُلزم هذا المتصفح بتحميل الصورة بأولوية `fetchpriority="high"`.
+  - قمنا بإضافة وسوم الربط المسبق `<link rel="preconnect" ...>` لنطاقات تخزين Backblaze B2/S3 في ملف الهيكل الرئيسي [layout.tsx](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/app/layout.tsx) لتمكين المتصفح من إتمام عمليات الـ DNS والـ TCP Handshake والـ TLS بشكل مبكر وحذف هذا التأخير من المسار الحرج لتحميل الصفحة.
+
 ## Performance - Image Delivery Optimization (2026-08-01)
 
 - تحسين جلب وأداء تحميل الصور (Image Optimization):

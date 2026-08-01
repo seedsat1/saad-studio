@@ -1,5 +1,21 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix LCP Load Delay and Preconnect to Storage Hosts for Gallery Route (2026-08-01)
+
+- Status:
+  Lighthouse performance reports flagged a high LCP load delay (4.2s resource load delay) on the `/image` route due to delayed discovery of dynamic client-side rendered images, and slow initial connection speeds to external storage domains.
+- Changes made:
+  - Enabled dynamic `priority={index < 4}` on `<NextImage>` elements in the image gallery grid of `app/(dash)/(routes)/image/page.tsx` to prefetch above-the-fold assets and apply `fetchPriority="high"` to LCP candidates.
+  - Injected `<link rel="preconnect" ...>` tags for both `f003.backblazeb2.com` and `saadstudio-storage.s3.eu-central-003.backblazeb2.com` storage backends inside the `<head>` tag of `app/layout.tsx` to handle DNS lookup, TCP handshakes, and TLS negotiation early in the page load lifetime.
+- Affected files:
+  - `app/layout.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Preconnecting to assets storage domains before request dispatch eliminates network handshake latency overhead from the LCP critical path.
+
 #### Latest task: Optimize Image Delivery in Gallery Grid for Performance and WebP Conversion (2026-08-01)
 
 - Status:

@@ -818,7 +818,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
 
       <div className="result-masonry w-full">
         <AnimatePresence>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const isSelected = selectedIds.has(item.id);
             return (
             <motion.div
@@ -859,6 +859,7 @@ function ResultGrid({ items, onInspect, onRemix, onUse, onDelete, onBulkDelete }
                   sizes="(max-width: 480px) 100vw, (max-width: 860px) 50vw, (max-width: 1280px) 33vw, 240px"
                   className="block h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
                   unoptimized={false}
+                  priority={index < 4}
                 />
               )}
 
