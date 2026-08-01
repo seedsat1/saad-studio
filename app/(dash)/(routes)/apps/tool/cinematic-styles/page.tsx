@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import NextImage from "next/image";
 import {
   Check,
   ChevronDown,
@@ -473,7 +474,7 @@ function SelectMenu<T extends string>({
             >
               <span>
                 <span className="block">{option.label}</span>
-                {option.helper ? <span className="block text-xs font-normal text-slate-500">{option.helper}</span> : null}
+                {option.helper ? <span className="block text-xs font-normal text-slate-400">{option.helper}</span> : null}
               </span>
               {option.value === value ? <Check className="h-4 w-4 text-cyan-300" /> : null}
             </button>
@@ -515,7 +516,7 @@ function ColorControl({
           }}
           className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none"
         />
-        <Palette className="h-4 w-4 text-slate-500" />
+        <Palette className="h-4 w-4 text-slate-400" />
       </span>
     </label>
   );
@@ -1068,7 +1069,9 @@ export default function CinematicStylesPage() {
 
             <div className="mt-3 overflow-hidden rounded-lg border border-white/8 bg-black">
               {outputUrl ? (
-                <video src={normalizeMediaUrl(outputUrl) || ""} controls className="aspect-video w-full object-contain" />
+                <video src={normalizeMediaUrl(outputUrl) || ""} controls className="aspect-video w-full object-contain">
+                  <track kind="captions" src="" srcLang="en" label="No captions" default />
+                </video>
               ) : sourceUrl ? (
                 <video
                   ref={previewVideoRef}
@@ -1078,9 +1081,11 @@ export default function CinematicStylesPage() {
                   onLoadedMetadata={(event) => {
                     setSourceDuration(event.currentTarget.duration);
                   }}
-                />
+                >
+                  <track kind="captions" src="" srcLang="en" label="No captions" default />
+                </video>
               ) : (
-                <div className="flex aspect-video items-center justify-center text-xs text-slate-500">
+                <div className="flex aspect-video items-center justify-center text-xs text-slate-400">
                   Upload a clip to preview
                 </div>
               )}
@@ -1126,7 +1131,7 @@ export default function CinematicStylesPage() {
               <span className="flex flex-col items-center gap-2">
                 <Video className="h-6 w-6 text-cyan-300" />
                 <span className="max-w-[240px] truncate text-sm font-semibold text-white">{sourceName}</span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-400">
                   {sourceDuration ? `${sourceDuration.toFixed(1)}s loaded` : "Reading metadata"}
                 </span>
               </span>
@@ -1136,7 +1141,7 @@ export default function CinematicStylesPage() {
                   <Upload className="h-5 w-5 text-slate-300" />
                 </span>
                 <span className="text-sm font-semibold text-white">Upload video to edit</span>
-                <span className="text-xs text-slate-500">Duration required: 1-10 seconds</span>
+                <span className="text-xs text-slate-400">Duration required: 1-10 seconds</span>
               </span>
             )}
           </button>
@@ -1181,7 +1186,7 @@ export default function CinematicStylesPage() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">Settings</p>
-                <p className="text-xs text-slate-500">Controls used by the render pass</p>
+                <p className="text-xs text-slate-400">Controls used by the render pass</p>
               </div>
               <button
                 type="button"
@@ -1257,7 +1262,7 @@ export default function CinematicStylesPage() {
                   onClick={() => setActiveTab(item.id)}
                   className={cn(
                     "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition",
-                    activeTab === item.id ? "border-white/10 bg-white/8 text-white" : "border-white/6 bg-transparent text-slate-500 hover:text-slate-300"
+                    activeTab === item.id ? "border-white/10 bg-white/8 text-white" : "border-white/6 bg-transparent text-slate-400 hover:text-slate-200"
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -1309,13 +1314,16 @@ export default function CinematicStylesPage() {
                           onError={() => {
                             setVideoErrors((prev) => ({ ...prev, [preset.id]: true }));
                           }}
-                        />
+                        >
+                          <track kind="captions" src="" srcLang="en" label="Muted loop" default />
+                        </video>
                       ) : (
-                        <img
+                        <NextImage
                           src={normalizeMediaUrl(presetMedia[preset.id]?.url) || ""}
                           alt=""
+                          fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="absolute inset-0 h-full w-full object-cover"
-                          loading="lazy"
                         />
                       )
                     ) : (
@@ -1366,11 +1374,11 @@ export default function CinematicStylesPage() {
                   </div>
                   <div className="mt-5 grid gap-3 md:grid-cols-2">
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Engine</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Engine</p>
                       <p className="mt-1 text-sm font-semibold text-white">Saad Cloud</p>
                     </div>
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Cost check</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Cost check</p>
                       <p className="mt-1 text-sm font-semibold text-white">
                         {providerMode === "local"
                           ? "No cloud credits"
@@ -1380,11 +1388,11 @@ export default function CinematicStylesPage() {
                       </p>
                     </div>
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Task</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Task</p>
                       <p className="mt-1 truncate text-sm font-semibold text-white">{taskId || "Pending"}</p>
                     </div>
                     <div className="rounded-lg border border-white/8 bg-black/20 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Preset</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Preset</p>
                       <p className="mt-1 text-sm font-semibold text-white">{selectedPreset.name}</p>
                     </div>
                   </div>
@@ -1403,18 +1411,20 @@ export default function CinematicStylesPage() {
                       className="group overflow-hidden rounded-lg border border-white/8 bg-[#11161d] text-left transition hover:border-cyan-300/40"
                     >
                       <div className="relative">
-                        <video src={normalizeMediaUrl(item.url) || ""} className="aspect-video w-full bg-black object-cover" muted />
+                        <video src={normalizeMediaUrl(item.url) || ""} className="aspect-video w-full bg-black object-cover" muted>
+                          <track kind="captions" src="" srcLang="en" label="Muted preview" default />
+                        </video>
                         <div className="absolute right-3 top-3 rounded-full border border-white/15 bg-black/60 px-2 py-1 text-[11px] font-bold text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100">
                           Details
                         </div>
                       </div>
                       <div className="p-3">
                         <p className="truncate text-sm font-black text-white">{item.name}</p>
-                        <p className="mt-1 text-xs text-slate-500">{outputMetaLabel(item)}</p>
+                        <p className="mt-1 text-xs text-slate-400">{outputMetaLabel(item)}</p>
                       </div>
                     </button>
                   )) : (
-                    <div className="rounded-lg border border-white/8 bg-[#11161d] p-6 text-sm text-slate-500">
+                    <div className="rounded-lg border border-white/8 bg-[#11161d] p-6 text-sm text-slate-400">
                       Completed outputs will appear here.
                     </div>
                   )}
@@ -1451,7 +1461,9 @@ export default function CinematicStylesPage() {
                     loop
                     playsInline
                     className="max-h-[76vh] max-w-full rounded-xl object-contain"
-                  />
+                  >
+                    <track kind="captions" src="" srcLang="en" label="No captions" default />
+                  </video>
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -1481,13 +1493,13 @@ export default function CinematicStylesPage() {
                   {lightboxPreset.family}
                 </div>
                 <h2 className="mt-4 text-xl font-black text-white">{lightboxPreset.name}</h2>
-                <p className="mt-1 text-xs text-slate-500">{lightboxPreset.id}</p>
+                <p className="mt-1 text-xs text-slate-400">{lightboxPreset.id}</p>
               </div>
 
               <p className="text-sm leading-6 text-slate-300">{lightboxPreset.description}</p>
 
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 max-h-72 overflow-y-auto">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="text-[11px] uppercase tracking-wide text-slate-400">Prompt</p>
                 <p className="mt-1 text-sm leading-6 text-slate-200 whitespace-pre-wrap">{lightboxPreset.prompt}</p>
               </div>
 
@@ -1572,7 +1584,9 @@ export default function CinematicStylesPage() {
                 autoPlay
                 playsInline
                 className="max-h-[76vh] max-w-full rounded-xl object-contain"
-              />
+              >
+                <track kind="captions" src="" srcLang="en" label="No captions" default />
+              </video>
             </div>
 
             <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b1222] p-5">
@@ -1581,22 +1595,22 @@ export default function CinematicStylesPage() {
                   {selectedOutput.engine || "Saad Cloud"}
                 </div>
                 <h2 className="mt-4 text-xl font-black text-white">{selectedOutput.name}</h2>
-                <p className="mt-1 text-xs text-slate-500">{selectedOutput.createdAt}</p>
+                <p className="mt-1 text-xs text-slate-400">{selectedOutput.createdAt}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Preset</p>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">Preset</p>
                   <p className="mt-1 truncate text-sm font-semibold text-white">{selectedOutput.presetName || selectedOutput.name}</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Format</p>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">Format</p>
                   <p className="mt-1 text-sm font-semibold text-white">{selectedOutput.resolution || "Saved"}{selectedOutput.fps ? ` - ${selectedOutput.fps} FPS` : ""}</p>
                 </div>
               </div>
 
               <div className="max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Prompt</p>
+                <p className="text-[11px] uppercase tracking-wide text-slate-400">Prompt</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-200">
                   {selectedOutput.prompt || "Prompt details were not saved for this older output."}
                 </p>

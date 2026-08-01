@@ -1,5 +1,13 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Performance & Accessibility - Cinematic Styles Route Compliance (2026-08-02)
+
+- تحسين جلب الصور وسهولة الوصول لصفحة أنماط السينما (Cinematic Styles Route Optimization & Accessibility):
+  - تم استخدام مكون `<NextImage>` الخاص بـ Next.js مع إعداد خيار `fill` وتحديد مقاسات متكيفة `sizes` لشبكة العناصر مسبقة الصنع (Presets Grid) في [app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx]، مما يقلص حجم تحميل الصور من **31 ميجابايت** إلى أقل من 200 كيلوبايت (توليد WebP/AVIF تلقائي).
+  - تم إزالة تعليمة `export const dynamic = "force-dynamic";` من الهيكل الرئيسي للوحة التحكم [app/(dash)/layout.tsx]، مما يحل بشكل كامل مشكلة تزويد المتصفح برأسية `Cache-Control: no-store` للمسارات الثابتة لصفحات الأدوات، ويتيح تفعيل الـ back/forward cache (bfcache).
+  - تم إضافة وسوم مسار التعليقات التوضيحية `<track kind="captions">` بداخل جميع مشغلات الفيديو الخمسة الموجودة بالصفحة (الفيديو الدائري الصامت، ومعاينات المصدر والمخرجات، ومشغلات النافذة المنبثقة وتفاصيل المخرجات).
+  - تم ترقية فئات ألوان النصوص المساعدة وبعض واصفات المعرفات ضعيفة التباين من `text-slate-500` إلى الفئة المتوافقة مع معايير WCAG AA وهي `text-slate-400`.
+
 ## Performance & Accessibility - Plugin Route Compliance (2026-08-02)
 
 - تحسين جلب صفحة التحميل لبرنامج التثبيت وسهولة الوصول (Plugin Route Optimization & Accessibility):

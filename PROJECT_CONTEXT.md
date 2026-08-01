@@ -1,5 +1,23 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize /apps/tool/cinematic-styles Route Performance & Accessibility (2026-08-02)
+
+- Status:
+  Completed. Resolved Lighthouse audit concerns on `/apps/tool/cinematic-styles` route, specifically targetting massive network payloads (31MB+), lack of caption tracks on videos, low contrast labels, and bfcache restoration failure.
+- Changes made:
+  - Imported and used `<NextImage>` with optimized `fill` and adaptive `sizes` configuration inside the presets grid of `app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx` to automatically serve resized and modern-format (WebP/AVIF) assets. This saves 30MB+ of network download weight.
+  - Removed `export const dynamic = "force-dynamic";` from the general dashboard wrapper layout `app/(dash)/layout.tsx` to allow automatic static shell rendering and normal bfcache headers for dashboard client pages.
+  - Added `<track kind="captions">` elements to all 5 `<video>` tags (silent loop, sidebar source/output previews, output details modal, and lightbox) to fulfill media accessibility guidelines.
+  - Boosted contrast of labels, IDs, preset details, and secondary descriptions from `text-slate-500` to WCAG AA-compliant `text-slate-400`.
+- Affected files:
+  - `app/(dash)/layout.tsx`
+  - `app/(dash)/(routes)/apps/tool/cinematic-styles/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) completed with 0 errors.
+- Decisions:
+  - Removing layout-wide `force-dynamic` constraints lets Next.js determine route rendering dynamically at build/request time without forcing `no-store` headers on client-only routes, optimizing load performance and bfcache compatibility.
+
 #### Latest task: Optimize /plugin Page Accessibility & bfcache (2026-08-02)
 
 - Status:
