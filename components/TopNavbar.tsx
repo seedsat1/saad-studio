@@ -970,7 +970,7 @@ const TopNavbar = () => {
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/15 ring-1 ring-pink-500/30">
                         <ImageIcon className="h-3.5 w-3.5 text-pink-400" />
                       </div>
-                      <h3 className="text-sm font-semibold text-white">Image Studio</h3>
+                      <div className="text-sm font-semibold text-white">Image Studio</div>
                       <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-pink-300 ring-1 ring-pink-500/30">
                         13 Features
                       </span>
@@ -984,7 +984,7 @@ const TopNavbar = () => {
                   </div>
                   <div className="flex gap-5">
                     <div className="flex-1 min-w-0">
-                      <h4 className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Features</h4>
+                      <div className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Features</div>
                       <ul className="grid grid-cols-2 gap-0.5">
                         {IMAGE_FEATURES.map((f) => (
                           <li key={f.label}>
@@ -1029,7 +1029,7 @@ const TopNavbar = () => {
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-500/15 ring-1 ring-orange-500/30">
                         <VideoIcon className="h-3.5 w-3.5 text-orange-400" />
                       </div>
-                      <h3 className="text-sm font-semibold text-white">Video Studio</h3>
+                      <div className="text-sm font-semibold text-white">Video Studio</div>
                       <span className="rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-300 ring-1 ring-orange-500/30">
                         {VIDEO_FEATURES.length} Features
                       </span>
@@ -1043,7 +1043,7 @@ const TopNavbar = () => {
                   </div>
                   <div className="flex gap-5">
                     <div className="flex-1 min-w-0">
-                      <h4 className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Features</h4>
+                      <div className="mb-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Features</div>
                       <ul className="grid grid-cols-2 gap-0.5">
                         {VIDEO_FEATURES.map((f) => (
                           <li key={f.label}>
@@ -1083,7 +1083,7 @@ const TopNavbar = () => {
               <HoverNavItem href="/audio" icon={<Music className="h-3 w-3 text-emerald-400" />} label={getTranslation("Audio", lang)}>
                 <div className="w-[340px] p-4">
                   <div>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</h3>
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</div>
                     <ul className="space-y-0.5">
                       {AUDIO_FEATURES.map((f) => (
                         <ListItem key={f.label} href={audioFeatureHref(f.label)} title={f.label} description={f.description} icon={f.icon} color={f.color} />
@@ -1097,7 +1097,7 @@ const TopNavbar = () => {
               <HoverNavItem href="/edit" icon={<Scissors className="h-3 w-3 text-cyan-400" />} label={getTranslation("Edit", lang)}>
                 <div className="w-[340px] p-4">
                   <div>
-                    <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</h3>
+                    <div className="mb-2 text-xs font-bold uppercase tracking-widest text-zinc-500">Features</div>
                     <ul className="space-y-0.5">
                       {EDIT_FEATURES.map((f) => (
                         <ListItem key={f.label} href={editFeatureHref(f.label)} title={f.label} description={f.description} icon={f.icon} color={f.color} />
@@ -1130,7 +1130,7 @@ const TopNavbar = () => {
                   <div className="w-[min(760px,calc(100vw-2rem))] p-5">
                     <div className="mb-4 flex items-center gap-2">
                       <LayoutGrid className="h-4 w-4 text-indigo-400" />
-                      <h3 className="text-sm font-semibold text-white">All AI Apps</h3>
+                      <div className="text-sm font-semibold text-white">All AI Apps</div>
                       <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-300 ring-1 ring-indigo-500/30">8 Categories</span>
                     </div>
                     <div className="grid grid-cols-4 gap-3">

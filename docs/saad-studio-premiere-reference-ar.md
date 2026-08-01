@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Performance & Accessibility - Plugin Route Compliance (2026-08-02)
+
+- تحسين جلب صفحة التحميل لبرنامج التثبيت وسهولة الوصول (Plugin Route Optimization & Accessibility):
+  - تم إدراج المسار `'/plugin(.*)'` ضمن قائمة المسارات العامة غير المقيدة ببيئة المصادقة (Public Routes) في ملف `middleware.ts`. هذا حل بشكل كامل مشكلة تزويد المتصفح برأسية `Cache-Control: no-store` القسرية، وبالتالي تمكين المتصفح من استرجاع حالة الصفحة فوراً عند التنقل العكسي (bfcache).
+  - تم استبدال واصفة شعار الشركة المكرر `alt={brandName}` في تذييل الموقع [components/Footer.tsx] بواصفة فارغة `alt=""` مع إضافة `aria-hidden="true"` لمنع قوارئ الشاشة من قراءة اسم العلامة التجارية مرتين بجانب النص النصي الأصلي.
+  - تم تحويل وسوم العناوين الفرعية `<h3>` و `<h4>` بداخل القوائم المنسدلة لشريط التنقل العلوي [components/TopNavbar.tsx] وتذييل الصفحة [components/Footer.tsx] إلى وسوم `<div>` منسقة ومغلظة لتفادي تخطي مستويات تسلسل العناوين الهيكلية على مستوى كامل صفحات الويب.
+
 ## Performance & Accessibility - Edit Route Compliance (2026-08-02)
 
 - تحسين جلب الصور وسهولة الوصول لصفحة التعديل (Edit Route Optimization & Accessibility):

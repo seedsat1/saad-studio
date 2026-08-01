@@ -4,6 +4,7 @@ import { getAllowedOrigins } from "@/lib/security";
 
 const isPublicRoute = createRouteMatcher([
   '/',
+  '/plugin(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/pricing(.*)',

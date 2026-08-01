@@ -1,5 +1,23 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize /plugin Page Accessibility & bfcache (2026-08-02)
+
+- Status:
+  Completed. Resolved Lighthouse audit concerns on `/plugin` route, specifically targetting bfcache restoration failures, redundant footer image alt tags, and navigation outline heading level skips.
+- Changes made:
+  - Whitelisted `'/plugin(.*)'` as a public route in Clerk's `middleware.ts`, resolving the forced `no-store` header block that was preventing browser back/forward cache (bfcache) restoration.
+  - Replaced the redundant company logo alt text in `components/Footer.tsx` with an empty string (`alt=""`) and added `aria-hidden="true"`, ensuring screen readers don't repeat the brand label.
+  - Substituted navigational dropdown heading tags (`h3` and `h4`) in `components/TopNavbar.tsx` and footer category header tags (`h4`) in `components/Footer.tsx` with bold `div` tags to prevent global heading sequence outline skips.
+- Affected files:
+  - `middleware.ts`
+  - `components/TopNavbar.tsx`
+  - `components/Footer.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) completed with 0 errors.
+- Decisions:
+  - Removing heading tags from layout-level components like the global header and footer prevents navigational labels from cluttering page outlines and breaking heading sequences.
+
 #### Latest task: Optimize Image Delivery, Accessible Names, Contrast, and Form Labels on Edit Route (2026-08-02)
 
 - Status:

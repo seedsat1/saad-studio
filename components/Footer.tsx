@@ -195,7 +195,7 @@ const Footer = () => {
           <div className="lg:col-span-3 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="relative h-9 w-9 shrink-0">
-                <Image src={logoUrl} alt={brandName} fill className="object-contain" unoptimized />
+                <Image src={logoUrl} alt="" aria-hidden="true" fill className="object-contain" unoptimized />
               </div>
               <span className="text-lg font-bold text-cyan-300">{brandName}</span>
             </Link>
@@ -228,7 +228,7 @@ const Footer = () => {
 
           {(sections.length ? sections : DEFAULT_SECTIONS).map((section) => (
             <div key={section._id || section.title} className="lg:col-span-2">
-              <h4 className="text-sm font-bold text-white">{section.title}</h4>
+              <div className="text-sm font-bold text-white">{section.title}</div>
               <ul className="mt-4 space-y-2.5">
                 {section.links.map((item) => (
                   <li key={item._id || item.href}>
@@ -242,7 +242,7 @@ const Footer = () => {
           ))}
 
           <div className="lg:col-span-3">
-            <h4 className="text-sm font-bold text-white">{newsletterHeading}</h4>
+            <div className="text-sm font-bold text-white">{newsletterHeading}</div>
             {newsletterSubtitle && <p className="mt-2 text-sm text-slate-500">{newsletterSubtitle}</p>}
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input
