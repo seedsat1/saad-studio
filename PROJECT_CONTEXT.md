@@ -1,5 +1,23 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Extend Video Redirection and Query Parameter Initialization (2026-08-01)
+
+- Status:
+  Clicking "Extend Video" in the `AssetInspector` redirected to the general video generation tool `/video?tool=image-to-video` instead of the dedicated video extension page `/video-extend`. Furthermore, `/video-extend` lacked state initialization from query parameters (`videoUrl` or `imageUrl`).
+- Changes made:
+  - Updated the `"Extend Video"` action route in `components/AssetInspector.tsx` to push to `/video-extend?videoUrl=${encodeURIComponent(url)}` instead of `/video`.
+  - Refactored `app/(dash)/(routes)/video-extend/page.tsx` to call `useSearchParams()` to retrieve the passed `videoUrl` (or `imageUrl`).
+  - Added a `useEffect` hook inside the renamed `VideoExtendPageInner` component to load the source video file from `initVideoUrl`, resolve its proxy URL through `getFallbackUrls`, download its metadata using the new `inferVideoMetadataFromUrl` helper, and set the duration and aspect ratio states automatically.
+  - Wrapped `VideoExtendPageInner` in a React `<Suspense>` boundary in the default export of `VideoExtendPage` to meet Next.js build and routing contract requirements.
+- Affected files:
+  - `components/AssetInspector.tsx`
+  - `app/(dash)/(routes)/video-extend/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Consolidating video extension entry points into `/video-extend` improves layout clarity, and leveraging the same-origin proxy router `/api/media/...` for metadata fetching avoids browser CORS errors during video initialization.
+
 #### Latest task: Resolve Storage CORS Blockages via Same-Origin Proxy Routing (2026-08-01)
 
 - Status:

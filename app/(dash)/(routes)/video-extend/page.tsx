@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, useEffect, type ChangeEvent } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense, type ChangeEvent } from "react";
+import { useSearchParams } from "next/navigation";
+import { getFallbackUrls } from "@/lib/utils";
 import {
   AlertCircle,
   CheckCircle2,
@@ -228,6 +230,23 @@ function inferVideoMetadata(file: File): Promise<{ aspect: AspectRatio; duration
   });
 }
 
+function inferVideoMetadataFromUrl(url: string): Promise<{ aspect: AspectRatio; duration: number | null }> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.crossOrigin = "anonymous";
+    video.onloadedmetadata = () => {
+      const aspect: AspectRatio = video.videoHeight > video.videoWidth ? "9:16" : "16:9";
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      resolve({ aspect, duration });
+    };
+    video.onerror = () => {
+      resolve({ aspect: "16:9", duration: null });
+    };
+    video.src = url;
+  });
+}
+
 const VideoExtendLogo = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -244,10 +263,12 @@ const VideoExtendLogo = () => (
   </svg>
 );
 
-export default function VideoExtendPage() {
+function VideoExtendPageInner() {
   const { guardGeneration, getSafeErrorMessage } = useGenerationGate();
+  const searchParams = useSearchParams();
+  const initVideoUrl = searchParams.get("videoUrl") || searchParams.get("imageUrl") || "";
   
-  const [sourceUrl, setSourceUrl] = useState("");
+  const [sourceUrl, setSourceUrl] = useState(initVideoUrl);
   const [previewUrl, setPreviewUrl] = useState("");
   const [fileName, setFileName] = useState("");
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>("16:9");
@@ -264,6 +285,30 @@ export default function VideoExtendPage() {
   const [lastFrameUrl, setLastFrameUrl] = useState("");
   const [sourceThumbnails, setSourceThumbnails] = useState<string[]>([]);
   const [resultThumbnails, setResultThumbnails] = useState<string[]>([]);
+
+  // Load initial video from URL query parameters if present
+  useEffect(() => {
+    if (initVideoUrl) {
+      // Resolve CORS-friendly same-origin or proxy URL if available
+      let fetchUrl = initVideoUrl;
+      const fallbacks = getFallbackUrls(initVideoUrl);
+      const proxyUrl = fallbacks.find((u) => u.startsWith("/api/media/"));
+      if (proxyUrl) {
+        fetchUrl = proxyUrl;
+      }
+      
+      setSourceUrl(initVideoUrl);
+      setPreviewUrl(fetchUrl);
+      setFileName(initVideoUrl.split("/").pop()?.split("?")[0] || "source-video.mp4");
+      setStatus("Loading video metadata...");
+
+      inferVideoMetadataFromUrl(fetchUrl).then((metadata) => {
+        setAspectRatio(metadata.aspect);
+        setSourceDuration(metadata.duration);
+        setStatus("Video loaded. Ready to extend.");
+      });
+    }
+  }, [initVideoUrl]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const originalVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -1044,6 +1089,14 @@ export default function VideoExtendPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function VideoExtendPage() {
+  return (
+    <Suspense>
+      <VideoExtendPageInner />
+    </Suspense>
   );
 }
 

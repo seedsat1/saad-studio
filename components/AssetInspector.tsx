@@ -1036,7 +1036,7 @@ export function AssetInspector({ asset, onClose }: AssetInspectorProps) {
         break;
 
       case "Extend Video":
-        router.push("/video?tool=image-to-video" + (url ? `&imageUrl=${encodeURIComponent(url)}` : ""));
+        router.push("/video-extend" + (url ? `?videoUrl=${encodeURIComponent(url)}` : ""));
         onClose?.();
         break;
 
