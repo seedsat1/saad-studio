@@ -591,7 +591,7 @@ function StyleLibraryGatewayCard() {
           src="/preset/card.webp"
           alt="Style Library — featured styles"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          loading="lazy"
+          fetchPriority="high"
         />
         {/* Vignette so text below remains separable from the art */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/0 to-transparent" />

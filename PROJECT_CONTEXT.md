@@ -1,5 +1,23 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize LCP, Contrast Ratio, and Accessibility Labels on Video Route (2026-08-01)
+
+- Status:
+  Lighthouse performance and accessibility reports flagged issues on the `/video` route: high LCP load delay due to lazy loading of the style gateway card, low-contrast panel text/icons, and missing dropdown labels.
+- Changes made:
+  - Applied `fetchPriority="high"` and removed `loading="lazy"` on the Style Library hero card (`/preset/card.webp`) inside `StyleLibraryGatewayCard` in both `app/(dash)/(routes)/video/page.tsx` and `app/(dash)/(routes)/image/page.tsx`.
+  - Overhauled color contrast ratios in the settings panel of `app/(dash)/(routes)/video/page.tsx` by upgrading low-contrast text classes (`#475569` and `#64748b`) to high-contrast slate/zinc equivalents (`#94a3b8` and `#a1a1aa`).
+  - Added explicit translated `aria-label` attributes to all 5 `<select>` dropdowns in `app/(dash)/(routes)/video/page.tsx` (character reference, duration, aspect ratio, orientation, and quality choices).
+  - Attached explicit `aria-label` tags to icon-only control buttons (dismiss error, clear text, and start/end frame close buttons) in `app/(dash)/(routes)/video/page.tsx`.
+- Affected files:
+  - `app/(dash)/(routes)/video/page.tsx`
+  - `app/(dash)/(routes)/image/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) completed successfully.
+- Decisions:
+  - Optimizing static LCP hero cards via `fetchPriority="high"` ensures immediate browser retrieval in early rendering phases, maximizing page rendering scores.
+
 #### Latest task: Overhaul Contrast Ratios and Form Inputs Accessibility on Image Route (2026-08-01)
 
 - Status:

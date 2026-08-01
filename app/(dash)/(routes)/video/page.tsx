@@ -288,7 +288,7 @@ function StyleLibraryGatewayCard() {
           src="/preset/card.webp"
           alt="Style Library featured styles"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          loading="lazy"
+          fetchPriority="high"
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-transparent" />
       </div>
@@ -2528,7 +2528,7 @@ function VideoPageInner() {
         style={{ width: 220, borderColor: "rgba(255,255,255,0.05)", background: "#050a14" }}
       >
         <div className="px-3 pt-5 pb-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+          <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
             {t("Video Engines")}
           </span>
         </div>
@@ -2542,13 +2542,13 @@ function VideoPageInner() {
               style={{
                 borderLeft: active ? "2px solid #06b6d4" : "2px solid transparent",
                 background:  active ? "rgba(6,182,212,0.08)" : "transparent",
-                color:       active ? "#e2e8f0" : "#64748b",
+                color:       active ? "#e2e8f0" : "#a1a1aa",
               }}
             >
-              <tool.icon size={14} style={{ color: active ? "#06b6d4" : "#475569", flexShrink: 0, marginTop: 2 }} />
+              <tool.icon size={14} style={{ color: active ? "#06b6d4" : "#94a3b8", flexShrink: 0, marginTop: 2 }} />
               <span className="flex min-w-0 flex-col">
                 <span className="text-[13px] font-medium leading-tight">{t(tool.label)}</span>
-                <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#475569" }}>
+                <span className="mt-0.5 text-[10px] leading-snug" style={{ color: active ? "#94a3b8" : "#94a3b8" }}>
                   {t(tool.description)}
                 </span>
               </span>
@@ -2584,7 +2584,7 @@ function VideoPageInner() {
               </motion.div>
               <div className="text-center">
                 <p className="text-lg font-medium text-white">{t("Create your first video")}</p>
-                <p className="mt-1 text-sm" style={{ color: "#475569" }}>
+                <p className="mt-1 text-sm" style={{ color: "#94a3b8" }}>
                   {t("Write a prompt and hit Generate to start creating")}
                 </p>
               </div>
@@ -2620,8 +2620,8 @@ function VideoPageInner() {
             >
               <AlertCircle size={13} style={{ color: "#f87171", flexShrink: 0 }} />
               <span className="text-[12px] flex-1" style={{ color: "#fca5a5" }}>{generationError}</span>
-              <button onClick={() => setGenerationError(null)}>
-                <X size={12} style={{ color: "#6b7280" }} />
+              <button aria-label={t("Dismiss error")} onClick={() => setGenerationError(null)}>
+                <X size={12} style={{ color: "#a1a1aa" }} />
               </button>
             </motion.div>
           )}
@@ -2751,6 +2751,7 @@ function VideoPageInner() {
             <div className="flex items-center gap-2 ml-auto">
               {prompt && (
                 <button
+                  aria-label={lang === "ar" ? "مسح النص" : "Clear text"}
                   onClick={() => setPrompt("")}
                   className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
                   title={lang === "ar" ? "مسح النص" : "Clear text"}
@@ -2765,7 +2766,7 @@ function VideoPageInner() {
                 style={{
                   background: isSubmitting || !canGenerate ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, rgba(6,182,212,0.25), rgba(59,130,246,0.25))",
                   border: `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : "rgba(6,182,212,0.4)"}`,
-                  color: isSubmitting || !canGenerate ? "#475569" : "#ffffff",
+                  color: isSubmitting || !canGenerate ? "#94a3b8" : "#ffffff",
                   cursor: isSubmitting || !canGenerate ? "not-allowed" : "pointer",
                 }}
               >
@@ -2780,7 +2781,7 @@ function VideoPageInner() {
                     <span>
                       {activeTool === "lipsync" ? t("Generate Lipsync") : t("Generate")}
                       {" · "}
-                      <span style={{ color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f", fontWeight: 700 }}>
+                      <span style={{ color: isSubmitting || !canGenerate ? "#a1a1aa" : "#fbb11f", fontWeight: 700 }}>
                         {estimatedCredits} cr
                       </span>
                     </span>
@@ -2863,7 +2864,7 @@ function VideoPageInner() {
 
               {/* Avatar Image Input */}
               <div>
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8]">
                   Avatar Image
                 </label>
                 <div className="mt-2">
@@ -2900,7 +2901,7 @@ function VideoPageInner() {
 
               {/* Audio File Input */}
               <div>
-                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#475569]">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-[#94a3b8]">
                   Voice / Audio
                 </label>
                 <div className="mt-2">
@@ -2929,7 +2930,7 @@ function VideoPageInner() {
                           className="w-full h-8 mt-1 rounded bg-black/30 overflow-hidden text-xs"
                         />
                       )}
-                      <span className="text-[9px] text-[#475569]">
+                      <span className="text-[9px] text-[#94a3b8]">
                         Size: {(lipsyncAudioFile.size / 1024 / 1024).toFixed(2)} MB
                       </span>
                     </div>
@@ -3010,9 +3011,9 @@ function VideoPageInner() {
                 ) : (
                   <>
                     <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                      <Film size={16} style={{ color: "#475569" }} />
+                      <Film size={16} style={{ color: "#94a3b8" }} />
                     </div>
-                    <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#475569" }}>Add motion to copy *</span>
+                    <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#94a3b8" }}>Add motion to copy *</span>
                     <span className="text-[9px]" style={{ color: "#334155" }}>3–30 seconds</span>
                   </>
                 )}
@@ -3065,9 +3066,9 @@ function VideoPageInner() {
                 ) : (
                   <>
                     <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                      <ImageIcon size={16} style={{ color: "#475569" }} />
+                      <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                     </div>
-                    <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#475569" }}>Add your character *</span>
+                    <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#94a3b8" }}>Add your character *</span>
                     <span className="text-[9px] text-center px-1" style={{ color: "#334155" }}>Face and body</span>
                   </>
                 )}
@@ -3095,7 +3096,7 @@ function VideoPageInner() {
                     className="flex-1 py-2 text-[12px] font-semibold capitalize transition-all"
                     style={{
                       background: omniTab === tab ? hexA(selectedModel.family_color, 0.15) : "transparent",
-                      color:      omniTab === tab ? selectedModel.family_color : "#64748b",
+                      color:      omniTab === tab ? selectedModel.family_color : "#a1a1aa",
                       borderBottom: omniTab === tab ? `2px solid ${selectedModel.family_color}` : "2px solid transparent",
                     }}
                   >
@@ -3147,10 +3148,10 @@ function VideoPageInner() {
                   ) : (
                     <>
                       <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                        <ImageIcon size={18} style={{ color: "#475569" }} />
+                        <ImageIcon size={18} style={{ color: "#94a3b8" }} />
                       </div>
                       <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Add consistent element</span>
-                      <span className="text-[11px]" style={{ color: "#475569" }}>Character, person or object</span>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>Character, person or object</span>
                     </>
                   )}
                 </button>
@@ -3201,9 +3202,9 @@ function VideoPageInner() {
                     ) : (
                       <>
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                          <ImageIcon size={16} style={{ color: "#475569" }} />
+                          <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: "#475569" }}>Start frame</span>
+                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
                     )}
                     {activeDropZone === "startFrame" && (
@@ -3236,7 +3237,7 @@ function VideoPageInner() {
                     />
                     <span
                       className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+                      style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
                     >
                       Optional
                     </span>
@@ -3261,9 +3262,9 @@ function VideoPageInner() {
                     ) : (
                       <>
                         <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                          <ImageIcon size={16} style={{ color: "#475569" }} />
+                          <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                         </div>
-                        <span className="text-[11px]" style={{ color: "#475569" }}>End frame</span>
+                        <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                       </>
                     )}
                     {activeDropZone === "endFrame" && (
@@ -3307,7 +3308,7 @@ function VideoPageInner() {
               />
               <span
                 className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
               >
                 {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
               </span>
@@ -3341,7 +3342,7 @@ function VideoPageInner() {
                     className="absolute top-2 left-2"
                     onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
                   >
-                    <X size={11} style={{ color: "#475569" }} />
+                    <X size={11} style={{ color: "#94a3b8" }} />
                   </button>
                 </>
               ) : (
@@ -3350,9 +3351,9 @@ function VideoPageInner() {
                     className="w-9 h-9 rounded-full flex items-center justify-center"
                     style={{ background: "rgba(255,255,255,0.06)" }}
                   >
-                    <ImageIcon size={16} style={{ color: "#475569" }} />
+                    <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                   </div>
-                  <span className="text-[11px]" style={{ color: "#475569" }}>
+                  <span className="text-[11px]" style={{ color: "#94a3b8" }}>
                     {isSeedanceV2Model ? "Reference media" : "Reference images"}
                   </span>
                 </>
@@ -3452,7 +3453,7 @@ function VideoPageInner() {
                   {!caps.requires_image && (
                     <span
                       className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                      style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+                      style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
                     >
                       Optional
                     </span>
@@ -3481,9 +3482,9 @@ function VideoPageInner() {
                         className="w-9 h-9 rounded-full flex items-center justify-center"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
-                        <ImageIcon size={16} style={{ color: "#475569" }} />
+                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#475569" }}>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
                         {caps.requires_image ? "Upload image *" : "Start frame"}
                       </span>
                     </>
@@ -3519,7 +3520,7 @@ function VideoPageInner() {
                   />
                   <span
                     className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
                   >
                     Optional
                   </span>
@@ -3547,9 +3548,9 @@ function VideoPageInner() {
                         className="w-9 h-9 rounded-full flex items-center justify-center"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
-                        <ImageIcon size={16} style={{ color: "#475569" }} />
+                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#475569" }}>End frame</span>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>End frame</span>
                     </>
                   )}
                   {activeDropZone === "endFrame" && (
@@ -3588,7 +3589,7 @@ function VideoPageInner() {
                   />
                   <span
                     className="absolute top-2 right-2 text-[9px] font-medium px-1.5 py-0.5 rounded"
-                    style={{ background: "rgba(255,255,255,0.06)", color: "#475569" }}
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
                   >
                     {`Max ${showSimpleKlingRefs ? 3 : referenceFileMaxLabel}`}
                   </span>
@@ -3622,7 +3623,7 @@ function VideoPageInner() {
                         className="absolute top-2 left-2"
                         onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#94a3b8" }} />
                       </button>
                     </>
                   ) : (
@@ -3631,9 +3632,9 @@ function VideoPageInner() {
                         className="w-9 h-9 rounded-full flex items-center justify-center"
                         style={{ background: "rgba(255,255,255,0.06)" }}
                       >
-                        <ImageIcon size={16} style={{ color: "#475569" }} />
+                        <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                       </div>
-                      <span className="text-[11px]" style={{ color: "#475569" }}>
+                      <span className="text-[11px]" style={{ color: "#94a3b8" }}>
                         {isSeedanceV2Model ? "Reference media" : "Reference images"}
                       </span>
                     </>
@@ -3684,7 +3685,7 @@ function VideoPageInner() {
                       </div>
                     );
                   })()}
-                  <p className="text-[10px]" style={{ color: "#64748b" }}>
+                  <p className="text-[10px]" style={{ color: "#a1a1aa" }}>
                     {showSimpleKlingRefs
                       ? "Use @image1, @image2, @image3 inside prompt/shot prompts to activate references."
                       : isSeedanceV2Model
@@ -3697,7 +3698,7 @@ function VideoPageInner() {
           {/* -- AI Model dropdown ------------------------------------------- */}
           {/* -- AI Model dropdown ------------------------------------------- */}
           <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+            <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
               AI Model
             </label>
             {(activeTool as string) !== "lipsync" ? (
@@ -3722,7 +3723,7 @@ function VideoPageInner() {
                     <ChevronDown
                       size={13}
                       style={{
-                        color: "#475569",
+                        color: "#94a3b8",
                         transform: modelOpen ? "rotate(180deg)" : "none",
                         transition: "transform 0.2s",
                       }}
@@ -3811,7 +3812,7 @@ function VideoPageInner() {
                   <ChevronDown
                     size={13}
                     style={{
-                      color: "#475569",
+                      color: "#94a3b8",
                       transform: modelOpen ? "rotate(180deg)" : "none",
                       transition: "transform 0.2s",
                     }}
@@ -3869,8 +3870,9 @@ function VideoPageInner() {
 
           {supportsCharacterReference && (
             <div className="flex flex-col gap-2" data-character-ref="1">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Character Reference</label>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Character Reference</label>
               <select
+                aria-label={t("Character Reference")}
                 value={selectedCharacterId}
                 onChange={(e) => setSelectedCharacterId(e.target.value || "")}
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
@@ -3896,7 +3898,7 @@ function VideoPageInner() {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-semibold" style={{ color: "#e2e8f0" }}>{selectedCharacter.name}</p>
-                    <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#64748b" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[10px]" style={{ color: "#a1a1aa" }}>{selectedCharacter.description || "Reusable identity reference"}</p>
                     <p className="mt-1 text-[10px]" style={{ color: selectedModel.family_color }}>{characterSupport.label} · {selectedCharacter.referenceUrls.length} reference image(s)</p>
                   </div>
                 </div>
@@ -3925,7 +3927,7 @@ function VideoPageInner() {
 
               {/* -- Start / End Frame ---------------------------------------- */}
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Frames</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Frames</label>
 
                 {/* Side-by-side cards */}
                 <div className="grid grid-cols-2 gap-3">
@@ -3948,12 +3950,12 @@ function VideoPageInner() {
                     {startFrame ? (
                       <>
                         {startFramePreview && <img src={startFramePreview} alt="Start" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
-                        <button className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                        <button aria-label={t("Remove start frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setStartFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
                       </>
                     ) : (
                       <>
                         <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
-                          <ImageIcon size={20} style={{ color: "#64748b" }} />
+                          <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                         </div>
                         <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Start frame</span>
                       </>
@@ -3980,12 +3982,12 @@ function VideoPageInner() {
                       {endFrame ? (
                         <>
                           {endFramePreview && <img src={endFramePreview} alt="End" className="absolute inset-0 w-full h-full object-contain" style={{ padding: 8, background: "#000" }} />}
-                          <button className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
+                          <button aria-label={t("Remove end frame")} className="absolute top-2 left-2 z-10 rounded-full p-1" style={{ background: "rgba(0,0,0,0.75)" }} onClick={e => { e.stopPropagation(); setEndFrame(null); }}><X size={14} style={{ color: "#fff" }} /></button>
                         </>
                       ) : (
                         <>
                           <div className="rounded-full p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
-                            <ImageIcon size={20} style={{ color: "#64748b" }} />
+                            <ImageIcon size={20} style={{ color: "#a1a1aa" }} />
                           </div>
                           <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>End frame</span>
                         </>
@@ -4010,7 +4012,7 @@ function VideoPageInner() {
               {/* -- Duration slider ------------------------------------------ */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Duration</label>
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Duration</label>
                   <span className="text-[13px] font-bold" style={{ color: selectedModel.family_color }}>{duration ?? 9}s</span>
                 </div>
                 <input
@@ -4034,7 +4036,7 @@ function VideoPageInner() {
                 <div className="flex justify-between text-[10px]" style={{ color: "#334155" }}>
                   <span>3s</span>
                   {kling30MultiEnabled && kling30MultiMode === "auto" && (
-                    <span style={{ color: "#64748b" }}>→ {kling30ShotCount} shot{kling30ShotCount > 1 ? "s" : ""}</span>
+                    <span style={{ color: "#a1a1aa" }}>→ {kling30ShotCount} shot{kling30ShotCount > 1 ? "s" : ""}</span>
                   )}
                   <span>15s</span>
                 </div>
@@ -4042,7 +4044,7 @@ function VideoPageInner() {
 
               {/* -- Aspect Ratio --------------------------------------------- */}
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Aspect Ratio</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
                 <div className="flex gap-1">
                   {(["16:9", "9:16", "1:1"] as const).map(r => {
                     const isActive = aspectRatio === r;
@@ -4054,7 +4056,7 @@ function VideoPageInner() {
                         style={{
                           background: isActive ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                           border:     isActive ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
-                          color:      isActive ? selectedModel.family_color : "#64748b",
+                          color:      isActive ? selectedModel.family_color : "#a1a1aa",
                           cursor:     "pointer",
                         }}
                       >
@@ -4067,7 +4069,7 @@ function VideoPageInner() {
 
               {/* -- Resolution (720p std / 1080p pro / 4K) ------------------- */}
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>Resolution</label>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Resolution</label>
                 <div className="flex gap-1">
                   {([["std", "720p"], ["pro", "1080p"], ["4K", "4K"]] as const).map(([val, label]) => (
                     <button
@@ -4077,7 +4079,7 @@ function VideoPageInner() {
                       style={{
                         background: resolution === val ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                         border:     resolution === val ? `1px solid ${hexA(selectedModel.family_color, 0.5)}` : "1px solid rgba(255,255,255,0.06)",
-                        color:      resolution === val ? selectedModel.family_color : "#64748b",
+                        color:      resolution === val ? selectedModel.family_color : "#a1a1aa",
                       }}
                     >
                       {label}
@@ -4097,7 +4099,7 @@ function VideoPageInner() {
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-[12px] font-medium" style={{ color: "#94a3b8" }}>Multi-shot</span>
-                  <span className="text-[10px]" style={{ color: "#475569" }}>Multiple scenes in one video</span>
+                  <span className="text-[10px]" style={{ color: "#94a3b8" }}>Multiple scenes in one video</span>
                 </div>
                 <button
                   onClick={() => {
@@ -4130,7 +4132,7 @@ function VideoPageInner() {
                         className="flex-1 py-2 text-[12px] font-semibold capitalize transition-all"
                         style={{
                           background: kling30MultiMode === mode ? hexA(selectedModel.family_color, 0.15) : "transparent",
-                          color:      kling30MultiMode === mode ? selectedModel.family_color : "#64748b",
+                          color:      kling30MultiMode === mode ? selectedModel.family_color : "#a1a1aa",
                           borderBottom: kling30MultiMode === mode ? `2px solid ${selectedModel.family_color}` : "2px solid transparent",
                         }}
                       >
@@ -4151,9 +4153,9 @@ function VideoPageInner() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[12px]" style={{ color: "#94a3b8" }}>Duration per shot</span>
-                        <span className="text-[12px]" style={{ color: "#64748b" }}>≈ {Math.floor((duration ?? 9) / kling30ShotCount)}s each</span>
+                        <span className="text-[12px]" style={{ color: "#a1a1aa" }}>≈ {Math.floor((duration ?? 9) / kling30ShotCount)}s each</span>
                       </div>
-                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                      <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
                         Auto divides {duration ?? 9}s into {kling30ShotCount} scene{kling30ShotCount > 1 ? "s" : ""} using your prompt.
                       </p>
                     </div>
@@ -4210,7 +4212,7 @@ function VideoPageInner() {
                               </div>
                               {kling30CustomShots.length > 1 && (
                                 <button onClick={() => setKling30CustomShots(prev => prev.filter((_, idx) => idx !== i))}>
-                                  <X size={10} style={{ color: "#475569" }} />
+                                  <X size={10} style={{ color: "#94a3b8" }} />
                                 </button>
                               )}
                             </div>
@@ -4244,7 +4246,7 @@ function VideoPageInner() {
               {/* -- Elements system ------------------------------------------ */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                     Elements
                   </label>
                   {klingEls.length < 3 && (
@@ -4259,7 +4261,7 @@ function VideoPageInner() {
                 </div>
                 {klingEls.length === 0 && (
                   <p className="text-[10px]" style={{ color: "#334155" }}>
-                    Elements let you reference consistent characters or objects using <span style={{ color: "#64748b" }}>@element_name</span> in your prompt.
+                    Elements let you reference consistent characters or objects using <span style={{ color: "#a1a1aa" }}>@element_name</span> in your prompt.
                   </p>
                 )}
                 {klingEls.map((el, elIdx) => {
@@ -4283,7 +4285,7 @@ function VideoPageInner() {
                           <span className="text-[8px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.12)", color: "#f87171", border: "1px solid rgba(239,68,68,0.3)" }}>⚠ Incomplete</span>
                         )}
                       </div>
-                      <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}><X size={11} style={{ color: "#475569" }} /></button>
+                      <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}><X size={11} style={{ color: "#94a3b8" }} /></button>
                     </div>
                     <input
                       value={el.name}
@@ -4347,7 +4349,7 @@ function VideoPageInner() {
                                 ><X size={9} style={{ color: "#fff" }} /></button>
                               </>
                             ) : (
-                              <span className="text-[8px] text-center px-1" style={{ color: isRequired ? "#64748b" : "#334155" }}>
+                              <span className="text-[8px] text-center px-1" style={{ color: isRequired ? "#a1a1aa" : "#334155" }}>
                                 {isRequired ? "Req." : "Opt."}
                               </span>
                             )}
@@ -4388,10 +4390,10 @@ function VideoPageInner() {
               {caps.has_sound && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Music2 size={13} style={{ color: "#475569" }} />
+                    <Music2 size={13} style={{ color: "#94a3b8" }} />
                     <div className="flex flex-col">
-                      <span className="text-[12px]" style={{ color: "#64748b" }}>Generate Sound</span>
-                      <span className="text-[10px]" style={{ color: "#475569" }}>AI-generated audio track - included</span>
+                      <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Generate Sound</span>
+                      <span className="text-[10px]" style={{ color: "#94a3b8" }}>AI-generated audio track - included</span>
                     </div>
                   </div>
                   <button
@@ -4416,11 +4418,12 @@ function VideoPageInner() {
           {/* -- Duration ---------------------------------------------------- */}
           {durationChoices.length > 0 && duration != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Duration
               </label>
               <div className="relative">
                 <select
+                  aria-label={t("Duration")}
                   value={duration}
                   onChange={e => setDuration(Number(e.target.value))}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
@@ -4436,7 +4439,7 @@ function VideoPageInner() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#475569" }} />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#94a3b8" }} />
               </div>
             </div>
           )}
@@ -4444,11 +4447,12 @@ function VideoPageInner() {
           {/* -- Aspect ratio ------------------------------------------------ */}
           {effectiveAspectRatios.length > 0 && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Aspect Ratio
               </label>
               <div className="relative">
                 <select
+                  aria-label={t("Aspect Ratio")}
                   value={aspectRatio || effectiveAspectRatios[0]}
                   onChange={e => setAspectRatio(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
@@ -4464,7 +4468,7 @@ function VideoPageInner() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#475569" }} />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#94a3b8" }} />
               </div>
             </div>
           )}
@@ -4472,11 +4476,12 @@ function VideoPageInner() {
           {/* -- Orientation / Size (for size-based models like Sora 2) ------- */}
           {caps.sizes.length > 0 && size != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Orientation
               </label>
               <div className="relative">
                 <select
+                  aria-label={t("Orientation")}
                   value={size}
                   onChange={e => setSize(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
@@ -4492,7 +4497,7 @@ function VideoPageInner() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#475569" }} />
+                <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#94a3b8" }} />
               </div>
             </div>
           )}
@@ -4500,11 +4505,12 @@ function VideoPageInner() {
           {/* -- Quality ----------------------------------------------------- */}
           {resolutionChoices.length > 0 && resolution != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Quality
               </label>
               <div className="relative">
                 <select
+                  aria-label={t("Quality")}
                   value={resolution}
                   onChange={e => setResolution(e.target.value)}
                   className="w-full appearance-none pl-3 pr-8 py-2.5 rounded-lg text-[13px] outline-none cursor-pointer"
@@ -4523,7 +4529,7 @@ function VideoPageInner() {
                 <ChevronDown
                   size={12}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "#475569" }}
+                  style={{ color: "#94a3b8" }}
                 />
               </div>
             </div>
@@ -4533,7 +4539,7 @@ function VideoPageInner() {
           {caps.has_scene_control && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[12px]" style={{ color: "#64748b" }}>Scene Control Mode</span>
+                <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Scene Control Mode</span>
               </div>
               <button
                 onClick={() => setSceneControl(v => !v)}
@@ -4551,7 +4557,7 @@ function VideoPageInner() {
           {/* -- Orientation (Kling Motion) ---------------------------------- */}
           {caps.has_orientation && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Orientation
               </label>
               <div className="flex gap-1">
@@ -4563,7 +4569,7 @@ function VideoPageInner() {
                     style={{
                       background: orientation === o ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                       border:     orientation === o ? `1px solid ${hexA(selectedModel.family_color, 0.4)}` : "1px solid rgba(255,255,255,0.06)",
-                      color:      orientation === o ? selectedModel.family_color : "#64748b",
+                      color:      orientation === o ? selectedModel.family_color : "#a1a1aa",
                     }}
                   >
                     {o}
@@ -4577,7 +4583,7 @@ function VideoPageInner() {
           {caps.has_cfg_scale && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   CFG Scale
                 </label>
                 <span className="text-[12px]" style={{ color: selectedModel.family_color }}>
@@ -4604,7 +4610,7 @@ function VideoPageInner() {
           {/* -- Shot Type (Kling) -------------------------------------------- */}
           {caps.has_shot_type && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Shot Type
               </label>
               <div className="flex gap-1">
@@ -4616,7 +4622,7 @@ function VideoPageInner() {
                     style={{
                       background: shotType === st ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                       border:     shotType === st ? `1px solid ${hexA(selectedModel.family_color, 0.4)}` : "1px solid rgba(255,255,255,0.06)",
-                      color:      shotType === st ? selectedModel.family_color : "#64748b",
+                      color:      shotType === st ? selectedModel.family_color : "#a1a1aa",
                     }}
                   >
                     {st}
@@ -4629,7 +4635,7 @@ function VideoPageInner() {
           {/* -- Multi-Prompt (Kling) ----------------------------------------- */}
           {caps.has_multi_prompt && showOmniTabs && (
             <div className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#64748b" }}>Multi-shot</span>
+              <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
               <button
                 onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
                 className="relative w-9 h-5 rounded-full transition-all"
@@ -4645,7 +4651,7 @@ function VideoPageInner() {
           {caps.has_multi_prompt && showOmniTabs && multiShotEnabled && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   Multi-Shot Prompts
                 </label>
                 <button
@@ -4657,7 +4663,7 @@ function VideoPageInner() {
                   className="text-[10px] px-2 py-0.5 rounded-md transition-all"
                   style={{
                     background: hexA(selectedModel.family_color, 0.12),
-                    color: canAddMoreShots ? selectedModel.family_color : "#64748b",
+                    color: canAddMoreShots ? selectedModel.family_color : "#a1a1aa",
                     border: `1px solid ${canAddMoreShots ? hexA(selectedModel.family_color, 0.3) : "rgba(100,116,139,0.4)"}`,
                     cursor: canAddMoreShots ? "pointer" : "not-allowed",
                     opacity: canAddMoreShots ? 1 : 0.6,
@@ -4667,11 +4673,11 @@ function VideoPageInner() {
                 </button>
               </div>
                 {duration != null && activeMultiPromptIndexes.length > 0 && (
-                  <span className="text-[10px]" style={{ color: "#64748b" }}>
+                  <span className="text-[10px]" style={{ color: "#a1a1aa" }}>
                     Total {duration}s split across {activeMultiPromptIndexes.length} shot(s). Remainder goes to the last shot.
                   </span>
                 )}
-              <span className="text-[10px]" style={{ color: "#64748b" }}>
+              <span className="text-[10px]" style={{ color: "#a1a1aa" }}>
                 Max shots for current duration: {maxShotsAllowed}
               </span>
               <div className="flex flex-col gap-1.5">
@@ -4702,7 +4708,7 @@ function VideoPageInner() {
                         onClick={() => setMultiPrompts(prev => prev.filter((_, idx) => idx !== i))}
                         className="absolute top-1.5 right-1.5"
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#94a3b8" }} />
                       </button>
                     )}
                   </div>
@@ -4712,7 +4718,7 @@ function VideoPageInner() {
           )}
           {caps.has_multi_prompt && !showOmniTabs && (
             <div className="flex items-center justify-between">
-              <span className="text-[12px]" style={{ color: "#64748b" }}>Multi-shot</span>
+              <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Multi-shot</span>
               <button
                 onClick={() => setMultiPrompts(prev => prev.length === 1 && prev[0] === "" ? ["", ""] : [""])}
                 className="relative w-9 h-5 rounded-full transition-all"
@@ -4728,7 +4734,7 @@ function VideoPageInner() {
           {caps.has_multi_prompt && !showOmniTabs && multiShotEnabled && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   Multi-Shot Prompts
                 </label>
                 <button
@@ -4740,7 +4746,7 @@ function VideoPageInner() {
                   className="text-[10px] px-2 py-0.5 rounded-md transition-all"
                   style={{
                     background: hexA(selectedModel.family_color, 0.12),
-                    color:      canAddMoreShots ? selectedModel.family_color : "#64748b",
+                    color:      canAddMoreShots ? selectedModel.family_color : "#a1a1aa",
                     border:     `1px solid ${canAddMoreShots ? hexA(selectedModel.family_color, 0.3) : "rgba(100,116,139,0.4)"}`,
                     cursor:     canAddMoreShots ? "pointer" : "not-allowed",
                     opacity:    canAddMoreShots ? 1 : 0.6,
@@ -4750,11 +4756,11 @@ function VideoPageInner() {
                 </button>
               </div>
               {duration != null && activeMultiPromptIndexes.length > 0 && (
-                <span className="text-[10px]" style={{ color: "#64748b" }}>
+                <span className="text-[10px]" style={{ color: "#a1a1aa" }}>
                   Total {duration}s split across {activeMultiPromptIndexes.length} shot(s). Remainder goes to the last shot.
                 </span>
               )}
-              <span className="text-[10px]" style={{ color: "#64748b" }}>
+              <span className="text-[10px]" style={{ color: "#a1a1aa" }}>
                 Max shots for current duration: {maxShotsAllowed}
               </span>
               <div className="flex flex-col gap-1.5">
@@ -4785,7 +4791,7 @@ function VideoPageInner() {
                         onClick={() => setMultiPrompts(prev => prev.filter((_, idx) => idx !== i))}
                         className="absolute top-1.5 right-1.5"
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#94a3b8" }} />
                       </button>
                     )}
                   </div>
@@ -4798,13 +4804,13 @@ function VideoPageInner() {
           {caps.has_element_list && !showOmniTabs && !isKlingElementModel && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   Element List
                 </label>
                 <button
                   onClick={() => setElementList((prev) => [...prev, ""])}
                   className="text-[10px] px-2 py-0.5 rounded-md transition-all"
-                  style={{ background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.06)" }}
+                  style={{ background: "rgba(255,255,255,0.04)", color: "#a1a1aa", border: "1px solid rgba(255,255,255,0.06)" }}
                 >
                   + Add
                 </button>
@@ -4828,7 +4834,7 @@ function VideoPageInner() {
                         onClick={() => setElementList(prev => prev.filter((_, idx) => idx !== i))}
                         className="absolute top-1.5 right-1.5"
                       >
-                        <X size={11} style={{ color: "#475569" }} />
+                        <X size={11} style={{ color: "#94a3b8" }} />
                       </button>
                     )}
                   </div>
@@ -4841,7 +4847,7 @@ function VideoPageInner() {
           {showKling30Elements && !showOmniTabs && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   Elements
                 </label>
                 {klingEls.length < 3 && (
@@ -4854,7 +4860,7 @@ function VideoPageInner() {
                   </button>
                 )}
               </div>
-              <p className="text-[10px] -mt-2" style={{ color: "#64748b" }}>
+              <p className="text-[10px] -mt-2" style={{ color: "#a1a1aa" }}>
                 Each element needs 2–4 images. Reference it in your prompt as <span style={{ color: "#94a3b8" }}>@element_name</span>.
               </p>
               {klingEls.map((el, elIdx) => (
@@ -4866,7 +4872,7 @@ function VideoPageInner() {
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-medium" style={{ color: selectedModel.family_color }}>Element {elIdx + 1}</span>
                     <button onClick={() => setKlingEls(prev => prev.filter((_, i) => i !== elIdx))}>
-                      <X size={11} style={{ color: "#475569" }} />
+                      <X size={11} style={{ color: "#94a3b8" }} />
                     </button>
                   </div>
                   <input
@@ -4942,7 +4948,7 @@ function VideoPageInner() {
                               </button>
                             </>
                           ) : (
-                            <span className="text-[9px]" style={{ color: imgIdx < 2 ? "#64748b" : "#334155" }}>
+                            <span className="text-[9px]" style={{ color: imgIdx < 2 ? "#a1a1aa" : "#334155" }}>
                               {imgIdx < 2 ? "Required" : "Optional"}
                             </span>
                           )}
@@ -4962,8 +4968,8 @@ function VideoPageInner() {
           {caps.has_sound && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Music2 size={13} style={{ color: "#475569" }} />
-                <span className="text-[12px]" style={{ color: "#64748b" }}>Generate Sound</span>
+                <Music2 size={13} style={{ color: "#94a3b8" }} />
+                <span className="text-[12px]" style={{ color: "#a1a1aa" }}>Generate Sound</span>
                 <span
                   className="text-[10px] px-1 rounded"
                   style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24" }}
@@ -4987,7 +4993,7 @@ function VideoPageInner() {
           {/* -- Negative Prompt --------------------------------------------- */}
           {caps.has_negative_prompt && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#475569" }}>
+              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Negative Prompt
               </label>
               <textarea
@@ -5018,7 +5024,7 @@ function VideoPageInner() {
                 ? "rgba(255,255,255,0.05)"
                 : `linear-gradient(135deg, ${hexA(selectedModel.family_color, 0.8)}, ${hexA(selectedModel.family_color, 0.5)})`,
               border:  `1px solid ${isSubmitting || !canGenerate ? "rgba(255,255,255,0.06)" : hexA(selectedModel.family_color, 0.4)}`,
-              color:   isSubmitting || !canGenerate ? "#475569" : "#fff",
+              color:   isSubmitting || !canGenerate ? "#94a3b8" : "#fff",
               cursor:  isSubmitting || !canGenerate ? "not-allowed" : "pointer",
             }}
           >
@@ -5034,7 +5040,7 @@ function VideoPageInner() {
                   {activeTool === "lipsync" ? "Generate Lipsync" : "Generate Video"} ·{" "}
                   <span
                     style={{
-                      color: isSubmitting || !canGenerate ? "#64748b" : "#fbb11f",
+                      color: isSubmitting || !canGenerate ? "#a1a1aa" : "#fbb11f",
                       fontWeight: 700,
                     }}
                   >
@@ -5105,7 +5111,7 @@ function VideoPageInner() {
                   className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-white/08 transition-all"
                   style={{ background: "rgba(255,255,255,0.05)" }}
                 >
-                  <X size={13} style={{ color: "#64748b" }} />
+                  <X size={13} style={{ color: "#a1a1aa" }} />
                 </button>
               </div>
 
@@ -5121,7 +5127,7 @@ function VideoPageInner() {
                   style={{
                     background: pickerTab === "upload" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                     border:     `1px solid ${pickerTab === "upload" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                    color:      pickerTab === "upload" ? selectedModel.family_color : "#64748b",
+                    color:      pickerTab === "upload" ? selectedModel.family_color : "#a1a1aa",
                   }}
                 >
                   <Upload size={11} />
@@ -5135,7 +5141,7 @@ function VideoPageInner() {
                     style={{
                       background: pickerTab === "images" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                       border:     `1px solid ${pickerTab === "images" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                      color:      pickerTab === "images" ? selectedModel.family_color : "#64748b",
+                      color:      pickerTab === "images" ? selectedModel.family_color : "#a1a1aa",
                     }}
                   >
                     <ImageIcon size={11} />
@@ -5149,7 +5155,7 @@ function VideoPageInner() {
                   style={{
                     background: pickerTab === "videos" ? hexA(selectedModel.family_color, 0.15) : "rgba(255,255,255,0.04)",
                     border:     `1px solid ${pickerTab === "videos" ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                    color:      pickerTab === "videos" ? selectedModel.family_color : "#64748b",
+                    color:      pickerTab === "videos" ? selectedModel.family_color : "#a1a1aa",
                   }}
                 >
                   <Film size={11} />
@@ -5188,7 +5194,7 @@ function VideoPageInner() {
                       <p className="text-[14px] font-semibold" style={{ color: "#e2e8f0" }}>
                         Upload from device
                       </p>
-                      <p className="text-[12px] mt-1" style={{ color: "#475569" }}>
+                      <p className="text-[12px] mt-1" style={{ color: "#94a3b8" }}>
                         {mediaPicker === "motionVideo"
                           ? "MP4, MOV, WebM"
                           : mediaPicker === "referenceImages" && isSeedanceV2Model
@@ -5199,7 +5205,7 @@ function VideoPageInner() {
                   </button>
                 ) : pickerLoading ? (
                   <div className="flex items-center justify-center h-40">
-                    <Loader2 size={24} className="animate-spin" style={{ color: "#475569" }} />
+                    <Loader2 size={24} className="animate-spin" style={{ color: "#94a3b8" }} />
                   </div>
                 ) : pickerGallery.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 gap-3">
@@ -5207,7 +5213,7 @@ function VideoPageInner() {
                       ? <ImageIcon size={32} style={{ color: "#334155" }} />
                       : <Film      size={32} style={{ color: "#334155" }} />
                     }
-                    <p className="text-[12px]" style={{ color: "#475569" }}>
+                    <p className="text-[12px]" style={{ color: "#94a3b8" }}>
                       No {pickerTab === "images" ? "generated images" : "generated videos"} yet
                     </p>
                     <button
@@ -5279,7 +5285,7 @@ function VideoPageInner() {
                 key={t.id}
                 onClick={() => setActiveTool(t.id)}
                 className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-lg transition-all"
-                style={{ minWidth: 52, color: active ? "#06b6d4" : "#475569" }}
+                style={{ minWidth: 52, color: active ? "#06b6d4" : "#94a3b8" }}
               >
                 <t.icon size={16} />
                 <span className="text-[9px] font-medium leading-tight whitespace-nowrap" style={{ maxWidth: 52, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -5321,14 +5327,14 @@ function VideoPageInner() {
             >
               <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
                 <span className="text-sm font-semibold text-white">Model Settings</span>
-                <button onClick={() => setMobileSettingsOpen(false)} className="p-1 rounded-lg" style={{ color: "#64748b" }}>
+                <button onClick={() => setMobileSettingsOpen(false)} className="p-1 rounded-lg" style={{ color: "#a1a1aa" }}>
                   <X size={18} />
                 </button>
               </div>
               <div className="px-4 py-4">
                 {/* Model selector button */}
                 <div className="mb-4">
-                  <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Model</label>
+                  <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Model</label>
                   <button
                     onClick={() => { setModelOpen(true); setMobileSettingsOpen(false); }}
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl"
@@ -5344,12 +5350,12 @@ function VideoPageInner() {
                 {/* Duration */}
                 {durationChoices.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Duration</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Duration</label>
                     <div className="flex flex-wrap gap-2">
                       {durationChoices.map(d => (
                         <button key={d} onClick={() => setDuration(d)}
                           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{ background: duration === d ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: duration === d ? selectedModel.family_color : "#64748b", border: `1px solid ${duration === d ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                          style={{ background: duration === d ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: duration === d ? selectedModel.family_color : "#a1a1aa", border: `1px solid ${duration === d ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
                         >{d}s</button>
                       ))}
                     </div>
@@ -5359,12 +5365,12 @@ function VideoPageInner() {
                 {/* Aspect ratio */}
                 {effectiveAspectRatios.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Aspect Ratio</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Aspect Ratio</label>
                     <div className="flex flex-wrap gap-2">
                       {effectiveAspectRatios.map(r => (
                         <button key={r} onClick={() => setAspectRatio(r)}
                           className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                          style={{ background: (aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: (aspectRatio || effectiveAspectRatios[0]) === r ? selectedModel.family_color : "#64748b", border: `1px solid ${(aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
+                          style={{ background: (aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.2) : "rgba(255,255,255,0.04)", color: (aspectRatio || effectiveAspectRatios[0]) === r ? selectedModel.family_color : "#a1a1aa", border: `1px solid ${(aspectRatio || effectiveAspectRatios[0]) === r ? hexA(selectedModel.family_color, 0.4) : "rgba(255,255,255,0.06)"}` }}
                         >{r}</button>
                       ))}
                     </div>
@@ -5374,7 +5380,7 @@ function VideoPageInner() {
                 {/* Reference Images (mobile) */}
                 {(showReferenceImages || showSimpleKlingRefs) && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
                       {isSeedanceV2Model ? "Reference Media" : "Reference Images"}
                     </label>
                     <button
@@ -5383,7 +5389,7 @@ function VideoPageInner() {
                       style={{
                         background: referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
                         border: `1px solid ${referenceImages.length > 0 ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                        color: referenceImages.length > 0 ? selectedModel.family_color : "#64748b",
+                        color: referenceImages.length > 0 ? selectedModel.family_color : "#a1a1aa",
                       }}
                     >
                       <ImageIcon size={14} />
@@ -5398,17 +5404,17 @@ function VideoPageInner() {
                           onClick={e => { e.stopPropagation(); setReferenceImages([]); }}
                           className="ml-auto"
                         >
-                          <X size={13} style={{ color: "#64748b" }} />
+                          <X size={13} style={{ color: "#a1a1aa" }} />
                         </button>
                       )}
                     </button>
                     {showSimpleKlingRefs && (
-                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                      <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
                         Use @image1, @image2, @image3 in your prompt
                       </p>
                     )}
                     {isSeedanceV2Model && referenceImages.length > 0 && (
-                      <p className="text-[10px] mt-1" style={{ color: "#475569" }}>
+                      <p className="text-[10px] mt-1" style={{ color: "#94a3b8" }}>
                         @Image1..@Image9 follow image reference order only.
                       </p>
                     )}
@@ -5418,7 +5424,7 @@ function VideoPageInner() {
                 {/* Start Frame (mobile) */}
                 {(showImageInput || showEndFrame) && !showVideoInput && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Image Input</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Image Input</label>
                     <div className="flex gap-2">
                       {showImageInput && (
                         <button
@@ -5427,7 +5433,7 @@ function VideoPageInner() {
                           style={{
                             background: startFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
                             border: `1px solid ${startFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                            color: startFrame ? selectedModel.family_color : "#64748b",
+                            color: startFrame ? selectedModel.family_color : "#a1a1aa",
                           }}
                         >
                           <ImageIcon size={14} />
@@ -5443,7 +5449,7 @@ function VideoPageInner() {
                           style={{
                             background: endFrame ? hexA(selectedModel.family_color, 0.1) : "rgba(255,255,255,0.04)",
                             border: `1px solid ${endFrame ? hexA(selectedModel.family_color, 0.35) : "rgba(255,255,255,0.06)"}`,
-                            color: endFrame ? selectedModel.family_color : "#64748b",
+                            color: endFrame ? selectedModel.family_color : "#a1a1aa",
                           }}
                         >
                           <ImageIcon size={14} />
@@ -5459,7 +5465,7 @@ function VideoPageInner() {
                 {/* Audio Input (mobile, lipsync only) */}
                 {activeTool === "lipsync" && (
                   <div className="mb-4">
-                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Voice / Audio</label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Voice / Audio</label>
                     {lipsyncAudioFile ? (
                       <div className="relative rounded-xl p-3 border border-white/10 bg-black/40 flex flex-col gap-2">
                         <div className="flex items-center justify-between min-w-0 gap-2">
@@ -5504,7 +5510,7 @@ function VideoPageInner() {
                           style={{
                             background: "rgba(255,255,255,0.04)",
                             border: "1px solid rgba(255,255,255,0.06)",
-                            color: "#64748b",
+                            color: "#a1a1aa",
                           }}
                         >
                           <Music2 size={14} />
@@ -5517,7 +5523,7 @@ function VideoPageInner() {
 
                 {/* Credits estimate */}
                 <div className="mt-4 flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <span className="text-xs" style={{ color: "#475569" }}>Estimated cost</span>
+                  <span className="text-xs" style={{ color: "#94a3b8" }}>Estimated cost</span>
                   <span className="text-sm font-semibold" style={{ color: selectedModel.family_color }}>{estimatedCredits} credits</span>
                 </div>
               </div>
