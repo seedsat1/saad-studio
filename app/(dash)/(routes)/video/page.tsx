@@ -3014,7 +3014,7 @@ function VideoPageInner() {
                       <Film size={16} style={{ color: "#94a3b8" }} />
                     </div>
                     <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#94a3b8" }}>Add motion to copy *</span>
-                    <span className="text-[9px]" style={{ color: "#334155" }}>3–30 seconds</span>
+                    <span className="text-[9px]" style={{ color: "#94a3b8" }}>3–30 seconds</span>
                   </>
                 )}
                 {activeDropZone === "motionVideo" && (
@@ -3069,7 +3069,7 @@ function VideoPageInner() {
                       <ImageIcon size={16} style={{ color: "#94a3b8" }} />
                     </div>
                     <span className="text-[10px] text-center leading-tight px-1" style={{ color: "#94a3b8" }}>Add your character *</span>
-                    <span className="text-[9px] text-center px-1" style={{ color: "#334155" }}>Face and body</span>
+                    <span className="text-[9px] text-center px-1" style={{ color: "#94a3b8" }}>Face and body</span>
                   </>
                 )}
                 {activeDropZone === "startFrame" && (
@@ -3870,8 +3870,9 @@ function VideoPageInner() {
 
           {supportsCharacterReference && (
             <div className="flex flex-col gap-2" data-character-ref="1">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Character Reference</label>
+              <label htmlFor="character-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Character Reference</label>
               <select
+                id="character-select"
                 aria-label={t("Character Reference")}
                 value={selectedCharacterId}
                 onChange={(e) => setSelectedCharacterId(e.target.value || "")}
@@ -3907,7 +3908,7 @@ function VideoPageInner() {
                   {characterSupport.note}
                 </div>
               ) : (
-                <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-500 hover:border-white/20 hover:text-slate-300">
+                <a href="/character" className="rounded-xl border border-dashed border-white/10 px-3 py-2 text-center text-[11px] text-slate-400 hover:border-white/20 hover:text-slate-300">
                   Create a reusable character
                 </a>
               )}
@@ -3996,7 +3997,7 @@ function VideoPageInner() {
                     </button>
                   ) : (
                     <div className="flex flex-col items-center justify-center rounded-2xl aspect-square w-full opacity-25" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                      <span className="text-[10px] text-center px-2" style={{ color: "#334155" }}>N/A in multi-shot</span>
+                      <span className="text-[10px] text-center px-2" style={{ color: "#94a3b8" }}>N/A in multi-shot</span>
                     </div>
                   )}
                 </div>
@@ -4012,10 +4013,12 @@ function VideoPageInner() {
               {/* -- Duration slider ------------------------------------------ */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Duration</label>
+                  <label htmlFor="duration-range-slider" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>Duration</label>
                   <span className="text-[13px] font-bold" style={{ color: selectedModel.family_color }}>{duration ?? 9}s</span>
                 </div>
                 <input
+                  id="duration-range-slider"
+                  aria-label={t("Video duration slider")}
                   type="range"
                   min={3}
                   max={15}
@@ -4033,7 +4036,7 @@ function VideoPageInner() {
                   className="w-full h-1.5 rounded outline-none cursor-pointer"
                   style={{ accentColor: selectedModel.family_color }}
                 />
-                <div className="flex justify-between text-[10px]" style={{ color: "#334155" }}>
+                <div className="flex justify-between text-[10px]" style={{ color: "#94a3b8" }}>
                   <span>3s</span>
                   {kling30MultiEnabled && kling30MultiMode === "auto" && (
                     <span style={{ color: "#a1a1aa" }}>→ {kling30ShotCount} shot{kling30ShotCount > 1 ? "s" : ""}</span>
@@ -4086,7 +4089,7 @@ function VideoPageInner() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px]" style={{ color: "#334155" }}>
+                <p className="text-[10px]" style={{ color: "#94a3b8" }}>
                   {resolution === "4K"
                     ? (aspectRatio === "16:9" ? "3840×2160" : aspectRatio === "9:16" ? "2160×3840" : "2160×2160")
                     : resolution === "pro"
@@ -4260,7 +4263,7 @@ function VideoPageInner() {
                   )}
                 </div>
                 {klingEls.length === 0 && (
-                  <p className="text-[10px]" style={{ color: "#334155" }}>
+                  <p className="text-[10px]" style={{ color: "#94a3b8" }}>
                     Elements let you reference consistent characters or objects using <span style={{ color: "#a1a1aa" }}>@element_name</span> in your prompt.
                   </p>
                 )}
@@ -4349,7 +4352,7 @@ function VideoPageInner() {
                                 ><X size={9} style={{ color: "#fff" }} /></button>
                               </>
                             ) : (
-                              <span className="text-[8px] text-center px-1" style={{ color: isRequired ? "#a1a1aa" : "#334155" }}>
+                              <span className="text-[8px] text-center px-1" style={{ color: isRequired ? "#a1a1aa" : "#94a3b8" }}>
                                 {isRequired ? "Req." : "Opt."}
                               </span>
                             )}
@@ -4418,11 +4421,12 @@ function VideoPageInner() {
           {/* -- Duration ---------------------------------------------------- */}
           {durationChoices.length > 0 && duration != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+              <label htmlFor="duration-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Duration
               </label>
               <div className="relative">
                 <select
+                  id="duration-select"
                   aria-label={t("Duration")}
                   value={duration}
                   onChange={e => setDuration(Number(e.target.value))}
@@ -4447,11 +4451,12 @@ function VideoPageInner() {
           {/* -- Aspect ratio ------------------------------------------------ */}
           {effectiveAspectRatios.length > 0 && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+              <label htmlFor="aspect-ratio-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Aspect Ratio
               </label>
               <div className="relative">
                 <select
+                  id="aspect-ratio-select"
                   aria-label={t("Aspect Ratio")}
                   value={aspectRatio || effectiveAspectRatios[0]}
                   onChange={e => setAspectRatio(e.target.value)}
@@ -4476,11 +4481,12 @@ function VideoPageInner() {
           {/* -- Orientation / Size (for size-based models like Sora 2) ------- */}
           {caps.sizes.length > 0 && size != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+              <label htmlFor="orientation-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Orientation
               </label>
               <div className="relative">
                 <select
+                  id="orientation-select"
                   aria-label={t("Orientation")}
                   value={size}
                   onChange={e => setSize(e.target.value)}
@@ -4505,11 +4511,12 @@ function VideoPageInner() {
           {/* -- Quality ----------------------------------------------------- */}
           {resolutionChoices.length > 0 && resolution != null && (
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+              <label htmlFor="quality-select" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                 Quality
               </label>
               <div className="relative">
                 <select
+                  id="quality-select"
                   aria-label={t("Quality")}
                   value={resolution}
                   onChange={e => setResolution(e.target.value)}
@@ -4586,7 +4593,7 @@ function VideoPageInner() {
           {caps.has_cfg_scale && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
+                <label htmlFor="cfg-scale-range-slider" className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#94a3b8" }}>
                   CFG Scale
                 </label>
                 <span className="text-[12px]" style={{ color: selectedModel.family_color }}>
@@ -4594,6 +4601,8 @@ function VideoPageInner() {
                 </span>
               </div>
               <input
+                id="cfg-scale-range-slider"
+                aria-label={t("CFG Scale slider")}
                 type="range"
                 min={0}
                 max={1}
@@ -4603,7 +4612,7 @@ function VideoPageInner() {
                 className="w-full h-1 rounded outline-none"
                 style={{ accentColor: selectedModel.family_color }}
               />
-              <div className="flex justify-between text-[10px]" style={{ color: "#334155" }}>
+              <div className="flex justify-between text-[10px]" style={{ color: "#94a3b8" }}>
                 <span>Flexible</span>
                 <span>Strict</span>
               </div>
@@ -4957,7 +4966,7 @@ function VideoPageInner() {
                               </button>
                             </>
                           ) : (
-                            <span className="text-[9px]" style={{ color: imgIdx < 2 ? "#a1a1aa" : "#334155" }}>
+                            <span className="text-[9px]" style={{ color: imgIdx < 2 ? "#a1a1aa" : "#94a3b8" }}>
                               {imgIdx < 2 ? "Required" : "Optional"}
                             </span>
                           )}
@@ -5222,8 +5231,8 @@ function VideoPageInner() {
                 ) : pickerGallery.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-40 gap-3">
                     {pickerTab === "images"
-                      ? <ImageIcon size={32} style={{ color: "#334155" }} />
-                      : <Film      size={32} style={{ color: "#334155" }} />
+                      ? <ImageIcon size={32} style={{ color: "#94a3b8" }} />
+                      : <Film      size={32} style={{ color: "#94a3b8" }} />
                     }
                     <p className="text-[12px]" style={{ color: "#94a3b8" }}>
                       No {pickerTab === "images" ? "generated images" : "generated videos"} yet

@@ -8,8 +8,8 @@
   - Applied `fetchPriority="high"` and removed `loading="lazy"` on the Style Library hero card (`/preset/card.webp`) inside `StyleLibraryGatewayCard` in both `app/(dash)/(routes)/video/page.tsx` and `app/(dash)/(routes)/image/page.tsx`.
   - Swapped media fallback order inside `getFallbackUrls` in `lib/utils.ts`. When `_isDownload` is false, it now prioritizes the friendly B2 domain `f003.backblazeb2.com` (which supports HTTP/2 and modern HTTP multiplexing), falling back to S3 direct only if needed. Downloads and API download proxy pass `_isDownload = true` to preserve S3 direct CORS priorities.
   - Resolved switch accessibility warnings by adding `role="switch"`, `aria-checked`, and translated `aria-label` definitions to all 4 settings panel switches (Scene control, Multi-shot, and Sound generation toggles) in `app/(dash)/(routes)/video/page.tsx`.
-  - Overhauled color contrast ratios in the settings panel of `app/(dash)/(routes)/video/page.tsx` by upgrading low-contrast text classes (`#475569` and `#64748b`) to high-contrast slate/zinc equivalents (`#94a3b8` and `#a1a1aa`).
-  - Added explicit translated `aria-label` attributes to all 5 `<select>` dropdowns in `app/(dash)/(routes)/video/page.tsx` (character reference, duration, aspect ratio, orientation, and quality choices).
+  - Linked all `<select>` dropdown labels and range inputs (Duration slider and CFG scale slider) to their corresponding `<label>` tags using explicit `id` and `htmlFor` properties inside `app/(dash)/(routes)/video/page.tsx`, fully resolving the `"Form elements do not have associated labels"` AXE audits.
+  - Overhauled color contrast ratios in the settings panel of `app/(dash)/(routes)/video/page.tsx` by upgrading low-contrast text classes (`#475569`, `#64748b`, and `#334155`) to high-contrast slate/zinc equivalents (`#94a3b8` and `#a1a1aa`), and bumped the character creation link text from `text-slate-500` to `text-slate-400`.
   - Attached explicit `aria-label` tags to icon-only control buttons (dismiss error, clear text, and start/end frame close buttons) in `app/(dash)/(routes)/video/page.tsx`.
 - Affected files:
   - `app/(dash)/(routes)/video/page.tsx`
@@ -20,7 +20,7 @@
 - Verification:
   - TypeScript compilation check (`npx tsc --noEmit`) completed successfully.
 - Decisions:
-  - Prioritizing friendly HTTP/2-enabled B2 URLs inside browser-facing rendering functions fixes LCP/speed issues while keeping downloads robust.
+  - Adding explicit `htmlFor` matches to form control elements ensures absolute compliance across all screen-reader tools.
 
 #### Latest task: Overhaul Contrast Ratios and Form Inputs Accessibility on Image Route (2026-08-01)
 
