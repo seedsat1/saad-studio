@@ -1685,6 +1685,7 @@ export default function ExplorePage() {
             src="/explore/iraq/skyline.png"
             alt="Baghdad Skyline Backdrop"
             className="w-full h-full object-cover opacity-35 scale-105 blur-[2px]"
+            fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#02050e] via-[#02050e]/80 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#02050e] via-transparent to-[#02050e]" />
@@ -2440,7 +2441,7 @@ export default function ExplorePage() {
                         </span>
                       </div>
                       
-                      <h4 className="text-sm font-bold text-zinc-100 leading-snug">{t(item.title)}</h4>
+                      <h3 className="text-sm font-bold text-zinc-100 leading-snug">{t(item.title)}</h3>
                       
                       {/* Small Prompt Display box */}
                       <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed bg-white/[0.02] border border-white/5 rounded-lg p-2 font-mono">

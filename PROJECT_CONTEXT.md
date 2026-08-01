@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Explore Page LCP Image Discovery and Accessibility Heading Hierarchy (2026-08-01)
+
+- Status:
+  Lighthouse report on `/explore` route yielded 85 Performance (due to slow LCP discovery of backdrop image `skyline.png`) and 94 Accessibility (due to skipping header levels by using `<h4>` directly under `<h2>` section headers).
+- Changes made:
+  - Added `fetchPriority="high"` attribute to the LCP backdrop `img` tag (`/explore/iraq/skyline.png`) in `app/(dash)/(routes)/explore/page.tsx` to accelerate browser discovery and asset loading priority.
+  - Converted the `h4` tag to `h3` in the Community Creations card section of `app/(dash)/(routes)/explore/page.tsx`, restoring sequentially-descending heading order.
+- Affected files:
+  - `app/(dash)/(routes)/explore/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Adding `fetchPriority="high"` to hero background images instructs browsers to prioritize them immediately during initial layout parser sweeps, yielding lower LCP, and maintaining uniform `h3` card titles prevents accessibility score drops.
+
 #### Latest task: Fix Heading Elements Hierarchy for Accessibility 100/100 (2026-08-01)
 
 - Status:

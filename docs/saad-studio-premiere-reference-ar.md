@@ -1,5 +1,12 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Explore Page - LCP Optimization and Accessibility Alignment (2026-08-01)
+
+- تحسين أداء استجابة وسرعة جلب الصورة الرئيسية (LCP):
+  - تم إرفاق الواصفة `fetchPriority="high"` على وسم الصورة الخلفية للهيرو `skyline.png` في صفحة الاستكشاف (`app/(dash)/(routes)/explore/page.tsx`). يضمن هذا التعديل قيام المتصفح بالتعرف على ملف الـ LCP فور قراءة الصفحة والبدء بجلب الصورة بأولوية مرتفعة، مما يخفض وقت التحميل بنسبة كبيرة ويرفع مؤشر الأداء (Performance).
+- محاذاة العناوين لتخطي عقبات سهولة الوصول:
+  - قمنا بتحويل وسم عنوان البطاقة في قسم "مشاريع المجتمع" (Community Creations) من `h4` إلى `h3` لاتباع الهيكل التنازلي السليم تحت وسم عنوان القسم `h2` كما تم عمله سابقاً في باقي الأقسام.
+
 ## Accessibility - Heading Hierarchy Semantic Standard (2026-08-01)
 
 - التزام بالتسلسل التنازلي للعناوين (Heading Elements Hierarchy):
