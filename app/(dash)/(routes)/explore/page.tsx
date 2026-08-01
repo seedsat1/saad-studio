@@ -1724,7 +1724,7 @@ export default function ExplorePage() {
             {/* ── Conversational Messages Feed (Nested Inside Prompt Box) ── */}
             {chatHistory.length > 0 && (
               <div className="flex flex-col gap-3 pb-3.5 border-b border-white/5 max-h-[220px] overflow-y-auto pr-1 scrollbar-none">
-                <div className="flex items-center justify-between text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
+                <div className="flex items-center justify-between text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
                   <button
                     type="button"
                     onClick={() => setChatHistory([])}
@@ -1761,7 +1761,7 @@ export default function ExplorePage() {
                   })}
 
                   {isAgentTyping && (
-                    <div className="self-start flex items-center gap-2 bg-violet-600/[0.01] border border-violet-500/5 rounded-xl rounded-tl-none p-3 text-zinc-500 text-xs">
+                    <div className="self-start flex items-center gap-2 bg-violet-600/[0.01] border border-violet-500/5 rounded-xl rounded-tl-none p-3 text-zinc-400 text-xs">
                       <Loader2 size={12} className="animate-spin text-violet-500 shrink-0" />
                       <span>{t("Thinking and writing...")}</span>
                     </div>
@@ -1772,7 +1772,7 @@ export default function ExplorePage() {
             {/* Input Row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <Search className="w-5 h-5 text-zinc-500 shrink-0" />
+                <Search className="w-5 h-5 text-zinc-400 shrink-0" />
                 <input
                   type="text"
                   placeholder={t("Type a prompt...")}
@@ -1995,7 +1995,7 @@ export default function ExplorePage() {
           </div>
         ) : (activeFeed === "featured" ? featured : activeFeed === "trending" ? trending : items).length === 0 ? (
           <div className="w-full py-16 flex flex-col items-center justify-center border border-white/5 rounded-2xl bg-white/[0.01]">
-            <p className="text-sm text-zinc-500 font-medium">{t("No creations published yet.")}</p>
+            <p className="text-sm text-zinc-400 font-medium">{t("No creations published yet.")}</p>
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]">
@@ -2070,7 +2070,7 @@ export default function ExplorePage() {
                     {/* Card Info & Prompt Copy */}
                     <div className="p-4 flex flex-col flex-1 justify-between gap-3 bg-[#080b11]">
                       <div>
-                        <div className="flex items-center justify-between text-[10px] text-zinc-500 font-bold tracking-wider">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold tracking-wider">
                           <span>{item.provider}</span>
                           <span>{new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                         </div>
@@ -2164,7 +2164,7 @@ export default function ExplorePage() {
                 {/* Right Column: Info Panel */}
                 <div className="w-full md:w-[360px] p-6 flex flex-col justify-between border-t md:border-t-0 md:border-l border-white/10 overflow-y-auto">
                   <div>
-                    <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 tracking-wider">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-wider">
                       <span>{activeMediaItem.provider}</span>
                       <span>{new Date(activeMediaItem.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                     </div>
@@ -2178,7 +2178,7 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="mt-5 space-y-1.5">
-                      <label className="text-[10px] font-bold text-zinc-500 tracking-wider uppercase">Prompt</label>
+                      <label className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Prompt</label>
                       <p className="text-xs text-zinc-300 bg-white/[0.02] border border-white/5 rounded-xl p-3 font-mono leading-relaxed select-all text-right">
                         {activeMediaItem.prompt}
                       </p>

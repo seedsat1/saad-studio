@@ -1,5 +1,19 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Improve Text Contrast Ratio in Explore Page for Accessibility Compliance (2026-08-01)
+
+- Status:
+  Lighthouse accessibility report flagged elements with low contrast ratio (`Background and foreground colors do not have a sufficient contrast ratio.`) on the `/explore` page. Specifically, metadata text (author/date spans and prompt labels) using `text-zinc-500` on a dark `#080b11` background had a contrast ratio below the 4.5:1 WCAG AA threshold.
+- Changes made:
+  - Updated all low-contrast `text-zinc-500` classes to `text-zinc-400` inside the feed card meta headers, creation info panels, search input icons, assistant chat feeds, and blank state panels in `app/(dash)/(routes)/explore/page.tsx`, bringing the text-to-background contrast ratio to 7.09:1 (well above the 4.5:1 minimum).
+- Affected files:
+  - `app/(dash)/(routes)/explore/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Replacing `text-zinc-500` with `text-zinc-400` on dark backgrounds satisfies WCAG contrast rules without breaking aesthetic harmony.
+
 #### Latest task: Fix Explore Page LCP Image Discovery and Accessibility Heading Hierarchy (2026-08-01)
 
 - Status:
