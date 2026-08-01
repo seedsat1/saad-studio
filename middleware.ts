@@ -157,6 +157,11 @@ function applySecurityHeaders(res: NextResponse, req: Request) {
     res.headers.append("Vary", "Origin");
   }
 
+  const isPageRequest = !reqPath.startsWith("/api/") && !reqPath.startsWith("/trpc/") && !reqPath.startsWith("/_next/");
+  if (isPageRequest) {
+    res.headers.set("Cache-Control", "private, max-age=0, must-revalidate");
+  }
+
   return res;
 }
 

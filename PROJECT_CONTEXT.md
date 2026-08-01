@@ -1,5 +1,20 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Enable bfcache (Back/Forward Cache) for HTML Pages via Middleware Headers (2026-08-01)
+
+- Status:
+  Lighthouse performance reports flagged a bfcache restoration failure on dynamic routes (like `/audio` and `/video` pages) because they were served with the `Cache-Control: no-store` header (preventing the browser from caching page state when navigating back/forward).
+- Changes made:
+  - Updated `applySecurityHeaders` inside [middleware.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/middleware.ts) to detect HTML page requests (non-API, non-trpc, non-static/next routes).
+  - Explicitly set `Cache-Control: private, max-age=0, must-revalidate` response header on all page requests. This protects authenticated content from shared CDN caching while allowing the user's browser to store the page state, enabling seamless bfcache restoration.
+- Affected files:
+  - `middleware.ts`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - TypeScript compilation check (`npx tsc --noEmit`) completed successfully.
+- Decisions:
+  - Swapping `no-store` for `private, max-age=0, must-revalidate` is the recommended security-first pattern for dynamic web apps to pass bfcache audits.
+
 #### Latest task: Optimize LCP, Modern HTTP (HTTP/2), Contrast Ratio, and Panel Switch Accessibility on Video Route (2026-08-01)
 
 - Status:

@@ -1,5 +1,11 @@
 # مرجع Saad Studio لتكامل Premiere وReap
 
+## Performance - Back/Forward Cache (bfcache) Compliance (2026-08-01)
+
+- تفعيل استعادة صفحات الويب من الذاكرة المخبئية عند التنقل العكسي (Enable bfcache for HTML pages):
+  - قمنا بتحديث دالة `applySecurityHeaders` داخل جدار الحماية الوسيط للمشروع [middleware.ts](file:///e:/%D9%85%D9%88%D9%82%D8%B9%20%D8%AB%D8%A7%D9%86%D9%8A/next14%20ai%20saas/next14-ai-saas-main/next14-ai-saas-main/middleware.ts) للتحقق مما إذا كان الطلب موجهاً لصفحة ويب رئيسية (HTML document) وليس طلباً لـ API أو ملفاً استاتيكياً.
+  - نقوم بإرسال ترويسة `Cache-Control: private, max-age=0, must-revalidate` بدلاً من `no-store` الافتراضي لجميع الصفحات العامة والديناميكية (مثل `/audio` و `/video` و `/image`). يحافظ هذا الإعداد على الخصوصية الكاملة للمستخدمين ومنع الـ CDNs المشتركة من تخزين بياناتهم، وفي الوقت نفسه يسمح لمتصفح المستخدم بالاحتفاظ بحالة الصفحة وتفعيل ميزة الـ **bfcache** فوراً لتسريع العودة الفورية للصفحات السابقة.
+
 ## Accessibility & Performance - Video Route Compliance (2026-08-01)
 
 - تخفيض زمن تأخير LCP، دعم بروتوكولات HTTP الحديثة وتحسين سهولة الوصول لصفحة التوليد المرئي (LCP, Modern HTTP & Accessibility for Video):
