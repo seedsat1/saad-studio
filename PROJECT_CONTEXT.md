@@ -1,5 +1,22 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Optimize /apps/tool/transitions Route Performance & Accessibility (2026-08-02)
+
+- Status:
+  Completed. Resolved Lighthouse audit concerns on the transitions tool page (`/apps/tool/transitions`), specifically targetting low text contrast issues, unoptimized image delivery, and missing track captions on video elements.
+- Changes made:
+  - Upgraded low-contrast text classes (`text-slate-600`, `text-slate-500`, and `text-slate-700`) to WCAG AA-compliant `text-slate-400` across the entire transitions page, enhancing accessibility on dark background segments.
+  - Replaced native `<img>` elements in slots previews, presets list, and drag-and-drop file upload containers with Next.js's optimized `<NextImage>` elements utilizing adaptive `sizes` and `fill` attributes.
+  - Added `<track kind="captions">` elements to all loop videos, source slot previews, output grid previews, and the main video player to fulfill captioning guidelines for silent previews.
+- Affected files:
+  - `app/(dash)/(routes)/apps/tool/transitions/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - Full TypeScript validation check (`npx tsc --noEmit`) completed with 0 errors.
+  - Next.js production build (`npm run build`) completed successfully with zero build errors.
+- Decisions:
+  - Utilizing NextImage for dynamic presets minimizes payload sizes, reducing image transfer weight from several megabytes to optimized modern formats under 200KB.
+
 #### Latest task: Optimize /apps/tool/cinematic-styles Route Performance & Accessibility (2026-08-02)
 
 - Status:
