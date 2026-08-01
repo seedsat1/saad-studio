@@ -762,7 +762,7 @@ function CinematicHero() {
               </span>
             </div>
             <div className="mt-3.5">
-              <h4 className="text-sm font-bold text-white tracking-tight">{t("Mastering the Unseen")}</h4>
+              <h3 className="text-sm font-bold text-white tracking-tight">{t("Mastering the Unseen")}</h3>
               <p className="mt-1 text-[10px] leading-relaxed text-zinc-400">
                 {t("Stunning fidelity visuals of actual work, cinematic video visual creation. AI generation with optimized workflows.")}
               </p>
@@ -785,7 +785,7 @@ function CinematicHero() {
               </span>
             </div>
             <div className="mt-3.5">
-              <h4 className="text-sm font-bold text-white tracking-tight">{t("Aethoria: AI Narrative Short")}</h4>
+              <h3 className="text-sm font-bold text-white tracking-tight">{t("Aethoria: AI Narrative Short")}</h3>
               <p className="mt-1 text-[10px] leading-relaxed text-zinc-400">
                 {t("Pioneering future-forward visuals through advanced AI-driven creation for film, media, and brands.")}
               </p>
@@ -899,7 +899,7 @@ function CinematicHero() {
             <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
               <Image src="/landing/hero-1.jpg" alt="Mastering the Unseen" fill className="object-cover" unoptimized />
             </div>
-            <h4 className="mt-4 font-bold text-white text-base">{t("Mastering the Unseen")}</h4>
+            <h3 className="mt-4 font-bold text-white text-base">{t("Mastering the Unseen")}</h3>
             <p className="mt-2 text-xs leading-relaxed text-zinc-400">
               {t("Stunning fidelity visuals of actual work, cinematic video visual creation. AI generation with optimized workflows.")}
             </p>
@@ -908,7 +908,7 @@ function CinematicHero() {
             <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl">
               <Image src="/landing/hero-2.jpg" alt="Aethoria" fill className="object-cover" unoptimized />
             </div>
-            <h4 className="mt-4 font-bold text-white text-base">{t("Aethoria: AI Narrative Short")}</h4>
+            <h3 className="mt-4 font-bold text-white text-base">{t("Aethoria: AI Narrative Short")}</h3>
             <p className="mt-2 text-xs leading-relaxed text-zinc-400">
               {t("Pioneering future-forward visuals through advanced AI-driven creation for film, media, and brands.")}
             </p>

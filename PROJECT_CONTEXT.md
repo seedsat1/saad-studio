@@ -1,5 +1,19 @@
 # Saad Studio Project Context Update
 
+#### Latest task: Fix Heading Elements Hierarchy for Accessibility 100/100 (2026-08-01)
+
+- Status:
+  Lighthouse accessibility report yielded 98/100 because heading tags were not sequentially-descending (specifically `<h4>` was used in hero/feature grid cards directly under section `<h2>`, skipping `<h3>`).
+- Changes made:
+  - Updated all 4 instances of `h4` card header tags in the landing page (`app/(landing)/page.tsx`) to `h3`, resolving the semantic hierarchy warning in Lighthouse.
+- Affected files:
+  - `app/(landing)/page.tsx`
+  - `PROJECT_CONTEXT.md`
+- Verification:
+  - `npx tsc --noEmit --pretty false` type check passed with 0 errors.
+- Decisions:
+  - Conforming strictly to descending heading order (`h1` -> `h2` -> `h3` -> `h4`) guarantees full accessibility compliance and hits the perfect 100/100 score in Lighthouse tests.
+
 #### Latest task: Fix Extend Video Redirection and Query Parameter Initialization (2026-08-01)
 
 - Status:
